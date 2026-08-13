@@ -610,3 +610,29 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 撞到的前置 bug：`claude-opus-5` 是**整數版號**，而 Go 的 `claudeFamilyRe` 只認 `major-minor`，直接換 pin 會讓 `DisplayName` 把生 id 寫進 provenance、`HarnessName` 回 `Unknown Harness`。已修成 optional minor group 並加 regression test。教訓：**Claude 5 世代的命名換了形狀，任何靠 regex 解析 model id 的地方都要先驗一次**，不要假設 4.x 的 `major-minor` 還成立。
 - 一併收的 drift：`OPUS_ALIAS_CURRENT` 還寫 `claude-opus-4-8`，但實測 `claude -p --model opus --output-format json` 的 `modelUsage` key 已經是 `claude-opus-5`。
 - ⚠️ **待 ShroomDog 決定的副作用**：2026-06-18 刻意讓 Fresh Eyes / Fact Checker / Librarian 走浮動 `opus`，理由是「用跟 writer 不同代的 model 當陌生讀者，才抓得到 writer 同代看不到的盲點」。alias 現在也解析到 `claude-opus-5`，所以 **writer 跟這三個 judge 暫時是同一個 model，那個 model diversity 目前等於 0**。要救有兩條路：把 Fresh Eyes pin 到前一代（例如 4.5）換回 diversity，或接受「同代但 zero-context」已經夠當陌生讀者。這不是 agent 能自己定的品味決策，先記著。
+
+## 2026-08-09 — GPT-Live 英語口說陪練：看完整潛力，MoguNote 用吐槽守事實邊界
+
+### Feedback: 主軸是低壓、可重複的練習，不要把免費額度寫成整篇世界觀
+
+- ShroomDog feedback：喜歡「如何把 GPT-Live 變成低壓、可重複的口說陪練」這個 angle；同時要求從 Free user 與 paid subscriber 兩邊寫，不要一天到晚只考慮免費使用者的處境，文章應該更關心 AI 的完整潛力。
+- 情境：來源用「零元取代外教」當最大賣點，但 GPT-Live 真正值得寫的是把口說練習量從昂貴、稀缺的人力，變成可以隨時卡詞、重講、重刷情境的日常資源。Free tier 的限制需要交代，卻不該主導全文。
+- 修法：正文同時呈現 Free user 如何先驗證練法，以及 paid subscriber 如何把較高額度與較強模型變成長期訓練環境；主敘事放在 AI 陪練的完整能力與學習方法如何改變。標題定為「把 GPT‑Live 變成有耐心到離譜的口說陪練」。
+- Reusable lesson：價格與免費額度是產品事實，不一定是文章 spine。當 source 用「免費」搶眼球、而真正的新東西是能力邊界或行為改變時，完整交代各方案視角，敘事重心留給更耐久的 mental model。
+
+### Feedback: 事實校正要長成吐槽與洞見，不要把 MoguNote 寫成糾察隊
+
+- ShroomDog feedback：讀者不會喜歡看純校正；MoguNote 應該用吐槽、浮誇或有趣的方式守住事實邊界。另指出反覆使用「不是……而是……」是 classic AI slop。
+- 情境：來源宣稱「英文老師可以下崗」、免費無限練習、噪音免疫。GP 仍要保留 source 的刀口，但若 MoguNote 只逐條糾正，文章會像查核報告；若用反義對偶包裝每個修正，又會落進既有 T1 AI-tell。
+- 修法：保留這段指定 MoguNote，不得由 writer、refiner 或 rewrite loop 改寫：
+
+  > 原作者喊「英文老師可以回家了」喊得像裁員大會。AI 大概會先搶走口說陪練最磨人的苦工：陪人卡詞、重來、同一句念一百遍。真人英文老師則能少當一點沙包、多做一點教練。畢竟付老師薪水請他站著挨拳，怎麼算都有點浪費。
+
+- Reusable lesson：Fact boundary 可以有娛樂性。先保留 source claim，再讓 MoguNote 用具體角色與動作說清楚能力重分配；不要把每個 caveat 寫成板著臉的更正，也不要靠「不是 X、而是 Y」製造假金句。
+
+### Feedback: 台灣英語教學語境用「英文老師」，不用「外教」或「下崗」
+
+- ShroomDog feedback：台灣人不會說「外教」；「外師」通常指外籍教師，這篇則應該寫「外語老師」或「英文老師」。在指定 MoguNote 的薪資語境裡，「老師」也比「教練」合適。
+- 情境：來源是簡體中文，把線上英語口說教師統稱「外教」，並使用「下崗」。照字面轉成繁中仍然不是台灣中文，也可能把「教授英文」誤縮成「教師具有外籍身分」。
+- 修法：本文預設用「英文老師」；要對比 AI 時可寫「真人英文老師」；只有身分本身承重時才寫「外籍英文老師」。`下崗` 依語境改成「失業」或「可以回家了」。
+- Reusable lesson：簡轉繁不只是換字形。人物稱呼要按台灣情境選最直接的職能名稱；國籍沒有承載論點時，不要把它硬留在教師稱呼裡。

@@ -4,6 +4,7 @@ import LanguageToggle from '../components/LanguageToggle.astro';
 import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
+import { buildCanonicalUrl } from './canonical-url';
 
 interface Props {
   title: string;
@@ -17,7 +18,7 @@ interface Props {
 const { title, description, lang = 'zh-tw', image, noindex = false, markdownUrl } = Astro.props;
 
 const currentPath = Astro.url.pathname;
-const canonicalURL = new URL(currentPath, Astro.site).href;
+const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
 const ogImage = image ? new URL(image, Astro.site).href : new URL('/og-image.png', Astro.site).href;
 
 // i18n content
@@ -183,12 +184,16 @@ const finalDescription = description || t.defaultDescription;
         color: var(--color-text);
         text-decoration: none;
         white-space: nowrap;
-        flex-shrink: 0;
+        flex-shrink: 1;
+        min-width: 40px;
         min-height: 44px;
+        overflow: hidden;
       }
 
       .site-title-text {
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       @media (max-width: 389px) {

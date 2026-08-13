@@ -6,6 +6,11 @@
       "owner": "ShroomDog",
       "reason": "Mobile/desktop viewport overflow regressions ship broken layout instantly. Merged from the standalone `overflow` job into `e2e-core` (4 consecutive --retries=0 runs of the full 7-spec blocking set, 0 failures, 2026-07-18) — one fewer job, same coverage."
     },
+    "tests/ios-dynamic-type.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "iPhone Safari 是主要閱讀介面；以 390px viewport 與 200% 文字大小阻擋首頁或文章頁的水平溢位，Mobile Safari 執行時再驗證 iOS Dynamic Type root metric。"
+    },
     "tests/search.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",

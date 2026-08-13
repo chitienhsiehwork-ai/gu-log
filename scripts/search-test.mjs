@@ -90,24 +90,24 @@ class TestRunner {
 
 async function testSearchIconOpensInput(runner, page) {
   // Find search trigger and click it
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
-  // Check that container has data-open="true"
-  const container = page.locator('.search-container');
-  const isOpen = await container.getAttribute('data-open');
-  runner.assert(isOpen === 'true', 'Expected search container to be open');
+  // Check that the modal is exposed to assistive technology
+  const modal = page.locator('[data-search-modal]');
+  const ariaHidden = await modal.getAttribute('aria-hidden');
+  runner.assert(ariaHidden === 'false', 'Expected search modal to be open');
 
   // Check that input is visible and focused
-  const input = page.locator('.search-input');
+  const input = page.locator('[data-search-input]');
   const isVisible = await input.isVisible();
   runner.assert(isVisible, 'Expected search input to be visible');
 }
 
 async function testEscapeClosesSearch(runner, page) {
   // Open search first
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
@@ -115,17 +115,17 @@ async function testEscapeClosesSearch(runner, page) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(ANIMATION_WAIT);
 
-  // Check that container is closed
-  const container = page.locator('.search-container');
-  const isOpen = await container.getAttribute('data-open');
-  runner.assert(isOpen === 'false', 'Expected search container to be closed after Escape');
+  // Check that modal is closed
+  const modal = page.locator('[data-search-modal]');
+  const ariaHidden = await modal.getAttribute('aria-hidden');
+  runner.assert(ariaHidden === 'true', 'Expected search modal to be closed after Escape');
 }
 
 async function testKeyboardShortcut(runner, page, isMac = true) {
   // Make sure search is closed first
-  const container = page.locator('.search-container');
-  let isOpen = await container.getAttribute('data-open');
-  if (isOpen === 'true') {
+  const modal = page.locator('[data-search-modal]');
+  let ariaHidden = await modal.getAttribute('aria-hidden');
+  if (ariaHidden === 'false') {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(ANIMATION_WAIT);
   }
@@ -136,44 +136,39 @@ async function testKeyboardShortcut(runner, page, isMac = true) {
   await page.waitForTimeout(ANIMATION_WAIT);
 
   // Check that search is open
-  isOpen = await container.getAttribute('data-open');
-  runner.assert(isOpen === 'true', `Expected ${modifier}+K to open search`);
+  ariaHidden = await modal.getAttribute('aria-hidden');
+  runner.assert(ariaHidden === 'false', `Expected ${modifier}+K to open search`);
 }
 
 async function testSearchShowsResults(runner, page, query) {
   // Open search
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
   // Type query
-  const input = page.locator('.search-input');
+  const input = page.locator('[data-search-input]');
   await input.fill(query);
 
-  // Wait for debounce + results
-  await page.waitForTimeout(300);
-
-  // Check that results are visible
   const resultItems = page.locator('.search-result-item');
+  await resultItems.first().waitFor({ state: 'visible', timeout: 8000 });
   const count = await resultItems.count();
   runner.assert(count > 0, `Expected results for query "${query}", got ${count}`);
 }
 
 async function testNoResultsMessage(runner, page, lang) {
   // Open search
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
   // Type nonsense query
-  const input = page.locator('.search-input');
+  const input = page.locator('[data-search-input]');
   await input.fill(NO_RESULTS_QUERY);
-
-  // Wait for debounce
-  await page.waitForTimeout(300);
 
   // Check for "no results" message
   const noResults = page.locator('.search-no-results');
+  await noResults.waitFor({ state: 'visible', timeout: 8000 });
   const isVisible = await noResults.isVisible();
   runner.assert(isVisible, 'Expected "no results" message to be visible');
 
@@ -185,19 +180,19 @@ async function testNoResultsMessage(runner, page, lang) {
 
 async function testArrowKeyNavigation(runner, page, query) {
   // Open search and type query
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
-  const input = page.locator('.search-input');
+  const input = page.locator('[data-search-input]');
   await input.fill(query);
-  await page.waitForTimeout(300);
+  const firstItem = page.locator('.search-result-item').first();
+  await firstItem.waitFor({ state: 'visible', timeout: 8000 });
 
   // Press ArrowDown
   await page.keyboard.press('ArrowDown');
 
   // Check that first item has 'selected' class
-  const firstItem = page.locator('.search-result-item').first();
   const hasSelected = await firstItem.evaluate((el) => el.classList.contains('selected'));
   runner.assert(hasSelected, 'Expected first item to be selected after ArrowDown');
 
@@ -216,17 +211,17 @@ async function testArrowKeyNavigation(runner, page, query) {
 
 async function testLanguageFiltering(runner, page, lang) {
   // Open search
-  const trigger = page.locator('.search-trigger');
+  const trigger = page.locator('[data-search-trigger]');
   await trigger.click();
   await page.waitForTimeout(ANIMATION_WAIT);
 
   // Type a common query
-  const input = page.locator('.search-input');
+  const input = page.locator('[data-search-input]');
   await input.fill('Claude');
-  await page.waitForTimeout(300);
 
   // Get all result links
   const results = page.locator('.search-result-item');
+  await results.first().waitFor({ state: 'visible', timeout: 8000 });
   const count = await results.count();
 
   if (count > 0) {

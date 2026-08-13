@@ -47,6 +47,41 @@ func SetupWorkDir(s *State) (cleanup func(), err error) {
 	return cleanup, nil
 }
 
+// stageEditorialContext mirrors the canonical editorial inputs into the
+// scratch work directory before an editorial provider runs. Providers use
+// WorkDir as their only reliable filesystem context, so relative references
+// in write/review/refine prompts cannot depend on access to RepoRoot.
+func (s *State) stageEditorialContext() error {
+	if s == nil || s.Cfg == nil {
+		return fmt.Errorf("stage editorial context: pipeline config is nil")
+	}
+	type contextFile struct {
+		source string
+		dest   string
+	}
+	files := []contextFile{
+		{s.Cfg.WritingGuide, "GU-LOG_WRITER_PROMPT.md"},
+		{filepath.Join(s.Cfg.RepoRoot, "CONTRIBUTING.md"), "CONTRIBUTING.md"},
+		{filepath.Join(s.Cfg.RepoRoot, "docs", "shroomdog-editorial-feedback.md"), filepath.Join("docs", "shroomdog-editorial-feedback.md")},
+		{filepath.Join(s.Cfg.RepoRoot, "openspec", "specs", "editorial-charter", "spec.md"), filepath.Join("openspec", "specs", "editorial-charter", "spec.md")},
+		{filepath.Join(s.Cfg.RepoRoot, "scripts", "vibe-scoring-standard.md"), filepath.Join("scripts", "vibe-scoring-standard.md")},
+	}
+	for _, file := range files {
+		data, err := os.ReadFile(file.source)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", file.source, err)
+		}
+		dest := filepath.Join(s.WorkDir, file.dest)
+		if err := os.MkdirAll(filepath.Dir(dest), 0o755); err != nil {
+			return fmt.Errorf("create context directory for %s: %w", file.dest, err)
+		}
+		if err := os.WriteFile(dest, data, 0o644); err != nil {
+			return fmt.Errorf("write staged %s: %w", file.dest, err)
+		}
+	}
+	return nil
+}
+
 // Run executes the full pipeline end-to-end: Fetch → Eval → Dedup → Write
 // → Review → Refine → Credits → Ralph → Deploy → Summary. Each step
 // honors s.FromStepInt so callers can resume partway through.

@@ -193,12 +193,22 @@ html {
   scroll-padding-top: 80px;
 }
 
+/* Safari does not map rem units to the user's iOS text-size preference.
+   Use the Dynamic Type root metric on touch WebKit without changing desktop Safari. */
+@supports (font: -apple-system-body) {
+  @media (hover: none) {
+    html {
+      font: -apple-system-body;
+    }
+  }
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.7;
-  padding: var(--spacing-sm);
+  padding: clamp(16px, var(--spacing-sm), 24px);
   min-height: 100vh;
   transition:
     background 0.3s ease,
@@ -297,7 +307,7 @@ a:hover {
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: var(--spacing-sm);
+  padding: clamp(16px, var(--spacing-sm), 24px);
 }
 
 /* Code */
@@ -814,10 +824,12 @@ blockquote.mogu-note br {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .ticket-wrapper .ticket-badge {
   display: inline-block;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;

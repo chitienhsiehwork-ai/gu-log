@@ -151,13 +151,14 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
-  it('blocks framing globally while preserving bounded Markdown Content-Type rules', () => {
+  it('blocks framing and MIME sniffing globally while preserving bounded Markdown Content-Type rules', () => {
     expect(config.headers).toEqual([
       {
         source: '/(.*)',
         headers: [
           { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
           { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
         ],
       },
       {

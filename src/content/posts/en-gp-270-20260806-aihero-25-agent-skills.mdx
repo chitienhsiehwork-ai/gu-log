@@ -1,0 +1,214 @@
+---
+ticketId: "GP-270"
+title: "Matt Pocock's 25 Agent Skills: Align First, Then Write Code"
+originalDate: '2026-04-30'
+translatedDate: "2026-08-06"
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok Build CLI"
+
+
+
+
+
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Luna"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Luna"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Luna"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Matt Pocock / AI Hero"
+sourceUrl: 'https://www.aihero.dev/skills'
+lang: 'en'
+summary: 'Matt Pocock’s catalog bundles 25 small, composable agent skills: 18 for engineering and 7 for productivity. Here’s how the two install paths differ, how human- and model-triggered skills divide responsibility, and how the pack handles alignment, specs, implementation, feedback, and upkeep.'
+tags: ['ai-agents', 'developer-tools', 'claude-code', 'engineering']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-06"
+    model: "grok-4.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Building real apps is hard. Some approaches take over the whole path from spec through tickets, implementation, and delivery. They mean well, but they also take the control with them. When the flow itself has a [bug](/en/glossary#bug), it's hard for the user to swap out only the broken piece.
+
+The fix goes the other way: a pile of **small, editable, composable** [agent](/en/glossary#agent) [Skills](/en/glossary#skill) for people who actually do engineering—not a [Vibe Coding](/en/glossary#vibe-coding) toy box. The entry point is the [official directory](https://www.aihero.dev/skills); the source lives in [GitHub `mattpocock/skills`](https://github.com/mattpocock/skills); the whole package is under the **MIT** license. There are **25** skills in total: **18** engineering, **7** productivity. Any model can use them. At the root, decades of engineering experience are compressed into repeatable steps.
+
+Each skill can be used alone or combined with others as needed. If one piece is bad, you only change that piece.
+
+<MoguNote summary="Why small skills beat one big black box">
+"For real engineers, not vibe coding" is a sharp line—but the blade is pointed the right way: agents speed up writing code, and they also speed up software rot. gu-log itself uses a [tribunal](/posts/sd-10-20260322-ralph-loop-quality-system) to review process and keeps lessons in runbooks; that flow also depends on small skills you can keep fixing, not one big black box nobody can touch.
+
+On this site, [GP-118](/posts/gp-118-20260318-trq212-claude-code-skills-lessons) already covered Claude Code skill categories and footguns, and [GP-195](/posts/gp-195-20260507-yage-skill-plugin-evolution) compared how Skills and [Plugins](/en/glossary#plugin) layer. What's new in this post is how Matt slots 25 skills into day-to-day engineering.
+</MoguNote>
+
+## Two install paths: subscribe vs edit yourself
+
+Getting in takes about thirty seconds, but the philosophy is different. **Pick one**—installing both makes every skill show up twice.
+
+**Path one: [Claude Code](/en/glossary#claude-code) [plugin](/en/glossary#plugin) (subscribe, read-only, auto-updates)**
+
+```bash
+claude plugins install mattpocock-skills
+```
+
+Or in chat:
+
+```
+/plugin install mattpocock-skills
+```
+
+It's already on the Claude Code official marketplace; no need to add a source first. When upstream ships updates, they follow. This is "subscribe to the whole pack," not forking it yourself.
+
+**Path two: `npx skills` (editable, lands in the [repo](/en/glossary#repo))**
+
+For [Codex](/en/glossary#codex) and other agents:
+
+```bash
+npx skills@latest add mattpocock/skills
+```
+
+The installer lets you pick skills and target agents. Matt is explicit: **always check `setup-matt-pocock-skills`**, or a bunch of later flows will miss their starting config. A native Codex plugin is still planned.
+
+If you like to edit things yourself, the same command can install into any agent including Claude Code: files land in the repo, belong to the project, and you can change them. Nothing updates behind your back; when you want the latest upstream, run `npx skills update`.
+
+After install, in the agent run `/setup-matt-pocock-skills` **once per repo**. It asks for your issue tracker (GitHub, [Linear](/en/glossary#linear), or local files), triage labels (`/triage` moves on labels), and where output docs should live. Once that's set, you can start.
+
+<MoguNote>
+Subscribe = less fuss, less risk of a fork falling behind upstream; edit yourself = control stays with you, updates are on you. Same class of choice as "should I fork someone else's CLAUDE.md." Install both and you get double skills—not "more complete," just a mess over which copy to listen to.
+</MoguNote>
+
+---
+
+## Why this pack exists: four common agent failure modes
+
+These skills aren't for showing off. They exist to fix **recurring** failure modes on Claude Code, Codex, and other coding agents.
+
+### 1. The [agent](/en/glossary#agent) didn't build what you wanted
+
+The most common software failure is **misalignment**. You thought they understood; you see the deliverable and it's not that at all. Same in the AI era: there's a communication gap between humans and agents.
+
+The fix is an **interrogation-style interview**—force the agent to nail down the details before it starts.
+
+- `/grill-me`: non-code use
+- `/grill-with-docs`: same family, but with a pile of engineering extras (below)
+
+These two are the most popular skills in the pack. Every time you're about to change something, use one of them first.
+
+### 2. The agent talks too much and throws jargon around
+
+At the start of a project, engineers and domain experts often speak different languages. Drop an agent into the project and it invents jargon as it goes—so what one word could cover takes twenty detours.
+
+The fix is a **shared language**: a document that lets the agent decode the project's slang. The [`CONTEXT.md`](https://github.com/mattpocock/course-video-manager/blob/076a5a7a182db0fe1e62971dd7a68bcadf010f1c/CONTEXT.md) from `course-video-manager` is a brutal before/after:
+
+- **Before**: "things break when a lesson inside a course section is made 'real' (i.e. has a place on the filesystem)"
+- **After**: "`materialization cascade` is broken"—the short project term for "the chain reaction when course content lands on the filesystem"
+
+That kind of compression saves [tokens](/en/glossary#token) and brainpower round after round. `/grill-with-docs` is: interrogate while building a domain model, sharpening terms, and updating `CONTEXT.md` plus ADRs (architecture decision records—where you write down why you picked this path). Matt thinks this may be the coolest move in the whole pack.
+
+Shared language spills outward too: consistent variables, functions, and filenames → a codebase that's easier to navigate → agents burn fewer tokens thinking.
+
+### 3. The code just won't run
+
+Aligned, but the output is still garbage? Look at the **feedback loop**. Without static types, a browser, or automated tests, the agent is flying blind.
+
+For tests, **red–green–refactor** matters: write a failing test first, then fix until green. `/tdd` drops into any project, pushes that loop, and is explicit about what good tests look like versus bad ones. For debugging there's `/diagnosing-bugs`: a staged diagnostic cycle with gates.
+
+### 4. You built a ball of mud
+
+Agents make writing code faster—and they also accelerate **software entropy**. Most agent-built apps are complex and hard to change.
+
+The fix is caring about code design every day.
+
+- `/to-spec` asks which modules will be touched before writing a spec
+- `/improve-codebase-architecture` scans the codebase for chances to "deepen modules"—small interfaces, lots of behavior, clean boundaries—then produces a visual HTML report and grills the options
+
+It's **survey, not rescue**: on an old codebase it will find real candidates, but **it will not un-mud the whole ball for you**.
+
+Software engineering fundamentals matter more than ever. This pack compresses those fundamentals into repeatable practice so engineers can ship some of the best apps of their careers.
+
+<MoguNote summary="Why architecture upkeep becomes triage, not taste">
+The four failure modes map cleanly onto a workflow: grill until aligned → build shared language → close the feedback loop → keep architecture maintenance daily. Not "install a few more [prompt](/en/glossary#prompt) files," but familiar engineering discipline stuffed into buttons an agent presses every day.
+
+It looks retro—but once agents accelerate software entropy, design maintenance stops being a taste question and becomes a bleed-stop. Matt's suggestion is to run `/improve-codebase-architecture` every few days; that's a maintenance cadence, not another hard rule. (⌐■_■)
+</MoguNote>
+
+---
+
+## Who presses the button decides whether the flow runs away
+
+The directory splits skills by **who can start them**. **Human-triggered** skills orchestrate whole flows; they only move when a person types a command. **Model-triggerable** skills hold reusable engineering discipline; the agent can reach for them when the task fits.
+
+The boundary is hard: human-triggered skills may call model-triggerable ones, but must not call another human-triggered skill. Otherwise two conductors nest each other, and you grow right back into the "whole pack takes over" design this set is trying to avoid.
+
+## 18 engineering skills: the seams beyond the main chain
+
+The four failure modes already cover alignment, terminology, tests, and architecture maintenance. What's left is the seams after a change lands: how tickets get split, who starts work, and how to detour when you're stuck.
+
+The main chain is short: `/setup-matt-pocock-skills` (once per repo) → `/ask-matt` when unclear → only after the interview converges, `/to-spec` → `/to-tickets` splits work into verifiable tickets with blocking relationships marked → `/implement` starts, calling `/tdd` at the pre-agreed module entry points, then `/code-review` at the end against repo norms and the original spec. Human-triggered skills sequence the flow; model-triggerable skills guard discipline at each step.
+
+When the work is too big for one chat, `/wayfinder` turns unknown questions into a decision-ticket map; `/triage` keeps grooming the backlog and external [PRs](/en/glossary#pr). When you're stuck you don't have to tear the whole system down: `/prototype` for throwaway prototypes, `/research` for credible primary sources, `/diagnosing-bugs` to narrow scope and add regression tests; vocabulary drift goes to `/domain-modeling`, muddy module boundaries to `/codebase-design`. Day to day there's also `/resolving-merge-conflicts` (resolve by both sides' intent) and `/wizard`—only for credentials, third-party consoles, or one-shot flips that agents can't do and a human must operate.
+
+<MoguNote>
+The first easy footgun is treating `/grill-with-docs` and `/to-spec` as synonyms. The former is "I haven't thought it through yet—grill me until I have." The latter is "we've said enough—synthesize the spec." One explores; one converges. Reverse the order and you get a very well-formatted spec that still hasn't been thought through.
+</MoguNote>
+
+## The other 7: not about code
+
+Outside the engineering chain is a set of general tools. `/grill-me` applies the same interrogation to non-code plans and design; the shared underlying `/grilling` is also the interview primitive for several engineering skills. `/handoff` compresses the current conversation into a handoff doc so the next agent doesn't have to guess from zero; `/teach` treats the directory as a teaching workspace with memory and teaches one concept across multiple rounds.
+
+When a decision one person can't answer shows up, `/to-questionnaire` first clarifies who the questionnaire goes to and what you need back, then produces a version for them to fill in. When you simply didn't understand the last sentence, `/wait-what` re-explains with the missing context and project vocabulary. Finally, `/writing-for-agents` is specifically for skills, `AGENTS.md`, `CLAUDE.md`, and other docs written for agents to read.
+
+<MoguNote>
+`/grilling` is the pack's invisible lead; `/handoff` is the insurance policy for long runs. Context fills up and agents get swapped; without compressing judgment into a handoff doc, every handoff is another lottery draw on memory.
+
+The most worth copying from this directory isn't any single command—it's the seams it leaves: interview, spec, test, and review each as a small piece. If one piece is bad, change that piece.
+</MoguNote>
+
+Big process frameworks take control away. Small skills let engineers edit them and make them their own. Full names and the latest versions are in the [official directory](https://www.aihero.dev/skills).
