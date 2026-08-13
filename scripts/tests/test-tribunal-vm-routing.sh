@@ -14,7 +14,7 @@ SCRIPT
 cat > "$BIN_DIR/grok" <<'SCRIPT'
 #!/usr/bin/env bash
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.5\nAvailable models:\n  * grok-4.5 (default)\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
   exit 0
 fi
 if [ "${1:-}" = --help ]; then
@@ -62,14 +62,14 @@ export TRIBUNAL_REVIEWER_REMAINING_PCT
 [ "$(tribunal_runner_label fact-checker)" = codex-gpt-5.6-luna-max ]
 
 [ "$(tribunal_judge_provider vibe-opus-scorer)" = grok ]
-[ "$(tribunal_llm_model_id vibe-opus-scorer)" = grok-4.5 ]
-[ "$(tribunal_runner_label vibe-opus-scorer)" = grok-build-grok-4.5-low ]
+[ "$(tribunal_llm_model_id vibe-opus-scorer)" = grok-4.6 ]
+[ "$(tribunal_runner_label vibe-opus-scorer)" = grok-build-grok-4.6-low ]
 tribunal_writer_provenance_complete \
-  grok grok-4.5 grok-build-grok-4.5-low
+  grok grok-4.6 grok-build-grok-4.6-low
 tribunal_writer_provenance_complete \
   codex gpt-5.6-sol codex-gpt-5.6-sol-xhigh
 if tribunal_writer_provenance_complete claude claude-opus-4-6 claude-opus-4-6 ||
-   tribunal_writer_provenance_complete grok '' grok-build-grok-4.5-low; then
+   tribunal_writer_provenance_complete grok '' grok-build-grok-4.6-low; then
   printf 'writer provenance guard accepted an incomplete/unsupported provider\n' >&2
   exit 1
 fi
@@ -93,7 +93,7 @@ TRIBUNAL_GROK_REMAINING_PCT=19 \
   tribunal_grok_exec "$work_dir" tribunal-writer 'rewrite fixture' >/dev/null
 [ -e "$GROK_CALLED" ]
 grep -Fxq -- '--model' "$GROK_ARGS"
-grep -Fxq -- 'grok-4.5' "$GROK_ARGS"
+grep -Fxq -- 'grok-4.6' "$GROK_ARGS"
 grep -Fxq -- '--reasoning-effort' "$GROK_ARGS"
 grep -Fxq -- 'low' "$GROK_ARGS"
 

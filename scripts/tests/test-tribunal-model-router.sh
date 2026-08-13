@@ -15,7 +15,7 @@ SCRIPT
 cat > "$BIN_DIR/grok" <<'SCRIPT'
 #!/usr/bin/env bash
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.5\nAvailable models:\n  * grok-4.5 (default)\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
 fi
 exit 0
 SCRIPT
@@ -54,19 +54,19 @@ assert_route "$({
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=20 bash "$ROUTER" writer --json
-})" grok-4.5 low normal
+})" grok-4.6 low normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=19 bash "$ROUTER" vibeScorer --json
-})" grok-4.5 low lowQuota defer
+})" grok-4.6 low lowQuota defer
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=19 bash "$ROUTER" writer --json
-})" grok-4.5 low lowQuota reserve
+})" grok-4.6 low lowQuota reserve
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=9.99 bash "$ROUTER" writer --json
-})" grok-4.5 low criticalQuota pause
+})" grok-4.6 low criticalQuota pause
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=101 bash "$ROUTER" reviewer --json
@@ -74,7 +74,7 @@ assert_route "$({
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=101 bash "$ROUTER" writer --json
-})" grok-4.5 low normal
+})" grok-4.6 low normal
 assert_route "$({
   env -u TRIBUNAL_REVIEWER_REMAINING_PCT \
     TRIBUNAL_RUNTIME_PROFILE=vm-codex \
