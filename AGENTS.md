@@ -53,7 +53,13 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 預設走 feature branch + PR（命名 `<type>/<scope>-<desc>`，例 `fix/tribunal-badge`）——PR 給清楚的 review surface、讓 Vercel preview 在 merge 前先跑、revert 不沾其他 commit。流程（拉 branch → commit → push + PR → 盯 CI → 綠了自 merge → 刪 branch）是標準動作，solo repo 自己 merge 不等人；branch / merge 細節依 runtime playbook。Tribunal / 自動化 pipeline 同樣走 branch + PR。
 
 - **沒有「直推 `main`」這條路**：main 有 server-side branch protection，直推一律被拒（實測 403，連 doc typo 也一樣）。緊急修復（prod 炸 / main CI broken）走同一條 branch + PR + auto-merge 流——CI 綠了自動合，實務上跟直推一樣快，不要浪費時間嘗試繞過。
-- **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。review 主要由 agent 跑，human 看結論 / risk surface / CI / evidence。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
+- **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
+
+## 💬 Human interface：chat + preview URL + production URL
+
+Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、design、spec、tasks 與 archive 都由 agents 主動維護；agent 不得把閱讀、編輯或核對 OpenSpec、PR diff、CI log、runbook等 raw artifact 當作 human 的作業或完成前提。
+
+需要 human 拍板時，agent SHALL 在 chat 裡把 OpenSpec 翻成最少但完整的決策資訊：使用者可見變化、重要取捨、風險與真正需要選擇的問題。實作完成後，agent 自行驗證；有 deployable preview 就在 chat 提供 preview URL，safe／non-critical 變更不因此等待批准。只有尚未決的 critical decision 才以具體問題阻擋後續流程。上線後提供 production URL 與 smoke-test 結果。若 preview 不適用或無法取得，說明原因並提供最接近使用者體驗的驗證證據，不得假稱已驗證。完整 OpenSpec 流程以 [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md) 為 SSOT。
 
 ## 🧭 主題路由表（要做某件事 → 先讀這份）
 
@@ -68,7 +74,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 | **User 丟 URL → 預設寫 GP**（pipeline 用法 + 何時手動） | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) + 下方〈URL = GP〉 |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
-| **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / 人類檢查點 / archive gate）— MUST 動手前先讀 |
+| **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / chat-first 決策介面 / archive gate）— MUST 動手前先讀 |
 | **OpenSpec spec / change（讀既有 spec、change 結構）** | [`openspec/`](openspec/) |
 | **agent 跨領域行為規則（SSOT 紀律、verbosity-drift、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
 | **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
