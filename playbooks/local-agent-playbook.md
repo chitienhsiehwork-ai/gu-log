@@ -66,7 +66,7 @@ GitHub MCP 不一定可用（看 user 的 Claude Code 設定）。可能有 `gh`
 
 local Codex actor / local Claude actor 有的 CCC 沒有的：
 
-- **本地 dev server**：自己跑 `pnpm run dev` iterate，不要煩 user（user 只看 production）
+- **本地 dev server**：自己跑 `pnpm run dev` iterate，不要把啟動或操作 dev server 丟給 user；user 透過 chat 收 preview／production URL
 - **playwright-cli skill**（`.claude/skills/playwright-cli/`）：截圖驗證 UI
 - **uiux-auditor skill**（`.claude/skills/uiux-auditor/`）：改完視覺跑一次，強制雙主題截圖 + WCAG 對比
 - **iCloud Drive 直接存取**：可以直接讀 Obsidian vault 裡的草稿（`~/Library/Mobile Documents/com~apple~CloudDocs/Obsidian/gu-log-drafts/`），跑 `pnpm run obsidian:import`
