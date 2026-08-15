@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
@@ -727,6 +728,37 @@ func TestStandaloneGPDeployRejectsMissingManifestBeforeMutation(t *testing.T) {
 	}
 	if string(got) != article {
 		t.Fatalf("standalone GP deploy mutated pending article before gate rejection:\n%s", got)
+	}
+}
+
+func TestStandaloneGPDeployBindsFreshManifestProfile(t *testing.T) {
+	root := makeFakeRepo(t)
+	installGPProjectionStub(t, root)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	articlePath := filepath.Join(postsDir, "gp-pending-20260815-author-title.mdx")
+	mustWrite(t, articlePath, "---\ntitle: Title\nticketId: GP-PENDING\nlang: zh-tw\n---\n\nsource body\n")
+	workDir := t.TempDir()
+	sourcePath := filepath.Join(workDir, "source-tweet.md")
+	mustWrite(t, sourcePath, "complete source\n")
+	writeFreshGPPublishManifest(t, root, workDir, sourcePath, articlePath)
+	fakePath := filepath.Join(root, "fake-gp-roles.json")
+	writeCompleteFakeGPRoles(t, fakePath)
+
+	rootState := &rootState{cfg: &config.Config{RepoRoot: root}, fakeProviderPath: fakePath}
+	pipelineState := pipeline.NewState()
+	pipelineState.Cfg = rootState.cfg
+	pipelineState.WorkDir = workDir
+	if err := bindGPDeployProfile(rootState, pipelineState); err != nil {
+		t.Fatalf("bind standalone GP deploy profile: %v", err)
+	}
+	if pipelineState.GPProfile != "fixture" || pipelineState.GPProfileSHA256 != preservation.SHA256([]byte("fixture")) {
+		t.Fatalf("unexpected standalone profile: %q %q", pipelineState.GPProfile, pipelineState.GPProfileSHA256)
+	}
+	if err := pipelineState.ValidateGPPublishManifest(context.Background(), articlePath); err != nil {
+		t.Fatalf("fresh manifest rejected after standalone profile binding: %v", err)
 	}
 }
 
