@@ -107,6 +107,9 @@ export function normalizeGlossary(glossary) {
         anchor: linking.anchor || slugify(entry.term),
         matches: matches.filter(Boolean),
         caseSensitive: linking.caseSensitive !== false,
+        forbiddenZhTw: Array.isArray(entry.forbiddenZhTw)
+          ? entry.forbiddenZhTw.filter((value) => typeof value === 'string' && value.length > 0)
+          : [],
       };
     })
     .filter((entry) => entry.matches.length)
@@ -173,6 +176,86 @@ export function buildUnsafeMask(content) {
   return mask;
 }
 
+// Canonical terminology has a wider reader-visible surface than link coverage:
+// blockquotes and component children are prose, while only the surrounding MDX
+// syntax is unsafe. Keep this mask separate so the long-standing link fixer does
+// not start mutating quotations or component bodies.
+export function buildCanonicalUnsafeMask(content) {
+  const mask = new Array(content.length).fill(false);
+
+  if (content.startsWith('---\n')) {
+    const end = content.indexOf('\n---', 4);
+    if (end >= 0) {
+      const after = content.indexOf('\n', end + 4);
+      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
+    }
+  }
+
+  maskRegex(content, mask, /```[\s\S]*?```/g);
+  maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
+  maskRegex(content, mask, /`[^`\n]+`/g);
+  maskRegex(content, mask, /<!--[\s\S]*?-->/g);
+  maskRegex(content, mask, /\{[\s\S]*?\}/g);
+  maskRegex(content, mask, /<[^>]*>/g);
+  maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
+
+  const linkRe = /!?\[[^\]\n]*\]\(([^)\n]+)\)/g;
+  let link;
+  while ((link = linkRe.exec(content))) {
+    const destinationOffset = link[0].lastIndexOf('](') + 2;
+    markRange(
+      mask,
+      link.index + destinationOffset,
+      link.index + destinationOffset + link[1].length
+    );
+  }
+
+  const lines = content.split(/\n/);
+  let offset = 0;
+  for (const line of lines) {
+    if (/^\s*(import|export)\b/.test(line)) markRange(mask, offset, offset + line.length);
+    offset += line.length + 1;
+  }
+
+  return mask;
+}
+
+export function frontmatterReaderVisibleRanges(content) {
+  if (!content.startsWith('---\n')) return [];
+  const end = content.indexOf('\n---', 4);
+  if (end < 0) return [];
+
+  const ranges = [];
+  const frontmatter = content.slice(4, end);
+  const lines = frontmatter.split('\n');
+  let offset = 4;
+  let inTags = false;
+
+  for (const line of lines) {
+    const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if (keyMatch) {
+      const key = keyMatch[1];
+      const value = keyMatch[2];
+      inTags = key === 'tags' && value === '';
+      if ((key === 'title' || key === 'summary' || key === 'tags') && value !== '') {
+        const start = offset + line.indexOf(value);
+        ranges.push({ start, end: start + value.length });
+      }
+    } else if (inTags) {
+      const item = line.match(/^\s*-\s*(.+?)\s*$/);
+      if (item) {
+        const start = offset + line.indexOf(item[1]);
+        ranges.push({ start, end: start + item[1].length });
+      } else if (line.trim() !== '') {
+        inTags = false;
+      }
+    }
+    offset += line.length + 1;
+  }
+
+  return ranges;
+}
+
 function isBoundaryChar(ch) {
   return !ch || !/[\p{L}\p{N}_-]/u.test(ch);
 }
@@ -197,6 +280,42 @@ export function findSafeOccurrences(content, term, matchText, options = {}) {
     out.push({ start, end, text: match[0], line });
   }
   return out;
+}
+
+function findOccurrencesInRanges(content, matchText, ranges) {
+  const escaped = matchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped, 'g');
+  const occurrences = [];
+  let match;
+  while ((match = re.exec(content))) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (!ranges.some((range) => start >= range.start && end <= range.end)) continue;
+    occurrences.push({
+      start,
+      end,
+      text: match[0],
+      line: content.slice(0, start).split('\n').length,
+    });
+  }
+  return occurrences;
+}
+
+export function findCanonicalOccurrences(content, matchText) {
+  const mask = buildCanonicalUnsafeMask(content);
+  const bodyRanges = [];
+  let rangeStart = null;
+  for (let i = 0; i <= mask.length; i += 1) {
+    if (i < mask.length && !mask[i] && rangeStart === null) rangeStart = i;
+    if ((i === mask.length || mask[i]) && rangeStart !== null) {
+      bodyRanges.push({ start: rangeStart, end: i });
+      rangeStart = null;
+    }
+  }
+  return [
+    ...findOccurrencesInRanges(content, matchText, bodyRanges),
+    ...findOccurrencesInRanges(content, matchText, frontmatterReaderVisibleRanges(content)),
+  ].sort((a, b) => a.start - b.start);
 }
 
 function hasCoverage(content, term, href) {
@@ -241,6 +360,26 @@ export function checkContent(content, options = {}) {
   const occupied = new Array(content.length).fill(false);
   const violations = [];
 
+  if (!isEnglishPost(filePath, frontmatter)) {
+    for (const term of glossary) {
+      if (termFilter.size && !termFilter.has(term.term)) continue;
+      for (const forbidden of term.forbiddenZhTw) {
+        for (const occurrence of findCanonicalOccurrences(content, forbidden)) {
+          violations.push({
+            kind: 'canonical-term',
+            file: filePath,
+            term: term.term,
+            canonicalTerm: term.term,
+            forbidden,
+            line: occurrence.line,
+            text: occurrence.text,
+            expectedHref: `/glossary#${term.anchor}`,
+          });
+        }
+      }
+    }
+  }
+
   for (const term of glossary) {
     if (termFilter.size && !termFilter.has(term.term)) continue;
     if (ignored.has(term.term)) continue;
@@ -260,6 +399,7 @@ export function checkContent(content, options = {}) {
     if (!first) continue;
     markRange(occupied, first.start, first.end);
     violations.push({
+      kind: 'missing-link',
       file: filePath,
       term: term.term,
       line: first.line,
@@ -299,6 +439,13 @@ function gitChangedFiles(base, pattern = 'src/content/posts') {
   }
 }
 
+export function changedGlossaryTermsFromEntries(before, after) {
+  const beforeMap = new Map(before.map((entry) => [entry.term, JSON.stringify(entry)]));
+  return after
+    .filter((entry) => beforeMap.get(entry.term) !== JSON.stringify(entry))
+    .map((entry) => entry.term);
+}
+
 function changedGlossaryTerms(base, glossary) {
   try {
     const show = (ref) => {
@@ -313,15 +460,14 @@ function changedGlossaryTerms(base, glossary) {
     };
     const before = JSON.parse(show(base));
     const after = glossary;
-    const beforeMap = new Map(before.map((e) => [e.term, JSON.stringify(e)]));
-    return after.filter((e) => beforeMap.get(e.term) !== JSON.stringify(e)).map((e) => e.term);
+    return changedGlossaryTermsFromEntries(before, after);
   } catch {
     return [];
   }
 }
 
-function main() {
-  const args = parseArgs(process.argv.slice(2));
+export function runCLI(argv, io = { log: console.log, error: console.error }) {
+  const args = parseArgs(argv);
   const glossary = loadGlossary();
   let files = args.files.map((f) => path.resolve(f));
   let terms = args.terms;
@@ -338,20 +484,26 @@ function main() {
   for (const file of files) violations.push(...checkFile(file, { glossary, terms }).violations);
 
   if (args.format === 'json') {
-    console.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
+    io.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
   } else if (violations.length) {
-    console.error(`❌ Glossary link coverage failed: ${violations.length} missing link(s)`);
+    io.error(`❌ Glossary checks failed: ${violations.length} violation(s)`);
     for (const v of violations.slice(0, 200)) {
-      console.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.term} → ${v.expectedHref}`);
-      console.error(`  fix: ${v.command}`);
+      if (v.kind === 'canonical-term') {
+        io.error(
+          `${path.relative(REPO_ROOT, v.file)}:${v.line} forbidden ${JSON.stringify(v.forbidden)} → ${v.canonicalTerm} (${v.expectedHref})`
+        );
+      } else {
+        io.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.term} → ${v.expectedHref}`);
+        io.error(`  fix: ${v.command}`);
+      }
     }
-    if (violations.length > 200) console.error(`... ${violations.length - 200} more`);
+    if (violations.length > 200) io.error(`... ${violations.length - 200} more`);
   } else {
-    console.log(
+    io.log(
       `✓ glossary link coverage clean (${files.length} file(s) checked${terms.length ? `, terms: ${terms.join(', ')}` : ''})`
     );
   }
-  process.exit(violations.length ? 1 : 0);
+  return violations.length ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (import.meta.url === `file://${process.argv[1]}`) process.exit(runCLI(process.argv.slice(2)));

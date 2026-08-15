@@ -210,6 +210,26 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	}
 }
 
+func TestSourceTranslateDispatchIncludesCanonicalTerminology(t *testing.T) {
+	s, _ := newGPState(t, "# Source\n\nAn agent helps.\n", "---\nlang: zh-tw\n---\n\nAgent 會幫忙。\n")
+	provider, ok := s.TranslatorDispatcher.Providers()[0].(*llm.FakeProvider)
+	if !ok {
+		t.Fatal("translator test dispatcher is not backed by FakeProvider")
+	}
+
+	if err := s.SourceTranslate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if len(provider.Called) != 1 {
+		t.Fatalf("translator dispatch count = %d, want 1", len(provider.Called))
+	}
+	for _, want := range []string{`"term":"Agent"`, `"forbiddenZhTw":["代理人"]`, "使用標準用詞"} {
+		if !strings.Contains(provider.Called[0].Prompt, want) {
+			t.Errorf("dispatched translator prompt missing %q", want)
+		}
+	}
+}
+
 func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("# Source\n\nI took a break.\n")

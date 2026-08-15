@@ -15,6 +15,11 @@ const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 const glossary = [
   {
+    term: 'Agent',
+    forbiddenZhTw: ['代理人'],
+    linking: { enabled: true, anchor: 'agent', match: ['Agent'], caseSensitive: true },
+  },
+  {
     term: 'Elixir',
     linking: { enabled: true, anchor: 'elixir', match: ['Elixir'], caseSensitive: true },
   },
@@ -138,6 +143,139 @@ describe('glossary link checker', () => {
     const result = checker.checkFile(file, { glossary });
 
     expect(result.violations).toEqual([]);
+  });
+
+  it('reports every forbidden term in body prose and blockquotes', () => {
+    const file = tmpPath('forbidden-body.mdx');
+    fs.writeFileSync(
+      file,
+      '---\nlang: zh-tw\n---\n第一個代理人。\n> 引文裡的代理人也看得到。\n最後一個代理人。\n'
+    );
+
+    const result = checker.checkFile(file, { glossary });
+    const canonical = result.violations.filter(
+      (violation: { kind: string }) => violation.kind === 'canonical-term'
+    );
+
+    expect(canonical).toHaveLength(3);
+    expect(canonical[0]).toMatchObject({
+      forbidden: '代理人',
+      canonicalTerm: 'Agent',
+      expectedHref: '/glossary#agent',
+      line: 4,
+    });
+    expect(canonical.map((violation: { line: number }) => violation.line)).toEqual([4, 5, 6]);
+  });
+
+  it.each([
+    ['title', 'title: "代理人標題"'],
+    ['summary', 'summary: 代理人摘要'],
+    ['inline tags', 'tags: [AI, 代理人]'],
+    ['block-list tags', 'tags:\n  - AI\n  - 代理人'],
+  ])('checks reader-visible %s frontmatter', (_label, field) => {
+    const file = tmpPath(`frontmatter-${String(_label).replaceAll(' ', '-')}.mdx`);
+    fs.writeFileSync(file, `---\nlang: zh-tw\n${field}\n---\n安全正文。\n`);
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({
+        kind: 'canonical-term',
+        forbidden: '代理人',
+        canonicalTerm: 'Agent',
+      }),
+    ]);
+  });
+
+  it('ignores forbidden terms in non-prose syntax while still checking visible component children', () => {
+    const file = tmpPath('forbidden-unsafe.mdx');
+    fs.writeFileSync(
+      file,
+      [
+        '---',
+        'lang: zh-tw',
+        'internalKey: 代理人',
+        '---',
+        '```txt',
+        '代理人 in code',
+        '```',
+        '`代理人 inline`',
+        '[安全標籤](https://example.com/代理人)',
+        'https://example.com/代理人',
+        'import 代理人 from "./fixture";',
+        'export const 代理人 = true;',
+        '<Thing label="代理人" />',
+        '<Thing label="safe">元件子元素的代理人</Thing>',
+        '{/* 代理人 */}',
+        '',
+      ].join('\n')
+    );
+
+    const result = checker.checkFile(file, { glossary });
+    const canonical = result.violations.filter(
+      (violation: { kind: string }) => violation.kind === 'canonical-term'
+    );
+
+    expect(canonical).toEqual([
+      expect.objectContaining({ text: '代理人', line: 14, canonicalTerm: 'Agent' }),
+    ]);
+  });
+
+  it('does not apply zh-tw forbidden terms to English posts', () => {
+    const file = tmpPath('en-forbidden.mdx');
+    fs.writeFileSync(file, '---\nlang: en\ntitle: 代理人\n---\n代理人\n');
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(
+      result.violations.filter((violation: { kind: string }) => violation.kind === 'canonical-term')
+    ).toEqual([]);
+  });
+
+  it('does not let glossaryIgnore bypass canonical terminology', () => {
+    const file = tmpPath('forbidden-ignore.mdx');
+    fs.writeFileSync(
+      file,
+      '---\nlang: zh-tw\nglossaryIgnore:\n  - Agent\n---\n<!-- glossary-ignore Agent -->\n代理人\n'
+    );
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({ kind: 'canonical-term', canonicalTerm: 'Agent' }),
+    ]);
+  });
+
+  it('treats forbiddenZhTw changes as changed glossary terms', () => {
+    const before = [{ term: 'Agent', linking: { enabled: true } }];
+    const after = [{ term: 'Agent', forbiddenZhTw: ['代理人'], linking: { enabled: true } }];
+
+    expect(checker.changedGlossaryTermsFromEntries(before, after)).toEqual(['Agent']);
+  });
+
+  it('CLI exits non-zero and renders canonical terminology diagnostics', () => {
+    const file = tmpPath('forbidden-cli.mdx');
+    fs.writeFileSync(file, '---\nlang: zh-tw\n---\n代理人\n');
+
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    const status = checker.runCLI(['--format', 'json', '--files', file], {
+      log: (message: string) => stdout.push(message),
+      error: (message: string) => stderr.push(message),
+    });
+
+    expect(status).toBe(1);
+    expect(stderr).toEqual([]);
+    const report = JSON.parse(stdout.join('\n'));
+    expect(report.ok).toBe(false);
+    expect(report.violations).toContainEqual(
+      expect.objectContaining({
+        kind: 'canonical-term',
+        forbidden: '代理人',
+        canonicalTerm: 'Agent',
+        expectedHref: '/glossary#agent',
+      })
+    );
   });
 });
 

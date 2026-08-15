@@ -111,6 +111,7 @@ type State struct {
 	Counter                  *counter.Counter
 	GPProfile                string
 	GPProfileSHA256          string
+	CanonicalTerminology     string
 
 	// ── Fields populated during the run ────────────────────────────────
 
