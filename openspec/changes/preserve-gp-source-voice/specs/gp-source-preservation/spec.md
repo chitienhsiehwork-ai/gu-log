@@ -1,0 +1,134 @@
+## ADDED Requirements
+
+### Requirement: GP body MUST preserve the source voice
+
+GP 正文 SHALL 讓讀者感覺是在讀原作者的自然繁中版本，而不是另一位 AI writer 對原文的再創作。翻譯 SHALL 保留 source 的 voice owner、第一／第二／第三人稱、語氣強弱、段落關係、論證順序與自然停點；除非忠實直譯在繁中無法理解，否則不得更換敘事視角或重建文章骨架。
+
+#### Scenario: first-person essay remains first person
+
+- **WHEN** source 作者用第一人稱描述自己的經驗、情緒與判斷
+- **THEN** GP body SHALL 使用第一人稱翻譯
+- **AND** SHALL NOT 改成「寫這篇文章的人」「他認為」或第三人稱品牌旁白
+
+#### Scenario: source sequence remains recognizable
+
+- **WHEN** source 的段落順序在繁中仍可自然理解
+- **THEN** GP body SHALL 保留該順序與段落關係
+- **AND** SHALL NOT 為了製造 hook、tension、callback 或 article spine 而重排全文
+
+### Requirement: GP body MAY remove only obvious non-payload slop
+
+GP pipeline MAY 刪除可明確辨識、且移除後不會改變 source payload 或作者個性的低價值文字。可刪範圍 SHALL 限於空洞開場、同義反覆、無資訊轉場、重複摘要、假深度 reframe、模板式結語與其他不承載事實、推理、情緒、幽默或 voice 的文字。
+
+「AI slop」SHALL 由內容功能判斷，不得因句子平淡、線性、不像 gu-log 或未達 narrative rubric 就刪除。
+
+#### Scenario: empty AI-style closing is removed
+
+- **WHEN** source 結尾只用不同詞重複前文結論，沒有新增 payload、情緒或刻意的修辭效果
+- **THEN** translator MAY 刪除該結尾
+- **AND** review artifact SHALL 能指出被刪文字及其不承載 payload 的理由
+
+#### Scenario: plain but meaningful sentence remains
+
+- **WHEN** source 句子寫得平淡但承載作者經驗、判斷、情緒、條件或論證關係
+- **THEN** GP body SHALL 保留其意思與位置
+- **AND** SHALL NOT 為了提高 Sentence Signal、persona 或 narrative score 而改寫成金句或比喻
+
+### Requirement: GP additions MUST be navigation or separated commentary
+
+GP pipeline 在 source payload 之外只 MAY 新增三類材料：gu-log 內部 reference links、glossary links，以及放在 `<MoguNote>` 內的 gu-log commentary。新增材料 SHALL 不冒充 source body，也不得改變 source 的 voice、claim 或文章形狀。
+
+#### Scenario: internal reference is added without rewriting prose
+
+- **WHEN** source 概念已有直接相關的 gu-log article
+- **THEN** pipeline MAY 在最接近的原文概念上加入內部連結，或在正文之外加入延伸閱讀
+- **AND** SHALL NOT 為了安插 reference 而新增一段 gu-log 自我介紹或改寫 source argument
+
+#### Scenario: glossary link adds recognition only
+
+- **WHEN** GP body 出現已存在的 glossary term
+- **THEN** pipeline MAY 對原詞加上 glossary link
+- **AND** SHALL NOT 把該句擴寫成 glossary explainer
+
+#### Scenario: gu-log opinion is separated
+
+- **WHEN** editor 想加入 source 沒有的判斷、玩笑、類比或自我指涉
+- **THEN** 該材料 SHALL 放進 `<MoguNote>`
+- **AND** 移除該 note 後，GP body SHALL 仍是完整且忠實的 source translation
+
+### Requirement: Natural Taiwan Chinese MUST be a non-compensating publish gate
+
+GP 的繁中正文 SHALL 使用一般台灣讀者不需停下來解碼的自然中文。準確但罕見的典故、沒有通行語感的直譯組合，以及只有 model 能從字面拼出意思的詞，SHALL 視為未通過；其他品質分數不得補償此失敗。
+
+#### Scenario: obscure metaphor is replaced with direct language
+
+- **WHEN** 翻譯使用「生產力銜尾蛇」等需要讀者先知道神話符號才能理解的比喻
+- **AND** source 的意思可用直接、自然的中文表達
+- **THEN** GP body SHALL 改用直接說法，例如「為了提高生產力，不斷製造更多提高生產力的工作」
+- **AND** SHALL NOT 因該比喻看似生動或符合 persona 而保留
+
+#### Scenario: opaque feed translation is rejected
+
+- **WHEN** 翻譯用「演算法動態」指稱由推薦演算法持續供應的 social feed、Reels 或短影音動態
+- **THEN** GP body SHALL 依 source 實際所指改成「無限滑的推薦動態」「短影音動態」或其他自然且具體的說法
+- **AND** SHALL NOT 發布無法讓讀者辨識產品行為的合成詞
+
+### Requirement: GP corrections MUST be evidence-bounded patches
+
+GP review SHALL 對每個問題提供 source evidence、問題類型與允許修改的範圍。後續 correction SHALL 只修改被指出的局部內容；不得以 refine、vibe improvement 或 pass-score optimization 為由自由重寫全文。
+
+#### Scenario: factual issue receives a local correction
+
+- **WHEN** reviewer 發現一個 hedge 遺失或數字翻錯
+- **THEN** correction SHALL 只修正相關句子及必要的相鄰銜接
+- **AND** SHALL 保留其他未被指出的段落與 source voice
+
+#### Scenario: low vibe score cannot trigger GP rebuild
+
+- **WHEN** GP 的 persona、vibe 或 narrative judge 給出低分
+- **BUT** body 已忠實、完整且自然地翻譯 source
+- **THEN** pipeline SHALL NOT 觸發 restructure、rebuild 或全文 rewrite
+- **AND** SHALL 將該分數視為不適用或 scorer calibration evidence
+
+### Requirement: GP text roles MUST use independent models and contracts
+
+GP translator、bounded corrector 與 vibe scorer SHALL 使用三個不同 model ID，並各自使用只包含該角色責任的 prompt 與輸出 schema。任何角色 SHALL NOT 取得另一角色的 hidden reasoning，pipeline SHALL NOT 因 provider failure 而把任務靜默改派給另外兩個角色使用中的 model。
+
+#### Scenario: translator cannot optimize for its own vibe rubric
+
+- **WHEN** translator 產出 source-aligned 繁中正文
+- **THEN** translator prompt SHALL NOT 包含 persona、narrative、callback、MoguNote density 或 vibe score optimization 指令
+- **AND** vibe scorer SHALL 使用不同 model 與獨立 cold-read prompt
+
+#### Scenario: corrector only returns bounded patches
+
+- **WHEN** corrector 收到一組已核准 review findings
+- **THEN** corrector SHALL 使用不同於 translator 與 vibe scorer 的 model
+- **AND** 輸出 SHALL 只能包含符合 patch schema 的局部修改
+- **AND** SHALL NOT 輸出完整重寫文章
+
+#### Scenario: unavailable role fails closed
+
+- **WHEN** 任一必要角色的指定 model 不可用、runner error 或 provenance 無法驗證
+- **THEN** pipeline SHALL 保留 failure evidence 並停止該次 publish
+- **AND** SHALL NOT 靜默換成 translator、corrector 或 vibe scorer 已使用的 model
+
+### Requirement: GP publication MUST fail closed on source-preservation gates
+
+GP 只有在 source fidelity、source voice preservation、自然中文與內容完整性 gate 全部通過後才 SHALL publish。任何上述 gate FAIL、runner error 或缺少有效 verdict 時，pipeline SHALL 停在可檢查狀態，不得 best-effort deploy。
+
+#### Scenario: tribunal failure blocks deployment
+
+- **WHEN** 任一 source-preservation hard gate FAIL 或無法產生有效 verdict
+- **THEN** pipeline SHALL NOT 執行 deploy
+- **AND** SHALL 保留 source、translation、review 與 failure evidence 供恢復
+
+### Requirement: GP-273 MUST calibrate source-preserving behavior
+
+Pipeline tests SHALL 使用 GP-273 的自然第一人稱直譯稿與已發布第三人稱改寫稿作為 regression pair。評估 SHALL 驗證系統偏好保留第一人稱直譯稿，並拒絕將後者的額外比喻、第三人稱視角、重複結語與品牌化 framing 視為品質提升。
+
+#### Scenario: regression prefers the direct translation
+
+- **WHEN** evaluator 比較 GP-273 的 source-aligned first-person translation 與 rewritten published version
+- **THEN** source-preservation gate SHALL 接受前者作為較符合 GP contract 的版本
+- **AND** SHALL flag 後者的 voice-owner change、unsupported packaging 與不自然用語
