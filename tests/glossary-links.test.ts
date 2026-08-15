@@ -41,6 +41,10 @@ const glossary = [
       caseSensitive: true,
     },
   },
+  {
+    term: 'Pi',
+    linking: { enabled: true, anchor: 'pi', match: ['Pi', 'pi'], caseSensitive: true },
+  },
 ];
 
 describe('glossary link checker', () => {
@@ -186,5 +190,16 @@ describe('glossary link fixer', () => {
     expect(result.content).toContain('`Elixir inline`');
     expect(result.content).toContain('[Elixir docs](https://elixir-lang.org)');
     expect(result.content).toContain('正文 [Elixir](/glossary#elixir) safe。');
+  });
+
+  it('links a configured lowercase product spelling without changing its text', () => {
+    const input = '---\nlang: zh-tw\n---\n我在 pi 裡下了一個提示。\n';
+    const result = fixer.applyLinksToContent(input, {
+      glossary,
+      terms: ['Pi'],
+      filePath: 'post.mdx',
+    });
+
+    expect(result.content).toContain('在 [pi](/glossary#pi) 裡');
   });
 });

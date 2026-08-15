@@ -628,6 +628,12 @@ translated
 	if s.PromptTicketID != "MP-123" {
 		t.Fatalf("PromptTicketID = %q, want MP-123 from existing frontmatter", s.PromptTicketID)
 	}
+	if s.OriginalDate != "2026-04-11" {
+		t.Fatalf("OriginalDate = %q, want existing frontmatter date", s.OriginalDate)
+	}
+	if s.TranslatedDate != "2026-04-11" {
+		t.Fatalf("TranslatedDate = %q, want existing frontmatter date", s.TranslatedDate)
+	}
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, wantEN)); err != nil {
 		t.Fatalf("translated sidecar missing: %v", err)
 	}

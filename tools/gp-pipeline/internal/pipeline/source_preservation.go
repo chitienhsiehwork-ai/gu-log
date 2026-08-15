@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/preservation"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
@@ -83,6 +84,21 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 		return errors.New("source-translate returned an invalid or stale artifact")
 	}
 	translation := []byte(artifact.TranslationMDX)
+	translationFile, err := frontmatter.Parse(translation)
+	if err != nil {
+		return fmt.Errorf("source-translate frontmatter: %w", err)
+	}
+	translationFile.RepairSingleQuotedScalars()
+	if err := translationFile.ValidateYAML(); err != nil {
+		return fmt.Errorf("source-translate frontmatter: %w", err)
+	}
+	// The existing post identity is authoritative. YAML 1.1 parsers turn an
+	// unquoted YYYY-MM-DD model output into a date object, while Astro's schema
+	// requires strings, so serialize both dates deterministically here.
+	translationFile.SetScalar("originalDate", frontmatter.QuoteScalar(s.OriginalDate))
+	translationFile.SetScalar("translatedDate", frontmatter.QuoteScalar(s.TranslatedDate))
+	translation = translationFile.Bytes()
+	artifact.TranslationMDX = string(translation)
 	if len(artifact.SlopCandidates) > 0 {
 		if err := preservation.ValidateFindings(source, translation, artifact.SlopCandidates); err != nil {
 			return fmt.Errorf("source-translate slop candidates: %w", err)

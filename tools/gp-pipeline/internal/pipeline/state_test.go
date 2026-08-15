@@ -105,6 +105,7 @@ func TestEval_GoGo(t *testing.T) {
 
 func TestFetch_ExistingCaptureHydratesMetadata(t *testing.T) {
 	s, _, workDir := newTestState(t)
+	s.OriginalDate = ""
 	capture := "@Khazix0918 — 2026-08-05\nSource URL: https://x.com/khazix0918/status/2084919577562255639\nFetched via: fxtwitter\n\n=== MAIN TWEET ===\nEnough existing source material to resume without a network fetch.\n"
 	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
 		t.Fatal(err)
@@ -124,6 +125,22 @@ func TestFetch_ExistingCaptureHydratesMetadata(t *testing.T) {
 	}
 	if !s.SourceIsX {
 		t.Errorf("SourceIsX = false, want true")
+	}
+}
+
+func TestFetch_ExistingCapturePreservesHydratedOriginalDate(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	s.OriginalDate = "2026-08-11"
+	capture := "@brentfitzgerald.com — 2026-08-15\nSource URL: https://example.com/post\nFetched via: fetch-article.py\n\nCaptured article body.\n"
+	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.OriginalDate != "2026-08-11" {
+		t.Errorf("OriginalDate = %q, want durable existing-post date", s.OriginalDate)
 	}
 }
 

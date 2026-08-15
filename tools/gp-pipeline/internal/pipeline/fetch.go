@@ -77,6 +77,10 @@ func (s *State) hydrateSourceMetadata(res *source.FetchResult) {
 	} else {
 		s.AuthorHandle = res.Handle
 	}
-	s.OriginalDate = res.Date
+	// Existing-post rewrites hydrate the durable publication date before a
+	// fresh fetch. Best-effort capture metadata must not overwrite it.
+	if s.OriginalDate == "" {
+		s.OriginalDate = res.Date
+	}
 	s.SourceIsX = res.IsX
 }

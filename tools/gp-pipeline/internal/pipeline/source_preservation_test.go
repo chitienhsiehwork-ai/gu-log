@@ -126,6 +126,15 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatal(err)
 	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`originalDate: "2026-08-15"`, `translatedDate: "2026-08-15"`} {
+		if !strings.Contains(string(translated), want) {
+			t.Fatalf("source translation did not canonicalize %q:\n%s", want, translated)
+		}
+	}
 	delete(s.RoleRuns, "translator")
 	s.FromStepInt = StepSourceGate
 	if err := s.SourceTranslate(ctx); err != nil {
@@ -135,7 +144,7 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 		t.Fatal("translator provenance was not restored from durable artifact")
 	}
 	s.FromStepInt = 0
-	translationBytes := []byte(translation)
+	translationBytes := translated
 	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, filepath.Join(s.WorkDir, "source-translation.mdx"))
 	if err != nil {
 		t.Fatal(err)
