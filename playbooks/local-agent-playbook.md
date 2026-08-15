@@ -60,6 +60,8 @@ Branch 與 merge policy 以 Tier-0 `AGENTS.md` 為 SSOT；local actor 也沒有�
 - 在 feature branch 上 → commit、push、開 PR、盯 CI，綠了依當前任務 gate 自行 merge
 - 在 worktree 上 → 照該 worktree 的 scope 做事，完成後走同一套 PR 流程
 
+互動式 PR 的 GitHub Codex auto-review 等待上限與失敗處理，直接沿用 [`CCC-playbook.md`](CCC-playbook.md)〈Self-merge policy〉步驟 5，不在這裡複製數字。
+
 GitHub MCP 不一定可用（看 user 的 Claude Code 設定）。可能有 `gh` CLI、可能沒有。觀察現況，不要硬叫 MCP tool。
 
 ### 本地環境優勢，該用

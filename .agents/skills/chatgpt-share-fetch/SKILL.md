@@ -18,10 +18,10 @@ URL intake without repository side effects:
 ```bash
 capture_path="$(mktemp "${TMPDIR:-/tmp}/gu-log-chatgpt-intake.XXXXXX")"
 trap 'rm -f "$capture_path"' EXIT
-node scripts/fetch-chatgpt-share.mjs '<chatgpt-share-url>' --out "$capture_path"
+node scripts/fetch-chatgpt-share.mjs '<chatgpt-share-url>' --out "$capture_path" && cat "$capture_path"
 ```
 
-Read that file for the intake response; the shell trap removes it on exit, including after command failure. Do not move it into the repo unless the user later authorizes writing or another persistent use.
+The same shell block prints the transcript before its exit trap removes the temporary file; failure is cleaned up too. Do not move the capture into the repo unless the user later authorizes writing or another persistent use.
 
 Authorized durable capture:
 

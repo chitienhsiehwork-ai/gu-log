@@ -27,6 +27,8 @@ During the URL intake defined by `AGENTS.md`, read stdout or use a temporary loc
 
 ChatGPT share pages embed the real transcript in a React Router payload. The visible page can omit details and `web_fetch` often sees only shell/chrome. Always use the dedicated script:
 
+The in-repo commands below are for authorized durable captures only. During intake, use the repo-external temporary flow in `.agents/skills/chatgpt-share-fetch/SKILL.md`.
+
 ```bash
 node scripts/fetch-chatgpt-share.mjs 'https://chatgpt.com/share/SHARE_ID' --out sources/chatgpt/<topic>.md
 ```

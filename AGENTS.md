@@ -88,7 +88,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
 2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。
 
-交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。Fetch artifact 必須放在 repo 外的暫存位置，回覆後清理；只有 user 授權後才可保存 durable source。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
+交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。Fetch artifact 必須留在 repo 外（stdout 或暫存位置），暫存檔在回覆後清理；只有 user 授權後才可保存 durable source。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
 
 User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。依各 runtime 的 fetch skill 取得原文。
 
