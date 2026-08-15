@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { isScalar, isSeq, parseDocument } from 'yaml';
 
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
@@ -199,6 +200,7 @@ export function buildUnsafeMask(content) {
 // not start mutating quotations or component bodies.
 export function buildCanonicalUnsafeMask(content) {
   const mask = new Array(content.length).fill(false);
+  const expressions = mdxExpressionRanges(content);
 
   if (content.startsWith('---\n')) {
     const end = content.indexOf('\n---', 4);
@@ -210,26 +212,34 @@ export function buildCanonicalUnsafeMask(content) {
 
   maskRegex(content, mask, /```[\s\S]*?```/g);
   maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
-  maskRegex(content, mask, /`[^`\n]+`/g);
+  const inlineCodeRe = /`[^`\n]+`/g;
+  let inlineCode;
+  while ((inlineCode = inlineCodeRe.exec(content))) {
+    const start = inlineCode.index;
+    const end = start + inlineCode[0].length;
+    if (expressions.some((range) => start >= range.start && end <= range.end)) continue;
+    markRange(mask, start, end);
+  }
   maskRegex(content, mask, /<!--[\s\S]*?-->/g);
   // MDX expressions are code. Only a standalone string/template literal is
   // statically guaranteed to render as reader-visible prose; strings nested
   // inside program logic remain syntax and stay masked.
   maskRegex(content, mask, /\{\/\*[\s\S]*?\*\/\}/g);
-  const expressionRe = /\{(?!\/\*)[\s\S]*?\}/g;
-  let expression;
-  while ((expression = expressionRe.exec(content))) {
-    markRange(mask, expression.index, expression.index + expression[0].length);
-    const visibleLiteral = expression[0].match(/^\{\s*(?:(['"])([\s\S]*?)\1|`([\s\S]*?)`)\s*\}$/);
+  for (const expression of expressions) {
+    const raw = content.slice(expression.start, expression.end);
+    const visibleLiteral = raw.match(/^\{\s*(?:(['"])([\s\S]*?)\1|`([\s\S]*?)`)\s*\}$/);
+    let visibleRange = null;
     if (visibleLiteral) {
       const value = visibleLiteral[2] ?? visibleLiteral[3] ?? '';
-      const valueOffset = expression[0].indexOf(value);
-      unmarkRange(
-        mask,
-        expression.index + valueOffset,
-        expression.index + valueOffset + value.length
-      );
+      const valueOffset = raw.indexOf(value);
+      visibleRange = {
+        start: expression.start + valueOffset,
+        end: expression.start + valueOffset + value.length,
+      };
+      if (!rangeIsSafe(mask, visibleRange.start, visibleRange.end)) visibleRange = null;
     }
+    markRange(mask, expression.start, expression.end);
+    if (visibleRange) unmarkRange(mask, visibleRange.start, visibleRange.end);
   }
   maskRegex(content, mask, /<[^>]*>/g);
   maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
@@ -249,7 +259,6 @@ export function buildCanonicalUnsafeMask(content) {
   let offset = 0;
   for (const line of lines) {
     if (/^\s*(import|export)\b/.test(line)) markRange(mask, offset, offset + line.length);
-    if (/^(?: {4,}|\t+)\S/.test(line)) markRange(mask, offset, offset + line.length);
     offset += line.length + 1;
   }
 
@@ -261,48 +270,60 @@ export function frontmatterReaderVisibleRanges(content) {
   const end = content.indexOf('\n---', 4);
   if (end < 0) return [];
 
-  const ranges = [];
   const frontmatter = content.slice(4, end);
-  const lines = frontmatter.split('\n');
-  let offset = 4;
-  let inTags = false;
-  let inVisibleBlock = false;
+  const document = parseDocument(frontmatter);
+  if (document.errors.length > 0) throw document.errors[0];
 
-  for (const line of lines) {
-    const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
-    if (keyMatch) {
-      const key = keyMatch[1];
-      const value = keyMatch[2];
-      inTags = key === 'tags' && value === '';
-      inVisibleBlock =
-        (key === 'title' || key === 'summary' || key === 'tags') &&
-        /^[>|](?:[1-9][+-]?|[+-][1-9]?|)$/.test(value);
-      if (
-        (key === 'title' || key === 'summary' || key === 'tags') &&
-        value !== '' &&
-        !inVisibleBlock
-      ) {
-        const start = offset + line.indexOf(value);
-        ranges.push({ start, end: start + value.length });
-      }
-    } else if (inVisibleBlock) {
-      const value = line.trim();
-      if (value !== '') {
-        const start = offset + line.indexOf(value);
-        ranges.push({ start, end: start + value.length });
-      }
-    } else if (inTags) {
-      const item = line.match(/^\s*-\s*(.+?)\s*$/);
-      if (item) {
-        const start = offset + line.indexOf(item[1]);
-        ranges.push({ start, end: start + item[1].length });
-      } else if (line.trim() !== '') {
-        inTags = false;
-      }
-    }
-    offset += line.length + 1;
+  const ranges = [];
+  const addScalar = (node) => {
+    if (!isScalar(node) || !node.range) return;
+    ranges.push({ start: 4 + node.range[0], end: 4 + node.range[1] });
+  };
+
+  addScalar(document.get('title', true));
+  addScalar(document.get('summary', true));
+  const tags = document.get('tags', true);
+  if (isSeq(tags)) {
+    for (const item of tags.items) addScalar(item);
+  } else {
+    addScalar(tags);
   }
 
+  return ranges;
+}
+
+function mdxExpressionRanges(content) {
+  const ranges = [];
+  for (let start = 0; start < content.length; start += 1) {
+    if (content[start] !== '{' || content.startsWith('{/*', start)) continue;
+    let depth = 1;
+    let quote = null;
+    let escaped = false;
+    for (let index = start + 1; index < content.length; index += 1) {
+      const char = content[index];
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (quote) {
+        if (char === '\\') escaped = true;
+        else if (char === quote) quote = null;
+        continue;
+      }
+      if (char === "'" || char === '"' || char === '`') {
+        quote = char;
+      } else if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          ranges.push({ start, end: index + 1 });
+          start = index;
+          break;
+        }
+      }
+    }
+  }
   return ranges;
 }
 

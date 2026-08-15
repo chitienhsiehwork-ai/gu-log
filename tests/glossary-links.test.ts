@@ -207,7 +207,7 @@ describe('glossary link checker', () => {
         '<Thing label="代理人" />',
         '<Thing label="safe">元件子元素的代理人</Thing>',
         '{"會顯示的代理人"}',
-        '{`模板顯示的代理人`}',
+        '{`模板顯示的代理人 } 仍顯示`}',
         '{({ label: "代理人", value: 1 })}',
         '{/* 代理人 */}',
         '     const 五格代理人 = true',
@@ -225,6 +225,8 @@ describe('glossary link checker', () => {
       expect.objectContaining({ text: '代理人', line: 14, canonicalTerm: 'Agent' }),
       expect.objectContaining({ text: '代理人', line: 15, canonicalTerm: 'Agent' }),
       expect.objectContaining({ text: '代理人', line: 16, canonicalTerm: 'Agent' }),
+      expect.objectContaining({ text: '代理人', line: 19, canonicalTerm: 'Agent' }),
+      expect.objectContaining({ text: '代理人', line: 20, canonicalTerm: 'Agent' }),
     ]);
   });
 
@@ -251,6 +253,17 @@ describe('glossary link checker', () => {
     expect(result.violations).toEqual([
       expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 4 }),
       expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 6 }),
+    ]);
+  });
+
+  it('checks multiline quoted reader-visible frontmatter scalars', () => {
+    const file = tmpPath('forbidden-multiline-quoted-scalar.mdx');
+    fs.writeFileSync(file, '---\nlang: zh-tw\nsummary: "安全前綴\n  代理人摘要"\n---\n正文安全\n');
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 4 }),
     ]);
   });
 
