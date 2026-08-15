@@ -129,12 +129,11 @@ import MoguNote from '../../components/MoguNote.astro';
   });
 
   it('allows one transport retry or a semantics-frozen format repair, but not auth retry', () => {
-    expect(
-      planRetry({ failureClass: 'TRANSPORT', exitStatus: 1, rawOutput: '', inputs })
-    ).toEqual({ kind: 'transport', target: null });
-    expect(
-      planRetry({ failureClass: 'AUTH', exitStatus: 1, rawOutput: '', inputs })
-    ).toBeNull();
+    expect(planRetry({ failureClass: 'TRANSPORT', exitStatus: 1, rawOutput: '', inputs })).toEqual({
+      kind: 'transport',
+      target: null,
+    });
+    expect(planRetry({ failureClass: 'AUTH', exitStatus: 1, rawOutput: '', inputs })).toBeNull();
     const malformed = {
       ...validArtifact(),
       version: 'stale-version',
@@ -150,9 +149,7 @@ import MoguNote from '../../components/MoguNote.astro';
     });
     expect(retry?.kind).toBe('format');
     expect(retry?.target).toEqual(validArtifact());
-    expect(retry?.target?.candidates[0].commentary).toBe(
-      malformed.candidates[0].commentary
-    );
+    expect(retry?.target?.candidates[0].commentary).toBe(malformed.candidates[0].commentary);
     expect(
       planRetry({
         failureClass: undefined,
@@ -241,7 +238,10 @@ describe('anonymous ranking board', () => {
 
   it('recomputes the packet hash instead of trusting a stored digest', () => {
     expect(validateBlindPacket(packet)).toEqual(packet);
-    const changed = { ...packet, entries: [{ ...packet.entries[0], note: '被換掉了。' }, packet.entries[1]] };
+    const changed = {
+      ...packet,
+      entries: [{ ...packet.entries[0], note: '被換掉了。' }, packet.entries[1]],
+    };
     expect(() => validateBlindPacket(changed)).toThrow('self-hash');
   });
 });
@@ -257,8 +257,17 @@ describe('private evidence integrity', () => {
       outputPath: '/private/tmp/gu-log-mogunote-blind.test/runs/opaque/output.json',
     });
     expect(invocation.args).not.toContain('--sandbox');
-    expect(invocation.args).toContain('permissions.cwd-readonly={ filesystem={ ":root"="deny", ":minimal"="read", ":tmpdir"="deny", ":slash_tmp"="deny", ":workspace_roots"={ "."="read" } }, network={ enabled=false } }');
-    for (const feature of ['shell_tool', 'unified_exec', 'view_image', 'apps', 'browser_use', 'computer_use']) {
+    expect(invocation.args).toContain(
+      'permissions.cwd-readonly={ filesystem={ ":root"="deny", ":minimal"="read", ":tmpdir"="deny", ":slash_tmp"="deny", ":workspace_roots"={ "."="read" } }, network={ enabled=false } }'
+    );
+    for (const feature of [
+      'shell_tool',
+      'unified_exec',
+      'view_image',
+      'apps',
+      'browser_use',
+      'computer_use',
+    ]) {
       expect(invocation.args).toContain(feature);
     }
     expect(() =>
@@ -286,8 +295,22 @@ describe('private evidence integrity', () => {
     const artifact = validArtifact();
     const abstention = { ...artifact, candidates: [] };
     const entries = [
-      { id: 'N01', before: '前文。', after: '後文。', summary: '', note: artifact.candidates[0].commentary, empty: false },
-      { id: 'N02', before: '前文。', after: '後文。', summary: '舊稿', note: '舊旁白。', empty: false },
+      {
+        id: 'N01',
+        before: '前文。',
+        after: '後文。',
+        summary: '',
+        note: artifact.candidates[0].commentary,
+        empty: false,
+      },
+      {
+        id: 'N02',
+        before: '前文。',
+        after: '後文。',
+        summary: '舊稿',
+        note: '舊旁白。',
+        empty: false,
+      },
       { id: 'N03', before: '前文。', after: '後文。', summary: '', note: '', empty: true },
     ];
     const core = {
@@ -305,21 +328,42 @@ describe('private evidence integrity', () => {
     });
     const cells = [
       {
-        requested_model: 'claude-opus-5', arm: 'current', status: 'VALID', artifact,
-        actual_model: 'claude-opus-5', actual_model_source: 'provider_usage',
+        requested_model: 'claude-opus-5',
+        arm: 'current',
+        status: 'VALID',
+        artifact,
+        actual_model: 'claude-opus-5',
+        actual_model_source: 'provider_usage',
         attempts: [attempt('current')],
       },
       {
-        requested_model: 'claude-opus-5', arm: 'revised', status: 'VALID', artifact: abstention,
-        actual_model: 'claude-opus-5', actual_model_source: 'provider_usage',
+        requested_model: 'claude-opus-5',
+        arm: 'revised',
+        status: 'VALID',
+        artifact: abstention,
+        actual_model: 'claude-opus-5',
+        actual_model_source: 'provider_usage',
         attempts: [attempt('revised')],
       },
     ];
-    const mapped = (arm: string, id: string, value: typeof artifact, suffix: string, type: string) => ({
-      requested_model: 'claude-opus-5', actual_model: 'claude-opus-5',
-      actual_model_source: 'provider_usage', provider: 'claude', arm, type,
-      run_uuid: `run-${suffix}`, isolation_session_id: `isolation-${suffix}`,
-      provider_session_id: `provider-${suffix}`, candidate_sha256: sha256(stableJSON(value)), id,
+    const mapped = (
+      arm: string,
+      id: string,
+      value: typeof artifact,
+      suffix: string,
+      type: string
+    ) => ({
+      requested_model: 'claude-opus-5',
+      actual_model: 'claude-opus-5',
+      actual_model_source: 'provider_usage',
+      provider: 'claude',
+      arm,
+      type,
+      run_uuid: `run-${suffix}`,
+      isolation_session_id: `isolation-${suffix}`,
+      provider_session_id: `provider-${suffix}`,
+      candidate_sha256: sha256(stableJSON(value)),
+      id,
     });
     const mapping = {
       schema_version: EXPERIMENT_SCHEMA_VERSION,
@@ -336,13 +380,19 @@ describe('private evidence integrity', () => {
       ],
     };
     expect(validatePrivateMapping(mapping, packet, cells)).toEqual(mapping);
-    expect(() => validatePrivateMapping({ ...mapping, cells: mapping.cells.slice(0, 1) }, packet, cells)).toThrow('every admissible model pair');
-    expect(() => validatePrivateMapping({ ...mapping, cells: [] }, packet, cells)).toThrow('every admissible model pair');
+    expect(() =>
+      validatePrivateMapping({ ...mapping, cells: mapping.cells.slice(0, 1) }, packet, cells)
+    ).toThrow('every admissible model pair');
+    expect(() => validatePrivateMapping({ ...mapping, cells: [] }, packet, cells)).toThrow(
+      'every admissible model pair'
+    );
   });
 
   it('rejects an invalid root before creating or chmodding it', async () => {
     const forbidden = `/private/tmp/not-a-mogunote-root-${Date.now()}`;
-    await expect(initializeExperiment({ repoRoot: process.cwd(), root: forbidden })).rejects.toThrow('direct child');
+    await expect(
+      initializeExperiment({ repoRoot: process.cwd(), root: forbidden })
+    ).rejects.toThrow('direct child');
     await expect(fs.lstat(forbidden)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
