@@ -50,7 +50,7 @@ schema 新增 `unlisted: boolean`，缺省為 `false`。它描述「不應出現
 
 新增單一 `ShroomDogChoice.astro`，由繁中與英文首頁傳入 resolver 結果及 locale。component 內只處理語系文案與呈現，不重新判斷文章資格。
 
-版型採單一 11px 外框、hairline 分隔與留白建立層次；不使用 `SD` 圓章、內層卡片堆疊、重陰影或大面積橘色漸層。區塊置於現有 Gu-log Picks 前，第一篇顯示 `首選`／`Top Pick`，另兩篇維持人工次序。
+版型採單一 11px 外框、hairline 分隔與留白建立層次；不使用 `SD` 圓章、內層卡片堆疊、重陰影或大面積橘色漸層。dark mode 沿用中性 surface；light mode 使用白色 surface、neutral 細框與極淡陰影，和全站暖米色背景拉開層次，但不改變版型。區塊置於現有 Gu-log Picks 前，第一篇顯示 `首選`／`Top Pick`，另兩篇維持人工次序。
 
 ### 5. 真實首頁 preview 取代靜態 artifact
 

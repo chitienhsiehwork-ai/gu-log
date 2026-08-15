@@ -83,3 +83,5 @@
 
 - **WHEN** 首頁在 dark 或 light theme 渲染
 - **THEN** 策展區文字、邊界與互動狀態 SHALL 保持可辨識
+- **AND** light theme 的策展 surface SHALL 與全站暖色背景形成清楚但克制的層次
+- **AND** dark theme 的既有 surface 呈現 SHALL 保持不變
