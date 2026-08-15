@@ -40,8 +40,11 @@ GP source translation 的 runtime 會從 glossary data 產生只含 `term` 與 `
 
 所有中文 post 一次清除「代理人」。AI agent 語意改為 `Agent`，每篇第一次安全出現由既有 fixer 連 glossary。新增 `Proxy` entry，定義網路 proxy 與比喻用法共通的「居中代為收送／轉發」角色；`agency` 雙關改成直接解釋英文詞源，`meat proxy` 改成「肉身 Proxy／轉發器」並連到新 entry，不假裝它是 AI agent。
 
+既有文章若沒有 scores，這次不得為了術語正規化而觸發全文 Tribunal 或自由重寫。Score/content gate 只在 deterministic checker 證明 staged 版本等於「HEAD 內容套用 glossary 禁用詞→canonical term，再加必要 glossary link wrapper」時豁免；任何其他 reader-visible byte 變更都維持原 gate。這個 proof 同時接進 pre-commit 與 PR content-gate file list，不能只在本機放行。
+
 ## Risks / Trade-offs
 
 - [禁用詞可能出現在原文引句] → blockquote 仍是發布給讀者看的翻譯，照樣使用 canonical term；只有程式碼、URL 與機器語法排除，不提供常態 escape hatch，以免規則失效。
 - [一次改 5 篇舊文可能碰到翻譯語氣] → AI agent 處只做術語正規化；兩個非 AI agent 例子逐段人工改寫並跑內容 gate。
+- [術語 migration exemption 可能被拿來偷渡改寫] → proof 比較整份 canonicalized bytes，只允許 glossary 資料宣告的 forbidden→term 替換、`term（禁用譯名）` 合併與既有 glossary link wrapper；多改任何文字即 fail closed。
 - [glossary checker 職責變寬] → canonical terminology 與 link coverage 共用同一 entry、同一 safe-text scanner、同一 CI ratchet，比分裂新 script 更容易維護。

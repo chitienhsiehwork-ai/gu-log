@@ -26,6 +26,7 @@ function parseArgs(argv) {
     format: 'text',
     changedTermsBase: null,
     changedPostsBase: null,
+    canonicalStagedFile: null,
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -39,9 +40,10 @@ function parseArgs(argv) {
     else if (arg === '--changed-posts') args.changedPostsBase = argv[++i] ?? 'origin/main';
     else if (arg.startsWith('--changed-posts='))
       args.changedPostsBase = arg.slice('--changed-posts='.length);
+    else if (arg === '--check-canonical-staged-file') args.canonicalStagedFile = argv[++i];
     else if (arg === '--help' || arg === '-h') {
       console.log(
-        `Usage: node scripts/check-glossary-links.mjs [--all] [--term TERM...] [--files "a.mdx b.mdx"] [--changed-terms origin/main] [--changed-posts origin/main] [--format text|json]`
+        `Usage: node scripts/check-glossary-links.mjs [--all] [--term TERM...] [--files "a.mdx b.mdx"] [--changed-terms origin/main] [--changed-posts origin/main] [--format text|json] [--check-canonical-staged-file path]`
       );
       process.exit(0);
     } else args.files.push(arg);
@@ -446,6 +448,43 @@ export function changedGlossaryTermsFromEntries(before, after) {
     .map((entry) => entry.term);
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function normalizeCanonicalTerminology(content, glossary = loadGlossary()) {
+  let normalized = String(content).replace(/\[([^\]\n]+)\]\(\/(?:en\/)?glossary#[^)\n]+\)/g, '$1');
+
+  for (const entry of normalizeGlossary(glossary)) {
+    for (const forbidden of entry.forbiddenZhTw) {
+      const term = escapeRegExp(entry.term);
+      const old = escapeRegExp(forbidden);
+      normalized = normalized.replace(
+        new RegExp(`${term}\\s*[（(]\\s*${old}\\s*[）)]`, 'gi'),
+        entry.term
+      );
+      normalized = normalized.replace(new RegExp(old, 'g'), entry.term);
+    }
+
+    // Chinese prose normally adds spaces around an inserted English term.
+    // Canonicalize only Han/term boundaries so this allowance cannot hide
+    // unrelated whitespace or punctuation edits elsewhere in the article.
+    const canonical = escapeRegExp(entry.term);
+    normalized = normalized
+      .replace(new RegExp(`([\\p{Script=Han}])[ \\t]*(${canonical})`, 'giu'), '$1 $2')
+      .replace(new RegExp(`(${canonical})[ \\t]*([\\p{Script=Han}])`, 'giu'), '$1 $2');
+  }
+  return normalized;
+}
+
+export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadGlossary()) {
+  if (before === after) return false;
+  return (
+    normalizeCanonicalTerminology(before, glossary) ===
+    normalizeCanonicalTerminology(after, glossary)
+  );
+}
+
 function changedGlossaryTerms(base, glossary) {
   try {
     const show = (ref) => {
@@ -469,6 +508,23 @@ function changedGlossaryTerms(base, glossary) {
 export function runCLI(argv, io = { log: console.log, error: console.error }) {
   const args = parseArgs(argv);
   const glossary = loadGlossary();
+  if (args.canonicalStagedFile) {
+    const file = args.canonicalStagedFile;
+    if (path.isAbsolute(file) || file.split('/').includes('..')) return 2;
+    try {
+      const before = execFileSync('git', ['show', `HEAD:${file}`], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      });
+      const after = execFileSync('git', ['show', `:${file}`], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      });
+      return isCanonicalTerminologyOnlyChange(before, after, glossary) ? 0 : 1;
+    } catch {
+      return 1;
+    }
+  }
   let files = args.files.map((f) => path.resolve(f));
   let terms = args.terms;
 

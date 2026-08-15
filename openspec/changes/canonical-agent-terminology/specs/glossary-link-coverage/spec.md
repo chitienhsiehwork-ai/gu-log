@@ -38,3 +38,21 @@
 - **WHEN** PR 在啟用中的 glossary 項目新增或修改 `forbiddenZhTw`
 - **THEN** 既有 changed-term ratchet SHALL 掃描所有 zh-tw 文章是否含有該項目的禁用詞
 - **AND** 全站 glossary hard gate SHALL 阻止歷史違規上線
+
+### Requirement: Canonical terminology-only migrations MUST be mechanically provable
+
+既有文章只因 `forbiddenZhTw` 遷移而變更時，content-quality gate MAY 略過既有文章缺少 scores 的歷史債務，但 SHALL 先以確定性 proof 證明 staged 內容只包含：禁用詞改成該 entry 的 canonical `term`、`term（禁用詞）` 合併成 canonical term，以及對 canonical term 加上 glossary link wrapper。
+
+Pre-commit 與 PR content-gate file selection SHALL 使用同一個 proof contract。任何不屬於上述轉換的 reader-visible 文字變更 SHALL 使 proof 失敗，並 SHALL 維持既有 score、pronoun 與內容品質 gate。
+
+#### Scenario: mechanical Agent migration does not rescore legacy prose
+
+- **WHEN** 無 scores 的既有文章只把「代理人」改成 `Agent`，並在第一次出現加上 `/glossary#agent` link
+- **THEN** canonical terminology proof SHALL 通過
+- **AND** content gate SHALL NOT 因該機械式 migration 要求重跑整篇 Tribunal
+
+#### Scenario: adjacent rewrite cannot hide behind terminology migration
+
+- **WHEN** staged 文章除了禁用詞替換與 glossary link 之外，還改寫同一行或相鄰行的其他 prose
+- **THEN** canonical terminology proof SHALL 失敗
+- **AND** 文章 SHALL 繼續接受一般 score 與內容品質 gate

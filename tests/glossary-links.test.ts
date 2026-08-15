@@ -279,6 +279,29 @@ describe('glossary link checker', () => {
   });
 });
 
+describe('canonical terminology migration proof', () => {
+  it('accepts forbidden-term replacement plus glossary link wrapping', () => {
+    const before = '---\nsummary: 讓代理人做事\n---\nAI 代理人會工作。\n';
+    const after = '---\nsummary: 讓 Agent 做事\n---\nAI [Agent](/glossary#agent) 會工作。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(true);
+  });
+
+  it('accepts collapsing a redundant English-plus-forbidden parenthetical', () => {
+    const before = '把 agency 交給 agent（代理人）。\n';
+    const after = '把 agency 交給 [Agent](/glossary#agent)。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(true);
+  });
+
+  it('rejects any adjacent prose rewrite', () => {
+    const before = '代理人會工作。下一句保持原樣。\n';
+    const after = 'Agent 會把整間公司一次救起來。下一句保持原樣。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
+  });
+});
+
 describe('glossary link fixer', () => {
   it('links only the first safe occurrence and is idempotent', () => {
     const input = '---\nlang: zh-tw\n---\n正文提到 Elixir。後面 Elixir 裸字保留。\n';
