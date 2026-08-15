@@ -150,6 +150,13 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	if opts.Prefix == "GP" && s.WorkDir == "" {
 		return newExitError(1, fmt.Errorf("deploy: GP requires --work-dir containing source-tweet.md and a fresh gp-publish-gate.json"))
 	}
+	if opts.Prefix == "GP" {
+		gp, failedRole, err := buildGPDispatchers(state)
+		if err != nil {
+			return newExitError(1, fmt.Errorf("deploy: GP role %s preflight: %w", failedRole, err))
+		}
+		s.GPProfile, s.GPProfileSHA256 = gp.Profile, gp.ProfileSHA256
+	}
 
 	// The State.Deploy method drives the whole thing, but does not
 	// honor --skip-build / --skip-validate. For standalone debugging,

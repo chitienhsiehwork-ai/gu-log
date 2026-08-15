@@ -126,6 +126,15 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatal(err)
 	}
+	delete(s.RoleRuns, "translator")
+	s.FromStepInt = StepSourceGate
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("restore translator provenance: %v", err)
+	}
+	if _, ok := s.RoleRuns["translator"]; !ok {
+		t.Fatal("translator provenance was not restored from durable artifact")
+	}
+	s.FromStepInt = 0
 	translationBytes := []byte(translation)
 	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, filepath.Join(s.WorkDir, "source-translation.mdx"))
 	if err != nil {
@@ -166,6 +175,28 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	for _, role := range []string{"translator", "source-reviewer", "vibe-scorer", "commentary"} {
 		if run := s.RoleRuns[role]; run.Provider == "" || run.Model == "" || run.Harness == "" || run.ArtifactSHA256 == "" || run.CompletedAt.IsZero() {
 			t.Errorf("incomplete %s provenance: %#v", role, run)
+		}
+	}
+
+	// A new process resuming at Ralph has no in-memory role runs. Every prior
+	// role must be reconstructed from sealed workdir artifacts before Credits.
+	s.RoleRuns = map[string]RoleRun{}
+	s.FromStepInt = StepRalph
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("recover source translation: %v", err)
+	}
+	if err := s.PreserveGP(ctx); err != nil {
+		t.Fatalf("recover preservation gates: %v", err)
+	}
+	if err := s.Enrich(ctx); err != nil {
+		t.Fatalf("recover enrichment: %v", err)
+	}
+	if err := s.Credits(ctx); err != nil {
+		t.Fatalf("stamp credits after process recovery: %v", err)
+	}
+	for _, role := range []string{"translator", "source-reviewer", "vibe-scorer", "commentary"} {
+		if _, ok := s.RoleRuns[role]; !ok {
+			t.Errorf("full recovery did not restore %s provenance", role)
 		}
 	}
 }
@@ -314,6 +345,13 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	if err := os.WriteFile(finalPath, body, 0o644); err != nil {
 		t.Fatal(err)
 	}
+	commentary := preservation.CommentaryArtifact{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(body), Candidates: []preservation.CommentaryCandidate{},
+		Provenance: preservation.Provenance{Role: "commentary", Provider: "fixture", Model: "commentary", Harness: "test", CompletedAt: now},
+	}
+	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "commentary-candidates.json"), commentary); err != nil {
+		t.Fatal(err)
+	}
 	s.FromStepInt = StepRalph
 	if err := s.Enrich(ctx); err != nil {
 		t.Fatalf("post-enrichment recovery rejected fresh final: %v", err)
@@ -324,6 +362,11 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	}
 	if string(gotFinal) != string(body) {
 		t.Fatalf("recovery silently replaced final enrichment artifact:\n%s", gotFinal)
+	}
+	for _, role := range []string{"source-reviewer", "vibe-scorer", "commentary"} {
+		if _, ok := s.RoleRuns[role]; !ok {
+			t.Errorf("recovery did not restore %s provenance", role)
+		}
 	}
 	if err := os.WriteFile(bodyPath, append(body, []byte("mutated\n")...), 0o644); err != nil {
 		t.Fatal(err)

@@ -103,10 +103,12 @@ type PublishManifest struct {
 }
 
 type SourceTranslationArtifact struct {
-	Version        string    `json:"version"`
-	SourceSHA256   string    `json:"source_sha256"`
-	TranslationMDX string    `json:"translation_mdx"`
-	SlopCandidates []Finding `json:"slop_candidates"`
+	Version           string     `json:"version"`
+	SourceSHA256      string     `json:"source_sha256"`
+	TranslationSHA256 string     `json:"translation_sha256,omitempty"`
+	TranslationMDX    string     `json:"translation_mdx"`
+	SlopCandidates    []Finding  `json:"slop_candidates"`
+	Provenance        Provenance `json:"provenance,omitempty"`
 }
 
 type CommentaryCandidate struct {
@@ -121,6 +123,7 @@ type CommentaryArtifact struct {
 	SourceSHA256      string                `json:"source_sha256"`
 	TranslationSHA256 string                `json:"translation_sha256"`
 	Candidates        []CommentaryCandidate `json:"candidates"`
+	Provenance        Provenance            `json:"provenance,omitempty"`
 }
 
 func SHA256(data []byte) string {
@@ -146,7 +149,7 @@ func DecodeStrict(data []byte, dst any) error {
 	return nil
 }
 
-func validateProvenance(p Provenance, wantRole string) error {
+func ValidateProvenance(p Provenance, wantRole string) error {
 	if p.Role != wantRole {
 		return fmt.Errorf("provenance role %q, want %q", p.Role, wantRole)
 	}
@@ -173,7 +176,7 @@ func ValidateGate(g GateEnvelope, gate, sourceHash, projectionHash string) error
 	if err := ValidateVerdictFindings(g.Verdict, g.Findings); err != nil {
 		return err
 	}
-	return validateProvenance(g.Provenance, gate)
+	return ValidateProvenance(g.Provenance, gate)
 }
 
 // ValidateVerdictFindings prevents a malformed response from smuggling
@@ -249,7 +252,7 @@ func ApplyPatches(source, translation []byte, artifact PatchArtifact) ([]byte, e
 	if artifact.SourceSHA256 != SHA256(source) || artifact.TranslationSHA256 != SHA256(translation) {
 		return nil, errors.New("patch artifact hashes are stale")
 	}
-	if err := validateProvenance(artifact.Provenance, "corrector"); err != nil {
+	if err := ValidateProvenance(artifact.Provenance, "corrector"); err != nil {
 		return nil, err
 	}
 	patches := append([]Finding(nil), artifact.Patches...)

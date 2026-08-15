@@ -45,7 +45,7 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
 			return errors.New("source-translate recovery requires the original frozen source-translation.mdx in --work-dir; an enriched --file cannot reconstruct it")
 		}
-		return nil
+		return s.restoreSourceTranslationRun(path)
 	}
 	if s.Angle != "" {
 		return errors.New("source-translate: --angle is forbidden for production GP")
@@ -96,6 +96,11 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	if err := os.WriteFile(path, translation, 0o644); err != nil {
 		return err
 	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translation.initial.mdx"), translation, 0o644); err != nil {
+		return err
+	}
+	artifact.TranslationSHA256 = preservation.SHA256(translation)
+	artifact.Provenance = provenanceFor("translator", result)
 	artifactPath := filepath.Join(s.WorkDir, "source-translate.json")
 	if err := preservation.WriteJSON(artifactPath, artifact); err != nil {
 		return err
@@ -113,6 +118,7 @@ func (s *State) PreserveGP(ctx context.Context) error {
 		if err := s.ValidateGPPublishManifest(ctx, translationPath); err != nil {
 			return fmt.Errorf("GP recovery: %w", err)
 		}
+		s.restoreOptionalCorrectorRun()
 		return nil
 	}
 	s.Log.Info("Step 3: source-preservation gates")
@@ -325,7 +331,10 @@ func (s *State) Enrich(ctx context.Context) error {
 		if _, err := os.Stat(finalPath); err != nil {
 			return fmt.Errorf("GP enrichment recovery requires final.mdx: %w", err)
 		}
-		return s.ValidateGPPublishManifest(ctx, finalPath)
+		if err := s.ValidateGPPublishManifest(ctx, finalPath); err != nil {
+			return err
+		}
+		return s.restoreCommentaryRun()
 	}
 
 	s.Log.Info("Step 4: enrich")
@@ -361,6 +370,7 @@ func (s *State) Enrich(ctx context.Context) error {
 	if err := preservation.DecodeStrict([]byte(result.Output), &artifact); err != nil {
 		return err
 	}
+	artifact.Provenance = provenanceFor("commentary", result)
 	enriched, err := preservation.ApplyCommentaryCandidates(source, translation, artifact)
 	if err != nil {
 		return err
@@ -415,8 +425,87 @@ func (s *State) ValidateGPPublishManifest(ctx context.Context, bodyPath string) 
 	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256); err != nil {
 		return err
 	}
+	for _, gate := range manifest.Gates {
+		s.recordRecoveredRole(gate.Gate, gate.Provenance, path, gate.Verdict)
+	}
 	s.GateManifestPath = path
 	return nil
+}
+
+func (s *State) restoreSourceTranslationRun(translationPath string) error {
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(translationPath); err != nil {
+		return err
+	}
+	initial, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.initial.mdx"))
+	if err != nil {
+		return err
+	}
+	artifactPath := filepath.Join(s.WorkDir, "source-translate.json")
+	data, err := os.ReadFile(artifactPath)
+	if err != nil {
+		return fmt.Errorf("source-translate recovery requires durable source-translate.json: %w", err)
+	}
+	var artifact preservation.SourceTranslationArtifact
+	if err := preservation.DecodeStrict(data, &artifact); err != nil {
+		return err
+	}
+	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.TranslationSHA256 != preservation.SHA256(initial) || artifact.TranslationMDX != string(initial) {
+		return errors.New("source-translate recovery artifact is missing or stale")
+	}
+	if err := preservation.ValidateProvenance(artifact.Provenance, "translator"); err != nil {
+		return err
+	}
+	s.recordRecoveredRole("translator", artifact.Provenance, artifactPath, "COMPLETED")
+	return nil
+}
+
+func (s *State) restoreCommentaryRun() error {
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
+	translation, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		return err
+	}
+	artifactPath := filepath.Join(s.WorkDir, "commentary-candidates.json")
+	data, err := os.ReadFile(artifactPath)
+	if err != nil {
+		return fmt.Errorf("GP enrichment recovery requires durable commentary-candidates.json: %w", err)
+	}
+	var artifact preservation.CommentaryArtifact
+	if err := preservation.DecodeStrict(data, &artifact); err != nil {
+		return err
+	}
+	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.TranslationSHA256 != preservation.SHA256(translation) {
+		return errors.New("commentary recovery artifact is missing or stale")
+	}
+	if err := preservation.ValidateProvenance(artifact.Provenance, "commentary"); err != nil {
+		return err
+	}
+	s.recordRecoveredRole("commentary", artifact.Provenance, artifactPath, "APPLIED")
+	return nil
+}
+
+func (s *State) restoreOptionalCorrectorRun() {
+	source, err := s.sourceBytes()
+	if err != nil {
+		return
+	}
+	artifactPath := filepath.Join(s.WorkDir, "corrector.json")
+	data, err := os.ReadFile(artifactPath)
+	if err != nil {
+		return
+	}
+	var artifact preservation.PatchArtifact
+	if preservation.DecodeStrict(data, &artifact) != nil || artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || preservation.ValidateProvenance(artifact.Provenance, "corrector") != nil {
+		return
+	}
+	s.recordRecoveredRole("corrector", artifact.Provenance, artifactPath, "APPLIED")
 }
 
 func provenanceFor(role string, result *llm.RunResult) preservation.Provenance {
@@ -429,6 +518,14 @@ func (s *State) recordRoleRun(role string, result *llm.RunResult, artifactPath, 
 		s.RoleRuns = map[string]RoleRun{}
 	}
 	s.RoleRuns[role] = RoleRun{Role: role, Provider: result.ProviderName, Model: llm.DisplayName(result.ActualModel), Harness: llm.HarnessName(result.Model), ArtifactSHA256: preservation.SHA256(data), Verdict: verdict, CompletedAt: time.Now().UTC()}
+}
+
+func (s *State) recordRecoveredRole(role string, provenance preservation.Provenance, artifactPath, verdict string) {
+	data, _ := os.ReadFile(artifactPath)
+	if s.RoleRuns == nil {
+		s.RoleRuns = map[string]RoleRun{}
+	}
+	s.RoleRuns[role] = RoleRun{Role: role, Provider: provenance.Provider, Model: provenance.Model, Harness: provenance.Harness, ArtifactSHA256: preservation.SHA256(data), Verdict: verdict, CompletedAt: provenance.CompletedAt}
 }
 
 func ensureMoguNoteImport(document []byte) []byte {

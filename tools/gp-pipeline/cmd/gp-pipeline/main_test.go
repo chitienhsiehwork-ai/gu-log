@@ -641,6 +641,15 @@ func TestProductionGPRecoveryRejectsMissingAndStaleGateArtifacts(t *testing.T) {
 			translationPath := filepath.Join(workDir, "source-translation.mdx")
 			mustWrite(t, sourcePath, "complete source\n")
 			mustWrite(t, translationPath, article)
+			mustWrite(t, filepath.Join(workDir, "source-translation.initial.mdx"), article)
+			now := time.Now().UTC()
+			translationArtifact := preservation.SourceTranslationArtifact{
+				Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256([]byte("complete source\n")), TranslationSHA256: preservation.SHA256([]byte(article)), TranslationMDX: article, SlopCandidates: []preservation.Finding{},
+				Provenance: preservation.Provenance{Role: "translator", Provider: "fixture", Model: "translator", Harness: "go-test", CompletedAt: now},
+			}
+			if err := preservation.WriteJSON(filepath.Join(workDir, "source-translate.json"), translationArtifact); err != nil {
+				t.Fatal(err)
+			}
 			tc.setup(t, root, workDir, translationPath)
 			fakePath := filepath.Join(root, "fake-gp-roles.json")
 			writeCompleteFakeGPRoles(t, fakePath)
@@ -688,6 +697,8 @@ func TestStandaloneGPDeployRejectsMissingManifestBeforeMutation(t *testing.T) {
 	mustWrite(t, filepath.Join(postsDir, filename), article)
 	workDir := t.TempDir()
 	mustWrite(t, filepath.Join(workDir, "source-tweet.md"), "complete source\n")
+	fakePath := filepath.Join(root, "fake-gp-roles.json")
+	writeCompleteFakeGPRoles(t, fakePath)
 	counterBefore, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -696,7 +707,7 @@ func TestStandaloneGPDeployRejectsMissingManifestBeforeMutation(t *testing.T) {
 
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
-		"--work-dir", workDir, "deploy", "--active-file", filename, "--prefix", "GP",
+		"--fake-provider", fakePath, "--work-dir", workDir, "deploy", "--active-file", filename, "--prefix", "GP",
 		"--date-stamp", "20260815", "--author-slug", "author", "--title-slug", "title",
 	})
 	runErr := cmd.ExecuteContext(context.Background())
