@@ -2,7 +2,7 @@
 
 - [ ] 1.1 在 post schema 新增預設為 `false` 的 optional `unlisted` 布林欄位，並補 schema regression test
 - [ ] 1.2 建立唯一的有序策展 ticketId 清單，初始順序為 `GP-127`、`GP-101`、`GP-110`，並驗證不得重複
-- [ ] 1.3 實作雙語策展 resolver，集中處理 published、publish bar、unlisted 繼承、缺翻譯與 safe-skip 規則
+- [ ] 1.3 實作雙語策展 resolver，集中處理 published、現有首頁 eligibility（含 grandfathered）、unlisted 繼承、缺翻譯與 safe-skip 規則
 - [ ] 1.4 補齊 resolver 單元測試，覆蓋雙語順序、retired、deprecated、unlisted、below-bar、grandfathered、缺語言版本與重複設定
 
 ## 2. 真實首頁呈現

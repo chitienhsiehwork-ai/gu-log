@@ -6,7 +6,7 @@
 
 - 在繁中與英文首頁最前方加入 `ShroomDog’s Choice` 策展區，以較俐落的圓角矩形、單層內容階層呈現一篇主廚首選與兩篇延伸選文，不使用會和 `ShroomDog Original` ticket 前綴混淆的 `SD` 圓章。
 - 以單一有序 ticketId 清單管理雙語策展內容；首頁依目前語言解析同一批文章，保留人工排序，不自動補入其他文章。
-- 策展文章必須符合首頁品質門檻、有效狀態為 `published`，且未標記為 `unlisted`；缺少翻譯或不合資格時安全略過。
+- 策展文章必須符合現有首頁資格（包含尚未評分的 grandfathered 舊文）、有效狀態為 `published`，且未標記為 `unlisted`；缺少翻譯或不合資格時安全略過。
 - 在文章 frontmatter schema 加入可選的 `unlisted` 布林欄位，預設為 `false`，並讓英文 sidecar 繼承繁中主文的隱藏判斷。
 - 用真實首頁的 Vercel branch preview 取代討論用 HTML artifact，並補齊 resolver、schema、雙語、a11y、主題與 viewport 回歸驗證。
 

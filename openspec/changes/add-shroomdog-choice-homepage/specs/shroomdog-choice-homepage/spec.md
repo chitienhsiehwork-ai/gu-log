@@ -19,7 +19,7 @@
 
 ### Requirement: 一份有序清單驅動雙語策展
 
-系統 SHALL 以單一有序 ticketId 清單作為策展 SSOT。繁中與英文首頁 SHALL 依目前語言解析同一批 ticketId，並保留清單中的人工順序；設定有重複 ticketId 時 validation SHALL 失敗。
+系統 SHALL 以單一有序 ticketId 清單作為策展 SSOT。繁中與英文首頁 SHALL 依目前語言解析同一批 ticketId，並保留清單中的人工順序；設定有重複 ticketId 時 validation SHALL 失敗。若某語言缺少 sidecar 或該語言項目不合資格，兩個首頁的實際顯示篇數 MAY 不同，但系統 MUST NOT 維護第二份語言專屬菜單或自動補位。
 
 #### Scenario: 雙語使用同一排序
 
@@ -34,12 +34,18 @@
 
 ### Requirement: 策展資格採保守公開門檻
 
-策展 resolver SHALL 只回傳目前語言存在、有效狀態為 `published`、未低於首頁 publish bar，且繁中 canonical entry 與目前語言 entry 都未標記 `unlisted` 的文章。缺少或不合資格的清單項目 SHALL 被略過，系統 MUST NOT 自動補入未經選定的文章。
+策展 resolver SHALL 只回傳目前語言存在、有效狀態為 `published`、`isBelowPublishBar()` 為 false，且繁中 canonical entry 與目前語言 entry 都未標記 `unlisted` 的文章。此 publish-bar 判斷 SHALL 沿用現有首頁語意，讓尚未評分的 grandfathered 舊文保持合格。缺少或不合資格的清單項目 SHALL 被略過，系統 MUST NOT 自動補入未經選定的文章。
 
 #### Scenario: Published 且合格的文章入選
 
-- **WHEN** 清單文章在目前語言存在、有效狀態為 `published`、符合首頁 publish bar 且未標記 `unlisted`
+- **WHEN** 清單文章在目前語言存在、有效狀態為 `published`、`isBelowPublishBar()` 為 false 且未標記 `unlisted`
 - **THEN** resolver SHALL 依人工順序回傳該文章
+
+#### Scenario: 未評分舊文保持合格
+
+- **WHEN** 清單文章沒有真 tribunal 分數且其餘資格皆成立
+- **THEN** `isBelowPublishBar()` SHALL 為 false
+- **AND** resolver SHALL 保留該 grandfathered 文章
 
 #### Scenario: Retired 或 deprecated 文章排除
 
@@ -77,4 +83,3 @@
 
 - **WHEN** 首頁在 dark 或 light theme 渲染
 - **THEN** 策展區文字、邊界與互動狀態 SHALL 保持可辨識
-

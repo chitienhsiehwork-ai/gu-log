@@ -35,10 +35,10 @@ resolver 接收完整文章集合與語言，先驗證設定沒有重複 ticketI
 
 - 目前語言有對應 entry；
 - 有效狀態為 `published`；
-- 不低於既有首頁 publish bar；
+- `isBelowPublishBar()` 為 false，也就是沿用既有首頁包含未評分 grandfathered 舊文的資格語意；
 - 繁中 canonical entry 與目前語言 entry 都未標記 `unlisted`。
 
-resolver 對缺少或失效項目採 safe-skip，不重排、不補位。這比在 component 內臨時 filter 更容易單元測試，也讓兩個首頁共享完全相同的 eligibility contract。
+resolver 對缺少或失效項目採 safe-skip，不重排、不補位。兩個語言共用同一份人工菜單與相對順序，但某個語言缺 sidecar 或被標記 unlisted 時，實際顯示篇數可以不同。這比在 component 內臨時 filter 更容易單元測試，也讓兩個首頁共享完全相同的 eligibility contract。
 
 ### 3. `unlisted` 是獨立 metadata，不擴充 PostStatus
 
