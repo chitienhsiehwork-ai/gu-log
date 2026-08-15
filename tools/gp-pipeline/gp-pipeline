@@ -41,7 +41,7 @@ need_rebuild() {
   fi
   # Any source file newer than the binary triggers a rebuild. `-newer` is a
   # POSIX find primary so this works on both GNU and BSD find.
-  if find "$DIR" -name '*.go' -newer "$BIN" -print 2>/dev/null | grep -q .; then
+  if [ -n "$(find "$DIR" -name '*.go' -newer "$BIN" -print -quit 2>/dev/null)" ]; then
     return 0
   fi
   if [ "$DIR/go.mod" -nt "$BIN" ] || [ "$DIR/go.sum" -nt "$BIN" ]; then
