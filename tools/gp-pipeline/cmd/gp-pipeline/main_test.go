@@ -760,6 +760,10 @@ func TestStandaloneGPDeployBindsFreshManifestProfile(t *testing.T) {
 	if err := pipelineState.ValidateGPPublishManifest(context.Background(), articlePath); err != nil {
 		t.Fatalf("fresh manifest rejected after standalone profile binding: %v", err)
 	}
+	pipelineState.GPProfileSHA256 = preservation.SHA256([]byte("changed-profile"))
+	if err := pipelineState.ValidateGPPublishManifest(context.Background(), articlePath); err == nil {
+		t.Fatal("standalone deploy accepted a manifest from a changed runtime profile")
+	}
 }
 
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {

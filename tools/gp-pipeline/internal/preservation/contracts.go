@@ -72,11 +72,12 @@ type ReviewArtifact struct {
 
 // PatchArtifact is the bounded corrector's only accepted output shape.
 type PatchArtifact struct {
-	Version           string     `json:"version"`
-	SourceSHA256      string     `json:"source_sha256"`
-	TranslationSHA256 string     `json:"translation_sha256"`
-	Patches           []Finding  `json:"patches"`
-	Provenance        Provenance `json:"provenance"`
+	Version                 string     `json:"version"`
+	SourceSHA256            string     `json:"source_sha256"`
+	TranslationSHA256       string     `json:"translation_sha256"`
+	ResultTranslationSHA256 string     `json:"result_translation_sha256,omitempty"`
+	Patches                 []Finding  `json:"patches"`
+	Provenance              Provenance `json:"provenance"`
 }
 
 // GateEnvelope is the durable, freshness-bound publish decision for one gate.

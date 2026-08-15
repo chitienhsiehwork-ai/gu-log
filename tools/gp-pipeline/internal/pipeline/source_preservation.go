@@ -118,8 +118,7 @@ func (s *State) PreserveGP(ctx context.Context) error {
 		if err := s.ValidateGPPublishManifest(ctx, translationPath); err != nil {
 			return fmt.Errorf("GP recovery: %w", err)
 		}
-		s.restoreOptionalCorrectorRun()
-		return nil
+		return s.restoreOptionalCorrectorRun()
 	}
 	s.Log.Info("Step 3: source-preservation gates")
 	source, err := s.sourceBytes()
@@ -171,7 +170,10 @@ func (s *State) PreserveGP(ctx context.Context) error {
 			return err
 		}
 	}
-	return s.sealGPPublishManifest(ctx, source, translationPath, finalGates)
+	if err := s.sealGPPublishManifest(ctx, source, translationPath, finalGates); err != nil {
+		return err
+	}
+	return s.restoreOptionalCorrectorRun()
 }
 
 func (s *State) runSourceReviewer(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
@@ -290,6 +292,13 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 	}
 	corrected, err := preservation.ApplyPatches(source, translation, artifact)
 	if err != nil {
+		return err
+	}
+	artifact.ResultTranslationSHA256 = preservation.SHA256(corrected)
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "corrector-input.mdx"), translation, 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, fmt.Sprintf("corrector-input-attempt-%d.mdx", attempt)), translation, 0o644); err != nil {
 		return err
 	}
 	path := filepath.Join(s.WorkDir, fmt.Sprintf("corrector-attempt-%d.json", attempt))
@@ -491,21 +500,53 @@ func (s *State) restoreCommentaryRun() error {
 	return nil
 }
 
-func (s *State) restoreOptionalCorrectorRun() {
+func (s *State) restoreOptionalCorrectorRun() error {
+	if _, ok := s.RoleRuns["corrector"]; ok {
+		return nil
+	}
 	source, err := s.sourceBytes()
 	if err != nil {
-		return
+		return err
+	}
+	initial, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.initial.mdx"))
+	if err != nil {
+		return fmt.Errorf("corrector recovery requires initial translation: %w", err)
+	}
+	current, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		return err
+	}
+	if preservation.SHA256(current) == preservation.SHA256(initial) {
+		return nil
 	}
 	artifactPath := filepath.Join(s.WorkDir, "corrector.json")
 	data, err := os.ReadFile(artifactPath)
 	if err != nil {
-		return
+		return fmt.Errorf("corrected translation requires durable corrector.json: %w", err)
 	}
 	var artifact preservation.PatchArtifact
-	if preservation.DecodeStrict(data, &artifact) != nil || artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || preservation.ValidateProvenance(artifact.Provenance, "corrector") != nil {
-		return
+	if err := preservation.DecodeStrict(data, &artifact); err != nil {
+		return err
+	}
+	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.ResultTranslationSHA256 != preservation.SHA256(current) {
+		return errors.New("corrector recovery artifact is missing or stale")
+	}
+	if err := preservation.ValidateProvenance(artifact.Provenance, "corrector"); err != nil {
+		return err
+	}
+	input, err := os.ReadFile(filepath.Join(s.WorkDir, "corrector-input.mdx"))
+	if err != nil {
+		return fmt.Errorf("corrector recovery requires durable corrector-input.mdx: %w", err)
+	}
+	replayed, err := preservation.ApplyPatches(source, input, artifact)
+	if err != nil {
+		return fmt.Errorf("corrector recovery replay: %w", err)
+	}
+	if string(replayed) != string(current) {
+		return errors.New("corrector recovery replay does not produce current translation")
 	}
 	s.recordRecoveredRole("corrector", artifact.Provenance, artifactPath, "APPLIED")
+	return nil
 }
 
 func provenanceFor(role string, result *llm.RunResult) preservation.Provenance {

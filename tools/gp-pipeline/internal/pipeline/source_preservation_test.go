@@ -252,6 +252,59 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(s.WorkDir, "vibe-gate-attempt-2.json")); err != nil {
 		t.Fatal("vibe gate did not rerun")
 	}
+
+	// Resume in a fresh process at source-preservation. The gates rerun, but
+	// the prior bounded correction must be replay-verified and credited.
+	s.RoleRuns = map[string]RoleRun{}
+	s.FromStepInt = StepSourceGate
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("recover translator before source-preservation: %v", err)
+	}
+	correctedProjection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "recovery-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, correctedBytes)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "recovery-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(source, correctedBytes, correctedProjection)))
+	if err := s.PreserveGP(ctx); err != nil {
+		t.Fatalf("recover corrected source-preservation: %v", err)
+	}
+	if _, ok := s.RoleRuns["corrector"]; !ok {
+		t.Fatal("corrector provenance was not restored after replay verification")
+	}
+	s.FromStepInt = StepEnrich
+	s.CommentaryDispatcher = gpFakeDispatcher(t, "recovery-commentary", llm.ModelGrok46, artifactJSON(t, emptyCommentary(source, correctedBytes)))
+	if err := s.Enrich(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Credits(ctx); err != nil {
+		t.Fatal(err)
+	}
+	final, err := os.ReadFile(filepath.Join(s.WorkDir, "final.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(final), `role: "corrector"`) {
+		t.Fatalf("recovered credits omitted corrector provenance:\n%s", final)
+	}
+
+	var stale preservation.PatchArtifact
+	correctorPath := filepath.Join(s.WorkDir, "corrector.json")
+	data, err := os.ReadFile(correctorPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := preservation.DecodeStrict(data, &stale); err != nil {
+		t.Fatal(err)
+	}
+	stale.ResultTranslationSHA256 = strings.Repeat("0", 64)
+	if err := preservation.WriteJSON(correctorPath, stale); err != nil {
+		t.Fatal(err)
+	}
+	delete(s.RoleRuns, "corrector")
+	if err := s.restoreOptionalCorrectorRun(); err == nil {
+		t.Fatal("stale corrector result hash must not be credited")
+	}
 }
 
 func TestGPNaturalCalibrationFindingCanBeCorrectedBeforeDeterministicRecheck(t *testing.T) {
