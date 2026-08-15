@@ -213,10 +213,10 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("# Source\n\nI took a break.\n")
-	translation := "---\nticketId: GP-PENDING\ntitle: 休息\noriginalDate: 2026-08-15\ntranslatedDate: 2026-08-15\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我休息了一下。\nlang: zh-tw\ntags: [ai]\n---\n\n我休息了一陣子。\n"
+	translation := "---\nticketId: GP-PENDING\ntitle: 休息\noriginalDate: 2026-08-15\ntranslatedDate: 2026-08-15\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我休息了一下。\nlang: zh-tw\ntags: [ai]\n---\n\n我休息了一陣子。\n\n我休息了一陣子。\n"
 	s, _ := newGPState(t, string(source), translation)
 	oldText := "我休息了一陣子。"
-	start := strings.Index(translation, oldText)
+	start := strings.LastIndex(translation, oldText)
 	finding := preservation.Finding{
 		ID: "slop-1", IssueType: "approved_slop", SourceQuote: "I took a break.",
 		SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256([]byte(translation)),

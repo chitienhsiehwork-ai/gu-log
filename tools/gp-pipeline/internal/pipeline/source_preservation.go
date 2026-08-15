@@ -98,6 +98,7 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("source-translate frontmatter: %w", err)
 	}
+	originalBodyStart := len(translation) - len(translationFile.Body())
 	translationFile.RepairSingleQuotedScalars()
 	if err := translationFile.ValidateYAML(); err != nil {
 		return fmt.Errorf("source-translate frontmatter: %w", err)
@@ -108,12 +109,12 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	translation = translationFile.Bytes()
 	artifact.TranslationMDX = string(translation)
 	if len(artifact.SlopCandidates) > 0 {
-		canonicalCandidates, err := preservation.CanonicalizeFindingAnchors(translation, artifact.SlopCandidates)
-		if err != nil {
-			return fmt.Errorf("source-translate canonicalize slop candidates: %w", err)
-		}
+		canonicalCandidates := append([]preservation.Finding(nil), artifact.SlopCandidates...)
+		bodyStartDelta := len(translation) - len(translationFile.Body()) - originalBodyStart
 		translationHash := preservation.SHA256(translation)
 		for i := range canonicalCandidates {
+			canonicalCandidates[i].StartByte += bodyStartDelta
+			canonicalCandidates[i].EndByte += bodyStartDelta
 			canonicalCandidates[i].TranslationSHA256 = translationHash
 		}
 		if err := preservation.ValidateFindings(source, translation, canonicalCandidates); err != nil {
