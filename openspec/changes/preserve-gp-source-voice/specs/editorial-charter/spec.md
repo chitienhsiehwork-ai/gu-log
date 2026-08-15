@@ -2,11 +2,13 @@
 
 ### Requirement: GP and MP body MUST be faithful translation
 
-GP 與 MP 的 body SHALL 是忠實翻譯。
+GP 與 MP 的 body SHALL 是忠實翻譯。下列 source-spine 限制只收窄 GP；MP 保留既有的 payload-preserving packaging 權限，不在本 change 改動 executable pipeline。
 
-忠實翻譯 SHALL NOT 等於逐字翻譯，但 GP 與 MP SHALL 預設保留 source spine：voice owner、第一／第二／第三人稱、論證順序、段落關係、語氣、情緒與自然停點。writer MAY 為自然繁中調整句法、切句、合句與局部段落邊界，也 MAY 刪除明確不承載 payload 或 voice 的 AI slop；writer SHALL NOT 因為 source 平淡、線性、不像 gu-log，或未達 persona／narrative rubric，就自由重排、摘要、重建骨架或改寫成另一篇 editorial。
+忠實翻譯 SHALL NOT 等於逐字翻譯。GP SHALL 預設保留 source spine：voice owner、第一／第二／第三人稱、論證順序、段落關係、語氣、情緒與自然停點。writer MAY 為自然繁中調整句法、切句、合句與局部段落邊界；writer SHALL NOT 因為 source 平淡、線性、不像 gu-log，或未達 persona／narrative rubric，就自由重排、摘要、重建骨架或改寫成另一篇 editorial。AI slop 只有在完整翻譯後，由獨立 reviewer 核准並透過 bounded patch contract 才 MAY 刪除。
 
-對 GP 與 MP body，「自然翻譯」只有一個權威邊界：
+MP body MAY 依既有 contract 重組講述順序、節奏、切塊與故事形狀，只要 payload、條件、caveat、證據與 source edge 完整保留。
+
+對 GP body，「自然翻譯」只有一個權威邊界：
 
 > 讓原作者用自然台灣中文說原本那篇文章，不替原作者重新寫一篇。
 
@@ -36,12 +38,11 @@ Source payload SHALL 包含 source 的主張、主張之間的關係、因果、
 
 - **WHEN** source 含有空洞開場、同義反覆、模板式摘要或假深度結語
 - **AND** 該文字不承載 payload、voice、情緒或刻意修辭
-- **THEN** GP body MAY 省略該文字
-- **AND** review SHALL 能以 source evidence 說明刪除邊界
+- **THEN** translator MAY 提出刪除 candidate，但初稿 SHALL 仍保留該文字
+- **AND** 只有獨立 reviewer 以 source evidence 核准後，deterministic applicator 才 MAY 在明確邊界內刪除
 
-#### Scenario: low-value inventory is compressed without changing voice
+#### Scenario: plain inventory remains source-aligned
 
 - **WHEN** source 包含重複專名、機械 inventory 或低價值實作細節
-- **THEN** GP body MAY 在同一局部段落內壓縮重複材料
-- **AS LONG AS** 省略不會刪掉會改變 source 意思的條件、caveat、證據邊界、主張或作者聲音
-
+- **THEN** GP body SHALL 保留其項目、關係與位置
+- **AND** MAY 只為自然中文調整同一局部段落的句法，不得以低價值為由省略非 slop 材料

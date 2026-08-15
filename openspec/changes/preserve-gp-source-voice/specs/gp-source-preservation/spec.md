@@ -2,47 +2,48 @@
 
 ### Requirement: GP body MUST preserve the source voice
 
-GP 正文 SHALL 讓讀者感覺是在讀原作者的自然繁中版本，而不是另一位 AI writer 對原文的再創作。翻譯 SHALL 保留 source 的 voice owner、第一／第二／第三人稱、語氣強弱、段落關係、論證順序與自然停點；除非忠實直譯在繁中無法理解，否則不得更換敘事視角或重建文章骨架。
+GP 正文 SHALL 讓讀者感覺是在讀原作者的自然繁中版本，而不是另一位 AI 寫手對原文的再創作。翻譯 SHALL 保留原文由誰說話、第一／第二／第三人稱、語氣強弱、段落關係、論證順序與自然停點；除非忠實直譯在繁中無法理解，否則不得更換敘事視角或重建文章骨架。
 
 #### Scenario: first-person essay remains first person
 
 - **WHEN** source 作者用第一人稱描述自己的經驗、情緒與判斷
-- **THEN** GP body SHALL 使用第一人稱翻譯
+- **THEN** GP 正文 SHALL 使用第一人稱翻譯
 - **AND** SHALL NOT 改成「寫這篇文章的人」「他認為」或第三人稱品牌旁白
 
 #### Scenario: source sequence remains recognizable
 
 - **WHEN** source 的段落順序在繁中仍可自然理解
-- **THEN** GP body SHALL 保留該順序與段落關係
+- **THEN** GP 正文 SHALL 保留該順序與段落關係
 - **AND** SHALL NOT 為了製造 hook、tension、callback 或 article spine 而重排全文
 
 ### Requirement: GP body MAY remove only obvious non-payload slop
 
-GP pipeline MAY 刪除可明確辨識、且移除後不會改變 source payload 或作者個性的低價值文字。可刪範圍 SHALL 限於空洞開場、同義反覆、無資訊轉場、重複摘要、假深度 reframe、模板式結語與其他不承載事實、推理、情緒、幽默或 voice 的文字。
+GP 翻譯者 SHALL 先翻譯完整原文，另行提出可刪除候選。只有獨立來源審查者核准、且確定性套用器驗證局部修改契約後，pipeline MAY 刪除可明確辨識、且移除後不會改變原文內容或作者個性的低價值文字。可刪範圍 SHALL 限於空洞開場、同義反覆、無資訊轉場、重複摘要、假深度包裝、模板式結語與其他不承載事實、推理、情緒、幽默或作者聲音的文字。
 
 「AI slop」SHALL 由內容功能判斷，不得因句子平淡、線性、不像 gu-log 或未達 narrative rubric 就刪除。
 
 #### Scenario: empty AI-style closing is removed
 
 - **WHEN** source 結尾只用不同詞重複前文結論，沒有新增 payload、情緒或刻意的修辭效果
-- **THEN** translator MAY 刪除該結尾
-- **AND** review artifact SHALL 能指出被刪文字及其不承載 payload 的理由
+- **THEN** 翻譯者 MAY 提出刪除候選，但 SHALL 在初稿保留該結尾
+- **AND** 只有獨立 reviewer 核准其 source boundary 與不承載 payload 的理由後，deterministic applicator 才 MAY 刪除
 
 #### Scenario: plain but meaningful sentence remains
 
 - **WHEN** source 句子寫得平淡但承載作者經驗、判斷、情緒、條件或論證關係
-- **THEN** GP body SHALL 保留其意思與位置
+- **THEN** GP 正文 SHALL 保留其意思與位置
 - **AND** SHALL NOT 為了提高 Sentence Signal、persona 或 narrative score 而改寫成金句或比喻
 
 ### Requirement: GP additions MUST be navigation or separated commentary
 
-GP pipeline 在 source payload 之外只 MAY 新增三類材料：gu-log 內部 reference links、glossary links，以及放在 `<MoguNote>` 內的 gu-log commentary。新增材料 SHALL 不冒充 source body，也不得改變 source 的 voice、claim 或文章形狀。
+GP pipeline 在原文內容之外只 MAY 新增三類材料：gu-log 內部參照連結、glossary 連結，以及放在 `<MoguNote>` 內的 gu-log 評論。新增材料 SHALL 不冒充原文正文，也不得改變原文的作者聲音、主張或文章形狀。
 
 #### Scenario: internal reference is added without rewriting prose
 
 - **WHEN** source 概念已有直接相關的 gu-log article
-- **THEN** pipeline MAY 在最接近的原文概念上加入內部連結，或在正文之外加入延伸閱讀
-- **AND** SHALL NOT 為了安插 reference 而新增一段 gu-log 自我介紹或改寫 source argument
+- **THEN** pipeline MAY 只在最接近的既有正文文字外包上內部連結
+- **AND** SHALL NOT 新增延伸閱讀文字、gu-log 自我介紹或改寫 source argument
+- **AND** 沒有可直接包 link 的既有文字時 SHALL 略過該 reference
 
 #### Scenario: glossary link adds recognition only
 
@@ -54,7 +55,7 @@ GP pipeline 在 source payload 之外只 MAY 新增三類材料：gu-log 內部 
 
 - **WHEN** editor 想加入 source 沒有的判斷、玩笑、類比或自我指涉
 - **THEN** 該材料 SHALL 放進 `<MoguNote>`
-- **AND** 移除該 note 後，GP body SHALL 仍是完整且忠實的 source translation
+- **AND** 移除該 note 後，GP 正文 SHALL 仍是完整且忠實的原文翻譯
 
 ### Requirement: Natural Taiwan Chinese MUST be a non-compensating publish gate
 
@@ -77,10 +78,13 @@ GP 的繁中正文 SHALL 使用一般台灣讀者不需停下來解碼的自然�
 
 GP review SHALL 對每個問題提供 source evidence、問題類型與允許修改的範圍。後續 correction SHALL 只修改被指出的局部內容；不得以 refine、vibe improvement 或 pass-score optimization 為由自由重寫全文。
 
+每個 finding／patch SHALL 綁定 source 與 translation SHA-256，並包含 exact old text、old-text hash、start/end byte offsets 與 suggested replacement。Boundary SHALL 限於單一句子或單一段落。Applicator SHALL 拒絕 stale hash、offset/text 不符、overlap、跨段落、frontmatter、完整文章輸出，以及 boundary 外任何 byte 變動。
+
 #### Scenario: factual issue receives a local correction
 
 - **WHEN** reviewer 發現一個 hedge 遺失或數字翻錯
-- **THEN** correction SHALL 只修正相關句子及必要的相鄰銜接
+- **THEN** correction SHALL 只修正 finding 明列的相關句子
+- **AND** 任何相鄰銜接修改 SHALL 另立 finding 與 boundary
 - **AND** SHALL 保留其他未被指出的段落與 source voice
 
 #### Scenario: low vibe score cannot trigger GP rebuild
@@ -113,15 +117,48 @@ GP translator、bounded corrector 與 vibe scorer SHALL 使用三個不同 model
 - **THEN** pipeline SHALL 保留 failure evidence 並停止該次 publish
 - **AND** SHALL NOT 靜默換成 translator、corrector 或 vibe scorer 已使用的 model
 
+### Requirement: GP enrichment MUST preserve a canonical body projection
+
+GP navigation 與 MoguNote enrichment SHALL 在 source-aligned body 凍結後執行。Pipeline SHALL 透過 canonical body projection 移除 MoguNote nodes、剝除 allowlist 內連結 wrapper，並保留其他 MDX 結構與文字節點；enrichment 前後 projection bytes 與 SHA-256 SHALL 完全相同。
+
+#### Scenario: link wrapper preserves body text
+
+- **WHEN** navigation enricher 對既有 glossary term 或 gu-log reference 加上允許的 link wrapper
+- **THEN** 移除該 wrapper 後 SHALL 得到和 enrichment 前完全相同的文字與節點順序
+
+#### Scenario: enrichment prose is rejected
+
+- **WHEN** enrichment 在 MoguNote 之外新增文字、改寫 heading、重排節點或加入未知 component
+- **THEN** canonical body projection SHALL 不相符
+- **AND** pipeline SHALL 拒絕該 enrichment
+
 ### Requirement: GP publication MUST fail closed on source-preservation gates
 
 GP 只有在 source fidelity、source voice preservation、自然中文與內容完整性 gate 全部通過後才 SHALL publish。任何上述 gate FAIL、runner error 或缺少有效 verdict 時，pipeline SHALL 停在可檢查狀態，不得 best-effort deploy。
+
+有效 verdict SHALL 是版本化 envelope，包含 gate 名稱、source SHA-256、canonical body projection SHA-256、`PASS`／`FAIL`、結構化 findings 與完整 provider/model/harness provenance。Source Reviewer SHALL 負責 fidelity、voice、person、order 與 completeness；獨立 Vibe Scorer SHALL 負責自然台灣中文 cold read。Correction 後所有必要 gate SHALL 重跑。
 
 #### Scenario: tribunal failure blocks deployment
 
 - **WHEN** 任一 source-preservation hard gate FAIL 或無法產生有效 verdict
 - **THEN** pipeline SHALL NOT 執行 deploy
 - **AND** SHALL 保留 source、translation、review 與 failure evidence 供恢復
+
+#### Scenario: recovery cannot reuse stale verdict
+
+- **WHEN** `--from-step`、`--file` 或 deploy recovery 發現 source 或 canonical body hash 和 verdict 不符
+- **THEN** pipeline SHALL 視為缺少有效 verdict並重跑必要 gate，或停止發布
+- **AND** SHALL NOT 沿用舊 PASS
+
+### Requirement: GP rebuild prohibition MUST override generic editorial modes
+
+GP source translation SHALL NOT 進入 `restructure` 或 `rebuild`。任何通用 editorial mode capability 在套用於 GP 前 SHALL 先服從已 archive 的 GP source-preservation contract；低 persona、narrative 或 vibe 分數不得重新授權全文改寫。
+
+#### Scenario: generic rebuild proposal cannot capture GP
+
+- **WHEN** 通用 editorial judge 將忠實且自然的 GP 判為 structural fail
+- **THEN** routing SHALL 拒絕 `restructure` 與 `rebuild`
+- **AND** SHALL 只接受有 source evidence 的 bounded correction，或保留原文翻譯
 
 ### Requirement: GP-273 MUST calibrate source-preserving behavior
 
