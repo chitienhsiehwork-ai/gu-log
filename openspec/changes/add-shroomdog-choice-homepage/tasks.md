@@ -7,7 +7,7 @@
 
 ## 2. 真實首頁呈現
 
-- [x] 2.1 建立共用 `ShroomDogChoice` Astro component，以單一 11px 外框、hairline 與 responsive spacing 呈現主廚首選及兩篇延伸選文
+- [x] 2.1 建立共用 `ShroomDogChoice` Astro component，以單一 11px 外框、hairline 與 responsive spacing 呈現首選及兩篇延伸選文
 - [x] 2.2 加入繁中與英文文案，不顯示 `SD` 圓章，並讓文章標題連結具有可辨識的 hover／focus 狀態
 - [x] 2.3 將 resolver 與 component 接到繁中、英文首頁的 Gu-log Picks 之前
 - [x] 2.4 移除 discussion-only 靜態 layout artifact，讓 Vercel branch root 成為唯一 preview surface

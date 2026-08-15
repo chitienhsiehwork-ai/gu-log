@@ -10,12 +10,13 @@ const { posts, locale } = Astro.props;
 const copy =
   locale === 'en'
     ? {
-        promise: 'Personally read, ranked, and endorsed by ShroomDog.',
-        chefPick: '01 · Chef’s Pick',
+        promise:
+          'Articles ShroomDog has read and ranked because he liked them or found them useful.',
+        firstPick: '01 · Top Pick',
       }
     : {
-        promise: 'ShroomDog 本人讀過、排過，願意用名字背書的私房選文',
-        chefPick: '01 · 主廚首選',
+        promise: 'ShroomDog 本人讀過、排過，喜歡或有用的精選文章',
+        firstPick: '01 · 首選',
       };
 const featuredPost = posts[0];
 const secondaryPosts = posts.slice(1);
@@ -33,7 +34,7 @@ const descriptionId = `shroomdog-choice-description-${locale}`;
       </header>
 
       <article class="choice-feature">
-        <p class="choice-rank">{copy.chefPick}</p>
+        <p class="choice-rank">{copy.firstPick}</p>
         <h3>
           <a class="choice-link" href={`${postBasePath}/${featuredPost.id}`}>
             {featuredPost.data.title}

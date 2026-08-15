@@ -2,7 +2,7 @@
 
 繁中與英文首頁目前各自在 page frontmatter 內讀取全站文章，再用 `getIndexPosts()` 建立 GP／MP／SD／Lv 列表。`getIndexPosts()` 會排除 deprecated 與低於 publish bar 的文章，但刻意保留 retired；既有 schema 也沒有 issue #587 所需的 `unlisted` 欄位。新策展區因此不能只從既有首頁結果取前三篇，也不能把雙語 slug 各維護一份。
 
-本次設計同時要讓真實 branch homepage 成為 review surface，並保留人工策展的明確承諾：ShroomDog 親自選、順序有意義、列表不會被演算法悄悄補齊。
+本次設計同時要讓真實 branch homepage 成為 review surface，並保留人工策展的明確承諾：ShroomDog 親自讀過並挑選、順序有意義、列表不會被演算法悄悄補齊。
 
 ## Goals / Non-Goals
 
@@ -50,7 +50,7 @@ schema 新增 `unlisted: boolean`，缺省為 `false`。它描述「不應出現
 
 新增單一 `ShroomDogChoice.astro`，由繁中與英文首頁傳入 resolver 結果及 locale。component 內只處理語系文案與呈現，不重新判斷文章資格。
 
-版型採單一 11px 外框、hairline 分隔與留白建立層次；不使用 `SD` 圓章、內層卡片堆疊、重陰影或大面積橘色漸層。區塊置於現有 Gu-log Picks 前，第一篇顯示 `主廚首選`／`Chef’s Pick`，另兩篇維持人工次序。
+版型採單一 11px 外框、hairline 分隔與留白建立層次；不使用 `SD` 圓章、內層卡片堆疊、重陰影或大面積橘色漸層。區塊置於現有 Gu-log Picks 前，第一篇顯示 `首選`／`Top Pick`，另兩篇維持人工次序。
 
 ### 5. 真實首頁 preview 取代靜態 artifact
 
@@ -58,7 +58,7 @@ schema 新增 `unlisted: boolean`，缺省為 `false`。它描述「不應出現
 
 ## Risks / Trade-offs
 
-- [清單內文章失效後區塊少於三篇] → safe-skip 並用測試鎖定不補位；維護者需明確選新文章，保住「人工背書」的承諾。
+- [清單內文章失效後區塊少於三篇] → safe-skip 並用測試鎖定不補位；維護者需明確選新文章，保住「人工精選」的承諾。
 - [繁中與英文 metadata 不一致] → status 與 unlisted 都以繁中 canonical entry 作為保守上限，resolver 測試雙語繼承。
 - [首頁第一區過度搶眼，壓縮既有內容] → 使用中性 surface、單層邊界與 responsive spacing，並在真實 390×844 dark/light viewport 驗證首屏。
 - [中央設定引用錯誤或重複 ticketId] → 重複值 fail-fast；不存在或缺語言 entry 則安全略過並由回歸測試覆蓋。

@@ -187,10 +187,12 @@ describe('ShroomDogChoice homepage component contract', () => {
     const source = readFileSync('src/components/ShroomDogChoice.astro', 'utf8');
 
     expect(source).toContain('ShroomDog’s Choice');
-    expect(source).toContain('ShroomDog 本人讀過、排過，願意用名字背書的私房選文');
-    expect(source).toContain('Personally read, ranked, and endorsed by ShroomDog.');
-    expect(source).toContain('01 · 主廚首選');
-    expect(source).toContain('01 · Chef’s Pick');
+    expect(source).toContain('ShroomDog 本人讀過、排過，喜歡或有用的精選文章');
+    expect(source).toContain(
+      'Articles ShroomDog has read and ranked because he liked them or found them useful.'
+    );
+    expect(source).toContain('01 · 首選');
+    expect(source).toContain('01 · Top Pick');
     expect(source).not.toContain('TicketBadge');
     expect(source).not.toMatch(/>\s*SD\s*</);
   });

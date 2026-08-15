@@ -2,20 +2,20 @@
 
 ### Requirement: 首頁顯示 ShroomDog 人工策展區
 
-繁中與英文首頁 SHALL 在既有 Gu-log Picks 之前顯示 `ShroomDog’s Choice`，並以頁面語言說明這是 ShroomDog 親自讀過、排序且願意署名背書的選文。區塊 SHALL NOT 顯示 `SD` 圓章或把 `SD` 當成策展識別，避免與 `ShroomDog Original` ticket prefix 混淆。
+繁中與英文首頁 SHALL 在既有 Gu-log Picks 之前顯示 `ShroomDog’s Choice`，並以頁面語言說明這是 ShroomDog 親自讀過、排序後認為喜歡或有用的精選文章。區塊 SHALL NOT 顯示 `SD` 圓章或把 `SD` 當成策展識別，避免與 `ShroomDog Original` ticket prefix 混淆。
 
 #### Scenario: 繁中首頁顯示策展承諾
 
 - **WHEN** 讀者開啟繁中首頁
 - **THEN** `ShroomDog’s Choice` SHALL 出現在 Gu-log Picks 之前
-- **AND** 第一篇 SHALL 標示 `主廚首選`
+- **AND** 第一篇 SHALL 標示 `首選`
 - **AND** 區塊 SHALL NOT 顯示 `SD` 策展圓章
 
 #### Scenario: 英文首頁顯示對應承諾
 
 - **WHEN** 讀者開啟英文首頁
 - **THEN** 同一策展區 SHALL 使用英文承諾文案
-- **AND** 第一篇 SHALL 標示 `Chef’s Pick`
+- **AND** 第一篇 SHALL 標示 `Top Pick`
 
 ### Requirement: 一份有序清單驅動雙語策展
 
