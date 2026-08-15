@@ -19,6 +19,17 @@ import (
 
 const ContractVersion = "gp-source-preservation/v1"
 
+// These schemas are intentionally limited to the top-level wire shape. The
+// deterministic validators below remain the authority for hashes, provenance,
+// finding boundaries, enums, and cross-field invariants. Native structured
+// output prevents provider narration or code fences from corrupting the JSON
+// transport before those validators can run.
+const SourceTranslationJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"source_sha256":{"type":"string"},"translation_mdx":{"type":"string"},"slop_candidates":{"type":"array","items":{"type":"object"}}},"required":["version","source_sha256","translation_mdx","slop_candidates"],"additionalProperties":false}`
+
+const GateEnvelopeJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"gate":{"type":"string"},"source_sha256":{"type":"string"},"body_projection_sha256":{"type":"string"},"verdict":{"type":"string","enum":["PASS","FAIL"]},"findings":{"type":"array","items":{"type":"object"}}},"required":["version","gate","source_sha256","body_projection_sha256","verdict","findings"],"additionalProperties":false}`
+
+const CommentaryArtifactJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"source_sha256":{"type":"string"},"translation_sha256":{"type":"string"},"candidates":{"type":"array","items":{"type":"object"}}},"required":["version","source_sha256","translation_sha256","candidates"],"additionalProperties":false}`
+
 var allowedIssueTypes = map[string]bool{
 	"fidelity": true, "voice": true, "person": true, "order": true,
 	"completeness": true, "natural_zh_tw": true, "approved_slop": true,
@@ -268,7 +279,11 @@ func validateFinding(source, translation []byte, p Finding) error {
 	if p.SourceSHA256 != SHA256(source) || p.TranslationSHA256 != SHA256(translation) {
 		return errors.New("finding hashes are stale")
 	}
-	if p.SourceQuote == "" || !bytes.Contains(source, []byte(p.SourceQuote)) {
+	if p.IssueType == "natural_zh_tw" {
+		if p.SourceQuote != "" {
+			return errors.New("natural_zh_tw finding must be source-blind")
+		}
+	} else if p.SourceQuote == "" || !bytes.Contains(source, []byte(p.SourceQuote)) {
 		return errors.New("source_quote is absent from source")
 	}
 	if p.StartByte < 0 || p.EndByte <= p.StartByte || p.EndByte > len(translation) {
@@ -304,6 +319,34 @@ func ValidateFindings(source, translation []byte, findings []Finding) error {
 		}
 	}
 	return nil
+}
+
+// CanonicalizeFindingAnchors keeps byte arithmetic out of the LLM contract. A
+// reviewer identifies a unique exact old_text; the runtime
+// derives its UTF-8 byte boundaries and hash before the normal validator and
+// bounded patch applicator see the finding. Ambiguous anchors remain a hard
+// failure instead of being guessed.
+func CanonicalizeFindingAnchors(translation []byte, findings []Finding) ([]Finding, error) {
+	out := append([]Finding(nil), findings...)
+	for i := range out {
+		finding := &out[i]
+		if finding.OldText == "" {
+			return nil, fmt.Errorf("finding %q has empty exact-text anchor", finding.ID)
+		}
+		old := []byte(finding.OldText)
+		start := bytes.Index(translation, old)
+		if start < 0 || bytes.Index(translation[start+len(old):], old) >= 0 {
+			return nil, fmt.Errorf("finding %q exact-text anchor must occur exactly once", finding.ID)
+		}
+		end := start + len(old)
+		if inFrontmatter(translation, start, end) {
+			return nil, fmt.Errorf("finding %q exact-text anchor is in frontmatter", finding.ID)
+		}
+		finding.StartByte = start
+		finding.EndByte = end
+		finding.OldTextSHA256 = SHA256(old)
+	}
+	return out, nil
 }
 
 // ApplyCommentaryCandidates inserts only isolated MoguNote nodes at exact,
@@ -367,7 +410,21 @@ func inFrontmatter(doc []byte, start, end int) bool {
 func DeterministicNaturalFindings(source, translation []byte) []string {
 	text := string(translation)
 	var findings []string
-	for _, term := range []string{"銜尾蛇", "演算法動態"} {
+	// Confirmed reader-stopping phrases from the GP-273 regression and live
+	// shadow run. This corpus is deliberately small and exact: the LLM gate may
+	// discover new problems, but it cannot waive known translationese.
+	for _, term := range []string{
+		"銜尾蛇",
+		"演算法動態",
+		"機器智能",
+		"自己用 AI 有多少其實根本沒必要",
+		"科技樂觀主義式的一廂情願",
+		"能力暴增十倍",
+		"無止盡地滑著由演算法推薦的內容",
+		"科技業也有很大一塊",
+		"把它設起來",
+		"更有思考的生活",
+	} {
 		if strings.Contains(text, term) {
 			findings = append(findings, "不自然用語："+term)
 		}

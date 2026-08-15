@@ -16,7 +16,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-const maxGPCorrectionAttempts = 2
+const maxGPCorrectionAttempts = 3
 
 var gpRequiredGates = []string{"source-reviewer", "vibe-scorer"}
 
@@ -79,7 +79,7 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	if s.TranslatorDispatcher == nil {
 		return errors.New("source-translate dispatcher is nil")
 	}
-	result, err := s.TranslatorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	result, err := s.TranslatorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir, JSONSchema: preservation.SourceTranslationJSONSchema})
 	if err != nil {
 		s.RecordRoleFailure("translator", err)
 		return NewStepError(14, fmt.Errorf("source-translate runner: %w", err))
@@ -155,9 +155,6 @@ func (s *State) PreserveGP(ctx context.Context) error {
 		if sourceGate.Verdict == "PASS" && vibeGate.Verdict == "PASS" && len(deterministic) == 0 {
 			break
 		}
-		if len(deterministic) != 0 {
-			return fmt.Errorf("GP deterministic hard gate FAIL: %s", strings.Join(deterministic, "; "))
-		}
 		findings := append(append([]preservation.Finding(nil), sourceGate.Findings...), vibeGate.Findings...)
 		if attempt > maxGPCorrectionAttempts {
 			return errors.New("GP hard gates still FAIL after bounded correction attempts")
@@ -168,6 +165,9 @@ func (s *State) PreserveGP(ctx context.Context) error {
 			}
 		}
 		if len(findings) == 0 {
+			if len(deterministic) != 0 {
+				return fmt.Errorf("GP deterministic hard gate FAIL without an actionable reviewer finding: %s", strings.Join(deterministic, "; "))
+			}
 			return errors.New("GP hard gate FAIL without actionable bounded findings")
 		}
 		if err := s.runCorrector(ctx, source, translation, findings, attempt); err != nil {
@@ -178,7 +178,7 @@ func (s *State) PreserveGP(ctx context.Context) error {
 }
 
 func (s *State) runSourceReviewer(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
-	prompt, err := prompts.Render("source-review", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "source-reviewer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: string(translation)})
+	prompt, err := prompts.Render("source-review", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "source-reviewer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: projection.Body})
 	if err != nil {
 		return preservation.GateEnvelope{}, err
 	}
@@ -190,8 +190,16 @@ func (s *State) runSourceReviewer(ctx context.Context, source, translation []byt
 		s.RecordRoleFailure("source-reviewer", err)
 		return preservation.GateEnvelope{}, fmt.Errorf("source-reviewer runner: %w", err)
 	}
+	rawPath := filepath.Join(s.WorkDir, fmt.Sprintf("source-review-raw-attempt-%d.json", attempt))
+	if err := os.WriteFile(rawPath, []byte(result.Output), 0o644); err != nil {
+		return preservation.GateEnvelope{}, err
+	}
 	var review preservation.ReviewArtifact
 	if err := preservation.DecodeStrict([]byte(result.Output), &review); err != nil {
+		return preservation.GateEnvelope{}, err
+	}
+	review.Findings, err = preservation.CanonicalizeFindingAnchors(translation, review.Findings)
+	if err != nil {
 		return preservation.GateEnvelope{}, err
 	}
 	if review.Version != preservation.ContractVersion || review.SourceSHA256 != preservation.SHA256(source) || review.TranslationSHA256 != preservation.SHA256(translation) || (review.Verdict != "PASS" && review.Verdict != "FAIL") {
@@ -216,20 +224,28 @@ func (s *State) runSourceReviewer(ctx context.Context, source, translation []byt
 }
 
 func (s *State) runVibeGate(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
-	prompt, err := prompts.Render("vibe-gate", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "vibe-scorer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: string(translation)})
+	prompt, err := prompts.Render("vibe-gate", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "vibe-scorer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: projection.Body})
 	if err != nil {
 		return preservation.GateEnvelope{}, err
 	}
 	if s.VibeScorerDispatcher == nil {
 		return preservation.GateEnvelope{}, errors.New("vibe-scorer dispatcher is nil")
 	}
-	result, err := s.VibeScorerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	result, err := s.VibeScorerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir, JSONSchema: preservation.GateEnvelopeJSONSchema})
 	if err != nil {
 		s.RecordRoleFailure("vibe-scorer", err)
 		return preservation.GateEnvelope{}, fmt.Errorf("vibe-scorer runner: %w", err)
 	}
+	rawPath := filepath.Join(s.WorkDir, fmt.Sprintf("vibe-gate-raw-attempt-%d.json", attempt))
+	if err := os.WriteFile(rawPath, []byte(result.Output), 0o644); err != nil {
+		return preservation.GateEnvelope{}, err
+	}
 	var gate preservation.GateEnvelope
 	if err := preservation.DecodeStrict([]byte(result.Output), &gate); err != nil {
+		return gate, err
+	}
+	gate.Findings, err = preservation.CanonicalizeFindingAnchors(translation, gate.Findings)
+	if err != nil {
 		return gate, err
 	}
 	gate.Provenance = provenanceFor("vibe-scorer", result)
@@ -345,7 +361,7 @@ func (s *State) Enrich(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	result, err := s.CommentaryDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	result, err := s.CommentaryDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir, JSONSchema: preservation.CommentaryArtifactJSONSchema})
 	if err != nil {
 		s.RecordRoleFailure("commentary", err)
 		return fmt.Errorf("commentary runner: %w", err)

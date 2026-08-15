@@ -2,12 +2,27 @@ package preservation
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestProviderStructuredOutputSchemasAreValidJSON(t *testing.T) {
+	for name, schema := range map[string]string{
+		"source translation": SourceTranslationJSONSchema,
+		"gate envelope":      GateEnvelopeJSONSchema,
+		"commentary":         CommentaryArtifactJSONSchema,
+	} {
+		t.Run(name, func(t *testing.T) {
+			if !json.Valid([]byte(schema)) {
+				t.Fatalf("invalid JSON schema: %s", schema)
+			}
+		})
+	}
+}
 
 func validPatch(source, translation []byte, old, replacement string) PatchArtifact {
 	start := bytes.Index(translation, []byte(old))
@@ -134,6 +149,37 @@ func TestDeterministicNaturalFindings(t *testing.T) {
 	rewritten := []byte("Brent Fitzgerald 放了假。寫這篇文章的人看到演算法動態，形容這是生產力銜尾蛇。")
 	if got := DeterministicNaturalFindings(source, rewritten); len(got) < 3 {
 		t.Fatalf("rewritten findings = %v, want voice + two terms", got)
+	}
+}
+
+func TestDeterministicNaturalFindingsRejectsLiveShadowTranslationese(t *testing.T) {
+	source := []byte("I use AI. I think about machine intelligence. My life should be thoughtful.")
+	for _, phrase := range []string{
+		"機器智能", "自己用 AI 有多少其實根本沒必要", "科技樂觀主義式的一廂情願",
+		"能力暴增十倍", "無止盡地滑著由演算法推薦的內容", "科技業也有很大一塊",
+		"把它設起來", "更有思考的生活",
+	} {
+		if got := strings.Join(DeterministicNaturalFindings(source, []byte("我看到"+phrase+"。")), "\n"); !strings.Contains(got, phrase) {
+			t.Errorf("known translationese %q was not rejected: %s", phrase, got)
+		}
+	}
+}
+
+func TestCanonicalizeFindingAnchorsUsesUniqueExactText(t *testing.T) {
+	translation := []byte("---\ntitle: 測試\n---\n\n我一直滑演算法動態。\n")
+	finding := Finding{ID: "natural-feed", IssueType: "natural_zh_tw", OldText: "演算法動態", StartByte: 1, EndByte: 2, OldTextSHA256: "wrong"}
+	got, err := CanonicalizeFindingAnchors(translation, []Finding{finding})
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := bytes.Index(translation, []byte("演算法動態"))
+	if got[0].StartByte != start || got[0].EndByte != start+len([]byte("演算法動態")) || got[0].OldTextSHA256 != SHA256([]byte("演算法動態")) {
+		t.Fatalf("canonical anchor = %#v", got[0])
+	}
+
+	ambiguous := []byte("演算法動態，還是演算法動態")
+	if _, err := CanonicalizeFindingAnchors(ambiguous, []Finding{finding}); err == nil {
+		t.Fatal("ambiguous exact-text anchor must fail")
 	}
 }
 

@@ -222,6 +222,55 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	}
 }
 
+func TestGPNaturalCalibrationFindingCanBeCorrectedBeforeDeterministicRecheck(t *testing.T) {
+	ctx := context.Background()
+	source := []byte("# Source\n\nI keep scrolling an algorithmic feed. I notice my habit. I want to stop. My attention matters.\n")
+	translation := "---\nticketId: GP-PENDING\ntitle: 停下來\noriginalDate: 2026-08-15\ntranslatedDate: 2026-08-15\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我想停止無止境滑動。\nlang: zh-tw\ntags: [ai]\n---\n\n# 來源\n\n我一直滑演算法動態。我注意到自己的習慣。我想停下來。我的注意力很重要。\n"
+	s, _ := newGPState(t, string(source), translation)
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	translationBytes := []byte(translation)
+	start := strings.Index(translation, "演算法動態")
+	finding := preservation.Finding{ID: "natural-feed", IssueType: "natural_zh_tw", SourceQuote: "", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), StartByte: len([]byte(translation[:start])), EndByte: len([]byte(translation[:start+len("演算法動態")])), OldText: "演算法動態", OldTextSHA256: preservation.SHA256([]byte("演算法動態")), SuggestedReplacement: "推薦動態", Approved: true}
+	failVibe := preservation.GateEnvelope{Version: preservation.ContractVersion, Gate: "vibe-scorer", SourceSHA256: preservation.SHA256(source), Verdict: "FAIL", Findings: []preservation.Finding{finding}}
+	patch := preservation.PatchArtifact{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), Patches: []preservation.Finding{finding}}
+	corrected := strings.Replace(translation, "演算法動態", "推薦動態", 1)
+	correctedBytes := []byte(corrected)
+	path := filepath.Join(s.WorkDir, "source-translation.mdx")
+	projection1, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	failVibe.BodyProjectionSHA256 = projection1.SHA256
+	if err := os.WriteFile(path, correctedBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	projection2, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, translationBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, translationBytes)), artifactJSON(t, passReview(source, correctedBytes)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, failVibe), artifactJSON(t, passVibe(source, correctedBytes, projection2)))
+	s.CorrectorDispatcher = gpFakeDispatcher(t, "fake-corrector", llm.ModelGPT56Sol, artifactJSON(t, patch))
+	if err := s.PreserveGP(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != corrected {
+		t.Fatalf("natural-language correction did not stay bounded:\n%s", got)
+	}
+	if findings := preservation.DeterministicNaturalFindings(source, got); len(findings) != 0 {
+		t.Fatalf("corrected translation still fails deterministic natural gate: %v", findings)
+	}
+}
+
 func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("source")
