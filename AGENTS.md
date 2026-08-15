@@ -53,7 +53,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 預設走 feature branch + PR（命名 `<type>/<scope>-<desc>`，例 `fix/tribunal-badge`）——PR 給清楚的 review surface、讓 Vercel preview 在 merge 前先跑、revert 不沾其他 commit。流程（拉 branch → commit → push + PR → 盯 CI → 綠了自 merge → 刪 branch）是標準動作，solo repo 自己 merge 不等人；branch / merge 細節依 runtime playbook。Tribunal / 自動化 pipeline 同樣走 branch + PR。
 
 - **沒有「直推 `main`」這條路**：main 有 server-side branch protection，直推一律被拒（實測 403，連 doc typo 也一樣）。緊急修復（prod 炸 / main CI broken）走同一條 branch + PR + auto-merge 流——CI 綠了自動合，實務上跟直推一樣快，不要浪費時間嘗試繞過。
-- **GitHub Codex auto-review 是 agent-owned PR 的 merge gate**：repo 已啟用 auto-review 時，PR 轉 ready 後先不要掛 auto-merge；等 review 完成，fresh-read 最新 threads，再逐條獨立判斷是否成立。成立就修並重新走這道 gate，誤報就留下理由；只有沒有 unresolved actionable thread 才可掛 auto-merge 或手動 merge。只有明確確認 auto-review 未啟用或服務失敗時，記錄證據後才可略過；「還沒看到 review」不算證據。
+- **GitHub Codex auto-review 是互動式 agent PR 的 merge gate**：repo 已啟用 auto-review 時，PR 轉 ready 後先等最新 review 並判斷完意見，才可掛 auto-merge；有界等待、誤報與失敗處理依 runtime playbook。依 OpenSpec 運作的無人值守 automation lane 走自己的 spec 與 guard，不套用互動式等待。
 - **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
 
 ## 💬 Human interface：chat + preview URL + production URL

@@ -16,11 +16,12 @@ Do **not** write from the visible browser shell or from `web_fetch` summaries. C
 URL intake without repository side effects:
 
 ```bash
-capture_path="$(mktemp /tmp/gu-log-chatgpt-intake.XXXXXX)"
-node scripts/fetch-chatgpt-share.mjs <chatgpt-share-url> --out "$capture_path"
+capture_path="$(mktemp "${TMPDIR:-/tmp}/gu-log-chatgpt-intake.XXXXXX")"
+trap 'rm -f "$capture_path"' EXIT
+node scripts/fetch-chatgpt-share.mjs '<chatgpt-share-url>' --out "$capture_path"
 ```
 
-Read that file for the intake response, then remove the explicitly created temp file. Do not move it into the repo unless the user later authorizes writing or another persistent use.
+Read that file for the intake response; the shell trap removes it on exit, including after command failure. Do not move it into the repo unless the user later authorizes writing or another persistent use.
 
 Authorized durable capture:
 
