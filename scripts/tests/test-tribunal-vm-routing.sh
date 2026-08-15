@@ -14,7 +14,7 @@ SCRIPT
 cat > "$BIN_DIR/grok" <<'SCRIPT'
 #!/usr/bin/env bash
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
   exit 0
 fi
 if [ "${1:-}" = --help ]; then
@@ -62,8 +62,9 @@ export TRIBUNAL_REVIEWER_REMAINING_PCT
 [ "$(tribunal_runner_label fact-checker)" = codex-gpt-5.6-luna-max ]
 
 [ "$(tribunal_judge_provider vibe-opus-scorer)" = grok ]
-[ "$(tribunal_llm_model_id vibe-opus-scorer)" = grok-4.6 ]
-[ "$(tribunal_runner_label vibe-opus-scorer)" = grok-build-grok-4.6-low ]
+expected_vibe_model="$(jq -r '.profiles["vm-codex"].vibeScorer.model' "$ROOT_DIR/config/llm-pipeline.json")"
+[ "$(tribunal_llm_model_id vibe-opus-scorer)" = "$expected_vibe_model" ]
+[ "$(tribunal_runner_label vibe-opus-scorer)" = "grok-build-$expected_vibe_model-low" ]
 tribunal_writer_provenance_complete \
   grok grok-4.6 grok-build-grok-4.6-low
 tribunal_writer_provenance_complete \

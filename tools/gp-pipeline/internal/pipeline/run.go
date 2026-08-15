@@ -82,8 +82,8 @@ func (s *State) stageEditorialContext() error {
 	return nil
 }
 
-// Run executes the full pipeline end-to-end: Fetch → Eval → Dedup → Write
-// → Review → Refine → Credits → Ralph → Deploy → Summary. Each step
+// Run executes the full pipeline end-to-end. GP uses source-translate and
+// source-preservation gates; the other series retain the editorial flow.
 // honors s.FromStepInt so callers can resume partway through.
 //
 // Run is the single-invocation entrypoint of the pipeline. It
@@ -113,13 +113,21 @@ func Run(ctx context.Context, s *State) error {
 		{"dedup-url", s.DedupURL},
 		{"eval", s.Eval},
 		{"dedup", s.Dedup},
-		{"write", s.Write},
-		{"review", s.Review},
-		{"refine", s.Refine},
-		{"credits", s.Credits},
-		{"ralph", s.Ralph},
-		{"translate", s.Translate},
-		{"deploy", s.Deploy},
+	}
+	if s.Prefix == "GP" && !s.LegacyShadow {
+		steps = append(steps,
+			step{"source-translate", s.SourceTranslate},
+			step{"source-preservation", s.PreserveGP},
+			step{"credits", s.Credits},
+			step{"ralph", s.Ralph},
+			step{"translate", s.Translate},
+			step{"deploy", s.Deploy},
+		)
+	} else {
+		steps = append(steps,
+			step{"write", s.Write}, step{"review", s.Review}, step{"refine", s.Refine},
+			step{"credits", s.Credits}, step{"ralph", s.Ralph}, step{"translate", s.Translate}, step{"deploy", s.Deploy},
+		)
 	}
 	lastCompleted := ""
 	for _, st := range steps {
@@ -176,7 +184,7 @@ func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "Title       : %s\n", nonEmpty(s.Title, "N/A"))
 	fmt.Fprintf(w, "Filename    : %s\n", nonEmpty(s.Filename, nonEmpty(s.ActiveFilename, "N/A (dry-run)")))
 	fmt.Fprintf(w, "Work dir    : %s\n", s.WorkDir)
-	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
+	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "source-translate", "source-preservation", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
 		fmt.Fprintf(w, "%-7s time: %ds\n", name, s.Timings[name])
 	}
 }

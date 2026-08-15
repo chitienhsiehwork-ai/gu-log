@@ -14,6 +14,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -430,6 +431,34 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
+func TestRunRunGPRejectsNarrativeAngleOutsideLegacyShadow(t *testing.T) {
+	err := runRun(context.Background(), &rootState{}, runOpts{Prefix: "GP", TweetURL: "https://example.com", Angle: "換一個故事骨架"})
+	if err == nil || !strings.Contains(err.Error(), "--angle") {
+		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestCanonicalGPStageNamesAreDistinct(t *testing.T) {
+	if stepNameToInt["source-translate"] != pipeline.StepSourceTranslate || stepNameToInt["translate"] != pipeline.StepTranslate {
+		t.Fatalf("source translation and English sidecar stages must remain distinct: %#v", stepNameToInt)
+	}
+}
+
+func TestRunRunGPRejectsLegacyStageAliases(t *testing.T) {
+	for _, stage := range []string{"write", "review", "refine"} {
+		t.Run(stage, func(t *testing.T) {
+			err := runRun(context.Background(), &rootState{}, runOpts{
+				Prefix:       "GP",
+				FromStep:     stage,
+				ExistingFile: "gp-pending.mdx",
+			})
+			if err == nil || !strings.Contains(err.Error(), "legacy GP step") {
+				t.Fatalf("runRun error = %v, want canonical-stage guidance", err)
+			}
+		})
+	}
+}
+
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
 	resetGlobals()
 	root := makeFakeRepo(t)
@@ -482,7 +511,7 @@ exit 0
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
 		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
-		"run", "--from-step", "translate", "--file", filename, "--dry-run",
+		"run", "--from-step", "translate", "--file", filename, "--dry-run", "--legacy-shadow",
 	})
 	out, err := captureProcessStdout(t, func() error {
 		return cmd.ExecuteContext(context.Background())
@@ -594,7 +623,7 @@ lang: zh-tw
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
 		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "ralph-work"),
-		"run", "--from-step", "ralph", "--file", filename, "--dry-run",
+		"run", "--from-step", "ralph", "--file", filename, "--dry-run", "--legacy-shadow",
 	})
 	out, err := captureProcessStdout(t, func() error {
 		return cmd.ExecuteContext(context.Background())

@@ -55,6 +55,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.WorkDir = workDir
 	s.SourcePath = sourcePath
 	s.TweetURL = "https://x.com/fakeauthor/status/1"

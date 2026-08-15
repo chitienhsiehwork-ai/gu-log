@@ -1,0 +1,427 @@
+package pipeline
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/preservation"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
+)
+
+const maxGPCorrectionAttempts = 2
+
+var gpRequiredGates = []string{"source-reviewer", "vibe-scorer"}
+
+func (s *State) sourceBytes() ([]byte, error) {
+	path := s.SourcePath
+	if path == "" {
+		path = filepath.Join(s.WorkDir, "source-tweet.md")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read GP source %s: %w", path, err)
+	}
+	if len(data) == 0 {
+		return nil, errors.New("GP source is empty")
+	}
+	s.SourcePath = path
+	return data, nil
+}
+
+// SourceTranslate is the GP Step 2 replacement. Its output is a complete,
+// source-aligned translation, never an editorial brief or angle-driven draft.
+func (s *State) SourceTranslate(ctx context.Context) error {
+	path := filepath.Join(s.WorkDir, "source-translation.mdx")
+	if s.shouldSkipBelow(StepSourceTranslate) {
+		s.Log.Info("Step 2: source-translate — SKIPPED (--from-step)")
+		if s.ExistingFile != "" {
+			data, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, s.ExistingFile))
+			if err != nil {
+				return fmt.Errorf("source-translate recovery: %w", err)
+			}
+			if err := os.WriteFile(path, data, 0o644); err != nil {
+				return err
+			}
+		}
+		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
+			return errors.New("source-translate recovery requires source-translation.mdx")
+		}
+		return nil
+	}
+	if s.Angle != "" {
+		return errors.New("source-translate: --angle is forbidden for production GP")
+	}
+	s.Log.Info("Step 2: source-translate")
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
+	if s.TranslatedDate == "" {
+		s.TranslatedDate = time.Now().Format("2006-01-02")
+	}
+	prompt, err := prompts.Render("source-translate", prompts.SourceTranslateData{
+		Version: preservation.ContractVersion, TicketID: s.PromptTicketID,
+		OriginalDate: s.OriginalDate, TranslatedDate: s.TranslatedDate,
+		SourceField: s.ResolveSourceField(), SourceURL: s.TweetURL,
+		SourceSHA256: preservation.SHA256(source), Source: string(source),
+	})
+	if err != nil {
+		return fmt.Errorf("source-translate prompt: %w", err)
+	}
+	if s.TranslatorDispatcher == nil {
+		return errors.New("source-translate dispatcher is nil")
+	}
+	result, err := s.TranslatorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	if err != nil {
+		s.writeRoleFailure("translator", err)
+		return NewStepError(14, fmt.Errorf("source-translate runner: %w", err))
+	}
+	var artifact preservation.SourceTranslationArtifact
+	if err := preservation.DecodeStrict([]byte(result.Output), &artifact); err != nil {
+		return fmt.Errorf("source-translate output: %w", err)
+	}
+	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || strings.TrimSpace(artifact.TranslationMDX) == "" {
+		return errors.New("source-translate returned an invalid or stale artifact")
+	}
+	translation := []byte(artifact.TranslationMDX)
+	if len(artifact.SlopCandidates) > 0 {
+		if err := preservation.ValidateFindings(source, translation, artifact.SlopCandidates); err != nil {
+			return fmt.Errorf("source-translate slop candidates: %w", err)
+		}
+		for _, finding := range artifact.SlopCandidates {
+			if finding.Approved {
+				return fmt.Errorf("source-translate cannot approve slop candidate %q", finding.ID)
+			}
+		}
+	}
+	if err := os.WriteFile(path, translation, 0o644); err != nil {
+		return err
+	}
+	artifactPath := filepath.Join(s.WorkDir, "source-translate.json")
+	if err := preservation.WriteJSON(artifactPath, artifact); err != nil {
+		return err
+	}
+	s.recordRoleRun("translator", result, artifactPath, "COMPLETED")
+	s.WriteModel, s.WriteHarness = llm.DisplayName(result.ActualModel), llm.HarnessName(result.Model)
+	s.Log.OK("Step 2: source-aligned translation written by %s", s.WriteModel)
+	return nil
+}
+
+func (s *State) PreserveGP(ctx context.Context) error {
+	translationPath := filepath.Join(s.WorkDir, "source-translation.mdx")
+	if s.shouldSkipBelow(StepSourceGate) {
+		s.Log.Info("Step 3: source-preservation gates — validating recovery manifest")
+		if err := s.ValidateGPPublishManifest(ctx, translationPath); err != nil {
+			return fmt.Errorf("GP recovery: %w", err)
+		}
+		data, err := os.ReadFile(translationPath)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(filepath.Join(s.WorkDir, "final.mdx"), data, 0o644)
+	}
+	s.Log.Info("Step 3: source-preservation gates")
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
+	var finalGates []preservation.GateEnvelope
+	for attempt := 1; attempt <= maxGPCorrectionAttempts+1; attempt++ {
+		translation, err := os.ReadFile(translationPath)
+		if err != nil {
+			return fmt.Errorf("read source translation: %w", err)
+		}
+		projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, translationPath)
+		if err != nil {
+			return err
+		}
+		sourceGate, err := s.runSourceReviewer(ctx, source, translation, projection, attempt)
+		if err != nil {
+			return err
+		}
+		vibeGate, err := s.runVibeGate(ctx, source, translation, projection, attempt)
+		if err != nil {
+			return err
+		}
+		finalGates = []preservation.GateEnvelope{sourceGate, vibeGate}
+		deterministic := preservation.DeterministicSourceFindings(source, translation)
+		if err := preservation.WriteJSON(filepath.Join(s.WorkDir, fmt.Sprintf("deterministic-findings-attempt-%d.json", attempt)), deterministic); err != nil {
+			return err
+		}
+		if sourceGate.Verdict == "PASS" && vibeGate.Verdict == "PASS" && len(deterministic) == 0 {
+			break
+		}
+		if len(deterministic) != 0 {
+			return fmt.Errorf("GP deterministic hard gate FAIL: %s", strings.Join(deterministic, "; "))
+		}
+		findings := append(append([]preservation.Finding(nil), sourceGate.Findings...), vibeGate.Findings...)
+		if attempt > maxGPCorrectionAttempts {
+			return errors.New("GP hard gates still FAIL after bounded correction attempts")
+		}
+		for _, finding := range findings {
+			if !finding.Approved {
+				return fmt.Errorf("GP finding %s requires manual correction", finding.ID)
+			}
+		}
+		if len(findings) == 0 {
+			return errors.New("GP hard gate FAIL without actionable bounded findings")
+		}
+		if err := s.runCorrector(ctx, source, translation, findings, attempt); err != nil {
+			return err
+		}
+	}
+	return s.enrichAndSeal(ctx, source, translationPath, finalGates)
+}
+
+func (s *State) runSourceReviewer(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
+	prompt, err := prompts.Render("source-review", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "source-reviewer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: string(translation)})
+	if err != nil {
+		return preservation.GateEnvelope{}, err
+	}
+	if s.SourceReviewerDispatcher == nil {
+		return preservation.GateEnvelope{}, errors.New("source-reviewer dispatcher is nil")
+	}
+	result, err := s.SourceReviewerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	if err != nil {
+		s.writeRoleFailure("source-reviewer", err)
+		return preservation.GateEnvelope{}, fmt.Errorf("source-reviewer runner: %w", err)
+	}
+	var review preservation.ReviewArtifact
+	if err := preservation.DecodeStrict([]byte(result.Output), &review); err != nil {
+		return preservation.GateEnvelope{}, err
+	}
+	if review.Version != preservation.ContractVersion || review.SourceSHA256 != preservation.SHA256(source) || review.TranslationSHA256 != preservation.SHA256(translation) || (review.Verdict != "PASS" && review.Verdict != "FAIL") {
+		return preservation.GateEnvelope{}, errors.New("source-reviewer returned an invalid or stale verdict")
+	}
+	if err := preservation.ValidateVerdictFindings(review.Verdict, review.Findings); err != nil {
+		return preservation.GateEnvelope{}, fmt.Errorf("source-reviewer verdict: %w", err)
+	}
+	if err := preservation.ValidateFindings(source, translation, review.Findings); err != nil {
+		return preservation.GateEnvelope{}, err
+	}
+	gate := preservation.GateEnvelope{Version: preservation.ContractVersion, Gate: "source-reviewer", SourceSHA256: review.SourceSHA256, BodyProjectionSHA256: projection.SHA256, Verdict: review.Verdict, Findings: review.Findings, Provenance: provenanceFor("source-reviewer", result)}
+	path := filepath.Join(s.WorkDir, fmt.Sprintf("source-review-attempt-%d.json", attempt))
+	if err := preservation.WriteJSON(path, gate); err != nil {
+		return gate, err
+	}
+	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "source-review.json"), gate); err != nil {
+		return gate, err
+	}
+	s.recordRoleRun("source-reviewer", result, path, gate.Verdict)
+	return gate, preservation.ValidateGate(gate, "source-reviewer", preservation.SHA256(source), projection.SHA256)
+}
+
+func (s *State) runVibeGate(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
+	prompt, err := prompts.Render("vibe-gate", prompts.PreservationGateData{Version: preservation.ContractVersion, Gate: "vibe-scorer", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), BodyProjectionSHA256: projection.SHA256, Source: string(source), Translation: string(translation)})
+	if err != nil {
+		return preservation.GateEnvelope{}, err
+	}
+	if s.VibeScorerDispatcher == nil {
+		return preservation.GateEnvelope{}, errors.New("vibe-scorer dispatcher is nil")
+	}
+	result, err := s.VibeScorerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	if err != nil {
+		s.writeRoleFailure("vibe-scorer", err)
+		return preservation.GateEnvelope{}, fmt.Errorf("vibe-scorer runner: %w", err)
+	}
+	var gate preservation.GateEnvelope
+	if err := preservation.DecodeStrict([]byte(result.Output), &gate); err != nil {
+		return gate, err
+	}
+	gate.Provenance = provenanceFor("vibe-scorer", result)
+	if err := preservation.ValidateFindings(source, translation, gate.Findings); err != nil {
+		return gate, err
+	}
+	if err := preservation.ValidateGate(gate, "vibe-scorer", preservation.SHA256(source), projection.SHA256); err != nil {
+		return gate, err
+	}
+	path := filepath.Join(s.WorkDir, fmt.Sprintf("vibe-gate-attempt-%d.json", attempt))
+	if err := preservation.WriteJSON(path, gate); err != nil {
+		return gate, err
+	}
+	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "vibe-gate.json"), gate); err != nil {
+		return gate, err
+	}
+	s.recordRoleRun("vibe-scorer", result, path, gate.Verdict)
+	return gate, nil
+}
+
+func (s *State) runCorrector(ctx context.Context, source, translation []byte, findings []preservation.Finding, attempt int) error {
+	findingsJSON, _ := json.Marshal(findings)
+	prompt, err := prompts.Render("correct", prompts.CorrectData{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), Source: string(source), Translation: string(translation), ApprovedFindingsJSON: string(findingsJSON)})
+	if err != nil {
+		return err
+	}
+	if s.CorrectorDispatcher == nil {
+		return errors.New("corrector dispatcher is nil")
+	}
+	result, err := s.CorrectorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	if err != nil {
+		s.writeRoleFailure("corrector", err)
+		return fmt.Errorf("corrector runner: %w", err)
+	}
+	var artifact preservation.PatchArtifact
+	if err := preservation.DecodeStrict([]byte(result.Output), &artifact); err != nil {
+		return err
+	}
+	artifact.Provenance = provenanceFor("corrector", result)
+	if len(artifact.Patches) == 0 {
+		return errors.New("corrector returned no bounded patches")
+	}
+	if err := preservation.ValidatePatchAuthorization(findings, artifact.Patches); err != nil {
+		return err
+	}
+	corrected, err := preservation.ApplyPatches(source, translation, artifact)
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(s.WorkDir, fmt.Sprintf("corrector-attempt-%d.json", attempt))
+	if err := preservation.WriteJSON(path, artifact); err != nil {
+		return err
+	}
+	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "corrector.json"), artifact); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translation.mdx"), corrected, 0o644); err != nil {
+		return err
+	}
+	s.recordRoleRun("corrector", result, path, "APPLIED")
+	return nil
+}
+
+func (s *State) enrichAndSeal(ctx context.Context, source []byte, translationPath string, gates []preservation.GateEnvelope) error {
+	translation, err := os.ReadFile(translationPath)
+	if err != nil {
+		return err
+	}
+	before, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, translationPath)
+	if err != nil {
+		return err
+	}
+	if s.CommentaryDispatcher == nil {
+		return errors.New("commentary dispatcher is nil")
+	}
+	prompt, err := prompts.Render("commentary", prompts.CommentaryData{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translation), Source: string(source), Translation: string(translation)})
+	if err != nil {
+		return err
+	}
+	result, err := s.CommentaryDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	if err != nil {
+		s.writeRoleFailure("commentary", err)
+		return fmt.Errorf("commentary runner: %w", err)
+	}
+	var artifact preservation.CommentaryArtifact
+	if err := preservation.DecodeStrict([]byte(result.Output), &artifact); err != nil {
+		return err
+	}
+	enriched, err := preservation.ApplyCommentaryCandidates(source, translation, artifact)
+	if err != nil {
+		return err
+	}
+	if len(artifact.Candidates) > 0 {
+		enriched = ensureMoguNoteImport(enriched)
+	}
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	if err := os.WriteFile(finalPath, enriched, 0o644); err != nil {
+		return err
+	}
+	// Glossary navigation wraps existing text only. Unlike the retired fixer
+	// bundle, GP never runs kaomoji or related-reading prose mutation.
+	if _, err := runner.RunWithOptions(ctx, runner.Options{Name: "node", Args: []string{filepath.Join(s.Cfg.ScriptsDir, "apply-glossary-links.mjs"), finalPath}, WorkDir: s.Cfg.RepoRoot}); err != nil {
+		return fmt.Errorf("GP glossary enrichment: %w", err)
+	}
+	after, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, finalPath)
+	if err != nil {
+		return err
+	}
+	if before.Body != after.Body || before.SHA256 != after.SHA256 {
+		return errors.New("GP enrichment changed canonical body projection")
+	}
+	commentaryPath := filepath.Join(s.WorkDir, "commentary-candidates.json")
+	if err := preservation.WriteJSON(commentaryPath, artifact); err != nil {
+		return err
+	}
+	s.recordRoleRun("commentary", result, commentaryPath, "APPLIED")
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: after.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
+	manifestPath := filepath.Join(s.WorkDir, "gp-publish-gate.json")
+	if err := preservation.WriteJSON(manifestPath, manifest); err != nil {
+		return err
+	}
+	s.GateManifestPath = manifestPath
+	return preservation.ValidateManifest(manifest, source, []byte(after.Body), gpRequiredGates)
+}
+
+func (s *State) ValidateGPPublishManifest(ctx context.Context, bodyPath string) error {
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
+	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, bodyPath)
+	if err != nil {
+		return err
+	}
+	path := s.GateManifestPath
+	if path == "" {
+		path = filepath.Join(s.WorkDir, "gp-publish-gate.json")
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("missing GP publish manifest: %w", err)
+	}
+	var manifest preservation.PublishManifest
+	if err := preservation.DecodeStrict(data, &manifest); err != nil {
+		return err
+	}
+	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates); err != nil {
+		return err
+	}
+	s.GateManifestPath = path
+	return nil
+}
+
+func provenanceFor(role string, result *llm.RunResult) preservation.Provenance {
+	return preservation.Provenance{Role: role, Provider: result.ProviderName, Model: string(result.ActualModel), Harness: llm.HarnessName(result.Model), CompletedAt: time.Now().UTC()}
+}
+
+func (s *State) recordRoleRun(role string, result *llm.RunResult, artifactPath, verdict string) {
+	data, _ := os.ReadFile(artifactPath)
+	if s.RoleRuns == nil {
+		s.RoleRuns = map[string]RoleRun{}
+	}
+	s.RoleRuns[role] = RoleRun{Role: role, Provider: result.ProviderName, Model: llm.DisplayName(result.ActualModel), Harness: llm.HarnessName(result.Model), ArtifactSHA256: preservation.SHA256(data), Verdict: verdict, CompletedAt: time.Now().UTC()}
+}
+
+func ensureMoguNoteImport(document []byte) []byte {
+	if bytesContains(document, []byte("import MoguNote from")) {
+		return document
+	}
+	marker := []byte("\n---\n")
+	idx := strings.Index(string(document[4:]), string(marker))
+	if !strings.HasPrefix(string(document), "---\n") || idx < 0 {
+		return document
+	}
+	insert := 4 + idx + len(marker)
+	line := []byte("\nimport MoguNote from '../../components/MoguNote.astro';\n")
+	return append(document[:insert], append(line, document[insert:]...)...)
+}
+
+func bytesContains(haystack, needle []byte) bool {
+	return strings.Contains(string(haystack), string(needle))
+}
+
+func (s *State) writeRoleFailure(role string, runErr error) {
+	_ = preservation.WriteJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
+		"version":      preservation.ContractVersion,
+		"role":         role,
+		"error":        runErr.Error(),
+		"completed_at": time.Now().UTC(),
+	})
+}

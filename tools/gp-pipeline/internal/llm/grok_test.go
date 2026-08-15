@@ -20,7 +20,7 @@ if [ "${1:-}" = "--help" ]; then
   exit 0
 fi
 if [ "${1:-}" = "models" ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
   exit 0
 fi
 printf '%s\n' "$PWD" > "$CAPTURE_PWD"

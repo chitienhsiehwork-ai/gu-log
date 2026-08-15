@@ -127,8 +127,14 @@ const postsCollection = defineCollection({
             .array(
               z.object({
                 role: z.string(), // e.g., "Written", "Reviewed", "Refined"
+                provider: z.string().optional(),
                 model: z.string(),
                 harness: z.string(),
+                artifactSha256: z
+                  .string()
+                  .regex(/^[a-f0-9]{64}$/)
+                  .optional(),
+                verdict: z.string().optional(),
               })
             )
             .optional(),

@@ -103,6 +103,28 @@ func TestValidateManifestRejectsMissingStaleAndInvalidVerdicts(t *testing.T) {
 	}
 }
 
+func TestValidateVerdictFindingsRequiresConsistentEnvelope(t *testing.T) {
+	finding := Finding{ID: "finding-1"}
+	for name, tc := range map[string]struct {
+		verdict  string
+		findings []Finding
+		wantErr  bool
+	}{
+		"pass without findings": {verdict: "PASS"},
+		"fail with finding":     {verdict: "FAIL", findings: []Finding{finding}},
+		"pass with finding":     {verdict: "PASS", findings: []Finding{finding}, wantErr: true},
+		"fail without finding":  {verdict: "FAIL", wantErr: true},
+		"unknown":               {verdict: "MAYBE", wantErr: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			err := ValidateVerdictFindings(tc.verdict, tc.findings)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("ValidateVerdictFindings() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestDeterministicNaturalFindings(t *testing.T) {
 	source := []byte("I recently left. I came back. My habits worried me. I did not miss it.")
 	direct := []byte("我最近離開了一陣子。我回來後，開始擔心自己的習慣。我並不想念它。")

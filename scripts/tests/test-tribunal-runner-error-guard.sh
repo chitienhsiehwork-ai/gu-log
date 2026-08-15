@@ -1700,7 +1700,9 @@ pass "writer rollback no longer resets earlier persisted scores to Git HEAD"
 # not merely the snapshot primitive.
 final_gate_bin="$TMP/final-gate-bin"
 final_gate_version="$(node "$ROOT_DIR/scripts/tribunal-version.mjs" current)"
-final_gate_post="gp-1-20260128-demo.mdx"
+# Final-build repair exercises the generic rewrite machinery. GP now forbids
+# all Tribunal rewrites, so use an existing validator-clean bilingual SD pair.
+final_gate_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
 final_gate_zh="$ROOT_DIR/src/content/posts/$final_gate_post"
 final_gate_en="$ROOT_DIR/src/content/posts/en-$final_gate_post"
 final_gate_zh_pristine="$TMP/final-gate-zh-pristine"
@@ -1969,7 +1971,7 @@ if [ "${1:-}" = "--help" ]; then
   exit 0
 fi
 if [ "${1:-}" = "models" ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
   exit 0
 fi
 prompt="${!#}"

@@ -26,7 +26,7 @@ func TestProvidersForRuntimeResolvesVMCodexRoles(t *testing.T) {
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
 fi
 exit 0
 `)
@@ -61,6 +61,19 @@ exit 0
 	if provider.sandboxMode() != "read-only" {
 		t.Fatalf("reviewer sandbox = %q, want read-only", provider.sandboxMode())
 	}
+
+	for role, want := range map[RuntimeRole]string{
+		RuntimeTranslator:     "grok-build-grok-4.6",
+		RuntimeSourceReviewer: "codex-gpt-5.6-sol",
+		RuntimeCorrector:      "codex-gpt-5.6-sol",
+		RuntimeCommentary:     "grok-build-grok-4.6",
+		RuntimeVibeScorer:     "grok-build-grok-4.5",
+	} {
+		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
+		if err != nil || !active || len(providers) != 1 || providers[0].Name() != want {
+			t.Errorf("%s route = (%v, %v, %v), want %s", role, providers, active, err, want)
+		}
+	}
 }
 
 func TestProvidersForRuntimeHonorsGrokQuotaActions(t *testing.T) {
@@ -68,7 +81,7 @@ func TestProvidersForRuntimeHonorsGrokQuotaActions(t *testing.T) {
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
 	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
 fi
 exit 0
 `)

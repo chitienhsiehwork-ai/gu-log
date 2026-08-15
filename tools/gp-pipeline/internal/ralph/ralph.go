@@ -32,6 +32,8 @@ type Options struct {
 	// NoCommit leaves commit ownership with the caller. The full pipeline sets
 	// this so tribunal rewrites do not pre-stage files before deploy's guardrail.
 	NoCommit bool
+	// NoRewrite prevents Tribunal from invoking an article writer.
+	NoRewrite bool
 }
 
 // Run executes the tribunal. The error return is always nil on
@@ -58,6 +60,9 @@ func Run(ctx context.Context, opts Options) (passed bool, err error) {
 	runOpts := runner.Options{
 		Name: "bash",
 		Args: []string{opts.RalphScript, opts.Filename},
+	}
+	if opts.NoRewrite {
+		runOpts.Args = append(runOpts.Args, "--no-rewrite")
 	}
 	if opts.NoCommit {
 		runOpts.Env = []string{"TRIBUNAL_NO_COMMIT=1"}

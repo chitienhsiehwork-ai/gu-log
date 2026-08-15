@@ -90,6 +90,27 @@ type PublishManifest struct {
 	CompletedAt          time.Time      `json:"completed_at"`
 }
 
+type SourceTranslationArtifact struct {
+	Version        string    `json:"version"`
+	SourceSHA256   string    `json:"source_sha256"`
+	TranslationMDX string    `json:"translation_mdx"`
+	SlopCandidates []Finding `json:"slop_candidates"`
+}
+
+type CommentaryCandidate struct {
+	ID         string `json:"id"`
+	AnchorText string `json:"anchor_text"`
+	AfterByte  int    `json:"after_byte"`
+	Commentary string `json:"commentary"`
+}
+
+type CommentaryArtifact struct {
+	Version           string                `json:"version"`
+	SourceSHA256      string                `json:"source_sha256"`
+	TranslationSHA256 string                `json:"translation_sha256"`
+	Candidates        []CommentaryCandidate `json:"candidates"`
+}
+
 func SHA256(data []byte) string {
 	sum := sha256.Sum256(data)
 	return hex.EncodeToString(sum[:])
@@ -137,7 +158,28 @@ func ValidateGate(g GateEnvelope, gate, sourceHash, projectionHash string) error
 	if g.Verdict != "PASS" && g.Verdict != "FAIL" {
 		return fmt.Errorf("invalid gate verdict %q", g.Verdict)
 	}
+	if err := ValidateVerdictFindings(g.Verdict, g.Findings); err != nil {
+		return err
+	}
 	return validateProvenance(g.Provenance, gate)
+}
+
+// ValidateVerdictFindings prevents a malformed response from smuggling
+// actionable findings through a PASS or producing an uncorrectable FAIL.
+func ValidateVerdictFindings(verdict string, findings []Finding) error {
+	switch verdict {
+	case "PASS":
+		if len(findings) != 0 {
+			return errors.New("PASS verdict must not contain findings")
+		}
+	case "FAIL":
+		if len(findings) == 0 {
+			return errors.New("FAIL verdict requires at least one finding")
+		}
+	default:
+		return fmt.Errorf("invalid gate verdict %q", verdict)
+	}
+	return nil
 }
 
 // ValidateManifest is the final fail-closed deploy check.
@@ -253,6 +295,55 @@ func validateFinding(source, translation []byte, p Finding) error {
 		return errors.New("near-full-document replacement is forbidden")
 	}
 	return nil
+}
+
+func ValidateFindings(source, translation []byte, findings []Finding) error {
+	for _, finding := range findings {
+		if err := validateFinding(source, translation, finding); err != nil {
+			return fmt.Errorf("finding %q: %w", finding.ID, err)
+		}
+	}
+	return nil
+}
+
+// ApplyCommentaryCandidates inserts only isolated MoguNote nodes at exact,
+// paragraph-ending anchors. The projection check remains the final authority.
+func ApplyCommentaryCandidates(source, translation []byte, artifact CommentaryArtifact) ([]byte, error) {
+	if artifact.Version != ContractVersion || artifact.SourceSHA256 != SHA256(source) || artifact.TranslationSHA256 != SHA256(translation) {
+		return nil, errors.New("commentary artifact is invalid or stale")
+	}
+	candidates := append([]CommentaryCandidate(nil), artifact.Candidates...)
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].AfterByte < candidates[j].AfterByte })
+	previous := -1
+	for _, candidate := range candidates {
+		if candidate.ID == "" || candidate.AnchorText == "" || candidate.Commentary == "" {
+			return nil, errors.New("commentary candidate requires id, anchor_text, and commentary")
+		}
+		if candidate.AfterByte <= previous || candidate.AfterByte < len([]byte(candidate.AnchorText)) || candidate.AfterByte > len(translation) {
+			return nil, fmt.Errorf("commentary candidate %s has invalid or duplicate boundary", candidate.ID)
+		}
+		if !utf8.Valid(translation[:candidate.AfterByte]) {
+			return nil, fmt.Errorf("commentary candidate %s splits a UTF-8 code point", candidate.ID)
+		}
+		start := candidate.AfterByte - len([]byte(candidate.AnchorText))
+		if string(translation[start:candidate.AfterByte]) != candidate.AnchorText {
+			return nil, fmt.Errorf("commentary candidate %s anchor mismatch", candidate.ID)
+		}
+		if candidate.AfterByte < len(translation) && !bytes.HasPrefix(translation[candidate.AfterByte:], []byte("\n\n")) {
+			return nil, fmt.Errorf("commentary candidate %s is not at a paragraph boundary", candidate.ID)
+		}
+		if strings.Contains(candidate.Commentary, "</MoguNote>") || strings.Contains(candidate.Commentary, "<MoguNote") {
+			return nil, fmt.Errorf("commentary candidate %s contains nested component markup", candidate.ID)
+		}
+		previous = candidate.AfterByte
+	}
+	out := append([]byte(nil), translation...)
+	for i := len(candidates) - 1; i >= 0; i-- {
+		candidate := candidates[i]
+		note := []byte("\n\n<MoguNote>\n" + candidate.Commentary + "\n</MoguNote>")
+		out = append(out[:candidate.AfterByte], append(note, out[candidate.AfterByte:]...)...)
+	}
+	return out, nil
 }
 
 func bodyStartOffset(doc []byte) int {

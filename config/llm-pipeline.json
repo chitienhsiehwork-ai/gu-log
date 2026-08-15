@@ -21,10 +21,40 @@
         "model": "grok-4.6",
         "reasoningEffort": "low"
       },
-      "vibeScorer": {
+      "translator": {
         "provider": "grok",
         "model": "grok-4.6",
-        "reasoningEffort": "low"
+        "reasoningEffort": "low",
+        "promptContract": "source-translate-v1",
+        "outputContract": "source-translation-v1"
+      },
+      "sourceReviewer": {
+        "provider": "codex",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "xhigh",
+        "promptContract": "source-review-v1",
+        "outputContract": "gate-envelope-v1"
+      },
+      "corrector": {
+        "provider": "codex",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "xhigh",
+        "promptContract": "bounded-correct-v1",
+        "outputContract": "bounded-patch-v1"
+      },
+      "commentary": {
+        "provider": "grok",
+        "model": "grok-4.6",
+        "reasoningEffort": "low",
+        "promptContract": "commentary-candidates-v1",
+        "outputContract": "enrichment-candidates-v1"
+      },
+      "vibeScorer": {
+        "provider": "grok",
+        "model": "grok-4.5",
+        "reasoningEffort": "low",
+        "promptContract": "vibe-gate-v1",
+        "outputContract": "gate-envelope-v1"
       },
       "grokQuota": {
         "enabled": false,

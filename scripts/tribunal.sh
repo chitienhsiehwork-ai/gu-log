@@ -60,6 +60,7 @@ fi
 ONLY_STAGE=""
 POST_FILE=""
 ALLOW_REWRITE=""
+ALLOW_REWRITE_EXPLICIT=0
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
 while [ "$#" -gt 0 ]; do
@@ -78,10 +79,12 @@ while [ "$#" -gt 0 ]; do
       ;;
     --allow-rewrite)
       ALLOW_REWRITE=1
+      ALLOW_REWRITE_EXPLICIT=1
       shift
       ;;
     --no-rewrite|--judge-only)
       ALLOW_REWRITE=0
+      ALLOW_REWRITE_EXPLICIT=1
       shift
       ;;
     --no-commit)
@@ -136,6 +139,13 @@ if [ -z "$ALLOW_REWRITE" ]; then
 fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
+if [[ "$POST_FILE" = gp-* ]]; then
+  if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
+    echo "ERROR: GP source-preservation contract forbids --allow-rewrite" >&2
+    exit 1
+  fi
+  ALLOW_REWRITE=0
+fi
 POST_PATH="$ROOT_DIR/src/content/posts/$POST_FILE"
 
 if [ ! -f "$POST_PATH" ]; then
@@ -791,6 +801,10 @@ run_final_build_once() {
 repair_final_build_failure() {
   local post_file="$1" build_log="$2" repair_attempt="$3"
   local evidence writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
+  if [ "$ALLOW_REWRITE" != 1 ]; then
+    tlog "  Rewrite disabled; final build failure cannot invoke tribunal-writer."
+    return 1
+  fi
   FINAL_BUILD_REPAIR_QUOTA_REASON=""
   evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
   if [ -f "src/content/posts/en-$post_file" ]; then

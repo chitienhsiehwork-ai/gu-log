@@ -35,6 +35,7 @@ const (
 	ModelGPT56Sol     ModelID = "gpt-5.6-sol"
 	ModelGPT56Luna    ModelID = "gpt-5.6-luna"
 	ModelGrok46       ModelID = "grok-4.6"
+	ModelGrok45       ModelID = "grok-4.5"
 	ModelGPT54        ModelID = "gpt-5.4"
 	ModelGPT53Codex   ModelID = "gpt-5.3-codex"
 	ModelClaudeSonnet ModelID = "claude-sonnet"
