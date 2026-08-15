@@ -71,7 +71,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
 | **GP/MP 自動翻譯 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
-| **User 丟 URL → 預設寫 GP**（pipeline 用法 + 何時手動） | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) + 下方〈URL = GP〉 |
+| **User 只丟 URL → 先翻譯與評估，不動手寫文** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / chat-first 決策介面 / archive gate）— MUST 動手前先讀 |
@@ -80,11 +80,16 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 
-### 🔗 User 丟連結 = 要寫 GP（預設走 pipeline，不要手動寫）
+### 🔗 URL intake：先翻譯與評估，等 user 再叫才動手
 
-**User 只丟 URL 時，預設意圖是寫 GP**，不要改猜成 summary / bookmark / about page。預設跑 `tools/gp-pipeline/gp-pipeline run <url>`（包辦 fetch → eval → dedup → write → review → refine → credits → ralph → deploy）；除非有明確 blocker，**手寫 GP 是 anti-pattern**。
+**User 只丟 URL、沒有附動作指示時，不得直接開始寫 GP 或跑 pipeline。** 第一輪只在 chat 交付兩樣東西：
 
-完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。不要用 `web_fetch` 摘要直接寫文，先抓完整 source（各 runtime 有自己的 fetch skill）。
+1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
+2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。
+
+交付後停止。除非 user 下一次明確叫 agent 繼續，否則不得起草文章、執行 eval／dedup／Tribunal、建立或修改 repo 檔案、配置 ticket、跑 deploy，或自行把連結收進 backlog。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
+
+User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。抓取階段不要用 `web_fetch` preview 摘要代替完整 source；依各 runtime 的 fetch skill 取得原文。
 
 ## 文件架構（誰讀什麼）
 
