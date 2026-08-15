@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
+import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 
@@ -190,6 +191,12 @@ const files = parseNameStatus(changed)
   .filter(
     ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
   )
+  .filter(({ baseFile, currentFile }) => {
+    if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
+    const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+    const newContent = fs.readFileSync(currentFile, 'utf8');
+    return !isCanonicalTerminologyOnlyChange(oldContent, newContent);
+  })
   .filter(({ baseFile, currentFile }) => !isMetadataOnlyDiff(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isLinkOnlyDiff(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isExistingTicketAddition(baseRef, baseFile, currentFile))

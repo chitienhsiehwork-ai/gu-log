@@ -103,7 +103,7 @@ type TranslateData struct {
 
 type SourceTranslateData struct {
 	Version, TicketID, OriginalDate, TranslatedDate, SourceField, SourceURL string
-	SourceSHA256, Source                                                    string
+	SourceSHA256, Source, CanonicalTerminology                              string
 }
 
 type PreservationGateData struct {

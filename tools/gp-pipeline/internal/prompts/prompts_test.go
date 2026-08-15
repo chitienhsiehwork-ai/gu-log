@@ -202,13 +202,21 @@ func TestRender_VibeGateIsSourceBlind(t *testing.T) {
 }
 
 func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
-	translator, err := Render("source-translate", SourceTranslateData{Version: "v1", SourceSHA256: "hash", Source: "SOURCE"})
+	translator, err := Render("source-translate", SourceTranslateData{
+		Version: "v1", SourceSHA256: "hash", Source: "SOURCE",
+		CanonicalTerminology: `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"忠實不是逐字搬運", "productivity ouroboros", "演算法動態"} {
 		if !strings.Contains(translator, want) {
 			t.Errorf("translator prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{"runtime 提供的 canonical terminology", `"term":"Agent"`, `"forbiddenZhTw":["代理人"]`} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing terminology context %q", want)
 		}
 	}
 	reviewer, err := Render("source-review", PreservationGateData{Version: "v1", SourceSHA256: "source", TranslationSHA256: "translation", Source: "SOURCE", Translation: "BODY"})

@@ -191,6 +191,7 @@ func bindGPDeployProfile(state *rootState, s *pipeline.State) error {
 		return fmt.Errorf("deploy: GP role %s preflight: %w", failedRole, err)
 	}
 	s.GPProfile, s.GPProfileSHA256 = gp.Profile, gp.ProfileSHA256
+	s.CanonicalTerminology = gp.CanonicalTerminology
 	return nil
 }
 

@@ -15,6 +15,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/preservation"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/terminology"
 )
 
 const maxGPCorrectionAttempts = 3
@@ -59,11 +60,19 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	if s.TranslatedDate == "" {
 		s.TranslatedDate = time.Now().Format("2006-01-02")
 	}
+	canonicalTerminology := s.CanonicalTerminology
+	if canonicalTerminology == "" {
+		canonicalTerminology, err = terminology.LoadCanonicalContext(s.Cfg.RepoRoot)
+		if err != nil {
+			return fmt.Errorf("source-translate terminology context: %w", err)
+		}
+	}
 	prompt, err := prompts.Render("source-translate", prompts.SourceTranslateData{
 		Version: preservation.ContractVersion, TicketID: s.PromptTicketID,
 		OriginalDate: s.OriginalDate, TranslatedDate: s.TranslatedDate,
 		SourceField: s.ResolveSourceField(), SourceURL: s.TweetURL,
 		SourceSHA256: preservation.SHA256(source), Source: string(source),
+		CanonicalTerminology: canonicalTerminology,
 	})
 	if err != nil {
 		return fmt.Errorf("source-translate prompt: %w", err)

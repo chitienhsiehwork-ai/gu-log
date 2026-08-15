@@ -18,7 +18,7 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 
 ## 預設用法
 
-使用者提供 URL 時，除非有明確 blocker，跑完整 pipeline：
+使用者明確要求把 URL 寫成／發布為 GP，或在 `AGENTS.md` 的 URL intake 後明確叫 agent 繼續時，除非有明確 blocker，跑完整 pipeline：
 
 ```bash
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
