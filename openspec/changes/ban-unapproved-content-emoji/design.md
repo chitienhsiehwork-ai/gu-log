@@ -25,7 +25,9 @@ gu-log 的文章庫已有大量歷史 emoji，直接對全庫做絕對掃描會�
 
 ### 使用 added-line ratchet，不建立大型 legacy baseline
 
-共用 validator 讀取 Git diff 的 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。新文章的所有內容都是 added lines；既有文章只有新寫或改過的行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
+共用 validator 先用現有 reader revision canonicalizer 取得 reader-visible post surface，再讀取其 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。新文章的所有內容都是 added lines；既有文章只有新寫或改過的行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
+
+這個 reader-visible surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。MDX import／export 與不會 render 的註解不納入。validator 不另抄一份 frontmatter key 清單；它使用 reader revision canonicalizer 的同一份定義。
 
 相較於保存一份數百筆 legacy emoji baseline，diff ratchet 沒有會 drift 的大型快照，也自然形成 touch-to-clean 行為。相較於只比較每個檔案的 emoji 總數，它也不允許把舊 emoji 移到新句子來規避檢查。
 
@@ -37,15 +39,15 @@ gu-log 的文章庫已有大量歷史 emoji，直接對全庫做絕對掃描會�
 
 ### 例外採 exact occurrence allowlist
 
-例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、emoji sequence、該內容行的 SHA-256、最多出現次數、授權日期與理由。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、超量或已找不到對應內容行的 stale entry。
+例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、emoji sequence、該 canonical 內容行的 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應內容行的 stale entry。
 
 這個檔案只是把 ShroomDog 已明確做出的決定寫成 executable record；它不是 agent 可以自行創造授權的 escape hatch。
 
 ### GP 在 frozen translation 之前套用內容政策
 
-source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；若符號承載可辨識意思，改用自然文字翻出；只有已提供的明確授權才保留 glyph。source reviewer 也使用相同邊界，避免把合規省略誤報成 fidelity loss。英文 sidecar prompt 不得從原始英文復原未授權 emoji。
+source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；若符號承載可辨識意思，改用自然文字翻出；只有已提供的明確授權才保留 glyph。source reviewer 也使用相同邊界，避免把合規省略誤報成 fidelity loss。英文 sidecar prompt 與人工翻譯指南不得從原始英文復原未授權 emoji。
 
-相關 GP prompt contract 會 bump 版本，使 role-profile fingerprint 失效；舊 publish manifest 不能被新的 runtime 誤用。GP canonical body projection 本身不做全域 emoji 正規化，因為 projection 的工作仍是證明 enrichment 沒改 frozen translation，而不是偷偷改正文。
+GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，使 role-profile fingerprint 失效；舊 publish manifest 不能被新的 runtime 誤用。English sidecar 不屬於現行 GP runtime profile，因此不假稱它會改 manifest fingerprint；它的 emoji 邊界由 prompt rendering test、最終 content gate 與人工翻譯指南鎖住。GP canonical body projection 本身不做全域 emoji 正規化，因為 projection 的工作仍是證明 enrichment 沒改 frozen translation，而不是偷偷改正文。
 
 ### GP-274 只做使用者授權的最小正文修正
 
@@ -55,7 +57,7 @@ source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；
 
 - [歷史文章仍可看到 emoji] → 以 non-retroactive ratchet 上線，避免一次重寫大量 GP；後續只要碰到相關行就會被迫清理。
 - [Unicode emoji 邊界複雜] → 用 table-driven tests 鎖住心形、smiley、旗幟、keycap、ZWJ、文字符號與 kaomoji cases；偵測器只存在一份。
-- [allowlist 被濫用] → 精確綁 path、glyph、line hash 與 count，並要求人類授權理由；沒有整篇或 glob 放行。
+- [allowlist 被濫用] → 精確綁 path、glyph、line hash 與 count，並要求指向 feedback corpus 具體決策的 `approvalRef`；沒有整篇或 glob 放行。
 - [GP reviewer 把省略 emoji 視為不忠實] → translator 與 source reviewer 同步更新 contract，並用 prompt rendering tests 鎖住新邊界。
 - [diff base 不可解析時 gate 被跳過] → validator fail closed；CI 使用事件提供的 exact base SHA，pre-commit 使用 index 與 `HEAD`。
 

@@ -6,7 +6,7 @@ gu-log 目前沒有禁止 emoji 的內容規則，writer 仍可能把愛心或�
 
 - 把「reader-visible article content 預設禁止 Unicode emoji；kaomoji 不在此禁令內」寫進 editorial contract 與 writer guidance。
 - 新增共用 deterministic validator：本機 pre-commit 阻擋 staged 新增 emoji，CI 以 PR base 為基準再次阻擋。
-- 例外只能透過 repo 內可稽核的明確授權紀錄放行，並限制在指定文章與指定 emoji，不提供文章作者可任意開啟的通用旗標。
+- 例外只能透過 repo 內可稽核的明確授權紀錄放行，並限制在指定文章與指定 emoji；紀錄必須指向 feedback corpus 的具體人類決策，不提供文章作者可任意開啟的通用旗標。
 - 既有文章採 non-retroactive ratchet：不為這次規則批次重寫歷史內容，但任何新增 emoji 都會被擋；已存在的 emoji 可在後續 editorial maintenance 中逐步移除。
 - 移除 GP-274 繁中與英文結尾的愛心，並記錄這次 ShroomDog feedback。
 
@@ -24,6 +24,6 @@ gu-log 目前沒有禁止 emoji 的內容規則，writer 仍可能把愛心或�
 ## Impact
 
 - `openspec/specs/editorial-charter/spec.md` 的穩定 editorial contract。
-- `GU-LOG_WRITER_PROMPT.md`、`CONTRIBUTING.md` 與 `docs/shroomdog-editorial-feedback.md`。
+- `GU-LOG_WRITER_PROMPT.md`、`CONTRIBUTING.md`、`scripts/en-translation-guide.md` 與 `docs/shroomdog-editorial-feedback.md`。
 - `scripts/` 內的內容 validator 與測試、`scripts/hooks/pre-commit`、`.github/workflows/ci.yml`，以及 GP source／sidecar translation prompt contract。
 - GP-274 的 zh-tw／en MDX 與其 reader revision manifest；不新增 runtime dependency，也不改公開 API。

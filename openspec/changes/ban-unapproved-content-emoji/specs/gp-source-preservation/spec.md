@@ -6,7 +6,7 @@ GP 來源翻譯 SHALL 在譯文封存之前套用 gu-log 的 emoji policy。來�
 
 如果表情圖示在原句中承載可辨識的語意、態度或操作資訊，翻譯者 SHALL 用自然文字保留該意思，不得只刪字形而讓原文資訊消失。只有 ShroomDog 對指定文章與 occurrence 做出明確授權時，翻譯者 MAY 保留原字形。
 
-來源翻譯者、來源審查者與英文 sidecar 翻譯者 SHALL 共享這個 policy boundary。Prompt contract 改變 SHALL 更新 GP runtime profile fingerprint，使舊 publish manifest 失效。Canonical body projection SHALL 繼續封存已套用規則的譯文，不得在正文投影階段偷偷移除表情圖示。
+來源翻譯者、來源審查者與英文 sidecar 翻譯者 SHALL 共享這個 policy boundary。來源翻譯者或來源審查者的 prompt contract 改變 SHALL 更新 GP runtime profile fingerprint，使舊 publish manifest 失效。英文 sidecar 不屬於該 runtime profile，其規則 SHALL 由 prompt rendering test 與最終內容 gate 驗證。Canonical body projection SHALL 繼續封存已套用規則的譯文，不得在正文投影階段偷偷移除表情圖示。
 
 #### Scenario: Decorative source emoji is omitted
 
@@ -33,6 +33,12 @@ GP 來源翻譯 SHALL 在譯文封存之前套用 gu-log 的 emoji policy。來�
 - **WHEN** GP runtime 更新翻譯者或來源審查者的表情圖示規則與 prompt contract
 - **THEN** 執行角色設定指紋 SHALL 改變
 - **AND** deploy SHALL 拒絕沿用舊 runtime profile 的 publish-gate manifest
+
+#### Scenario: English sidecar does not restore source emoji
+
+- **WHEN** 英文 sidecar 翻譯者遇到原始英文中的未授權表情圖示
+- **THEN** sidecar prompt SHALL 要求省略裝飾性字形，或用自然文字保留其必要語意
+- **AND** prompt rendering test 與最終內容 gate SHALL 阻止未授權字形被復原
 
 #### Scenario: Projection seals the already-compliant translation
 

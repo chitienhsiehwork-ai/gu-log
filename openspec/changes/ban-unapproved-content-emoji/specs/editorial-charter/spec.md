@@ -4,7 +4,7 @@
 
 gu-log 的 reader-visible article content SHALL 預設不包含 emoji。Kaomoji SHALL 視為獨立的文字型品牌語彙，不受此禁令影響。
 
-只有 ShroomDog 對特定文章中的特定 emoji 做出明確授權時，該 occurrence 才 MAY 保留。授權 SHALL 以 repo 內可稽核、窄範圍的 executable record 保存；writer SHALL NOT 以自行設定的整篇 frontmatter flag、glob 或未記錄的推測取代人類授權。
+只有 ShroomDog 對特定文章中的特定 emoji 做出明確授權時，該 occurrence 才 MAY 保留。授權 SHALL 以 repo 內可稽核、窄範圍的 executable record 保存，且 SHALL 指向 feedback corpus 的具體人類決策；writer SHALL NOT 以自行設定的整篇 frontmatter flag、glob、未記錄的推測或無法對照人類決策的理由文字取代授權。
 
 pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，阻擋新文章或修改內容新增未授權 emoji。既有未修改的歷史 emoji MAY 透過 non-retroactive ratchet 暫時保留；此 grandfathering SHALL NOT 允許新增、搬移或重寫含 emoji 的內容行。
 
@@ -13,6 +13,12 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **WHEN** 新增文章的 title、summary 或 body 包含未授權 emoji
 - **THEN** pre-commit SHALL 阻擋該 commit
 - **AND** CI SHALL 對同一內容得出相同失敗結果
+
+#### Scenario: Reader-visible component surfaces are covered
+
+- **WHEN** 新增 emoji 出現在 MoguNote、ShroomDogNote、其他 reader-visible component text／props、圖片替代文字或 code block
+- **THEN** deterministic gate SHALL 將它視為 reader-visible article content
+- **AND** MDX import／export 與不會 render 的註解 SHALL 不受此規則影響
 
 #### Scenario: Kaomoji remains allowed
 
@@ -23,7 +29,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 #### Scenario: User grants a narrow exception
 
 - **WHEN** ShroomDog 明確授權某篇文章中的特定 emoji occurrence
-- **AND** repo 記錄精確綁定該 post path、emoji、內容行與授權理由
+- **AND** repo 記錄精確綁定該 post path、emoji、內容行、授權理由與 feedback corpus 決策參照
 - **THEN** deterministic gate MAY 只放行該 occurrence
 - **AND** SHALL NOT 放行同檔其他 emoji、其他文章或超出核准數量的 occurrence
 
