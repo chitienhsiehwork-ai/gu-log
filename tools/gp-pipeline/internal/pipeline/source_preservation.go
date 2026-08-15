@@ -107,6 +107,20 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	translationFile.SetScalar("translatedDate", frontmatter.QuoteScalar(s.TranslatedDate))
 	translation = translationFile.Bytes()
 	artifact.TranslationMDX = string(translation)
+	if len(artifact.SlopCandidates) > 0 {
+		canonicalCandidates, err := preservation.CanonicalizeFindingAnchors(translation, artifact.SlopCandidates)
+		if err != nil {
+			return fmt.Errorf("source-translate canonicalize slop candidates: %w", err)
+		}
+		translationHash := preservation.SHA256(translation)
+		for i := range canonicalCandidates {
+			canonicalCandidates[i].TranslationSHA256 = translationHash
+		}
+		if err := preservation.ValidateFindings(source, translation, canonicalCandidates); err != nil {
+			return fmt.Errorf("source-translate canonical slop candidates: %w", err)
+		}
+		artifact.SlopCandidates = canonicalCandidates
+	}
 	if err := os.WriteFile(path, translation, 0o644); err != nil {
 		return err
 	}
@@ -478,6 +492,11 @@ func (s *State) restoreSourceTranslationRun(translationPath string) error {
 	}
 	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.TranslationSHA256 != preservation.SHA256(initial) || artifact.TranslationMDX != string(initial) {
 		return errors.New("source-translate recovery artifact is missing or stale")
+	}
+	if len(artifact.SlopCandidates) > 0 {
+		if err := preservation.ValidateFindings(source, initial, artifact.SlopCandidates); err != nil {
+			return fmt.Errorf("source-translate recovery slop candidates: %w", err)
+		}
 	}
 	if err := preservation.ValidateProvenance(artifact.Provenance, "translator"); err != nil {
 		return err

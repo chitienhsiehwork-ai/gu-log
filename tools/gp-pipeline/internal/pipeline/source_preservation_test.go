@@ -239,6 +239,35 @@ func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *test
 	if !strings.Contains(string(translated), `originalDate: "2026-08-15"`) || !strings.Contains(string(translated), `translatedDate: "2026-08-15"`) {
 		t.Fatalf("dates were not canonicalized after candidate validation:\n%s", translated)
 	}
+	artifactData, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translate.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted preservation.SourceTranslationArtifact
+	if err := json.Unmarshal(artifactData, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.TranslationMDX != string(translated) {
+		t.Fatal("durable artifact translation differs from canonical translation")
+	}
+	if err := preservation.ValidateFindings(source, []byte(persisted.TranslationMDX), persisted.SlopCandidates); err != nil {
+		t.Fatalf("durable artifact contains stale slop candidates: %v", err)
+	}
+	s.FromStepInt = StepSourceGate
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("consistent durable artifact did not recover: %v", err)
+	}
+	persisted.SlopCandidates[0].TranslationSHA256 = "stale"
+	staleData, err := json.Marshal(persisted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translate.json"), staleData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SourceTranslate(ctx); err == nil || !strings.Contains(err.Error(), "recovery slop candidates") {
+		t.Fatalf("recovery accepted stale nested finding: %v", err)
+	}
 }
 
 func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
