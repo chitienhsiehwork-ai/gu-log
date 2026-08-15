@@ -71,7 +71,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
 | **GP/MP 自動翻譯 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
-| **User 只丟 URL → 先翻譯與評估，不動手寫文** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
+| **User 丟 URL 但沒叫 agent 寫／發布 → 先翻譯與評估** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / chat-first 決策介面 / archive gate）— MUST 動手前先讀 |
@@ -82,7 +82,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 
 ### 🔗 URL intake：先翻譯與評估，等 user 再叫才動手
 
-**User 沒有明確要求產出文章或發布時，一律走 URL intake，不得直接開始寫 GP 或跑 pipeline。** 「這篇如何？」「值得收嗎？」「幫我看」仍算 intake。第一輪只在 chat 交付兩樣東西：
+**User 丟 URL 進來、又沒有明確要求產出文章或發布時，一律走 URL intake，不得直接開始寫 GP 或跑 pipeline。** 「這篇如何？」「值得收嗎？」「幫我看」仍算 intake。第一輪只在 chat 交付兩樣東西：
 
 1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
 2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。

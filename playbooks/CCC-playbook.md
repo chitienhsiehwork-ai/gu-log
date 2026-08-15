@@ -51,7 +51,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
 4. **開完 PR 同一個 round 就把 merge 交給 server-side**：非 OpenSpec PR 若 harness 強制開 draft，立刻 `mcp__github__update_pull_request` 轉 ready，接著 `mcp__github__enable_pr_auto_merge`。採用 OpenSpec 的變更依 `.agents/openspec-sdlc.md` 維持 draft，完成 preview touchpoint 與 archive 後才轉 ready、掛 auto-merge。CI 綠了 GitHub 自己合，**不依賴 session 醒著**。CCC session 閒置會被睡掉，任何 in-session 排程（CronCreate / Monitor / background polling，不管幾分鐘一次）都跟著凍結——「等 CI 綠我再回來 merge」= 賭 session 還活著（2026-07-02 GP-247 實測：draft 停等 → session 睡 2 小時 → main 前進變 behind → 又多卡兩小時等 user 手動叫醒）。醒著等到 CI 綠直接 `mcp__github__merge_pull_request` 當然更快，但 auto-merge 必須先掛上當保險，不是二選一
 5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
-6. 有 deployable preview 時，在 chat 提供 preview URL + 簡短 summary；safe／non-critical 不等待回覆。Merge 完再回報 production URL（`gu-log.vercel.app` 或文章深連結）與 smoke-test 結果。什麼時候 preview 會阻擋 merge，照下面〈Preview URL 與 merge gate〉判斷。每個 turn 都要以可驗收的東西收尾（preview／prod URL、preview unavailable 的驗證證據，或 critical question），不留空回合。
+6. 有 deployable preview 時，在 chat 提供 preview URL + 簡短 summary；safe／non-critical 不等待回覆。Merge 完再回報 production URL（`gu-log.vercel.app` 或文章深連結）與 smoke-test 結果。什麼時候 preview 會阻擋 merge，照下面〈Preview URL 與 merge gate〉判斷。每個 turn 都要以可驗收的東西收尾（preview／prod URL、preview unavailable 的驗證證據、`AGENTS.md` 定義的 URL intake 交付物，或 critical question），不留空回合。
    - **URL 不等 merge 才第一次給**：內容任務的 prod URL 是 deterministic——由檔名推導（`/posts/<slug>/`，en 版 `/en/posts/en-<slug>/`），不需要等 deploy 才知道。所以在「開 PR + auto-merge 掛好」的**同一個回合**就先給**預定 prod URL**，講明「CI 綠了會自動 merge + 上線」；這樣就算 session 之後被睡掉（見步驟 4），user 手上已經有可點的連結，成果自己上線、不會卡在沒人回報。之後醒著時再補一句 deploy 完成的 smoke test 結果（HTTP 200 + 標題）即可，那是驗證、不是 user 拿到連結的前提。
 7. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
 
@@ -207,7 +207,7 @@ tools/gp-pipeline/gp-pipeline run <url> --force
 - **`x.com` / `twitter.com` 直接 curl**：會拿到 React shell（沒 prerender content）——所以 X 專用的 fetch 路徑走 `fetch-x-article.sh`（fxtwitter）而不是 raw curl。這跟「外網通不通」無關，是 X 自己 anti-bot
 - **`WebFetch` tool**：對某些 host 會被 upstream proxy 檔掉，curl 反而可以
 
-結論：CCC 沙箱可以直接 `gp-pipeline run <url>`，fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
+結論：user 授權寫作後，CCC 沙箱可以直接 `gp-pipeline run <url>`；fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
 
 ### 什麼時候才真的要 fallback 到手動 `claude -p`
 
