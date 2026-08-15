@@ -183,6 +183,57 @@ func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 	}
 }
 
+func TestRender_VibeGateIsSourceBlind(t *testing.T) {
+	out, err := Render("vibe-gate", PreservationGateData{
+		Version: "v1", SourceSHA256: "source-hash", TranslationSHA256: "translation-hash",
+		BodyProjectionSHA256: "projection-hash", Source: "SECRET_SOURCE_SENTENCE", Translation: "譯文內容",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if strings.Contains(out, "SECRET_SOURCE_SENTENCE") {
+		t.Fatal("cold-read vibe prompt leaked the source")
+	}
+	for _, want := range []string{"譯文內容", `"source_quote":""`, "忠實度與 source evidence 由另一位 reviewer 負責", "opaque provenance ID", "只會收到 canonical body", "拿不準就保留"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("vibe prompt missing %q", want)
+		}
+	}
+}
+
+func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
+	translator, err := Render("source-translate", SourceTranslateData{Version: "v1", SourceSHA256: "hash", Source: "SOURCE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"忠實不是逐字搬運", "productivity ouroboros", "演算法動態"} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing %q", want)
+		}
+	}
+	reviewer, err := Render("source-review", PreservationGateData{Version: "v1", SourceSHA256: "source", TranslationSHA256: "translation", Source: "SOURCE", Translation: "BODY"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Fidelity 看語意，不看字面", "不得要求恢復 natural hard gate", "BODY", "SOURCE", "不要做 byte arithmetic"} {
+		if !strings.Contains(reviewer, want) {
+			t.Errorf("source reviewer prompt missing %q", want)
+		}
+	}
+}
+
+func TestRender_CorrectorTreatsSuggestionAsDiagnostic(t *testing.T) {
+	out, err := Render("correct", CorrectData{Version: "v1", Source: "10x me", Translation: "讓我十倍成長", ApprovedFindingsJSON: "[]"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"suggested_replacement 只是指出問題方向", "不是必須照抄", "不改變語氣強弱", "不要加入 source 沒有的強化詞"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("corrector prompt missing %q", want)
+		}
+	}
+}
+
 func TestRender_MissingKey_Errors(t *testing.T) {
 	// Use a data shape that does NOT satisfy EvalData — text/template with
 	// missingkey=error must fail fast.

@@ -4,6 +4,12 @@
 
 > gu-log tribunal runtime is a quota-aware, graceful-stop daemon running on the operator-configured Tribunal VM. It runs 4 judges (Librarian / FactChecker / FreshEyes / VibeScorer) against unscored posts and auto-rewrites failures. This doc covers the day-to-day operational moves.
 
+## GP source-preservation boundary
+
+`gp-*` 是明確例外：Tribunal 對 GP 只提供一般品質校準，不擁有來源正文的 rewrite authority。所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕。persona／narrative 低分可以誠實記錄並依 floor policy 發布，但不得補償或蓋過 gp-pipeline 的 source reviewer、natural-zh gate、canonical-body projection 與 freshness hard gates。
+
+若 GP hard gate 未通過、provider／runner 發生錯誤、缺少有效 verdict，或 source/body hash 已 stale，pipeline 必須停在 deploy 前。修復方式是回到原 workdir 的安全 recovery point 重跑相同角色，不是把 GP 送進通用 writer。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
+
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
 - `openspec/changes/archive/2026-04-23-tribunal-safe-parallelism/` — Phase 2, 2-worker pool
@@ -370,7 +376,7 @@ Log interpretation:
 - `Acquired build lock after Ns`: worker now owns the exclusive lock; only now does the 900s build timeout start.
 - `Final build failed rc=124`: build execution timed out (`timeout --kill-after=15s 900 ...`), treated as operational/resource, no writer repair.
 - `Final build failed rc=137` or log evidence like `heap out of memory`, `FATAL ERROR`, `SIGKILL`, `oom-kill`: likely resource/OOM, no writer repair.
-- Build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger up to 2 bounded writer repair attempts. PASS is never written unless a subsequent final build succeeds.
+- 非 GP build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger up to 2 bounded writer repair attempts. GP 不進 final-build writer repair；build failure 直接保留為阻擋證據，修好 deterministic 問題後從原 workdir 重跑。PASS is never written unless a subsequent final build succeeds.
 
 ## Auto scale-down / up (memory throttle)
 

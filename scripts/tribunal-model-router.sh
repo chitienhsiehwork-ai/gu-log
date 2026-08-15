@@ -85,7 +85,7 @@ model_router_assert_profile_compatible() {
   while IFS= read -r configured_model; do
     [ -n "$configured_model" ] || continue
     awk -v model="$configured_model" \
-      '$1 == "*" && $2 == model { found = 1 } END { exit !found }' \
+      '($1 == "*" || $1 == "-") && $2 == model { found = 1 } END { exit !found }' \
       <<<"$available_models" || {
       printf 'runtime profile %s requires unavailable Grok model %s\n' \
         "$profile" "$configured_model" >&2
@@ -93,7 +93,8 @@ model_router_assert_profile_compatible() {
     }
   done < <(
     jq -r --arg profile "$profile" '
-      [.profiles[$profile].writer, .profiles[$profile].vibeScorer]
+      [.profiles[$profile].writer, .profiles[$profile].translator,
+       .profiles[$profile].commentary, .profiles[$profile].vibeScorer]
       | map(select(.provider == "grok") | .model)
       | unique[]
     ' "$MODEL_ROUTER_CONFIG"
@@ -103,6 +104,10 @@ model_router_assert_profile_compatible() {
 model_router_role_key() {
   case "$1" in
     writer|tribunal-writer|refiner) printf 'writer\n' ;;
+    translator|source-translator) printf 'translator\n' ;;
+    sourceReviewer|source-reviewer) printf 'sourceReviewer\n' ;;
+    corrector|bounded-corrector) printf 'corrector\n' ;;
+    commentary|commentary-writer) printf 'commentary\n' ;;
     vibe|vibeScorer|vibe-opus-scorer) printf 'vibeScorer\n' ;;
     reviewer|evaluator|librarian|fact-checker|fresh-eyes) printf 'reviewer\n' ;;
     *) return 1 ;;
@@ -248,9 +253,9 @@ model_router_resolve() {
     effort="$(jq -er --arg role "$role" \
       '.profiles["vm-codex"][$role].reasoningEffort' "$MODEL_ROUTER_CONFIG")"
     tier=normal
-    if value="$(model_router_grok_remaining)"; then
+    if [ "$provider" = grok ] && value="$(model_router_grok_remaining)"; then
       remaining="$value"
-      if [ "$role" = writer ]; then
+      if [ "$role" = writer ] || [ "$role" = translator ] || [ "$role" = commentary ]; then
         threshold="$(jq -er '.profiles["vm-codex"].grokQuota.pauseWriterBelowRemainingPercent' \
           "$MODEL_ROUTER_CONFIG")"
         if awk -v remaining="$remaining" -v threshold="$threshold" \
@@ -308,7 +313,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   role="${1:-}"
   format="${2:---text}"
   [ -n "$role" ] || {
-    printf 'Usage: %s <reviewer|writer|vibeScorer> [--json]\n' "$0" >&2
+    printf 'Usage: %s <reviewer|writer|translator|sourceReviewer|corrector|commentary|vibeScorer> [--json]\n' "$0" >&2
     exit 2
   }
   model_router_resolve "$role"

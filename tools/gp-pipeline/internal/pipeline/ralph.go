@@ -127,7 +127,9 @@ func (s *State) Ralph(ctx context.Context) error {
 		return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
 	}
 
-	s.runPostFixers(ctx, activePath)
+	if s.Prefix != "GP" || s.LegacyShadow {
+		s.runPostFixers(ctx, activePath)
+	}
 
 	// Run the tribunal. tribunal.sh owns per-judge runtime routing; legacy and
 	// Claude Code Cloud keep their historical provider chain, while VM-specific
@@ -138,6 +140,7 @@ func (s *State) Ralph(ctx context.Context) error {
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
 		NoCommit:    true,
+		NoRewrite:   s.Prefix == "GP" && !s.LegacyShadow,
 	})
 	if err != nil {
 		// Ralph.Run only returns errors for misuse; bubble up.
@@ -146,8 +149,17 @@ func (s *State) Ralph(ctx context.Context) error {
 	s.RalphPassed = passed
 	if passed {
 		s.Log.OK("  Tribunal PASS: %s", s.ActiveFilename)
+	} else if s.Prefix == "GP" && !s.LegacyShadow {
+		// The source reviewer and cold-read vibe gate are the GP publication
+		// authority. Generic Tribunal dimensions such as persona/narrative are
+		// calibration evidence only and cannot re-authorize a rewrite or
+		// invalidate an otherwise faithful source translation.
+		s.Log.Warn("  Tribunal FAIL recorded as GP calibration evidence; source-preservation gates remain authoritative")
 	} else {
 		s.Log.Warn("  Tribunal FAIL (see %s/tribunal-stdout.txt). Deploying best effort.", s.WorkDir)
+	}
+	if s.Prefix == "GP" && !s.LegacyShadow {
+		return nil
 	}
 
 	// Frontmatter normaliser — for every file in {zh, en}, strip old

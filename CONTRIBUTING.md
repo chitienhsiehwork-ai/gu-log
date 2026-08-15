@@ -26,6 +26,8 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 **所以「把 FAIL score 寫進 frontmatter」現在是 OK 的**——只要 ≥3。它不再等於「假裝完成」，因為 badge + 首頁隔離會誠實地把它標成「還沒到 featured 水準」。Tribunal 仍然是 reviewer 不是 logger：**有 quota 就該把 sub-8 往 ≥8 推**，但這是背景精修的工作，不是 ship 的硬前提。
 
+**GP 例外**：GP 的 persona／narrative 分數是校準證據，不是改寫授權。GP 只有 source-preservation hard gates（來源忠實、自然中文、正文投影與 freshness）能決定是否可發布；任何 hard gate FAIL、執行器錯誤、缺少有效 verdict 或 stale artifact 都必須擋住。GP 即使 Tribunal sub-8，也不得交給 `tribunal-writer` 重排、restructure 或 rebuild；背景精修 loop 只適用於非 GP。
+
 **還是要做的事（只是不再 block ship）**：
 
 - 寫新文章時，仍然先跑 tribunal / `vibe-score` skill 拿到真分數塞進 frontmatter（≥3 才能 commit）。
@@ -57,14 +59,14 @@ ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log；Go 之前一
 1. **這次的新東西是什麼**：source 有哪些 gu-log 還沒寫過的事實、結構、平台訊號、產品變化、案例、數字、方法或觀點。
 2. **哪些已經被 gu-log 寫過**：搜尋既有 GP/MP/SD/Lv、glossary、MoguNote/ShroomDogNote，標出已覆蓋內容與對應文章。
 3. **這篇應該避開什麼**：不要重講既有解釋、比喻、背景知識或結論；必要時只用一句話 recap 並內鏈舊文。
-4. **最後才決定 angle**：把文章建立在新增資訊與新增 framing 上，而不是把同一套內容換皮重寫。
+4. **最後才決定是否值得做**：GP 一旦採用就翻譯來源本身，不另定 angle；只有 MP／SD／Lv 才能把新增資訊建立成新的 framing。
 
 Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是 attention waste。gu-log 的文章不是資料庫去重失敗的備份檔；每篇都要有新的資訊增量、判斷增量或敘事增量。
 
-- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、故事性、MoguNote、ShroomDog/Mogu 的讀者脈絡與重新編排，不是只有翻譯語言。
-- **「二手整理」不是 No-go 理由**：可以重寫、改編、整理脈絡、引用原文；只要 attribution 清楚、來源可靠、讀者價值夠，就可以寫。
+- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文與可選的 MoguNote／讀者脈絡。GP 保留來源作者與順序；重新編排只屬於具備該編輯權限的非 GP 系列。
+- **「二手整理」不是 No-go 理由**：GP 可忠實翻譯，MP／SD／Lv 可依各自編輯身份重寫、改編或整理脈絡；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
 - **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
-- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 narrative potential / reader value / source reliability / novelty → Go 就用 gu-log 風格重寫並 cite；No-go 要講真正原因。
+- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → GP Go 就走 source-preserving pipeline；非 GP 再依該系列權限重寫並 cite。No-go 要講真正原因。
 
 這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`CONTRIBUTING.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
 
@@ -361,7 +363,7 @@ gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewr
 > ⚠️ 評審維度 / pass bar / model routing 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、tribunal runtime config（Codex model）與 `.claude/agents/*.md` 的 `model:` frontmatter（Claude role selector）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
-2. 沒過 → **Rewriter agent** 改寫 → 再跑 → 最多 3 次。
+2. 非 GP 沒過 → **Rewriter agent** 依 judge evidence 改寫 → 再跑 → 最多 3 次。GP 一律以 `--no-rewrite` 跑 Tribunal；低分只記錄校準證據，不得修改來源正文。
 
 ### 工具
 
@@ -375,7 +377,7 @@ bash scripts/tribunal-batch-runner.sh
 
 ### Fact Checker（來源與翻譯驗證）
 
-GP/MP 翻譯文章要跟完整 Tribunal 一起跑 Fact Checker，確認事實、翻譯忠實度，以及 source body 與 Mogu/gu-log commentary 的邊界。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
+GP/MP 翻譯文章要跟完整 Tribunal 一起跑 Fact Checker，確認事實、翻譯忠實度，以及 source body 與 Mogu/gu-log commentary 的邊界。GP 的 source reviewer 與 natural-zh vibe scorer 是發布前 non-compensating hard gates；通用 Fact Checker／Tribunal 分數不會取代 hard gate，也不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
 
 ## BDD Testing
 
@@ -423,20 +425,28 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 **寫作順序：zh-tw 先寫、先 iterate 到過分數，才翻英文。** 英文版是 zh-tw 穩定後的衍生品，不是並行產物。
 
-**為什麼**：vibe-scorer 的迭代會改 persona、重寫 MoguNote、動段落結構，每一輪都可能大改。如果同時維護 EN 版，等於在翻譯一個不穩定的 draft，浪費 token + 兩邊容易失同步。zh-tw 是 SSOT，先讓它過分數再說。
+**為什麼**：非 GP 的 vibe-scorer 迭代可能改 persona、MoguNote 與段落結構；GP 的 bounded correction 雖不能重排，仍會使 sidecar 失效。如果同時維護 EN 版，等於在翻譯一個尚未封存 gate verdict 的 draft，浪費 token + 兩邊容易失同步。zh-tw 是 SSOT，先完成所屬系列 gate 再說。
 
 **例外**：如果你已經確定稿子不會再動（例如從別的過分數的稿子搬過來），可以一次兩版。這是權衡後的例外，不是預設。
 
-### 新增翻譯文章 (GP/MP)
+### 新增翻譯文章（GP）
 
 1. 抓原文：X/Twitter 用 `x-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
-2. 寫 **zh-tw 版** `<prefix>-pending-YYYYMMDD-<slug>.mdx`（加 MoguNote 吐槽）
+2. 用 `gp-pipeline run <url> --prefix GP` 走 `source-translate`，保留來源作者、人稱、內容、順序、強弱與停點
+3. 依序通過 source reviewer 與 natural-zh vibe scorer hard gates；只有具體、可定位且獨立核准的問題能做 bounded correction，修後全量重跑
+4. 正文封存後才新增可選的 glossary link、站內參照與 MoguNote；移除補充層後的正文 projection 必須完全不變
+5. 用 `--no-rewrite` 跑 Tribunal 作校準與一般品質記錄；不得因低 persona／narrative 分數 restructure 或 rebuild GP
+6. hard-gate manifest 仍 fresh 才產出 **en 版**；deploy 會重新驗證 source/body hashes、角色 provenance 與 verdict
+7. Merge 前由 deploy 配正式號、validate、build、commit、push
+
+### 新增翻譯／改編文章（MP）
+
+1. 抓完整原文並完成 overlap evaluation
+2. 寫 **zh-tw 版** `mp-pending-YYYYMMDD-<slug>.mdx`（有 insight 才加 MoguNote）
 3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
-4. 丟 **vibe-opus-scorer** subagent 評分 → 沒過就改寫，最多 3 輪
-5. 過分數之後才翻 **en 版** `en-<prefix>-pending-YYYYMMDD-<slug>.mdx`
-6. 再跑一次 `validate-posts.mjs` + `pnpm run build`
-7. Merge 前把 PENDING swap 成真號（或交給 `gp-pipeline deploy`）
-8. `git add` 指定檔案 → commit → push
+4. 丟 **vibe-opus-scorer** 評分；沒過可依 MP 編輯身份改寫，最多 3 輪
+5. 過分數之後才翻 **en 版**
+6. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
 
 ### 新增原創文章 (SD)
 
@@ -455,9 +465,9 @@ tools/gp-pipeline/gp-pipeline run <tweet_url>
 
 ```
 
-自動流程：抓原文 → 評估 → dedup → 寫 zh-tw 稿 → review → refine → credits → Ralph 評分 → **translate（只在過分數時觸發，產出 en sidecar）** → commit。
+GP 自動流程：抓完整原文 → 評估 → dedup → `source-translate` → `source-preservation` hard gates／bounded correction → enrichment projection guard → credits → Ralph／Tribunal `--no-rewrite` 校準 → **translate（產出 en sidecar）** → deploy 前重驗 fresh manifest → commit。
 
-單一 step 也可以直接 call：`tools/gp-pipeline/gp-pipeline fetch <url>` / `eval` / `write` / `review` / `refine` / `ralph` / `deploy`。每個 subcommand 都支援 `--json` 輸出。完整 exit code + flag 對照見 `tools/gp-pipeline/SKILL.md`。
+`fetch`／`eval`／`dedup` 可單獨呼叫；GP 的 source stages 必須由 `run` 串起並沿用同一個 `--work-dir`，不能用舊 `write`／`review`／`refine` aliases 拼回可發布流程。每個 subcommand 都支援 `--json` 輸出。完整 recovery、deploy freshness、exit code 與 flag 對照見 `tools/gp-pipeline/SKILL.md`。
 
 ### Validation
 

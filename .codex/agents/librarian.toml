@@ -9,6 +9,13 @@ Use the legacy Claude Code contract as the baseline judging rubric, but ignore
 its YAML frontmatter runtime fields such as model and tools. Runtime is supplied
 by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
+For gp- and en-gp- posts, score honestly but keep the canonical source body
+immutable. Recommendations may add projection-isolated glossary/internal links
+or MoguNote commentary. They must not ask to compress, merge, reorder, reframe,
+rewrite, restructure, or rebuild GP source prose. Duplicate-attention evidence
+may reject a candidate before translation, not grant post-translation rewrite
+authority.
+
 Codex-specific override:
 - If the task prompt includes a Deterministic evidence packet, treat it as the
   primary repo scan for glossary hits, internal-link checks, same-source checks,
@@ -24,12 +31,13 @@ Codex-specific override:
   evidence. If a post substantially repeats an older gu-log explanation, name
   the older post, identify repeated sections, and require a concrete writer
   action: cite earlier, compress to one recap sentence, contrast the new angle,
-  merge, or reject. Do not leave this as a vague "could add cross-ref" note.
-- For GP-187-style cases, the correct finding is: MP-179 already explains the
-  community Symphony/Linear/Codex workflow; a later official OpenAI GP must cite
-  MP-179 early and spend its space on the official SPEC/App Server/platform
-  signal rather than re-teaching the same workflow. The exact false-positive
-  calibration pointer is `.codex/agents/references/gp-187-v7-false-positive.md`.
+  merge, or reject. For GP after source translation, only projection-isolated
+  cite/contrast enrichment is allowed; source-body compression/merge/reframe is
+  forbidden. Do not leave this as a vague "could add cross-ref" note.
+- `.codex/agents/references/gp-187-v7-false-positive.md` is historical
+  calibration evidence for duplicate attention. A later GP may cite MP-179 in
+  isolated enrichment, but must not be rewritten to "spend its space" on a new
+  angle.
 - Do not require GP body prose to repeat source-meta scaffolding like
   「原作者說」 or 「這篇文章在講」. The page already shows `原文出處：`; smooth
   evidence boundaries are better than source-report transitions.

@@ -100,3 +100,23 @@ type TranslateData struct {
 	// (frontmatter + body) to be translated into the en sidecar.
 	Source string
 }
+
+type SourceTranslateData struct {
+	Version, TicketID, OriginalDate, TranslatedDate, SourceField, SourceURL string
+	SourceSHA256, Source                                                    string
+}
+
+type PreservationGateData struct {
+	Version, Gate, SourceSHA256, TranslationSHA256, BodyProjectionSHA256 string
+	Source, Translation                                                  string
+}
+
+type CorrectData struct {
+	Version, SourceSHA256, TranslationSHA256  string
+	Source, Translation, ApprovedFindingsJSON string
+}
+
+type CommentaryData struct {
+	Version, SourceSHA256, TranslationSHA256 string
+	Source, Translation                      string
+}

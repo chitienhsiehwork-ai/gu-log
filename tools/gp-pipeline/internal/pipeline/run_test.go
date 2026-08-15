@@ -42,7 +42,7 @@ func (p *draftInspectingProvider) Run(ctx context.Context, prompt string, opts l
 // file. The FakeProvider is seeded with plausible responses for
 // eval/write/review/refine.
 func makeRunHarness(t *testing.T) (*State, string) {
-	return makeRunHarnessForPrefix(t, "GP")
+	return makeRunHarnessForPrefix(t, "MP")
 }
 
 func makeRunHarnessForPrefix(t *testing.T, prefix string) (*State, string) {
@@ -196,6 +196,7 @@ translated body
 	}
 
 	s := NewState()
+	s.LegacyShadow = prefix == "GP"
 	s.Cfg = cfg
 	s.Log = logx.New()
 	s.Dispatcher = disp
@@ -203,7 +204,7 @@ translated body
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
 	s.Prefix = prefix
 	s.PromptTicketID = prefix + "-PENDING"
-	s.WorkDir = filepath.Join(tmp, "tmp", "gp-pending-run-test")
+	s.WorkDir = filepath.Join(tmp, "tmp", "pipeline-pending-run-test")
 	s.SkipBuild = true
 	s.SkipPush = true
 	s.SkipValidate = true
@@ -264,7 +265,7 @@ func TestStageEditorialContext_CopiesCanonicalFiles(t *testing.T) {
 	}
 }
 
-func TestRun_HappyPath(t *testing.T) {
+func TestRun_NonGPEditorialHappyPath(t *testing.T) {
 	s, _ := makeRunHarness(t)
 	_, _ = SetupWorkDir(s)
 
@@ -273,11 +274,11 @@ func TestRun_HappyPath(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if s.PromptTicketID != "GP-171" {
-		t.Errorf("ticketId = %q, want GP-171", s.PromptTicketID)
+	if s.PromptTicketID != "MP-1" {
+		t.Errorf("ticketId = %q, want MP-1", s.PromptTicketID)
 	}
-	if s.Filename == "" || !strings.HasPrefix(s.Filename, "gp-171-") {
-		t.Errorf("Filename = %q, want gp-171-…", s.Filename)
+	if s.Filename == "" || !strings.HasPrefix(s.Filename, "mp-1-") {
+		t.Errorf("Filename = %q, want mp-1-…", s.Filename)
 	}
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.Filename)); err != nil {
 		t.Errorf("deployed file missing: %v", err)
@@ -301,11 +302,11 @@ func TestRun_HappyPath(t *testing.T) {
 	var buf bytes.Buffer
 	PrintSummary(&buf, s)
 	sum := buf.String()
-	for _, want := range []string{"Ticket no.", "GP-171" /* "171" appears in number row */, "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
+	for _, want := range []string{"Ticket no.", "MP-1", "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
 		_ = want
 	}
-	if !strings.Contains(sum, "171") {
-		t.Errorf("summary missing GP-171: %s", sum)
+	if !strings.Contains(sum, "Ticket no.  : 1") || !strings.Contains(sum, "mp-1-") {
+		t.Errorf("summary missing MP ticket identity: %s", sum)
 	}
 	if !strings.Contains(sum, "dedup-url") {
 		t.Errorf("summary missing dedup-url timing: %s", sum)
@@ -385,16 +386,16 @@ func TestRun_DryRunSkipsDeploy(t *testing.T) {
 	}
 }
 
-func TestRun_FromStepRalph(t *testing.T) {
+func TestRun_NonGPFromStepRalph(t *testing.T) {
 	// Resume from ralph — requires --file. Seed an existing post.
 	s, tmp := makeRunHarness(t)
 	s.FromStepInt = StepRalph
 
 	// Drop an existing file into posts dir.
-	existing := "gp-123-20260411-fake-resume.mdx"
+	existing := "mp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -448,7 +449,7 @@ body
 	}
 }
 
-func TestRun_FromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
+func TestRun_NonGPFromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		fromStep int
@@ -459,10 +460,10 @@ func TestRun_FromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s, tmp := makeRunHarness(t)
 			s.FromStepInt = tc.fromStep
-			existing := "gp-123-20260411-fake-resume.mdx"
+			existing := "mp-123-20260411-fake-resume.mdx"
 			existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -498,7 +499,7 @@ STALE POSTS BODY
 			refined := strings.Replace(existingBody, "STALE POSTS BODY", "FINAL AUTHORITATIVE BODY", 1)
 			translated := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 lang: "en"
 ---
 TRANSLATED FINAL BODY
@@ -528,7 +529,7 @@ TRANSLATED FINAL BODY
 				t.Fatal("provider was not shown the seeded draft-v1.mdx")
 			}
 			for i, call := range fake.Called {
-				if !strings.Contains(call.Prompt, "GP-123") {
+				if !strings.Contains(call.Prompt, "MP-123") {
 					t.Errorf("LLM call %d did not receive the existing ticket identity", i)
 				}
 				if strings.Contains(call.Prompt, "GP-PENDING") {
@@ -560,15 +561,15 @@ TRANSLATED FINAL BODY
 	}
 }
 
-func TestRun_FromStepTranslatePublishesExistingSidecarAndLeavesRepoClean(t *testing.T) {
+func TestRun_NonGPFromStepTranslatePublishesExistingSidecarAndLeavesRepoClean(t *testing.T) {
 	s, tmp := makeRunHarness(t)
 	s.FromStepInt = StepTranslate
 	s.WorkDir = filepath.Join(t.TempDir(), "translate-resume-work")
 
-	existing := "gp-123-20260411-fake-resume.mdx"
+	existing := "mp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -601,7 +602,7 @@ body
 	translateFake := llm.NewFakeClaude().WithResponses(llm.FakeResponse{
 		Output: `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 lang: "en"
 ---
 translated
@@ -624,8 +625,8 @@ translated
 	if s.Filename != existing || s.ENFilename != wantEN {
 		t.Fatalf("published filenames = (%q, %q), want (%q, %q)", s.Filename, s.ENFilename, existing, wantEN)
 	}
-	if s.PromptTicketID != "GP-123" {
-		t.Fatalf("PromptTicketID = %q, want GP-123 from existing frontmatter", s.PromptTicketID)
+	if s.PromptTicketID != "MP-123" {
+		t.Fatalf("PromptTicketID = %q, want MP-123 from existing frontmatter", s.PromptTicketID)
 	}
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, wantEN)); err != nil {
 		t.Fatalf("translated sidecar missing: %v", err)
@@ -633,7 +634,7 @@ translated
 	if got := runGitForTest(t, tmp, "status", "--porcelain"); got != "" {
 		t.Fatalf("successful recovery left repo dirty:\n%s", got)
 	}
-	if got := runGitForTest(t, tmp, "log", "-1", "--format=%s"); got != "Update GP-123: Resume Fake" {
+	if got := runGitForTest(t, tmp, "log", "-1", "--format=%s"); got != "Update MP-123: Resume Fake" {
 		t.Fatalf("recovery commit subject = %q, want explicit existing-post update", got)
 	}
 	counterAfter, err := os.ReadFile(s.Cfg.CounterFile)

@@ -371,7 +371,7 @@ fi
 echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
 echo ""
 
-# ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
+# ─── Step 0.15: Pronoun clarity check (non-GP 你/我 ambiguity guard) ───
 # Same metadata-only exemption as the score gate: housekeeping edits
 # (status/series/deprecation) don't change body text and shouldn't be
 # punished for pre-existing 你/我 in 4-month-old articles.
@@ -408,11 +408,11 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
     done
 
     if [ "${#ZH_FILES[@]}" -gt 0 ]; then
-        echo "🔍 Pronoun clarity: checking zh-tw posts for 你/我 in body..."
+        echo "🔍 Pronoun clarity: checking non-GP zh-tw posts for ambiguous 你/我..."
         if ! node "$REPO_ROOT/scripts/check-pronoun-clarity.mjs" "${ZH_FILES[@]}"; then
             echo ""
             echo "❌ Pronoun clarity check FAILED."
-            echo "   你/我 found in article body (outside MoguNote/blockquote/code)."
+            echo "   Ambiguous 你/我 found in non-GP body (outside MoguNote/blockquote/code)."
             echo "   Use specific names (ShroomDog, Mogu, 讀者) or restructure sentences."
             exit 1
         fi
