@@ -152,7 +152,7 @@ Agent Swarm
 
 # Legacy tech / tools cited in source material
 valgrind dBase Clipper HyperCard WordPress
-# GP-272 / GP-273 brand and product names
+# Source-cited proper nouns that do not need glossary entries
 Old El Paso Lobsters cmux
 
 # Programming languages / runtimes / tools

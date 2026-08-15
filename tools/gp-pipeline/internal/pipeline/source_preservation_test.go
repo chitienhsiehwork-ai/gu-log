@@ -210,6 +210,37 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	}
 }
 
+func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
+	ctx := context.Background()
+	source := []byte("# Source\n\nI took a break.\n")
+	translation := "---\nticketId: GP-PENDING\ntitle: 休息\noriginalDate: 2026-08-15\ntranslatedDate: 2026-08-15\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我休息了一下。\nlang: zh-tw\ntags: [ai]\n---\n\n我休息了一陣子。\n"
+	s, _ := newGPState(t, string(source), translation)
+	oldText := "我休息了一陣子。"
+	start := strings.Index(translation, oldText)
+	finding := preservation.Finding{
+		ID: "slop-1", IssueType: "approved_slop", SourceQuote: "I took a break.",
+		SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256([]byte(translation)),
+		StartByte: start, EndByte: start + len(oldText), OldText: oldText,
+		OldTextSHA256: preservation.SHA256([]byte(oldText)), Approved: false,
+	}
+	artifact := preservation.SourceTranslationArtifact{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+		TranslationMDX: translation, SlopCandidates: []preservation.Finding{finding},
+	}
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, artifact))
+
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("valid pre-canonicalization slop candidate was rejected: %v", err)
+	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(translated), `originalDate: "2026-08-15"`) || !strings.Contains(string(translated), `translatedDate: "2026-08-15"`) {
+		t.Fatalf("dates were not canonicalized after candidate validation:\n%s", translated)
+	}
+}
+
 func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("# Source\n\nI think this number may be correct. I checked it. My confidence is limited. I remain cautious.\n")
