@@ -42,17 +42,8 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	path := filepath.Join(s.WorkDir, "source-translation.mdx")
 	if s.shouldSkipBelow(StepSourceTranslate) {
 		s.Log.Info("Step 2: source-translate — SKIPPED (--from-step)")
-		if s.ExistingFile != "" {
-			data, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, s.ExistingFile))
-			if err != nil {
-				return fmt.Errorf("source-translate recovery: %w", err)
-			}
-			if err := os.WriteFile(path, data, 0o644); err != nil {
-				return err
-			}
-		}
 		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() || info.Size() == 0 {
-			return errors.New("source-translate recovery requires source-translation.mdx")
+			return errors.New("source-translate recovery requires the original frozen source-translation.mdx in --work-dir; an enriched --file cannot reconstruct it")
 		}
 		return nil
 	}
@@ -314,13 +305,13 @@ func (s *State) sealGPPublishManifest(ctx context.Context, source []byte, transl
 	if err != nil {
 		return err
 	}
-	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
 	manifestPath := filepath.Join(s.WorkDir, "gp-publish-gate.json")
 	if err := preservation.WriteJSON(manifestPath, manifest); err != nil {
 		return err
 	}
 	s.GateManifestPath = manifestPath
-	return preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates)
+	return preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256)
 }
 
 // Enrich is the independent GP Step 4. It may add projection-isolated
@@ -421,7 +412,7 @@ func (s *State) ValidateGPPublishManifest(ctx context.Context, bodyPath string) 
 	if err := preservation.DecodeStrict(data, &manifest); err != nil {
 		return err
 	}
-	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates); err != nil {
+	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256); err != nil {
 		return err
 	}
 	s.GateManifestPath = path

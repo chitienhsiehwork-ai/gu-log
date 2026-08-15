@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
@@ -97,6 +98,7 @@ func buildDispatcherForRole(state *rootState, role dispatcherRole) (*llm.Dispatc
 
 type gpDispatchers struct {
 	Profile        string
+	ProfileSHA256  string
 	Translator     *llm.Dispatcher
 	SourceReviewer *llm.Dispatcher
 	Corrector      *llm.Dispatcher
@@ -112,10 +114,15 @@ func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error)
 	if err != nil {
 		return gpDispatchers{}, dispatcherGPProfile, fmt.Errorf("validate GP runtime: %w", err)
 	}
-	if _, err := llm.LoadGPProfile(state.cfg.RepoRoot, resolved.RuntimeProfile); err != nil {
+	profile, err := llm.LoadGPProfile(state.cfg.RepoRoot, resolved.RuntimeProfile)
+	if err != nil {
 		return gpDispatchers{}, dispatcherGPProfile, fmt.Errorf("validate GP profile: %w", err)
 	}
-	result := gpDispatchers{Profile: resolved.RuntimeProfile}
+	fingerprint, err := llm.GPProfileFingerprint(profile)
+	if err != nil {
+		return gpDispatchers{}, dispatcherGPProfile, err
+	}
+	result := gpDispatchers{Profile: resolved.RuntimeProfile, ProfileSHA256: fingerprint}
 	roles := []struct {
 		role   dispatcherRole
 		target **llm.Dispatcher
@@ -140,7 +147,8 @@ func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error)
 }
 
 func buildFakeGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error) {
-	result := gpDispatchers{Profile: "fixture"}
+	fixtureHash := fmt.Sprintf("%x", sha256.Sum256([]byte("fixture")))
+	result := gpDispatchers{Profile: "fixture", ProfileSHA256: fixtureHash}
 	roles := []struct {
 		role   dispatcherRole
 		target **llm.Dispatcher

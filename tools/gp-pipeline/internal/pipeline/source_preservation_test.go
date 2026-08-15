@@ -101,6 +101,7 @@ func newGPState(t *testing.T, source, translation string) (*State, []byte) {
 	s.Log, s.WorkDir, s.SourcePath = logx.New(), workDir, sourcePath
 	s.TweetURL, s.PromptTicketID, s.OriginalDate, s.TranslatedDate = "https://example.com/source", "GP-PENDING", "2026-08-15", "2026-08-15"
 	s.SourceLabel, s.AuthorHandle, s.GPProfile = "Example", "example", "fixture"
+	s.GPProfileSHA256 = preservation.SHA256([]byte("fixture"))
 	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, translatorArtifact))
 	return s, sourceBytes
 }
@@ -278,6 +279,7 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	s := NewState()
 	s.Cfg = &config.Config{RepoRoot: findRepoRoot()}
 	s.Log, s.WorkDir = logx.New(), t.TempDir()
+	s.GPProfile, s.GPProfileSHA256 = "fixture", preservation.SHA256([]byte("fixture"))
 	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-tweet.md"), source, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -296,13 +298,18 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	gate := func(name string) preservation.GateEnvelope {
 		return preservation.GateEnvelope{Version: preservation.ContractVersion, Gate: name, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Provenance: preservation.Provenance{Role: name, Provider: "fixture", Model: name, Harness: "test", CompletedAt: now}}
 	}
-	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
 	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "gp-publish-gate.json"), manifest); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.ValidateGPPublishManifest(ctx, bodyPath); err != nil {
 		t.Fatal(err)
 	}
+	s.GPProfileSHA256 = preservation.SHA256([]byte("changed-profile"))
+	if err := s.ValidateGPPublishManifest(ctx, bodyPath); err == nil {
+		t.Fatal("manifest from a different runtime profile must fail")
+	}
+	s.GPProfileSHA256 = preservation.SHA256([]byte("fixture"))
 	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	if err := os.WriteFile(finalPath, body, 0o644); err != nil {
 		t.Fatal(err)
@@ -323,6 +330,31 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	}
 	if err := s.ValidateGPPublishManifest(ctx, bodyPath); err == nil {
 		t.Fatal("stale body verdict must fail")
+	}
+}
+
+func TestGPFileRecoveryCannotReconstructFrozenTranslationFromEnrichedPost(t *testing.T) {
+	root := t.TempDir()
+	postsDir := filepath.Join(root, "posts")
+	workDir := filepath.Join(root, "work")
+	for _, dir := range []string{postsDir, workDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	filename := "gp-1-enriched.mdx"
+	enriched := "---\ntitle: Enriched\n---\n\n原文。\n\n<MoguNote>\n補充。\n</MoguNote>\n"
+	if err := os.WriteFile(filepath.Join(postsDir, filename), []byte(enriched), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewState()
+	s.Cfg = &config.Config{RepoRoot: root, PostsDir: postsDir}
+	s.Log, s.WorkDir, s.ExistingFile, s.FromStepInt = logx.New(), workDir, filename, StepSourceGate
+	if err := s.SourceTranslate(context.Background()); err == nil || !strings.Contains(err.Error(), "original frozen source-translation.mdx") {
+		t.Fatalf("unsafe file-only recovery error = %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(workDir, "source-translation.mdx")); !os.IsNotExist(err) {
+		t.Fatalf("enriched post was copied into frozen translation artifact: %v", err)
 	}
 }
 

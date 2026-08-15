@@ -94,6 +94,7 @@ type GateEnvelope struct {
 // before deploy; a PASS string on its own is never sufficient.
 type PublishManifest struct {
 	Version              string         `json:"version"`
+	ProfileSHA256        string         `json:"profile_sha256"`
 	SourceSHA256         string         `json:"source_sha256"`
 	BodyProjectionSHA256 string         `json:"body_projection_sha256"`
 	Verdict              string         `json:"verdict"`
@@ -194,7 +195,7 @@ func ValidateVerdictFindings(verdict string, findings []Finding) error {
 }
 
 // ValidateManifest is the final fail-closed deploy check.
-func ValidateManifest(m PublishManifest, source, projection []byte, requiredGates []string) error {
+func ValidateManifest(m PublishManifest, source, projection []byte, requiredGates []string, expectedProfileSHA256 string) error {
 	if m.Version != ContractVersion {
 		return fmt.Errorf("manifest version %q, want %q", m.Version, ContractVersion)
 	}
@@ -203,6 +204,9 @@ func ValidateManifest(m PublishManifest, source, projection []byte, requiredGate
 	}
 	if m.CompletedAt.IsZero() {
 		return errors.New("publish manifest missing completed_at")
+	}
+	if expectedProfileSHA256 == "" || m.ProfileSHA256 != expectedProfileSHA256 {
+		return errors.New("publish manifest runtime profile is missing or stale")
 	}
 	sourceHash, projectionHash := SHA256(source), SHA256(projection)
 	if m.SourceSHA256 != sourceHash || m.BodyProjectionSHA256 != projectionHash {
@@ -328,20 +332,20 @@ func ValidateFindings(source, translation []byte, findings []Finding) error {
 // failure instead of being guessed.
 func CanonicalizeFindingAnchors(translation []byte, findings []Finding) ([]Finding, error) {
 	out := append([]Finding(nil), findings...)
+	bodyStart := bodyStartOffset(translation)
+	body := translation[bodyStart:]
 	for i := range out {
 		finding := &out[i]
 		if finding.OldText == "" {
 			return nil, fmt.Errorf("finding %q has empty exact-text anchor", finding.ID)
 		}
 		old := []byte(finding.OldText)
-		start := bytes.Index(translation, old)
-		if start < 0 || bytes.Index(translation[start+len(old):], old) >= 0 {
+		relativeStart := bytes.Index(body, old)
+		if relativeStart < 0 || bytes.Index(body[relativeStart+len(old):], old) >= 0 {
 			return nil, fmt.Errorf("finding %q exact-text anchor must occur exactly once", finding.ID)
 		}
+		start := bodyStart + relativeStart
 		end := start + len(old)
-		if inFrontmatter(translation, start, end) {
-			return nil, fmt.Errorf("finding %q exact-text anchor is in frontmatter", finding.ID)
-		}
 		finding.StartByte = start
 		finding.EndByte = end
 		finding.OldTextSHA256 = SHA256(old)

@@ -1,6 +1,8 @@
 package llm
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -21,6 +23,18 @@ type GPRoleConfig struct {
 }
 
 type GPProfile map[RuntimeRole]GPRoleConfig
+
+// GPProfileFingerprint binds durable publish evidence to the complete
+// executable role profile. JSON map keys are emitted deterministically, so the
+// same validated profile produces the same SHA-256 across processes.
+func GPProfileFingerprint(profile GPProfile) (string, error) {
+	data, err := json.Marshal(profile)
+	if err != nil {
+		return "", fmt.Errorf("encode GP profile fingerprint: %w", err)
+	}
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:]), nil
+}
 
 type gpRoleContract struct {
 	Prompt string

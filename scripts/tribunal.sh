@@ -139,7 +139,7 @@ if [ -z "$ALLOW_REWRITE" ]; then
 fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
-if [[ "$POST_FILE" = gp-* ]]; then
+if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
   if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
     echo "ERROR: GP source-preservation contract forbids --allow-rewrite" >&2
     exit 1

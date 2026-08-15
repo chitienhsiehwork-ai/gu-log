@@ -61,6 +61,12 @@ gp_rewrite_output="$(bash "$TRIBUNAL" --allow-rewrite gp-nonexistent.mdx 2>&1)" 
 if [ "$gp_rewrite_rc" -eq 0 ] || ! grep -q 'GP source-preservation contract forbids --allow-rewrite' <<<"$gp_rewrite_output"; then
   fail "GP can still enter Tribunal writer/rebuild mode"
 fi
+en_gp_rewrite_output=""
+en_gp_rewrite_rc=0
+en_gp_rewrite_output="$(bash "$TRIBUNAL" --allow-rewrite en-gp-nonexistent.mdx 2>&1)" || en_gp_rewrite_rc=$?
+if [ "$en_gp_rewrite_rc" -eq 0 ] || ! grep -q 'GP source-preservation contract forbids --allow-rewrite' <<<"$en_gp_rewrite_output"; then
+  fail "English GP sidecar can still enter Tribunal writer/rebuild mode"
+fi
 if ! sed -n '/^repair_final_build_failure()/,/^}/p' "$TRIBUNAL" | grep -q 'ALLOW_REWRITE'; then
   fail "final build repair can bypass GP no-rewrite mode"
 fi

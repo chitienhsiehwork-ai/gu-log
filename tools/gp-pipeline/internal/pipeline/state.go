@@ -110,6 +110,7 @@ type State struct {
 	VibeScorerDispatcher     *llm.Dispatcher
 	Counter                  *counter.Counter
 	GPProfile                string
+	GPProfileSHA256          string
 
 	// ── Fields populated during the run ────────────────────────────────
 

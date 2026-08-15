@@ -122,7 +122,7 @@ func writeFreshGPPublishManifest(t *testing.T, root, workDir, sourcePath, bodyPa
 		}
 	}
 	manifest := preservation.PublishManifest{
-		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), SourceSHA256: preservation.SHA256(source),
 		BodyProjectionSHA256: projection.SHA256, Verdict: "PASS",
 		Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now,
 	}
