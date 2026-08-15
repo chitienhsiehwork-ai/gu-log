@@ -51,6 +51,11 @@ func makeFakeRepo(t *testing.T) string {
 	root := t.TempDir()
 	mustWrite(t, filepath.Join(root, "CLAUDE.md"), "# fake")
 	mustWrite(t, filepath.Join(root, "GU-LOG_WRITER_PROMPT.md"), "# Style")
+	dataDir := filepath.Join(root, "src", "data")
+	if err := os.MkdirAll(dataDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustWrite(t, filepath.Join(dataDir, "glossary.json"), `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`)
 	scriptsDir := filepath.Join(root, "scripts")
 	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
 		t.Fatal(err)

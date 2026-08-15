@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/terminology"
 )
 
 type dispatcherRole string
@@ -97,13 +98,14 @@ func buildDispatcherForRole(state *rootState, role dispatcherRole) (*llm.Dispatc
 }
 
 type gpDispatchers struct {
-	Profile        string
-	ProfileSHA256  string
-	Translator     *llm.Dispatcher
-	SourceReviewer *llm.Dispatcher
-	Corrector      *llm.Dispatcher
-	Commentary     *llm.Dispatcher
-	VibeScorer     *llm.Dispatcher
+	Profile              string
+	ProfileSHA256        string
+	CanonicalTerminology string
+	Translator           *llm.Dispatcher
+	SourceReviewer       *llm.Dispatcher
+	Corrector            *llm.Dispatcher
+	Commentary           *llm.Dispatcher
+	VibeScorer           *llm.Dispatcher
 }
 
 func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error) {
@@ -118,11 +120,15 @@ func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error)
 	if err != nil {
 		return gpDispatchers{}, dispatcherGPProfile, fmt.Errorf("validate GP profile: %w", err)
 	}
-	fingerprint, err := llm.GPProfileFingerprint(profile)
+	canonicalTerminology, err := terminology.LoadCanonicalContext(state.cfg.RepoRoot)
 	if err != nil {
 		return gpDispatchers{}, dispatcherGPProfile, err
 	}
-	result := gpDispatchers{Profile: resolved.RuntimeProfile, ProfileSHA256: fingerprint}
+	fingerprint, err := llm.GPProfileFingerprint(profile, canonicalTerminology)
+	if err != nil {
+		return gpDispatchers{}, dispatcherGPProfile, err
+	}
+	result := gpDispatchers{Profile: resolved.RuntimeProfile, ProfileSHA256: fingerprint, CanonicalTerminology: canonicalTerminology}
 	roles := []struct {
 		role   dispatcherRole
 		target **llm.Dispatcher
@@ -148,7 +154,11 @@ func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error)
 
 func buildFakeGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error) {
 	fixtureHash := fmt.Sprintf("%x", sha256.Sum256([]byte("fixture")))
-	result := gpDispatchers{Profile: "fixture", ProfileSHA256: fixtureHash}
+	canonicalTerminology, err := terminology.LoadCanonicalContext(state.cfg.RepoRoot)
+	if err != nil {
+		return gpDispatchers{}, dispatcherGPProfile, err
+	}
+	result := gpDispatchers{Profile: "fixture", ProfileSHA256: fixtureHash, CanonicalTerminology: canonicalTerminology}
 	roles := []struct {
 		role   dispatcherRole
 		target **llm.Dispatcher

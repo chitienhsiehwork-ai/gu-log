@@ -57,3 +57,21 @@ func TestLoadGPProfileRejectsContractLabelDrift(t *testing.T) {
 		t.Fatalf("error = %v", err)
 	}
 }
+
+func TestGPProfileFingerprintIncludesRuntimePromptContext(t *testing.T) {
+	profile, err := LoadGPProfile(repoRootForRoutingTest(t), "vm-codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := GPProfileFingerprint(profile, `[{"term":"Agent","forbiddenZhTw":["舊譯"]}]`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := GPProfileFingerprint(profile, `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before == after {
+		t.Fatal("terminology context change did not invalidate GP profile fingerprint")
+	}
+}
