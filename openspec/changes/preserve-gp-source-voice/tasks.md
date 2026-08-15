@@ -1,8 +1,8 @@
 ## 1. 回歸測試與現況鎖定
 
-- [ ] 1.1 建立 GP-273 原文、自然第一人稱翻譯與已發布改寫稿的回歸測試樣本
+- [x] 1.1 建立 GP-273 原文、自然第一人稱翻譯與已發布改寫稿的回歸測試樣本
 - [ ] 1.2 新增現況測試，證明現行 pipeline 允許更換敘事者、全文修稿與 Tribunal 未通過後繼續發布
-- [ ] 1.3 將 `銜尾蛇`、`演算法動態` 收進自然中文硬性檢查的校準案例
+- [x] 1.3 將 `銜尾蛇`、`演算法動態` 收進自然中文硬性檢查的校準案例
 
 ## 2. GP 處理階段架構
 
@@ -15,8 +15,8 @@
 
 ## 3. Review 與 correction
 
-- [ ] 3.1 定義包含原文證據、問題類型與替換邊界的審查產物格式
-- [ ] 3.2 實作 hash、byte offset、exact old text、單段落與不重疊驗證的 deterministic patch applicator，禁止沒有具體問題就全文重寫
+- [x] 3.1 定義包含原文證據、問題類型與替換邊界的審查產物格式
+- [x] 3.2 實作 hash、byte offset、exact old text、單段落與不重疊驗證的 deterministic patch applicator，禁止沒有具體問題就全文重寫
 - [ ] 3.3 加入作者聲音、人稱、順序、內容與自然中文硬性檢查
 - [ ] 3.4 讓 GP 明確不進入 `restructure`／`rebuild` 路由
 - [ ] 3.5 定義 gate verdict envelope、hash/provenance freshness 與 correction 後全量重跑規則

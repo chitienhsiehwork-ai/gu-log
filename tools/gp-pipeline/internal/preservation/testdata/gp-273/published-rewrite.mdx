@@ -1,0 +1,136 @@
+/home/clawd/.bashrc: line 37: /home/clawd/.cargo/env: No such file or directory
+---
+ticketId: "GP-273"
+title: '人是迴圈，Agent 只是偶爾被點名上場'
+originalDate: '2026-08-11'
+translatedDate: '2026-08-13'
+translatedBy:
+  model: "Grok 4.6"
+  harness: "Grok Build CLI"
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.6"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.6"
+      harness: "Grok Build CLI"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'brentfitzgerald.com'
+sourceUrl: 'https://brentfitzgerald.com/posts/the-human-is-the-loop/'
+lang: 'zh-tw'
+summary: 'Brent Fitzgerald 放了幾週 AI 假回來，發現一堆半途而廢的 Agent 分頁比較像罪惡感，不像產能。真正該守住的不是「用更多模型」，而是人自己當迴圈、偶爾才把 Agent 點上場。'
+tags: ['ai-agents', 'developer-tools', 'productivity']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-08-13"
+    model: "grok-4.6"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+暑假尾聲泡冷河、烤棉花糖、吃完午飯就睡。[寫這篇文章的人](https://brentfitzgerald.com/posts/the-human-is-the-loop/)連筆電跟手機都放下好幾週，等於也把 AI 一起放假。回來之後最刺的不是「好想念那個助手」，而是反過來：很多日常的模型使用根本不必發生。少了那套習慣，腦袋沒有變鈍，好奇也沒有比較少；比較像終於看清，自己先前一直在場邊替換，很少真正站回場中央。
+
+重新打開筆電，迎面就是十一個 `cmux` 分頁，每個裡面還掛著好幾個做到一半、被暫停的 [Agent](/glossary#agent)。有工作、有私事、有夾在中間說不清的雜事。Claude 聊天也到處亮著未讀：報稅、庭園構想、政策文件審查。每一個分頁當初都像是「這件事需要幫忙」；現在每一個也都是一小截罪惡感：事情沒做完，時間也沒被用得夠專心。
+
+<MoguNote>
+`cmux` 是把好幾個編碼 Agent 並排盯著跑的介面。聽起來很有效率。實際畫面比較像把答應自己要做的事複製成十一份，然後每一份都停在半空中看人。gu-log 自己的長跑流程也很容易長出這種未完成清單；差別只在有沒有人敢承認：開新分頁比較像釋放壓力，不是完成工作。
+</MoguNote>
+
+[SD-17](/posts/sd-17-20260402-is-it-worth-the-time/) 問過值不值得自動化，[MP-85](/posts/mp-85-20260216-yegge-ai-vampire/) 問過加速會不會反噬。這篇補的是現場：壓力一來，人就把 Agent 換上場，自己反而退出迴圈。
+
+## 壓力找到新出口
+
+壓力已經不再逼他排序，而是直接餵進一個還沒被檢查過的信念：有了 AI，自己現在應該能做更多。釋放方式也變了：再開一輪 Agent 對話、再開一個終端機窗格、再分支出一個沒人要求的分叉、再吐一份大概永遠不會讀的 Markdown。
+
+半成品的工具跟服務點子多到誇張，真正需要的卻很少。來源通常是兩樣東西混在一起：沒處理完的工作狂，加上科技樂觀派的一廂情願。做出來的小東西確實會跑、也確實在做那點小事。但沒幫到誰，也沒讓人比較快樂，更沒換到更多空閒。從前自己動手做個人專案，是休息，也是為了好玩而學。現在這批專案常常跳過學習、直衝結果。樂趣偏偏就住在學習那一段。
+
+要寫東西時，他先把念頭全部口述出來，開車或走路再跟 ChatGPT 來回講。表面上是「跟自己碰想法」，順便把通勤變成產值。那些對話的產出，他從來沒拿去做真正的工作。後來剩下的，只是一堆散漫錄音跟逐字稿，躺在 OpenAI 的伺服器上。
+
+理論上可以更快、可以一次平行很多件事。他回頭看，當時根本沒人在要求那些效率。手上的工具理論上能讓人變成更快的建造者，於是出現一種最糟的反射：把工具拿去「最大化使用工具」。場上沒有人在做事，只剩工具在互相召喚下一個工具。
+
+<MoguNote>
+不是「用 Agent 寫程式」這件事有罪，是「為了證明自己有在用新工具，所以再做一個用新工具的工具」會把人吸乾。這篇稿子若也再開一個 agent 去「最佳化寫稿流程」，大概就是同一場替換又開始。
+</MoguNote>
+
+---
+
+## 習慣長在哪裡
+
+直覺上，Agent 使用大概不像演算法動態牆那樣，直接在神經化學層面讓人停不下來。這算好事。這只是他的直覺；不過回頭看自己的用法，他確實看見了依賴與習慣化的影子。工作裡一旦放進 AI 工具，很快就會看到下一個也能塞進去的縫。產業裡也有一大塊在賭：整個社會經濟最後會大規模依賴大型語言模型。他的判斷很尖銳：那些估值若要說得通，前提幾乎就是整個社會集體變得離不開 AI 技術。
+
+所以往後的計畫很單純：什麼時候用、什麼時候刻意不用，先想清楚；每次選擇實際得到什麼、失去什麼，也試著對自己誠實。
+
+<MoguNote>
+「估值要成立，就得讓人離不開」這句很刺，而且不是學術論述。它比較像把產品習慣講成商業模式：免費的不是模型，是使用者自己的判斷肌肉。動態牆偷的是注意力；Agent 偷的是「本來可以自己想完」的那一小段痛。
+</MoguNote>
+
+---
+
+## 人是迴圈
+
+寫這篇之前，他還是對一個剛起頭的工作專案丟了一個 [prompt](/glossary#prompt) 進 [Pi](/glossary#pi)：一套在終端機裡跑、專門接編碼任務的 Agent 工具。需求、建議、程式碼庫、內部文件、資料結構、對話紀錄，能塞的都塞。設定這一步本身就逼人先補課、先把現況想清楚。他要求回來時標出問題、提出可能解法；範圍收得很窄，連自己已經想到什麼、還不確定什麼都寫進去，輸出規格也講死。
+
+模型不會交一份完美解答，也不會讓人瞬間變十倍工程師。它比較像在一堆系統跟雲端軟體之間做樣式比對跟搜尋——那種人既不擅長、也不喜歡的髒活。也許會揭出幾個對現況理解的缺口，讓之後帶進專案的上下文好一點。
+
+更重要的是：它把此刻空出來，讓人去做只有人該做的事，例如寫作、例如回看自己。他對這項技術仍抱著小心的樂觀：它或許能讓人過得更豐厚、更願意思考。前提只有一個——用自己的條件去用。不要讓人被關進 Agent 迴圈裡。人本身就是迴圈；Agent 只是偶爾、而且要想清楚之後，才被點名上場。
+
+> The human is the loop, and we tag the agent in occasionally, thoughtfully.
+
+<MoguNote>
+`tag the agent in` 的味道比較像摔角或接力：人站在場中央，需要時才拍一下搭檔的肩，不是整場都把身體交給自動播放。
+</MoguNote>
+
+---
+
+## 結語
+
+冷河、棉花糖和幾週沒有 AI 的日子，至少讓他看清一件事：他沒有想念模型。人還在場上，迴圈才算數。
+
+## 延伸閱讀
+
+- [MP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/mp-7-20260203-alexalbert-cowork/)
+- [GP-101: AI 代理的練功秘笈？Hamel Husain 推出 Evals 技能包，讓你的 Agent 更懂評估！](/posts/gp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+- [GP-111: Andrew Ng 推出 Context Hub：幫 Coding Agent 補上最新 API 文件](/posts/gp-111-20260311-andrewyng-context-hub-coding-agent-api/)
+
+
+<MoguNote>
+下次再想開一個新窗格之前，先問問自己是不是又想把身體交給自動播放。人還在場上，迴圈才算數。(⌐■_■)
+</MoguNote>
