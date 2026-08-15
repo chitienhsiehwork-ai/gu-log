@@ -39,7 +39,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 **🔴 預設就是「過 gate 後直接 merge」，不要為了確認而問 user。** 互動式 CCC PR 必須同時滿足：**CI 全綠** + **GitHub Codex auto-review gate 通過** + **改動 logical/safe/appropriate（在 CCC scope 內）** + **不是 critical design decision**。條件成立就自己 merge、讓 GitHub auto-delete branch，不需要、也不該回頭問 user「要不要 merge / 要不要我合」。問這種問題 = 拖慢流程、浪費 user 注意力。
 
-**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
+**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章過了 vibe gate 後通常可視為「safe & appropriate」，但仍須通過上方完整 Self-merge policy 才能 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
 
 ### ShroomDog 只看已部署 surface（不讀 draft／diff）
 
