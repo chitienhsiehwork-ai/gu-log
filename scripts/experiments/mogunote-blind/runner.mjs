@@ -7,6 +7,7 @@ import {
   executeExperiment,
   generateBoard,
   initializeExperiment,
+  rebuildBlindPacket,
   reconcileExperiment,
   revealResults,
   verifyIsolation,
@@ -75,6 +76,11 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
+  if (command === 'rebuild-packet') {
+    const result = await rebuildBlindPacket(required(options, 'root'));
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
   if (command === 'verify') {
     const result = await verifyIsolation(required(options, 'root'), required(options, 'board'));
     console.log(JSON.stringify(result, null, 2));
@@ -85,7 +91,9 @@ async function main() {
     console.log(JSON.stringify(result, null, 2));
     return;
   }
-  throw new Error('usage: runner.mjs <init|execute|reconcile|board|verify|reveal> [options]');
+  throw new Error(
+    'usage: runner.mjs <init|execute|reconcile|rebuild-packet|board|verify|reveal> [options]'
+  );
 }
 
 main().catch((error) => {

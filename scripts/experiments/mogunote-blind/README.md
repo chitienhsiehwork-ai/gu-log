@@ -17,6 +17,7 @@
 node scripts/experiments/mogunote-blind/runner.mjs init
 node scripts/experiments/mogunote-blind/runner.mjs execute --root /private/tmp/gu-log-mogunote-blind.XXXXXX
 node scripts/experiments/mogunote-blind/runner.mjs reconcile --root /private/tmp/gu-log-mogunote-blind.XXXXXX
+node scripts/experiments/mogunote-blind/runner.mjs rebuild-packet --root /private/tmp/gu-log-mogunote-blind.XXXXXX
 node scripts/experiments/mogunote-blind/runner.mjs board --root /private/tmp/gu-log-mogunote-blind.XXXXXX --output /absolute/path/gp-273-mogunote-blind.html
 node scripts/experiments/mogunote-blind/runner.mjs verify --root /private/tmp/gu-log-mogunote-blind.XXXXXX --board /absolute/path/gp-273-mogunote-blind.html
 node scripts/experiments/mogunote-blind/runner.mjs reveal --root /private/tmp/gu-log-mogunote-blind.XXXXXX --result /absolute/path/ranking.json

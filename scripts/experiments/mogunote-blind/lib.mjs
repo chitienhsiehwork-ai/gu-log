@@ -948,35 +948,43 @@ async function buildBlindPacket(root, cells) {
     return pair.length === 2 && pair.every((cell) => cell.status === 'VALID');
   }).map((spec) => spec.model);
   const entries = [];
+  const cellMappings = [];
   for (const cell of cells) {
     if (!pairedModels.includes(cell.requested_model)) continue;
     const candidate = cell.artifact.candidates[0];
-    const context = candidate
-      ? paragraphContext(inputs.translation, candidate.after_byte)
-      : findIncumbentContext(inputs.translation, inputs.incumbent);
+    const privateCell = {
+      requested_model: cell.requested_model,
+      actual_model: cell.actual_model,
+      provider: cell.provider,
+      arm: cell.arm,
+      type: candidate ? 'candidate' : 'abstain',
+      run_uuid: cell.attempts.at(-1).run_uuid,
+      isolation_session_id: cell.attempts.at(-1).isolation_session_id,
+      provider_session_id: cell.attempts.at(-1).provider_session_id,
+      candidate_sha256: sha256(stableJSON(cell.artifact)),
+    };
+    if (!candidate) {
+      cellMappings.push({ ...privateCell, publicRef: 'no-note' });
+      continue;
+    }
+    const context = paragraphContext(inputs.translation, candidate.after_byte);
+    const entryRef = `candidate-${cellMappings.length + 1}`;
     entries.push({
-      private: {
-        requested_model: cell.requested_model,
-        actual_model: cell.actual_model,
-        provider: cell.provider,
-        arm: cell.arm,
-        type: candidate ? 'candidate' : 'abstain',
-        run_uuid: cell.attempts.at(-1).run_uuid,
-        isolation_session_id: cell.attempts.at(-1).isolation_session_id,
-        provider_session_id: cell.attempts.at(-1).provider_session_id,
-        candidate_sha256: sha256(stableJSON(cell.artifact)),
-      },
+      entryRef,
+      private: { type: 'candidate', candidate_sha256: privateCell.candidate_sha256 },
       public: {
         before: context.before,
         after: context.after,
         summary: '',
-        note: candidate?.commentary ?? '',
-        empty: !candidate,
+        note: candidate.commentary,
+        empty: false,
       },
     });
+    cellMappings.push({ ...privateCell, publicRef: entryRef });
   }
   const incumbentContext = findIncumbentContext(inputs.translation, inputs.incumbent);
   entries.push({
+    entryRef: 'incumbent',
     private: { type: 'incumbent', candidate_sha256: sha256(stableJSON(inputs.incumbent)) },
     public: {
       before: incumbentContext.before,
@@ -987,6 +995,7 @@ async function buildBlindPacket(root, cells) {
     },
   });
   entries.push({
+    entryRef: 'no-note',
     private: { type: 'no-note', candidate_sha256: sha256('no-note') },
     public: {
       before: incumbentContext.before,
@@ -1008,6 +1017,7 @@ async function buildBlindPacket(root, cells) {
     entries: ordered.map(({ blindId, public: value }) => ({ id: blindId, ...value })),
   };
   const boardHash = sha256(stableJSON(publicCore));
+  const idByRef = new Map(ordered.map((entry) => [entry.entryRef, entry.blindId]));
   return {
     pairedModels,
     mapping: {
@@ -1015,8 +1025,44 @@ async function buildBlindPacket(root, cells) {
       experiment_id: experimentId,
       board_sha256: boardHash,
       entries: ordered.map(({ blindId, private: value }) => ({ id: blindId, ...value })),
+      cells: cellMappings.map(({ publicRef, ...cell }) => ({
+        ...cell,
+        id: idByRef.get(publicRef),
+      })),
     },
     publicPacket: { ...publicCore, board_sha256: boardHash },
+  };
+}
+
+export async function rebuildBlindPacket(root) {
+  const resolvedRoot = await fs.realpath(root);
+  const cells = JSON.parse(
+    await fs.readFile(path.join(resolvedRoot, 'collector', 'cells.private.json'), 'utf8')
+  );
+  const packet = await buildBlindPacket(resolvedRoot, cells);
+  await Promise.all([
+    writePrivateJSON(path.join(resolvedRoot, 'collector', 'mapping.private.json'), packet.mapping),
+    writePrivateJSON(
+      path.join(resolvedRoot, 'collector', 'blind-packet.json'),
+      packet.publicPacket
+    ),
+  ]);
+  const summaryPath = path.join(resolvedRoot, 'collector', 'summary.json');
+  const summary = JSON.parse(await fs.readFile(summaryPath, 'utf8'));
+  summary.paired_models = packet.pairedModels;
+  summary.logical_output_count = packet.pairedModels.length * 2 + 2;
+  summary.presented_entry_count = packet.publicPacket.entries.length;
+  summary.candidate_count = packet.publicPacket.entries.length;
+  summary.no_note_outputs_collapsed =
+    packet.mapping.cells.filter((cell) => cell.type === 'abstain').length + 1;
+  await writePrivateJSON(summaryPath, summary);
+  return {
+    experimentId: packet.publicPacket.experiment_id,
+    boardSha256: packet.publicPacket.board_sha256,
+    pairedModels: packet.pairedModels.length,
+    logicalOutputs: summary.logical_output_count,
+    presentedEntries: summary.presented_entry_count,
+    noNoteOutputsCollapsed: summary.no_note_outputs_collapsed,
   };
 }
 
@@ -1034,36 +1080,38 @@ export function renderBoardHTML(packet) {
 <link rel="icon" href="data:,">
 <title>${packet.title}</title>
 <style>
-:root{color-scheme:light dark;--bg:#f4f1e9;--paper:#fffdf7;--ink:#20201d;--muted:#68665f;--line:#d8d1c2;--accent:#235c4d;--accent2:#d7eadf;--danger:#8f3b32;--shadow:0 8px 30px #312b1d18;font-family:ui-rounded,"SF Pro Rounded","PingFang TC",system-ui,sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65}button,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1180px;margin:auto;padding:20px}.top{position:sticky;top:0;z-index:10;background:#f4f1e9ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 0}.topin{max-width:1180px;margin:auto;padding:0 20px;display:flex;gap:14px;align-items:center;justify-content:space-between}.top h1{font-size:clamp(1.15rem,3vw,1.65rem);margin:0}.top p{margin:2px 0 0;color:var(--muted);font-size:.92rem}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 12px}.btn.primary{background:var(--accent);border-color:var(--accent);color:white}.btn.danger{color:var(--danger)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}.cards{display:grid;gap:16px}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px}.card:focus-within{outline:3px solid #4c9b8066;outline-offset:2px}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.id{font-weight:800;letter-spacing:.06em}.status{display:flex;gap:5px}.choice{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 10px}.choice[aria-pressed="true"]{background:var(--accent2);border-color:var(--accent);color:#123d31;font-weight:700}.context{margin:14px 0;padding:12px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:.92rem}.context p{margin:0}.context p+p{margin-top:8px}.note{font-size:1.08rem;margin:16px 0;white-space:pre-wrap}.summary{font-weight:800;margin-bottom:7px}.empty{color:var(--muted);font-style:italic}.comment{width:100%;min-height:88px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);padding:10px}.rank{position:sticky;top:104px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.rank h2{font-size:1rem;margin:0 0 4px}.rank .hint{font-size:.85rem;color:var(--muted);margin:0 0 12px}.ranklist{display:grid;gap:8px}.rankitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper)}.rankitem[draggable="true"]{cursor:grab}.ranknum{width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:white;font-size:.8rem}.move{display:flex;gap:3px}.move button{border:0;background:transparent;padding:5px}.emptyrank{color:var(--muted);font-size:.9rem}.notice{min-height:1.5em;color:var(--accent);font-size:.88rem;margin-top:10px}.privacy{margin:16px 0;color:var(--muted);font-size:.9rem}.footer{padding:24px 0;color:var(--muted);font-size:.86rem}
-@media(prefers-color-scheme:dark){:root{--bg:#171816;--paper:#22231f;--ink:#f1eee5;--muted:#bbb5a7;--line:#44443d;--accent:#67b99b;--accent2:#254a3d;--danger:#ef9a8f;--shadow:none}.top{background:#171816ee}.choice[aria-pressed="true"]{color:#e9fff7}}
-@media(max-width:820px){.layout{grid-template-columns:1fr}.rank{position:static;order:-1}.topin{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1}.shell{padding:14px}.card{padding:15px}.status{flex-wrap:wrap;justify-content:flex-end}}
+:root{color-scheme:light dark;--bg:#f4f1e9;--paper:#fffdf7;--ink:#20201d;--muted:#68665f;--placeholder:#68665f;--line:#d8d1c2;--accent:#235c4d;--accent2:#d7eadf;--primary-ink:#fff;--danger:#8f3b32;--shadow:0 8px 30px #312b1d18;font-family:ui-rounded,"SF Pro Rounded","PingFang TC",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65}button,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1180px;margin:auto;padding:20px}.top{position:sticky;top:0;z-index:10;background:#f4f1e9ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 0}.topin{max-width:1180px;margin:auto;padding:0 20px;display:flex;gap:14px;align-items:center;justify-content:space-between}.top h1{font-size:clamp(1.15rem,3vw,1.65rem);margin:0}.top p{margin:2px 0 0;color:var(--muted);font-size:.92rem}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{min-height:44px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 12px}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--primary-ink)}.btn.danger{color:var(--danger)}.btn:hover,.choice:hover{border-color:var(--accent)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}.cards{display:grid;gap:16px}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px}.card:focus-within{outline:3px solid #4c9b8066;outline-offset:2px}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.id{font-weight:800;letter-spacing:.06em}.status{display:flex;gap:5px}.choice{min-width:44px;min-height:44px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 10px}.choice[aria-checked="true"]{background:var(--accent2);border-color:var(--accent);color:#123d31;font-weight:700}.context{margin:14px 0;padding:12px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:.92rem}.context p{margin:0}.context p+p{margin-top:8px}.note{font-size:1.08rem;margin:16px 0;white-space:pre-wrap}.summary{font-weight:800;margin-bottom:7px}.empty{color:var(--muted);font-style:italic}.comment{width:100%;min-height:88px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);padding:10px}.comment::placeholder{color:var(--placeholder);opacity:1}.rank{position:sticky;top:104px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.rank h2{font-size:1rem;margin:0}.progress{display:block;color:var(--accent);font-weight:700;margin:2px 0 4px}.rank .hint{font-size:.85rem;color:var(--muted);margin:0 0 12px}.ranklist{display:grid;gap:8px}.rankitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper)}.rankitem[draggable="true"]{cursor:grab}.ranknum{width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--primary-ink);font-size:.8rem}.move{display:flex;gap:3px}.move button{min-width:44px;min-height:44px;border:0;background:transparent;padding:5px}.emptyrank{color:var(--muted);font-size:.9rem}.notice{min-height:1.5em;color:var(--accent);font-size:.88rem;margin-top:10px}.privacy{margin:16px 0;color:var(--muted);font-size:.9rem}.footer{padding:24px 0;color:var(--muted);font-size:.86rem}
+@media(prefers-color-scheme:dark){:root{--bg:#171816;--paper:#22231f;--ink:#f1eee5;--muted:#bbb5a7;--placeholder:#bbb5a7;--line:#44443d;--accent:#67b99b;--accent2:#254a3d;--primary-ink:#171816;--danger:#ef9a8f;--shadow:none}.top{background:#171816ee}.choice[aria-checked="true"]{color:#e9fff7}}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.rank{position:sticky;top:0;z-index:5;order:-1;max-height:32vh;overflow:auto}.top{position:static}.topin{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1}.shell{padding:14px}.card{padding:15px}.status{flex-wrap:wrap;justify-content:flex-end}}
 @media(prefers-reduced-motion:no-preference){.card,.rankitem{transition:border-color .15s,transform .15s}}
 :focus-visible{outline:3px solid #4c9b80;outline-offset:2px}
 </style>
 </head>
 <body>
 <header class="top"><div class="topin"><div><h1>${packet.title}</h1><p>先憑味道選，不猜作者。你的判斷才是最後決定。</p></div><div class="actions"><button class="btn" id="copy">複製 JSON</button><button class="btn primary" id="download">下載 JSON</button><button class="btn danger" id="reset">重設</button></div></div></header>
-<main class="shell"><p class="privacy">所有評語只保存在這台瀏覽器，直到你複製或下載。請先替每則標「留／待定／淘汰」，再排序「留」的候選；每張卡都可以自由寫評論。</p><div class="layout"><section class="cards" id="cards" aria-label="匿名候選"></section><aside class="rank"><h2>入圍排序</h2><p class="hint">拖曳，或用上移／下移按鈕。第一名放最上面。</p><div class="ranklist" id="ranklist"></div><div class="notice" id="notice" aria-live="polite"></div></aside></div><footer class="footer">匯出的 JSON 會綁定這一版評選板；如果候選內容變了，揭盅工具會拒絕舊結果。</footer></main>
+<main class="shell"><p class="privacy">所有評語只保存在這台瀏覽器，直到你複製或下載。請先替每則標「留／待定／淘汰」，再排序「留」的候選；每張卡都可以自由寫評論。</p><div class="layout"><section class="cards" id="cards" aria-label="匿名候選"></section><aside class="rank"><h2>入圍排序</h2><span class="progress" id="progress">0/${packet.entries.length} 已評</span><p class="hint">拖曳，或用上移／下移按鈕。第一名放最上面。</p><div class="ranklist" id="ranklist"></div><div class="notice" id="notice" aria-live="polite"></div></aside></div><footer class="footer">匯出的 JSON 會綁定這一版評選板；如果候選內容變了，揭盅工具會拒絕舊結果。</footer></main>
 <script>
 const DATA=${payload};
 const STORAGE_KEY='mogunote-blind:'+DATA.board_sha256;
 const ids=DATA.entries.map(x=>x.id);
-const blank=()=>({schema_version:'${RESULT_SCHEMA_VERSION}',experiment_id:DATA.experiment_id,board_sha256:DATA.board_sha256,submitted_at:null,ranking:[],decisions:Object.fromEntries(ids.map(id=>[id,'pending'])),comments:Object.fromEntries(ids.map(id=>[id,'']))});
+const blank=()=>({schema_version:'${RESULT_SCHEMA_VERSION}',experiment_id:DATA.experiment_id,board_sha256:DATA.board_sha256,submitted_at:null,ranking:[],decisions:Object.fromEntries(ids.map(id=>[id,'unreviewed'])),comments:Object.fromEntries(ids.map(id=>[id,'']))});
 let state=load();
 function valid(s){return s&&s.schema_version==='${RESULT_SCHEMA_VERSION}'&&s.experiment_id===DATA.experiment_id&&s.board_sha256===DATA.board_sha256&&Array.isArray(s.ranking)&&ids.every(id=>typeof s.decisions?.[id]==='string'&&typeof s.comments?.[id]==='string')&&s.ranking.every(id=>ids.includes(id))&&new Set(s.ranking).size===s.ranking.length}
 function load(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return blank();try{const parsed=JSON.parse(raw);if(valid(parsed))return parsed;document.addEventListener('DOMContentLoaded',()=>notice('舊的本機資料與這版評選板不相容，已保留原 bytes，未覆寫。'));return blank()}catch{document.addEventListener('DOMContentLoaded',()=>notice('本機資料損壞，已保留原 bytes，未覆寫。'));return blank()}}
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch{notice('無法自動儲存；請立刻下載 JSON，避免評語遺失。')}}
 function notice(msg){document.getElementById('notice').textContent=msg}
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function render(){const cards=document.getElementById('cards');cards.innerHTML=DATA.entries.map(item=>'<article class="card" data-id="'+item.id+'"><div class="cardhead"><span class="id">'+item.id+'</span><div class="status" role="group" aria-label="'+item.id+' 判定">'+['keep','pending','reject'].map((value,i)=>'<button class="choice" data-value="'+value+'" aria-pressed="'+(state.decisions[item.id]===value)+'">'+['留','待定','淘汰'][i]+'</button>').join('')+'</div></div><div class="context"><p>'+esc(item.before)+'</p>'+(item.after?'<p>接著：'+esc(item.after)+'</p>':'')+'</div><div class="note '+(item.empty?'empty':'')+'">'+(item.summary?'<div class="summary">'+esc(item.summary)+'</div>':'')+(item.empty?'（不放 MoguNote）':esc(item.note))+'</div><label for="c-'+item.id+'">你的評論</label><textarea class="comment" id="c-'+item.id+'" placeholder="好笑在哪裡、蠢在哪裡、你會怎麼修……">'+esc(state.comments[item.id])+'</textarea></article>').join('');
- cards.querySelectorAll('.card').forEach(card=>{const id=card.dataset.id;card.querySelectorAll('.choice').forEach(btn=>btn.addEventListener('click',()=>{state.decisions[id]=btn.dataset.value;if(btn.dataset.value==='keep'&&!state.ranking.includes(id))state.ranking.push(id);if(btn.dataset.value!=='keep')state.ranking=state.ranking.filter(x=>x!==id);save();render()}));card.querySelector('.comment').addEventListener('input',e=>{state.comments[id]=e.target.value;save()})});renderRank()}
-function renderRank(){const list=document.getElementById('ranklist');const keep=ids.filter(id=>state.decisions[id]==='keep');state.ranking=state.ranking.filter(id=>keep.includes(id));for(const id of keep)if(!state.ranking.includes(id))state.ranking.push(id);if(!state.ranking.length){list.innerHTML='<p class="emptyrank">把候選標成「留」，就會出現在這裡。</p>';return}list.innerHTML=state.ranking.map((id,index)=>'<div class="rankitem" draggable="true" data-id="'+id+'"><span class="ranknum">'+(index+1)+'</span><strong>'+id+'</strong><span class="move"><button data-dir="-1" aria-label="'+id+' 上移">↑</button><button data-dir="1" aria-label="'+id+' 下移">↓</button></span></div>').join('');let dragged;list.querySelectorAll('.rankitem').forEach(row=>{row.addEventListener('dragstart',()=>{dragged=row.dataset.id});row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',()=>moveBefore(dragged,row.dataset.id));row.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>moveBy(row.dataset.id,Number(btn.dataset.dir))))})}
+function render(){const cards=document.getElementById('cards');cards.innerHTML=DATA.entries.map(item=>'<article class="card" data-id="'+item.id+'"><div class="cardhead"><span class="id">'+item.id+'</span><div class="status" role="radiogroup" aria-label="'+item.id+' 判定">'+['keep','pending','reject'].map((value,i)=>'<button class="choice" role="radio" data-value="'+value+'" aria-checked="'+(state.decisions[item.id]===value)+'" tabindex="'+((state.decisions[item.id]===value||(state.decisions[item.id]==='unreviewed'&&i===0))?'0':'-1')+'">'+['留','待定','淘汰'][i]+'</button>').join('')+'</div></div><div class="context"><p>'+esc(item.before)+'</p>'+(item.after?'<p>接著：'+esc(item.after)+'</p>':'')+'</div><div class="note '+(item.empty?'empty':'')+'">'+(item.summary?'<div class="summary">'+esc(item.summary)+'</div>':'')+(item.empty?'（不放 MoguNote）':esc(item.note))+'</div><label for="c-'+item.id+'">你的評論</label><textarea class="comment" id="c-'+item.id+'" placeholder="好笑在哪裡、蠢在哪裡、你會怎麼修……">'+esc(state.comments[item.id])+'</textarea></article>').join('');
+ cards.querySelectorAll('.card').forEach(card=>{const id=card.dataset.id,buttons=[...card.querySelectorAll('.choice')];buttons.forEach((btn,index)=>{btn.addEventListener('click',()=>choose(id,btn.dataset.value,true));btn.addEventListener('keydown',event=>{const delta=['ArrowRight','ArrowDown'].includes(event.key)?1:['ArrowLeft','ArrowUp'].includes(event.key)?-1:0;if(!delta)return;event.preventDefault();const next=(index+delta+buttons.length)%buttons.length;choose(id,buttons[next].dataset.value,true)})});card.querySelector('.comment').addEventListener('input',e=>{state.comments[id]=e.target.value;save()})});renderRank()}
+function choose(id,value,focus){state.decisions[id]=value;if(value==='keep'&&!state.ranking.includes(id))state.ranking.push(id);if(value!=='keep')state.ranking=state.ranking.filter(x=>x!==id);save();render();if(focus)document.querySelector('article[data-id="'+id+'"] .choice[data-value="'+value+'"]').focus()}
+function renderRank(){const list=document.getElementById('ranklist'),reviewed=ids.filter(id=>state.decisions[id]!=='unreviewed').length;document.getElementById('progress').textContent=reviewed+'/'+ids.length+' 已評';const keep=ids.filter(id=>state.decisions[id]==='keep');state.ranking=state.ranking.filter(id=>keep.includes(id));for(const id of keep)if(!state.ranking.includes(id))state.ranking.push(id);if(!state.ranking.length){list.innerHTML='<p class="emptyrank">把候選標成「留」，就會出現在這裡。</p>';return}list.innerHTML=state.ranking.map((id,index)=>'<div class="rankitem" draggable="true" data-id="'+id+'"><span class="ranknum">'+(index+1)+'</span><strong>'+id+'</strong><span class="move"><button data-dir="-1" aria-label="'+id+' 上移">↑</button><button data-dir="1" aria-label="'+id+' 下移">↓</button></span></div>').join('');let dragged;list.querySelectorAll('.rankitem').forEach(row=>{row.addEventListener('dragstart',()=>{dragged=row.dataset.id});row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',()=>moveBefore(dragged,row.dataset.id));row.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>moveBy(row.dataset.id,Number(btn.dataset.dir))))})}
 function moveBefore(from,to){if(!from||from===to)return;const next=state.ranking.filter(x=>x!==from);next.splice(next.indexOf(to),0,from);state.ranking=next;save();renderRank();notice(from+' 已移到 '+to+' 前面')}
 function moveBy(id,delta){const at=state.ranking.indexOf(id),to=at+delta;if(to<0||to>=state.ranking.length)return;[state.ranking[at],state.ranking[to]]=[state.ranking[to],state.ranking[at]];save();renderRank();notice(id+' 現在是第 '+(to+1)+' 名')}
+function ready(){const missing=ids.filter(id=>state.decisions[id]==='unreviewed');if(!missing.length)return true;notice('還有 '+missing.length+' 則未評；先完成「留／待定／淘汰」再匯出。');document.querySelector('article[data-id="'+missing[0]+'"]').scrollIntoView({behavior:'smooth',block:'center'});return false}
 function exportState(){const out={...state,submitted_at:new Date().toISOString()};if(!valid(out))throw new Error('評選資料不完整');return JSON.stringify(out,null,2)+'\\n'}
-document.getElementById('download').addEventListener('click',()=>{const blob=new Blob([exportState()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gp-273-mogunote-ranking.json';a.click();URL.revokeObjectURL(url);notice('已下載 JSON')});
-document.getElementById('copy').addEventListener('click',async()=>{const value=exportState();try{await navigator.clipboard.writeText(value)}catch{const area=document.createElement('textarea');area.value=value;document.body.append(area);area.select();document.execCommand('copy');area.remove()}notice('已複製 JSON')});
+document.getElementById('download').addEventListener('click',()=>{if(!ready())return;const blob=new Blob([exportState()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gp-273-mogunote-ranking.json';a.click();URL.revokeObjectURL(url);notice('已下載 JSON')});
+document.getElementById('copy').addEventListener('click',async()=>{if(!ready())return;const value=exportState();try{await navigator.clipboard.writeText(value)}catch{const area=document.createElement('textarea');area.value=value;document.body.append(area);area.select();document.execCommand('copy');area.remove()}notice('已複製 JSON')});
 document.getElementById('reset').addEventListener('click',()=>{if(!confirm('清除這一版的所有判定與評論？'))return;localStorage.removeItem(STORAGE_KEY);state=blank();render();notice('已重設')});
 render();
 </script>
@@ -1138,7 +1186,7 @@ export async function reconcileExperiment(root) {
     cell.actual_model = accepted?.actual_model ?? null;
     cell.final_error = cell.status === 'VALID' ? null : cell.final_error;
   }
-  for (const entry of mapping.entries) {
+  for (const entry of mapping.cells ?? mapping.entries) {
     if (!entry.run_uuid) continue;
     const attempt = attemptsByUUID.get(entry.run_uuid);
     if (!attempt) throw new Error(`mapping references unknown run ${entry.run_uuid}`);
@@ -1238,7 +1286,9 @@ export async function verifyIsolation(root, boardPath) {
   );
   const mapping = JSON.parse(mappingText);
   for (const spec of MODEL_SPECS) {
-    const pair = mapping.entries.filter((entry) => entry.requested_model === spec.model);
+    const pair = (mapping.cells ?? mapping.entries).filter(
+      (entry) => entry.requested_model === spec.model
+    );
     if (pair.length === 2 && pair[0].isolation_session_id === pair[1].isolation_session_id) {
       throw new Error(`${spec.model} prompt arms share a session id`);
     }
@@ -1327,15 +1377,14 @@ export async function revealResults(root, resultPath) {
   const result = validateRankingResult(JSON.parse(resultText), packet);
   if (mapping.board_sha256 !== packet.board_sha256) throw new Error('private mapping is stale');
   const byId = new Map(mapping.entries.map((entry) => [entry.id, entry]));
+  const mappedCells = mapping.cells ?? mapping.entries;
   const pairResults = [];
-  const models = [
-    ...new Set(mapping.entries.map((entry) => entry.requested_model).filter(Boolean)),
-  ];
+  const models = [...new Set(mappedCells.map((entry) => entry.requested_model).filter(Boolean))];
   for (const model of models) {
-    const current = mapping.entries.find(
+    const current = mappedCells.find(
       (entry) => entry.requested_model === model && entry.arm === 'current'
     );
-    const revised = mapping.entries.find(
+    const revised = mappedCells.find(
       (entry) => entry.requested_model === model && entry.arm === 'revised'
     );
     if (!current || !revised) continue;

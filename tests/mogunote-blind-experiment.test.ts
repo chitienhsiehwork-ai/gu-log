@@ -150,6 +150,9 @@ describe('anonymous ranking board', () => {
     expect(html).toContain('你的評論');
     expect(html).toContain('上移');
     expect(html).toContain('下載 JSON');
+    expect(html).toContain('unreviewed');
+    expect(html).toContain('aria-checked');
+    expect(html).toContain('id="progress"');
     for (const leaked of ['gpt-5.6-sol', 'claude-opus-5', 'grok-4.6', '/private/tmp']) {
       expect(html).not.toContain(leaked);
     }
@@ -175,5 +178,11 @@ describe('anonymous ranking board', () => {
     expect(() =>
       validateRankingResult({ ...result, comments: { N01: 'missing N02' } }, packet)
     ).toThrow('missing comment');
+    expect(() =>
+      validateRankingResult(
+        { ...result, decisions: { ...result.decisions, N02: 'unreviewed' } },
+        packet
+      )
+    ).toThrow('missing decision');
   });
 });
