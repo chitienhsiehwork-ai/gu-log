@@ -206,7 +206,9 @@ describe('glossary link checker', () => {
         'export const 代理人 = true;',
         '<Thing label="代理人" />',
         '<Thing label="safe">元件子元素的代理人</Thing>',
+        '{"會顯示的代理人"}',
         '{/* 代理人 */}',
+        '    const 代理人 = true',
         '',
       ].join('\n')
     );
@@ -218,6 +220,18 @@ describe('glossary link checker', () => {
 
     expect(canonical).toEqual([
       expect.objectContaining({ text: '代理人', line: 14, canonicalTerm: 'Agent' }),
+      expect.objectContaining({ text: '代理人', line: 15, canonicalTerm: 'Agent' }),
+    ]);
+  });
+
+  it('checks folded reader-visible frontmatter scalars', () => {
+    const file = tmpPath('forbidden-block-scalar.mdx');
+    fs.writeFileSync(file, '---\nlang: zh-tw\nsummary: >\n  代理人摘要\n---\n正文安全\n');
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 4 }),
     ]);
   });
 
@@ -299,6 +313,18 @@ describe('canonical terminology migration proof', () => {
     const after = 'Agent 會把整間公司一次救起來。下一句保持原樣。\n';
 
     expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
+  });
+
+  it('rejects replacing a canonical term with the forbidden term', () => {
+    expect(
+      checker.isCanonicalTerminologyOnlyChange('Agent 會工作。\n', '代理人會工作。\n', glossary)
+    ).toBe(false);
+  });
+
+  it('rejects a whitespace-only change around an existing canonical term', () => {
+    expect(
+      checker.isCanonicalTerminologyOnlyChange('讓 Agent 工作。\n', '讓Agent工作。\n', glossary)
+    ).toBe(false);
   });
 
   it('rejects an unrelated glossary wrapper', () => {

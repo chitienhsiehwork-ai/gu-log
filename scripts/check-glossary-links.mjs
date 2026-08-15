@@ -136,6 +136,12 @@ function markRange(mask, start, end) {
   for (let i = safeStart; i < safeEnd; i += 1) mask[i] = true;
 }
 
+function unmarkRange(mask, start, end) {
+  const safeStart = Math.max(0, start);
+  const safeEnd = Math.min(mask.length, end);
+  for (let i = safeStart; i < safeEnd; i += 1) mask[i] = false;
+}
+
 function maskRegex(content, mask, re) {
   let match;
   while ((match = re.exec(content))) markRange(mask, match.index, match.index + match[0].length);
@@ -206,7 +212,25 @@ export function buildCanonicalUnsafeMask(content) {
   maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
   maskRegex(content, mask, /`[^`\n]+`/g);
   maskRegex(content, mask, /<!--[\s\S]*?-->/g);
-  maskRegex(content, mask, /\{[\s\S]*?\}/g);
+  // MDX expressions are code, but quoted strings inside them are rendered
+  // reader-visible prose. Keep comments fully masked and expose only string
+  // literal contents from other expressions.
+  maskRegex(content, mask, /\{\/\*[\s\S]*?\*\/\}/g);
+  const expressionRe = /\{(?!\/\*)[\s\S]*?\}/g;
+  let expression;
+  while ((expression = expressionRe.exec(content))) {
+    markRange(mask, expression.index, expression.index + expression[0].length);
+    const quotedRe = /(['"])(.*?)\1/g;
+    let quoted;
+    while ((quoted = quotedRe.exec(expression[0]))) {
+      const valueOffset = quoted.index + 1;
+      unmarkRange(
+        mask,
+        expression.index + valueOffset,
+        expression.index + valueOffset + quoted[2].length
+      );
+    }
+  }
   maskRegex(content, mask, /<[^>]*>/g);
   maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
 
@@ -225,6 +249,7 @@ export function buildCanonicalUnsafeMask(content) {
   let offset = 0;
   for (const line of lines) {
     if (/^\s*(import|export)\b/.test(line)) markRange(mask, offset, offset + line.length);
+    if (/^(?: {4}|\t)\S/.test(line)) markRange(mask, offset, offset + line.length);
     offset += line.length + 1;
   }
 
@@ -241,6 +266,7 @@ export function frontmatterReaderVisibleRanges(content) {
   const lines = frontmatter.split('\n');
   let offset = 4;
   let inTags = false;
+  let inVisibleBlock = false;
 
   for (const line of lines) {
     const keyMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
@@ -248,7 +274,19 @@ export function frontmatterReaderVisibleRanges(content) {
       const key = keyMatch[1];
       const value = keyMatch[2];
       inTags = key === 'tags' && value === '';
-      if ((key === 'title' || key === 'summary' || key === 'tags') && value !== '') {
+      inVisibleBlock =
+        (key === 'title' || key === 'summary' || key === 'tags') && /^[>|][+-]?\d?$/.test(value);
+      if (
+        (key === 'title' || key === 'summary' || key === 'tags') &&
+        value !== '' &&
+        !inVisibleBlock
+      ) {
+        const start = offset + line.indexOf(value);
+        ranges.push({ start, end: start + value.length });
+      }
+    } else if (inVisibleBlock) {
+      const value = line.trim();
+      if (value !== '') {
         const start = offset + line.indexOf(value);
         ranges.push({ start, end: start + value.length });
       }
@@ -507,12 +545,23 @@ export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadG
   const beforeLines = String(before).split('\n');
   const afterLines = String(after).split('\n');
   if (beforeLines.length !== afterLines.length) return false;
+  let sawReplacement = false;
 
   for (let index = 0; index < beforeLines.length; index += 1) {
     const beforeLine = beforeLines[index];
     const afterLine = afterLines[index];
     const beforeLinks = multiset(glossaryLinks(beforeLine));
     const afterLinks = multiset(glossaryLinks(afterLine));
+
+    for (const entry of entries) {
+      for (const forbidden of entry.forbiddenZhTw) {
+        const pattern = new RegExp(escapeRegExp(forbidden), 'g');
+        const beforeCount = beforeLine.match(pattern)?.length ?? 0;
+        const afterCount = afterLine.match(pattern)?.length ?? 0;
+        if (afterCount > beforeCount) return false;
+        if (afterCount < beforeCount) sawReplacement = true;
+      }
+    }
 
     // This exemption is directional: existing links cannot be removed or
     // changed. A newly added wrapper must belong to the same glossary entry
@@ -545,7 +594,7 @@ export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadG
     }
   }
 
-  return true;
+  return sawReplacement;
 }
 
 function changedGlossaryTerms(base, glossary) {
