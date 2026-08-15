@@ -9,7 +9,7 @@
 ## 2. Content migration
 
 - [x] 2.1 將 AI agent 語意的「代理人」改成 `Agent`，並確保第一次出現連到 glossary
-- [x] 2.2 在不改變意思的前提下，重寫 `agency` 雙關與 `meat proxy` 段落，並將後者連到 Proxy glossary
+- [x] 2.2 在不改變意思的前提下，校正 `agency` 雙關與 `meat proxy` 術語，並將後者連到 Proxy glossary
 - [x] 2.3 更新 GP-273 preservation fixtures，並確認文章仍忠於原文
 
 ## 3. Verification and delivery
