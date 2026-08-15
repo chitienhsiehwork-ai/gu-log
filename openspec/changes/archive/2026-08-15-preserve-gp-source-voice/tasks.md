@@ -25,7 +25,7 @@
 
 - [x] 4.1 讓 GP 硬性檢查未通過、執行器錯誤或缺少有效結論時阻擋發布
 - [x] 4.2 收斂 `GU-LOG_WRITER_PROMPT.md`、`CONTRIBUTING.md`、Tribunal 契約與 pipeline skill，移除和新規格衝突的 GP 指令
-- [ ] 4.3 在 stable GP contract 與 routing 中明確排除 `restructure`／`rebuild`，並記錄它對舊 active spine change 的優先順序，不跨 change 修改其 artifacts
+- [x] 4.3 在 stable GP contract 與 routing 中明確排除 `restructure`／`rebuild`，並記錄它對舊 active spine change 的優先順序，不跨 change 修改其 artifacts
 
 ## 5. 驗證與切換
 
