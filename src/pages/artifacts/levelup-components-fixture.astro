@@ -29,6 +29,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     <MoguNote variant="murmur">這是碎碎念風格的測試。</MoguNote>
     <MoguNote>這是一般 note 風格的測試。</MoguNote>
+    <MoguNote summary="短版 fixture">這是刻意短到不應折疊的完整註解。</MoguNote>
+    <MoguNote summary="長版 fixture">
+      <p>這是長註解的第一段，用來驗證真正可折疊的內容。</p>
+      <p>第二段繼續提供穩定高度，不依賴 production 文章內容。</p>
+      <p>第三段確保在手機 viewport 仍然明顯超過折疊門檻。</p>
+      <p>第四段讓展開後的可見內容與高度都能被測試驗證。</p>
+      <p>第五段鎖定這個互動契約，避免只有按鈕卻沒有內容。</p>
+      <p>第六段完成 deterministic fixture，不受日後文章修訂影響。</p>
+    </MoguNote>
 
     <AnalogyBox title="🧪 測試類比"> 這就像是在測試一台新車上路前，先在工廠裡跑幾圈。 </AnalogyBox>
   </article>

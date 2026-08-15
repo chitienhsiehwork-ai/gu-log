@@ -298,6 +298,11 @@ is_canonical_taxonomy_only_diff() {
     node "$REPO_ROOT/scripts/check-brand-taxonomy.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
 }
 
+is_canonical_terminology_only_diff() {
+    local file="$1"
+    node "$REPO_ROOT/scripts/check-glossary-links.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
+}
+
 GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_MODIFIED[@]}")
 
 if [ "${#GATE_CANDIDATES[@]}" -eq 0 ]; then
@@ -310,6 +315,9 @@ else
         if [ ! -f "$FULL_PATH" ]; then continue; fi
 
         if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
+        if is_canonical_terminology_only_diff "$file"; then
             continue
         fi
 
@@ -383,6 +391,9 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             */en-*) ;; # skip English
             *)
                 if is_canonical_taxonomy_only_diff "$file"; then
+                    continue
+                fi
+                if is_canonical_terminology_only_diff "$file"; then
                     continue
                 fi
                 # Backend-only frontmatter edits (translatedBy/model/harness,
@@ -555,6 +566,9 @@ content_gate_mdx_files() {
     local file
     for file in "${STAGED_MDX[@]}"; do
         if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
+        if is_canonical_terminology_only_diff "$file"; then
             continue
         fi
         # Backend-only frontmatter edits (model signature, scores) don't change

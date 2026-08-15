@@ -274,6 +274,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		}
 		s.GPProfile = gp.Profile
 		s.GPProfileSHA256 = gp.ProfileSHA256
+		s.CanonicalTerminology = gp.CanonicalTerminology
 		s.Dispatcher, s.WriterDispatcher = gp.Translator, gp.Translator
 		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
 		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
