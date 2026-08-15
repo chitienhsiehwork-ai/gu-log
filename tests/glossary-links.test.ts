@@ -300,6 +300,33 @@ describe('canonical terminology migration proof', () => {
 
     expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
   });
+
+  it('rejects an unrelated glossary wrapper', () => {
+    const before = '代理人會工作。保留正常文字。\n';
+    const after = 'Agent 會工作。[保留正常文字](/glossary#made-up-anchor)。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
+  });
+
+  it('rejects a canonical term linked to the wrong anchor', () => {
+    const before = '代理人會工作。\n';
+    const after = '[Agent](/glossary#proxy) 會工作。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
+  });
+
+  it('rejects removing an existing glossary wrapper', () => {
+    const before = '[Proxy](/glossary#proxy) 轉發資料，代理人負責判斷。\n';
+    const after = 'Proxy 轉發資料，Agent 負責判斷。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
+  });
+
+  it('fails closed on malformed forbidden-term configuration', () => {
+    const malformed = [{ ...glossary[0], forbiddenZhTw: '代理人' }];
+
+    expect(() => checker.normalizeGlossary(malformed)).toThrow(/forbiddenZhTw/);
+  });
 });
 
 describe('glossary link fixer', () => {

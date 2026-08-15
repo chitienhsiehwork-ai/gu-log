@@ -102,6 +102,15 @@ export function normalizeGlossary(glossary) {
     .filter((entry) => entry && entry.term && entry.linking?.enabled !== false)
     .map((entry) => {
       const linking = entry.linking ?? {};
+      if (
+        Object.hasOwn(entry, 'forbiddenZhTw') &&
+        (!Array.isArray(entry.forbiddenZhTw) ||
+          entry.forbiddenZhTw.some(
+            (value) => typeof value !== 'string' || value.trim().length === 0
+          ))
+      ) {
+        throw new TypeError(`${entry.term}.forbiddenZhTw must be an array of non-empty strings`);
+      }
       const matches =
         Array.isArray(linking.match) && linking.match.length ? linking.match : [entry.term];
       return {
@@ -453,9 +462,14 @@ function escapeRegExp(value) {
 }
 
 export function normalizeCanonicalTerminology(content, glossary = loadGlossary()) {
-  let normalized = String(content).replace(/\[([^\]\n]+)\]\(\/(?:en\/)?glossary#[^)\n]+\)/g, '$1');
+  let normalized = String(content);
 
   for (const entry of normalizeGlossary(glossary)) {
+    const canonicalLink = new RegExp(
+      `\\[(${escapeRegExp(entry.term)})\\]\\(\\/glossary#${escapeRegExp(entry.anchor)}\\)`,
+      'gi'
+    );
+    normalized = normalized.replace(canonicalLink, '$1');
     for (const forbidden of entry.forbiddenZhTw) {
       const term = escapeRegExp(entry.term);
       const old = escapeRegExp(forbidden);
@@ -477,12 +491,61 @@ export function normalizeCanonicalTerminology(content, glossary = loadGlossary()
   return normalized;
 }
 
+function glossaryLinks(line) {
+  return line.match(/\[[^\]\n]+\]\(\/(?:en\/)?glossary#[^)\n]+\)/g) ?? [];
+}
+
+function multiset(values) {
+  const counts = new Map();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return counts;
+}
+
 export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadGlossary()) {
   if (before === after) return false;
-  return (
-    normalizeCanonicalTerminology(before, glossary) ===
-    normalizeCanonicalTerminology(after, glossary)
-  );
+  const entries = normalizeGlossary(glossary).filter((entry) => entry.forbiddenZhTw.length > 0);
+  const beforeLines = String(before).split('\n');
+  const afterLines = String(after).split('\n');
+  if (beforeLines.length !== afterLines.length) return false;
+
+  for (let index = 0; index < beforeLines.length; index += 1) {
+    const beforeLine = beforeLines[index];
+    const afterLine = afterLines[index];
+    const beforeLinks = multiset(glossaryLinks(beforeLine));
+    const afterLinks = multiset(glossaryLinks(afterLine));
+
+    // This exemption is directional: existing links cannot be removed or
+    // changed. A newly added wrapper must belong to the same glossary entry
+    // as a forbidden term replaced on this exact source line.
+    for (const [link, count] of beforeLinks) {
+      if ((afterLinks.get(link) ?? 0) < count) return false;
+    }
+
+    for (const [link, count] of afterLinks) {
+      const added = count - (beforeLinks.get(link) ?? 0);
+      if (added <= 0) continue;
+
+      const entry = entries.find(
+        (candidate) => link === `[${candidate.term}](/glossary#${candidate.anchor})`
+      );
+      if (!entry) return false;
+
+      const forbiddenCount = entry.forbiddenZhTw.reduce((total, forbidden) => {
+        const matches = beforeLine.match(new RegExp(escapeRegExp(forbidden), 'g'));
+        return total + (matches?.length ?? 0);
+      }, 0);
+      if (added > forbiddenCount) return false;
+    }
+
+    if (
+      normalizeCanonicalTerminology(beforeLine, glossary) !==
+      normalizeCanonicalTerminology(afterLine, glossary)
+    ) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function changedGlossaryTerms(base, glossary) {
