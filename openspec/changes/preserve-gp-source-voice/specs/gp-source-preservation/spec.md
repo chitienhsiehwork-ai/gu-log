@@ -136,7 +136,7 @@ GP navigation 與 MoguNote enrichment SHALL 在 source-aligned body 凍結後執
 
 GP 只有在 source fidelity、source voice preservation、自然中文與內容完整性 gate 全部通過後才 SHALL publish。任何上述 gate FAIL、runner error 或缺少有效 verdict 時，pipeline SHALL 停在可檢查狀態，不得 best-effort deploy。
 
-有效 verdict SHALL 是版本化 envelope，包含 gate 名稱、source SHA-256、canonical body projection SHA-256、`PASS`／`FAIL`、結構化 findings 與完整 provider/model/harness provenance。Source Reviewer SHALL 負責 fidelity、voice、person、order 與 completeness；獨立 Vibe Scorer SHALL 負責自然台灣中文 cold read。Correction 後所有必要 gate SHALL 重跑。
+有效 verdict SHALL 是版本化 envelope，包含 gate 名稱、source SHA-256、canonical body projection SHA-256、`PASS`／`FAIL`、結構化 findings 與完整 provider/model/harness provenance。Aggregate manifest SHALL 另綁定完整 executable role profile 的 fingerprint；model、provider、prompt 或 output contract 任一設定改變後，舊 manifest SHALL 視為 stale。Source Reviewer SHALL 負責 fidelity、voice、person、order 與 completeness；獨立 Vibe Scorer SHALL 負責自然台灣中文 cold read。Correction 後所有必要 gate SHALL 重跑。
 
 #### Scenario: tribunal failure blocks deployment
 
@@ -149,6 +149,18 @@ GP 只有在 source fidelity、source voice preservation、自然中文與內容
 - **WHEN** `--from-step`、`--file` 或 deploy recovery 發現 source 或 canonical body hash 和 verdict 不符
 - **THEN** pipeline SHALL 視為缺少有效 verdict並重跑必要 gate，或停止發布
 - **AND** SHALL NOT 沿用舊 PASS
+
+#### Scenario: role profile change invalidates prior manifest
+
+- **WHEN** translator、source reviewer、corrector、commentary 或 vibe scorer 的 model、provider、prompt contract 或 output contract 在 PASS 後改變
+- **THEN** deploy SHALL 拒絕舊 manifest 並要求重新執行適用的 GP stages
+- **AND** SHALL NOT 只因 source/body hash 沒變就沿用舊 PASS
+
+#### Scenario: enriched article cannot reconstruct frozen translation
+
+- **WHEN** recovery 只有 production article，但缺少原 run 的 `source-translation.mdx`
+- **THEN** pipeline SHALL 停止並要求原 frozen artifact
+- **AND** SHALL NOT 把可能已有 MoguNote 或 glossary wrapper 的 published article 冒充 source-aligned translation 再跑 enrichment
 
 ### Requirement: GP rebuild prohibition MUST override generic editorial modes
 

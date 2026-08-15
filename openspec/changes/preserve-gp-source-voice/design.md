@@ -83,6 +83,8 @@ LLM 只負責指出在正文中唯一出現的 exact old text。UTF-8 byte offse
 
 現行 `Ralph` 將 Tribunal error 視為 advisory 並繼續 deploy。GP source-preservation gates 必須改為 blocking。Deploy 自己再驗一次 gate manifest，不能只相信前一個 stage 回傳值；`--from-step`、`--file` 與 recovery 只能沿用 hash 仍相符的 verdict，否則必須重跑 gate。可恢復性由保留 workdir artifacts 與 `--from-step` 提供，不靠發布低品質文章。
 
+Manifest 除了 source/body hash，也綁定完整 executable role profile fingerprint；任一 role 的 model、provider、prompt contract 或 output contract 改變，舊 PASS 即失效。`--file` 只能指出 production copy，不能反推 frozen `source-translation.mdx`：若原 workdir artifact 不在，pipeline 必須停止，避免把已 enrichment 的正文當成未 enrichment 初稿再處理一次。
+
 ### 7. Translator、corrector 與 vibe scorer 必須角色隔離
 
 三個會直接影響 GP 文字品質的角色 SHALL 使用不同 model ID、不同 prompt 與不同輸出 contract：
