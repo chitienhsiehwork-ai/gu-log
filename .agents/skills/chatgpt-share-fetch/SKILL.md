@@ -25,7 +25,7 @@ node scripts/fetch-chatgpt-share.mjs '<chatgpt-share-url>' --out "$capture_path"
 printf 'INTAKE_CAPTURE=%s\n' "$capture_path"
 ```
 
-Copy the printed `INTAKE_CAPTURE` path, inspect its line count, and read the complete transcript in bounded chunks across tool calls. Keep it only until the intake response is complete, then run `rm -f '<printed-path>'`. Fetch failure cleans up immediately. Do not move the capture into the repo unless the user later authorizes writing or another persistent use.
+Copy the printed `INTAKE_CAPTURE` path, inspect its line count, and read the complete transcript in bounded chunks across tool calls. After the final chunk is read, run `rm -f '<printed-path>'` before composing and sending the intake response. Fetch failure cleans up immediately; successful-capture cleanup is best-effort if the agent runtime terminates unexpectedly. Do not move the capture into the repo unless the user later authorizes writing or another persistent use.
 
 Authorized durable capture:
 
