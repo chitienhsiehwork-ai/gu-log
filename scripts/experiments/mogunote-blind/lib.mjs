@@ -910,7 +910,11 @@ export async function executeExperiment(root, { concurrency = 3, onProgress } = 
       failure_class,
     })),
     paired_models: packet.pairedModels,
+    logical_output_count: packet.pairedModels.length * 2 + 2,
+    presented_entry_count: packet.publicPacket.entries.length,
     candidate_count: packet.publicPacket.entries.length,
+    no_note_outputs_collapsed:
+      packet.mapping.cells.filter((cell) => cell.type === 'abstain').length + 1,
   };
   await writePrivateJSON(path.join(resolvedRoot, 'collector', 'summary.json'), summary);
   return summary;
@@ -1097,7 +1101,7 @@ const STORAGE_KEY='mogunote-blind:'+DATA.board_sha256;
 const ids=DATA.entries.map(x=>x.id);
 const blank=()=>({schema_version:'${RESULT_SCHEMA_VERSION}',experiment_id:DATA.experiment_id,board_sha256:DATA.board_sha256,submitted_at:null,ranking:[],decisions:Object.fromEntries(ids.map(id=>[id,'unreviewed'])),comments:Object.fromEntries(ids.map(id=>[id,'']))});
 let state=load();
-function valid(s){return s&&s.schema_version==='${RESULT_SCHEMA_VERSION}'&&s.experiment_id===DATA.experiment_id&&s.board_sha256===DATA.board_sha256&&Array.isArray(s.ranking)&&ids.every(id=>typeof s.decisions?.[id]==='string'&&typeof s.comments?.[id]==='string')&&s.ranking.every(id=>ids.includes(id))&&new Set(s.ranking).size===s.ranking.length}
+function valid(s){return s&&s.schema_version==='${RESULT_SCHEMA_VERSION}'&&s.experiment_id===DATA.experiment_id&&s.board_sha256===DATA.board_sha256&&Array.isArray(s.ranking)&&ids.every(id=>['unreviewed','keep','pending','reject'].includes(s.decisions?.[id])&&typeof s.comments?.[id]==='string')&&s.ranking.every(id=>ids.includes(id))&&new Set(s.ranking).size===s.ranking.length}
 function load(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return blank();try{const parsed=JSON.parse(raw);if(valid(parsed))return parsed;document.addEventListener('DOMContentLoaded',()=>notice('舊的本機資料與這版評選板不相容，已保留原 bytes，未覆寫。'));return blank()}catch{document.addEventListener('DOMContentLoaded',()=>notice('本機資料損壞，已保留原 bytes，未覆寫。'));return blank()}}
 function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch{notice('無法自動儲存；請立刻下載 JSON，避免評語遺失。')}}
 function notice(msg){document.getElementById('notice').textContent=msg}
@@ -1402,6 +1406,7 @@ export async function revealResults(root, resultPath) {
     .map((id) => ({
       id,
       ...byId.get(id),
+      cells: mappedCells.filter((cell) => cell.id === id),
       decision: result.decisions[id],
       comment: result.comments[id],
     }));

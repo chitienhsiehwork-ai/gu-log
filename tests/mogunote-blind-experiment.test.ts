@@ -151,6 +151,7 @@ describe('anonymous ranking board', () => {
     expect(html).toContain('上移');
     expect(html).toContain('下載 JSON');
     expect(html).toContain('unreviewed');
+    expect(html).toContain("['unreviewed','keep','pending','reject'].includes");
     expect(html).toContain('aria-checked');
     expect(html).toContain('id="progress"');
     for (const leaked of ['gpt-5.6-sol', 'claude-opus-5', 'grok-4.6', '/private/tmp']) {
