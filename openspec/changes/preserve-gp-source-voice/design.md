@@ -69,6 +69,12 @@ Translator 不得直接刪除 source。它必須先翻譯完整 source，另行�
 
 Source Reviewer 負責 fidelity、voice、person、order 與 completeness。兩種 gate 都輸出同一個版本化 envelope：`gate`、`source_sha256`、`body_projection_sha256`、`verdict`、結構化 findings、provider、model、harness 與完成時間。只有 exact source/body hash 相符、provenance 完整且所有必要 gate 都是 `PASS` 才是有效 aggregate verdict；missing、invalid、stale、runner error 或 `manual_required` 都等同 FAIL。任何 correction 後兩種 gate 全部重跑，不沿用舊 verdict。
 
+為避免 reviewer 被 frontmatter、summary 或前一角色的 framing 污染，Source Reviewer 只取得完整 source 與 canonical body projection；Vibe Scorer 只取得 canonical body projection，完全不看 source。Vibe Scorer 的 `source_sha256` 只是 pipeline 提供的 opaque provenance ID，不代表它能看到原文。
+
+LLM 只負責指出在正文中唯一出現的 exact old text。UTF-8 byte offsets 與 old-text hash 由 runtime 依當前 translation bytes 計算；找不到、出現不只一次或落在 frontmatter 的 anchor 一律 fail closed。這保留原本 evidence-bounded patch contract，但把模型不可靠的 byte arithmetic 移出 prompt。
+
+已由真實回歸確認、會讓台灣讀者停下解碼的片語 MAY 進入小型 exact-match calibration corpus。這個 corpus 只負責讓已知 regression 不被 probabilistic gate 放過，不取代 cold read，也不得擴成一般 style blacklist。
+
 ### 5. GP 排除 editorial rebuild
 
 `add-editorial-spine-rebuild` 的 `restructure`／`rebuild` 適用於 SD、Lv 與明確選擇 guided-reading／adaptation 的內容。本 change archive 後，穩定的 GP contract 是該舊 active change 後續 apply 的前置條件；它不得重新授權 GP rebuild。GP 若 source 本身無聊，忠實翻譯可以仍然無聊；選錯 source 是 eval 問題，不應靠翻譯階段偷換作者補救。
@@ -90,6 +96,8 @@ Source Reviewer 負責 fidelity、voice、person、order 與 completeness。兩�
 Config SHALL 有獨立的 translator、source reviewer、corrector、commentary 與 vibe scorer keys。每個 role 都要通過 profile validation、provider preflight 與 provenance validation；必要 role 不可用時不得 silent fallback。現有英文 sidecar 的 `translate` 保留名稱，新正文階段在 code／report 中稱為 `source-translate`，避免兩者混淆。State、run report 與 frontmatter pipeline provenance 都要記錄實際 role、model、provider、harness、artifact hash 與 verdict。
 
 非 `vm-codex` runtime 若沒有宣告符合上述 contract 的完整 profile，仍可 fetch／eval／dedup 或執行非 GP 工作，但 GP write、correction、gate 與 deploy 必須明確拒絕；不得維持 legacy GP publish behavior。
+
+Source Reviewer 與自然中文 gate 的責任衝突時，以責任邊界處理：Source Reviewer 只判語意、voice、人稱、順序與完整性，不得因英文表面字樣要求恢復不自然直譯；Vibe Scorer 不得在看不到 source 的情況下改寫核心命題、產品名或作者反覆使用的關鍵比喻。兩者都通過才可發布，任何一方拿不準就保留 finding 並 fail closed。
 
 ## Risks / Trade-offs
 
