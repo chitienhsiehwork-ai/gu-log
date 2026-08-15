@@ -126,6 +126,15 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatal(err)
 	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`originalDate: "2026-08-15"`, `translatedDate: "2026-08-15"`} {
+		if !strings.Contains(string(translated), want) {
+			t.Fatalf("source translation did not canonicalize %q:\n%s", want, translated)
+		}
+	}
 	delete(s.RoleRuns, "translator")
 	s.FromStepInt = StepSourceGate
 	if err := s.SourceTranslate(ctx); err != nil {
@@ -135,7 +144,7 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 		t.Fatal("translator provenance was not restored from durable artifact")
 	}
 	s.FromStepInt = 0
-	translationBytes := []byte(translation)
+	translationBytes := translated
 	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, filepath.Join(s.WorkDir, "source-translation.mdx"))
 	if err != nil {
 		t.Fatal(err)
@@ -198,6 +207,66 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 		if _, ok := s.RoleRuns[role]; !ok {
 			t.Errorf("full recovery did not restore %s provenance", role)
 		}
+	}
+}
+
+func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
+	ctx := context.Background()
+	source := []byte("# Source\n\nI took a break.\n")
+	translation := "---\nticketId: GP-PENDING\ntitle: 休息\noriginalDate: 2026-08-15\ntranslatedDate: 2026-08-15\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我休息了一下。\nlang: zh-tw\ntags: [ai]\n---\n\n我休息了一陣子。\n\n我休息了一陣子。\n"
+	s, _ := newGPState(t, string(source), translation)
+	oldText := "我休息了一陣子。"
+	start := strings.LastIndex(translation, oldText)
+	finding := preservation.Finding{
+		ID: "slop-1", IssueType: "approved_slop", SourceQuote: "I took a break.",
+		SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256([]byte(translation)),
+		StartByte: start, EndByte: start + len(oldText), OldText: oldText,
+		OldTextSHA256: preservation.SHA256([]byte(oldText)), Approved: false,
+	}
+	artifact := preservation.SourceTranslationArtifact{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+		TranslationMDX: translation, SlopCandidates: []preservation.Finding{finding},
+	}
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, artifact))
+
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("valid pre-canonicalization slop candidate was rejected: %v", err)
+	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(translated), `originalDate: "2026-08-15"`) || !strings.Contains(string(translated), `translatedDate: "2026-08-15"`) {
+		t.Fatalf("dates were not canonicalized after candidate validation:\n%s", translated)
+	}
+	artifactData, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translate.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var persisted preservation.SourceTranslationArtifact
+	if err := json.Unmarshal(artifactData, &persisted); err != nil {
+		t.Fatal(err)
+	}
+	if persisted.TranslationMDX != string(translated) {
+		t.Fatal("durable artifact translation differs from canonical translation")
+	}
+	if err := preservation.ValidateFindings(source, []byte(persisted.TranslationMDX), persisted.SlopCandidates); err != nil {
+		t.Fatalf("durable artifact contains stale slop candidates: %v", err)
+	}
+	s.FromStepInt = StepSourceGate
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatalf("consistent durable artifact did not recover: %v", err)
+	}
+	persisted.SlopCandidates[0].TranslationSHA256 = "stale"
+	staleData, err := json.Marshal(persisted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translate.json"), staleData, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SourceTranslate(ctx); err == nil || !strings.Contains(err.Error(), "recovery slop candidates") {
+		t.Fatalf("recovery accepted stale nested finding: %v", err)
 	}
 }
 

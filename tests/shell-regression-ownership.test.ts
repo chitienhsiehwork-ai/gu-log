@@ -20,6 +20,7 @@ const PORTABLE_CONTRACTS = [
   'test-auto-merge-guard.sh',
   'test-check-links-error-handling.sh',
   'test-frontmatter-scores-v8.sh',
+  'test-gp-pipeline-wrapper.sh',
   'test-nightly-baseline-stage.sh',
   'test-quota-controller.sh',
   'test-setup-hooks-worktree.sh',

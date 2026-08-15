@@ -152,8 +152,8 @@ Agent Swarm
 
 # Legacy tech / tools cited in source material
 valgrind dBase Clipper HyperCard WordPress
-# GP-272 brand / product names
-Old El Paso Lobsters
+# Source-cited proper nouns that do not need glossary entries
+Old El Paso Lobsters cmux
 
 # Programming languages / runtimes / tools
 Python JavaScript TypeScript Go Rust Zig C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell

@@ -67,7 +67,7 @@ type WriteData struct {
 	Prefix         string // GP / MP / SD / Lv
 	TicketID       string // e.g. "GP-PENDING" or "GP-170"
 	OriginalDate   string // YYYY-MM-DD
-	TranslatedDate string // YYYY-MM-DD (today)
+	TranslatedDate string // YYYY-MM-DD; new post defaults to today, rewrite preserves existing value
 	AuthorHandle   string // without @ prefix
 	// SourceField is the pre-rendered value for the `source:` frontmatter
 	// line, e.g. "@karpathy on X", "Sequoia Capital", or a hostname.

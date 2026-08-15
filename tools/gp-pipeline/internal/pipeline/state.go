@@ -125,7 +125,8 @@ type State struct {
 	SourceIsX bool
 	// OriginalDate is YYYY-MM-DD of the source publication.
 	OriginalDate string
-	// TranslatedDate is YYYY-MM-DD of the translation run (today).
+	// TranslatedDate is YYYY-MM-DD of first publication: today for a new post,
+	// or the existing frontmatter value for a rewrite.
 	TranslatedDate string
 
 	// SuggestedTitle comes from the Eval step's JSON and is used as a

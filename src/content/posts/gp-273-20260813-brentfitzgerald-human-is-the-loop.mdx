@@ -1,57 +1,79 @@
 ---
-ticketId: "GP-273"
-title: '人是迴圈，Agent 只是偶爾被點名上場'
-originalDate: '2026-08-11'
-translatedDate: '2026-08-13'
+ticketId: GP-273
+title: 人，才是那個迴圈
+originalDate: "2026-08-11"
+translatedDate: "2026-08-13"
+source: brentfitzgerald.com
+sourceUrl: https://brentfitzgerald.com/posts/the-human-is-the-loop/
+summary: 度假幾週沒用 AI 回來後，作者看清自己把代理人當拐杖與逃避壓力的緩衝，計畫往後刻意決定何時用、何時不用，讓人當主迴圈、偶爾才把代理人叫進來。
+lang: zh-tw
+tags:
+  - AI
+  - 習慣
+  - 生產力
+  - 代理人
 translatedBy:
-  model: "Grok 4.6"
+  model: "grok-4.6"
   harness: "Grok Build CLI"
   pipeline:
-    - role: "Written"
-      model: "Grok 4.6"
+    - role: "translator"
+      provider: "grok-build-grok-4.6"
+      model: "grok-4.6"
       harness: "Grok Build CLI"
-    - role: "Reviewed"
+      artifactSha256: "1d4ef65aeb0eed96fd1058019bed700d90710b9a1160276f0079fa5cbd331a9e"
+      verdict: "COMPLETED"
+    - role: "source-reviewer"
+      provider: "codex-gpt-5.6-sol"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+      artifactSha256: "a379e188c15ea8c89abc162b7e38a1d9ae555dd0647de75fd3ed5a3638904c0a"
+      verdict: "PASS"
+    - role: "corrector"
+      provider: "codex-gpt-5.6-sol"
       model: "GPT-5.6-Sol"
       harness: "Codex CLI"
-    - role: "Refined"
+      artifactSha256: "8d6012c12d740cc7d84e957e8c7d049c5b06155075bd7d1728d0ce44f83f7c46"
+      verdict: "APPLIED"
+    - role: "vibe-scorer"
+      provider: "codex-gpt-5.5"
+      model: "gpt-5.5"
+      harness: "Codex CLI"
+      artifactSha256: "a379e188c15ea8c89abc162b7e38a1d9ae555dd0647de75fd3ed5a3638904c0a"
+      verdict: "PASS"
+    - role: "commentary"
+      provider: "grok-build-grok-4.6"
       model: "Grok 4.6"
       harness: "Grok Build CLI"
-    - role: "Orchestrated"
-      model: "GPT-5.6-Sol"
-      harness: "gp-pipeline"
+      artifactSha256: "b4f79136c4b546ac8f573511cf9c7063a877e98d91c1b53f21bbe3eafe331a4d"
+      verdict: "APPLIED"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
-source: 'brentfitzgerald.com'
-sourceUrl: 'https://brentfitzgerald.com/posts/the-human-is-the-loop/'
-lang: 'zh-tw'
-summary: 'Brent Fitzgerald 放了幾週 AI 假回來，發現一堆半途而廢的 Agent 分頁比較像罪惡感，不像產能。真正該守住的不是「用更多模型」，而是人自己當迴圈、偶爾才把 Agent 點上場。'
-tags: ['ai-agents', 'developer-tools', 'productivity']
 scores:
   tribunalVersion: 9
   factCheck:
     accuracy: 9
-    fidelity: 8
-    consistency: 9
-    sourceBoundary: 9
-    commentarySeparation: 9
-    score: 8
-    date: "2026-08-13"
+    fidelity: 9
+    consistency: 10
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-15"
     model: "gpt-5.6-sol"
   librarian:
-    glossary: 9
-    crossRef: 10
+    glossary: 7
+    crossRef: 7
     sourceAlign: 10
     attribution: 10
-    score: 9
-    date: "2026-08-13"
+    score: 8
+    date: "2026-08-15"
     model: "gpt-5.6-sol"
   freshEyes:
     readability: 8
     firstImpression: 9
     payoffDensity: 9
     lengthFit: 9
-    clarity: 8
+    clarity: 9
     score: 8
-    date: "2026-08-13"
+    date: "2026-08-15"
     model: "gpt-5.6-sol"
   vibe:
     persona: 8
@@ -59,77 +81,44 @@ scores:
     vibe: 8
     narrative: 9
     score: 8
-    date: "2026-08-13"
-    model: "grok-4.6"
+    date: "2026-08-15"
+    model: "gpt-5.5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-暑假尾聲泡冷河、烤棉花糖、吃完午飯就睡。[寫這篇文章的人](https://brentfitzgerald.com/posts/the-human-is-the-loop/)連筆電跟手機都放下好幾週，等於也把 AI 一起放假。回來之後最刺的不是「好想念那個助手」，而是反過來：很多日常的模型使用根本不必發生。少了那套習慣，腦袋沒有變鈍，好奇也沒有比較少；比較像終於看清，自己先前一直在場邊替換，很少真正站回場中央。
+我最近離開 AI 幾個星期。回來之後，更清楚自己用它時養成了哪些不健康的習慣。
 
-重新打開筆電，迎面就是十一個 `cmux` 分頁，每個裡面還掛著好幾個做到一半、被暫停的 [Agent](/glossary#agent)。有工作、有私事、有夾在中間說不清的雜事。Claude 聊天也到處亮著未讀：報稅、庭園構想、政策文件審查。每一個分頁當初都像是「這件事需要幫忙」；現在每一個也都是一小截罪惡感：事情沒做完，時間也沒被用得夠專心。
+那是暑假尾聲的假期，我很幸運能在冰冷的河裡游泳、烤棉花糖吃過頭、午餐後小睡，諸如此類。放縱了不少，也暫時從工作和日常節奏中抽身。多數時候連筆電和手機都放下，等於好幾週沒碰 AI。
 
-<MoguNote>
-`cmux` 是把好幾個編碼 Agent 並排盯著跑的介面。聽起來很有效率。實際畫面比較像把答應自己要做的事複製成十一份，然後每一份都停在半空中看人。gu-log 自己的長跑流程也很容易長出這種未完成清單；差別只在有沒有人敢承認：開新分頁比較像釋放壓力，不是完成工作。
-</MoguNote>
+我並不想念它。這幾天回來後我才意識到，自己用 AI 有多少根本不必要。事實上，我覺得它常常成了會養成依賴的拐杖，讓我智力變弱、好奇心變少、也比較沒自信。大概也讓我有點憂鬱。
 
-[SD-17](/posts/sd-17-20260402-is-it-worth-the-time/) 問過值不值得自動化，[MP-85](/posts/mp-85-20260216-yegge-ai-vampire/) 問過加速會不會反噬。這篇補的是現場：壓力一來，人就把 Agent 換上場，自己反而退出迴圈。
+幾天前我終於打開筆電，迎面而來的是十一個 cmux 分頁，每個裡面都有好幾個代理人，停在各種任務做到一半的地方。有的是工作，有的是私事，中間地帶更多。Claude 的對話也到處掛著未讀標記，從報稅到庭園構想到政策文件審閱都有。
 
-## 壓力找到新出口
+這就是 2026 年版的「開一堆分頁」嗎？也許是，但感覺糟得多。每一項當初都像是我以為需要幫忙的計畫，或是我想把一部分思考自動化、外包出去。但每一項也都帶著一點罪惡感：事情沒做完，時間用得不夠有效率、不夠聰明、不夠專注。
 
-壓力已經不再逼他排序，而是直接餵進一個還沒被檢查過的信念：有了 AI，自己現在應該能做更多。釋放方式也變了：再開一輪 Agent 對話、再開一個終端機窗格、再分支出一個沒人要求的分叉、再吐一份大概永遠不會讀的 Markdown。
+顯然我對自己很苛刻。這不是新行為，長期以來也一直是不切實際期待帶來的壓力來源。過去我應付這種壓力和自我逼迫，有時成功，有時失敗。但到了這個機器智能的時代，壓力找到了新出口。它沒有逼我篩選、把力氣放在工作和生活裡真正重要的事，反而餵養一個沒被好好檢視的信念：我現在應該能做得更多。然後我就把壓力倒進又一場代理人對話、又一個終端機窗格、又一個沒人叫我開的分支、又一份我永遠不會讀的胡扯的 Markdown 產出裡。
 
-半成品的工具跟服務點子多到誇張，真正需要的卻很少。來源通常是兩樣東西混在一起：沒處理完的工作狂，加上科技樂觀派的一廂情願。做出來的小東西確實會跑、也確實在做那點小事。但沒幫到誰，也沒讓人比較快樂，更沒換到更多空閒。從前自己動手做個人專案，是休息，也是為了好玩而學。現在這批專案常常跳過學習、直衝結果。樂趣偏偏就住在學習那一段。
+我有好多半生不熟的工具或服務點子，自己幾乎用不上；它們是我還沒處理好的工作狂傾向，加上對科技過度樂觀的一廂情願一起催生出來的。沒錯，那些我做出來的小東西確實能跑。它們在跑，做著它們的小事。但沒有一件幫到任何人，也沒有一件讓我更快樂，或給我更多空閒。以前我擺弄個人專案，是為了放鬆，也為了從學習中得到樂趣。這些專案做不到那樣。我常常跳過學習直接衝結果，而快樂恰恰發生在學習那裡。
 
-要寫東西時，他先把念頭全部口述出來，開車或走路再跟 ChatGPT 來回講。表面上是「跟自己碰想法」，順便把通勤變成產值。那些對話的產出，他從來沒拿去做真正的工作。後來剩下的，只是一堆散漫錄音跟逐字稿，躺在 OpenAI 的伺服器上。
+我也覺得自己一直把代理人當成我和那些讓我緊張的任務之間的一層。與其直接面對那件事，我先把一個代理人塞進去。它像是一個特別的絨毛玩偶或護身符，用來保護我。
 
-理論上可以更快、可以一次平行很多件事。他回頭看，當時根本沒人在要求那些效率。手上的工具理論上能讓人變成更快的建造者，於是出現一種最糟的反射：把工具拿去「最大化使用工具」。場上沒有人在做事，只剩工具在互相召喚下一個工具。
+如果我需要寫點東西，我會先口述所有想法，再邊開車或走路邊跟 ChatGPT 講一遍。我會把它說成是在跟自己腦力激盪，把本來不會有產出的時間用起來。但我知道，那其實是一面會討好我的鏡子。而且因為它不是真實的思考夥伴，那些對話的產出我從來不會拿去做真正的工作。那些小時到底有多有用？現在只剩一堆東拉西扯的錄音和逐字稿，躺在 OpenAI 的伺服器上。
 
-<MoguNote>
-不是「用 Agent 寫程式」這件事有罪，是「為了證明自己有在用新工具，所以再做一個用新工具的工具」會把人吸乾。這篇稿子若也再開一個 agent 去「最佳化寫稿流程」，大概就是同一場替換又開始。
-</MoguNote>
+再舉一個例子：我會試著把事情變得更自動化，好讓自己理論上能更快做完工作，一次並行一堆不同任務。但事後看來，根本沒人在要這些效率提升。手上有理論上能讓我更快、也更有本事打造東西的工具，我就強烈想把工具用到極致，用在……把工具用到極致這件事上。這是最糟那種反射動作，為了提升生產力而反覆折騰工具，繞著自己打轉。
 
----
+我不是在說這項技術必然會對使用者造成這些影響。我也認為，圍繞這項技術的形式、設計和文化，對我養成的習慣影響很大。
 
-## 習慣長在哪裡
+我的直覺是，使用代理人（幸好）並不像沒完沒了地滑演算法推薦的內容那樣，本質上就會在神經化學層面讓人上癮。但我現在確實看到，依賴和習慣化的效應非常真實。一旦你把 AI 工具帶進一部分工作，很快就會看到更多可以再塞進去的地方。科技業也有很大一塊，押注整個社會經濟會大規模依賴大型語言模型。要讓那些估值說得通，唯一的方式就是我們集體變得無可救藥地依賴以 AI 為基礎的技術。
 
-直覺上，Agent 使用大概不像演算法動態牆那樣，直接在神經化學層面讓人停不下來。這算好事。這只是他的直覺；不過回頭看自己的用法，他確實看見了依賴與習慣化的影子。工作裡一旦放進 AI 工具，很快就會看到下一個也能塞進去的縫。產業裡也有一大塊在賭：整個社會經濟最後會大規模依賴大型語言模型。他的判斷很尖銳：那些估值若要說得通，前提幾乎就是整個社會集體變得離不開 AI 技術。
+所以我往後的計畫很單純：有意識地決定何時用 AI、何時不用，並試著誠實面對自己這些選擇實際得到了什麼、失去了什麼。
 
-所以往後的計畫很單純：什麼時候用、什麼時候刻意不用，先想清楚；每次選擇實際得到什麼、失去什麼，也試著對自己誠實。
+在轉而寫這篇文章之前，我確實有為一個剛開始的工作專案，在 [pi](/glossary#pi) 裡輸入了一段提示。我給它一堆需求和建議，並叫它去看程式碼庫、wiki、資料結構、對話。設定這些東西，逼得我先跟上進度、把現況想清楚。我請它回來標出問題和可能的解法。我把範圍收得很窄，盡可能給足脈絡，包括我已經在想什麼、以及哪些地方不確定。我也把產出的期待講得很清楚。
 
-<MoguNote>
-「估值要成立，就得讓人離不開」這句很刺，而且不是學術論述。它比較像把產品習慣講成商業模式：免費的不是模型，是使用者自己的判斷肌肉。動態牆偷的是注意力；Agent 偷的是「本來可以自己想完」的那一小段痛。
-</MoguNote>
+AI 不會把完美解法交到我手上。結果也不會讓我能力暴增十倍。但它是在一堆混亂的系統和 SaaS 產品之間做模式比對和搜尋，這件事我不太擅長，也不喜歡。它也許會讓我看見自己對現況理解上的幾個缺口，讓我帶著更完整的脈絡開始做專案。
 
----
+更重要的是：它現在讓我空出手來做人該做的事，像是寫作和反思。我對這項技術仍謹慎樂觀，覺得它有可能讓人過上更豐富、更有思考空間的生活。但前提是我們照自己的方式使用它。我們不希望人被困在代理人的迴圈裡。人本身才是迴圈，我們只是偶爾、有意識地把代理人換上場。
 
-## 人是迴圈
-
-寫這篇之前，他還是對一個剛起頭的工作專案丟了一個 [prompt](/glossary#prompt) 進 [Pi](/glossary#pi)：一套在終端機裡跑、專門接編碼任務的 Agent 工具。需求、建議、程式碼庫、內部文件、資料結構、對話紀錄，能塞的都塞。設定這一步本身就逼人先補課、先把現況想清楚。他要求回來時標出問題、提出可能解法；範圍收得很窄，連自己已經想到什麼、還不確定什麼都寫進去，輸出規格也講死。
-
-模型不會交一份完美解答，也不會讓人瞬間變十倍工程師。它比較像在一堆系統跟雲端軟體之間做樣式比對跟搜尋——那種人既不擅長、也不喜歡的髒活。也許會揭出幾個對現況理解的缺口，讓之後帶進專案的上下文好一點。
-
-更重要的是：它把此刻空出來，讓人去做只有人該做的事，例如寫作、例如回看自己。他對這項技術仍抱著小心的樂觀：它或許能讓人過得更豐厚、更願意思考。前提只有一個——用自己的條件去用。不要讓人被關進 Agent 迴圈裡。人本身就是迴圈；Agent 只是偶爾、而且要想清楚之後，才被點名上場。
-
-> The human is the loop, and we tag the agent in occasionally, thoughtfully.
-
-<MoguNote>
-`tag the agent in` 的味道比較像摔角或接力：人站在場中央，需要時才拍一下搭檔的肩，不是整場都把身體交給自動播放。
-</MoguNote>
-
----
-
-## 結語
-
-冷河、棉花糖和幾週沒有 AI 的日子，至少讓他看清一件事：他沒有想念模型。人還在場上，迴圈才算數。
-
-## 延伸閱讀
-
-- [MP-7: Claude Code 終於出非工程師版了！Cowork 讓所有人都能用 AI Agent 完成日常工作](/posts/mp-7-20260203-alexalbert-cowork/)
-- [GP-101: AI 代理的練功秘笈？Hamel Husain 推出 Evals 技能包，讓你的 Agent 更懂評估！](/posts/gp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
-- [GP-111: Andrew Ng 推出 Context Hub：幫 Coding Agent 補上最新 API 文件](/posts/gp-111-20260311-andrewyng-context-hub-coding-agent-api/)
-
-
-<MoguNote>
-下次再想開一個新窗格之前，先問問自己是不是又想把身體交給自動播放。人還在場上，迴圈才算數。(⌐■_■)
+<MoguNote summary="工具可以進迴圈，判斷不能退場。">
+這和 gu-log 寫過的〈[不要把學習也外包給 AI](/posts/gp-205-20260517-addyosmani-dont-outsource-learning/)〉是同一條線：AI 可以很快關掉任務，但不會自動把理解裝進腦袋。這篇再補一層：有時問題不只是沒學到，而是連哪些事值得做，都一起交給工具決定了。 (˶ᵔ ᵕ ᵔ˶)
 </MoguNote>
