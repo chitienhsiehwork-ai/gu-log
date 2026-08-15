@@ -81,7 +81,7 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 	}
 	result, err := s.TranslatorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
-		s.writeRoleFailure("translator", err)
+		s.RecordRoleFailure("translator", err)
 		return NewStepError(14, fmt.Errorf("source-translate runner: %w", err))
 	}
 	var artifact preservation.SourceTranslationArtifact
@@ -122,11 +122,7 @@ func (s *State) PreserveGP(ctx context.Context) error {
 		if err := s.ValidateGPPublishManifest(ctx, translationPath); err != nil {
 			return fmt.Errorf("GP recovery: %w", err)
 		}
-		data, err := os.ReadFile(translationPath)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(filepath.Join(s.WorkDir, "final.mdx"), data, 0o644)
+		return nil
 	}
 	s.Log.Info("Step 3: source-preservation gates")
 	source, err := s.sourceBytes()
@@ -178,7 +174,7 @@ func (s *State) PreserveGP(ctx context.Context) error {
 			return err
 		}
 	}
-	return s.enrichAndSeal(ctx, source, translationPath, finalGates)
+	return s.sealGPPublishManifest(ctx, source, translationPath, finalGates)
 }
 
 func (s *State) runSourceReviewer(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
@@ -191,7 +187,7 @@ func (s *State) runSourceReviewer(ctx context.Context, source, translation []byt
 	}
 	result, err := s.SourceReviewerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
-		s.writeRoleFailure("source-reviewer", err)
+		s.RecordRoleFailure("source-reviewer", err)
 		return preservation.GateEnvelope{}, fmt.Errorf("source-reviewer runner: %w", err)
 	}
 	var review preservation.ReviewArtifact
@@ -229,7 +225,7 @@ func (s *State) runVibeGate(ctx context.Context, source, translation []byte, pro
 	}
 	result, err := s.VibeScorerDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
-		s.writeRoleFailure("vibe-scorer", err)
+		s.RecordRoleFailure("vibe-scorer", err)
 		return preservation.GateEnvelope{}, fmt.Errorf("vibe-scorer runner: %w", err)
 	}
 	var gate preservation.GateEnvelope
@@ -265,7 +261,7 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 	}
 	result, err := s.CorrectorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
-		s.writeRoleFailure("corrector", err)
+		s.RecordRoleFailure("corrector", err)
 		return fmt.Errorf("corrector runner: %w", err)
 	}
 	var artifact preservation.PatchArtifact
@@ -297,7 +293,43 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 	return nil
 }
 
-func (s *State) enrichAndSeal(ctx context.Context, source []byte, translationPath string, gates []preservation.GateEnvelope) error {
+func (s *State) sealGPPublishManifest(ctx context.Context, source []byte, translationPath string, gates []preservation.GateEnvelope) error {
+	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, translationPath)
+	if err != nil {
+		return err
+	}
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
+	manifestPath := filepath.Join(s.WorkDir, "gp-publish-gate.json")
+	if err := preservation.WriteJSON(manifestPath, manifest); err != nil {
+		return err
+	}
+	s.GateManifestPath = manifestPath
+	return preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates)
+}
+
+// Enrich is the independent GP Step 4. It may add projection-isolated
+// commentary/navigation only after source-preservation has sealed a fresh
+// manifest. Recovery after this step validates the existing final artifact and
+// never regenerates or silently drops enrichment.
+func (s *State) Enrich(ctx context.Context) error {
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	if s.shouldSkipBelow(StepEnrich) {
+		s.Log.Info("Step 4: enrich — validating recovered final artifact")
+		if _, err := os.Stat(finalPath); err != nil {
+			return fmt.Errorf("GP enrichment recovery requires final.mdx: %w", err)
+		}
+		return s.ValidateGPPublishManifest(ctx, finalPath)
+	}
+
+	s.Log.Info("Step 4: enrich")
+	translationPath := filepath.Join(s.WorkDir, "source-translation.mdx")
+	if err := s.ValidateGPPublishManifest(ctx, translationPath); err != nil {
+		return fmt.Errorf("GP enrichment requires fresh source-preservation verdicts: %w", err)
+	}
+	source, err := s.sourceBytes()
+	if err != nil {
+		return err
+	}
 	translation, err := os.ReadFile(translationPath)
 	if err != nil {
 		return err
@@ -315,7 +347,7 @@ func (s *State) enrichAndSeal(ctx context.Context, source []byte, translationPat
 	}
 	result, err := s.CommentaryDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
-		s.writeRoleFailure("commentary", err)
+		s.RecordRoleFailure("commentary", err)
 		return fmt.Errorf("commentary runner: %w", err)
 	}
 	var artifact preservation.CommentaryArtifact
@@ -329,7 +361,6 @@ func (s *State) enrichAndSeal(ctx context.Context, source []byte, translationPat
 	if len(artifact.Candidates) > 0 {
 		enriched = ensureMoguNoteImport(enriched)
 	}
-	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	if err := os.WriteFile(finalPath, enriched, 0o644); err != nil {
 		return err
 	}
@@ -350,13 +381,7 @@ func (s *State) enrichAndSeal(ctx context.Context, source []byte, translationPat
 		return err
 	}
 	s.recordRoleRun("commentary", result, commentaryPath, "APPLIED")
-	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: after.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
-	manifestPath := filepath.Join(s.WorkDir, "gp-publish-gate.json")
-	if err := preservation.WriteJSON(manifestPath, manifest); err != nil {
-		return err
-	}
-	s.GateManifestPath = manifestPath
-	return preservation.ValidateManifest(manifest, source, []byte(after.Body), gpRequiredGates)
+	return s.ValidateGPPublishManifest(ctx, finalPath)
 }
 
 func (s *State) ValidateGPPublishManifest(ctx context.Context, bodyPath string) error {
@@ -417,7 +442,12 @@ func bytesContains(haystack, needle []byte) bool {
 	return strings.Contains(string(haystack), string(needle))
 }
 
-func (s *State) writeRoleFailure(role string, runErr error) {
+// RecordRoleFailure persists provider/profile failures before returning so a
+// resumed run has durable evidence instead of only ephemeral stderr.
+func (s *State) RecordRoleFailure(role string, runErr error) {
+	if s == nil || s.WorkDir == "" || runErr == nil {
+		return
+	}
 	_ = preservation.WriteJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
 		"version":      preservation.ContractVersion,
 		"role":         role,

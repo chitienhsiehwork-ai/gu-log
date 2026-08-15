@@ -17,6 +17,7 @@ const (
 	dispatcherCorrector      dispatcherRole = "corrector"
 	dispatcherCommentary     dispatcherRole = "commentary"
 	dispatcherVibeScorer     dispatcherRole = "vibeScorer"
+	dispatcherGPProfile      dispatcherRole = "gpProfile"
 )
 
 func (r dispatcherRole) gpRuntimeRole() (llm.RuntimeRole, bool) {
@@ -103,51 +104,59 @@ type gpDispatchers struct {
 	VibeScorer     *llm.Dispatcher
 }
 
-func buildGPDispatchers(state *rootState) (gpDispatchers, error) {
+func buildGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error) {
 	if state.fakeProviderPath != "" {
 		return buildFakeGPDispatchers(state)
 	}
 	resolved, err := llm.ResolveRuntime(context.Background(), state.cfg.RepoRoot, llm.RuntimeTranslator)
 	if err != nil {
-		return gpDispatchers{}, fmt.Errorf("validate GP runtime: %w", err)
+		return gpDispatchers{}, dispatcherGPProfile, fmt.Errorf("validate GP runtime: %w", err)
 	}
 	if _, err := llm.LoadGPProfile(state.cfg.RepoRoot, resolved.RuntimeProfile); err != nil {
-		return gpDispatchers{}, fmt.Errorf("validate GP profile: %w", err)
+		return gpDispatchers{}, dispatcherGPProfile, fmt.Errorf("validate GP profile: %w", err)
 	}
 	result := gpDispatchers{Profile: resolved.RuntimeProfile}
-	for role, target := range map[dispatcherRole]**llm.Dispatcher{
-		dispatcherTranslator:     &result.Translator,
-		dispatcherSourceReviewer: &result.SourceReviewer,
-		dispatcherCorrector:      &result.Corrector,
-		dispatcherCommentary:     &result.Commentary,
-		dispatcherVibeScorer:     &result.VibeScorer,
-	} {
-		dispatcher, err := buildDispatcherForRole(state, role)
+	roles := []struct {
+		role   dispatcherRole
+		target **llm.Dispatcher
+	}{
+		{dispatcherTranslator, &result.Translator},
+		{dispatcherSourceReviewer, &result.SourceReviewer},
+		{dispatcherCorrector, &result.Corrector},
+		{dispatcherCommentary, &result.Commentary},
+		{dispatcherVibeScorer, &result.VibeScorer},
+	}
+	for _, item := range roles {
+		dispatcher, err := buildDispatcherForRole(state, item.role)
 		if err != nil {
-			return gpDispatchers{}, fmt.Errorf("GP role %s preflight: %w", role, err)
+			return gpDispatchers{}, item.role, fmt.Errorf("GP role %s preflight: %w", item.role, err)
 		}
 		if len(dispatcher.Providers()) != 1 {
-			return gpDispatchers{}, fmt.Errorf("GP role %s must resolve to exactly one provider", role)
+			return gpDispatchers{}, item.role, fmt.Errorf("GP role %s must resolve to exactly one provider", item.role)
 		}
-		*target = dispatcher
+		*item.target = dispatcher
 	}
-	return result, nil
+	return result, "", nil
 }
 
-func buildFakeGPDispatchers(state *rootState) (gpDispatchers, error) {
+func buildFakeGPDispatchers(state *rootState) (gpDispatchers, dispatcherRole, error) {
 	result := gpDispatchers{Profile: "fixture"}
-	for role, target := range map[dispatcherRole]**llm.Dispatcher{
-		dispatcherTranslator:     &result.Translator,
-		dispatcherSourceReviewer: &result.SourceReviewer,
-		dispatcherCorrector:      &result.Corrector,
-		dispatcherCommentary:     &result.Commentary,
-		dispatcherVibeScorer:     &result.VibeScorer,
-	} {
-		dispatcher, err := buildDispatcherForRole(state, role)
-		if err != nil {
-			return gpDispatchers{}, err
-		}
-		*target = dispatcher
+	roles := []struct {
+		role   dispatcherRole
+		target **llm.Dispatcher
+	}{
+		{dispatcherTranslator, &result.Translator},
+		{dispatcherSourceReviewer, &result.SourceReviewer},
+		{dispatcherCorrector, &result.Corrector},
+		{dispatcherCommentary, &result.Commentary},
+		{dispatcherVibeScorer, &result.VibeScorer},
 	}
-	return result, nil
+	for _, item := range roles {
+		dispatcher, err := buildDispatcherForRole(state, item.role)
+		if err != nil {
+			return gpDispatchers{}, item.role, err
+		}
+		*item.target = dispatcher
+	}
+	return result, "", nil
 }

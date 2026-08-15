@@ -212,22 +212,17 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		}
 	}
 
-	judgeDisp, err := buildDispatcherForRole(state, dispatcherJudge)
-	if err != nil {
-		return err
-	}
-
 	s := pipeline.NewState()
 	s.Cfg = state.cfg
 	s.Log = state.log
-	s.JudgeDispatcher = judgeDisp
 	s.Counter = counter.New(state.cfg.CounterFile, "")
 	s.TweetURL = opts.TweetURL
 	s.Prefix = opts.Prefix
-	s.PromptTicketID, err = counter.PendingTicketID(opts.Prefix)
+	pendingTicketID, err := counter.PendingTicketID(opts.Prefix)
 	if err != nil {
 		return err
 	}
+	s.PromptTicketID = pendingTicketID
 	s.FromStepInt = fromStepInt
 	s.DryRun = opts.DryRun || opts.LegacyShadow
 	s.Force = opts.Force
@@ -240,24 +235,8 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s.Angle = opts.Angle
 	s.SourceLabel = opts.SourceLabel
 	s.LegacyShadow = opts.LegacyShadow
-	if opts.Prefix == "GP" && !opts.LegacyShadow {
-		gp, err := buildGPDispatchers(state)
-		if err != nil {
-			return err
-		}
-		s.GPProfile = gp.Profile
-		s.Dispatcher, s.WriterDispatcher = gp.Translator, gp.Translator
-		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
-		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
-	} else {
-		writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
-		if err != nil {
-			return err
-		}
-		s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
-	}
-
-	// Work dir: respect --work-dir from the root command.
+	// Establish the durable workdir before provider/profile preflight so even a
+	// failure before the first content step leaves a report and recovery state.
 	if flagWorkDir != "" {
 		s.WorkDir = flagWorkDir
 	}
@@ -266,6 +245,44 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return fmt.Errorf("run: %w", err)
 	}
 	defer cleanup()
+	recordPreflightFailure := func(role string, preflightErr error) error {
+		s.RecordRoleFailure(role, preflightErr)
+		s.RecordRunFailure("provider-preflight", preflightErr)
+		emitRunReport(state, runReport{
+			Step:      "run",
+			TicketID:  s.PromptTicketID,
+			WorkDir:   s.WorkDir,
+			GPProfile: s.GPProfile,
+			Timings:   s.Timings,
+			ElapsedMs: time.Since(start).Milliseconds(),
+			ErrorCode: 1,
+			Error:     preflightErr.Error(),
+			DryRun:    s.DryRun,
+		}, s)
+		return newExitError(1, preflightErr)
+	}
+
+	judgeDisp, err := buildDispatcherForRole(state, dispatcherJudge)
+	if err != nil {
+		return recordPreflightFailure(string(dispatcherJudge), err)
+	}
+	s.JudgeDispatcher = judgeDisp
+	if opts.Prefix == "GP" && !opts.LegacyShadow {
+		gp, failedRole, err := buildGPDispatchers(state)
+		if err != nil {
+			return recordPreflightFailure(string(failedRole), err)
+		}
+		s.GPProfile = gp.Profile
+		s.Dispatcher, s.WriterDispatcher = gp.Translator, gp.Translator
+		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
+		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
+	} else {
+		writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
+		if err != nil {
+			return recordPreflightFailure(string(dispatcherWriter), err)
+		}
+		s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
+	}
 
 	runErr := pipeline.Run(ctx, s)
 

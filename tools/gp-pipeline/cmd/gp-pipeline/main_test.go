@@ -11,10 +11,12 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/preservation"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -65,6 +67,67 @@ func mustWrite(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)
+	}
+}
+
+func installGPProjectionStub(t *testing.T, root string) {
+	t.Helper()
+	mustWrite(t, filepath.Join(root, "scripts", "gp-body-projection.mjs"), `
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const document = readFileSync(process.argv[2], 'utf8');
+let body = document;
+if (document.startsWith('---\n')) {
+  const end = document.indexOf('\n---\n', 4);
+  if (end < 0) throw new Error('unterminated frontmatter');
+  body = document.slice(end + '\n---\n'.length);
+}
+const sha256 = createHash('sha256').update(body, 'utf8').digest('hex');
+process.stdout.write(JSON.stringify({ version: 'gp-source-preservation/v1', body, sha256 }) + '\n');
+`)
+}
+
+func writeCompleteFakeGPRoles(t *testing.T, path string) {
+	t.Helper()
+	mustWrite(t, path, `{
+  "roles": {
+    "judge": {"provider": "fake-judge", "responses": []},
+    "translator": {"provider": "fake-translator", "responses": []},
+    "sourceReviewer": {"provider": "fake-source-reviewer", "responses": []},
+    "corrector": {"provider": "fake-corrector", "responses": []},
+    "commentary": {"provider": "fake-commentary", "responses": []},
+    "vibeScorer": {"provider": "fake-vibe", "responses": []}
+  }
+}`)
+}
+
+func writeFreshGPPublishManifest(t *testing.T, root, workDir, sourcePath, bodyPath string) {
+	t.Helper()
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	projection, err := preservation.ProjectFile(context.Background(), root, bodyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	gate := func(role string) preservation.GateEnvelope {
+		return preservation.GateEnvelope{
+			Version: preservation.ContractVersion, Gate: role,
+			SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256,
+			Verdict: "PASS", Provenance: preservation.Provenance{
+				Role: role, Provider: "fixture", Model: role, Harness: "go-test", CompletedAt: now,
+			},
+		}
+	}
+	manifest := preservation.PublishManifest{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+		BodyProjectionSHA256: projection.SHA256, Verdict: "PASS",
+		Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now,
+	}
+	if err := preservation.WriteJSON(filepath.Join(workDir, "gp-publish-gate.json"), manifest); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -139,6 +202,46 @@ func TestBuildRoot_PersistentFlags(t *testing.T) {
 	// fake-provider should be hidden
 	if !root.PersistentFlags().Lookup("fake-provider").Hidden {
 		t.Error("--fake-provider should be hidden from --help")
+	}
+}
+
+func TestGPProviderPreflightFailurePersistsReportAndRecoveryState(t *testing.T) {
+	resetGlobals()
+	workDir := t.TempDir()
+	fakePath := filepath.Join(t.TempDir(), "incomplete-gp-profile.json")
+	mustWrite(t, fakePath, `{
+  "roles": {
+    "judge": {"provider": "fake-judge", "responses": []},
+    "translator": {"provider": "fake-translator", "responses": []}
+  }
+}`)
+
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--json", "--fake-provider", fakePath, "--work-dir", workDir,
+		"run", "https://example.com/source", "--prefix", "GP", "--dry-run",
+	})
+	out, runErr := captureProcessStdout(t, func() error {
+		return cmd.ExecuteContext(context.Background())
+	})
+	if runErr == nil || !strings.Contains(runErr.Error(), "sourceReviewer") {
+		t.Fatalf("preflight error = %v, want missing sourceReviewer", runErr)
+	}
+	var report runReport
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatalf("decode preflight report %q: %v", out, err)
+	}
+	if report.OK || report.ErrorCode != 1 || report.WorkDir != workDir || !strings.Contains(report.Error, "sourceReviewer") {
+		t.Fatalf("preflight report = %#v", report)
+	}
+	for _, artifact := range []string{"sourceReviewer-failure.json", "pipeline-status.json"} {
+		data, err := os.ReadFile(filepath.Join(workDir, artifact))
+		if err != nil {
+			t.Fatalf("read durable %s: %v", artifact, err)
+		}
+		if !bytes.Contains(data, []byte("sourceReviewer")) {
+			t.Fatalf("%s missing failed role evidence: %s", artifact, data)
+		}
 	}
 }
 
@@ -456,6 +559,124 @@ func TestRunRunGPRejectsLegacyStageAliases(t *testing.T) {
 				t.Fatalf("runRun error = %v, want canonical-stage guidance", err)
 			}
 		})
+	}
+}
+
+func TestProductionGPRecoveryRejectsMissingAndStaleGateArtifacts(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		fromStep string
+		setup    func(t *testing.T, root, workDir, translationPath string)
+		want     string
+	}{
+		{
+			name:     "missing verdict with --from-step and --file",
+			fromStep: "enrich",
+			setup:    func(*testing.T, string, string, string) {},
+			want:     "missing GP publish manifest",
+		},
+		{
+			name:     "stale final at deploy recovery",
+			fromStep: "deploy",
+			setup: func(t *testing.T, root, workDir, translationPath string) {
+				sourcePath := filepath.Join(workDir, "source-tweet.md")
+				writeFreshGPPublishManifest(t, root, workDir, sourcePath, translationPath)
+				mustWrite(t, filepath.Join(workDir, "final.mdx"), "---\ntitle: Recovery\n---\n\nstale body\n")
+			},
+			want: "hashes are stale",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			root := makeFakeRepo(t)
+			installGPProjectionStub(t, root)
+			postsDir := filepath.Join(root, "src", "content", "posts")
+			if err := os.MkdirAll(postsDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			filename := "gp-10-20260815-recovery.mdx"
+			article := "---\ntitle: Recovery\nticketId: GP-10\nlang: zh-tw\n---\n\nsource body\n"
+			mustWrite(t, filepath.Join(postsDir, filename), article)
+			workDir := t.TempDir()
+			sourcePath := filepath.Join(workDir, "source-tweet.md")
+			translationPath := filepath.Join(workDir, "source-translation.mdx")
+			mustWrite(t, sourcePath, "complete source\n")
+			mustWrite(t, translationPath, article)
+			tc.setup(t, root, workDir, translationPath)
+			fakePath := filepath.Join(root, "fake-gp-roles.json")
+			writeCompleteFakeGPRoles(t, fakePath)
+			t.Setenv("GU_LOG_DIR", root)
+
+			cmd := buildRoot()
+			cmd.SetArgs([]string{
+				"--json", "--fake-provider", fakePath, "--work-dir", workDir,
+				"run", "--from-step", tc.fromStep, "--file", filename, "--prefix", "GP", "--dry-run",
+			})
+			out, runErr := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			})
+			if runErr == nil || !strings.Contains(runErr.Error(), tc.want) {
+				t.Fatalf("run error = %v, want %q", runErr, tc.want)
+			}
+			var report runReport
+			if err := json.Unmarshal(out, &report); err != nil {
+				t.Fatalf("decode recovery report %q: %v", out, err)
+			}
+			if report.OK || !strings.Contains(report.Error, tc.want) {
+				t.Fatalf("recovery report = %#v", report)
+			}
+			got, err := os.ReadFile(filepath.Join(postsDir, filename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != article {
+				t.Fatalf("failed recovery mutated --file article:\n%s", got)
+			}
+		})
+	}
+}
+
+func TestStandaloneGPDeployRejectsMissingManifestBeforeMutation(t *testing.T) {
+	resetGlobals()
+	root := makeFakeRepo(t)
+	installGPProjectionStub(t, root)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	filename := "gp-pending-20260815-author-title.mdx"
+	article := "---\ntitle: Title\nticketId: GP-PENDING\nlang: zh-tw\n---\n\nsource body\n"
+	mustWrite(t, filepath.Join(postsDir, filename), article)
+	workDir := t.TempDir()
+	mustWrite(t, filepath.Join(workDir, "source-tweet.md"), "complete source\n")
+	counterBefore, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GU_LOG_DIR", root)
+
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--work-dir", workDir, "deploy", "--active-file", filename, "--prefix", "GP",
+		"--date-stamp", "20260815", "--author-slug", "author", "--title-slug", "title",
+	})
+	runErr := cmd.ExecuteContext(context.Background())
+	if runErr == nil || !strings.Contains(runErr.Error(), "missing GP publish manifest") {
+		t.Fatalf("standalone deploy error = %v", runErr)
+	}
+	counterAfter, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(counterBefore, counterAfter) {
+		t.Fatal("standalone GP deploy bumped counter before gate rejection")
+	}
+	got, err := os.ReadFile(filepath.Join(postsDir, filename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != article {
+		t.Fatalf("standalone GP deploy mutated pending article before gate rejection:\n%s", got)
 	}
 }
 

@@ -136,6 +136,16 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := os.Stat(filepath.Join(s.WorkDir, "final.mdx")); !os.IsNotExist(err) {
+		t.Fatalf("source-preservation must not produce enrichment output: %v", err)
+	}
+	// Simulate a process interruption after the hard gates: the independent
+	// enrichment stage must resume from the sealed workdir without rerunning
+	// translation or source review.
+	s.FromStepInt = StepEnrich
+	if err := s.Enrich(ctx); err != nil {
+		t.Fatal(err)
+	}
 	if err := s.Credits(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -243,6 +253,21 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	}
 	if err := s.ValidateGPPublishManifest(ctx, bodyPath); err != nil {
 		t.Fatal(err)
+	}
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	if err := os.WriteFile(finalPath, body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.FromStepInt = StepRalph
+	if err := s.Enrich(ctx); err != nil {
+		t.Fatalf("post-enrichment recovery rejected fresh final: %v", err)
+	}
+	gotFinal, err := os.ReadFile(finalPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotFinal) != string(body) {
+		t.Fatalf("recovery silently replaced final enrichment artifact:\n%s", gotFinal)
 	}
 	if err := os.WriteFile(bodyPath, append(body, []byte("mutated\n")...), 0o644); err != nil {
 		t.Fatal(err)
