@@ -1,4 +1,6 @@
 import fs from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -8,6 +10,7 @@ import {
   EXPERIMENT_SCHEMA_VERSION,
   MODEL_SPECS,
   RESULT_SCHEMA_VERSION,
+  assertPristineExecutionPhase,
   buildInvocation,
   executeExperiment,
   extractIncumbent,
@@ -396,14 +399,32 @@ describe('private evidence integrity', () => {
     await expect(fs.lstat(forbidden)).rejects.toMatchObject({ code: 'ENOENT' });
   });
 
-  it('refuses a non-pristine execution phase before invoking any provider', async () => {
-    const root = `/private/tmp/gu-log-mogunote-blind.phase-${Date.now()}`;
+  it('rejects a non-pristine phase without mutating sibling phase directories', async () => {
+    const root = await fs.mkdtemp(path.join(tmpdir(), 'mogunote-pristine-contract-'));
     try {
-      await initializeExperiment({ repoRoot: process.cwd(), root });
-      await fs.writeFile(`${root}/collector/partial.json`, '{}\n', { mode: 0o600 });
-      await expect(executeExperiment(root, { concurrency: 1 })).rejects.toThrow('not pristine');
+      for (const name of ['probes', 'runs', 'collector']) {
+        await fs.mkdir(path.join(root, name), { mode: 0o700 });
+      }
+      await fs.writeFile(path.join(root, 'collector', 'partial.json'), '{}\n', { mode: 0o600 });
+      await expect(assertPristineExecutionPhase(root)).rejects.toThrow('not pristine');
+      await expect(fs.readdir(path.join(root, 'probes'))).resolves.toEqual([]);
+      await expect(fs.readdir(path.join(root, 'runs'))).resolves.toEqual([]);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it.runIf(process.platform === 'darwin')(
+    'refuses a non-pristine execution phase before invoking any provider',
+    async () => {
+      const root = `/private/tmp/gu-log-mogunote-blind.phase-${Date.now()}`;
+      try {
+        await initializeExperiment({ repoRoot: process.cwd(), root });
+        await fs.writeFile(`${root}/collector/partial.json`, '{}\n', { mode: 0o600 });
+        await expect(executeExperiment(root, { concurrency: 1 })).rejects.toThrow('not pristine');
+      } finally {
+        await fs.rm(root, { recursive: true, force: true });
+      }
+    }
+  );
 });

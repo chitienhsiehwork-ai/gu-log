@@ -1106,7 +1106,7 @@ async function mapWithConcurrency(items, concurrency, fn, onProgress) {
   return results;
 }
 
-async function assertPristineExecutionPhase(root) {
+export async function assertPristineExecutionPhase(root) {
   try {
     await fs.lstat(path.join(root, 'collector', 'collector-manifest.json'));
     throw new Error('experiment collector is already sealed');
