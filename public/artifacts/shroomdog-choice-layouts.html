@@ -481,7 +481,7 @@
       }
 
       .site-section h2.choice-title {
-        color: var(--mogu);
+        color: var(--heading);
       }
 
       .site-section h2.mogu-title {
@@ -534,11 +534,11 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 31px;
-        height: 31px;
-        border: 1px solid var(--choice-border);
-        border-radius: 50%;
-        background: var(--choice-wash);
+        width: 29px;
+        height: 29px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: transparent;
         color: var(--mogu);
         font-size: 0.75rem;
         font-weight: 900;
@@ -547,12 +547,11 @@
       /* Variant A — chef's table */
       .hero-choice {
         margin-top: 18px;
-        padding: 17px;
-        border: 1px solid var(--choice-border);
-        border-radius: 17px;
-        background:
-          radial-gradient(circle at 88% 4%, var(--choice-wash), transparent 38%), var(--surface);
-        box-shadow: 0 10px 30px var(--shadow);
+        padding: 18px 19px 10px;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        background: var(--surface);
+        box-shadow: 0 1px 2px var(--shadow);
       }
 
       .hero-choice .section-subtitle {
@@ -560,10 +559,9 @@
       }
 
       .hero-feature {
-        padding: 13px;
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        background: var(--bg);
+        padding: 11px 0 17px;
+        border: 0;
+        background: transparent;
       }
 
       .hero-feature .choice-number {
@@ -592,15 +590,20 @@
       .hero-secondary {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 9px;
-        margin-top: 9px;
+        gap: 0;
+        margin-top: 0;
+        border-top: 1px solid var(--border);
       }
 
       .mini-choice {
-        padding: 10px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: var(--bg);
+        padding: 12px 14px 5px 0;
+        border: 0;
+        background: transparent;
+      }
+
+      .mini-choice + .mini-choice {
+        padding-left: 14px;
+        border-left: 1px solid var(--border);
       }
 
       .mini-choice b {
@@ -712,6 +715,16 @@
       .mock-browser.is-mobile .hero-secondary,
       .mock-browser.is-mobile .shelf-track {
         grid-template-columns: 1fr;
+      }
+
+      .mock-browser.is-mobile .mini-choice {
+        padding: 12px 0;
+      }
+
+      .mock-browser.is-mobile .mini-choice + .mini-choice {
+        padding-left: 0;
+        border-top: 1px solid var(--border);
+        border-left: 0;
       }
 
       .mock-browser.is-mobile .shelf-track {
@@ -1093,7 +1106,7 @@
 
         <div class="variant-summary" aria-label="三種方案摘要">
           <button type="button" class="variant-card is-active" data-card-variant="a">
-            <span class="recommend">★ 推薦</span>
+            <span class="recommend">✓ 已選</span>
             <b>A｜首屏主廚桌</b>
             <small>精選先於系列，強烈宣告「先看我真正推薦的」</small>
           </button>
