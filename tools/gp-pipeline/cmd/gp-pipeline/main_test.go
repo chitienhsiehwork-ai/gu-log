@@ -562,6 +562,45 @@ func TestRunRunGPRejectsLegacyStageAliases(t *testing.T) {
 	}
 }
 
+func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
+	tests := []struct {
+		name string
+		run  func() error
+		want string
+	}{
+		{name: "write", run: func() error { return runWrite(context.Background(), &rootState{}, writeOpts{Prefix: "GP"}) }, want: "canonical source-translate"},
+		{name: "review", run: func() error { return runReview(context.Background(), &rootState{}, "missing.mdx", "", "GP-PENDING") }, want: "standalone full-draft review"},
+		{name: "refine", run: func() error {
+			return runRefine(context.Background(), &rootState{}, "missing.mdx", "", "", "GP-PENDING", "")
+		}, want: "evidence-bounded patches"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.run()
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
+	for filename, want := range map[string]string{
+		"gp-10-example.mdx":    "GP",
+		"mp-20-example.mdx":    "MP",
+		"en-sd-30-example.mdx": "SD",
+		"lv-40-example.mdx":    "Lv",
+	} {
+		got, err := postPrefixFromFilename(filename)
+		if err != nil || got != want {
+			t.Errorf("postPrefixFromFilename(%q) = %q, %v; want %q", filename, got, err, want)
+		}
+	}
+	if _, err := postPrefixFromFilename("../mp-20-example.mdx"); err == nil {
+		t.Fatal("path traversal filename must fail")
+	}
+}
+
 func TestProductionGPRecoveryRejectsMissingAndStaleGateArtifacts(t *testing.T) {
 	for _, tc := range []struct {
 		name     string

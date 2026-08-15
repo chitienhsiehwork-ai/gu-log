@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -32,8 +34,9 @@ func newReviewCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "review",
-		Short: "Run the 12-point review checklist against a draft",
-		Long: `review is Step 3 of the pipeline. It points the LLM at draft-v1.mdx
+		Short: "Run the non-GP 12-point review checklist against a draft",
+		Long: `review is the legacy full-draft review command for non-GP series. GP uses
+the source reviewer in the canonical run command. This command points the LLM at draft-v1.mdx
 and asks it to produce a review.md with blocker/major/minor findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM
@@ -54,6 +57,9 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 	start := time.Now()
 	if err := counter.ValidateTicketID(ticketID); err != nil {
 		return err
+	}
+	if strings.HasPrefix(ticketID, "GP-") {
+		return errors.New("review: GP uses source-reviewer findings in the canonical pipeline; standalone full-draft review is forbidden")
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {

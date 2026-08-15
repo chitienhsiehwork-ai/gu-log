@@ -25,8 +25,7 @@ Bytes 只用來觀察是否異常壓縮或膨脹，不是品質門檻；真正�
 
 - Translator 使用 Grok 4.6，低 reasoning effort；shared OAuth 登入、model listing、一般 request 與 native JSON schema structured output 都通過。
 - Source Reviewer 與 Corrector 使用相同 model family 但不同角色 prompt；Vibe Scorer 改用另一個 model，符合 translator、corrector、vibe scorer 三者 model ID 不同的契約。
-- Grok 4.5 在最小 request 與 structured output request 可用，但完整文章 cold read 多次長時間無結果；不適合目前的 hard gate latency/reliability。
-- 另一個候選 scorer 雖較快，卻在 GP-273 已知不自然片語仍存在時誤判 PASS；未採用。
+- 候選 scorer 有的在最小 request 可用、但完整文章 cold read 多次長時間無結果；有的較快，卻在已知不自然片語仍存在時誤判 PASS。兩者都未採用。
 - Model ID、provider 與 effort 的唯一設定來源是 `config/llm-pipeline.json`，本文件不把候選比較寫成 routing contract。
 
 ## 手機閱讀檢查

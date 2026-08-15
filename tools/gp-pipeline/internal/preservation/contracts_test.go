@@ -152,19 +152,6 @@ func TestDeterministicNaturalFindings(t *testing.T) {
 	}
 }
 
-func TestDeterministicNaturalFindingsRejectsLiveShadowTranslationese(t *testing.T) {
-	source := []byte("I use AI. I think about machine intelligence. My life should be thoughtful.")
-	for _, phrase := range []string{
-		"機器智能", "自己用 AI 有多少其實根本沒必要", "科技樂觀主義式的一廂情願",
-		"能力暴增十倍", "無止盡地滑著由演算法推薦的內容", "科技業也有很大一塊",
-		"把它設起來", "更有思考的生活",
-	} {
-		if got := strings.Join(DeterministicNaturalFindings(source, []byte("我看到"+phrase+"。")), "\n"); !strings.Contains(got, phrase) {
-			t.Errorf("known translationese %q was not rejected: %s", phrase, got)
-		}
-	}
-}
-
 func TestCanonicalizeFindingAnchorsUsesUniqueExactText(t *testing.T) {
 	translation := []byte("---\ntitle: 測試\n---\n\n我一直滑演算法動態。\n")
 	finding := Finding{ID: "natural-feed", IssueType: "natural_zh_tw", OldText: "演算法動態", StartByte: 1, EndByte: 2, OldTextSHA256: "wrong"}

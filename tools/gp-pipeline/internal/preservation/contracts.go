@@ -410,20 +410,12 @@ func inFrontmatter(doc []byte, start, end int) bool {
 func DeterministicNaturalFindings(source, translation []byte) []string {
 	text := string(translation)
 	var findings []string
-	// Confirmed reader-stopping phrases from the GP-273 regression and live
-	// shadow run. This corpus is deliberately small and exact: the LLM gate may
-	// discover new problems, but it cannot waive known translationese.
+	// Spec-owned GP-273 calibration phrases. Keep this exact corpus deliberately
+	// tiny; the LLM gate discovers other problems without turning one article's
+	// wording into a global style blacklist.
 	for _, term := range []string{
 		"銜尾蛇",
 		"演算法動態",
-		"機器智能",
-		"自己用 AI 有多少其實根本沒必要",
-		"科技樂觀主義式的一廂情願",
-		"能力暴增十倍",
-		"無止盡地滑著由演算法推薦的內容",
-		"科技業也有很大一塊",
-		"把它設起來",
-		"更有思考的生活",
 	} {
 		if strings.Contains(text, term) {
 			findings = append(findings, "不自然用語："+term)
@@ -432,7 +424,7 @@ func DeterministicNaturalFindings(source, translation []byte) []string {
 	sourceText := strings.ToLower(string(source))
 	firstPersonSource := strings.Count(sourceText, " i ")+strings.Count(sourceText, " i'm")+strings.Count(sourceText, " i've")+strings.Count(sourceText, " my ") >= 3
 	if firstPersonSource {
-		thirdPersonFraming := []string{"寫這篇文章的人", "原作者認為", "作者認為", "他認為", "Brent Fitzgerald 放了"}
+		thirdPersonFraming := []string{"寫這篇文章的人", "原作者認為", "作者認為", "他認為"}
 		for _, marker := range thirdPersonFraming {
 			if strings.Contains(text, marker) {
 				findings = append(findings, "第一人稱 voice owner 被改成第三人稱："+marker)

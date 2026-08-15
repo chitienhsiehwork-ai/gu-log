@@ -215,7 +215,7 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Fidelity 看語意，不看字面", "銜尾蛇", "BODY", "SOURCE", "不要做 byte arithmetic"} {
+	for _, want := range []string{"Fidelity 看語意，不看字面", "不得要求恢復 natural hard gate", "BODY", "SOURCE", "不要做 byte arithmetic"} {
 		if !strings.Contains(reviewer, want) {
 			t.Errorf("source reviewer prompt missing %q", want)
 		}
@@ -227,7 +227,7 @@ func TestRender_CorrectorTreatsSuggestionAsDiagnostic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"suggested_replacement 只是指出問題方向", "不是必須照抄", "讓我變強十倍", "能力暴增十倍"} {
+	for _, want := range []string{"suggested_replacement 只是指出問題方向", "不是必須照抄", "不改變語氣強弱", "不要加入 source 沒有的強化詞"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("corrector prompt missing %q", want)
 		}

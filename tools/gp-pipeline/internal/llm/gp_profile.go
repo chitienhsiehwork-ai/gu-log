@@ -22,6 +22,19 @@ type GPRoleConfig struct {
 
 type GPProfile map[RuntimeRole]GPRoleConfig
 
+type gpRoleContract struct {
+	Prompt string
+	Output string
+}
+
+var executableGPRoleContracts = map[RuntimeRole]gpRoleContract{
+	RuntimeTranslator:     {Prompt: "source-translate-v1", Output: "source-translation-v1"},
+	RuntimeSourceReviewer: {Prompt: "source-review-v1", Output: "gate-envelope-v1"},
+	RuntimeCorrector:      {Prompt: "bounded-correct-v1", Output: "bounded-patch-v1"},
+	RuntimeCommentary:     {Prompt: "commentary-candidates-v1", Output: "enrichment-candidates-v1"},
+	RuntimeVibeScorer:     {Prompt: "vibe-gate-v1", Output: "gate-envelope-v1"},
+}
+
 // LoadGPProfile validates the executable role contract before any GP text
 // mutation starts. Only explicitly declared profiles are eligible to publish.
 func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
@@ -56,6 +69,10 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 		}
 		if (cfg.Provider != "codex" && cfg.Provider != "grok") || cfg.Model == "" || cfg.ReasoningEffort == "" || cfg.PromptContract == "" || cfg.OutputContract == "" {
 			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
+		}
+		expected := executableGPRoleContracts[role]
+		if cfg.PromptContract != expected.Prompt || cfg.OutputContract != expected.Output {
+			return nil, fmt.Errorf("GP role %s config contract %q/%q does not match executable contract %q/%q", role, cfg.PromptContract, cfg.OutputContract, expected.Prompt, expected.Output)
 		}
 		if other, exists := seenPrompts[cfg.PromptContract]; exists {
 			return nil, fmt.Errorf("GP roles %s and %s share prompt contract %q", other, role, cfg.PromptContract)
