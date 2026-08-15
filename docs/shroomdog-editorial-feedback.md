@@ -636,3 +636,13 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 情境：來源是簡體中文，把線上英語口說教師統稱「外教」，並使用「下崗」。照字面轉成繁中仍然不是台灣中文，也可能把「教授英文」誤縮成「教師具有外籍身分」。
 - 修法：本文預設用「英文老師」；要對比 AI 時可寫「真人英文老師」；只有身分本身承重時才寫「外籍英文老師」。`下崗` 依語境改成「失業」或「可以回家了」。
 - Reusable lesson：簡轉繁不只是換字形。人物稱呼要按台灣情境選最直接的職能名稱；國籍沒有承載論點時，不要把它硬留在教師稱呼裡。
+
+## 2026-08-16 — 入門文章可以當知識地圖，glossary 用雙向連結把深度補回來
+
+### Feedback: 「I am fine with gu-log cover one of a beginner's post. People needs to start somewhere anyway. And i think the 7 ideas can 雙向連結到 glossary to enrich it.」
+
+- 情境：@0xHvdes 的〈The Principles of Better Decisions〉整理第一性原理、機會成本、二階思考、複利、誘因、機率思考與逆向思考。內容正確、清楚，但例子與結論都很基礎；gu-log 已在不同文章裡實際用過其中多數概念，卻沒有一篇讓初學者先看見全圖。
+- ShroomDog 的判斷：**入門不是拒收理由**。讀者總要有起點；只要文章沒有講錯、確實清楚，而且品質分數誠實記錄，就可以收錄。不要為了通過 Tribunal 把來源硬改深，也不要把「普通但好懂」假裝成首頁級洞見。
+- 這篇的產品角色：GP-274 是七個心智模型的入口目錄，不是最終解釋。正文七個標題各連到 glossary；每個 glossary 條目再用 `definedIn` 回指 GP-274 與真正把概念用在 AI、職涯、知識系統或制度分析裡的舊文，條目之間也用 `related` 串成圖。
+- 定義的加值方式：glossary 不重抄來源的一句話版定義，而是補上容易誤用的邊界，例如機會成本只看最佳替代方案、二階思考要把機率與下行一起算、單純重複不等於複利、避開失敗也不會自動成功。
+- Reusable lesson：**文章的價值不只來自新穎度，也可以來自「替讀者建立入口」**。遇到清楚但基礎、而且站內知識已經散落各處的 source，可以讓文章當 map、glossary 當穩定節點、舊文當深挖路徑。這樣收錄 beginner post 不會稀釋 gu-log，反而會把既有內容從文章清單變成可走的知識網。
