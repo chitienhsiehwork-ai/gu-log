@@ -63,8 +63,23 @@ const FORBIDDEN_CANDIDATE_SELF_IDENTIFICATION = [
 ];
 
 const PRIVATE_ROOT_PREFIX = '/private/tmp/gu-log-mogunote-blind.';
+const PRIVATE_ROOT_PARENT = '/private/tmp';
 const MAIN_TIMEOUT_MS = 8 * 60 * 1000;
 const PROBE_TIMEOUT_MS = 90 * 1000;
+const SAFE_ENV_KEYS = [
+  'PATH',
+  'HOME',
+  'USER',
+  'LOGNAME',
+  'SHELL',
+  'TMPDIR',
+  'LANG',
+  'LC_ALL',
+  'LC_CTYPE',
+  'XDG_CONFIG_HOME',
+  'XDG_CACHE_HOME',
+  'CODEX_HOME',
+];
 
 export function sha256(input) {
   return crypto.createHash('sha256').update(input).digest('hex');
@@ -95,6 +110,36 @@ async function writePrivateJSON(filePath, value) {
 async function makePrivateDir(dirPath) {
   await fs.mkdir(dirPath, { recursive: true, mode: 0o700 });
   await fs.chmod(dirPath, 0o700);
+}
+
+function privateRootCandidate(root) {
+  const resolved = path.resolve(root);
+  if (
+    path.dirname(resolved) !== PRIVATE_ROOT_PARENT ||
+    !path.basename(resolved).startsWith(path.basename(PRIVATE_ROOT_PREFIX))
+  ) {
+    throw new Error(`experiment root must be a direct child matching ${PRIVATE_ROOT_PREFIX}*`);
+  }
+  return resolved;
+}
+
+async function openExperimentRoot(root) {
+  const candidate = privateRootCandidate(root);
+  await assertMode(candidate, 0o700, 'directory');
+  const realRoot = await fs.realpath(candidate);
+  if (realRoot !== candidate) throw new Error('experiment root must not redirect through symlinks');
+  for (const name of ['inputs', 'probes', 'runs', 'collector']) {
+    await assertMode(path.join(realRoot, name), 0o700, 'directory');
+  }
+  return realRoot;
+}
+
+function sanitizedEnvironment() {
+  const env = { CI: '1', NO_COLOR: '1', TERM: 'dumb' };
+  for (const key of SAFE_ENV_KEYS) {
+    if (process.env[key] !== undefined) env[key] = process.env[key];
+  }
+  return env;
 }
 
 export function stripMoguNotes(post, { expectedCount } = {}) {
@@ -317,7 +362,7 @@ function unwrapProbe(raw) {
   throw new Error('probe did not return {"available":true}');
 }
 
-function buildInvocation(spec, { effort, runDir, schema, sessionId, outputPath }) {
+export function buildInvocation(spec, { effort, runDir, schema, sessionId, outputPath }) {
   const schemaJSON = JSON.stringify(schema);
   if (spec.provider === 'codex') {
     return {
@@ -327,15 +372,57 @@ function buildInvocation(spec, { effort, runDir, schema, sessionId, outputPath }
         '--json',
         '--ephemeral',
         '--ignore-user-config',
+        '--ignore-rules',
+        '--strict-config',
         '--skip-git-repo-check',
-        '--sandbox',
-        'read-only',
         '--cd',
         runDir,
         '--model',
         spec.model,
         '-c',
         `model_reasoning_effort=${JSON.stringify(effort)}`,
+        '-c',
+        'approval_policy="never"',
+        '-c',
+        'project_doc_max_bytes=0',
+        '-c',
+        'web_search="disabled"',
+        '-c',
+        'default_permissions="cwd-readonly"',
+        '-c',
+        'permissions.cwd-readonly={ filesystem={ ":root"="deny", ":minimal"="read", ":tmpdir"="deny", ":slash_tmp"="deny", ":workspace_roots"={ "."="read" } }, network={ enabled=false } }',
+        '--disable',
+        'shell_tool',
+        '--disable',
+        'unified_exec',
+        '--disable',
+        'view_image',
+        '--disable',
+        'apps',
+        '--disable',
+        'browser_use',
+        '--disable',
+        'computer_use',
+        '--disable',
+        'hooks',
+        '--disable',
+        'image_generation',
+        '--disable',
+        'memories',
+        '--disable',
+        'multi_agent',
+        '--disable',
+        'plugins',
+        '--disable',
+        'remote_plugin',
+        '--disable',
+        'shell_snapshot',
+        '--disable',
+        'skill_search',
+        '--disable',
+        'tool_suggest',
+        '--disable',
+        'workspace_dependencies',
         '--output-schema',
         path.join(runDir, 'schema.json'),
         '--output-last-message',
@@ -410,7 +497,7 @@ async function spawnCaptured(command, args, { cwd, stdin, timeoutMs }) {
     const startedAt = new Date();
     const child = spawn(command, args, {
       cwd,
-      env: { ...process.env, CI: '1', NO_COLOR: '1', TERM: 'dumb' },
+      env: sanitizedEnvironment(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     const stdout = [];
@@ -474,14 +561,21 @@ function extractTransportProvenance(spec, rawOutput, transportOutput = '') {
       .map(parseJSONIfPossible)
       .find((event) => event?.type === 'thread.started');
     return {
-      actualModel: spec.model,
-      providerReportedModels: [spec.model],
+      actualModel: null,
+      actualModelSource: null,
+      requestedModelArgument: spec.model,
+      providerReportedModels: [],
       providerSessionId: started?.thread_id ?? null,
     };
   }
   const wrapper = parseJSONIfPossible(rawOutput);
   if (!wrapper || typeof wrapper !== 'object') {
-    return { actualModel: null, providerReportedModels: [], providerSessionId: null };
+    return {
+      actualModel: null,
+      actualModelSource: null,
+      providerReportedModels: [],
+      providerSessionId: null,
+    };
   }
   const usage =
     wrapper.modelUsage && typeof wrapper.modelUsage === 'object' ? wrapper.modelUsage : {};
@@ -491,6 +585,7 @@ function extractTransportProvenance(spec, rawOutput, transportOutput = '') {
     );
     return {
       actualModel: reported.find((model) => model === spec.model) ?? null,
+      actualModelSource: 'provider_usage',
       providerReportedModels: reported,
       providerSessionId: wrapper.session_id ?? null,
     };
@@ -499,9 +594,26 @@ function extractTransportProvenance(spec, rawOutput, transportOutput = '') {
   return {
     actualModel:
       reported.find((model) => model === spec.model || model.startsWith(`${spec.model}-`)) ?? null,
+    actualModelSource: 'provider_usage',
     providerReportedModels: reported,
     providerSessionId: wrapper.sessionId ?? null,
   };
+}
+
+export function validateInvocationProvenance(spec, provenance) {
+  if (!provenance.providerSessionId) throw new Error('provider session id is missing');
+  if (spec.provider === 'codex') {
+    throw new Error('codex exec does not attest the provider actual model');
+  }
+  if (provenance.actualModel !== spec.model) {
+    if (spec.provider !== 'grok' || !provenance.actualModel?.startsWith(`${spec.model}-`)) {
+      throw new Error('actual model does not match the exact requested model');
+    }
+  }
+  if (provenance.actualModelSource !== 'provider_usage') {
+    throw new Error('model provenance source is missing or unexpected');
+  }
+  return provenance;
 }
 
 async function createInvocationDir(root, kind) {
@@ -521,6 +633,7 @@ async function runOneInvocation({
   prompt,
   schema,
   attempt,
+  retryKind = 'initial',
   timeoutMs,
 }) {
   const { uuid, runDir } = await createInvocationDir(root, kind);
@@ -536,6 +649,7 @@ async function runOneInvocation({
     cwd_realpath: await fs.realpath(runDir),
     requested_model: spec.model,
     actual_model: null,
+    actual_model_source: null,
     provider: spec.provider,
     harness: spec.harness,
     effort,
@@ -545,7 +659,8 @@ async function runOneInvocation({
     schema_sha256: schemaHash,
     attempt,
     timeout_ms: timeoutMs,
-    format_retry: attempt > 1,
+    retry_kind: retryKind,
+    format_retry: retryKind === 'format',
     status: 'RUNNING',
   };
   await writePrivateJSON(path.join(runDir, 'manifest.json'), initialManifest);
@@ -573,6 +688,7 @@ async function runOneInvocation({
   const finalManifest = {
     ...initialManifest,
     actual_model: result.code === 0 ? transportProvenance.actualModel : null,
+    actual_model_source: result.code === 0 ? transportProvenance.actualModelSource : null,
     provider_reported_models: transportProvenance.providerReportedModels,
     provider_session_id: transportProvenance.providerSessionId,
     process_started_at: result.startedAt,
@@ -591,13 +707,23 @@ async function runOneInvocation({
 
 export async function initializeExperiment({ repoRoot, root } = {}) {
   const resolvedRepo = path.resolve(repoRoot ?? process.cwd());
-  const experimentRoot = root
-    ? path.resolve(root)
-    : await fs.mkdtemp(PRIVATE_ROOT_PREFIX, { encoding: 'utf8' });
-  await makePrivateDir(experimentRoot);
+  let experimentRoot;
+  if (root) {
+    experimentRoot = privateRootCandidate(root);
+    try {
+      await fs.lstat(experimentRoot);
+      throw new Error('requested experiment root already exists');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    await fs.mkdir(experimentRoot, { mode: 0o700 });
+  } else {
+    experimentRoot = await fs.mkdtemp(PRIVATE_ROOT_PREFIX, { encoding: 'utf8' });
+  }
+  await fs.chmod(experimentRoot, 0o700);
   const realRoot = await fs.realpath(experimentRoot);
-  if (!realRoot.startsWith(PRIVATE_ROOT_PREFIX)) {
-    throw new Error(`experiment root must be under ${PRIVATE_ROOT_PREFIX}*`);
+  if (realRoot !== privateRootCandidate(experimentRoot)) {
+    throw new Error('experiment root must not redirect through symlinks');
   }
   for (const name of ['inputs', 'probes', 'runs', 'collector']) {
     await makePrivateDir(path.join(realRoot, name));
@@ -637,6 +763,21 @@ export async function initializeExperiment({ repoRoot, root } = {}) {
   const currentPrompt = renderPrompt(`${CURRENT_SHARED_CONTRACT}${currentTemplate}`, values);
   const revisedPrompt = renderPrompt(revisedTemplate, values);
   const schemaText = `${JSON.stringify(COMMENTARY_SCHEMA, null, 2)}\n`;
+  const [repoHeadResult, repoStatusResult] = await Promise.all([
+    spawnCaptured('git', ['rev-parse', 'HEAD'], {
+      cwd: resolvedRepo,
+      stdin: '',
+      timeoutMs: 10_000,
+    }),
+    spawnCaptured('git', ['status', '--porcelain'], {
+      cwd: resolvedRepo,
+      stdin: '',
+      timeoutMs: 10_000,
+    }),
+  ]);
+  if (repoHeadResult.code !== 0 || repoStatusResult.code !== 0) {
+    throw new Error('cannot capture repository revision for experiment inputs');
+  }
   const inputsDir = path.join(realRoot, 'inputs');
   await Promise.all([
     writePrivateFile(path.join(inputsDir, 'source.txt'), source),
@@ -650,7 +791,8 @@ export async function initializeExperiment({ repoRoot, root } = {}) {
     schema_version: EXPERIMENT_SCHEMA_VERSION,
     experiment_id: `gp-273-${crypto.randomBytes(8).toString('hex')}`,
     created_at: new Date().toISOString(),
-    repo_head: null,
+    repo_head: repoHeadResult.stdout.trim(),
+    repo_dirty: repoStatusResult.stdout.trim() !== '',
     inputs: {
       source: { file: 'source.txt', sha256: values.sourceSha256 },
       translation: { file: 'translation.mdx', sha256: values.translationSha256 },
@@ -712,6 +854,7 @@ async function readInputs(root) {
 }
 
 export async function probeModel(root, spec) {
+  root = await openExperimentRoot(root);
   const prompt =
     'Availability probe only. Do not use tools or read files. Return exactly the JSON object {"available":true}.';
   const invocation = await runOneInvocation({
@@ -730,9 +873,10 @@ export async function probeModel(root, spec) {
   if (status === 'AVAILABLE') {
     try {
       unwrapProbe(invocation.rawOutput);
-      if (!invocation.manifest.actual_model) {
-        throw new Error('provider provenance does not confirm the requested model');
-      }
+      validateInvocationProvenance(
+        spec,
+        extractTransportProvenance(spec, invocation.rawOutput, invocation.result.stdout)
+      );
     } catch (error) {
       status = 'UNAVAILABLE';
       validationError = error.message;
@@ -748,6 +892,7 @@ export async function probeModel(root, spec) {
   const summary = {
     requested_model: spec.model,
     actual_model: status === 'AVAILABLE' ? invocation.manifest.actual_model : null,
+    actual_model_source: status === 'AVAILABLE' ? invocation.manifest.actual_model_source : null,
     provider_reported_models: invocation.manifest.provider_reported_models,
     provider: spec.provider,
     harness: spec.harness,
@@ -760,19 +905,85 @@ export async function probeModel(root, spec) {
   return summary;
 }
 
-function formatRetryPrompt(prompt, rawOutput, error) {
-  const previous = rawOutput.trim().slice(0, 20_000);
-  return `${prompt}\n\nFORMAT-ONLY RETRY：上一個 response 未通過 machine contract（${error}）。不得改寫、改善或另挑內容；若上一個 response 有可辨識的 candidate，請保留其 commentary 與 anchor 原意，只修正 bare JSON、required fields、hash、0/1 cardinality 或 byte boundary。若沒有可保留的 candidate，回傳同一 envelope 的空 candidates。\n\n上一個 response：\n${previous}`;
+function buildFormatRepairTarget(rawOutput, inputs) {
+  const artifact = unwrapStructuredOutput(rawOutput);
+  assertPlainObject(artifact, 'repair artifact');
+  if (!Array.isArray(artifact.candidates) || artifact.candidates.length > 1) {
+    throw new Error('format retry requires an unambiguous zero-or-one candidate');
+  }
+  const target = {
+    version: CONTRACT_VERSION,
+    source_sha256: inputs.sourceSha256,
+    translation_sha256: inputs.translationSha256,
+    candidates: [],
+  };
+  if (artifact.candidates.length === 0) return target;
+  const candidate = artifact.candidates[0];
+  assertPlainObject(candidate, 'repair candidate');
+  for (const field of ['id', 'anchor_text', 'commentary']) {
+    if (typeof candidate[field] !== 'string' || candidate[field].trim() === '') {
+      throw new Error(`format retry cannot infer candidate ${field}`);
+    }
+  }
+  if (
+    FORBIDDEN_CANDIDATE_SELF_IDENTIFICATION.some((pattern) => pattern.test(candidate.commentary))
+  ) {
+    throw new Error('format retry cannot repair identity leakage');
+  }
+  const translation = Buffer.from(inputs.translation);
+  const anchor = Buffer.from(candidate.anchor_text);
+  const matches = [];
+  let offset = 0;
+  while (offset <= translation.length - anchor.length) {
+    const found = translation.indexOf(anchor, offset);
+    if (found < 0) break;
+    const afterByte = found + anchor.length;
+    const suffix = translation.subarray(afterByte).toString('utf8');
+    if (afterByte === translation.length || suffix.startsWith('\n\n')) matches.push(afterByte);
+    offset = found + 1;
+  }
+  if (matches.length !== 1) {
+    throw new Error('format retry requires one unambiguous paragraph-boundary anchor');
+  }
+  target.candidates.push({
+    id: candidate.id,
+    anchor_text: candidate.anchor_text,
+    after_byte: matches[0],
+    commentary: candidate.commentary,
+  });
+  return validateCommentaryArtifact(target, inputs);
+}
+
+function formatRetryPrompt(target) {
+  return `FORMAT-ONLY RETRY。逐 byte 重現下方 JSON object；不得新增、刪除或改寫 candidate，也不得加 markdown fence 或說明。\n\n${JSON.stringify(target)}`;
+}
+
+export function planRetry({
+  failureClass,
+  exitStatus,
+  provenanceValidated = false,
+  rawOutput,
+  inputs,
+}) {
+  if (['TIMEOUT', 'SPAWN_ERROR', 'TRANSPORT'].includes(failureClass)) {
+    return { kind: 'transport', target: null };
+  }
+  if (exitStatus !== 0 || !provenanceValidated) return null;
+  return { kind: 'format', target: buildFormatRepairTarget(rawOutput, inputs) };
 }
 
 export async function runCell(root, spec, arm) {
+  root = await openExperimentRoot(root);
   const inputs = await readInputs(root);
   const basePrompt = arm === 'current' ? inputs.currentPrompt : inputs.revisedPrompt;
   const attempts = [];
   let prompt = basePrompt;
   let finalArtifact;
   let finalActualModel;
+  let finalActualModelSource;
   let lastError;
+  let retryKind = 'initial';
+  let repairTarget;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const invocation = await runOneInvocation({
       root,
@@ -783,18 +994,28 @@ export async function runCell(root, spec, arm) {
       prompt,
       schema: inputs.schema,
       attempt,
+      retryKind,
       timeoutMs: MAIN_TIMEOUT_MS,
     });
     let validationError;
+    let provenanceValidated = false;
     if (invocation.result.code === 0) {
       try {
+        validateInvocationProvenance(spec, {
+          actualModel: invocation.manifest.actual_model,
+          actualModelSource: invocation.manifest.actual_model_source,
+          providerReportedModels: invocation.manifest.provider_reported_models,
+          providerSessionId: invocation.manifest.provider_session_id,
+        });
+        provenanceValidated = true;
         const artifact = unwrapStructuredOutput(invocation.rawOutput);
         const validatedArtifact = validateCommentaryArtifact(artifact, inputs);
-        if (!invocation.manifest.actual_model) {
-          throw new Error('provider provenance does not confirm the requested model');
+        if (repairTarget && stableJSON(validatedArtifact) !== stableJSON(repairTarget)) {
+          throw new Error('format retry changed the frozen semantic artifact');
         }
         finalArtifact = validatedArtifact;
         finalActualModel = invocation.manifest.actual_model;
+        finalActualModelSource = invocation.manifest.actual_model_source;
         await writePrivateJSON(path.join(invocation.runDir, 'candidate.json'), finalArtifact);
       } catch (error) {
         validationError = error.message;
@@ -808,12 +1029,14 @@ export async function runCell(root, spec, arm) {
       isolation_session_id: invocation.sessionId,
       provider_session_id: invocation.manifest.provider_session_id,
       actual_model: invocation.manifest.actual_model,
+      actual_model_source: invocation.manifest.actual_model_source,
       provider_reported_models: invocation.manifest.provider_reported_models,
       exit_status: invocation.result.code,
       prompt_sha256: invocation.manifest.prompt_sha256,
       raw_output_sha256: invocation.manifest.raw_output_sha256,
       validation_error: validationError ?? null,
-      format_retry: attempt > 1,
+      retry_kind: retryKind,
+      format_retry: retryKind === 'format',
     });
     const manifestPath = path.join(invocation.runDir, 'manifest.json');
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
@@ -828,13 +1051,30 @@ export async function runCell(root, spec, arm) {
     });
     if (finalArtifact) break;
     lastError = validationError;
-    if (attempt === 1)
-      prompt = formatRetryPrompt(basePrompt, invocation.rawOutput, validationError);
+    if (attempt !== 1) break;
+    try {
+      const retry = planRetry({
+        failureClass: invocation.manifest.failure_class,
+        exitStatus: invocation.result.code,
+        provenanceValidated,
+        rawOutput: invocation.rawOutput,
+        inputs,
+      });
+      if (!retry) break;
+      retryKind = retry.kind;
+      repairTarget = retry.target;
+      prompt = retry.kind === 'format' ? formatRetryPrompt(repairTarget) : basePrompt;
+      continue;
+    } catch (error) {
+      lastError = `${validationError}; retry refused: ${error.message}`;
+    }
+    break;
   }
   const cell = {
     schema_version: EXPERIMENT_SCHEMA_VERSION,
     requested_model: spec.model,
     actual_model: finalArtifact ? finalActualModel : null,
+    actual_model_source: finalArtifact ? finalActualModelSource : null,
     provider: spec.provider,
     harness: spec.harness,
     effort: 'high',
@@ -866,8 +1106,24 @@ async function mapWithConcurrency(items, concurrency, fn, onProgress) {
   return results;
 }
 
+async function assertPristineExecutionPhase(root) {
+  try {
+    await fs.lstat(path.join(root, 'collector', 'collector-manifest.json'));
+    throw new Error('experiment collector is already sealed');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  for (const name of ['probes', 'runs', 'collector']) {
+    const entries = await fs.readdir(path.join(root, name));
+    if (entries.length !== 0) {
+      throw new Error(`experiment ${name} phase is not pristine; use a new root`);
+    }
+  }
+}
+
 export async function executeExperiment(root, { concurrency = 3, onProgress } = {}) {
-  const resolvedRoot = await fs.realpath(root);
+  const resolvedRoot = await openExperimentRoot(root);
+  await assertPristineExecutionPhase(resolvedRoot);
   const probes = await mapWithConcurrency(
     MODEL_SPECS,
     concurrency,
@@ -912,11 +1168,12 @@ export async function executeExperiment(root, { concurrency = 3, onProgress } = 
     paired_models: packet.pairedModels,
     logical_output_count: packet.pairedModels.length * 2 + 2,
     presented_entry_count: packet.publicPacket.entries.length,
-    candidate_count: packet.publicPacket.entries.length,
+    generated_cell_count: cells.length,
     no_note_outputs_collapsed:
       packet.mapping.cells.filter((cell) => cell.type === 'abstain').length + 1,
   };
   await writePrivateJSON(path.join(resolvedRoot, 'collector', 'summary.json'), summary);
+  await sealCollector(resolvedRoot);
   return summary;
 }
 
@@ -931,9 +1188,24 @@ function paragraphContext(translation, afterByte) {
 }
 
 function findIncumbentContext(translation, incumbent) {
-  const offset = Buffer.from(translation).indexOf(Buffer.from(incumbent.anchorText));
-  if (offset < 0) throw new Error('incumbent anchor not found in frozen translation');
-  return paragraphContext(translation, offset + Buffer.byteLength(incumbent.anchorText));
+  const translationBytes = Buffer.from(translation);
+  const anchorBytes = Buffer.from(incumbent.anchorText);
+  const offsets = [];
+  let cursor = 0;
+  while (cursor <= translationBytes.length - anchorBytes.length) {
+    const offset = translationBytes.indexOf(anchorBytes, cursor);
+    if (offset < 0) break;
+    const afterByte = offset + anchorBytes.length;
+    if (
+      afterByte === translationBytes.length ||
+      translationBytes.subarray(afterByte).toString('utf8').startsWith('\n\n')
+    ) {
+      offsets.push(afterByte);
+    }
+    cursor = offset + 1;
+  }
+  if (offsets.length !== 1) throw new Error('incumbent anchor is missing or ambiguous');
+  return paragraphContext(translation, offsets[0]);
 }
 
 function shuffle(values) {
@@ -949,7 +1221,7 @@ async function buildBlindPacket(root, cells) {
   const inputs = await readInputs(root);
   const pairedModels = MODEL_SPECS.filter((spec) => {
     const pair = cells.filter((cell) => cell.requested_model === spec.model);
-    return pair.length === 2 && pair.every((cell) => cell.status === 'VALID');
+    return pair.length === 2 && pair.every((cell) => cellIsAdmissible(cell, spec));
   }).map((spec) => spec.model);
   const entries = [];
   const cellMappings = [];
@@ -959,6 +1231,7 @@ async function buildBlindPacket(root, cells) {
     const privateCell = {
       requested_model: cell.requested_model,
       actual_model: cell.actual_model,
+      actual_model_source: cell.actual_model_source,
       provider: cell.provider,
       arm: cell.arm,
       type: candidate ? 'candidate' : 'abstain',
@@ -1038,36 +1311,168 @@ async function buildBlindPacket(root, cells) {
   };
 }
 
-export async function rebuildBlindPacket(root) {
-  const resolvedRoot = await fs.realpath(root);
-  const cells = JSON.parse(
-    await fs.readFile(path.join(resolvedRoot, 'collector', 'cells.private.json'), 'utf8')
-  );
-  const packet = await buildBlindPacket(resolvedRoot, cells);
-  await Promise.all([
-    writePrivateJSON(path.join(resolvedRoot, 'collector', 'mapping.private.json'), packet.mapping),
-    writePrivateJSON(
-      path.join(resolvedRoot, 'collector', 'blind-packet.json'),
-      packet.publicPacket
-    ),
-  ]);
-  const summaryPath = path.join(resolvedRoot, 'collector', 'summary.json');
-  const summary = JSON.parse(await fs.readFile(summaryPath, 'utf8'));
-  summary.paired_models = packet.pairedModels;
-  summary.logical_output_count = packet.pairedModels.length * 2 + 2;
-  summary.presented_entry_count = packet.publicPacket.entries.length;
-  summary.candidate_count = packet.publicPacket.entries.length;
-  summary.no_note_outputs_collapsed =
-    packet.mapping.cells.filter((cell) => cell.type === 'abstain').length + 1;
-  await writePrivateJSON(summaryPath, summary);
+function cellIsAdmissible(cell, spec) {
+  if (
+    cell.status !== 'VALID' ||
+    !cell.artifact ||
+    !cell.actual_model ||
+    !cell.actual_model_source ||
+    !Array.isArray(cell.attempts)
+  ) {
+    return false;
+  }
+  const accepted = [...cell.attempts].reverse().find((attempt) => !attempt.validation_error);
+  if (!accepted?.provider_session_id || !accepted.run_uuid || !accepted.isolation_session_id) {
+    return false;
+  }
+  try {
+    validateInvocationProvenance(spec, {
+      actualModel: cell.actual_model,
+      actualModelSource: cell.actual_model_source,
+      providerReportedModels: accepted.provider_reported_models ?? [],
+      providerSessionId: accepted.provider_session_id,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function blindPacketCore(packet) {
   return {
-    experimentId: packet.publicPacket.experiment_id,
-    boardSha256: packet.publicPacket.board_sha256,
-    pairedModels: packet.pairedModels.length,
-    logicalOutputs: summary.logical_output_count,
-    presentedEntries: summary.presented_entry_count,
-    noNoteOutputsCollapsed: summary.no_note_outputs_collapsed,
+    schema_version: packet.schema_version,
+    experiment_id: packet.experiment_id,
+    title: packet.title,
+    entries: packet.entries,
   };
+}
+
+export function validateBlindPacket(packet) {
+  assertPlainObject(packet, 'blind packet');
+  assertExactKeys(
+    packet,
+    ['schema_version', 'experiment_id', 'title', 'entries', 'board_sha256'],
+    'blind packet'
+  );
+  if (packet.schema_version !== BOARD_SCHEMA_VERSION) throw new Error('board schema mismatch');
+  if (typeof packet.experiment_id !== 'string' || typeof packet.title !== 'string') {
+    throw new Error('board identity is incomplete');
+  }
+  if (!Array.isArray(packet.entries) || packet.entries.length < 2) {
+    throw new Error('board entries are incomplete');
+  }
+  const ids = [];
+  for (const entry of packet.entries) {
+    assertPlainObject(entry, 'board entry');
+    assertExactKeys(entry, ['id', 'before', 'after', 'summary', 'note', 'empty'], 'board entry');
+    ids.push(entry.id);
+    if (!/^N\d{2}$/.test(entry.id)) throw new Error('board entry id is invalid');
+    for (const field of ['before', 'after', 'summary', 'note']) {
+      if (typeof entry[field] !== 'string') throw new Error(`board entry ${field} is invalid`);
+    }
+    if (typeof entry.empty !== 'boolean') throw new Error('board entry empty is invalid');
+  }
+  if (new Set(ids).size !== ids.length) throw new Error('board entry ids contain duplicates');
+  const expected = sha256(stableJSON(blindPacketCore(packet)));
+  if (packet.board_sha256 !== expected) throw new Error('board self-hash is stale');
+  return packet;
+}
+
+export function validatePrivateMapping(mapping, packet, cells) {
+  validateBlindPacket(packet);
+  assertPlainObject(mapping, 'private mapping');
+  assertExactKeys(
+    mapping,
+    ['schema_version', 'experiment_id', 'board_sha256', 'entries', 'cells'],
+    'private mapping'
+  );
+  if (
+    mapping.schema_version !== EXPERIMENT_SCHEMA_VERSION ||
+    mapping.experiment_id !== packet.experiment_id ||
+    mapping.board_sha256 !== packet.board_sha256
+  ) {
+    throw new Error('private mapping identity is stale');
+  }
+  if (!Array.isArray(mapping.entries) || !Array.isArray(mapping.cells)) {
+    throw new Error('private mapping arrays are missing');
+  }
+  const publicIds = packet.entries.map((entry) => entry.id);
+  const mappedIds = mapping.entries.map((entry) => entry.id);
+  if (
+    mappedIds.length !== publicIds.length ||
+    new Set(mappedIds).size !== mappedIds.length ||
+    publicIds.some((id) => !mappedIds.includes(id))
+  ) {
+    throw new Error('private mapping entries do not exactly cover the board');
+  }
+  if (mapping.entries.filter((entry) => entry.type === 'incumbent').length !== 1) {
+    throw new Error('private mapping must contain one incumbent');
+  }
+  if (mapping.entries.filter((entry) => entry.type === 'no-note').length !== 1) {
+    throw new Error('private mapping must contain one no-note control');
+  }
+  const sourceCells = new Map(cells.map((cell) => [`${cell.requested_model}:${cell.arm}`, cell]));
+  const runIds = [];
+  const isolationSessions = [];
+  const providerSessions = [];
+  const expectedKeys = MODEL_SPECS.flatMap((spec) => {
+    const pair = cells.filter((cell) => cell.requested_model === spec.model);
+    if (pair.length !== 2 || !pair.every((cell) => cellIsAdmissible(cell, spec))) return [];
+    return pair.map((cell) => `${cell.requested_model}:${cell.arm}`);
+  }).sort();
+  const mappedKeys = mapping.cells.map((cell) => `${cell.requested_model}:${cell.arm}`).sort();
+  if (
+    expectedKeys.length !== mappedKeys.length ||
+    new Set(mappedKeys).size !== mappedKeys.length ||
+    expectedKeys.some((key, index) => key !== mappedKeys[index])
+  ) {
+    throw new Error('private mapping does not exactly cover every admissible model pair');
+  }
+  for (const mapped of mapping.cells) {
+    if (!publicIds.includes(mapped.id)) throw new Error('mapped cell references an unknown card');
+    if (!mapped.actual_model || !mapped.actual_model_source || !mapped.provider_session_id) {
+      throw new Error('mapped cell provenance is incomplete');
+    }
+    const source = sourceCells.get(`${mapped.requested_model}:${mapped.arm}`);
+    if (!source || source.status !== 'VALID')
+      throw new Error('mapped cell is not an admitted cell');
+    if (
+      source.actual_model !== mapped.actual_model ||
+      source.actual_model_source !== mapped.actual_model_source
+    ) {
+      throw new Error('mapped cell model provenance is stale');
+    }
+    const expectedType = source.artifact.candidates.length === 0 ? 'abstain' : 'candidate';
+    if (mapped.type !== expectedType) throw new Error('mapped cell type is stale');
+    const mappedEntry = mapping.entries.find((entry) => entry.id === mapped.id);
+    if (
+      !mappedEntry ||
+      (expectedType === 'candidate' && mappedEntry.type !== 'candidate') ||
+      (expectedType === 'abstain' && mappedEntry.type !== 'no-note')
+    ) {
+      throw new Error('mapped cell public control reference is stale');
+    }
+    const accepted = [...source.attempts].reverse().find((attempt) => !attempt.validation_error);
+    if (!accepted || accepted.run_uuid !== mapped.run_uuid) {
+      throw new Error('mapped cell does not reference its accepted attempt');
+    }
+    if (
+      accepted.provider_session_id !== mapped.provider_session_id ||
+      accepted.isolation_session_id !== mapped.isolation_session_id
+    ) {
+      throw new Error('mapped cell session provenance is stale');
+    }
+    if (sha256(stableJSON(source.artifact)) !== mapped.candidate_sha256) {
+      throw new Error('mapped cell artifact hash is stale');
+    }
+    runIds.push(mapped.run_uuid);
+    isolationSessions.push(mapped.isolation_session_id);
+    providerSessions.push(mapped.provider_session_id);
+  }
+  for (const [label, values] of Object.entries({ runIds, isolationSessions, providerSessions })) {
+    if (new Set(values).size !== values.length) throw new Error(`${label} contains duplicates`);
+  }
+  return mapping;
 }
 
 function escapeInlineJSON(value) {
@@ -1084,12 +1489,12 @@ export function renderBoardHTML(packet) {
 <link rel="icon" href="data:,">
 <title>${packet.title}</title>
 <style>
-:root{color-scheme:light dark;--bg:#f4f1e9;--paper:#fffdf7;--ink:#20201d;--muted:#68665f;--placeholder:#68665f;--line:#d8d1c2;--accent:#235c4d;--accent2:#d7eadf;--primary-ink:#fff;--danger:#8f3b32;--shadow:0 8px 30px #312b1d18;font-family:ui-rounded,"SF Pro Rounded","PingFang TC",system-ui,sans-serif}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65}button,textarea{font:inherit}button{cursor:pointer}.shell{max-width:1180px;margin:auto;padding:20px}.top{position:sticky;top:0;z-index:10;background:#f4f1e9ee;backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 0}.topin{max-width:1180px;margin:auto;padding:0 20px;display:flex;gap:14px;align-items:center;justify-content:space-between}.top h1{font-size:clamp(1.15rem,3vw,1.65rem);margin:0}.top p{margin:2px 0 0;color:var(--muted);font-size:.92rem}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{min-height:44px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 12px}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--primary-ink)}.btn.danger{color:var(--danger)}.btn:hover,.choice:hover{border-color:var(--accent)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}.cards{display:grid;gap:16px}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px}.card:focus-within{outline:3px solid #4c9b8066;outline-offset:2px}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.id{font-weight:800;letter-spacing:.06em}.status{display:flex;gap:5px}.choice{min-width:44px;min-height:44px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 10px}.choice[aria-checked="true"]{background:var(--accent2);border-color:var(--accent);color:#123d31;font-weight:700}.context{margin:14px 0;padding:12px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:.92rem}.context p{margin:0}.context p+p{margin-top:8px}.note{font-size:1.08rem;margin:16px 0;white-space:pre-wrap}.summary{font-weight:800;margin-bottom:7px}.empty{color:var(--muted);font-style:italic}.comment{width:100%;min-height:88px;resize:vertical;border:1px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);padding:10px}.comment::placeholder{color:var(--placeholder);opacity:1}.rank{position:sticky;top:104px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.rank h2{font-size:1rem;margin:0}.progress{display:block;color:var(--accent);font-weight:700;margin:2px 0 4px}.rank .hint{font-size:.85rem;color:var(--muted);margin:0 0 12px}.ranklist{display:grid;gap:8px}.rankitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper)}.rankitem[draggable="true"]{cursor:grab}.ranknum{width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--primary-ink);font-size:.8rem}.move{display:flex;gap:3px}.move button{min-width:44px;min-height:44px;border:0;background:transparent;padding:5px}.emptyrank{color:var(--muted);font-size:.9rem}.notice{min-height:1.5em;color:var(--accent);font-size:.88rem;margin-top:10px}.privacy{margin:16px 0;color:var(--muted);font-size:.9rem}.footer{padding:24px 0;color:var(--muted);font-size:.86rem}
-@media(prefers-color-scheme:dark){:root{--bg:#171816;--paper:#22231f;--ink:#f1eee5;--muted:#bbb5a7;--placeholder:#bbb5a7;--line:#44443d;--accent:#67b99b;--accent2:#254a3d;--primary-ink:#171816;--danger:#ef9a8f;--shadow:none}.top{background:#171816ee}.choice[aria-checked="true"]{color:#e9fff7}}
-@media(max-width:820px){.layout{grid-template-columns:1fr}.rank{position:sticky;top:0;z-index:5;order:-1;max-height:32vh;overflow:auto}.top{position:static}.topin{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1}.shell{padding:14px}.card{padding:15px}.status{flex-wrap:wrap;justify-content:flex-end}}
+:root{color-scheme:light dark;--bg:#f4f1e9;--top-bg:#f4f1e9ee;--paper:#fffdf7;--ink:#20201d;--muted:#68665f;--placeholder:#68665f;--line:#d8d1c2;--control-line:#8f8a81;--accent:#235c4d;--accent2:#d7eadf;--selected-ink:#123d31;--focus-ring:#235c4d;--primary-ink:#fff;--danger:#8f3b32;--shadow:0 8px 30px #312b1d18;font-family:ui-rounded,"SF Pro Rounded","PingFang TC",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65}button,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.38}.shell{max-width:1180px;margin:auto;padding:20px}.top{position:sticky;top:0;z-index:10;background:var(--top-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 0}.topin{max-width:1180px;margin:auto;padding:0 20px;display:flex;gap:14px;align-items:center;justify-content:space-between}.top h1{font-size:clamp(1.15rem,3vw,1.65rem);margin:0}.top p{margin:2px 0 0;color:var(--muted);font-size:.92rem}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{min-height:44px;border:1px solid var(--control-line);background:var(--paper);color:var(--ink);border-radius:10px;padding:8px 12px}.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--primary-ink)}.btn.danger{color:var(--danger)}.btn:hover,.choice:hover{border-color:var(--accent)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}.cards{display:grid;gap:16px}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;scroll-margin-top:18px}.card:focus-within{outline:3px solid var(--focus-ring);outline-offset:2px}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.id{font-weight:800;letter-spacing:.06em}.status{display:flex;gap:5px}.choice{min-width:44px;min-height:44px;border:1px solid var(--control-line);background:transparent;border-radius:999px;padding:8px 10px}.choice[aria-checked="true"]{background:var(--accent2);border-color:var(--accent);color:var(--selected-ink);font-weight:700}.context{margin:14px 0;padding:12px 14px;border-left:3px solid var(--line);color:var(--muted);font-size:.92rem}.context p{margin:0}.context p+p{margin-top:8px}.note{font-size:1.08rem;margin:16px 0;white-space:pre-wrap}.summary{font-weight:800;margin-bottom:7px}.empty{color:var(--muted);font-style:italic}.comment{width:100%;min-height:88px;resize:vertical;border:1px solid var(--control-line);border-radius:10px;background:transparent;color:var(--ink);padding:10px}.comment::placeholder{color:var(--placeholder);opacity:1}.rank{position:sticky;top:104px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow)}.rank h2{font-size:1rem;margin:0}.progress{display:block;color:var(--accent);font-weight:700;margin:2px 0 4px}.rank .hint{font-size:.85rem;color:var(--muted);margin:0 0 12px}.ranklist{display:grid;gap:8px}.rankitem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--paper)}.rankitem[draggable="true"]{cursor:grab}.ranknum{width:1.6em;height:1.6em;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--primary-ink);font-size:.8rem}.move{display:flex;gap:3px}.move button{min-width:44px;min-height:44px;border:0;background:transparent;padding:5px;color:var(--ink)}.emptyrank{color:var(--muted);font-size:.9rem}.notice{min-height:1.5em;color:var(--accent);font-size:.88rem;margin-top:10px}.privacy{margin:16px 0;color:var(--muted);font-size:.9rem}.footer{padding:24px 0;color:var(--muted);font-size:.86rem}
+@media(prefers-color-scheme:dark){:root{--bg:#171816;--top-bg:#171816ee;--paper:#22231f;--ink:#f1eee5;--muted:#bbb5a7;--placeholder:#bbb5a7;--line:#44443d;--control-line:#6d6f65;--accent:#67b99b;--accent2:#254a3d;--selected-ink:#e9fff7;--focus-ring:#67b99b;--primary-ink:#171816;--danger:#ef9a8f;--shadow:none}}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.rank{position:static;order:-1;max-height:none;overflow:visible}.top{position:static}.topin{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions .btn{flex:1}.shell{padding:14px}.card{padding:15px}.status{flex-wrap:wrap;justify-content:flex-end}}
 @media(prefers-reduced-motion:no-preference){.card,.rankitem{transition:border-color .15s,transform .15s}}
-:focus-visible{outline:3px solid #4c9b80;outline-offset:2px}
+:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -1108,11 +1513,11 @@ function notice(msg){document.getElementById('notice').textContent=msg}
 function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function render(){const cards=document.getElementById('cards');cards.innerHTML=DATA.entries.map(item=>'<article class="card" data-id="'+item.id+'"><div class="cardhead"><span class="id">'+item.id+'</span><div class="status" role="radiogroup" aria-label="'+item.id+' 判定">'+['keep','pending','reject'].map((value,i)=>'<button class="choice" role="radio" data-value="'+value+'" aria-checked="'+(state.decisions[item.id]===value)+'" tabindex="'+((state.decisions[item.id]===value||(state.decisions[item.id]==='unreviewed'&&i===0))?'0':'-1')+'">'+['留','待定','淘汰'][i]+'</button>').join('')+'</div></div><div class="context"><p>'+esc(item.before)+'</p>'+(item.after?'<p>接著：'+esc(item.after)+'</p>':'')+'</div><div class="note '+(item.empty?'empty':'')+'">'+(item.summary?'<div class="summary">'+esc(item.summary)+'</div>':'')+(item.empty?'（不放 MoguNote）':esc(item.note))+'</div><label for="c-'+item.id+'">你的評論</label><textarea class="comment" id="c-'+item.id+'" placeholder="好笑在哪裡、蠢在哪裡、你會怎麼修……">'+esc(state.comments[item.id])+'</textarea></article>').join('');
  cards.querySelectorAll('.card').forEach(card=>{const id=card.dataset.id,buttons=[...card.querySelectorAll('.choice')];buttons.forEach((btn,index)=>{btn.addEventListener('click',()=>choose(id,btn.dataset.value,true));btn.addEventListener('keydown',event=>{const delta=['ArrowRight','ArrowDown'].includes(event.key)?1:['ArrowLeft','ArrowUp'].includes(event.key)?-1:0;if(!delta)return;event.preventDefault();const next=(index+delta+buttons.length)%buttons.length;choose(id,buttons[next].dataset.value,true)})});card.querySelector('.comment').addEventListener('input',e=>{state.comments[id]=e.target.value;save()})});renderRank()}
-function choose(id,value,focus){state.decisions[id]=value;if(value==='keep'&&!state.ranking.includes(id))state.ranking.push(id);if(value!=='keep')state.ranking=state.ranking.filter(x=>x!==id);save();render();if(focus)document.querySelector('article[data-id="'+id+'"] .choice[data-value="'+value+'"]').focus()}
-function renderRank(){const list=document.getElementById('ranklist'),reviewed=ids.filter(id=>state.decisions[id]!=='unreviewed').length;document.getElementById('progress').textContent=reviewed+'/'+ids.length+' 已評';const keep=ids.filter(id=>state.decisions[id]==='keep');state.ranking=state.ranking.filter(id=>keep.includes(id));for(const id of keep)if(!state.ranking.includes(id))state.ranking.push(id);if(!state.ranking.length){list.innerHTML='<p class="emptyrank">把候選標成「留」，就會出現在這裡。</p>';return}list.innerHTML=state.ranking.map((id,index)=>'<div class="rankitem" draggable="true" data-id="'+id+'"><span class="ranknum">'+(index+1)+'</span><strong>'+id+'</strong><span class="move"><button data-dir="-1" aria-label="'+id+' 上移">↑</button><button data-dir="1" aria-label="'+id+' 下移">↓</button></span></div>').join('');let dragged;list.querySelectorAll('.rankitem').forEach(row=>{row.addEventListener('dragstart',()=>{dragged=row.dataset.id});row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',()=>moveBefore(dragged,row.dataset.id));row.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>moveBy(row.dataset.id,Number(btn.dataset.dir))))})}
+function choose(id,value,focus){state.decisions[id]=value;if(value==='keep'&&!state.ranking.includes(id))state.ranking.push(id);if(value!=='keep')state.ranking=state.ranking.filter(x=>x!==id);save();render();notice('');if(focus)document.querySelector('article[data-id="'+id+'"] .choice[data-value="'+value+'"]').focus()}
+function renderRank(){const list=document.getElementById('ranklist'),reviewed=ids.filter(id=>state.decisions[id]!=='unreviewed').length;document.getElementById('progress').textContent=reviewed+'/'+ids.length+' 已評';const keep=ids.filter(id=>state.decisions[id]==='keep');state.ranking=state.ranking.filter(id=>keep.includes(id));for(const id of keep)if(!state.ranking.includes(id))state.ranking.push(id);if(!state.ranking.length){list.innerHTML='<p class="emptyrank">把候選標成「留」，就會出現在這裡。</p>';return}list.innerHTML=state.ranking.map((id,index)=>'<div class="rankitem" draggable="true" data-id="'+id+'"><span class="ranknum">'+(index+1)+'</span><strong>'+id+'</strong><span class="move"><button data-dir="-1" aria-label="'+id+' 上移" '+(index===0?'disabled':'')+'>↑</button><button data-dir="1" aria-label="'+id+' 下移" '+(index===state.ranking.length-1?'disabled':'')+'>↓</button></span></div>').join('');let dragged;list.querySelectorAll('.rankitem').forEach(row=>{row.addEventListener('dragstart',()=>{dragged=row.dataset.id});row.addEventListener('dragover',e=>e.preventDefault());row.addEventListener('drop',()=>moveBefore(dragged,row.dataset.id));row.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>moveBy(row.dataset.id,Number(btn.dataset.dir))))})}
 function moveBefore(from,to){if(!from||from===to)return;const next=state.ranking.filter(x=>x!==from);next.splice(next.indexOf(to),0,from);state.ranking=next;save();renderRank();notice(from+' 已移到 '+to+' 前面')}
-function moveBy(id,delta){const at=state.ranking.indexOf(id),to=at+delta;if(to<0||to>=state.ranking.length)return;[state.ranking[at],state.ranking[to]]=[state.ranking[to],state.ranking[at]];save();renderRank();notice(id+' 現在是第 '+(to+1)+' 名')}
-function ready(){const missing=ids.filter(id=>state.decisions[id]==='unreviewed');if(!missing.length)return true;notice('還有 '+missing.length+' 則未評；先完成「留／待定／淘汰」再匯出。');document.querySelector('article[data-id="'+missing[0]+'"]').scrollIntoView({behavior:'smooth',block:'center'});return false}
+function moveBy(id,delta){const at=state.ranking.indexOf(id),to=at+delta;if(to<0||to>=state.ranking.length)return;[state.ranking[at],state.ranking[to]]=[state.ranking[to],state.ranking[at]];save();renderRank();const row=document.querySelector('.rankitem[data-id="'+id+'"]'),preferred=row?.querySelector('button[data-dir="'+delta+'"]:not(:disabled)')||row?.querySelector('button:not(:disabled)');preferred?.focus();notice(id+' 現在是第 '+(to+1)+' 名')}
+function ready(){const missing=ids.filter(id=>state.decisions[id]==='unreviewed');if(!missing.length)return true;notice('還有 '+missing.length+' 則未評；先完成「留／待定／淘汰」再匯出。');const card=document.querySelector('article[data-id="'+missing[0]+'"]');card.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>card.querySelector('.choice[tabindex="0"]')?.focus(),250);return false}
 function exportState(){const out={...state,submitted_at:new Date().toISOString()};if(!valid(out))throw new Error('評選資料不完整');return JSON.stringify(out,null,2)+'\\n'}
 document.getElementById('download').addEventListener('click',()=>{if(!ready())return;const blob=new Blob([exportState()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='gp-273-mogunote-ranking.json';a.click();URL.revokeObjectURL(url);notice('已下載 JSON')});
 document.getElementById('copy').addEventListener('click',async()=>{if(!ready())return;const value=exportState();try{await navigator.clipboard.writeText(value)}catch{const area=document.createElement('textarea');area.value=value;document.body.append(area);area.select();document.execCommand('copy');area.remove()}notice('已複製 JSON')});
@@ -1123,118 +1528,114 @@ render();
 </html>`;
 }
 
-export async function generateBoard(root, outputPath) {
-  const packet = JSON.parse(
-    await fs.readFile(path.join(root, 'collector', 'blind-packet.json'), 'utf8')
+const SEALED_COLLECTOR_FILES = [
+  'probes.json',
+  'cells.private.json',
+  'mapping.private.json',
+  'blind-packet.json',
+  'summary.json',
+];
+
+async function sealCollector(root) {
+  root = await openExperimentRoot(root);
+  const manifestPath = path.join(root, 'collector', 'collector-manifest.json');
+  try {
+    await fs.lstat(manifestPath);
+    throw new Error('collector is already sealed');
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+  const texts = Object.fromEntries(
+    await Promise.all(
+      SEALED_COLLECTOR_FILES.map(async (name) => [
+        name,
+        await fs.readFile(path.join(root, 'collector', name), 'utf8'),
+      ])
+    )
   );
-  const html = renderBoardHTML(packet);
-  await fs.writeFile(outputPath, html, { mode: 0o600 });
-  return { outputPath, boardSha256: packet.board_sha256, entryCount: packet.entries.length };
+  const packet = validateBlindPacket(JSON.parse(texts['blind-packet.json']));
+  const cells = JSON.parse(texts['cells.private.json']);
+  validatePrivateMapping(JSON.parse(texts['mapping.private.json']), packet, cells);
+  const manifest = {
+    schema_version: EXPERIMENT_SCHEMA_VERSION,
+    experiment_id: packet.experiment_id,
+    board_sha256: packet.board_sha256,
+    sealed_at: new Date().toISOString(),
+    files: Object.fromEntries(
+      SEALED_COLLECTOR_FILES.map((name) => [name, { sha256: sha256(texts[name]) }])
+    ),
+  };
+  await writePrivateJSON(manifestPath, manifest);
+  return manifest;
 }
 
-export async function reconcileExperiment(root) {
-  const resolvedRoot = await fs.realpath(root);
-  const inputs = await readInputs(resolvedRoot);
-  const cellsPath = path.join(resolvedRoot, 'collector', 'cells.private.json');
-  const probesPath = path.join(resolvedRoot, 'collector', 'probes.json');
-  const mappingPath = path.join(resolvedRoot, 'collector', 'mapping.private.json');
-  const [cells, probes, mapping] = await Promise.all([
-    fs.readFile(cellsPath, 'utf8').then(JSON.parse),
-    fs.readFile(probesPath, 'utf8').then(JSON.parse),
-    fs.readFile(mappingPath, 'utf8').then(JSON.parse),
-  ]);
-  const attemptsByUUID = new Map();
-  for (const cell of cells) {
-    const spec = MODEL_SPECS.find((candidate) => candidate.model === cell.requested_model);
-    if (!spec) throw new Error(`unknown model in cell ${cell.requested_model}`);
-    for (const attempt of cell.attempts) {
-      const manifestPath = path.join(attempt.cwd, 'manifest.json');
-      const rawOutput = await fs.readFile(path.join(attempt.cwd, 'stdout.json'), 'utf8');
-      let transportOutput = rawOutput;
-      try {
-        transportOutput = await fs.readFile(path.join(attempt.cwd, 'transport.jsonl'), 'utf8');
-      } catch {
-        // Claude and Grok keep transport metadata in stdout.json.
-      }
-      const provenance = extractTransportProvenance(spec, rawOutput, transportOutput);
-      const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-      let candidateSha = null;
-      try {
-        const candidate = JSON.parse(
-          await fs.readFile(path.join(attempt.cwd, 'candidate.json'), 'utf8')
-        );
-        candidateSha = sha256(stableJSON(candidate));
-      } catch {
-        // Invalid attempts intentionally have no normalized candidate.
-      }
-      Object.assign(attempt, {
-        actual_model: provenance.actualModel,
-        provider_reported_models: provenance.providerReportedModels,
-        provider_session_id: provenance.providerSessionId,
-      });
-      attemptsByUUID.set(attempt.run_uuid, attempt);
-      await writePrivateJSON(manifestPath, {
-        ...manifest,
-        actual_model: provenance.actualModel,
-        provider_reported_models: provenance.providerReportedModels,
-        provider_session_id: provenance.providerSessionId,
-        source_sha256: inputs.sourceSha256,
-        translation_sha256: inputs.translationSha256,
-        base_prompt_sha256: cell.base_prompt_sha256,
-        validation_status: attempt.validation_error ? 'INVALID' : 'VALID',
-        validation_error: attempt.validation_error,
-        candidate_sha256: candidateSha,
-      });
+async function validateCollectorSeal(root) {
+  root = await openExperimentRoot(root);
+  const manifestText = await fs.readFile(
+    path.join(root, 'collector', 'collector-manifest.json'),
+    'utf8'
+  );
+  const manifest = JSON.parse(manifestText);
+  assertPlainObject(manifest, 'collector manifest');
+  assertExactKeys(
+    manifest,
+    ['schema_version', 'experiment_id', 'board_sha256', 'sealed_at', 'files'],
+    'collector manifest'
+  );
+  const texts = {};
+  for (const name of SEALED_COLLECTOR_FILES) {
+    const content = await fs.readFile(path.join(root, 'collector', name), 'utf8');
+    if (manifest.files?.[name]?.sha256 !== sha256(content)) {
+      throw new Error(`sealed collector file changed: ${name}`);
     }
-    const accepted = [...cell.attempts].reverse().find((attempt) => !attempt.validation_error);
-    cell.actual_model = accepted?.actual_model ?? null;
-    cell.final_error = cell.status === 'VALID' ? null : cell.final_error;
+    texts[name] = content;
   }
-  for (const entry of mapping.cells ?? mapping.entries) {
-    if (!entry.run_uuid) continue;
-    const attempt = attemptsByUUID.get(entry.run_uuid);
-    if (!attempt) throw new Error(`mapping references unknown run ${entry.run_uuid}`);
-    entry.actual_model = attempt.actual_model;
-    entry.provider_reported_models = attempt.provider_reported_models;
-    entry.provider_session_id = attempt.provider_session_id;
+  const packet = validateBlindPacket(JSON.parse(texts['blind-packet.json']));
+  if (
+    manifest.schema_version !== EXPERIMENT_SCHEMA_VERSION ||
+    manifest.experiment_id !== packet.experiment_id ||
+    manifest.board_sha256 !== packet.board_sha256
+  ) {
+    throw new Error('collector manifest identity is stale');
   }
-  for (const probe of probes) {
-    const spec = MODEL_SPECS.find((candidate) => candidate.model === probe.requested_model);
-    const probeDir = path.join(resolvedRoot, 'probes', probe.run_uuid);
-    const rawOutput = await fs.readFile(path.join(probeDir, 'stdout.json'), 'utf8');
-    let transportOutput = rawOutput;
-    try {
-      transportOutput = await fs.readFile(path.join(probeDir, 'transport.jsonl'), 'utf8');
-    } catch {
-      // Claude and Grok keep transport metadata in stdout.json.
-    }
-    const provenance = extractTransportProvenance(spec, rawOutput, transportOutput);
-    probe.actual_model = probe.status === 'AVAILABLE' ? provenance.actualModel : null;
-    probe.provider_reported_models = provenance.providerReportedModels;
-    probe.provider_session_id = provenance.providerSessionId;
-    const manifestPath = path.join(probeDir, 'manifest.json');
-    const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
-    await writePrivateJSON(manifestPath, {
-      ...manifest,
-      actual_model: probe.actual_model,
-      provider_reported_models: probe.provider_reported_models,
-      provider_session_id: probe.provider_session_id,
-      validation_status: probe.status,
-      validation_error: probe.validation_error,
-    });
+  const cells = JSON.parse(texts['cells.private.json']);
+  const mapping = validatePrivateMapping(JSON.parse(texts['mapping.private.json']), packet, cells);
+  return { root, manifest, packet, mapping, cells };
+}
+
+function scanBoardForLeaks(board, cells) {
+  const runIds = cells.flatMap((cell) => cell.attempts.map((attempt) => attempt.run_uuid));
+  const sessions = cells.flatMap((cell) =>
+    cell.attempts.flatMap((attempt) =>
+      [attempt.isolation_session_id, attempt.provider_session_id].filter(Boolean)
+    )
+  );
+  const forbidden = [
+    ...MODEL_SPECS.map((spec) => spec.model),
+    'requested_model',
+    'actual_model',
+    '/private/tmp',
+    '/Users/',
+    ...runIds,
+    ...sessions,
+  ];
+  for (const token of forbidden) {
+    if (board.includes(token)) throw new Error(`board leaks forbidden token ${token}`);
   }
-  await Promise.all([
-    writePrivateJSON(cellsPath, cells),
-    writePrivateJSON(probesPath, probes),
-    writePrivateJSON(mappingPath, mapping),
-  ]);
-  return {
-    cells: cells.length,
-    attempts: attemptsByUUID.size,
-    probes: probes.length,
-    provider_sessions: [...attemptsByUUID.values()].filter((attempt) => attempt.provider_session_id)
-      .length,
-  };
+  const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
+  if (uuidPattern.test(board)) throw new Error('board leaks a UUID');
+}
+
+export async function generateBoard(root, outputPath) {
+  const { packet, cells } = await validateCollectorSeal(root);
+  const html = renderBoardHTML(packet);
+  scanBoardForLeaks(html, cells);
+  const target = path.resolve(outputPath);
+  const tmp = `${target}.${crypto.randomUUID()}.tmp`;
+  await fs.writeFile(tmp, html, { mode: 0o600, flag: 'wx' });
+  await fs.rename(tmp, target);
+  await fs.chmod(target, 0o600);
+  return { outputPath, boardSha256: packet.board_sha256, entryCount: packet.entries.length };
 }
 
 async function assertMode(target, expected, kind) {
@@ -1250,15 +1651,7 @@ async function assertMode(target, expected, kind) {
 }
 
 export async function verifyIsolation(root, boardPath) {
-  const realRoot = await fs.realpath(root);
-  if (!realRoot.startsWith(PRIVATE_ROOT_PREFIX)) throw new Error('unexpected experiment root');
-  await assertMode(realRoot, 0o700, 'directory');
-  for (const name of ['inputs', 'probes', 'runs', 'collector']) {
-    await assertMode(path.join(realRoot, name), 0o700, 'directory');
-  }
-  const cells = JSON.parse(
-    await fs.readFile(path.join(realRoot, 'collector', 'cells.private.json'), 'utf8')
-  );
+  const { cells, mapping } = await validateCollectorSeal(root);
   const runIds = [];
   const cwds = [];
   const sessions = [];
@@ -1284,15 +1677,8 @@ export async function verifyIsolation(root, boardPath) {
   for (const [name, values] of Object.entries({ runIds, cwds, sessions, providerSessions })) {
     if (new Set(values).size !== values.length) throw new Error(`${name} contains duplicates`);
   }
-  const mappingText = await fs.readFile(
-    path.join(realRoot, 'collector', 'mapping.private.json'),
-    'utf8'
-  );
-  const mapping = JSON.parse(mappingText);
   for (const spec of MODEL_SPECS) {
-    const pair = (mapping.cells ?? mapping.entries).filter(
-      (entry) => entry.requested_model === spec.model
-    );
+    const pair = mapping.cells.filter((entry) => entry.requested_model === spec.model);
     if (pair.length === 2 && pair[0].isolation_session_id === pair[1].isolation_session_id) {
       throw new Error(`${spec.model} prompt arms share a session id`);
     }
@@ -1306,23 +1692,7 @@ export async function verifyIsolation(root, boardPath) {
   }
   if (boardPath) {
     const board = await fs.readFile(boardPath, 'utf8');
-    const forbidden = [
-      ...MODEL_SPECS.map((spec) => spec.model),
-      'provider',
-      'requested_model',
-      'actual_model',
-      'current',
-      'revised',
-      '/private/tmp',
-      '/Users/',
-      ...runIds,
-      ...sessions,
-    ];
-    for (const token of forbidden) {
-      if (board.includes(token)) throw new Error(`board leaks forbidden token ${token}`);
-    }
-    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
-    if (uuidPattern.test(board)) throw new Error('board leaks a UUID');
+    scanBoardForLeaks(board, cells);
   }
   return {
     runCount: runIds.length,
@@ -1333,7 +1703,21 @@ export async function verifyIsolation(root, boardPath) {
 }
 
 export function validateRankingResult(result, packet) {
+  validateBlindPacket(packet);
   assertPlainObject(result, 'ranking result');
+  assertExactKeys(
+    result,
+    [
+      'schema_version',
+      'experiment_id',
+      'board_sha256',
+      'submitted_at',
+      'ranking',
+      'decisions',
+      'comments',
+    ],
+    'ranking result'
+  );
   if (result.schema_version !== RESULT_SCHEMA_VERSION) throw new Error('ranking schema mismatch');
   if (result.experiment_id !== packet.experiment_id) throw new Error('ranking experiment mismatch');
   if (result.board_sha256 !== packet.board_sha256) throw new Error('ranking board hash is stale');
@@ -1371,15 +1755,9 @@ function compareBlindIds(left, right, result) {
 }
 
 export async function revealResults(root, resultPath) {
-  const [packetText, mappingText, resultText] = await Promise.all([
-    fs.readFile(path.join(root, 'collector', 'blind-packet.json'), 'utf8'),
-    fs.readFile(path.join(root, 'collector', 'mapping.private.json'), 'utf8'),
-    fs.readFile(resultPath, 'utf8'),
-  ]);
-  const packet = JSON.parse(packetText);
-  const mapping = JSON.parse(mappingText);
+  const { root: realRoot, packet, mapping } = await validateCollectorSeal(root);
+  const resultText = await fs.readFile(resultPath, 'utf8');
   const result = validateRankingResult(JSON.parse(resultText), packet);
-  if (mapping.board_sha256 !== packet.board_sha256) throw new Error('private mapping is stale');
   const byId = new Map(mapping.entries.map((entry) => [entry.id, entry]));
   const mappedCells = mapping.cells ?? mapping.entries;
   const pairResults = [];
@@ -1391,7 +1769,7 @@ export async function revealResults(root, resultPath) {
     const revised = mappedCells.find(
       (entry) => entry.requested_model === model && entry.arm === 'revised'
     );
-    if (!current || !revised) continue;
+    if (!current || !revised) throw new Error(`private mapping pair is incomplete for ${model}`);
     const comparison = compareBlindIds(revised.id, current.id, result);
     pairResults.push({
       model,
@@ -1431,10 +1809,10 @@ export async function revealResults(root, resultPath) {
           : counts.revised / (counts.revised + counts.current),
     },
   };
-  await writePrivateJSON(path.join(root, 'collector', 'reveal.private.json'), reveal);
+  await writePrivateJSON(path.join(realRoot, 'collector', 'reveal.private.json'), reveal);
   return reveal;
 }
 
 export async function loadBlindPacket(root) {
-  return JSON.parse(await fs.readFile(path.join(root, 'collector', 'blind-packet.json'), 'utf8'));
+  return (await validateCollectorSeal(root)).packet;
 }
