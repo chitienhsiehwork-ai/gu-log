@@ -212,22 +212,22 @@ export function buildCanonicalUnsafeMask(content) {
   maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
   maskRegex(content, mask, /`[^`\n]+`/g);
   maskRegex(content, mask, /<!--[\s\S]*?-->/g);
-  // MDX expressions are code, but quoted strings inside them are rendered
-  // reader-visible prose. Keep comments fully masked and expose only string
-  // literal contents from other expressions.
+  // MDX expressions are code. Only a standalone string/template literal is
+  // statically guaranteed to render as reader-visible prose; strings nested
+  // inside program logic remain syntax and stay masked.
   maskRegex(content, mask, /\{\/\*[\s\S]*?\*\/\}/g);
   const expressionRe = /\{(?!\/\*)[\s\S]*?\}/g;
   let expression;
   while ((expression = expressionRe.exec(content))) {
     markRange(mask, expression.index, expression.index + expression[0].length);
-    const quotedRe = /(['"])(.*?)\1/g;
-    let quoted;
-    while ((quoted = quotedRe.exec(expression[0]))) {
-      const valueOffset = quoted.index + 1;
+    const visibleLiteral = expression[0].match(/^\{\s*(?:(['"])([\s\S]*?)\1|`([\s\S]*?)`)\s*\}$/);
+    if (visibleLiteral) {
+      const value = visibleLiteral[2] ?? visibleLiteral[3] ?? '';
+      const valueOffset = expression[0].indexOf(value);
       unmarkRange(
         mask,
         expression.index + valueOffset,
-        expression.index + valueOffset + quoted[2].length
+        expression.index + valueOffset + value.length
       );
     }
   }
@@ -249,7 +249,7 @@ export function buildCanonicalUnsafeMask(content) {
   let offset = 0;
   for (const line of lines) {
     if (/^\s*(import|export)\b/.test(line)) markRange(mask, offset, offset + line.length);
-    if (/^(?: {4}|\t)\S/.test(line)) markRange(mask, offset, offset + line.length);
+    if (/^(?: {4,}|\t+)\S/.test(line)) markRange(mask, offset, offset + line.length);
     offset += line.length + 1;
   }
 
@@ -275,7 +275,8 @@ export function frontmatterReaderVisibleRanges(content) {
       const value = keyMatch[2];
       inTags = key === 'tags' && value === '';
       inVisibleBlock =
-        (key === 'title' || key === 'summary' || key === 'tags') && /^[>|][+-]?\d?$/.test(value);
+        (key === 'title' || key === 'summary' || key === 'tags') &&
+        /^[>|](?:[1-9][+-]?|[+-][1-9]?|)$/.test(value);
       if (
         (key === 'title' || key === 'summary' || key === 'tags') &&
         value !== '' &&
@@ -499,32 +500,43 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-export function normalizeCanonicalTerminology(content, glossary = loadGlossary()) {
+function stripCanonicalGlossaryLinks(content, glossary) {
   let normalized = String(content);
-
   for (const entry of normalizeGlossary(glossary)) {
     const canonicalLink = new RegExp(
       `\\[(${escapeRegExp(entry.term)})\\]\\(\\/glossary#${escapeRegExp(entry.anchor)}\\)`,
       'gi'
     );
     normalized = normalized.replace(canonicalLink, '$1');
+  }
+  return normalized;
+}
+
+export function normalizeCanonicalTerminology(content, glossary = loadGlossary()) {
+  let normalized = stripCanonicalGlossaryLinks(content, glossary);
+
+  for (const [entryIndex, entry] of normalizeGlossary(glossary).entries()) {
     for (const forbidden of entry.forbiddenZhTw) {
       const term = escapeRegExp(entry.term);
       const old = escapeRegExp(forbidden);
+      const sentinel = `\uE000${entryIndex}\uE001`;
       normalized = normalized.replace(
         new RegExp(`${term}\\s*[（(]\\s*${old}\\s*[）)]`, 'gi'),
-        entry.term
+        sentinel
       );
-      normalized = normalized.replace(new RegExp(old, 'g'), entry.term);
-    }
+      normalized = normalized.replace(new RegExp(old, 'g'), sentinel);
 
-    // Chinese prose normally adds spaces around an inserted English term.
-    // Canonicalize only Han/term boundaries so this allowance cannot hide
-    // unrelated whitespace or punctuation edits elsewhere in the article.
-    const canonical = escapeRegExp(entry.term);
-    normalized = normalized
-      .replace(new RegExp(`([\\p{Script=Han}])[ \\t]*(${canonical})`, 'giu'), '$1 $2')
-      .replace(new RegExp(`(${canonical})[ \\t]*([\\p{Script=Han}])`, 'giu'), '$1 $2');
+      // Add only the spaces required at the exact replacement site. Existing
+      // canonical terms elsewhere are never normalized, so unrelated spacing
+      // edits cannot hitch a ride on a legitimate terminology migration.
+      normalized = normalized.replaceAll(sentinel, (_match, offset, whole) => {
+        const left = whole[offset - 1] ?? '';
+        const right = whole[offset + sentinel.length] ?? '';
+        const beforeSpace = /\p{Script=Han}/u.test(left) ? ' ' : '';
+        const afterSpace = /\p{Script=Han}/u.test(right) ? ' ' : '';
+        return `${beforeSpace}${entry.term}${afterSpace}`;
+      });
+    }
   }
   return normalized;
 }
@@ -588,7 +600,7 @@ export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadG
 
     if (
       normalizeCanonicalTerminology(beforeLine, glossary) !==
-      normalizeCanonicalTerminology(afterLine, glossary)
+      stripCanonicalGlossaryLinks(afterLine, glossary)
     ) {
       return false;
     }

@@ -207,8 +207,11 @@ describe('glossary link checker', () => {
         '<Thing label="代理人" />',
         '<Thing label="safe">元件子元素的代理人</Thing>',
         '{"會顯示的代理人"}',
+        '{`模板顯示的代理人`}',
+        '{({ label: "代理人", value: 1 })}',
         '{/* 代理人 */}',
-        '    const 代理人 = true',
+        '     const 五格代理人 = true',
+        '        const 八格代理人 = true',
         '',
       ].join('\n')
     );
@@ -221,6 +224,7 @@ describe('glossary link checker', () => {
     expect(canonical).toEqual([
       expect.objectContaining({ text: '代理人', line: 14, canonicalTerm: 'Agent' }),
       expect.objectContaining({ text: '代理人', line: 15, canonicalTerm: 'Agent' }),
+      expect.objectContaining({ text: '代理人', line: 16, canonicalTerm: 'Agent' }),
     ]);
   });
 
@@ -232,6 +236,21 @@ describe('glossary link checker', () => {
 
     expect(result.violations).toEqual([
       expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 4 }),
+    ]);
+  });
+
+  it('checks block scalars with explicit indentation and chomping indicators', () => {
+    const file = tmpPath('forbidden-block-scalar-indicators.mdx');
+    fs.writeFileSync(
+      file,
+      '---\nlang: zh-tw\nsummary: |2-\n  代理人摘要\ntitle: >2+\n  代理人標題\n---\n正文安全\n'
+    );
+
+    const result = checker.checkFile(file, { glossary });
+
+    expect(result.violations).toEqual([
+      expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 4 }),
+      expect.objectContaining({ kind: 'canonical-term', text: '代理人', line: 6 }),
     ]);
   });
 
@@ -325,6 +344,13 @@ describe('canonical terminology migration proof', () => {
     expect(
       checker.isCanonicalTerminologyOnlyChange('讓 Agent 工作。\n', '讓Agent工作。\n', glossary)
     ).toBe(false);
+  });
+
+  it('rejects bundling unrelated canonical-term whitespace with a valid replacement', () => {
+    const before = '代理人會工作。\n讓 Agent 工作。\n';
+    const after = 'Agent 會工作。\n讓Agent工作。\n';
+
+    expect(checker.isCanonicalTerminologyOnlyChange(before, after, glossary)).toBe(false);
   });
 
   it('rejects an unrelated glossary wrapper', () => {
