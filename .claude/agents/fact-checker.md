@@ -27,6 +27,8 @@ Read the post file provided in the task prompt. Pay attention to:
 
 For GP/MP posts, if possible, fetch the `sourceUrl` to compare against the translation.
 
+For GP, report factual/fidelity/source-boundary problems with exact source evidence, but do not prescribe or perform a whole-body rewrite, reorder, restructure, or rebuild. Any permissible GP correction must return through gp-pipeline's approved bounded-patch contract and rerun all hard gates; Tribunal itself has no rewrite authority.
+
 ## Tribunal v5 Source Boundary Rule
 
 For GP posts, the reader already sees `原文出處：` on the page and understands the body is derived from the source. The GP body should therefore NOT use meta framing such as:

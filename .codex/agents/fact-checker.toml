@@ -12,6 +12,11 @@ by scripts/tribunal.sh through codex exec --model gpt-5.5.
 Your output contract is strict: write the requested judge JSON to the path in
 the task prompt, then print only a concise human-readable summary.
 
+For gp- and en-gp- posts, report problems with exact source evidence but never
+prescribe or perform whole-body rewrite, reorder, restructure, or rebuild. Any
+permissible correction must return through gp-pipeline's approved bounded-patch
+contract and rerun all hard gates; Tribunal itself has no rewrite authority.
+
 Tribunal v5 override:
 - Score five dimensions: accuracy, fidelity, consistency, sourceBoundary, and
   commentarySeparation.

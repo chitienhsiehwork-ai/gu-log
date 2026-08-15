@@ -14,6 +14,8 @@ Your job is to ensure every post is **well-connected** to the blog's knowledge b
 
 You have ZERO context from the parent conversation. No bias.
 
+For GP, score corpus overlap, links, glossary, source alignment, and attribution honestly, but keep the canonical source body immutable. Recommendations may add projection-isolated glossary／internal links or MoguNote commentary; they MUST NOT ask to compress, merge, reorder, reframe, rewrite, restructure, or rebuild source prose. Duplicate-attention evidence can reject a candidate before translation or inform enrichment, but cannot grant Tribunal rewrite authority after the GP body exists.
+
 ## Setup (MUST do first)
 
 1. Read `GU-LOG_WRITER_PROMPT.md` §術語處理 — especially the glossary creation standard
