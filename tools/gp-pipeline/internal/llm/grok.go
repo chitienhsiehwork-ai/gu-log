@@ -2,6 +2,9 @@ package llm
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,9 +63,27 @@ func (g *GrokProvider) Run(ctx context.Context, prompt string, opts RunOptions) 
 		},
 		Stdin:   []byte(prompt),
 		WorkDir: workDir,
+		Env: func() []string {
+			if opts.JSONSchema == "" {
+				return nil
+			}
+			return []string{"GP_GROK_JSON_SCHEMA_B64=" + base64.StdEncoding.EncodeToString([]byte(opts.JSONSchema))}
+		}(),
 	})
 	if err != nil {
 		return "", err
+	}
+	if opts.JSONSchema != "" {
+		var envelope struct {
+			StructuredOutput json.RawMessage `json:"structuredOutput"`
+		}
+		if err := json.Unmarshal(res.Stdout, &envelope); err != nil {
+			return "", fmt.Errorf("grok structured-output envelope: %w", err)
+		}
+		if len(envelope.StructuredOutput) == 0 || string(envelope.StructuredOutput) == "null" {
+			return "", fmt.Errorf("grok structured-output envelope missing structuredOutput")
+		}
+		return string(envelope.StructuredOutput), nil
 	}
 	return strings.TrimRight(string(res.Stdout), "\n"), nil
 }

@@ -1430,6 +1430,7 @@ PROMPT
 
 tribunal_grok_prompt_exec() {
   local work_dir="$1" model="$2" reasoning="$3" sandbox_profile="$4" prompt="$5"
+  local json_schema="${6:-}"
   local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   local grok_cmd grok_executable timeout_cmd runtime_profile
   local -a grok_argv
@@ -1465,10 +1466,14 @@ tribunal_grok_prompt_exec() {
     --no-subagents
     --no-memory
     --disable-web-search
-    --output-format plain
     --verbatim
-    --single "$prompt"
   )
+  if [ -n "$json_schema" ]; then
+    grok_argv+=(--json-schema "$json_schema")
+  else
+    grok_argv+=(--output-format plain)
+  fi
+  grok_argv+=(--single "$prompt")
   (
     cd "$work_dir" || exit
     exec 200>&-

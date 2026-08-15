@@ -25,6 +25,12 @@ if [ "${1:-}" = "models" ]; then
 fi
 printf '%s\n' "$PWD" > "$CAPTURE_PWD"
 printf '%s\n' "$@" > "$CAPTURE_ARGS"
+for arg in "$@"; do
+  if [ "$arg" = "--json-schema" ]; then
+    printf '{"structuredOutput":{"ok":true}}\n'
+    exit 0
+  fi
+done
 printf 'grok-ok\n'
 `
 	if err := os.WriteFile(grokPath, []byte(script), 0o755); err != nil {
@@ -54,13 +60,13 @@ exec "$@"
 	workDir := t.TempDir()
 	provider := NewGrok(repoRootForRoutingTest(t), "grok-4.6", "low")
 	out, err := provider.Run(
-		context.Background(), "hello prompt", RunOptions{WorkDir: workDir},
+		context.Background(), "hello prompt", RunOptions{WorkDir: workDir, JSONSchema: `{"type":"object"}`},
 	)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if out != "grok-ok" {
-		t.Fatalf("output = %q, want grok-ok", out)
+	if out != `{"ok":true}` {
+		t.Fatalf("output = %q, want structured payload", out)
 	}
 
 	pwd, err := os.ReadFile(capturePWD)
@@ -83,12 +89,16 @@ exec "$@"
 		"--tools read_file,grep,list_dir,search_replace",
 		"--no-subagents",
 		"--disable-web-search",
+		`--json-schema {"type":"object"}`,
 		"--verbatim",
 		"--single hello prompt",
 	} {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("grok args %q missing %q", joined, want)
 		}
+	}
+	if strings.Contains(joined, "--output-format plain") {
+		t.Fatalf("structured Grok args must not request plain output: %q", joined)
 	}
 	systemdArgs, err := os.ReadFile(captureSystemd)
 	if err != nil {

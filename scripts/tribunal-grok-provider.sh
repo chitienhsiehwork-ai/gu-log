@@ -45,5 +45,17 @@ prompt="$(cat)"
   printf 'Grok provider bridge received an empty prompt\n' >&2
   exit 64
 }
+
+json_schema=""
+if [ -n "${GP_GROK_JSON_SCHEMA_B64:-}" ]; then
+  json_schema="$(printf '%s' "$GP_GROK_JSON_SCHEMA_B64" | base64 --decode)" || {
+    printf 'Grok provider bridge received an invalid structured-output schema encoding\n' >&2
+    exit 64
+  }
+  jq -e 'type == "object"' <<<"$json_schema" >/dev/null || {
+    printf 'Grok provider bridge received an invalid structured-output schema\n' >&2
+    exit 64
+  }
+fi
 tribunal_grok_prompt_exec \
-  "$work_dir" "$model" "$reasoning" "$sandbox_profile" "$prompt"
+  "$work_dir" "$model" "$reasoning" "$sandbox_profile" "$prompt" "$json_schema"

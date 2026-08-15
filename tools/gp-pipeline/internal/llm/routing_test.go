@@ -67,7 +67,7 @@ exit 0
 		RuntimeSourceReviewer: "codex-gpt-5.6-sol",
 		RuntimeCorrector:      "codex-gpt-5.6-sol",
 		RuntimeCommentary:     "grok-build-grok-4.6",
-		RuntimeVibeScorer:     "grok-build-grok-4.5",
+		RuntimeVibeScorer:     "codex-gpt-5.5",
 	} {
 		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
 		if err != nil || !active || len(providers) != 1 || providers[0].Name() != want {

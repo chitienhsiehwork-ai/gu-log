@@ -15,7 +15,7 @@ SCRIPT
 cat > "$BIN_DIR/grok" <<'SCRIPT'
 #!/usr/bin/env bash
 if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
 fi
 exit 0
 SCRIPT
@@ -57,8 +57,8 @@ assert_route "$({
 })" grok-4.6 low normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=19 bash "$ROUTER" vibeScorer --json
-})" grok-4.5 low lowQuota defer
+  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" vibeScorer --json
+})" gpt-5.5 high normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_GROK_REMAINING_PCT=20 bash "$ROUTER" translator --json
@@ -137,8 +137,8 @@ if TRIBUNAL_RUNTIME_PROFILE=vm-codex TRIBUNAL_REVIEWER_REMAINING_PCT=50 \
   exit 1
 fi
 
-# Sourced callers resolve multiple roles in one shell; a deferred Vibe action
-# must never leak into the following reviewer route.
+# Sourced callers resolve multiple roles in one shell; a Grok reserve action
+# must never leak into the following Codex vibe route.
 cat > "$BIN_DIR/codex" <<'SCRIPT'
 #!/usr/bin/env bash
 exit 0
@@ -150,9 +150,9 @@ TRIBUNAL_GROK_REMAINING_PCT=19
 TRIBUNAL_REVIEWER_REMAINING_PCT=50
 export TRIBUNAL_RUNTIME_PROFILE TRIBUNAL_GROK_REMAINING_PCT \
   TRIBUNAL_REVIEWER_REMAINING_PCT
+model_router_resolve writer
+[ "$MODEL_ROUTER_QUOTA_ACTION" = reserve ]
 model_router_resolve vibeScorer
-[ "$MODEL_ROUTER_QUOTA_ACTION" = defer ]
-model_router_resolve reviewer
 [ "$MODEL_ROUTER_QUOTA_ACTION" = run ]
 
 if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \

@@ -85,7 +85,7 @@ model_router_assert_profile_compatible() {
   while IFS= read -r configured_model; do
     [ -n "$configured_model" ] || continue
     awk -v model="$configured_model" \
-      '$1 == "*" && $2 == model { found = 1 } END { exit !found }' \
+      '($1 == "*" || $1 == "-") && $2 == model { found = 1 } END { exit !found }' \
       <<<"$available_models" || {
       printf 'runtime profile %s requires unavailable Grok model %s\n' \
         "$profile" "$configured_model" >&2
