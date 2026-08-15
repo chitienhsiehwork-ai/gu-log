@@ -9,9 +9,20 @@ Use this skill whenever a task includes a `chatgpt.com/share/...` URL.
 
 ## Goal
 
-Do **not** write from the visible browser shell or from `web_fetch` summaries. ChatGPT share pages embed the real transcript in the React Router payload. Use the repo script to extract that payload into a stable source file first.
+Do **not** write from the visible browser shell or from `web_fetch` summaries. ChatGPT share pages embed the real transcript in the React Router payload. Use the repo script to extract that payload first. For `AGENTS.md` URL intake, the capture must stay outside the repo; persist it under `sources/chatgpt/` only after the user authorizes a durable use.
 
 ## Command
+
+URL intake without repository side effects:
+
+```bash
+capture_path="$(mktemp /tmp/gu-log-chatgpt-intake.XXXXXX)"
+node scripts/fetch-chatgpt-share.mjs <chatgpt-share-url> --out "$capture_path"
+```
+
+Read that file for the intake response, then remove the explicitly created temp file. Do not move it into the repo unless the user later authorizes writing or another persistent use.
+
+Authorized durable capture:
 
 ```bash
 node scripts/fetch-chatgpt-share.mjs <chatgpt-share-url> --out sources/chatgpt/<ticket-or-topic>.md
@@ -34,7 +45,7 @@ The Markdown output contains:
 
 ## Writing workflow
 
-1. Fetch the share URL into `sources/chatgpt/...`.
+1. After the user authorizes a persistent use, fetch the share URL into `sources/chatgpt/...`.
 2. Sanity check the capture before using it:
    ```bash
    grep -n '^### ' sources/chatgpt/<ticket-or-topic>.md
@@ -49,4 +60,3 @@ The Markdown output contains:
 ## Why this exists
 
 `web_fetch` usually only sees the ChatGPT page chrome. The real transcript is in a serialized React Router stream. This script decodes that stream once, writes a clean file, and prevents every future agent from rediscovering the same parsing trick.
-
