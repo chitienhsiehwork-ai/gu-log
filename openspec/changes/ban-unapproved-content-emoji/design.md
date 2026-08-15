@@ -25,9 +25,11 @@ gu-log 的文章庫已有大量歷史 emoji，直接對全庫做絕對掃描會�
 
 ### 使用 added-line ratchet，不建立大型 legacy baseline
 
-共用 validator 先用現有 reader revision canonicalizer 取得 reader-visible post surface，再讀取其 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。新文章的所有內容都是 added lines；既有文章只有新寫或改過的行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
+共用 validator 先用新的 shared reader-surface library 取得 reader-visible line records，再讀取其 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。每筆 record 含 canonical text、surface kind 與原始 source line，讓錯誤訊息與 allowlist line hash 都能回到具體位置。新文章的所有可見內容都是 added lines；既有文章只有新寫、搬移或改過的可見行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
 
-這個 reader-visible surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。MDX import／export 與不會 render 的註解不納入。validator 不另抄一份 frontmatter key 清單；它使用 reader revision canonicalizer 的同一份定義。
+shared library 擁有 frontmatter 解析、reader-visible key 清單與 MDX 可見行 projection。這個 surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。library 透過 MDX node positions 排除 import／export 與不會 render 的註解，保留換行以維持 source line mapping。
+
+`build-reader-revision-manifest.mjs` SHALL 改為匯入 shared library 的 frontmatter keys、parser 與 canonicalizer primitives，但本變更不改它既有「raw body 也參與 revision hash」的 bytes；`--check` 必須證明 manifest 無全庫 churn。Emoji validator 使用 library 新增的 line projection，不在自身另抄解析規則。未來若要讓 reader revision 也排除 import／註解，應另做有意識的 revision migration，不夾帶在本規則裡。
 
 相較於保存一份數百筆 legacy emoji baseline，diff ratchet 沒有會 drift 的大型快照，也自然形成 touch-to-clean 行為。相較於只比較每個檔案的 emoji 總數，它也不允許把舊 emoji 移到新句子來規避檢查。
 
@@ -63,10 +65,11 @@ GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，�
 
 ## Migration Plan
 
-1. 先加入 validator、測試、空 allowlist 與本機／CI 接線，確認既有 corpus 不被 retroactive 掃描。
-2. 更新 editorial／GP contract 與 prompts，再移除 GP-274 中英文愛心。
-3. 跑 validator、Vitest、GP pipeline unit tests、post validation、format／lint 與 build。
-4. 若需要 rollback，可一起 revert gate、prompt contract bump 與文章修正；不需要資料遷移。
+1. 先抽 shared reader-surface library，並以 manifest freshness test 證明 reader revision bytes 不變。
+2. 加入 validator、測試、空 allowlist 與本機／CI 接線，確認既有 corpus 不被 retroactive 掃描。
+3. 更新 editorial／GP contract 與 prompts，再移除 GP-274 中英文愛心。
+4. 跑 validator、Vitest、GP pipeline unit tests、post validation、format／lint 與 build。
+5. 若需要 rollback，可一起 revert gate、prompt contract bump 與文章修正；不需要資料遷移。
 
 ## Open Questions
 
