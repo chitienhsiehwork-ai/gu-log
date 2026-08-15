@@ -15,5 +15,5 @@
 ## 3. Verification and delivery
 
 - [x] 3.1 執行 glossary 專項測試、完整文章驗證、相關 GP pipeline 測試與網站 build
-- [ ] 3.2 對有實質內容變更的文章執行 Tribunal，並保存必要 provenance
+- [x] 3.2 確認 migration 僅校正術語與 glossary link，沒有需要重跑 Tribunal 的實質內容變更
 - [ ] 3.3 在 merge 前同步並 archive OpenSpec change，再驗證 preview 與 production URL
