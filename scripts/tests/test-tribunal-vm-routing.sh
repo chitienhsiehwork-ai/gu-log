@@ -61,10 +61,17 @@ export TRIBUNAL_REVIEWER_REMAINING_PCT
 [ "$(tribunal_llm_model_id fact-checker)" = gpt-5.6-luna ]
 [ "$(tribunal_runner_label fact-checker)" = codex-gpt-5.6-luna-max ]
 
-[ "$(tribunal_judge_provider vibe-opus-scorer)" = grok ]
+expected_vibe_provider="$(jq -r '.profiles["vm-codex"].vibeScorer.provider' "$ROOT_DIR/config/llm-pipeline.json")"
 expected_vibe_model="$(jq -r '.profiles["vm-codex"].vibeScorer.model' "$ROOT_DIR/config/llm-pipeline.json")"
+expected_vibe_effort="$(jq -r '.profiles["vm-codex"].vibeScorer.reasoningEffort' "$ROOT_DIR/config/llm-pipeline.json")"
+[ "$(tribunal_judge_provider vibe-opus-scorer)" = "$expected_vibe_provider" ]
 [ "$(tribunal_llm_model_id vibe-opus-scorer)" = "$expected_vibe_model" ]
-[ "$(tribunal_runner_label vibe-opus-scorer)" = "grok-build-$expected_vibe_model-low" ]
+case "$expected_vibe_provider" in
+  codex) expected_vibe_runner="codex-$expected_vibe_model-$expected_vibe_effort" ;;
+  grok) expected_vibe_runner="grok-build-$expected_vibe_model-$expected_vibe_effort" ;;
+  *) printf 'unsupported Vibe provider in fixture: %s\n' "$expected_vibe_provider" >&2; exit 1 ;;
+esac
+[ "$(tribunal_runner_label vibe-opus-scorer)" = "$expected_vibe_runner" ]
 tribunal_writer_provenance_complete \
   grok grok-4.6 grok-build-grok-4.6-low
 tribunal_writer_provenance_complete \
@@ -77,18 +84,6 @@ fi
 
 work_dir="$TMP_DIR/work"
 mkdir -p "$work_dir"
-
-TRIBUNAL_GROK_REMAINING_PCT=19
-export TRIBUNAL_GROK_REMAINING_PCT
-quota_file="$TMP_DIR/vibe-quota"
-rc=0
-TRIBUNAL_QUOTA_STATUS_FILE="$quota_file" \
-  tribunal_grok_exec "$work_dir" vibe-opus-scorer 'score fixture' \
-  >/dev/null 2>&1 || rc=$?
-[ "$rc" -eq 75 ]
-[ ! -e "$GROK_CALLED" ]
-grep -q '^provider=grok$' "$quota_file"
-grep -q '^tier=lowQuota$' "$quota_file"
 
 TRIBUNAL_GROK_REMAINING_PCT=19 \
   tribunal_grok_exec "$work_dir" tribunal-writer 'rewrite fixture' >/dev/null

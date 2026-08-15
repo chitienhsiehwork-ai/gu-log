@@ -1272,9 +1272,18 @@ tribunal_runner_label() {
 tribunal_runner_label_for_provider() {
   local provider="$1"
   local agent_name="${2:-}"
-  local model
-  model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
-  tribunal_runner_label_for_resolved_model "$provider" "$model"
+  local model reasoning="" runtime_profile
+  runtime_profile="$(model_router_profile)" || return 1
+  if [ "$runtime_profile" = "vm-codex" ] &&
+     { [ "$provider" = codex ] || [ "$provider" = grok ]; }; then
+    model_router_resolve "$agent_name" || return 1
+    [ "$MODEL_ROUTER_PROVIDER" = "$provider" ] || return 1
+    model="$MODEL_ROUTER_MODEL"
+    reasoning="$MODEL_ROUTER_REASONING"
+  else
+    model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" || return 1
+  fi
+  tribunal_runner_label_for_resolved_model "$provider" "$model" "$reasoning"
 }
 
 tribunal_codex_reasoning_effort() {
