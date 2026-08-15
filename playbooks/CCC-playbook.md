@@ -161,15 +161,11 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content.config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
-## URL 貼過來 → 預設走 gp-pipeline
+## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「解釋這個」「總結這個」「fix bug in this PR」等）→ **預設當成是要你開 GP 任務**，走 `tools/gp-pipeline/gp-pipeline run <url>`。
+裸 URL 與「這篇如何？」等 intake 請求，一律先照 `AGENTS.md`〈URL intake〉交付翻譯與短評，不能把來源直接送進 pipeline。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url>`。
 
-### 為什麼 URL-only paste = GP 任務
-
-這個 repo 的主產出就是 GP/MP 翻譯文章。User 拋 URL 沒多話 = 最常見的 workflow 就是「幫我把這條評估一下、該寫就寫」。**不要再回頭問「你想幹嘛？」**——直接跑 pipeline，它內建的 eval gate 會自己判斷該不該寫。
-
-### pipeline 內建的 eval gate（不是你決定該不該寫）
+### pipeline 內建的 eval gate
 
 `gp-pipeline run` 的 step 1.5 `eval` 是雙評估（Gemini + Codex）worthiness gate：
 
@@ -177,7 +173,7 @@ User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「�
 - **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不夠 GP-worthy）
 - **split（一 GO 一 SKIP）** → exit 2 → 需要 human review，用 `--force` 可以 override gate 硬寫
 
-**這代表 CCC 不用事先判斷「這條推文值不值得翻」**——交給 pipeline 的 eval 決定。你的工作是 run，不是 gatekeep。
+intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，pipeline eval 才作為第二道寫作 gate。不得拿 eval 取代 intake，或把 eval verdict 當成 user 的寫作授權。
 
 ### URL 範圍
 
@@ -191,7 +187,7 @@ User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「�
 ### 建議指令
 
 ```bash
-# 預設：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
+# user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
 tools/gp-pipeline/gp-pipeline run <url>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval

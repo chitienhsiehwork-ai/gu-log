@@ -16,7 +16,7 @@
 
 沒搞清楚身份就動手 = 用錯 SOP（各 env 的 scope ceiling、merge policy、失敗處理都不一樣）。沒有例外，不能跳。Playbook 各自是 SSOT，定義各自的精神、scope ceiling、失敗處理、merge policy、品質 gate。**不要在這個檔案重複那些規則**，有要加規則就去編對應的 playbook 檔。
 
-共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；commit 可追溯到執行的 model——把 model 名放進 `git config user.name`（例 `Claude Fable 5`、`Codex GPT-5.5`），因為 squash merge 的 co-author 取自 git author 身份、訊息尾端同 email 的 Co-Authored-By trailer 會被去重折疊成通用名；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問。
+共通底線（兩邊都不能跳）：commit atomic（一個 commit 一件事）；commit 可追溯到執行的 model——把 model 名放進 `git config user.name`（例 `Claude Fable 5`、`Codex GPT-5.5`），因為 squash merge 的 co-author 取自 git author 身份、訊息尾端同 email 的 Co-Authored-By trailer 會被去重折疊成通用名；品質 gate 全保留（`pre-commit` / `pre-push` / `validate-posts.mjs` / tribunal 一個都不能關）；prod 炸或 main CI broken 立刻修（緊急事件無 scope 之分）；feature branch 完成後 **agent 自己開 PR + 盯 CI**、不留給 human（工具因 runtime 而異，Claude 見 `CLAUDE.md`、Codex 用 `gh`）；**gu-log 內容任務的完成定義是 production URL**——不停在 draft / PR / CI 綠 / preview，預設做到 merge → prod deploy → smoke test、回報可點 URL，只有關鍵內容 / 產品方向決策才停下問；下方〈URL intake〉是尚未授權寫作的例外。
 
 ## 🗣️ 回覆語言：一律繁體中文（zh-tw）
 
@@ -82,14 +82,14 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 
 ### 🔗 URL intake：先翻譯與評估，等 user 再叫才動手
 
-**User 只丟 URL、沒有附動作指示時，不得直接開始寫 GP 或跑 pipeline。** 第一輪只在 chat 交付兩樣東西：
+**User 沒有明確要求產出文章或發布時，一律走 URL intake，不得直接開始寫 GP 或跑 pipeline。** 「這篇如何？」「值得收嗎？」「幫我看」仍算 intake。第一輪只在 chat 交付兩樣東西：
 
 1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
 2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。
 
-交付後停止。除非 user 下一次明確叫 agent 繼續，否則不得起草文章、執行 eval／dedup／Tribunal、建立或修改 repo 檔案、配置 ticket、跑 deploy，或自行把連結收進 backlog。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
+交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
 
-User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。抓取階段不要用 `web_fetch` preview 摘要代替完整 source；依各 runtime 的 fetch skill 取得原文。
+User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。依各 runtime 的 fetch skill 取得原文。
 
 ## 文件架構（誰讀什麼）
 
