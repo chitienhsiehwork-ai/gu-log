@@ -2,7 +2,7 @@
 
 ### Requirement: Chinese prose MUST use glossary canonical terminology
 
-zh-tw 文章在描述 glossary 已定義的技術概念時 SHALL 使用該 entry 的 canonical `term`。Writer 與 translator SHALL NOT 以自行發明的直譯、舊譯名或 glossary 明確禁用的替代詞取代 canonical term。
+當 glossary entry 以 `forbiddenZhTw` 明確宣告禁用譯名時，zh-tw 文章 SHALL 使用該 entry 的 canonical `term`，或使用不混淆概念的自然改寫。Writer 與 translator SHALL NOT 使用該清單中的直譯或舊譯名。沒有宣告 `forbiddenZhTw` 的 glossary entry 不受此要求限制。
 
 Glossary terminology normalization SHALL 只改變「怎麼稱呼同一個概念」，不得藉此改變 source payload、voice、語氣或論證關係。每篇第一次安全出現的 canonical term SHALL 依 glossary link coverage contract 連到對應 anchor。
 

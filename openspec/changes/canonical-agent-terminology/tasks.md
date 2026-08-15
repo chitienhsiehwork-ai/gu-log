@@ -2,7 +2,8 @@
 
 - [ ] 1.1 在 Agent glossary entry 加入 `forbiddenZhTw`、新增獨立 Proxy entry，並把 canonical terminology 提供給 GP 翻譯 context
 - [ ] 1.2 擴充 glossary checker，回報讀者可見的 zh-tw 禁用詞，同時忽略非 prose 語法
-- [ ] 1.3 補齊 body、frontmatter、unsafe region、英文文章與 changed-term 行為的 unit 與 CLI 測試
+- [ ] 1.3 補齊 body、blockquotes、frontmatter 兩種 tags 寫法、unsafe region、英文文章與 changed-term 行為的 unit 與 CLI 測試
+- [ ] 1.4 補齊 source translator terminology context 的 prompt render、dispatch 與 stale-fingerprint 測試
 
 ## 2. Content migration
 

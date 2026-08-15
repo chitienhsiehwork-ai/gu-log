@@ -30,11 +30,11 @@
 
 `check-glossary-links.mjs` 會在 zh-tw post 的 reader-visible text 掃描 `forbiddenZhTw`。違規訊息包含檔案、行號、禁用詞、canonical term 與 glossary URL。英文文章不套用 zh-tw 禁用詞。
 
-掃描器忽略 fenced code、inline code、URL、link destination、import/export 與 MDX/HTML tags/attributes；frontmatter 中讀者會看到的 title、summary、tags 仍納入。既有 `glossary-ignore` 只略過 link coverage，不得繞過 canonical terminology。
+掃描器忽略 fenced code、inline code、URL、link destination、import/export 與 MDX/HTML tags/attributes；blockquotes 仍是讀者可見 prose，必須掃描。Frontmatter 明確掃描讀者會看到的 `title`、`summary` 與 `tags`，而且 `tags` 的 inline array 與 block list 兩種 YAML 寫法都要支援。既有 `glossary-ignore` 只略過 link coverage，不得繞過 canonical terminology。
 
 ### Prompt 只講通用規則，具體詞由資料提供
 
-GP source translation 的 glossary context 會同時提供 canonical term 與禁用譯名；writer prompt 只保留「遵守 glossary canonical terminology」這條耐久原則，不複製 `Agent`／「代理人」對照表。
+GP source translation 的 runtime 會從 glossary data 產生只含 `term` 與 `forbiddenZhTw` 的 terminology context，再注入 source translator template。Prompt 本身只保留「遵守 runtime 提供的 canonical terminology」這條耐久原則，不複製 `Agent`／「代理人」對照表。Prompt render test 與 pipeline source-translate test 需證明實際 dispatch 前已帶入該 context；這項 prompt contract 變更依既有 fingerprint 機制使舊 manifest stale。
 
 ### 歷史內容一次遷移
 
@@ -42,6 +42,6 @@ GP source translation 的 glossary context 會同時提供 canonical term 與禁
 
 ## Risks / Trade-offs
 
-- [禁用詞可能在特殊原文引句中是必要字面內容] → 程式碼與 URL 已排除；真正不可改的 prose 可透過改寫上下文保留意思，但不提供常態 escape hatch，以免規則失效。
+- [禁用詞可能出現在原文引句] → blockquote 仍是發布給讀者看的翻譯，照樣使用 canonical term；只有程式碼、URL 與機器語法排除，不提供常態 escape hatch，以免規則失效。
 - [一次改 5 篇舊文可能碰到翻譯語氣] → AI agent 處只做術語正規化；兩個非 AI agent 例子逐段人工改寫並跑內容 gate。
 - [glossary checker 職責變寬] → canonical terminology 與 link coverage 共用同一 entry、同一 safe-text scanner、同一 CI ratchet，比分裂新 script 更容易維護。
