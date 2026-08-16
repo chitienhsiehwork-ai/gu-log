@@ -31,14 +31,14 @@ Reader-facing zh-TW 與 English UI SHALL 用符合系列 contract 的文字描�
 
 gu-log SHALL use the same canonical names in reader-facing UI and machine-facing storage. The commentary persona SHALL be `Mogu`; its note component SHALL be `MoguNote`; its Vibe score dimension SHALL be `moguNote`. The external-content series SHALL be `GP` (`Gu-log Picks`) for source-author-voice faithful translation and `MP` (`Mogu Picks`) for Mogu-authored source-grounded writing. Original and tutorial series SHALL remain `SD` and `Lv`.
 
-The application SHALL NOT store SP/CP and translate them to GP/MP only at render time. Frontmatter, filenames, routes, counters, filters, APIs, search, feeds, pipelines, tests and generated data SHALL use the canonical values directly.
+The application SHALL NOT store a retired taxonomy alias and translate it to GP/MP only at render time. Frontmatter, filenames, routes, counters, filters, APIs, search, feeds, pipelines, tests and generated data SHALL use the canonical values directly.
 
 #### Scenario: GP article renders without an alias translation
 
 - **GIVEN** a Gu-log Picks article has ticket `GP-258`
 - **WHEN** the article is indexed, rendered, searched or returned by the feed API
 - **THEN** every layer SHALL use `GP-258`
-- **AND** no layer SHALL first store `SP-258` and replace its prefix for display
+- **AND** no layer SHALL first store a retired alias and replace its prefix for display
 
 #### Scenario: MP article uses the same identity across layers
 
