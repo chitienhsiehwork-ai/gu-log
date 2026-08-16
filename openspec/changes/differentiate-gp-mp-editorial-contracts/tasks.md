@@ -10,6 +10,7 @@
 - [ ] 2.2 更新 prompt data 與 call sites，讓 review／refine template 收到 series prefix，且不改變 GP、SD 或 Lv routing。
 - [ ] 2.3 將 Fact Checker 與 Librarian 判準拆成 GP translation fidelity 和 MP grounding／attribution，並同步 Claude、Codex agent 定義。
 - [ ] 2.4 更新 Tribunal Writer 與 Vibe scoring 指引，允許 MP 把 Mogu 分析留在 body，且不因省略或重排來源而扣分。
+- [ ] 2.5 讓 MP 的 MoguNote 維持選配；完整 MP 不得只因缺少 note 而被 prompt 或 scoring 判 fail、降級或強迫補寫。
 
 ## 3. 讀者可見 identity
 
@@ -20,7 +21,8 @@
 ## 4. 驗證
 
 - [ ] 4.1 新增 prompt contract tests，證明 GP 保留 translation fidelity；MP 可選材／重建，但必須保留 claim closure、正確歸因與事實 grounding。
-- [ ] 4.2 新增 pipeline regression tests，證明 MP 繼續使用既有 non-GP flow，GP 繼續使用 source-preservation。
-- [ ] 4.3 新增雙語 UI tests，證明 MP 不再顯示翻譯標示，且 GP 標示不變。
-- [ ] 4.4 執行 strict OpenSpec validation、focused tests、相關 full repository checks 與 synthetic MP acceptance fixtures。
-- [ ] 4.5 完成兩種 theme 的 reader-visible UI QA，並記錄適用證據。
+- [ ] 4.2 新增無 MoguNote 的 MP acceptance fixture，證明完整文章不會只因缺少 note 而 fail 或被強迫補寫。
+- [ ] 4.3 新增 pipeline regression tests，證明 MP 繼續使用既有 non-GP flow，GP 繼續使用 source-preservation。
+- [ ] 4.4 新增雙語 UI tests，證明 MP 不再顯示翻譯標示，且 GP 標示不變。
+- [ ] 4.5 執行 strict OpenSpec validation、focused tests、相關 full repository checks 與 synthetic MP acceptance fixtures。
+- [ ] 4.6 完成兩種 theme 的 reader-visible UI QA，並記錄適用證據。

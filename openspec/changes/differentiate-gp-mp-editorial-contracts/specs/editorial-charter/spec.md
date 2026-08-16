@@ -42,6 +42,8 @@ MP body SHALL 是 Mogu 消化單一主要來源後寫出的文章，正文聲音
 
 MP SHALL 以 `sourceUrl` 指向主要來源。額外查證資料 SHALL 以正文 inline citation 表達；本 contract SHALL NOT 把多個來源提升為同權重主要來源，也 SHALL NOT 要求新增 per-article editorial mode。
 
+MP 的 MoguNote SHALL 是選配 aside，不是用來隔離 Mogu 與正文的 provenance boundary。MP SHALL NOT 因缺少 MoguNote 而 fail、降級或被迫新增 note；Mogu 的核心分析 SHALL 被允許直接留在 body。
+
 #### Scenario: useful idea may escape weak source prose
 
 - **WHEN** 來源有一個值得分享的觀點，但原文冗長、重複或敘事形狀不理想
@@ -64,6 +66,12 @@ MP SHALL 以 `sourceUrl` 指向主要來源。額外查證資料 SHALL 以正文
 
 - **WHEN** MP 由 Mogu 擁有正文聲音
 - **THEN** 正文 SHALL NOT 把 Mogu 或來源作者的判斷、經歷或立場冒充成 ShroomDog 本人的聲音
+
+#### Scenario: complete MP without MoguNote remains valid
+
+- **WHEN** MP body 已完整表達 Mogu 的主張並遵守 grounding contract
+- **AND** 文章沒有 MoguNote
+- **THEN** writer、reviewer 與 scoring SHALL NOT 只因缺少 MoguNote 而要求補 note、判 fail 或降級
 
 ### Requirement: MP grounding MUST preserve claim closure and attribution
 
@@ -102,7 +110,7 @@ MP SHALL 被允許完全省略一個來源主張；一旦保留來源衍生的 c
 
 ### Requirement: Series selection MUST use reader job and voice ownership
 
-gu-log SHALL 先以主要 reader job 判斷 Lv，再以正文 voice owner 區分其餘系列：GP 由來源作者擁有正文聲音；MP 由 Mogu 擁有正文聲音；SD 由 ShroomDog 擁有正文聲音。來源媒介、長短或是否引用外部資料 SHALL NOT 單獨決定系列。
+gu-log SHALL 依固定 precedence 分流：先判斷主要 reader job 是否為分步教會讀者理解概念或來源；若是，文章 SHALL 使用 Lv。只有文章不屬於 Lv 時，才 SHALL 依正文 voice owner 區分其餘系列：GP 由來源作者擁有正文聲音；MP 由 Mogu 擁有正文聲音；SD 由 ShroomDog 擁有正文聲音。來源媒介、長短或是否引用外部資料 SHALL NOT 單獨決定系列。
 
 #### Scenario: teaching a source routes to Lv
 
@@ -113,14 +121,23 @@ gu-log SHALL 先以主要 reader job 判斷 Lv，再以正文 voice owner 區分
 #### Scenario: Mogu thesis routes to MP
 
 - **WHEN** 文章主要承諾是提出 Mogu 自己的主張，來源作為材料與證據
+- **AND** 文章的主要 reader job 不是分步教會讀者理解概念或來源
 - **THEN** 文章 SHALL 使用 MP
 - **AND** SHALL NOT 因來源是長文、tweet 或 thread 而改變 voice-owner contract
 
 #### Scenario: ShroomDog voice remains SD
 
 - **WHEN** 正文的判斷與經歷屬於 ShroomDog 本人
+- **AND** 文章的主要 reader job 不是分步教會讀者理解概念或來源
 - **THEN** 文章 SHALL 使用 SD
 - **AND** SHALL NOT 因引用外部來源而改成 MP
+
+#### Scenario: ShroomDog-authored tutorial still routes to Lv
+
+- **WHEN** ShroomDog 以自己的聲音撰寫文章
+- **AND** 主要 reader job 是分步教會讀者理解概念或來源
+- **THEN** 文章 SHALL 使用 Lv
+- **AND** SHALL NOT 只因 voice owner 是 ShroomDog 而改用 SD
 
 ## MODIFIED Requirements
 
