@@ -47,20 +47,20 @@ function parseStatus(content) {
  * Group all mdx posts by base filename. zh-tw "foo.mdx" and en
  * "en-foo.mdx" become one entry keyed on "foo.mdx".
  */
-export function loadPostMap() {
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+export function loadPostMap(postsDir = POSTS_DIR) {
+  const files = fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx'));
   const byBase = new Map();
   for (const f of files) {
     const isEn = f.startsWith('en-');
     const base = isEn ? f.slice(3) : f;
-    const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf-8');
+    const content = fs.readFileSync(path.join(postsDir, f), 'utf-8');
     const ticketId = parseTicketId(content);
     const status = parseStatus(content);
     const entry = byBase.get(base) || {
       zh: null,
       en: null,
-      ticketId: null,
-      status: 'published',
+      ticketId,
+      status,
     };
     if (isEn) {
       entry.en = f;
