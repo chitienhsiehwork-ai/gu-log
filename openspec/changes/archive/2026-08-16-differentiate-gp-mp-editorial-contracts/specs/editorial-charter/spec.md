@@ -182,14 +182,14 @@ MOBA 味 SHALL 跟著聲音走，不跟著系列走。Mogu 擁有聲音的 MP bo
 
 類比本身 SHALL 扛住概念。讀者 SHALL 能只靠上下文理解主要論點；Glossary SHALL 是深詞安全網，不是把一整段塞滿 jargon 的許可證。
 
-#### Scenario: GP translated body remains plain
+#### Scenario: translated body remains plain
 
 - **WHEN** GP body 翻譯 source claim
 - **THEN** translated body SHALL 保持 plain
 - **AND** SHALL NOT 加入 MOBA-flavored wording、玩笑或外加類比
 - **AND** 這類 commentary SHALL 改放進 MoguNote
 
-#### Scenario: MP body may use Mogu flavor
+#### Scenario: Mogu voice may use MOBA flavor
 
 - **WHEN** MP body 使用 Mogu 的類比、幽默或 MOBA flavor 建立自己的論點
 - **THEN** 該寫法 SHALL 被允許
