@@ -108,8 +108,8 @@ func TestRender_Review(t *testing.T) {
 	if !strings.Contains(out, "MP-278") {
 		t.Errorf("missing ticket id in review prompt")
 	}
-	// All 12 checklist items must survive rendering.
-	for i := 1; i <= 12; i++ {
+	// All MP checklist items must survive rendering without inheriting GP-only items.
+	for i := 1; i <= 11; i++ {
 		needle := "\n" + itoa(i) + "."
 		if !strings.Contains(out, needle) {
 			t.Errorf("checklist item %d missing from review prompt", i)
@@ -221,6 +221,16 @@ func TestRender_MPReviewAndRefineDoNotRequireMoguNoteOrTranslationCompleteness(t
 	}
 	if strings.Contains(review, "Coverage Completeness") {
 		t.Fatal("MP review prompt still includes translation completeness")
+	}
+	for _, forbidden := range []string{
+		"every number in translation must trace back to source",
+		"source limitations, caveats, and conditions must be preserved",
+		"conclusion must not introduce claims beyond source material",
+		"all commentary goes through MoguNote",
+	} {
+		if strings.Contains(review, forbidden) {
+			t.Errorf("MP review prompt still includes GP-only rule %q", forbidden)
+		}
 	}
 }
 

@@ -39,9 +39,9 @@ need_rebuild() {
   if [ ! -x "$BIN" ]; then
     return 0
   fi
-  # Any source file newer than the binary triggers a rebuild. `-newer` is a
+  # Any Go or embedded prompt source newer than the binary triggers a rebuild. `-newer` is a
   # POSIX find primary so this works on both GNU and BSD find.
-  if [ -n "$(find "$DIR" -name '*.go' -newer "$BIN" -print -quit 2>/dev/null)" ]; then
+  if [ -n "$(find "$DIR" \( -name '*.go' -o -name '*.tmpl' \) -newer "$BIN" -print -quit 2>/dev/null)" ]; then
     return 0
   fi
   if [ "$DIR/go.mod" -nt "$BIN" ] || [ "$DIR/go.sum" -nt "$BIN" ]; then

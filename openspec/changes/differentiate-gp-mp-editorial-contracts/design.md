@@ -73,7 +73,7 @@ GP 的 Mogu commentary 必須與來源作者正文隔離。MP 正文本來就是
 
 1. 先更新 stable contract 的 delta spec、writer／judge 派生文件與 semantic tests。
 2. 同步 zh-TW／English reader labels，不改既有 URL、frontmatter 或 counter。
-3. 以 synthetic MP fixture 驗證：可只保留一個完整論點、可重建文章；錯誤 speaker、遺失 controlling caveat、假經驗與新造因果必須被判錯。
+3. 以 deterministic prompt／routing fixtures 驗證 MP 能只保留一個完整論點並重建文章；錯誤 speaker、遺失 controlling caveat、假經驗與新造因果則由 correctness reviewer 逐 scenario 做 binary Tier-2 對帳。本 change 不以 nondeterministic LLM run 冒充新的 publish gate。
 4. 對 reader-visible copy 做雙語與雙 theme UI QA。
 5. 不 mass rewrite 既有 MP；新文與日後實質修改的 MP 採新 contract。
 

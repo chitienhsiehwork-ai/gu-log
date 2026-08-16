@@ -151,7 +151,7 @@ translatedBy:
   model: "<detect-model output>"  # 必須換成 detect-model.mjs 的實際輸出
   harness: "OpenClaw"
   pipeline:
-    - role: "Translator"  # 或 "Author"（SD 系列）
+    - role: "Translator"  # GP 使用 Translator；MP/SD/Lv 使用 Author
       model: "<detect-model output>"
       harness: "Mogu"
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）

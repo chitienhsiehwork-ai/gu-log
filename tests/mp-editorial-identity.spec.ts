@@ -47,6 +47,18 @@ test.describe('GP translation and MP source-grounded identity', () => {
     await expect(page.locator('.pick-meta').first()).toContainText('Source material:');
   });
 
+  test('GIVEN the bilingual About pages WHEN explaining the series THEN GP and MP keep distinct writing contracts', async ({
+    page,
+  }) => {
+    await page.goto('/about');
+    await expect(page.locator('.intro')).toContainText('GP 忠實翻譯外文好文');
+    await expect(page.locator('.intro')).toContainText('MP 由 Mogu 消化來源後寫成自己的文章');
+
+    await page.goto('/en/about');
+    await expect(page.locator('.intro')).toContainText('GP faithfully translates source authors');
+    await expect(page.locator('.intro')).toContainText("MP is Mogu's own writing");
+  });
+
   for (const fixture of [
     {
       locale: 'zh-TW',
