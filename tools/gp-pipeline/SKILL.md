@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log 的 GP／MP 文章 pipeline。唯一入口是：
+gu-log 的 GP 翻譯／MP source-grounded writing pipeline。唯一入口是：
 
 ```bash
 tools/gp-pipeline/gp-pipeline <subcommand>
@@ -10,8 +10,8 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 
 ## Taxonomy 契約
 
-- `GP` = Gu-log Picks，檔名以 `gp-` 開頭。
-- `MP` = Mogu Picks，檔名以 `mp-` 開頭。
+- `GP` = Gu-log Picks，來源作者擁有正文聲音的忠實翻譯，檔名以 `gp-` 開頭。
+- `MP` = Mogu Picks，Mogu 消化單一主要來源後寫成自己的 source-grounded article，檔名以 `mp-` 開頭。
 - 原創文章仍使用 `SD`，入門教學仍使用 `Lv`。
 - 寫作與審稿階段使用 `<PREFIX>-PENDING`；只有 deploy 才配置正式流水號。
 - 非 canonical prefix、slug 與舊 pipeline 路徑都已退役；遇到它們應明確失敗，不得靜默轉換。
@@ -36,6 +36,8 @@ Mogu Picks：
 ```bash
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP
 ```
+
+MP 可選材、省略、重排、綜合、反駁或重建文章，不要把它當成完整翻譯或 recap。一旦保留 source-derived claim，必須保留其 speaker、條件、hedge、controlling caveat、證據範圍與信心強度；不得捏造 facts、quotes、numbers、causality 或 lived experience。MoguNote 選配，核心分析直接放 body。
 
 只預審一支 YouTube 影片、讓人先看來源完整性與重複證據：
 
@@ -73,7 +75,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --legacy-shadow
 ```
 
-production GP 的順序是 fetch → eval → dedup → `source-translate` → `source-preservation`（source reviewer + natural-zh gate + bounded correction，並在通過後做 projection-protected enrichment）→ credits → ralph／Tribunal `--no-rewrite` → translate → deploy。`translate` 只在 Tribunal 通過後產生 en sidecar；未通過時 zh-tw 仍可在 fresh hard-gate manifest 約束下發布。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
+production GP 的順序是 fetch → eval → dedup → `source-translate` → `source-preservation`（source reviewer + natural-zh gate + bounded correction，並在通過後做 projection-protected enrichment）→ credits → ralph／Tribunal `--no-rewrite` → translate → deploy。MP 沿用既有 fetch → eval → dedup → `write` → `review` → `refine` → credits → ralph → translate → deploy，不另建 pipeline 或 editorial mode。`translate` 只在 Tribunal 通過後產生 en sidecar；未通過時 zh-tw 仍可在 fresh hard-gate manifest 約束下發布。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
 
 ## 可組合 subcommands
 

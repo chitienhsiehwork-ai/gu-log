@@ -84,11 +84,13 @@ type WriteData struct {
 
 // ReviewData is the template data for review.tmpl.
 type ReviewData struct {
+	Prefix   string
 	TicketID string
 }
 
 // RefineData is the template data for refine.tmpl.
 type RefineData struct {
+	Prefix   string
 	TicketID string
 	Angle    string
 }

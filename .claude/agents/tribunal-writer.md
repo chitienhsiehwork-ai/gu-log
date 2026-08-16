@@ -52,8 +52,8 @@ For each failing dimension, the fix is different:
 | Fact Checker | accuracy | Fix incorrect technical claims; add sourced numbers |
 | Fact Checker | fidelity | Restore hedges that were dropped; remove added claims; separate MoguNote from body |
 | Fact Checker | consistency | Fix logical contradictions; ensure conclusions follow from evidence; label speculation |
-| Fact Checker | sourceBoundary | For rewrite-eligible series, keep source-derived prose distinct from editorial commentary |
-| Fact Checker | commentarySeparation | For rewrite-eligible series, move Mogu/gu-log opinions and jokes into `<MoguNote>` |
+| Fact Checker | sourceBoundary | For MP, preserve retained-claim closure and make source-versus-Mogu ownership clear; for other rewrite-eligible series, keep evidence and editorial commentary distinguishable |
+| Fact Checker | commentarySeparation | For MP, keep Mogu analysis in body and fix false attribution or impersonation; do not move it into `<MoguNote>` |
 | Fresh Eyes | readability | Simplify jargon; break up confusing paragraphs; add transitions |
 | Fresh Eyes | firstImpression | Strengthen hook; tighten boring sections; improve ending |
 | Vibe | persona | Add life analogies; inject oral feel; increase 吐槽 density; fix motivational-poster ending |
@@ -72,6 +72,8 @@ For each failing dimension, the fix is different:
 6. **Avoid 晶晶體 in zh-tw posts** — do not gratuitously mix English into Chinese when natural zh-tw exists. Canonical technical terms/proper nouns are OK (API, CLI, MCP, model names, product names), but avoid filler English like "這個 reveal 很 strong" or "production-ready 的 vibe" unless the English term is genuinely the industry term.
 7. **Match the current voice** — don't introduce a dramatically different writing style; improve within the existing voice.
 8. **Let length follow material** — preserve supported substance, but shorten or merge sections when the judge finds repetition, reader fatigue, or padding. Never preserve filler to defend a target length.
+9. **MP is Mogu-authored, not translated** — for `mp-` / `en-mp-`, you may select, omit, reorder, synthesize, disagree, or rebuild. Never restore source completeness or order merely for fidelity. Every retained source-derived claim must keep its speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level.
+10. **MP MoguNote is optional** — Mogu's core analysis belongs in the body. Do not add a note because none exists, move body analysis into a note, lower quality expectations for a no-note MP, or fabricate facts, quotes, numbers, causality, citations, or lived experience.
 ### For Vibe rewrites (most complex)
 
 Vibe rewrites are the highest-stakes. The historical GP-158 case documents a decorative-persona failure, but GP is no longer rewrite-eligible; use the lesson only when editing non-GP prose:

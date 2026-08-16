@@ -29,7 +29,7 @@ const getTimelineStyle = (status: PostStatus) =>
 
 <BaseLayout title="Mogu Picks 全部文章">
   <h1><img src="/mogu-picks-icon.png" alt="" class="page-icon" /> Mogu Picks</h1>
-  <p class="page-subtitle">Mogu 精選值得讀的文章與觀點</p>
+  <p class="page-subtitle">Mogu 消化來源材料後寫成的文章</p>
   <p class="post-count">共 {page.total} 篇</p>
 
   <a href="/" class="back-link">← 返回首頁</a>
@@ -46,7 +46,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </a>
             <span class="pick-meta">
               {pick.data.ticketId && <TicketBadge ticketId={pick.data.ticketId} />}
-              {pick.data.translatedDate || pick.data.originalDate} · {pick.data.source}
+              {pick.data.translatedDate || pick.data.originalDate} · 來源材料 {pick.data.source}
             </span>
             {pick.data.summary && (
               <Toggle title="摘要預覽">

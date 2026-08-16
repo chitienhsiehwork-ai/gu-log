@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log GP／MP 文章流程的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
+gu-log GP 翻譯／MP source-grounded writing 流程的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
 
 ```bash
 tools/gp-pipeline/gp-pipeline --help
@@ -10,8 +10,8 @@ tools/gp-pipeline/gp-pipeline --help
 
 | Series | 品牌 | Ticket | Filename slug |
 |---|---|---|---|
-| GP | Gu-log Picks | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
-| MP | Mogu Picks | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
+| GP | Gu-log Picks（忠實翻譯） | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
+| MP | Mogu Picks（Mogu 依來源寫作） | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
 | SD | 原創文章 | `SD-N`／`SD-PENDING` | `sd-`／`sd-pending-` |
 | Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-` |
 
@@ -57,6 +57,8 @@ tools/gp-pipeline/gp-pipeline doctor
 # Counter read-only
 tools/gp-pipeline/gp-pipeline counter next --prefix GP
 ```
+
+MP 沿用現有非 GP 的 `write → review → refine → Tribunal rewrite` 路徑。Mogu 可重建文章，不需完整覆蓋或模仿來源；但每個保留的 source claim 都必須保留 controlling caveat 與正確歸因，且不得捏造事實或經歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 

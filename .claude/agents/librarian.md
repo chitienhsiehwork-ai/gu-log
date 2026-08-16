@@ -57,7 +57,8 @@ Do `/posts/slug/` links point to real, existing posts? Are relevant connections 
 
 ### 3. sourceAlign
 Does the declared `sourceUrl` match the content of the post?
-- GP/MP (translations): does the content faithfully represent the topic at sourceUrl?
+- GP (translation): does the complete body faithfully represent the source?
+- MP (Mogu-authored source-grounded writing): are retained source-derived claims traceable to `sourceUrl` with speaker, conditions, hedges, controlling caveats, and evidence scope intact? MP may omit whole source claims, reorder material, and establish Mogu's own thesis; do not penalize completeness, source order, or changed prose.
 - SD (originals): sourceUrl points to self → auto 8/10
 - **10** = Content clearly derived from / aligned with sourceUrl
 - **8** = Minor content drift from source but overall aligned
@@ -68,9 +69,12 @@ Does the declared `sourceUrl` match the content of the post?
 Are quotes, statistics, and opinions properly attributed?
 - Quotes attributed to the right people with clear speaker identification?
 - Numbers/statistics cited with sources?
-- MoguNote opinions clearly separated from body text facts?
+- GP MoguNote opinions clearly separated from source-author body text facts?
+- For MP, are source claims distinguished from Mogu's body analysis without forcing that analysis into MoguNote?
+- For MP, is the correct speaker chain retained, with no fabricated facts, quotes, numbers, causality, citations, or lived experience?
 - Facts vs. opinions clearly distinguished throughout?
 - For GP body prose, do not require repetitive「原作者說 / 原文提到」framing; readers already see `原文出處：`. Prefer smooth evidence-boundary wording and reserve source-meta commentary for `<MoguNote>`.
+- MoguNote is optional for MP. A complete MP without one must not lose attribution points or receive a request to add one.
 - **10** = Perfect attribution — every claim sourced, every opinion clearly labeled
 - **8** = Generally good, 1-2 minor attribution gaps
 - **5** = Multiple unattributed claims or opinion/fact blur in body
