@@ -223,6 +223,7 @@ func TestRender_MPReviewAndRefineDoNotRequireMoguNoteOrTranslationCompleteness(t
 		t.Fatal("MP review prompt still includes translation completeness")
 	}
 	for _, forbidden := range []string{
+		"no hallucinated claims beyond source context",
 		"every number in translation must trace back to source",
 		"source limitations, caveats, and conditions must be preserved",
 		"conclusion must not introduce claims beyond source material",
