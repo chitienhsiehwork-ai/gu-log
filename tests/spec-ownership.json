@@ -152,11 +152,9 @@
       "reason": "Detailed desktop token-expiry, re-login, retry, and auto-dismiss behavior beyond the blocking core; independently verified 2026-07-23."
     },
     "tests/theme-toggle.spec.ts": {
-      "class": "quarantined",
+      "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "2/6 tests fail: icon-visibility assertions expect moon-in-dark/sun-in-light, but ThemeToggle.astro CSS shows sun-in-dark/moon-in-light (icons act as 'switch to X' affordances, not current-state indicators). Needs a product decision on intended UX before the test or the CSS is changed — not a mechanical test-fixture fix.",
-      "expiry": "2026-08-15",
-      "issue": "https://github.com/chitienhsiehwork-ai/gu-log/issues/603"
+      "reason": "Core dark/light theme switching, persistence, accessible labels, and action-icon contract; the stale current-state icon expectations were corrected, then all 18 desktop/mobile project cases passed with --retries=0 on 2026-08-17."
     },
     "tests/levelup-quiz.spec.ts": {
       "class": "nightly",

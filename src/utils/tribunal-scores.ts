@@ -9,6 +9,8 @@ import {
 type PostScores = NonNullable<CollectionEntry<'posts'>['data']['scores']>;
 type JudgeName = (typeof JUDGES)[number];
 
+export type TribunalResult = 'pass' | 'fail' | 'incomplete';
+
 /** Judges whose composite `.score` counts toward the overall tribunal score. */
 const JUDGES = ['vibe', 'factCheck', 'librarian', 'freshEyes'] as const;
 
@@ -52,6 +54,57 @@ function hasNumericDimensions(
   return !!scores && dims.every((dim) => typeof scores[dim] === 'number');
 }
 
+function hasValidScoreDimensions(
+  scores: Record<string, unknown> | undefined,
+  dims: readonly string[]
+): boolean {
+  return (
+    !!scores &&
+    dims.every((dim) => {
+      const value = scores[dim];
+      return Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 10;
+    })
+  );
+}
+
+/**
+ * A publish decision is explicit only when a current-version, structurally
+ * complete four-judge scorecard exists. This is stricter than
+ * `hasTribunalScore()`, which intentionally treats a lone Vibe score as
+ * enough to badge an older post as evaluated.
+ */
+export function hasCompleteTribunalEvidence(scores?: PostScores): boolean {
+  if (!scores || !hasAllJudgeScores(scores)) return false;
+  if (!Number.isInteger(scores.tribunalVersion) || (scores.tribunalVersion ?? 0) < 8) return false;
+
+  const version = scores.tribunalVersion as number;
+  const factCheck = scores.factCheck;
+  const librarian = scores.librarian;
+  const freshEyes = scores.freshEyes;
+  const vibe = scores.vibe;
+
+  return (
+    JUDGES.every((judge) => hasValidScoreDimensions(scores[judge], ['score'])) &&
+    hasValidScoreDimensions(librarian, ['glossary', 'crossRef', 'sourceAlign', 'attribution']) &&
+    hasValidScoreDimensions(factCheck, [
+      'accuracy',
+      'fidelity',
+      'consistency',
+      'sourceBoundary',
+      'commentarySeparation',
+    ]) &&
+    hasValidScoreDimensions(freshEyes, freshEyesDims(version)) &&
+    hasValidScoreDimensions(vibe, vibeDims(version))
+  );
+}
+
+/** One canonical tri-state result for consumers that must distinguish a
+ * recorded Tribunal FAIL from missing or malformed evidence. */
+export function classifyTribunalResult(scores?: PostScores): TribunalResult {
+  if (!hasCompleteTribunalEvidence(scores)) return 'incomplete';
+  return meetsPublishBar(scores) ? 'pass' : 'fail';
+}
+
 function factCheckPasses(scores: PostScores | undefined): boolean {
   const factCheck = scores?.factCheck;
   if (!factCheck || !compositeJudgePasses(scores, 'factCheck')) return false;
@@ -87,10 +140,8 @@ function freshEyesPasses(scores: PostScores | undefined): boolean {
   try {
     const version = getTribunalVersion(scores);
     if (!hasNumericDimensions(freshEyes, freshEyesDims(version))) return false;
-    return checkFreshEyesPassBar(
-      freshEyes as Parameters<typeof checkFreshEyesPassBar>[0],
-      version
-    ).pass;
+    return checkFreshEyesPassBar(freshEyes as Parameters<typeof checkFreshEyesPassBar>[0], version)
+      .pass;
   } catch {
     return false;
   }

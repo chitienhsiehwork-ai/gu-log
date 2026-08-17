@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -102,6 +103,26 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 				return fmt.Errorf("source-translate cannot approve slop candidate %q", finding.ID)
 			}
 		}
+	}
+	canonicalTranslation, offsetMap := preservation.EscapeMDXImageAltBracesWithOffsets(translation)
+	if !bytes.Equal(canonicalTranslation, translation) {
+		if len(artifact.SlopCandidates) > 0 {
+			canonicalCandidates := append([]preservation.Finding(nil), artifact.SlopCandidates...)
+			for i := range canonicalCandidates {
+				finding := &canonicalCandidates[i]
+				finding.StartByte = offsetMap[finding.StartByte]
+				finding.EndByte = offsetMap[finding.EndByte]
+				finding.OldText = string(canonicalTranslation[finding.StartByte:finding.EndByte])
+				finding.OldTextSHA256 = preservation.SHA256([]byte(finding.OldText))
+				finding.TranslationSHA256 = preservation.SHA256(canonicalTranslation)
+			}
+			if err := preservation.ValidateFindings(source, canonicalTranslation, canonicalCandidates); err != nil {
+				return fmt.Errorf("source-translate canonical findings: %w", err)
+			}
+			artifact.SlopCandidates = canonicalCandidates
+		}
+		translation = canonicalTranslation
+		artifact.TranslationMDX = string(translation)
 	}
 	translationFile, err := frontmatter.Parse(translation)
 	if err != nil {

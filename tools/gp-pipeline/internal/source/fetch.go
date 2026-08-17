@@ -150,6 +150,9 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 			if res, runErr := runner.Run(ctx, "python3", opts.FetchArticleScript, urlStr); runErr == nil {
 				body := strings.TrimSpace(string(res.Stdout))
 				if body != "" {
+					if publishedDate := parsePublishedDate(body); publishedDate != "" {
+						date = publishedDate
+					}
 					header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: fetch-article.py\n\n", host, date, urlStr)
 					payload := []byte(header + body + "\n")
 					if verr := ValidateArticleCapture(payload); verr == nil {
@@ -197,6 +200,19 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		Bytes:      len(payload),
 		IsX:        false,
 	}, nil
+}
+
+var publishedDateRe = regexp.MustCompile(`(?m)^Published:\s*(\d{4}-\d{2}-\d{2})\s*$`)
+
+func parsePublishedDate(capture string) string {
+	match := publishedDateRe.FindStringSubmatch(capture)
+	if len(match) == 2 {
+		if _, err := time.Parse("2006-01-02", match[1]); err != nil {
+			return ""
+		}
+		return match[1]
+	}
+	return ""
 }
 
 // validateSafeHTTPURL rejects non-http(s) schemes, malformed URLs, and
