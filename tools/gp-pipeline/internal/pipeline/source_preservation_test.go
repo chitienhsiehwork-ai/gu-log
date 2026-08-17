@@ -230,6 +230,22 @@ func TestSourceTranslateDispatchIncludesCanonicalTerminology(t *testing.T) {
 	}
 }
 
+func TestSourceTranslateCanonicalizesMDXImageAltBraces(t *testing.T) {
+	translation := "---\nlang: zh-tw\n---\n\n![JSON {\"label\":\"鵜鶘\"}](https://example.com/image.jpg)\n"
+	s, _ := newGPState(t, "![JSON {\"label\":\"pelican\"}](https://example.com/image.jpg)\n", translation)
+
+	if err := s.SourceTranslate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(translated), `![JSON \{"label":"鵜鶘"\}](https://example.com/image.jpg)`) {
+		t.Fatalf("source translation did not escape MDX image alt braces:\n%s", translated)
+	}
+}
+
 func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("# Source\n\nI took a break.\n")
