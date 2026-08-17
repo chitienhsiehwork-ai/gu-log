@@ -207,6 +207,9 @@ var publishedDateRe = regexp.MustCompile(`(?m)^Published:\s*(\d{4}-\d{2}-\d{2})\
 func parsePublishedDate(capture string) string {
 	match := publishedDateRe.FindStringSubmatch(capture)
 	if len(match) == 2 {
+		if _, err := time.Parse("2006-01-02", match[1]); err != nil {
+			return ""
+		}
 		return match[1]
 	}
 	return ""

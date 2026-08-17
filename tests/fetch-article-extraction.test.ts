@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createProcessor } from '@mdx-js/mdx';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -44,6 +45,25 @@ function publicationDate(html: string): string {
   return result.stdout.trim();
 }
 
+function extractSemantic(html: string, title = ''): string {
+  const program = [
+    'import importlib.util, sys',
+    'spec = importlib.util.spec_from_file_location("fetch_article", sys.argv[1])',
+    'module = importlib.util.module_from_spec(spec)',
+    'spec.loader.exec_module(module)',
+    'print(module.extract_semantic_container(sys.stdin.read(), sys.argv[2]))',
+  ].join('; ');
+  const result = spawnSync('python3', ['-c', program, FETCHER, title], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    input: html,
+  });
+  if (result.status !== 0) {
+    throw new Error(result.stderr || `fetch-article.py exited ${result.status}`);
+  }
+  return result.stdout.trim();
+}
+
 describe('fetch-article HTML projection', () => {
   it('preserves links and media without duplicating nested quote blocks', () => {
     const output = extract(
@@ -75,6 +95,34 @@ describe('fetch-article HTML projection', () => {
     );
     expect(output).toContain('[Video](https://example.com/demo.mp4)');
     expect(output).toContain('Loose article sentence.');
+    expect(() => createProcessor({ format: 'mdx' }).parse(output)).not.toThrow();
+  });
+
+  it('keeps repeated section headings without duplicating a branded document title', () => {
+    const output = extract(
+      '<article><h1>Article</h1><h2>Examples</h2><p>One.</p><h2>Examples</h2><p>Two.</p></article>',
+      'Article | Brand'
+    );
+
+    expect(output).not.toContain('Article | Brand');
+    expect(output.match(/^# Article$/gm)).toHaveLength(1);
+    expect(output.match(/^## Examples$/gm)).toHaveLength(2);
+  });
+
+  it('uses a longer fence when preformatted source contains backticks', () => {
+    const output = extract('<pre>before ``` inside</pre>');
+
+    expect(output).toContain('````\nbefore ``` inside\n````');
+    expect(() => createProcessor({ format: 'mdx' }).parse(output)).not.toThrow();
+  });
+
+  it('removes footer boilerplate from a semantic article container', () => {
+    const output = extractSemantic(
+      '<div class="entryPage"><h1>Article</h1><p>Body payload.</p><div class="entryFooter">Follow and subscribe.</div></div>'
+    );
+
+    expect(output).toContain('Body payload.');
+    expect(output).not.toContain('Follow and subscribe.');
   });
 
   it('extracts a durable publication date instead of substituting the fetch date', () => {
@@ -82,5 +130,8 @@ describe('fetch-article HTML projection', () => {
       publicationDate('<meta property="article:published_time" content="2026-08-16T22:00:00Z">')
     ).toBe('2026-08-16');
     expect(publicationDate('<p class="mobile-date">16th August 2026</p>')).toBe('2026-08-16');
+    expect(publicationDate('<meta property="article:published_time" content="2026-99-99">')).toBe(
+      ''
+    );
   });
 });

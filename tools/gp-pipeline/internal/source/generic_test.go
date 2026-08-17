@@ -100,6 +100,12 @@ func TestHostname(t *testing.T) {
 	}
 }
 
+func TestParsePublishedDateRejectsImpossibleDates(t *testing.T) {
+	if got := parsePublishedDate("Published: 2026-99-99\n"); got != "" {
+		t.Fatalf("parsePublishedDate accepted impossible date %q", got)
+	}
+}
+
 func TestFetchGeneric_UsesCurlWhenFetchArticleScriptEmpty(t *testing.T) {
 	tmp := t.TempDir()
 	binDir := filepath.Join(tmp, "bin")
