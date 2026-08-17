@@ -56,7 +56,7 @@ describe('fetch-article HTML projection', () => {
             <pre>[{"bbox_2d": [1, 2, 3, 4], "label": "pelican"}]</pre>
             <p><code>Build an HTML page from the JSON above.</code></p>
           </blockquote>
-          <p><img src="https://example.com/pelican.jpg" alt="A pelican on a bicycle"></p>
+          <p><img src="https://example.com/pelican.jpg" alt='A pelican {"label": "pelican"} on a bicycle'></p>
           <p><video controls><source src="https://example.com/demo.mp4">Video fallback.</video></p>
           Loose article sentence.
         </article>
@@ -70,7 +70,9 @@ describe('fetch-article HTML projection', () => {
     expect(output.match(/"bbox_2d"/g)).toHaveLength(1);
     expect(output).toContain('> ```\n> [{"bbox_2d": [1, 2, 3, 4], "label": "pelican"}]\n> ```');
     expect(output.match(/Build an HTML page from the JSON above\./g)).toHaveLength(1);
-    expect(output).toContain('![A pelican on a bicycle](https://example.com/pelican.jpg)');
+    expect(output).toContain(
+      '![A pelican \\{"label": "pelican"\\} on a bicycle](https://example.com/pelican.jpg)'
+    );
     expect(output).toContain('[Video](https://example.com/demo.mp4)');
     expect(output).toContain('Loose article sentence.');
   });

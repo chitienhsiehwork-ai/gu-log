@@ -79,6 +79,19 @@ CONTENT_SELECTORS = (
     ".article-content",
     ".entryPage",
 )
+CONTENT_BOILERPLATE_SELECTORS = (
+    "nav",
+    "footer",
+    "header",
+    "aside",
+    "form",
+    "iframe",
+    ".entryFooter",
+    ".post-footer",
+    ".article-footer",
+    ".share",
+    ".sharing",
+)
 PUBLICATION_META_KEYS = {
     "article:published_time",
     "date",
@@ -194,6 +207,11 @@ def append_block(lines: list[str], tag: str, text: str, quote_depth: int = 0) ->
     lines.append("")
 
 
+def escape_markdown_alt(text: str) -> str:
+    """Keep literal alt text from becoming Markdown or MDX syntax."""
+    return re.sub(r"([\\\[\]{}])", r"\\\1", text)
+
+
 class MarkdownHTMLParser(HTMLParser):
     """Project an article HTML fragment to Markdown without nested duplicates."""
 
@@ -297,7 +315,7 @@ class MarkdownHTMLParser(HTMLParser):
             src = attributes.get("src", "").strip()
             alt = attributes.get("alt", "").strip()
             if src:
-                self._append(f"![{alt}]({src})", alt)
+                self._append(f"![{escape_markdown_alt(alt)}]({src})", alt)
             return
 
         if tag == "source":
@@ -463,7 +481,7 @@ def extract_semantic_container(html: str, title: str = "") -> str:
     root = find_content_root(soup)
     if root is None:
         return ""
-    for tag in root.find_all(["script", "style", "noscript", "nav", "footer", "header", "aside", "form", "iframe"]):
+    for tag in root.select(", ".join(CONTENT_BOILERPLATE_SELECTORS)):
         tag.decompose()
     return soup_to_text(str(root), title)
 
