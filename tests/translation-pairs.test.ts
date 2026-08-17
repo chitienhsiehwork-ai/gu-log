@@ -3,7 +3,11 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { findMissingPairs, gitDiffAddedVsBase } from '../scripts/check-translation-pairs.mjs';
+import {
+  findMissingPairs,
+  gitDiffAddedVsBase,
+  loadPostMap,
+} from '../scripts/check-translation-pairs.mjs';
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, {
@@ -22,7 +26,7 @@ function postBody(ticketId: string, marker: string): string {
 }
 
 describe('translation-pair PR scope', () => {
-  it('allows a GP without an English sidecar while retaining the unconditional series gate', () => {
+  it('requires a sidecar for GP PASS or incomplete evidence but allows explicit FAIL', () => {
     const posts = new Map([
       [
         'gp-275-example.mdx',
@@ -31,6 +35,27 @@ describe('translation-pair PR scope', () => {
           en: null,
           ticketId: 'GP-275',
           status: 'published',
+          tribunalResult: 'fail',
+        },
+      ],
+      [
+        'gp-276-example.mdx',
+        {
+          zh: 'gp-276-example.mdx',
+          en: null,
+          ticketId: 'GP-276',
+          status: 'published',
+          tribunalResult: 'pass',
+        },
+      ],
+      [
+        'gp-277-example.mdx',
+        {
+          zh: 'gp-277-example.mdx',
+          en: null,
+          ticketId: 'GP-277',
+          status: 'published',
+          tribunalResult: 'incomplete',
         },
       ],
       [
@@ -45,8 +70,48 @@ describe('translation-pair PR scope', () => {
     ]);
 
     expect(findMissingPairs(posts)).toEqual([
+      { ticketId: 'GP-276', file: 'gp-276-example.mdx', missingLang: 'en' },
+      { ticketId: 'GP-277', file: 'gp-277-example.mdx', missingLang: 'en' },
       { ticketId: 'MP-999', file: 'mp-999-example.mdx', missingLang: 'en' },
     ]);
+  });
+
+  it('uses the canonical Tribunal bar when loading GP sidecar policy', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-gp-sidecars-'));
+    const scoreBlock = (vibeScore: number) => `
+scores:
+  tribunalVersion: 9
+  librarian: { glossary: 8, crossRef: 8, sourceAlign: 8, attribution: 8, score: 8 }
+  factCheck: { accuracy: 8, fidelity: 8, consistency: 8, sourceBoundary: 8, commentarySeparation: 8, score: 8 }
+  freshEyes: { readability: 8, firstImpression: 8, payoffDensity: 8, lengthFit: 8, clarity: 8, score: 8 }
+  vibe: { persona: 9, moguNote: 8, vibe: ${vibeScore}, narrative: 8, score: ${vibeScore} }`;
+    const writePost = (name: string, ticketId: string, scores = '') => {
+      fs.writeFileSync(
+        path.join(postsDir, name),
+        `---\nticketId: ${ticketId}\nstatus: published${scores}\n---\n\nBody\n`
+      );
+    };
+
+    try {
+      writePost('gp-pass.mdx', 'GP-901', scoreBlock(8));
+      writePost('gp-fail.mdx', 'GP-902', scoreBlock(6));
+      writePost('gp-incomplete.mdx', 'GP-903');
+      writePost('gp-paired.mdx', 'GP-904', scoreBlock(8));
+      writePost('en-gp-paired.mdx', 'GP-904');
+      writePost('gp-invalid.mdx', 'GP-905', scoreBlock(11));
+      writePost('en-gp-orphan.mdx', 'GP-906');
+
+      expect(
+        findMissingPairs(loadPostMap(postsDir)).sort((a, b) => a.ticketId.localeCompare(b.ticketId))
+      ).toEqual([
+        { ticketId: 'GP-901', file: 'gp-pass.mdx', missingLang: 'en' },
+        { ticketId: 'GP-903', file: 'gp-incomplete.mdx', missingLang: 'en' },
+        { ticketId: 'GP-905', file: 'gp-invalid.mdx', missingLang: 'en' },
+        { ticketId: 'GP-906', file: 'en-gp-orphan.mdx', missingLang: 'zh-tw' },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
   });
 
   it('does not classify a rename set above diff.renameLimit as added posts', () => {
