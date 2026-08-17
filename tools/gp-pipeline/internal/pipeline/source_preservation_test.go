@@ -246,6 +246,47 @@ func TestSourceTranslateCanonicalizesMDXImageAltBraces(t *testing.T) {
 	}
 }
 
+func TestSourceTranslatePreservesFindingAcrossMDXCanonicalization(t *testing.T) {
+	source := "![JSON {\"label\":\"pelican\"}](https://example.com/image.jpg)\n"
+	translation := "---\nlang: zh-tw\n---\n\n![JSON {\"label\":\"鵜鶘\"}](https://example.com/image.jpg)\n"
+	s, sourceBytes := newGPState(t, source, translation)
+	oldText := `![JSON {"label":"鵜鶘"}](https://example.com/image.jpg)`
+	start := strings.Index(translation, oldText)
+	finding := preservation.Finding{
+		ID: "image-alt", IssueType: "approved_slop", SourceQuote: "pelican",
+		SourceSHA256: preservation.SHA256(sourceBytes), TranslationSHA256: preservation.SHA256([]byte(translation)),
+		StartByte: start, EndByte: start + len(oldText), OldText: oldText,
+		OldTextSHA256: preservation.SHA256([]byte(oldText)), SuggestedReplacement: oldText,
+	}
+	translatorArtifact := preservation.SourceTranslationArtifact{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(sourceBytes),
+		TranslationMDX: translation, SlopCandidates: []preservation.Finding{finding},
+	}
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, translatorArtifact))
+
+	if err := s.SourceTranslate(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	translated, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifactBytes, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translate.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var canonical preservation.SourceTranslationArtifact
+	if err := preservation.DecodeStrict(artifactBytes, &canonical); err != nil {
+		t.Fatal(err)
+	}
+	if err := preservation.ValidateFindings(sourceBytes, translated, canonical.SlopCandidates); err != nil {
+		t.Fatalf("canonical finding is stale: %v", err)
+	}
+	if got := canonical.SlopCandidates[0].OldText; got != `![JSON \{"label":"鵜鶘"\}](https://example.com/image.jpg)` {
+		t.Fatalf("canonical finding old_text = %q", got)
+	}
+}
+
 func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("# Source\n\nI took a break.\n")

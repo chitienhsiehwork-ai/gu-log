@@ -2,31 +2,55 @@ package preservation
 
 import "bytes"
 
-// EscapeMDXImageAltBraces makes literal JSON in Markdown image alt text safe
-// for MDX. It leaves fenced code and inline code byte-for-byte unchanged.
+// EscapeMDXImageAltBraces makes literal JSON in complete Markdown image alt
+// text safe for MDX. It leaves fenced code and inline code byte-for-byte
+// unchanged.
 func EscapeMDXImageAltBraces(document []byte) []byte {
+	canonical, _ := EscapeMDXImageAltBracesWithOffsets(document)
+	return canonical
+}
+
+// EscapeMDXImageAltBracesWithOffsets also returns a boundary map from each byte
+// offset in document to its corresponding offset in canonical. This lets
+// callers preserve already-validated exact-text anchors when escaping inserts
+// bytes before braces.
+func EscapeMDXImageAltBracesWithOffsets(document []byte) ([]byte, []int) {
 	lines := bytes.SplitAfter(document, []byte("\n"))
 	out := make([]byte, 0, len(document))
+	offsets := make([]int, len(document)+1)
+	oldBase := 0
 	inFence := false
 	var fenceByte byte
 	var fenceWidth int
+	inlineTicks := 0
 	for _, line := range lines {
-		if marker, width, ok := markdownFenceMarker(line); ok {
-			out = append(out, line...)
-			if !inFence {
-				inFence, fenceByte, fenceWidth = true, marker, width
-			} else if marker == fenceByte && width >= fenceWidth {
-				inFence = false
+		var canonical []byte
+		var lineOffsets []int
+		if inlineTicks == 0 {
+			if marker, width, ok := markdownFenceMarker(line); ok {
+				canonical, lineOffsets = identityCanonicalLine(line)
+				if !inFence {
+					inFence, fenceByte, fenceWidth = true, marker, width
+				} else if marker == fenceByte && width >= fenceWidth {
+					inFence = false
+				}
+			} else if inFence {
+				canonical, lineOffsets = identityCanonicalLine(line)
+			} else {
+				canonical, lineOffsets = escapeImageAltBracesLine(line, &inlineTicks)
 			}
-			continue
+		} else {
+			canonical, lineOffsets = escapeImageAltBracesLine(line, &inlineTicks)
 		}
-		if inFence {
-			out = append(out, line...)
-			continue
+
+		newBase := len(out)
+		for i, offset := range lineOffsets {
+			offsets[oldBase+i] = newBase + offset
 		}
-		out = append(out, escapeImageAltBracesLine(line)...)
+		out = append(out, canonical...)
+		oldBase += len(line)
 	}
-	return out
+	return out, offsets
 }
 
 func markdownFenceMarker(line []byte) (byte, int, bool) {
@@ -45,13 +69,46 @@ func markdownFenceMarker(line []byte) (byte, int, bool) {
 	return marker, width, width >= 3
 }
 
-func escapeImageAltBracesLine(line []byte) []byte {
-	out := make([]byte, 0, len(line))
-	inlineTicks := 0
-	for i := 0; i < len(line); {
+type canonicalLine struct {
+	input      []byte
+	output     []byte
+	boundaries []int
+	position   int
+}
+
+func newCanonicalLine(input []byte) *canonicalLine {
+	return &canonicalLine{input: input, output: make([]byte, 0, len(input)), boundaries: make([]int, len(input)+1)}
+}
+
+func (c *canonicalLine) copyTo(end int) {
+	for c.position < end {
+		c.boundaries[c.position] = len(c.output)
+		c.output = append(c.output, c.input[c.position])
+		c.position++
+	}
+}
+
+func (c *canonicalLine) insert(value byte) {
+	c.output = append(c.output, value)
+}
+
+func (c *canonicalLine) finish() ([]byte, []int) {
+	c.copyTo(len(c.input))
+	c.boundaries[len(c.input)] = len(c.output)
+	return c.output, c.boundaries
+}
+
+func identityCanonicalLine(line []byte) ([]byte, []int) {
+	canonical := newCanonicalLine(line)
+	return canonical.finish()
+}
+
+func escapeImageAltBracesLine(line []byte, inlineTicks *int) ([]byte, []int) {
+	canonical := newCanonicalLine(line)
+	for canonical.position < len(line) {
+		i := canonical.position
 		if line[i] == '\\' && i+1 < len(line) {
-			out = append(out, line[i], line[i+1])
-			i += 2
+			canonical.copyTo(i + 2)
 			continue
 		}
 		if line[i] == '`' {
@@ -59,39 +116,76 @@ func escapeImageAltBracesLine(line []byte) []byte {
 			for i+width < len(line) && line[i+width] == '`' {
 				width++
 			}
-			out = append(out, line[i:i+width]...)
-			if inlineTicks == 0 {
-				inlineTicks = width
-			} else if inlineTicks == width {
-				inlineTicks = 0
-			}
-			i += width
-			continue
-		}
-		if inlineTicks == 0 && i+1 < len(line) && line[i] == '!' && line[i+1] == '[' {
-			out = append(out, '!', '[')
-			i += 2
-			for i < len(line) {
-				if line[i] == '\\' && i+1 < len(line) {
-					out = append(out, line[i], line[i+1])
-					i += 2
-					continue
-				}
-				if line[i] == '{' || line[i] == '}' {
-					out = append(out, '\\')
-				}
-				out = append(out, line[i])
-				if line[i] == ']' && i+1 < len(line) && line[i+1] == '(' {
-					out = append(out, '(')
-					i += 2
-					break
-				}
-				i++
+			canonical.copyTo(i + width)
+			if *inlineTicks == 0 {
+				*inlineTicks = width
+			} else if *inlineTicks == width {
+				*inlineTicks = 0
 			}
 			continue
 		}
-		out = append(out, line[i])
-		i++
+		if *inlineTicks == 0 && i+1 < len(line) && line[i] == '!' && line[i+1] == '[' {
+			if altEnd, ok := markdownImageAltEnd(line, i); ok {
+				canonical.copyTo(i + 2)
+				for canonical.position < altEnd {
+					pos := canonical.position
+					if line[pos] == '\\' && pos+1 < altEnd {
+						canonical.copyTo(pos + 2)
+						continue
+					}
+					if line[pos] == '{' || line[pos] == '}' {
+						canonical.insert('\\')
+					}
+					canonical.copyTo(pos + 1)
+				}
+				canonical.copyTo(altEnd + 1)
+				continue
+			}
+		}
+		canonical.copyTo(i + 1)
 	}
-	return out
+	return canonical.finish()
+}
+
+func markdownImageAltEnd(line []byte, start int) (int, bool) {
+	bracketDepth := 1
+	for i := start + 2; i < len(line); i++ {
+		if line[i] == '\\' && i+1 < len(line) {
+			i++
+			continue
+		}
+		switch line[i] {
+		case '[':
+			bracketDepth++
+		case ']':
+			bracketDepth--
+			if bracketDepth == 0 {
+				if i+1 >= len(line) || line[i+1] != '(' || !hasMarkdownImageDestinationEnd(line, i+1) {
+					return 0, false
+				}
+				return i, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func hasMarkdownImageDestinationEnd(line []byte, start int) bool {
+	parenDepth := 1
+	for i := start + 1; i < len(line); i++ {
+		if line[i] == '\\' && i+1 < len(line) {
+			i++
+			continue
+		}
+		switch line[i] {
+		case '(':
+			parenDepth++
+		case ')':
+			parenDepth--
+			if parenDepth == 0 {
+				return true
+			}
+		}
+	}
+	return false
 }

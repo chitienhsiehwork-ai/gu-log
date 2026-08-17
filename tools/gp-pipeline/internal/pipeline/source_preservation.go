@@ -104,23 +104,24 @@ func (s *State) SourceTranslate(ctx context.Context) error {
 			}
 		}
 	}
-	canonicalTranslation := preservation.EscapeMDXImageAltBraces(translation)
+	canonicalTranslation, offsetMap := preservation.EscapeMDXImageAltBracesWithOffsets(translation)
 	if !bytes.Equal(canonicalTranslation, translation) {
-		translation = canonicalTranslation
 		if len(artifact.SlopCandidates) > 0 {
-			canonicalCandidates, err := preservation.CanonicalizeFindingAnchors(translation, artifact.SlopCandidates)
-			if err != nil {
-				return fmt.Errorf("source-translate MDX canonicalization: %w", err)
-			}
-			translationHash := preservation.SHA256(translation)
+			canonicalCandidates := append([]preservation.Finding(nil), artifact.SlopCandidates...)
 			for i := range canonicalCandidates {
-				canonicalCandidates[i].TranslationSHA256 = translationHash
+				finding := &canonicalCandidates[i]
+				finding.StartByte = offsetMap[finding.StartByte]
+				finding.EndByte = offsetMap[finding.EndByte]
+				finding.OldText = string(canonicalTranslation[finding.StartByte:finding.EndByte])
+				finding.OldTextSHA256 = preservation.SHA256([]byte(finding.OldText))
+				finding.TranslationSHA256 = preservation.SHA256(canonicalTranslation)
 			}
-			if err := preservation.ValidateFindings(source, translation, canonicalCandidates); err != nil {
+			if err := preservation.ValidateFindings(source, canonicalTranslation, canonicalCandidates); err != nil {
 				return fmt.Errorf("source-translate canonical findings: %w", err)
 			}
 			artifact.SlopCandidates = canonicalCandidates
 		}
+		translation = canonicalTranslation
 		artifact.TranslationMDX = string(translation)
 	}
 	translationFile, err := frontmatter.Parse(translation)
