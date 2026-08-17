@@ -47,8 +47,18 @@ for (const theme of ['dark', 'light'] as const) {
       const noteExternal = external.cloneNode(true) as HTMLAnchorElement;
       noteInternal.parentElement?.append(noteExternal);
 
+      const internalStyle = getComputedStyle(internal);
+      const underlineCanvas = document.createElement('canvas');
+      underlineCanvas.width = 1;
+      underlineCanvas.height = 1;
+      const underlineContext = underlineCanvas.getContext('2d');
+      if (!underlineContext) throw new Error('Canvas context is unavailable');
+      underlineContext.fillStyle = internalStyle.textDecorationColor;
+      underlineContext.fillRect(0, 0, 1, 1);
+      const underlineAlpha = underlineContext.getImageData(0, 0, 1, 1).data[3] / 255;
+
       return {
-        internal: getComputedStyle(internal).color,
+        internal: internalStyle.color,
         external: getComputedStyle(external).color,
         background: getComputedStyle(document.body).backgroundColor,
         noteInternal: getComputedStyle(noteInternal).color,
@@ -66,6 +76,8 @@ for (const theme of ['dark', 'light'] as const) {
         moguPrefixParent: getComputedStyle(moguPrefix.parentElement!).color,
         moguPrefixDecoration: getComputedStyle(moguPrefix).textDecorationLine,
         internalDecoration: getComputedStyle(internal).textDecorationLine,
+        internalDecorationColor: internalStyle.textDecorationColor,
+        internalDecorationAlpha: underlineAlpha,
         externalDecoration: getComputedStyle(external).textDecorationLine,
       };
     });
@@ -76,6 +88,9 @@ for (const theme of ['dark', 'light'] as const) {
     expect(colors.externalMarker).toBe('↗');
     expect(colors.externalMarkerHidden).toBe('true');
     expect(colors.internalDecoration).toContain('underline');
+    expect(colors.internalDecorationColor).not.toBe(colors.internal);
+    expect(colors.internalDecorationAlpha).toBeGreaterThanOrEqual(0.7);
+    expect(colors.internalDecorationAlpha).toBeLessThanOrEqual(0.74);
     expect(colors.externalDecoration).toBe('none');
     expect(contrast(colors.internal, colors.background)).toBeGreaterThanOrEqual(5);
     expect(contrast(colors.external, colors.background)).toBeGreaterThanOrEqual(5);
