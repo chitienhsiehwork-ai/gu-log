@@ -534,6 +534,7 @@ const STANDARD_ATTRIBUTES = Object.freeze({
     'ariaDescribedBy',
     'ariaLabel',
     'className',
+    'dataLinkKind',
     'dataFootnoteBackref',
     'dataFootnoteRef',
     'href',
@@ -583,6 +584,13 @@ function validateRenderedElement(node, context) {
 
   const classes = node.properties?.className ?? [];
   if (
+    node.tagName === 'a' &&
+    node.properties?.dataLinkKind !== undefined &&
+    !['internal', 'external'].includes(node.properties.dataLinkKind)
+  ) {
+    fail(context.sourceName, `unknown rendered link kind ${node.properties.dataLinkKind}`);
+  }
+  if (
     (node.tagName === 'a' && classes.some((name) => name !== 'data-footnote-backref')) ||
     (node.tagName === 'h2' && classes.some((name) => name !== 'sr-only')) ||
     (node.tagName === 'pre' &&
@@ -598,6 +606,24 @@ function validateRenderedElement(node, context) {
       `unknown rendered semantic class on <${node.tagName}>: ${classes.join(' ')}`
     );
   }
+}
+
+function projectExternalLinkMarker(node, context) {
+  const properties = Object.keys(node.properties ?? {}).filter((name) => !isAstroAttribute(name));
+  if (
+    properties.length !== 2 ||
+    !properties.includes('ariaHidden') ||
+    !properties.includes('className') ||
+    node.properties?.ariaHidden !== 'true' ||
+    node.properties?.className?.length !== 1 ||
+    node.children?.length !== 1 ||
+    node.children[0]?.type !== 'text' ||
+    node.children[0]?.value !== '\u2060↗' ||
+    rawText(node) !== '↗'
+  ) {
+    fail(context.sourceName, 'external link marker contract changed');
+  }
+  return '';
 }
 
 const BLOCK_TAGS = new Set([
@@ -1010,6 +1036,9 @@ function projectNode(node, context) {
     return project(node, context);
   }
   if (hasClass(node, 'artifact-callout')) return projectArtifactCallout(node, context);
+  if (node.tagName === 'span' && hasClass(node, 'external-link-marker')) {
+    return projectExternalLinkMarker(node, context);
+  }
 
   if (
     (node.tagName === 'div' &&

@@ -307,6 +307,25 @@ test('escapes literal backslashes together with Markdown inline punctuation', ()
   assert.ok(result.markdown.includes(String.raw`Path C:\\tmp and \*literal\*.`));
 });
 
+test('projects post link semantics without leaking the visual external marker', () => {
+  const raw = rawPost('\n[Example](https://example.com) and [About](/about).\n');
+  const html = pageHtml(`
+    <p>
+      <a href="https://example.com" data-link-kind="external">Example<span class="external-link-marker" aria-hidden="true">⁠↗</span></a>
+      and <a href="/about" data-link-kind="internal">About</a>.
+    </p>
+  `);
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: postJson(raw),
+    html,
+    sourceName: 'post-link-semantics',
+  });
+
+  assert.match(result.markdown, /\[Example\]\(https:\/\/example\.com\/\) and \[About\]/);
+  assert.doesNotMatch(result.markdown, /↗|data-link-kind|external-link-marker/);
+});
+
 test('projects every registered adapter and the exact artifact callout without hidden duplicates', () => {
   const raw = rawPost(`
 import MoguNote from '../../components/MoguNote.astro';
