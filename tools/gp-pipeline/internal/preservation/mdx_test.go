@@ -18,6 +18,11 @@ func TestEscapeMDXImageAltBraces(t *testing.T) {
 		"```",
 		`![fenced {code}](ignored)`,
 		"```",
+		"```",
+		`![first {"x":1}](ignored)`,
+		"```js",
+		`![second {"x":2}](ignored)`,
+		"```",
 		`{"ordinary":"json"}`,
 	}, "\n")
 	want := strings.Join([]string{
@@ -30,6 +35,11 @@ func TestEscapeMDXImageAltBraces(t *testing.T) {
 		`這只是文字：![not an image {"x":1}]，沒有圖片網址。`,
 		"```",
 		`![fenced {code}](ignored)`,
+		"```",
+		"```",
+		`![first {"x":1}](ignored)`,
+		"```js",
+		`![second {"x":2}](ignored)`,
 		"```",
 		`{"ordinary":"json"}`,
 	}, "\n")

@@ -26,16 +26,16 @@ func EscapeMDXImageAltBracesWithOffsets(document []byte) ([]byte, []int) {
 	for _, line := range lines {
 		var canonical []byte
 		var lineOffsets []int
-		if inlineTicks == 0 {
+		if inFence {
+			canonical, lineOffsets = identityCanonicalLine(line)
+			if marker, width, ok := markdownFenceMarker(line); ok &&
+				marker == fenceByte && width >= fenceWidth && markdownFenceHasBlankSuffix(line, width) {
+				inFence = false
+			}
+		} else if inlineTicks == 0 {
 			if marker, width, ok := markdownFenceMarker(line); ok {
 				canonical, lineOffsets = identityCanonicalLine(line)
-				if !inFence {
-					inFence, fenceByte, fenceWidth = true, marker, width
-				} else if marker == fenceByte && width >= fenceWidth {
-					inFence = false
-				}
-			} else if inFence {
-				canonical, lineOffsets = identityCanonicalLine(line)
+				inFence, fenceByte, fenceWidth = true, marker, width
 			} else {
 				canonical, lineOffsets = escapeImageAltBracesLine(line, &inlineTicks)
 			}
@@ -54,10 +54,7 @@ func EscapeMDXImageAltBracesWithOffsets(document []byte) ([]byte, []int) {
 }
 
 func markdownFenceMarker(line []byte) (byte, int, bool) {
-	trimmed := bytes.TrimLeft(line, " \t")
-	for len(trimmed) > 0 && trimmed[0] == '>' {
-		trimmed = bytes.TrimLeft(trimmed[1:], " \t")
-	}
+	trimmed := markdownFenceContent(line)
 	if len(trimmed) < 3 || (trimmed[0] != '`' && trimmed[0] != '~') {
 		return 0, 0, false
 	}
@@ -67,6 +64,19 @@ func markdownFenceMarker(line []byte) (byte, int, bool) {
 		width++
 	}
 	return marker, width, width >= 3
+}
+
+func markdownFenceContent(line []byte) []byte {
+	trimmed := bytes.TrimLeft(line, " \t")
+	for len(trimmed) > 0 && trimmed[0] == '>' {
+		trimmed = bytes.TrimLeft(trimmed[1:], " \t")
+	}
+	return trimmed
+}
+
+func markdownFenceHasBlankSuffix(line []byte, width int) bool {
+	content := markdownFenceContent(line)
+	return width <= len(content) && len(bytes.TrimSpace(content[width:])) == 0
 }
 
 type canonicalLine struct {
