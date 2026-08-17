@@ -66,10 +66,10 @@
   --color-source-link: #ffb3e0; /* soft pink — 5.54:1 on #44475a */
 
   /* Article links: cool stays inside gu-log; warm leaves the site. */
-  --color-post-link-internal: #8ea0c0; /* muted blue — 5.38:1 on #282a36 */
-  --color-post-link-external: #c28dac; /* dusty rose — 5.22:1 on #282a36 */
-  --color-post-link-internal-surface: #b7c2dc; /* muted blue — 5.13:1 on #44475a */
-  --color-post-link-external-surface: #e3b3cb; /* dusty rose — 5.04:1 on #44475a */
+  --color-post-link-internal: #a4b6d5; /* soft blue — 6.94:1 on #282a36 */
+  --color-post-link-external: #d5a6bf; /* dusty rose — 6.81:1 on #282a36 */
+  --color-post-link-internal-surface: #b0c2df; /* soft blue — 5.07:1 on #44475a */
+  --color-post-link-external-surface: #e0b4cb; /* dusty rose — 5.04:1 on #44475a */
 
   /* Mogu murmur variant accent — must be readable on --color-bg */
   --color-mogu-murmur: #ad8ae0; /* soft violet — 4.68:1 on #282a36 */
@@ -164,9 +164,9 @@
   --color-source-link: #195d8c; /* navy — 5.73:1 on #eee8d5 */
 
   /* Article links: same cool/warm semantics, tuned for Solarized surfaces. */
-  --color-post-link-internal: #4b6d78; /* muted teal — 5.18:1 on #fdf6e3 */
+  --color-post-link-internal: #326f91; /* muted blue — 5.10:1 on #fdf6e3 */
   --color-post-link-external: #806071; /* muted plum — 5.08:1 on #fdf6e3 */
-  --color-post-link-internal-surface: #3f626e; /* muted teal — 5.38:1 on #eee8d5 */
+  --color-post-link-internal-surface: #256887; /* muted blue — 5.03:1 on #eee8d5 */
   --color-post-link-external-surface: #765869; /* muted plum — 5.09:1 on #eee8d5 */
 
   /* Mogu murmur variant accent — indigo readable on cream background */
@@ -317,6 +317,7 @@ a:hover {
 
 .post-content a[data-link-kind='external']:where(:not(.artifact-callout, .mogu-prefix-link)) {
   color: var(--color-post-link-external);
+  text-decoration: none;
 }
 
 .post-content
@@ -333,6 +334,10 @@ a:hover {
 
 .post-content a:where(:not(.artifact-callout, .mogu-prefix-link)):hover {
   text-decoration-thickness: 0.12em;
+}
+
+.post-content a[data-link-kind='external']:where(:not(.artifact-callout, .mogu-prefix-link)):hover {
+  text-decoration: underline;
 }
 
 .post-content a:where(:not(.artifact-callout, .mogu-prefix-link)):focus-visible {

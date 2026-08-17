@@ -76,7 +76,7 @@ for (const theme of ['dark', 'light'] as const) {
     expect(colors.externalMarker).toBe('↗');
     expect(colors.externalMarkerHidden).toBe('true');
     expect(colors.internalDecoration).toContain('underline');
-    expect(colors.externalDecoration).toContain('underline');
+    expect(colors.externalDecoration).toBe('none');
     expect(contrast(colors.internal, colors.background)).toBeGreaterThanOrEqual(5);
     expect(contrast(colors.external, colors.background)).toBeGreaterThanOrEqual(5);
     expect(contrast(colors.noteInternal, colors.noteBackground)).toBeGreaterThanOrEqual(5);
@@ -84,6 +84,10 @@ for (const theme of ['dark', 'light'] as const) {
     expect(colors.noteInternal).not.toBe(colors.noteExternal);
     expect(colors.moguPrefix).toBe(colors.moguPrefixParent);
     expect(colors.moguPrefixDecoration).toBe('none');
+
+    const external = page.locator('.post-content a[href="https://pi.dev/"]').last();
+    await external.hover();
+    await expect(external).toHaveCSS('text-decoration-line', 'underline');
 
     const orphanWidths = await page.evaluate(() => {
       const fixture = document.createElement('div');
