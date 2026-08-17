@@ -12,7 +12,8 @@ Output: Clean markdown-ish text suitable for LLM processing.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from html.parser import HTMLParser
 import re
 import sys
 from urllib.error import HTTPError, URLError
@@ -69,6 +70,30 @@ BOILERPLATE_MARKERS = [
     "menu",
     "navigation",
 ]
+CONTENT_SELECTORS = (
+    "article",
+    "main",
+    "[role=main]",
+    ".entry-content",
+    ".post-content",
+    ".article-content",
+    ".entryPage",
+)
+PUBLICATION_META_KEYS = {
+    "article:published_time",
+    "date",
+    "datepublished",
+    "dc.date",
+    "publish-date",
+    "pubdate",
+}
+PUBLICATION_CLASS_NAMES = {
+    "date",
+    "entry-date",
+    "mobile-date",
+    "post-date",
+    "published",
+}
 
 
 def sniff_charset(raw_html: bytes, content_type: str) -> str:
@@ -136,65 +161,311 @@ def fetch_html(url: str) -> tuple[str, str]:
         raise RuntimeError(f"Network error: {exc.reason}") from exc
 
 
-def append_block(lines: list[str], tag: str, text: str) -> None:
-    """Append a markdown-ish block to the output buffer."""
+def append_block(lines: list[str], tag: str, text: str, quote_depth: int = 0) -> None:
+    """Append one markdown-ish block to the output buffer."""
     if tag == "pre":
         text = text.strip("\n")
         if not text:
             return
-        lines.append(f"```\n{text}\n```")
-        lines.append("")
-        return
-
-    text = re.sub(r"\s+", " ", text).strip()
-    if not text:
-        return
-
-    if tag == "h1":
-        lines.append(f"# {text}")
-    elif tag == "h2":
-        lines.append(f"## {text}")
-    elif tag == "h3":
-        lines.append(f"### {text}")
-    elif tag == "h4":
-        lines.append(f"#### {text}")
-    elif tag == "li":
-        lines.append(f"- {text}")
-    elif tag == "blockquote":
-        lines.append(f"> {text}")
+        rendered = f"```\n{text}\n```"
     else:
-        lines.append(text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if not text:
+            return
+
+        if tag == "h1":
+            rendered = f"# {text}"
+        elif tag == "h2":
+            rendered = f"## {text}"
+        elif tag == "h3":
+            rendered = f"### {text}"
+        elif tag == "h4":
+            rendered = f"#### {text}"
+        elif tag == "li":
+            rendered = f"- {text}"
+        else:
+            rendered = text
+
+    if quote_depth:
+        prefix = "> " * quote_depth
+        rendered = "\n".join(prefix + line for line in rendered.splitlines())
+
+    lines.append(rendered)
     lines.append("")
+
+
+class MarkdownHTMLParser(HTMLParser):
+    """Project an article HTML fragment to Markdown without nested duplicates."""
+
+    BLOCK_TAGS = {"h1", "h2", "h3", "h4", "p", "li", "pre"}
+    IGNORED_TAGS = {"script", "style", "noscript"}
+
+    def __init__(self, title: str = "") -> None:
+        super().__init__(convert_charrefs=True)
+        self.lines: list[str] = []
+        self.seen_keys: set[str] = set()
+        self.blocks: list[dict[str, object]] = []
+        self.block_events: list[tuple[str, dict[str, object] | None]] = []
+        self.inline_events: list[tuple[str, str, dict[str, object]]] = []
+        self.implicit_block: dict[str, object] | None = None
+        self.quote_depth = 0
+        self.ignored_depth = 0
+
+        normalized_title = re.sub(r"\s+", " ", title).strip()
+        if normalized_title:
+            self.lines.extend([f"# {normalized_title}", ""])
+            self.seen_keys.add(normalized_title.casefold())
+
+    def _new_block(self, tag: str) -> dict[str, object]:
+        return {
+            "tag": tag,
+            "markdown": [],
+            "plain": [],
+            "quote_depth": self.quote_depth,
+        }
+
+    def _current_block(self, create_implicit: bool = False) -> dict[str, object] | None:
+        if self.blocks:
+            return self.blocks[-1]
+        if create_implicit and self.implicit_block is None:
+            self.implicit_block = self._new_block("p")
+        return self.implicit_block
+
+    def _append(self, markdown: str, plain: str | None = None) -> None:
+        block = self._current_block(create_implicit=True)
+        if block is None:
+            return
+        block["markdown"].append(markdown)  # type: ignore[union-attr]
+        block["plain"].append(markdown if plain is None else plain)  # type: ignore[union-attr]
+
+    def _emit(self, block: dict[str, object]) -> None:
+        tag = str(block["tag"])
+        markdown = "".join(block["markdown"])  # type: ignore[arg-type]
+        plain = re.sub(r"\s+", " ", "".join(block["plain"])).strip()  # type: ignore[arg-type]
+        key = plain.casefold()
+        if not key:
+            return
+        if tag in {"h1", "h2"} and key in self.seen_keys:
+            return
+        if tag in {"h1", "h2"}:
+            self.seen_keys.add(key)
+        append_block(self.lines, tag, markdown, int(block["quote_depth"]))
+
+    def _flush_implicit(self) -> None:
+        if self.implicit_block is not None:
+            self._emit(self.implicit_block)
+            self.implicit_block = None
+
+    def _in_pre(self) -> bool:
+        return bool(self.blocks and self.blocks[-1]["tag"] == "pre")
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.casefold()
+        attributes = {name.casefold(): value or "" for name, value in attrs}
+
+        if tag in self.IGNORED_TAGS:
+            self.ignored_depth += 1
+            return
+        if self.ignored_depth:
+            return
+
+        if self._in_pre():
+            if tag == "br":
+                self._append("\n")
+            return
+
+        if tag == "blockquote":
+            self._flush_implicit()
+            self.quote_depth += 1
+            return
+
+        if tag in self.BLOCK_TAGS:
+            self._flush_implicit()
+            if tag == "p" and self.blocks and self.blocks[-1]["tag"] == "li":
+                self.block_events.append((tag, None))
+                return
+            block = self._new_block(tag)
+            self.blocks.append(block)
+            self.block_events.append((tag, block))
+            return
+
+        if tag == "br":
+            self._append("\n")
+            return
+
+        if tag == "img":
+            src = attributes.get("src", "").strip()
+            alt = attributes.get("alt", "").strip()
+            if src:
+                self._append(f"![{alt}]({src})", alt)
+            return
+
+        if tag == "source":
+            src = attributes.get("src", "").strip()
+            if src:
+                self._append(f"[Video]({src})", "Video")
+            return
+
+        opening = ""
+        closing = ""
+        if tag == "a" and attributes.get("href"):
+            opening, closing = "[", f"]({attributes['href']})"
+        elif tag == "code":
+            opening = closing = "`"
+        elif tag in {"strong", "b"}:
+            opening = closing = "**"
+        elif tag in {"em", "i"}:
+            opening = closing = "*"
+
+        if opening:
+            block = self._current_block(create_implicit=True)
+            if block is not None:
+                block["markdown"].append(opening)  # type: ignore[union-attr]
+                self.inline_events.append((tag, closing, block))
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.casefold()
+        if self.ignored_depth:
+            if tag in self.IGNORED_TAGS:
+                self.ignored_depth -= 1
+            return
+
+        if self._in_pre() and tag != "pre":
+            return
+
+        if tag == "blockquote":
+            self._flush_implicit()
+            self.quote_depth = max(0, self.quote_depth - 1)
+            return
+
+        if tag in self.BLOCK_TAGS:
+            for index in range(len(self.block_events) - 1, -1, -1):
+                event_tag, block = self.block_events[index]
+                if event_tag != tag:
+                    continue
+                del self.block_events[index]
+                if block is not None and block in self.blocks:
+                    self.blocks.remove(block)
+                    self._emit(block)
+                return
+
+        for index in range(len(self.inline_events) - 1, -1, -1):
+            event_tag, closing, block = self.inline_events[index]
+            if event_tag != tag:
+                continue
+            del self.inline_events[index]
+            if block is self._current_block():
+                block["markdown"].append(closing)  # type: ignore[union-attr]
+            return
+
+    def handle_data(self, data: str) -> None:
+        if self.ignored_depth or not data:
+            return
+        if not self.blocks and self.implicit_block is None and not data.strip():
+            return
+        self._append(data)
+
+    def markdown(self) -> str:
+        self._flush_implicit()
+        while self.blocks:
+            self._emit(self.blocks.pop())
+        return "\n".join(self.lines).strip()
+
+
+def normalize_publication_date(value: str) -> str:
+    """Normalize common article publication date formats to YYYY-MM-DD."""
+    value = re.sub(r"(?<=\d)(st|nd|rd|th)\b", "", value.strip(), flags=re.IGNORECASE)
+    iso_match = re.search(r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)", value)
+    if iso_match:
+        return iso_match.group(1)
+    for date_format in ("%d %B %Y", "%d %b %Y", "%B %d, %Y", "%b %d, %Y"):
+        try:
+            return datetime.strptime(value, date_format).date().isoformat()
+        except ValueError:
+            continue
+    return ""
+
+
+class PublicationDateHTMLParser(HTMLParser):
+    """Collect publication metadata without depending on site-specific JS."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.candidates: list[str] = []
+        self.capture_depth = 0
+        self.capture_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        attributes = {name.casefold(): value or "" for name, value in attrs}
+        metadata_key = (attributes.get("property") or attributes.get("name") or attributes.get("itemprop", "")).casefold()
+        if tag.casefold() == "meta" and metadata_key in PUBLICATION_META_KEYS and attributes.get("content"):
+            self.candidates.append(attributes["content"])
+        if tag.casefold() == "time" and attributes.get("datetime"):
+            self.candidates.append(attributes["datetime"])
+
+        if self.capture_depth:
+            self.capture_depth += 1
+            return
+        class_names = set(attributes.get("class", "").split())
+        if class_names & PUBLICATION_CLASS_NAMES:
+            self.capture_depth = 1
+            self.capture_parts = []
+
+    def handle_endtag(self, tag: str) -> None:
+        if not self.capture_depth:
+            return
+        self.capture_depth -= 1
+        if self.capture_depth == 0:
+            candidate = "".join(self.capture_parts).strip()
+            if candidate:
+                self.candidates.append(candidate)
+            self.capture_parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self.capture_depth:
+            self.capture_parts.append(data)
+
+
+def extract_publication_date(html: str) -> str:
+    """Return the first explicit publication date found in an HTML page."""
+    parser = PublicationDateHTMLParser()
+    parser.feed(html)
+    parser.close()
+    for candidate in parser.candidates:
+        normalized = normalize_publication_date(candidate)
+        if normalized:
+            return normalized
+    return ""
 
 
 def soup_to_text(summary_html: str, title: str = "") -> str:
     """Convert HTML fragments to readable markdown-ish text."""
+    parser = MarkdownHTMLParser(title)
+    parser.feed(summary_html)
+    parser.close()
+    return parser.markdown()
+
+
+def find_content_root(soup: object) -> object | None:
+    """Return the first explicit article container advertised by the page."""
+    for selector in CONTENT_SELECTORS:
+        root = soup.select_one(selector)  # type: ignore[attr-defined]
+        if root is not None:
+            return root
+    return None
+
+
+def extract_semantic_container(html: str, title: str = "") -> str:
+    """Prefer an author-declared content container over heuristic cleanup."""
     from bs4 import BeautifulSoup
 
-    soup = BeautifulSoup(summary_html, "lxml")
-    root = soup.find("article") or soup.find("main") or soup
-
-    lines: list[str] = []
-    seen_keys: set[str] = set()
-
-    if title:
-        normalized_title = re.sub(r"\s+", " ", title).strip()
-        if normalized_title:
-            lines.append(f"# {normalized_title}")
-            lines.append("")
-            seen_keys.add(normalized_title.casefold())
-
-    for el in root.find_all(["h1", "h2", "h3", "h4", "p", "li", "blockquote", "pre"]):
-        text = el.get_text(separator="\n" if el.name == "pre" else " ", strip=True)
-        key = re.sub(r"\s+", " ", text).strip().casefold()
-        if not key:
-            continue
-        if el.name in {"h1", "h2"} and key in seen_keys:
-            continue
-        seen_keys.add(key)
-        append_block(lines, el.name, text)
-
-    return "\n".join(lines).strip()
+    soup = BeautifulSoup(html, "lxml")
+    root = find_content_root(soup)
+    if root is None:
+        return ""
+    for tag in root.find_all(["script", "style", "noscript", "nav", "footer", "header", "aside", "form", "iframe"]):
+        tag.decompose()
+    return soup_to_text(str(root), title)
 
 
 def extract_with_readability(html: str, url: str) -> str:
@@ -202,8 +473,11 @@ def extract_with_readability(html: str, url: str) -> str:
     from readability import Document
 
     doc = Document(html, url=url)
-    summary_html = doc.summary()
     title = doc.title() or ""
+    semantic_text = extract_semantic_container(html, title)
+    if semantic_text and not is_garbage(semantic_text):
+        return semantic_text
+    summary_html = doc.summary()
     return soup_to_text(summary_html, title)
 
 
@@ -215,7 +489,7 @@ def extract_fallback(html: str) -> str:
     for tag in soup.find_all(["script", "style", "noscript", "nav", "footer", "header", "aside", "form", "svg", "iframe"]):
         tag.decompose()
 
-    root = soup.find("article") or soup.find("main") or soup.body or soup
+    root = find_content_root(soup) or soup.body or soup
     title = ""
     if soup.title and soup.title.string:
         title = soup.title.string.strip()
@@ -291,7 +565,9 @@ def main() -> None:
         print("ERROR: Could not extract readable content from URL (page may be blocked, paywalled, or JS-only)", file=sys.stderr)
         sys.exit(1)
 
-    output = f"Source URL: {final_url}\nFetched: {date.today().isoformat()}\n\n{text}"
+    publication_date = extract_publication_date(html)
+    publication_line = f"Published: {publication_date}\n" if publication_date else ""
+    output = f"Source URL: {final_url}\nFetched: {date.today().isoformat()}\n{publication_line}\n{text}"
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as file_obj:
