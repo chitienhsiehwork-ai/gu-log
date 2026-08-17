@@ -573,6 +573,41 @@ blockquote.mogu-note br {
 .post-content pre {
   margin: 1.5rem 0;
   padding: 1rem 1.05rem;
+  overflow-x: hidden !important;
+}
+
+.post-content pre code {
+  display: flex;
+  flex-direction: column;
+  counter-reset: code-line;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.post-content pre code > .line {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 1.55em;
+  padding-inline-start: 2.6rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.post-content pre code > .line::before {
+  position: absolute;
+  inset-inline-start: 0;
+  width: 1.7rem;
+  color: var(--color-surface-meta);
+  font-size: 0.78em;
+  line-height: 1.99;
+  text-align: end;
+  content: counter(code-line);
+  counter-increment: code-line;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Article meta */

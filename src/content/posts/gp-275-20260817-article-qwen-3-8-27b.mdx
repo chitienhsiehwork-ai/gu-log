@@ -174,13 +174,11 @@ Qwen 的推理過程開頭是這樣：
 
 我以前看過用 0-1000 的尺度效果很好。我試了這個：
 
-```
+```bash
 llm -a https://static.inaturalist.org/photos/714731804/large.jpg \
   -m lmstudio/qwen/qwen3.8-27b \
-  'Return JSON bounding boxes for the pelicans in this photo, 0-1000 scale for each dimension'
+  '為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度'
 ```
-
-提示是：為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度。
 
 這是[推理過程](https://gist.github.com/simonw/a05cc78b2061555bd61d3bb9686e689f)，產出這個：
 
