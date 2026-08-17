@@ -36,18 +36,20 @@ describe('rehypePostLinks', () => {
       children: [{ type: 'text', value: 'Artifact' }],
     };
     const tree = { type: 'root', children: [external, internal, component] };
+    const linkKind = (node: { properties: object }) =>
+      (node.properties as Record<string, unknown>).dataLinkKind;
 
     rehypePostLinks()(tree);
 
-    expect(external.properties.dataLinkKind).toBe('external');
+    expect(linkKind(external)).toBe('external');
     expect(external.children.at(-1)).toMatchObject({
       tagName: 'span',
       properties: { ariaHidden: 'true', className: ['external-link-marker'] },
       children: [{ value: '\u2060↗' }],
     });
-    expect(internal.properties.dataLinkKind).toBe('internal');
+    expect(linkKind(internal)).toBe('internal');
     expect(internal.children).toHaveLength(1);
-    expect(component.properties.dataLinkKind).toBe('external');
+    expect(linkKind(component)).toBe('external');
     expect(component.children).toHaveLength(1);
   });
 });
