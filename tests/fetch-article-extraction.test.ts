@@ -116,6 +116,13 @@ describe('fetch-article HTML projection', () => {
     expect(() => createProcessor({ format: 'mdx' }).parse(output)).not.toThrow();
   });
 
+  it('preserves text order around a nested list', () => {
+    const output = extract('<ul><li>before<ul><li>nested</li></ul>after</li></ul>');
+
+    expect(output.indexOf('before')).toBeLessThan(output.indexOf('nested'));
+    expect(output.indexOf('nested')).toBeLessThan(output.indexOf('after'));
+  });
+
   it('removes footer boilerplate from a semantic article container', () => {
     const output = extractSemantic(
       '<div class="entryPage"><h1>Article</h1><p>Body payload.</p><div class="entryFooter">Follow and subscribe.</div></div>'
@@ -130,6 +137,9 @@ describe('fetch-article HTML projection', () => {
       publicationDate('<meta property="article:published_time" content="2026-08-16T22:00:00Z">')
     ).toBe('2026-08-16');
     expect(publicationDate('<p class="mobile-date">16th August 2026</p>')).toBe('2026-08-16');
+    expect(
+      publicationDate('<p class="published">1 January 2026</p><p class="date">2 February 2026</p>')
+    ).toBe('2026-01-01');
     expect(publicationDate('<meta property="article:published_time" content="2026-99-99">')).toBe(
       ''
     );

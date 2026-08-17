@@ -100,13 +100,13 @@ PUBLICATION_META_KEYS = {
     "publish-date",
     "pubdate",
 }
-PUBLICATION_CLASS_NAMES = {
+PUBLICATION_CLASS_NAMES = (
     "date",
     "entry-date",
     "mobile-date",
     "post-date",
     "published",
-}
+)
 
 
 def sniff_charset(raw_html: bytes, content_type: str) -> str:
@@ -174,7 +174,7 @@ def fetch_html(url: str) -> tuple[str, str]:
         raise RuntimeError(f"Network error: {exc.reason}") from exc
 
 
-def append_block(lines: list[str], tag: str, text: str, quote_depth: int = 0) -> None:
+def append_block(lines: list[str], tag: str, text: str, quote_depth: int = 0, indent_depth: int = 0) -> None:
     """Append one markdown-ish block to the output buffer."""
     if tag == "pre":
         text = text.strip("\n")
@@ -201,6 +201,9 @@ def append_block(lines: list[str], tag: str, text: str, quote_depth: int = 0) ->
         else:
             rendered = text
 
+    if indent_depth:
+        indent = "  " * indent_depth
+        rendered = "\n".join(indent + line for line in rendered.splitlines())
     if quote_depth:
         prefix = "> " * quote_depth
         rendered = "\n".join(prefix + line for line in rendered.splitlines())
@@ -270,7 +273,39 @@ class MarkdownProjector:
                 self.heading_keys.add(heading)
         append_block(self.lines, tag, markdown, quote_depth)
 
-    def _walk(self, parent: Tag | BeautifulSoup, quote_depth: int = 0) -> None:
+    def _walk_list_item(self, node: Tag, quote_depth: int, list_depth: int) -> None:
+        loose: list[str] = []
+        emitted_item = False
+
+        def flush_loose() -> None:
+            nonlocal emitted_item
+            if not loose:
+                return
+            append_block(
+                self.lines,
+                "p" if emitted_item else "li",
+                "".join(loose),
+                quote_depth,
+                list_depth + (1 if emitted_item else 0),
+            )
+            loose.clear()
+            emitted_item = True
+
+        for child in node.children:
+            if isinstance(child, NavigableString):
+                loose.append(str(child))
+            elif not isinstance(child, Tag) or child.name.casefold() in self.IGNORED_TAGS:
+                continue
+            elif child.name.casefold() in {"ul", "ol"}:
+                flush_loose()
+                self._walk(child, quote_depth, list_depth + 1)
+            elif child.name.casefold() in self.BLOCK_TAGS:
+                loose.extend(self._inline(grandchild) for grandchild in child.children)
+            else:
+                loose.append(self._inline(child))
+        flush_loose()
+
+    def _walk(self, parent: Tag | BeautifulSoup, quote_depth: int = 0, list_depth: int = 0) -> None:
         loose: list[str] = []
 
         def flush_loose() -> None:
@@ -287,16 +322,16 @@ class MarkdownProjector:
             tag = child.name.casefold()
             if tag == "blockquote":
                 flush_loose()
-                self._walk(child, quote_depth + 1)
+                self._walk(child, quote_depth + 1, list_depth)
             elif tag in self.BLOCK_TAGS:
                 flush_loose()
-                self._emit(child, quote_depth)
                 if tag == "li":
-                    for nested in child.find_all(["ul", "ol"], recursive=False):
-                        self._walk(nested, quote_depth)
+                    self._walk_list_item(child, quote_depth, list_depth)
+                else:
+                    self._emit(child, quote_depth)
             elif tag in self.CONTAINER_TAGS:
                 flush_loose()
-                self._walk(child, quote_depth)
+                self._walk(child, quote_depth, list_depth)
             else:
                 loose.append(self._inline(child))
         flush_loose()
@@ -334,8 +369,8 @@ def extract_publication_date(html: str) -> str:
         if metadata_key in PUBLICATION_META_KEYS and meta.get("content"):
             candidates.append(str(meta["content"]))
     candidates.extend(str(node["datetime"]) for node in soup.find_all("time", datetime=True))
-    for class_name in PUBLICATION_CLASS_NAMES:
-        candidates.extend(node.get_text(" ", strip=True) for node in soup.select(f".{class_name}"))
+    class_selector = ", ".join(f".{class_name}" for class_name in PUBLICATION_CLASS_NAMES)
+    candidates.extend(node.get_text(" ", strip=True) for node in soup.select(class_selector))
 
     for candidate in candidates:
         normalized = normalize_publication_date(candidate)
