@@ -264,6 +264,8 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - name: Install ShellCheck for hook regression
         run: sudo apt-get update && sudo apt-get install --no-install-recommends shellcheck
+      - name: Install article fetcher dependencies
+        run: python3 -m pip install --requirement scripts/requirements-fetch-article.txt
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 
