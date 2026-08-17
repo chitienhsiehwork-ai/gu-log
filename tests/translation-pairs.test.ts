@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { gitDiffAddedVsBase } from '../scripts/check-translation-pairs.mjs';
+import { findMissingPairs, gitDiffAddedVsBase } from '../scripts/check-translation-pairs.mjs';
 
 function git(cwd: string, args: string[]): string {
   return execFileSync('git', args, {
@@ -22,6 +22,33 @@ function postBody(ticketId: string, marker: string): string {
 }
 
 describe('translation-pair PR scope', () => {
+  it('allows a GP without an English sidecar while retaining the unconditional series gate', () => {
+    const posts = new Map([
+      [
+        'gp-275-example.mdx',
+        {
+          zh: 'gp-275-example.mdx',
+          en: null,
+          ticketId: 'GP-275',
+          status: 'published',
+        },
+      ],
+      [
+        'mp-999-example.mdx',
+        {
+          zh: 'mp-999-example.mdx',
+          en: null,
+          ticketId: 'MP-999',
+          status: 'published',
+        },
+      ],
+    ]);
+
+    expect(findMissingPairs(posts)).toEqual([
+      { ticketId: 'MP-999', file: 'mp-999-example.mdx', missingLang: 'en' },
+    ]);
+  });
+
   it('does not classify a rename set above diff.renameLimit as added posts', () => {
     const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-'));
 

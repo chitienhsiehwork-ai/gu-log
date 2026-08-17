@@ -2,8 +2,9 @@
 /**
  * scripts/check-translation-pairs.mjs
  *
- * Ensures every GP/MP/SD/Lv ticketId has both a zh-tw and an en version
- * before merging to main.
+ * Ensures every MP/SD/Lv ticketId has both a zh-tw and an en version before
+ * merging to main. GP sidecars are conditional: gp-pipeline emits en only
+ * after Tribunal passes and intentionally ships zh-tw alone on Tribunal FAIL.
  *
  * Modes:
  *   (default)           warn-only, scans entire repo, exit 0
@@ -29,9 +30,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
-// Every series that gu-log ships in both languages. Matches the
-// "每篇文章同時產出 zh-tw 和 en 版" claim in CLAUDE.md.
-const PAIRED_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
+// Series whose publication contract always requires both languages. GP is
+// intentionally absent: its English sidecar is owned by gp-pipeline's
+// post-Tribunal conditional translate step (see gp-pipeline-publish-integrity).
+const PAIRED_PREFIXES = ['MP', 'SD', 'Lv'];
 
 function parseTicketId(content) {
   const m = content.match(/ticketId:\s*["']?([A-Za-z]+-[A-Za-z0-9]+)["']?/);
@@ -100,9 +102,10 @@ export function findMissingPairs(byBase, scope = null) {
 
 export function reminderText() {
   return [
-    'Reminder: every GP/MP/SD/Lv post needs both zh-tw and en versions',
+    'Reminder: every MP/SD/Lv post needs both zh-tw and en versions',
     'before merging. Per CONTRIBUTING.md §zh-tw 優先 SOP, translate to en',
-    'only AFTER zh-tw passes vibe iteration — not in parallel.',
+    'only AFTER zh-tw passes vibe iteration — not in parallel. GP English',
+    'sidecars remain conditional on Tribunal PASS and are enforced by gp-pipeline.',
   ].join('\n');
 }
 
@@ -169,10 +172,8 @@ function main() {
   const missing = findMissingPairs(byBase, scope);
 
   if (missing.length === 0) {
-    const scopeLabel = scope
-      ? `${scope.size} new post(s) in this PR have`
-      : 'all active posts have';
-    console.log(`✓ ${scopeLabel} both zh-tw + en versions`);
+    const scopeLabel = scope ? `${scope.size} new post(s) in this PR` : 'all active posts';
+    console.log(`✓ ${scopeLabel} satisfy the translation sidecar policy`);
     process.exit(0);
   }
 
