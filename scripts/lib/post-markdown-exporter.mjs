@@ -19,6 +19,7 @@ export const COMPONENT_ADAPTERS = Object.freeze({
   AnalogyBox: 'analogy-box',
   Mermaid: 'mermaid',
   PostImage: 'post-image',
+  PostVideo: 'post-video',
   DiffBlock: 'diff-block',
   CodexLearningMap: 'codex-learning-map',
 });
@@ -72,6 +73,17 @@ const COMPONENT_PROP_CONTRACTS = Object.freeze({
   PostImage: {
     props: { src: 'image-import', alt: 'string', caption: 'string', width: 'number' },
     required: ['src', 'alt'],
+    children: 'forbidden',
+  },
+  PostVideo: {
+    props: {
+      src: 'string',
+      poster: 'string',
+      label: 'string',
+      width: 'number',
+      height: 'number',
+    },
+    required: ['src', 'poster', 'label', 'width', 'height'],
     children: 'forbidden',
   },
   DiffBlock: {
@@ -849,6 +861,33 @@ function projectPostImage(node, context) {
   return `![${escapeInline(alt)}](${src})${caption}\n\n`;
 }
 
+function projectPostVideo(node, context) {
+  const video = requiredElement(
+    node,
+    (candidate) => candidate.tagName === 'video',
+    'PostVideo video',
+    context
+  );
+  const source = requiredElement(
+    video,
+    (candidate) => candidate.tagName === 'source',
+    'PostVideo source',
+    context
+  );
+  const label = video.properties?.ariaLabel;
+  if (typeof label !== 'string' || label.trim().length === 0) {
+    fail(context.sourceName, 'PostVideo label must be meaningful');
+  }
+  const src = absoluteUrl(source.properties?.src, context.canonicalUrl, 'PostVideo src', context);
+  const poster = absoluteUrl(
+    video.properties?.poster,
+    context.canonicalUrl,
+    'PostVideo poster',
+    context
+  );
+  return `[![${escapeInline(label)}](${poster})](${src})\n\n`;
+}
+
 function projectDiff(node, context) {
   const before = requiredElement(
     node,
@@ -972,6 +1011,7 @@ const RENDERED_ADAPTERS = Object.freeze({
   'analogy-box': projectAnalogy,
   mermaid: projectMermaid,
   'post-image': projectPostImage,
+  'post-video': projectPostVideo,
   'diff-block': projectDiff,
   'codex-learning-map': projectLearningMap,
 });
