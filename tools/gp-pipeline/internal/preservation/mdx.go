@@ -73,28 +73,40 @@ type canonicalLine struct {
 	input      []byte
 	output     []byte
 	boundaries []int
+	mapped     []bool
 	position   int
 }
 
 func newCanonicalLine(input []byte) *canonicalLine {
-	return &canonicalLine{input: input, output: make([]byte, 0, len(input)), boundaries: make([]int, len(input)+1)}
+	return &canonicalLine{
+		input: input, output: make([]byte, 0, len(input)),
+		boundaries: make([]int, len(input)+1), mapped: make([]bool, len(input)+1),
+	}
 }
 
 func (c *canonicalLine) copyTo(end int) {
 	for c.position < end {
-		c.boundaries[c.position] = len(c.output)
+		if !c.mapped[c.position] {
+			c.boundaries[c.position] = len(c.output)
+			c.mapped[c.position] = true
+		}
 		c.output = append(c.output, c.input[c.position])
 		c.position++
 	}
 }
 
 func (c *canonicalLine) insert(value byte) {
+	if !c.mapped[c.position] {
+		c.boundaries[c.position] = len(c.output)
+		c.mapped[c.position] = true
+	}
 	c.output = append(c.output, value)
 }
 
 func (c *canonicalLine) finish() ([]byte, []int) {
 	c.copyTo(len(c.input))
 	c.boundaries[len(c.input)] = len(c.output)
+	c.mapped[len(c.input)] = true
 	return c.output, c.boundaries
 }
 

@@ -50,4 +50,13 @@ func TestEscapeMDXImageAltBracesWithOffsets(t *testing.T) {
 	if got != want {
 		t.Fatalf("mapped image anchor = %q, want %q", got, want)
 	}
+	braceText := `{"x":1}`
+	braceStart := bytes.Index(input, []byte(braceText))
+	braceEnd := braceStart + len(braceText)
+	if got := string(canonical[offsets[start]:offsets[braceStart]]); got != `![JSON ` {
+		t.Fatalf("anchor ending before inserted escape = %q", got)
+	}
+	if got := string(canonical[offsets[braceStart]:offsets[braceEnd]]); got != `\{"x":1\}` {
+		t.Fatalf("anchor beginning at escaped brace = %q", got)
+	}
 }
