@@ -579,6 +579,7 @@ blockquote.mogu-note br {
 .post-content pre {
   margin: 1.5rem 0;
   padding: 1rem 1.05rem;
+  padding-inline-start: 0.4rem;
   overflow-x: hidden !important;
 }
 
@@ -586,6 +587,7 @@ blockquote.mogu-note br {
   display: flex;
   flex-direction: column;
   counter-reset: code-line;
+  font-size: clamp(0.75rem, calc(0.71rem + 0.14vw), 0.8rem);
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
@@ -596,7 +598,7 @@ blockquote.mogu-note br {
   display: block;
   min-width: 0;
   min-height: 1.55em;
-  padding-inline-start: 2.6rem;
+  padding-inline-start: 2rem;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: normal;
@@ -605,10 +607,10 @@ blockquote.mogu-note br {
 .post-content pre code > .line::before {
   position: absolute;
   inset-inline-start: 0;
-  width: 1.7rem;
+  width: 1.25rem;
   color: var(--color-code-line-number);
-  font-size: 0.78em;
-  line-height: 1.99;
+  font-size: 0.84em;
+  line-height: 2.02;
   text-align: end;
   content: counter(code-line);
   counter-increment: code-line;

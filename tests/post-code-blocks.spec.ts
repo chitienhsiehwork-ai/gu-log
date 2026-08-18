@@ -33,11 +33,15 @@ test.describe('Article code block reading contract', () => {
           };
         }),
         lineWhiteSpace: getComputedStyle(renderedLines[0]).whiteSpace,
+        linePaddingInlineStart: getComputedStyle(renderedLines[0]).paddingInlineStart,
         codeDisplay: getComputedStyle(code).display,
+        codeFontSize: getComputedStyle(code).fontSize,
         overflowWrap: getComputedStyle(code).overflowWrap,
         preOverflowX: getComputedStyle(pre).overflowX,
+        prePaddingInlineStart: getComputedStyle(pre).paddingInlineStart,
         preScrollWidth: pre.scrollWidth,
         preClientWidth: pre.clientWidth,
+        bodyFontSize: getComputedStyle(document.body).fontSize,
         documentScrollWidth: document.documentElement.scrollWidth,
         viewportWidth: window.innerWidth,
       };
@@ -51,9 +55,15 @@ test.describe('Article code block reading contract', () => {
       { content: 'counter(code-line)', counterIncrement: 'code-line 1' },
     ]);
     expect(layout.lineWhiteSpace).toBe('pre-wrap');
+    expect(Number.parseFloat(layout.linePaddingInlineStart)).toBeLessThanOrEqual(32);
     expect(layout.codeDisplay).toBe('flex');
+    expect(Number.parseFloat(layout.codeFontSize)).toBeGreaterThanOrEqual(12);
+    expect(Number.parseFloat(layout.codeFontSize)).toBeLessThan(
+      Number.parseFloat(layout.bodyFontSize)
+    );
     expect(layout.overflowWrap).toBe('anywhere');
     expect(layout.preOverflowX).toBe('hidden');
+    expect(Number.parseFloat(layout.prePaddingInlineStart)).toBeLessThanOrEqual(8);
     expect(layout.preScrollWidth).toBeLessThanOrEqual(layout.preClientWidth + 1);
     expect(layout.documentScrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   });
