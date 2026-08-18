@@ -57,4 +57,42 @@ test.describe('Article code block reading contract', () => {
     expect(layout.preScrollWidth).toBeLessThanOrEqual(layout.preClientWidth + 1);
     expect(layout.documentScrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   });
+
+  test('GIVEN either theme WHEN code renders THEN line numbers use a distinct semantic color', async ({
+    page,
+  }) => {
+    const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    expect(response?.status()).toBe(200);
+
+    const cli = page
+      .locator('.post-content pre[data-language="bash"] > code')
+      .filter({ hasText: 'static.inaturalist.org/photos/714731804/large.jpg' });
+    await expect(cli).toHaveCount(1);
+
+    for (const theme of ['dark', 'light'] as const) {
+      await page.evaluate((activeTheme) => {
+        if (activeTheme === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        } else {
+          delete document.documentElement.dataset.theme;
+        }
+      }, theme);
+
+      const colors = await cli.evaluate((code) => {
+        const firstLine = code.querySelector(':scope > .line');
+        if (!firstLine) throw new Error('Expected the code block to contain a rendered line');
+
+        return {
+          codeColor: getComputedStyle(code).color,
+          lineNumberColor: getComputedStyle(firstLine, '::before').color,
+          lineNumberToken: getComputedStyle(document.documentElement)
+            .getPropertyValue('--color-code-line-number')
+            .trim(),
+        };
+      });
+
+      expect(colors.lineNumberToken).not.toBe('');
+      expect(colors.lineNumberColor).not.toBe(colors.codeColor);
+    }
+  });
 });
