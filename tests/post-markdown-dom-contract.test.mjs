@@ -131,6 +131,14 @@ const FIXTURES = {
         </div>
       </div>
     </figure>`,
+  'post-video': `
+    <figure class="post-video" data-post-video data-markdown-adapter="post-video">
+      <video controls loop playsinline preload="none" poster="https://example.com/poster.jpg"
+        width="720" height="548" aria-label="Meaningful video label">
+        <source src="https://example.com/video.mp4" type="video/mp4">
+        <a href="https://example.com/video.mp4">Open the original MP4 video</a>
+      </video>
+    </figure>`,
   'diff-block': `
     <div class="diff-block" data-markdown-adapter="diff-block">
       <div class="diff-panel diff-before">

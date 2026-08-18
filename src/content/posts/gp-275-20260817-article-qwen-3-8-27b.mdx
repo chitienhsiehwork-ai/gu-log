@@ -87,6 +87,7 @@ scores:
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
+import PostVideo from '../../components/PostVideo.astro';
 
 週五最大的發布是 [Qwen 3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B)，阿里巴巴 Qwen 研究實驗室推出的 `Apache 2` 授權、270 億參數、具備視覺能力的 LLM。我一直很期待這款：27B 這個規模很適合在規格還算夠用的筆電上跑，而且它的前代 [Qwen 3.6 27B](https://simonwillison.net/2026/Apr/22/qwen36-27b/) 就已經很出色。
 
@@ -127,7 +128,13 @@ Qwen 的文件寫這款模型預設推理力度是 `xhigh`，我試的 LM Studio
 
 ![這次車架形狀變差了。鵜鶘還認得出來，但喉囊比較不明顯。腳沒踩到踏板，也沒打算去握把手。](https://static.simonwillison.net/static/2026/qwen-3.8-27b-no-reasoning-pelican-2.png) 為了完整起見，我又用 OpenRouter 把同一個提示丟給大很多的 Qwen 3.8 2.4T-A95B（[上週發布](https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B)），得到這個很炫的[動畫 SVG](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F557016f0895b2abb4b9957caec781734)：
 
-[影片](https://static.simonwillison.net/static/2026/qwen-animated-small.mp4)
+<PostVideo
+  src="https://static.simonwillison.net/static/2026/qwen-animated-small.mp4"
+  poster="https://static.simonwillison.net/static/2026/qwen-animated-first-frame.jpg"
+  label="Qwen 3.8 2.4T-A95B 產出的鵜鶘騎腳踏車動畫 SVG"
+  width={720}
+  height={548}
+/>
 
 我說 Qwen 在 xhigh 下很容易想太多，但到底有多誇張？
 
@@ -147,7 +154,13 @@ Qwen 的推理過程開頭是這樣：
 
 幾分鐘後它[產出](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F6f9e48293be5c916652d29f0dc0b0657)了這個*美得不得了*的動畫圓，完全不是我要的東西！
 
-[影片](https://static.simonwillison.net/static/2026/circle-web.mp4)
+<PostVideo
+  src="https://static.simonwillison.net/static/2026/circle-web.mp4"
+  poster="https://static.simonwillison.net/static/2026/circle-web-first-frame.jpg"
+  label="Qwen 3.8 27B 產出的動畫圓 SVG"
+  width={1078}
+  height={1080}
+/>
 
 我強烈建議：別理那個預設。一開始就用 low，甚至關掉推理來跑 Qwen 3.8 27B。它是很好的模型，但那個預設真的是很糟的起點。
 
@@ -161,13 +174,11 @@ Qwen 的推理過程開頭是這樣：
 
 我以前看過用 0-1000 的尺度效果很好。我試了這個：
 
-```
+```bash
 llm -a https://static.inaturalist.org/photos/714731804/large.jpg \
   -m lmstudio/qwen/qwen3.8-27b \
-  'Return JSON bounding boxes for the pelicans in this photo, 0-1000 scale for each dimension'
+  '為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度'
 ```
-
-提示是：為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度。
 
 這是[推理過程](https://gist.github.com/simonw/a05cc78b2061555bd61d3bb9686e689f)，產出這個：
 
