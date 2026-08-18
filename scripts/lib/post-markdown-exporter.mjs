@@ -19,6 +19,7 @@ export const COMPONENT_ADAPTERS = Object.freeze({
   AnalogyBox: 'analogy-box',
   Mermaid: 'mermaid',
   PostImage: 'post-image',
+  PostVideo: 'post-video',
   DiffBlock: 'diff-block',
   CodexLearningMap: 'codex-learning-map',
 });
@@ -72,6 +73,17 @@ const COMPONENT_PROP_CONTRACTS = Object.freeze({
   PostImage: {
     props: { src: 'image-import', alt: 'string', caption: 'string', width: 'number' },
     required: ['src', 'alt'],
+    children: 'forbidden',
+  },
+  PostVideo: {
+    props: {
+      src: 'string',
+      poster: 'string',
+      label: 'string',
+      width: 'number',
+      height: 'number',
+    },
+    required: ['src', 'poster', 'label', 'width', 'height'],
     children: 'forbidden',
   },
   DiffBlock: {
@@ -534,6 +546,7 @@ const STANDARD_ATTRIBUTES = Object.freeze({
     'ariaDescribedBy',
     'ariaLabel',
     'className',
+    'dataLinkKind',
     'dataFootnoteBackref',
     'dataFootnoteRef',
     'href',
@@ -583,6 +596,13 @@ function validateRenderedElement(node, context) {
 
   const classes = node.properties?.className ?? [];
   if (
+    node.tagName === 'a' &&
+    node.properties?.dataLinkKind !== undefined &&
+    !['internal', 'external'].includes(node.properties.dataLinkKind)
+  ) {
+    fail(context.sourceName, `unknown rendered link kind ${node.properties.dataLinkKind}`);
+  }
+  if (
     (node.tagName === 'a' && classes.some((name) => name !== 'data-footnote-backref')) ||
     (node.tagName === 'h2' && classes.some((name) => name !== 'sr-only')) ||
     (node.tagName === 'pre' &&
@@ -598,6 +618,24 @@ function validateRenderedElement(node, context) {
       `unknown rendered semantic class on <${node.tagName}>: ${classes.join(' ')}`
     );
   }
+}
+
+function projectExternalLinkMarker(node, context) {
+  const properties = Object.keys(node.properties ?? {}).filter((name) => !isAstroAttribute(name));
+  if (
+    properties.length !== 2 ||
+    !properties.includes('ariaHidden') ||
+    !properties.includes('className') ||
+    node.properties?.ariaHidden !== 'true' ||
+    node.properties?.className?.length !== 1 ||
+    node.children?.length !== 1 ||
+    node.children[0]?.type !== 'text' ||
+    node.children[0]?.value !== '\u2060↗' ||
+    rawText(node) !== '↗'
+  ) {
+    fail(context.sourceName, 'external link marker contract changed');
+  }
+  return '';
 }
 
 const BLOCK_TAGS = new Set([
@@ -823,6 +861,33 @@ function projectPostImage(node, context) {
   return `![${escapeInline(alt)}](${src})${caption}\n\n`;
 }
 
+function projectPostVideo(node, context) {
+  const video = requiredElement(
+    node,
+    (candidate) => candidate.tagName === 'video',
+    'PostVideo video',
+    context
+  );
+  const source = requiredElement(
+    video,
+    (candidate) => candidate.tagName === 'source',
+    'PostVideo source',
+    context
+  );
+  const label = video.properties?.ariaLabel;
+  if (typeof label !== 'string' || label.trim().length === 0) {
+    fail(context.sourceName, 'PostVideo label must be meaningful');
+  }
+  const src = absoluteUrl(source.properties?.src, context.canonicalUrl, 'PostVideo src', context);
+  const poster = absoluteUrl(
+    video.properties?.poster,
+    context.canonicalUrl,
+    'PostVideo poster',
+    context
+  );
+  return `[![${escapeInline(label)}](${poster})](${src})\n\n`;
+}
+
 function projectDiff(node, context) {
   const before = requiredElement(
     node,
@@ -946,6 +1011,7 @@ const RENDERED_ADAPTERS = Object.freeze({
   'analogy-box': projectAnalogy,
   mermaid: projectMermaid,
   'post-image': projectPostImage,
+  'post-video': projectPostVideo,
   'diff-block': projectDiff,
   'codex-learning-map': projectLearningMap,
 });
@@ -1010,6 +1076,9 @@ function projectNode(node, context) {
     return project(node, context);
   }
   if (hasClass(node, 'artifact-callout')) return projectArtifactCallout(node, context);
+  if (node.tagName === 'span' && hasClass(node, 'external-link-marker')) {
+    return projectExternalLinkMarker(node, context);
+  }
 
   if (
     (node.tagName === 'div' &&

@@ -168,7 +168,9 @@ jobs:
         # posts content (prod builds regenerate it via fail-closed prebuild).
         run: node scripts/build-reader-revision-manifest.mjs --check
 
-      - name: Translation pair gate (PR only — block new GP/MP/SD/Lv missing zh-tw or en)
+      # MP/SD/Lv always require both languages. GP is conditional: gp-pipeline
+      # emits en only after Tribunal PASS and may intentionally ship zh-tw alone.
+      - name: Translation pair gate (PR only — enforce series sidecar policy)
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin ${{ github.base_ref }} --depth=1
@@ -264,6 +266,8 @@ jobs:
       - uses: ./.github/actions/setup-pnpm
       - name: Install ShellCheck for hook regression
         run: sudo apt-get update && sudo apt-get install --no-install-recommends shellcheck
+      - name: Install article fetcher dependencies
+        run: python3 -m pip install --requirement scripts/requirements-fetch-article.txt
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 

@@ -316,7 +316,7 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"忠實不是逐字搬運", "productivity ouroboros", "演算法動態"} {
+	for _, want := range []string{"忠實不是逐字搬運", "productivity ouroboros", "演算法動態", "自然語言 prompt 與 thinking trace", "inline code、code fence 或 blockquote", "資料鍵與不可翻譯的值"} {
 		if !strings.Contains(translator, want) {
 			t.Errorf("translator prompt missing %q", want)
 		}
