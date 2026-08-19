@@ -175,6 +175,15 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
     })) {
       const sourceLines = record.sourceLines ?? new Set([record.sourceLine]);
       if (![...sourceLines].some((sourceLine) => change.addedSourceLines.has(sourceLine))) continue;
+      if (record.unsafeExecutable !== undefined) {
+        const preview = record.unsafeExecutable.replace(/\s+/gu, ' ').slice(0, 80);
+        errors.push(
+          `${change.path}:${record.sourceLine} 無法靜態驗證可執行的 reader-visible markup（${record.surfaceKind}${
+            preview ? `: ${JSON.stringify(preview)}` : ''
+          }）；文章內不得直接使用 raw style／script，範例請改放 fenced code block`
+        );
+        continue;
+      }
       if (record.unresolvedExpression !== undefined) {
         const preview = record.unresolvedExpression.replace(/\s+/gu, ' ').slice(0, 80);
         errors.push(

@@ -274,6 +274,58 @@ lang: zh-tw
   });
 
   it.each([
+    [
+      'Markdown raw style',
+      MARKDOWN_POST_PATH,
+      String.raw`<style>.emoji::after { content: "\1F600" }</style><span class="emoji"></span>`,
+    ],
+    [
+      'Markdown raw script',
+      MARKDOWN_POST_PATH,
+      String.raw`<script>document.body.textContent = "\uD83D\uDE00"</script>`,
+    ],
+    [
+      'MDX style element',
+      POST_PATH,
+      '<style>{`' + String.raw`.emoji::after { content: "\\1F600" }` + '`}</style>',
+    ],
+    [
+      'MDX script element',
+      POST_PATH,
+      String.raw`<script>document.body.textContent = "\uD83D\uDE00"</script>`,
+    ],
+  ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
+    const result = checkFixture({
+      current: { [changedPath]: content },
+      changedPath,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it('allows executable markup examples inside fenced code', () => {
+    const content = [
+      '---',
+      'title: test',
+      'lang: zh-tw',
+      '---',
+      '```html',
+      String.raw`<style>.emoji::after { content: "\1F600" }</style>`,
+      '```',
+      '',
+    ].join('\n');
+    const result = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5, 6, 7],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it.each([
     ['Markdown text', MARKDOWN_POST_PATH, 'safe&#10;\n歷史 😀'],
     ['Markdown image alt', MARKDOWN_POST_PATH, '![safe&#10;\n歷史 😀](/image.png)'],
     ['Markdown link title', MARKDOWN_POST_PATH, '[link](/target "safe&#10;\n歷史 😀")'],

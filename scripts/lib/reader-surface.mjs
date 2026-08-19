@@ -316,7 +316,7 @@ function isNonRenderingNode(node) {
 }
 
 function walk(node, visit) {
-  visit(node);
+  if (visit(node) === false) return;
   if (!Array.isArray(node.children)) return;
   for (const child of node.children) walk(child, visit);
 }
@@ -636,6 +636,17 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
+  function pushUnsafeExecutable(node, surfaceKind) {
+    const { sourceLine, sourceLines } = sourceLocation(node);
+    records.push({
+      canonicalText: '',
+      surfaceKind,
+      sourceLine,
+      sourceLines,
+      unsafeExecutable: rawSource(node)?.trim() ?? '',
+    });
+  }
+
   function markdownTitleSource(node, stripContainerCloser = false) {
     const startOffset = node.position?.start?.offset;
     const endOffset = node.position?.end?.offset;
@@ -790,7 +801,12 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'html') {
-      pushHtmlValue(stripHtmlCommentsPreservingLines(node.value ?? ''), node);
+      const visibleHtml = stripHtmlCommentsPreservingLines(node.value ?? '');
+      if (/<(?:style|script)\b/iu.test(visibleHtml)) {
+        pushUnsafeExecutable(node, 'html.executable');
+        return;
+      }
+      pushHtmlValue(visibleHtml, node);
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
@@ -800,6 +816,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
+      if (typeof node.name === 'string' && /^(?:style|script)$/iu.test(node.name)) {
+        pushUnsafeExecutable(node, `mdx.element.${node.name.toLowerCase()}`);
+        return false;
+      }
       for (const attribute of node.attributes ?? []) {
         if (attribute.type === 'mdxJsxExpressionAttribute') {
           pushUnresolvedExpression(attribute, 'mdx.spread-attribute');
