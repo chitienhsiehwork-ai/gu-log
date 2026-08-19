@@ -787,7 +787,7 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
   ) {
     return true;
   }
-  return /^(?:javascript:|data:(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)(?:[;,]|$))/u.test(
+  return /^(?:javascript:|data:(?:text\/(?:html|css)|application\/xhtml\+xml|image\/svg\+xml)(?:[;,]|$))/u.test(
     normalizedValue
   );
 }
@@ -1143,6 +1143,93 @@ function collectBodyRecords(body, bodyStartLine, format) {
         unsafeExecutable: rawValue.slice(range.start, range.end),
       });
     }
+  }
+
+  function staticStringPhysicalProjection(record) {
+    const firstSourceLine = record.sourceLines?.values().next().value;
+    if (!Number.isInteger(firstSourceLine)) return null;
+
+    let projectedLines;
+    let preservesPhysicalNewlines = false;
+    if (typeof record.literalRaw === 'string') {
+      const physicalLines = record.literalRaw.split('\n');
+      const quote = physicalLines[0].at(0);
+      if ((quote !== '"' && quote !== "'") || physicalLines.at(-1).at(-1) !== quote) return null;
+      projectedLines = physicalLines.map((rawLine, index) => {
+        let fragment = rawLine;
+        if (index === 0) fragment = fragment.slice(1);
+        if (index === physicalLines.length - 1) fragment = fragment.slice(0, -1);
+        return {
+          ...parseStaticStringFragment(fragment, quote),
+          sourceLine: firstSourceLine + index,
+        };
+      });
+    } else if (typeof record.templateRaw === 'string') {
+      preservesPhysicalNewlines = true;
+      projectedLines = record.templateRaw.split('\n').map((rawLine, index) => ({
+        ...parseStaticTemplateFragment(rawLine),
+        sourceLine: firstSourceLine + index,
+      }));
+    } else {
+      return null;
+    }
+
+    let canonicalText = '';
+    const sourceLineByIndex = [];
+    for (const [index, line] of projectedLines.entries()) {
+      canonicalText += line.canonicalText;
+      sourceLineByIndex.push(...Array(line.canonicalText.length).fill(line.sourceLine));
+      if (
+        preservesPhysicalNewlines &&
+        index < projectedLines.length - 1 &&
+        !line.continuesOnNextLine
+      ) {
+        canonicalText += '\n';
+        sourceLineByIndex.push(line.sourceLine);
+      }
+    }
+    return canonicalText === record.value ? { canonicalText, sourceLineByIndex } : null;
+  }
+
+  function pushStaticSrcsetExecutables(staticValues, elementName) {
+    let pushed = false;
+    for (const value of staticValues) {
+      const projection = staticStringPhysicalProjection(value);
+      if (projection === null) {
+        if (!isExecutableReaderAttribute('srcset', value.value, elementName)) continue;
+        const sourceLines = value.sourceLines;
+        const sourceLine = sourceLines?.values().next().value;
+        if (!sourceLines || !Number.isInteger(sourceLine)) {
+          throw new Error('static srcset expression is missing a source range');
+        }
+        records.push({
+          canonicalText: '',
+          surfaceKind: 'mdx.attribute.executable',
+          sourceLine,
+          sourceLines,
+          unsafeExecutable: value.value,
+        });
+        pushed = true;
+        continue;
+      }
+
+      for (const range of unsafeSrcsetCandidateRanges(projection.canonicalText, elementName)) {
+        const sourceLines = new Set(projection.sourceLineByIndex.slice(range.start, range.end));
+        const sourceLine = sourceLines.values().next().value;
+        if (!Number.isInteger(sourceLine)) {
+          throw new Error('static srcset candidate is missing a source line');
+        }
+        records.push({
+          canonicalText: '',
+          surfaceKind: 'mdx.attribute.executable',
+          sourceLine,
+          sourceLines,
+          unsafeExecutable: projection.canonicalText.slice(range.start, range.end),
+        });
+        pushed = true;
+      }
+    }
+    return pushed;
   }
 
   function rawHtmlAttributeRanges(value, elementStartOffset) {
@@ -1569,6 +1656,11 @@ function collectBodyRecords(body, bodyStartLine, format) {
           const staticValues = staticStringsFromExpression(attribute.value, bodyStartLine);
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
+          } else if (
+            attributeName === 'srcset' &&
+            pushStaticSrcsetExecutables(staticValues, node.name)
+          ) {
+            continue;
           } else if (
             staticValues.some((value) =>
               isExecutableReaderAttribute(attributeName, value.value, node.name)
