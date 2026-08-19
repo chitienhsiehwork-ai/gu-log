@@ -20,6 +20,7 @@ import {
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const POST_PATH = 'src/content/posts/gp-999-emoji-test.mdx';
+const MARKDOWN_POST_PATH = 'src/content/posts/gp-997-emoji-test.md';
 const BACKSLASH = String.fromCharCode(92);
 
 function writeApprovalCorpus(
@@ -1099,6 +1100,16 @@ Body.
     expect(result.errors).toEqual([]);
   });
 
+  it('accepts an exact approval for a Markdown post loaded by Astro', () => {
+    const line = '核准火花 ✨';
+    const raw = {
+      version: 1,
+      entries: [validEntry(line, { path: MARKDOWN_POST_PATH })],
+    };
+    const corpus = approvalCorpus([approvalDecision({ path: MARKDOWN_POST_PATH })]);
+    expect(() => parseContentEmojiAllowlist(raw, corpus)).not.toThrow();
+  });
+
   it.each([
     [
       'same glyph copied to another line',
@@ -1177,7 +1188,10 @@ Body.
 });
 
 describe('staged and PR-base CLI use the same validator', () => {
-  it('fails the same emoji change in staged and PR-base modes', () => {
+  it.each([
+    ['MDX', POST_PATH],
+    ['Markdown', MARKDOWN_POST_PATH],
+  ])('fails the same emoji change in staged and PR-base modes for %s posts', (_label, postPath) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-git-'));
     fs.mkdirSync(path.join(root, 'src', 'content', 'posts'), { recursive: true });
     fs.mkdirSync(path.join(root, 'quality'), { recursive: true });
@@ -1186,7 +1200,7 @@ describe('staged and PR-base CLI use the same validator', () => {
       path.join(root, 'quality', 'content-emoji-allowlist.json'),
       '{"version":1,"entries":[]}\n'
     );
-    fs.writeFileSync(path.join(root, POST_PATH), '---\ntitle: test\nlang: zh-tw\n---\nclean\n');
+    fs.writeFileSync(path.join(root, postPath), '---\ntitle: test\nlang: zh-tw\n---\nclean\n');
     execFileSync('git', ['init', '-q'], { cwd: root });
     execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root });
     execFileSync('git', ['config', 'user.name', 'Test'], { cwd: root });
@@ -1194,8 +1208,8 @@ describe('staged and PR-base CLI use the same validator', () => {
     execFileSync('git', ['commit', '-qm', 'base'], { cwd: root });
     const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 
-    fs.appendFileSync(path.join(root, POST_PATH), 'new ❤️\n');
-    execFileSync('git', ['add', POST_PATH], { cwd: root });
+    fs.appendFileSync(path.join(root, postPath), 'new ❤️\n');
+    execFileSync('git', ['add', postPath], { cwd: root });
     const staged = spawnSync(
       process.execPath,
       [

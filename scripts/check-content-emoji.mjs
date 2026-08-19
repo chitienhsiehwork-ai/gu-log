@@ -73,7 +73,7 @@ function validatePostPath(postPath) {
     typeof postPath !== 'string' ||
     isAbsolute(postPath) ||
     !postPath.startsWith('src/content/posts/') ||
-    !postPath.endsWith('.mdx') ||
+    !/\.(?:md|mdx)$/.test(postPath) ||
     normalize(postPath) !== postPath ||
     postPath.split(sep).includes('..')
   ) {
@@ -238,6 +238,7 @@ function postPathsFromDiff(repoRoot, diffArgs) {
     '-z',
     '--diff-filter=ACMR',
     '--',
+    'src/content/posts/*.md',
     'src/content/posts/*.mdx',
   ])
     .split('\0')
