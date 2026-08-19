@@ -246,6 +246,41 @@ describe('reader revision manifest --check', () => {
     expect(stale.status).not.toBe(0);
     expect(stale.stderr + stale.stdout).toContain('post-reader-revisions.json is stale');
   });
+
+  it('atomically replaces the manifest after a successful generation', () => {
+    const tmp = makeSyntheticPrebuildDir({
+      copyScripts: ['scripts/build-reader-revision-manifest.mjs'],
+    });
+    const manifestPath = path.join(tmp, 'src', 'data', 'post-reader-revisions.json');
+    const originalManifestPath = path.join(tmp, 'original-post-reader-revisions.json');
+    const sentinel = '{\n  "sentinel": "old manifest"\n}\n';
+    fs.writeFileSync(manifestPath, sentinel);
+    fs.linkSync(manifestPath, originalManifestPath);
+
+    const result = spawnSync('node', ['scripts/build-reader-revision-manifest.mjs'], {
+      cwd: tmp,
+      encoding: 'utf-8',
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    const originalManifestFd = fs.openSync(originalManifestPath, 'r');
+    const manifestFd = fs.openSync(manifestPath, 'r');
+    try {
+      expect(fs.fstatSync(manifestFd).ino).not.toBe(fs.fstatSync(originalManifestFd).ino);
+      expect(fs.readFileSync(originalManifestFd, 'utf-8')).toBe(sentinel);
+      expect(JSON.parse(fs.readFileSync(manifestFd, 'utf-8'))).toEqual({
+        'gp-999-regression': expect.stringMatching(/^[a-f0-9]{16}$/),
+      });
+    } finally {
+      fs.closeSync(originalManifestFd);
+      fs.closeSync(manifestFd);
+    }
+    expect(
+      fs
+        .readdirSync(path.dirname(manifestPath))
+        .filter((file) => file.startsWith('.post-reader-revisions.json.') && file.endsWith('.tmp'))
+    ).toEqual([]);
+  });
 });
 
 describe('prebuild handles post versions manifest failures and shallow clones', () => {
