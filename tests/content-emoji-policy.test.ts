@@ -333,6 +333,26 @@ lang: zh-tw
       POST_PATH,
       String.raw`<button onclick="this.textContent='\u{1F600}'">點</button>`,
     ],
+    [
+      'Markdown srcdoc attribute',
+      MARKDOWN_POST_PATH,
+      String.raw`<iframe srcdoc="<script>document.body.textContent='\u{1F600}'</script>"></iframe>`,
+    ],
+    [
+      'MDX srcdoc attribute',
+      POST_PATH,
+      String.raw`<iframe srcDoc="&lt;script&gt;document.body.textContent='\u{1F600}'&lt;/script&gt;"></iframe>`,
+    ],
+    [
+      'Markdown javascript URL attribute',
+      MARKDOWN_POST_PATH,
+      String.raw`<a href="java&#x73;cript:document.body.textContent='\u{1F600}'">點</a>`,
+    ],
+    [
+      'MDX javascript URL expression attribute',
+      POST_PATH,
+      String.raw`<a href={"javascript:document.body.textContent='\u{1F600}'"}>點</a>`,
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -342,6 +362,20 @@ lang: zh-tw
       changedLines: [5],
     });
     expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it.each([
+    ['Markdown safe URL', MARKDOWN_POST_PATH, '<a href="/safe">safe</a>'],
+    ['MDX safe URL', POST_PATH, '<a href="/safe">safe</a>'],
+  ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
+    const result = checkFixture({
+      current: { [changedPath]: content },
+      changedPath,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors).toEqual([]);
   });
 
   it('allows executable markup examples inside fenced code', () => {

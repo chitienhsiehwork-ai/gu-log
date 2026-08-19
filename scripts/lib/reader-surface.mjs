@@ -669,6 +669,37 @@ function isNonRenderingNode(node) {
   return program?.type === 'Program' && program.body?.length === 0;
 }
 
+const EXECUTABLE_URL_ATTRIBUTE_NAMES = new Set([
+  'action',
+  'data',
+  'formaction',
+  'href',
+  'src',
+  'xlink:href',
+  'xlinkhref',
+]);
+
+function isExecutableReaderAttribute(name, value = '') {
+  const normalizedName = String(name).toLowerCase();
+  if (
+    normalizedName === 'style' ||
+    normalizedName === 'srcdoc' ||
+    normalizedName === 'dangerouslysetinnerhtml' ||
+    normalizedName.startsWith('on')
+  ) {
+    return true;
+  }
+  if (!EXECUTABLE_URL_ATTRIBUTE_NAMES.has(normalizedName)) return false;
+  const normalizedValue = Array.from(decodeHTML(String(value)))
+    .filter((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint > 0x20 && codePoint !== 0x7f;
+    })
+    .join('')
+    .toLowerCase();
+  return /^(?:javascript:|data:(?:text\/html|image\/svg\+xml)(?:[;,]|$))/u.test(normalizedValue);
+}
+
 function walk(node, visit) {
   if (visit(node) === false) return;
   if (!Array.isArray(node.children)) return;
@@ -1017,6 +1048,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       const start = index;
       while (!/[\s=/>]/u.test(value[index] ?? '>')) index += 1;
       const name = value.slice(start, index).toLowerCase();
+      let rawValue = '';
       while (/\s/u.test(value[index] ?? '')) index += 1;
       if (value[index] === '=') {
         index += 1;
@@ -1024,13 +1056,17 @@ function collectBodyRecords(body, bodyStartLine, format) {
         const quote = value[index];
         if (quote === '"' || quote === "'") {
           index += 1;
+          const valueStart = index;
           while (index < value.length && value[index] !== quote) index += 1;
+          rawValue = value.slice(valueStart, index);
           if (value[index] === quote) index += 1;
         } else {
+          const valueStart = index;
           while (!/[\s>]/u.test(value[index] ?? '>')) index += 1;
+          rawValue = value.slice(valueStart, index);
         }
       }
-      if (isTargetName(name)) ranges.push({ start, end: index, name });
+      if (isTargetName(name, rawValue)) ranges.push({ start, end: index, name });
       if (index === start) index += 1;
     }
     return ranges;
@@ -1070,14 +1106,8 @@ function collectBodyRecords(body, bodyStartLine, format) {
         return false;
       }
 
-      for (const range of rawHtmlAttributeRanges(
-        value,
-        start,
-        (name) => name === 'style' || name.startsWith('on')
-      )) {
-        const surfaceKind =
-          range.name === 'style' ? 'html.attribute.style' : 'html.attribute.event';
-        pushRawHtmlUnsafeRange(value, node, range, surfaceKind);
+      for (const range of rawHtmlAttributeRanges(value, start, isExecutableReaderAttribute)) {
+        pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.executable');
         executableRanges.push(range);
       }
     });
@@ -1266,10 +1296,13 @@ function collectBodyRecords(body, bodyStartLine, format) {
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
         const attributeName = String(attribute.name ?? '').toLowerCase();
-        if (attributeName === 'style' || attributeName.startsWith('on')) {
-          const surfaceKind =
-            attributeName === 'style' ? 'mdx.attribute.style' : 'mdx.attribute.event';
-          pushUnsafeExecutable(attribute, surfaceKind);
+        if (
+          isExecutableReaderAttribute(
+            attributeName,
+            typeof attribute.value === 'string' ? attribute.value : ''
+          )
+        ) {
+          pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
           continue;
         }
         if (typeof attribute.value === 'string') {
@@ -1289,6 +1322,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
           const staticValues = staticStringsFromExpression(attribute.value, bodyStartLine);
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
+          } else if (
+            staticValues.some((value) => isExecutableReaderAttribute(attributeName, value.value))
+          ) {
+            pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
           } else for (const value of staticValues) pushStaticValue(value, attribute);
         }
       }
