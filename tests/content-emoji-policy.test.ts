@@ -411,26 +411,33 @@ Body.
   });
 
   it.each([
-    ['UTF-8 BOM', `\uFEFF---\ntitle: "\\U0001F600"\nlang: zh-tw\n---\nBody.\n`],
-    ['CRLF', ['---', 'title: "\\U0001F600"', 'lang: zh-tw', '---', 'Body.', ''].join('\r\n')],
+    ['UTF-8 BOM', `\uFEFF---\ntitle: "\\U0001F600"\nlang: zh-tw\n---\nBody.\n`, 2, 5],
+    ['CRLF', ['---', 'title: "\\U0001F600"', 'lang: zh-tw', '---', 'Body.', ''].join('\r\n'), 2, 5],
     [
       'UTF-8 BOM and CRLF',
       `\uFEFF${['---', 'title: "\\U0001F600"', 'lang: zh-tw', '---', 'Body.', ''].join('\r\n')}`,
+      2,
+      5,
     ],
-  ])('extracts Astro-compatible %s frontmatter before scanning emoji', (_label, content) => {
-    const { frontmatter, body, bodyStartLine } = extractPostParts(content);
-    expect(frontmatter.title).toBe('😀');
-    expect(body).toBe(content.includes('\r\n') ? 'Body.\r\n' : 'Body.\n');
-    expect(bodyStartLine).toBe(5);
+    ['leading blank line', `\n---\ntitle: "\\U0001F600"\nlang: zh-tw\n---\nBody.\n`, 3, 6],
+    ['TOML delimiter', `+++\ntitle = "\\U0001F600"\nlang = "zh-tw"\n+++\nBody.\n`, 2, 5],
+  ])(
+    'extracts Astro-compatible %s frontmatter before scanning emoji',
+    (_label, content, titleLine, expectedBodyStartLine) => {
+      const { frontmatter, body, bodyStartLine } = extractPostParts(content);
+      expect(frontmatter.title).toBe('😀');
+      expect(body).toBe(content.includes('\r\n') ? 'Body.\r\n' : 'Body.\n');
+      expect(bodyStartLine).toBe(expectedBodyStartLine);
 
-    const result = checkFixture({
-      current: { [MARKDOWN_POST_PATH]: content },
-      changedPath: MARKDOWN_POST_PATH,
-      changedContent: content,
-      changedLines: [2],
-    });
-    expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
-  });
+      const result = checkFixture({
+        current: { [MARKDOWN_POST_PATH]: content },
+        changedPath: MARKDOWN_POST_PATH,
+        changedContent: content,
+        changedLines: [titleLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
+    }
+  );
 });
 
 describe('Unicode emoji and kaomoji boundary', () => {

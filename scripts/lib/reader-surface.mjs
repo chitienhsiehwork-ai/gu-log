@@ -26,8 +26,8 @@ export const READER_VISIBLE_FRONTMATTER_KEYS = Object.freeze([
 
 const READER_VISIBLE_FRONTMATTER_KEY_SET = new Set(READER_VISIBLE_FRONTMATTER_KEYS);
 
-function sourceLineForYamlNode(node, lineCounter) {
-  const sourceLines = sourceLinesForYamlNode(node, lineCounter);
+function sourceLineForYamlNode(node, lineCounter, frontmatterStartLine) {
+  const sourceLines = sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine);
   const sourceLine = sourceLines.values().next().value;
   if (!Number.isInteger(sourceLine)) {
     throw new Error('reader-visible YAML node is missing a source range');
@@ -35,15 +35,15 @@ function sourceLineForYamlNode(node, lineCounter) {
   return sourceLine;
 }
 
-function sourceLinesForYamlNode(node, lineCounter) {
+function sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine) {
   const startOffset = node?.range?.[0];
   const endOffset = node?.range?.[1];
   if (!Number.isInteger(startOffset) || !Number.isInteger(endOffset)) {
     throw new Error('reader-visible YAML node is missing a source range');
   }
-  // frontmatterRaw starts on MDX source line 2.
-  const firstLine = lineCounter.linePos(startOffset).line + 1;
-  const lastLine = lineCounter.linePos(Math.max(startOffset, endOffset - 1)).line + 1;
+  const firstLine = lineCounter.linePos(startOffset).line + frontmatterStartLine - 1;
+  const lastLine =
+    lineCounter.linePos(Math.max(startOffset, endOffset - 1)).line + frontmatterStartLine - 1;
   return new Set(
     Array.from({ length: lastLine - firstLine + 1 }, (_unused, index) => firstLine + index)
   );
@@ -165,14 +165,14 @@ function continuedPhysicalLineRecords(projectedLines, surfaceKind) {
   return records;
 }
 
-function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
+function quotedYamlLineRecords(node, surfaceKind, lineCounter, frontmatterStartLine) {
   const tokenType = node.srcToken?.type;
   if (tokenType !== 'double-quoted-scalar' && tokenType !== 'single-quoted-scalar') return null;
   const physicalLines = node.srcToken.source.split('\n');
   if (physicalLines.length === 1) return null;
 
   const quote = tokenType === 'double-quoted-scalar' ? '"' : "'";
-  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
+  const firstSourceLine = sourceLineForYamlNode(node, lineCounter, frontmatterStartLine);
   const projectedLines = physicalLines.map((rawLine, index) => {
     let fragment = rawLine;
     if (index === 0 && fragment.startsWith(quote)) fragment = fragment.slice(1);
@@ -186,12 +186,12 @@ function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
   return continuedPhysicalLineRecords(projectedLines, surfaceKind);
 }
 
-function plainYamlLineRecords(node, surfaceKind, lineCounter) {
+function plainYamlLineRecords(node, surfaceKind, lineCounter, frontmatterStartLine) {
   if (node.srcToken?.type !== 'scalar') return null;
   const physicalLines = node.srcToken.source.split('\n');
   if (physicalLines.length === 1) return null;
 
-  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
+  const firstSourceLine = sourceLineForYamlNode(node, lineCounter, frontmatterStartLine);
   return physicalLines.flatMap((rawLine, index) => {
     // YAML folds plain-scalar line breaks to whitespace, so an emoji sequence
     // cannot span two physical lines. Attribute each visible fragment only to
@@ -203,12 +203,19 @@ function plainYamlLineRecords(node, surfaceKind, lineCounter) {
   });
 }
 
-function collectYamlValueRecords(node, surfaceKind, lineCounter, document, records) {
+function collectYamlValueRecords(
+  node,
+  surfaceKind,
+  lineCounter,
+  document,
+  records,
+  frontmatterStartLine
+) {
   if (isScalar(node)) {
     if (node.value === null || node.value === undefined) return;
-    const sourceLines = sourceLinesForYamlNode(node, lineCounter);
+    const sourceLines = sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine);
     if (node.srcToken?.type === 'block-scalar') {
-      const sourceLine = sourceLineForYamlNode(node, lineCounter) + 1;
+      const sourceLine = sourceLineForYamlNode(node, lineCounter, frontmatterStartLine) + 1;
       for (const [index, line] of node.srcToken.source.split('\n').entries()) {
         if (line.trim() === '') continue;
         const physicalSourceLine = sourceLine + index;
@@ -221,18 +228,28 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
       }
       return;
     }
-    const quotedLineRecords = quotedYamlLineRecords(node, surfaceKind, lineCounter);
+    const quotedLineRecords = quotedYamlLineRecords(
+      node,
+      surfaceKind,
+      lineCounter,
+      frontmatterStartLine
+    );
     if (quotedLineRecords) {
       records.push(...quotedLineRecords);
       return;
     }
-    const plainLineRecords = plainYamlLineRecords(node, surfaceKind, lineCounter);
+    const plainLineRecords = plainYamlLineRecords(
+      node,
+      surfaceKind,
+      lineCounter,
+      frontmatterStartLine
+    );
     if (plainLineRecords) {
       records.push(...plainLineRecords);
       return;
     }
     const canonicalValue = String(node.value);
-    const sourceLine = sourceLineForYamlNode(node, lineCounter);
+    const sourceLine = sourceLineForYamlNode(node, lineCounter, frontmatterStartLine);
     for (const line of canonicalValue.split('\n')) {
       if (line.trim() === '') continue;
       records.push({ canonicalText: line, surfaceKind, sourceLine, sourceLines });
@@ -240,12 +257,19 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
     return;
   }
   if (isAlias(node)) {
-    const aliasSourceLine = sourceLineForYamlNode(node, lineCounter);
-    const aliasSourceLines = sourceLinesForYamlNode(node, lineCounter);
+    const aliasSourceLine = sourceLineForYamlNode(node, lineCounter, frontmatterStartLine);
+    const aliasSourceLines = sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine);
     const target = node.resolve(document);
     if (target) {
       const targetRecords = [];
-      collectYamlValueRecords(target, surfaceKind, lineCounter, document, targetRecords);
+      collectYamlValueRecords(
+        target,
+        surfaceKind,
+        lineCounter,
+        document,
+        targetRecords,
+        frontmatterStartLine
+      );
       for (const record of targetRecords) {
         records.push({
           ...record,
@@ -268,19 +292,58 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
   }
   if (isMap(node)) {
     for (const pair of node.items) {
-      collectYamlValueRecords(pair.value, surfaceKind, lineCounter, document, records);
+      collectYamlValueRecords(
+        pair.value,
+        surfaceKind,
+        lineCounter,
+        document,
+        records,
+        frontmatterStartLine
+      );
     }
     return;
   }
   if (isSeq(node)) {
     for (const item of node.items) {
-      collectYamlValueRecords(item, surfaceKind, lineCounter, document, records);
+      collectYamlValueRecords(
+        item,
+        surfaceKind,
+        lineCounter,
+        document,
+        records,
+        frontmatterStartLine
+      );
     }
   }
 }
 
-function collectFrontmatterRecords(frontmatterRaw) {
+function collectFrontmatterRecords({
+  frontmatter,
+  frontmatterRaw,
+  frontmatterFormat,
+  frontmatterStartLine,
+}) {
   if (!frontmatterRaw) return [];
+  if (frontmatterFormat === 'toml') {
+    const sourceLines = new Set(
+      Array.from(
+        { length: frontmatterRaw.split('\n').length },
+        (_unused, index) => frontmatterStartLine + index
+      )
+    );
+    const records = [];
+    for (const key of READER_VISIBLE_FRONTMATTER_KEYS) {
+      if (frontmatter[key] === undefined) continue;
+      collectResolvedYamlValue(
+        frontmatter[key],
+        `frontmatter.${key}`,
+        frontmatterStartLine,
+        sourceLines,
+        records
+      );
+    }
+    return records;
+  }
   const lineCounter = new LineCounter();
   const document = parseDocument(frontmatterRaw, { keepSourceTokens: true, lineCounter });
   if (document.errors.length > 0) throw document.errors[0];
@@ -295,7 +358,8 @@ function collectFrontmatterRecords(frontmatterRaw) {
       `frontmatter.${topLevelKey}`,
       lineCounter,
       document,
-      records
+      records,
+      frontmatterStartLine
     );
   }
   return records;
@@ -855,9 +919,21 @@ export function collectReaderSurfaceLineRecords(content, { format = 'mdx' } = {}
   if (format !== 'md' && format !== 'mdx') {
     throw new Error(`reader-surface format 無效：${JSON.stringify(format)}`);
   }
-  const { frontmatterRaw, body, bodyStartLine } = extractPostParts(content);
+  const {
+    frontmatter,
+    frontmatterRaw,
+    frontmatterFormat,
+    frontmatterStartLine,
+    body,
+    bodyStartLine,
+  } = extractPostParts(content);
   return [
-    ...collectFrontmatterRecords(frontmatterRaw),
+    ...collectFrontmatterRecords({
+      frontmatter,
+      frontmatterRaw,
+      frontmatterFormat,
+      frontmatterStartLine,
+    }),
     ...collectBodyRecords(body, bodyStartLine, format),
   ];
 }

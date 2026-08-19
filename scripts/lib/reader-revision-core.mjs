@@ -1,3 +1,4 @@
+import { parseFrontmatter } from 'astro/markdown';
 import { parse } from 'yaml';
 
 // This legacy hash projection is intentionally frozen. Expanding the emoji
@@ -22,23 +23,52 @@ export const READER_REVISION_FRONTMATTER_KEYS = Object.freeze([
 ]);
 
 export function extractPostParts(content) {
-  // Astro accepts a UTF-8 BOM before the opening delimiter and both LF and
-  // CRLF line endings. Keep the raw body bytes intact while matching the same
-  // frontmatter boundary so policy checks cannot disagree with publication.
-  const match = content.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u);
-  if (!match) {
+  const astroParts = parseFrontmatter(content);
+  if (astroParts.rawFrontmatter === '') {
     return {
       frontmatter: {},
       frontmatterRaw: '',
+      frontmatterFormat: 'yaml',
+      frontmatterStartLine: 1,
       body: content,
       bodyStartLine: 1,
     };
   }
+
+  const boundaries = ['---', '+++']
+    .map((delimiter) => ({
+      delimiter,
+      marker: `${delimiter}${astroParts.rawFrontmatter}${delimiter}`,
+    }))
+    .map((candidate) => ({ ...candidate, index: content.indexOf(candidate.marker) }))
+    .filter((candidate) => candidate.index >= 0)
+    .sort((left, right) => left.index - right.index);
+  const boundary = boundaries[0];
+  if (!boundary) {
+    throw new Error('Astro 已解析 frontmatter，但無法定位原始 delimiter boundary');
+  }
+
+  const openingBreak = astroParts.rawFrontmatter.match(/^\r?\n/u)?.[0] ?? '';
+  const closingBreak = astroParts.rawFrontmatter.match(/\r?\n$/u)?.[0] ?? '';
+  const frontmatterRaw = astroParts.rawFrontmatter.slice(
+    openingBreak.length,
+    astroParts.rawFrontmatter.length - closingBreak.length
+  );
+  const frontmatterStartOffset = boundary.index + boundary.delimiter.length + openingBreak.length;
+  const boundaryEndOffset = boundary.index + boundary.marker.length;
+  const trailingBreak = content.slice(boundaryEndOffset).match(/^\r?\n/u)?.[0] ?? '';
+  const bodyStartOffset = boundaryEndOffset + trailingBreak.length;
+
   return {
-    frontmatter: parse(match[1]) ?? {},
-    frontmatterRaw: match[1],
-    body: content.slice(match[0].length),
-    bodyStartLine: match[0].split(/\r?\n/u).length,
+    // Keep the existing YAML parser for legacy Reader Tracker hash stability;
+    // Astro owns boundary detection and TOML parsing.
+    frontmatter:
+      boundary.delimiter === '---' ? (parse(frontmatterRaw) ?? {}) : astroParts.frontmatter,
+    frontmatterRaw,
+    frontmatterFormat: boundary.delimiter === '---' ? 'yaml' : 'toml',
+    frontmatterStartLine: (content.slice(0, frontmatterStartOffset).match(/\n/gu)?.length ?? 0) + 1,
+    body: content.slice(bodyStartOffset),
+    bodyStartLine: (content.slice(0, bodyStartOffset).match(/\n/gu)?.length ?? 0) + 1,
   };
 }
 
