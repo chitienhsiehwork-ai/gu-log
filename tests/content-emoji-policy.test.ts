@@ -548,6 +548,75 @@ lang: zh-tw
     expect(result.errors).toEqual([]);
   });
 
+  it('grandfathers an untouched legacy emoji on another YAML block-scalar line', () => {
+    const content = `---
+title: |-
+  第一行
+  只改安全文字
+  歷史 ❤️
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content).filter(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(records.map((record) => [record.canonicalText, [...record.sourceLines]])).toEqual([
+      ['第一行', [3]],
+      ['只改安全文字', [4]],
+      ['歷史 ❤️', [5]],
+    ]);
+
+    const untouchedResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [4],
+    });
+    expect(untouchedResult.errors).toEqual([]);
+
+    const changedResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(changedResult.errors.join('\n')).toContain('未授權 emoji');
+  });
+
+  it.each(['|-', '>-'])('tracks an aliased YAML %s block scalar per physical line', (style) => {
+    const content = `---
+hidden: &readerTitle ${style}
+  只改安全文字
+  歷史 ❤️
+title: *readerTitle
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content).filter(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(records.map((record) => [record.canonicalText, [...record.sourceLines]])).toEqual([
+      ['只改安全文字', [3, 5]],
+      ['歷史 ❤️', [4, 5]],
+    ]);
+
+    const safeTargetResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [3],
+    });
+    expect(safeTargetResult.errors).toEqual([]);
+
+    for (const changedLine of [4, 5]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji');
+    }
+  });
+
   it('allows only the approved exact occurrence', () => {
     const line = '核准火花 ✨';
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${line}\n`;

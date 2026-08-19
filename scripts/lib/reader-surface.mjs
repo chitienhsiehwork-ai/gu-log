@@ -75,11 +75,12 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
       const sourceLine = sourceLineForYamlNode(node, lineCounter) + 1;
       for (const [index, line] of node.srcToken.source.split('\n').entries()) {
         if (line.trim() === '') continue;
+        const physicalSourceLine = sourceLine + index;
         records.push({
           canonicalText: line.trimStart(),
           surfaceKind,
-          sourceLine: sourceLine + index,
-          sourceLines,
+          sourceLine: physicalSourceLine,
+          sourceLines: new Set([physicalSourceLine]),
         });
       }
       return;
@@ -93,15 +94,30 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
     return;
   }
   if (isAlias(node)) {
-    const sourceLine = sourceLineForYamlNode(node, lineCounter);
-    const sourceLines = sourceLinesForYamlNode(node, lineCounter);
+    const aliasSourceLine = sourceLineForYamlNode(node, lineCounter);
+    const aliasSourceLines = sourceLinesForYamlNode(node, lineCounter);
     const target = node.resolve(document);
     if (target) {
-      for (const targetLine of sourceLinesForYamlNode(target, lineCounter)) {
-        sourceLines.add(targetLine);
+      const targetRecords = [];
+      collectYamlValueRecords(target, surfaceKind, lineCounter, document, targetRecords);
+      for (const record of targetRecords) {
+        records.push({
+          ...record,
+          sourceLines: new Set([
+            ...(record.sourceLines ?? [record.sourceLine]),
+            ...aliasSourceLines,
+          ]),
+        });
       }
+      return;
     }
-    collectResolvedYamlValue(node.toJS(document), surfaceKind, sourceLine, sourceLines, records);
+    collectResolvedYamlValue(
+      node.toJS(document),
+      surfaceKind,
+      aliasSourceLine,
+      aliasSourceLines,
+      records
+    );
     return;
   }
   if (isMap(node)) {
