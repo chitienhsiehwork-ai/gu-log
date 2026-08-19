@@ -907,6 +907,7 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
   if (
     normalizedName === 'style' ||
     normalizedName === 'srcdoc' ||
+    normalizedName === 'set:html' ||
     normalizedName === 'dangerouslysetinnerhtml' ||
     normalizedName.startsWith('on')
   ) {

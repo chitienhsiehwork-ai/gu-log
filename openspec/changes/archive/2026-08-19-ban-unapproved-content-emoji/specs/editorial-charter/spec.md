@@ -23,7 +23,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **AND** 純靜態陣列／物件 value 與非 computed quoted string key SHALL 被掃描，數字、布林值與 null SHALL 可正常使用
 - **AND** 每個靜態字串 SHALL 使用自己的 ESTree source span；只有 AST 缺少 position 時才 MAY 保守退回外層運算式 span
 - **AND** 無法靜態解析的新增讀者可見運算式 SHALL 遇錯即停
-- **AND** 新增或修改的 raw `style`／`script` element、stylesheet link、SVG visual resource、inline `style`／`on*`／embedded-document attribute 或可執行 URL scheme SHALL 遇錯即停，避免 CSS／JavaScript／SVG escape 或 entity 在 source 不含 Unicode glyph 時仍產生讀者可見 emoji
+- **AND** 新增或修改的 raw `style`／`script` element、stylesheet link、SVG visual resource、Astro `set:html` directive、inline `style`／`on*`／embedded-document attribute 或可執行 URL scheme SHALL 遇錯即停，避免 HTML entity、CSS／JavaScript／SVG escape 在 source 不含 Unicode glyph 時仍產生讀者可見 emoji
 - **AND** fenced code block 內的 `style`／`script` 範例 SHALL 維持可用
 - **AND** 無 binding 的 side-effect import，或無法由明確核准的既有 component path／相對 raster asset path 證明安全的 import／re-export SHALL 遇錯即停
 - **AND** approved local component default import、相對 raster default binding 在 inert image／poster attribute 的引用、其餘無 module source 的 MDX export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響

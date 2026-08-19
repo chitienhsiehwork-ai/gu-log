@@ -352,6 +352,7 @@ lang: zh-tw
       POST_PATH,
       String.raw`<iframe srcDoc="&lt;script&gt;document.body.textContent='\u{1F600}'&lt;/script&gt;"></iframe>`,
     ],
+    ['MDX set:html directive', POST_PATH, `<div set:html={'&#128512;'} />`],
     [
       'Markdown javascript URL attribute',
       MARKDOWN_POST_PATH,
@@ -510,6 +511,7 @@ lang: zh-tw
     ['static String.concat', "'&#'.concat('128512;')"],
     ['static Array.join', "['&#', '128512;'].join('')"],
     ['static String.fromCodePoint', 'String.fromCodePoint(0x1f600)'],
+    ['static spread arguments', 'String.fromCodePoint(...[128512])'],
     ['static numeric calculation', 'String.fromCodePoint(128513 - 1)'],
     ['static URI decoding', "decodeURIComponent('%F0%9F%98%80')"],
     ['static Base64 decoding', "atob('JiMxMjg1MTI7')"],

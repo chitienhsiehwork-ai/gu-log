@@ -41,7 +41,7 @@ reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般
 
 因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。明確核准的 local component default import、相對 raster default binding 在 inert image／poster attribute 的引用、無 module source 的 MDX export、註解與 parser 已確認不會 render 的 node 維持排除；component alias 的 attribute 分類仍使用原 component 身分。opaque、side-effect、非 default 或 potentially-rendering import／re-export 則遇錯即停。
 
-Raw `style`／`script` element、stylesheet link、SVG visual resource、inline `style`／`on*`／embedded-document attribute 與可執行 URL scheme 採同一個遇錯即停邊界。CSS／JavaScript escape 與 SVG entity 即使 source 沒有 Unicode glyph，仍可能在瀏覽器產生 emoji；validator 不建立半套 CSS／JavaScript／SVG evaluator，而是在新增或修改這類 executable markup 時要求移除。一般安全 URL 與普通 SVG 文字連結維持可用；教學文章若要展示 executable markup，照常使用 fenced code block，不會被當成執行內容。
+Raw `style`／`script` element、stylesheet link、SVG visual resource、Astro `set:html` directive、inline `style`／`on*`／embedded-document attribute 與可執行 URL scheme 採同一個遇錯即停邊界。HTML entity、CSS／JavaScript escape 與 SVG entity 即使 source 沒有 Unicode glyph，仍可能在瀏覽器產生 emoji；validator 不建立半套 HTML／CSS／JavaScript／SVG evaluator，而是在新增或修改這類 executable markup 時要求移除。一般安全 URL 與普通 SVG 文字連結維持可用；教學文章若要展示 executable markup，照常使用 fenced code block，不會被當成執行內容。
 
 ### 本機與 CI 共用同一支 validator
 

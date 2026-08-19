@@ -184,10 +184,18 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
         values.push(undefined);
         continue;
       }
-      if (element.type === 'SpreadElement') return UNKNOWN;
-      const value = evaluateStaticValue(element, bindings, resolving);
+      const value = evaluateStaticValue(
+        element.type === 'SpreadElement' ? element.argument : element,
+        bindings,
+        resolving
+      );
       if (!value.known) return UNKNOWN;
-      values.push(value.value);
+      if (element.type === 'SpreadElement') {
+        if (!Array.isArray(value.value) && typeof value.value !== 'string') return UNKNOWN;
+        values.push(...value.value);
+      } else {
+        values.push(value.value);
+      }
     }
     return known(values);
   }
@@ -215,17 +223,25 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
       ? readStaticMember(receiver.value, property.value)
       : UNKNOWN;
   }
-  if (
-    node.type !== 'CallExpression' ||
-    node.optional ||
-    node.arguments.some((arg) => arg.type === 'SpreadElement')
-  ) {
+  if (node.type !== 'CallExpression' || node.optional) {
     return UNKNOWN;
   }
 
-  const args = node.arguments.map((argument) => evaluateStaticValue(argument, bindings, resolving));
-  if (args.some((arg) => !arg.known)) return UNKNOWN;
-  const values = args.map((arg) => arg.value);
+  const values = [];
+  for (const argument of node.arguments) {
+    const result = evaluateStaticValue(
+      argument.type === 'SpreadElement' ? argument.argument : argument,
+      bindings,
+      resolving
+    );
+    if (!result.known) return UNKNOWN;
+    if (argument.type === 'SpreadElement') {
+      if (!Array.isArray(result.value) && typeof result.value !== 'string') return UNKNOWN;
+      values.push(...result.value);
+    } else {
+      values.push(result.value);
+    }
+  }
   if (
     node.callee.type === 'Identifier' &&
     ['atob', 'decodeURI', 'decodeURIComponent', 'unescape'].includes(node.callee.name) &&
