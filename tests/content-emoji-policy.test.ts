@@ -21,6 +21,7 @@ import {
   parseContentEmojiAllowlist,
   sha256Line,
 } from '../scripts/check-content-emoji.mjs';
+import { collectTrustedComponentStaticStrings } from './helpers/trusted-component-static-strings.mjs';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const POST_PATH = 'src/content/posts/gp-999-emoji-test.mdx';
@@ -493,16 +494,40 @@ lang: zh-tw
     expect(findTrustedComponentEmojiSequences(source).map((match) => match.emoji)).toContain('😀');
   });
 
+  it.each([
+    ["'&#' + '128512;'", "'&#' + '128512;'"],
+    ['static template interpolation', "`${'&#'}${'128512;'}`"],
+    ['static String.concat', "'&#'.concat('128512;')"],
+    ['static Array.join', "['&#', '128512;'].join('')"],
+    ['static String.fromCodePoint', 'String.fromCodePoint(0x1f600)'],
+  ])('projects trusted component %s before scanning', (_label, expression) => {
+    const source = ['---', '---', `<Fragment set:html={${expression}} />`].join('\n');
+    const projected = collectTrustedComponentStaticStrings(source);
+    const emoji = projected.flatMap((value) =>
+      findTrustedComponentEmojiSequences(value).map((match) => match.emoji)
+    );
+    expect(emoji).toContain('😀');
+  });
+
   it('keeps every trusted component source free of encoded or literal Unicode emoji', () => {
     const findings = TRUSTED_CONTENT_COMPONENT_IMPORTS.flatMap(([source, componentName]) => {
       const componentSource = fs.readFileSync(
         path.resolve(REPO_ROOT, 'src/content/posts', source),
         'utf8'
       );
-      return findTrustedComponentEmojiSequences(componentSource).map((match) => ({
-        componentName,
-        emoji: match.emoji,
-      }));
+      const projected = [
+        componentSource,
+        ...collectTrustedComponentStaticStrings(
+          componentSource,
+          path.resolve(REPO_ROOT, 'src/content/posts', source)
+        ),
+      ];
+      return projected.flatMap((value) =>
+        findTrustedComponentEmojiSequences(value).map((match) => ({
+          componentName,
+          emoji: match.emoji,
+        }))
+      );
     });
     expect(findings).toEqual([]);
   });
