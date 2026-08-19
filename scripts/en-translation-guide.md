@@ -18,7 +18,8 @@ gu-log is a Traditional Chinese (zh-tw) tech blog focused on AI and developer to
 
 ## 3. Brand Identity & Formatting
 - **Kaomoji:** Preserve kaomoji exactly as in the source. Do not alter, move, or remove them.
-- **Code & URLs:** Keep all code blocks, inline code, and URLs unchanged.
+- **No Unapproved Emoji:** Reader-visible English content excludes Unicode emoji by default. Omit decorative source emoji. If an emoji carries meaning that the prose does not otherwise express, preserve that meaning in natural English without restoring the glyph. Keep a glyph only when the repo's exact-occurrence allowlist records ShroomDog's explicit approval; kaomoji are unaffected.
+- **Code & URLs:** Keep code blocks, inline code, and URLs unchanged except where the reader-visible emoji policy requires removing an unapproved decorative glyph or expressing its necessary meaning in text.
 - **Intro Hooks:** Preserve the original hook style.
 - **No Tables:** Never use Markdown tables; convert to bullets/text.
 
@@ -67,6 +68,7 @@ These are mandatory:
 ## 8. Final Translation Checklist
 - [ ] Tone and energy match the source.
 - [ ] Kaomoji are preserved exactly as in source.
+- [ ] Decorative emoji are omitted, meaningful emoji are expressed in natural text, and no unapproved glyph has been restored.
 - [ ] Technical terms and product names are accurate and consistent.
 - [ ] Frontmatter changes are limited to `lang`, `title`, `summary`,
       `translatedDate`, `translatedBy.model`, `translatedBy.harness`, and filename

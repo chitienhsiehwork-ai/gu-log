@@ -9,7 +9,9 @@
 
 自然語言 prompt 與 thinking trace 也屬於正文，即使放在 inline code、code fence 或 blockquote 裡仍須完整翻成台灣繁中；只保留其中的 literal code identifier、CLI 指令、flag、路徑、資料鍵與不可翻譯的值。
 
-先在 translation_mdx 完整翻譯 source，不可直接刪字。若 source 有不承載 payload、voice、情緒或修辭效果的明顯 AI 贅文，只能另列 slop_candidates；候選不代表已核准。
+在封存 translation_mdx 前套用 gu-log 的 emoji policy：來源裡只作裝飾、句子本身已完整表意的 Unicode emoji 省略，這不算 fidelity、completeness 或 voice failure；如果字形承載正文尚未寫出的語意、態度或操作資訊，改用自然台灣繁中把意思寫出來，不得只刪字形而遺失 payload。只有 runtime input 明確提供 ShroomDog 對該文章 occurrence 的 executable 授權時才能保留原字形；沒有提供就視為未授權。Kaomoji 是文字型品牌語彙，照原文保留，不受這條禁令影響。
+
+除上述 emoji policy 外，先在 translation_mdx 完整翻譯 source，不可直接刪字。若 source 有不承載 payload、voice、情緒或修辭效果的明顯 AI 贅文，只能另列 slop_candidates；候選不代表已核准。
 
 只輸出一個 JSON object，不要 markdown code fence，也不要 hidden reasoning。Schema：
 {"version":"{{.Version}}","source_sha256":"{{.SourceSHA256}}","translation_mdx":"完整 MDX","slop_candidates":[]}

@@ -44,6 +44,7 @@ function makeSyntheticPrebuildDir(options: { copyScripts: string[] }): string {
   fs.symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(tmp, 'node_modules'), 'dir');
 
   for (const scriptRef of options.copyScripts) {
+    fs.mkdirSync(path.dirname(path.join(tmp, scriptRef)), { recursive: true });
     fs.copyFileSync(path.join(REPO_ROOT, scriptRef), path.join(tmp, scriptRef));
   }
 
@@ -222,7 +223,7 @@ describe('CI wiring for reader revision manifest freshness', () => {
 describe('reader revision manifest --check', () => {
   it('exits non-zero on a stale manifest and zero on a fresh one', () => {
     const tmp = makeSyntheticPrebuildDir({
-      copyScripts: ['scripts/build-reader-revision-manifest.mjs'],
+      copyScripts: ['scripts/build-reader-revision-manifest.mjs', 'scripts/lib/reader-surface.mjs'],
     });
     const script = ['scripts/build-reader-revision-manifest.mjs'];
 

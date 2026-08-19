@@ -33,7 +33,7 @@ func TestLoadGPProfileRejectsLegacyMissingAndDuplicateRoles(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "config"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	config := `{"profiles":{"test":{"translator":{"provider":"grok","model":"same","reasoningEffort":"low","promptContract":"source-translate-v1","outputContract":"source-translation-v1"},"sourceReviewer":{"provider":"codex","model":"review","reasoningEffort":"high","promptContract":"source-review-v1","outputContract":"gate-envelope-v1"},"corrector":{"provider":"codex","model":"same","reasoningEffort":"high","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"},"commentary":{"provider":"grok","model":"comment","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"},"vibeScorer":{"provider":"grok","model":"vibe","reasoningEffort":"low","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}}}}`
+	config := `{"profiles":{"test":{"translator":{"provider":"grok","model":"same","reasoningEffort":"low","promptContract":"source-translate-v2","outputContract":"source-translation-v1"},"sourceReviewer":{"provider":"codex","model":"review","reasoningEffort":"high","promptContract":"source-review-v2","outputContract":"gate-envelope-v1"},"corrector":{"provider":"codex","model":"same","reasoningEffort":"high","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"},"commentary":{"provider":"grok","model":"comment","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"},"vibeScorer":{"provider":"grok","model":"vibe","reasoningEffort":"low","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}}}}`
 	if err := os.WriteFile(filepath.Join(root, "config", "llm-pipeline.json"), []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestLoadGPProfileRejectsContractLabelDrift(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "config"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	config := `{"profiles":{"test":{"translator":{"provider":"grok","model":"translator","reasoningEffort":"low","promptContract":"stale-translate-v0","outputContract":"source-translation-v1"},"sourceReviewer":{"provider":"codex","model":"review","reasoningEffort":"high","promptContract":"source-review-v1","outputContract":"gate-envelope-v1"},"corrector":{"provider":"codex","model":"corrector","reasoningEffort":"high","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"},"commentary":{"provider":"grok","model":"comment","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"},"vibeScorer":{"provider":"codex","model":"vibe","reasoningEffort":"high","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}}}}`
+	config := `{"profiles":{"test":{"translator":{"provider":"grok","model":"translator","reasoningEffort":"low","promptContract":"stale-translate-v0","outputContract":"source-translation-v1"},"sourceReviewer":{"provider":"codex","model":"review","reasoningEffort":"high","promptContract":"source-review-v2","outputContract":"gate-envelope-v1"},"corrector":{"provider":"codex","model":"corrector","reasoningEffort":"high","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"},"commentary":{"provider":"grok","model":"comment","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"},"vibeScorer":{"provider":"codex","model":"vibe","reasoningEffort":"high","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}}}}`
 	if err := os.WriteFile(filepath.Join(root, "config", "llm-pipeline.json"), []byte(config), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -73,5 +73,34 @@ func TestGPProfileFingerprintIncludesRuntimePromptContext(t *testing.T) {
 	}
 	if before == after {
 		t.Fatal("terminology context change did not invalidate GP profile fingerprint")
+	}
+}
+
+func TestGPProfileFingerprintInvalidatesLegacyEmojiPromptContracts(t *testing.T) {
+	profile, err := LoadGPProfile(repoRootForRoutingTest(t), "vm-codex")
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := GPProfile{}
+	for role, config := range profile {
+		legacy[role] = config
+	}
+	translator := legacy[RuntimeTranslator]
+	translator.PromptContract = "source-translate-v1"
+	legacy[RuntimeTranslator] = translator
+	reviewer := legacy[RuntimeSourceReviewer]
+	reviewer.PromptContract = "source-review-v1"
+	legacy[RuntimeSourceReviewer] = reviewer
+
+	currentFingerprint, err := GPProfileFingerprint(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyFingerprint, err := GPProfileFingerprint(legacy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if currentFingerprint == legacyFingerprint {
+		t.Fatal("emoji prompt contract bump did not invalidate the legacy publish fingerprint")
 	}
 }

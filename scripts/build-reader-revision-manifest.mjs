@@ -11,7 +11,7 @@ import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import yaml from 'yaml';
+import { extractPostParts, readerRevisionCanonicalJSON } from './lib/reader-surface.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');
@@ -20,55 +20,9 @@ const outPath = join(repoRoot, 'src', 'data', 'post-reader-revisions.json');
 const checkOnly = process.argv.includes('--check');
 const includeStaged = process.argv.includes('--include-staged');
 
-const READER_VISIBLE_FRONTMATTER_KEYS = [
-  'ticketId',
-  'title',
-  'originalDate',
-  'translatedDate',
-  'source',
-  'sourceUrl',
-  'author',
-  'summary',
-  'lang',
-  'tags',
-  'status',
-  'deprecatedBy',
-  'deprecatedReason',
-  'retiredReason',
-  'retiredAt',
-  'series',
-];
-
-export function extractPostParts(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
-  if (!match) return { frontmatter: {}, body: content };
-  return {
-    frontmatter: yaml.parse(match[1]) ?? {},
-    body: content.slice(match[0].length),
-  };
-}
-
-function stableValue(value) {
-  if (Array.isArray(value)) return value.map(stableValue);
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        acc[key] = stableValue(value[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
-
 export function computeReaderRevisionFromContent(content) {
   const { frontmatter, body } = extractPostParts(content);
-  const readerVisibleFrontmatter = {};
-  for (const key of READER_VISIBLE_FRONTMATTER_KEYS) {
-    if (frontmatter[key] !== undefined)
-      readerVisibleFrontmatter[key] = stableValue(frontmatter[key]);
-  }
-  const canonical = JSON.stringify({ frontmatter: readerVisibleFrontmatter, body }, null, 2);
+  const canonical = readerRevisionCanonicalJSON(frontmatter, body);
   return createHash('sha256').update(canonical).digest('hex').slice(0, 16);
 }
 
