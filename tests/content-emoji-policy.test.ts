@@ -294,6 +294,16 @@ lang: zh-tw
       POST_PATH,
       String.raw`<script>document.body.textContent = "\uD83D\uDE00"</script>`,
     ],
+    [
+      'Markdown inline style attribute',
+      MARKDOWN_POST_PATH,
+      String.raw`<ol style="list-style-type:'\1F600'"><li>x</li></ol>`,
+    ],
+    [
+      'MDX inline style attribute',
+      POST_PATH,
+      String.raw`<ol style="list-style-type:'\1F600'"><li>x</li></ol>`,
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -336,6 +346,41 @@ lang: zh-tw
       '<style>',
       String.raw`.emoji::after { content: "\1F600" }`,
       '</style>',
+      '</div>',
+      '',
+    ].join('\n');
+    const safeResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [6],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    const executableResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [8],
+    });
+    expect(executableResult.errors.join('\n')).toContain(
+      '無法靜態驗證可執行的 reader-visible markup'
+    );
+  });
+
+  it('binds a raw HTML style attribute only to its physical attribute span', () => {
+    const content = [
+      '---',
+      'title: test',
+      'lang: zh-tw',
+      '---',
+      '<div>',
+      '只改安全文字',
+      '<ol',
+      String.raw`  style="list-style-type:'\1F600'"`,
+      '>',
+      '<li>x</li>',
+      '</ol>',
       '</div>',
       '',
     ].join('\n');
@@ -528,6 +573,30 @@ Body.
     expect(result.errors).toEqual([]);
   });
 
+  it('resolves an alias used as a reader-visible YAML top-level key', () => {
+    const content = `---
+readerKey: &readerKey title
+*readerKey : "\\U0001F600"
+lang: zh-tw
+---
+Body.
+`;
+    const titleRecord = collectReaderSurfaceLineRecords(content).find(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(titleRecord).toMatchObject({ canonicalText: '😀', sourceLine: 3 });
+    expect([...(titleRecord?.sourceLines ?? [])].sort()).toEqual([2, 3]);
+
+    for (const changedLine of [2, 3]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
+    }
+  });
+
   it('projects TOML frontmatter values onto their physical source lines', () => {
     const content = `+++
 title = "只改安全文字"
@@ -650,6 +719,12 @@ describe('Unicode emoji and kaomoji boundary', () => {
     expect(findEmojiSequences(text).map((match) => match.emoji)).toEqual([
       text.includes('❤') ? '❤' : '♥',
     ]);
+  });
+
+  it('does not treat an ordinary status legend as a heart-bearing kaomoji', () => {
+    expect(
+      findEmojiSequences('（狀態：□ 未選，■ 已選，支援 ❤）').map((match) => match.emoji)
+    ).toEqual(['❤']);
   });
 
   it.each([

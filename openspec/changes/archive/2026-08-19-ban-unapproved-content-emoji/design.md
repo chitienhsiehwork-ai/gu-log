@@ -41,7 +41,7 @@ reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般
 
 因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。MDX import、export、註解與 parser 已確認不會 render 的 node 維持排除，不會因這條規則誤擋。
 
-Raw `style`／`script` markup 採同一個遇錯即停邊界。CSS 與 JavaScript escape 即使 source 沒有 Unicode glyph，仍可能在瀏覽器產生 emoji；validator 不建立半套 CSS／JavaScript evaluator，而是在新增或修改這類 executable markup 時要求移除。教學文章若要展示範例，照常使用 fenced code block，不會被當成執行內容。
+Raw `style`／`script` element 與 inline `style` attribute 採同一個遇錯即停邊界。CSS 與 JavaScript escape 即使 source 沒有 Unicode glyph，仍可能在瀏覽器產生 emoji；validator 不建立半套 CSS／JavaScript evaluator，而是在新增或修改這類 executable markup 時要求移除。教學文章若要展示範例，照常使用 fenced code block，不會被當成執行內容。
 
 ### 本機與 CI 共用同一支 validator
 

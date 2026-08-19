@@ -547,6 +547,27 @@ function collectFrontmatterRecords({ frontmatterRaw, frontmatterFormat, frontmat
   const emittedKeys = new Set();
   const visitedMaps = new Set();
 
+  function yamlKeyInfo(node) {
+    if (isScalar(node)) {
+      return {
+        key: String(node.value),
+        sourceLines: new Set(),
+      };
+    }
+    if (isAlias(node)) {
+      const target = node.resolve(document);
+      if (!isScalar(target)) return { key: '', sourceLines: new Set() };
+      return {
+        key: String(target.value),
+        sourceLines: new Set([
+          ...sourceLinesForYamlNode(target, lineCounter, frontmatterStartLine),
+          ...sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine),
+        ]),
+      };
+    }
+    return { key: '', sourceLines: new Set() };
+  }
+
   function collectVisiblePair(pair, topLevelKey, inheritedSourceLines) {
     const firstRecordIndex = records.length;
     collectYamlValueRecords(
@@ -588,7 +609,8 @@ function collectFrontmatterRecords({ frontmatterRaw, frontmatterFormat, frontmat
 
     // Explicit keys override every merged source, regardless of source order.
     for (const pair of map.items) {
-      const topLevelKey = isScalar(pair.key) ? String(pair.key.value) : '';
+      const keyInfo = yamlKeyInfo(pair.key);
+      const topLevelKey = keyInfo.key;
       if (
         topLevelKey === '<<' ||
         emittedKeys.has(topLevelKey) ||
@@ -596,18 +618,21 @@ function collectFrontmatterRecords({ frontmatterRaw, frontmatterFormat, frontmat
       ) {
         continue;
       }
-      collectVisiblePair(pair, topLevelKey, inheritedSourceLines);
+      collectVisiblePair(
+        pair,
+        topLevelKey,
+        new Set([...inheritedSourceLines, ...keyInfo.sourceLines])
+      );
     }
 
     // YAML merge sequences give earlier maps precedence over later maps.
     for (const pair of map.items) {
-      const topLevelKey = isScalar(pair.key) ? String(pair.key.value) : '';
+      const keyInfo = yamlKeyInfo(pair.key);
+      const topLevelKey = keyInfo.key;
       if (topLevelKey !== '<<') continue;
-      const mergeKeySourceLines = sourceLinesForYamlNode(
-        pair.key,
-        lineCounter,
-        frontmatterStartLine
-      );
+      const mergeKeySourceLines = isScalar(pair.key)
+        ? sourceLinesForYamlNode(pair.key, lineCounter, frontmatterStartLine)
+        : keyInfo.sourceLines;
       collectMergedValue(pair.value, new Set([...inheritedSourceLines, ...mergeKeySourceLines]));
     }
   }
@@ -962,40 +987,79 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
+  function rawHtmlAttributeRanges(value, elementStartOffset, targetName) {
+    const ranges = [];
+    let index = elementStartOffset;
+    if (value[index] !== '<') return ranges;
+    index += 1;
+    if (value[index] === '/') index += 1;
+    while (/\s/u.test(value[index] ?? '')) index += 1;
+    while (!/[\s/>]/u.test(value[index] ?? '>')) index += 1;
+
+    while (index < value.length) {
+      while (/\s/u.test(value[index] ?? '')) index += 1;
+      if (value[index] === '>' || (value[index] === '/' && value[index + 1] === '>')) break;
+
+      const start = index;
+      while (!/[\s=/>]/u.test(value[index] ?? '>')) index += 1;
+      const name = value.slice(start, index).toLowerCase();
+      while (/\s/u.test(value[index] ?? '')) index += 1;
+      if (value[index] === '=') {
+        index += 1;
+        while (/\s/u.test(value[index] ?? '')) index += 1;
+        const quote = value[index];
+        if (quote === '"' || quote === "'") {
+          index += 1;
+          while (index < value.length && value[index] !== quote) index += 1;
+          if (value[index] === quote) index += 1;
+        } else {
+          while (!/[\s>]/u.test(value[index] ?? '>')) index += 1;
+        }
+      }
+      if (name === targetName) ranges.push({ start, end: index });
+      if (index === start) index += 1;
+    }
+    return ranges;
+  }
+
+  function pushRawHtmlUnsafeRange(value, node, range, surfaceKind) {
+    const nodeSourceLine = sourceLocation(node).sourceLine;
+    const sourceLine = nodeSourceLine + (value.slice(0, range.start).match(/\n/gu)?.length ?? 0);
+    const endSourceLine = nodeSourceLine + (value.slice(0, range.end).match(/\n/gu)?.length ?? 0);
+    records.push({
+      canonicalText: '',
+      surfaceKind,
+      sourceLine,
+      sourceLines: new Set(
+        Array.from(
+          { length: endSourceLine - sourceLine + 1 },
+          (_unused, index) => sourceLine + index
+        )
+      ),
+      unsafeExecutable: value.slice(range.start, range.end),
+    });
+  }
+
   function projectRawHtmlExecutables(value, node) {
     const htmlTree = fromHtml(value, { fragment: true });
-    const nodeSourceLine = sourceLocation(node).sourceLine;
     const executableRanges = [];
     walk(htmlTree, (htmlNode) => {
-      if (
-        htmlNode.type !== 'element' ||
-        !/^(?:style|script)$/iu.test(htmlNode.tagName) ||
-        !Number.isInteger(htmlNode.position?.start?.line) ||
-        !Number.isInteger(htmlNode.position?.end?.line) ||
-        !Number.isInteger(htmlNode.position?.start?.offset) ||
-        !Number.isInteger(htmlNode.position?.end?.offset)
-      ) {
-        return;
+      if (htmlNode.type !== 'element') return;
+      const start = htmlNode.position?.start?.offset;
+      const end = htmlNode.position?.end?.offset;
+      if (!Number.isInteger(start) || !Number.isInteger(end)) return;
+
+      if (/^(?:style|script)$/iu.test(htmlNode.tagName)) {
+        const range = { start, end };
+        pushRawHtmlUnsafeRange(value, node, range, 'html.executable');
+        executableRanges.push(range);
+        return false;
       }
-      const sourceLine = nodeSourceLine + htmlNode.position.start.line - 1;
-      const endSourceLine = nodeSourceLine + htmlNode.position.end.line - 1;
-      records.push({
-        canonicalText: '',
-        surfaceKind: 'html.executable',
-        sourceLine,
-        sourceLines: new Set(
-          Array.from(
-            { length: endSourceLine - sourceLine + 1 },
-            (_unused, index) => sourceLine + index
-          )
-        ),
-        unsafeExecutable: value.slice(htmlNode.position.start.offset, htmlNode.position.end.offset),
-      });
-      executableRanges.push({
-        start: htmlNode.position.start.offset,
-        end: htmlNode.position.end.offset,
-      });
-      return false;
+
+      for (const range of rawHtmlAttributeRanges(value, start, 'style')) {
+        pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.style');
+        executableRanges.push(range);
+      }
     });
 
     let scanValue = value;
@@ -1181,6 +1245,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
           continue;
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
+        if (attribute.name === 'style') {
+          pushUnsafeExecutable(attribute, 'mdx.attribute.style');
+          continue;
+        }
         if (typeof attribute.value === 'string') {
           const quotedSource = quotedAttributeSource(attribute);
           if (

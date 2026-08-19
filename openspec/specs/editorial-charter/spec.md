@@ -399,7 +399,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **AND** 純靜態陣列／物件 value 與非 computed quoted string key SHALL 被掃描，數字、布林值與 null SHALL 可正常使用
 - **AND** 每個靜態字串 SHALL 使用自己的 ESTree source span；只有 AST 缺少 position 時才 MAY 保守退回外層運算式 span
 - **AND** 無法靜態解析的新增讀者可見運算式 SHALL 遇錯即停
-- **AND** 新增或修改的 raw `style`／`script` markup SHALL 遇錯即停，避免 CSS／JavaScript escape 在 source 不含 Unicode glyph 時仍產生讀者可見 emoji
+- **AND** 新增或修改的 raw `style`／`script` element 或 inline `style` attribute SHALL 遇錯即停，避免 CSS／JavaScript escape 在 source 不含 Unicode glyph 時仍產生讀者可見 emoji
 - **AND** fenced code block 內的 `style`／`script` 範例 SHALL 維持可用
 - **AND** MDX import／export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響
 - **AND** 註解後仍有運算結果的混合節點 SHALL NOT 被當成純註解

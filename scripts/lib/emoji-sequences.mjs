@@ -12,12 +12,15 @@ const EMOJI_RE = new RegExp(
   'gu'
 );
 const KAOMOJI_TEXT_EMOJI_OVERLAP = new Set(['♥', '♡', '❤']);
-const STRONG_KAOMOJI_FACE_SIGNAL = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω‿╥﹏⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง]/gu;
-const HEART_EYES_KAOMOJI = /[♥♡❤][^\n\r]{0,12}[ᴥᴗᵕω‿﹏ヮДㅂ₃][^\n\r]{0,12}[♥♡❤]/u;
+const KAOMOJI_EYE = '[°□■◍◔◕๑ಠ♥♡❤⊙⌐¬]';
+const KAOMOJI_MOUTH = '[▽△￣ᴥᴗᵕ˃˂ᗜ∀ω‿╥﹏ヘヮД・≧≦ㅂ₃]';
+const KAOMOJI_FACE_STRUCTURE = new RegExp(
+  `${KAOMOJI_EYE}[^\n\r]{0,10}${KAOMOJI_MOUTH}[^\n\r]{0,10}${KAOMOJI_EYE}`,
+  'u'
+);
 
 function hasStructuredHeartKaomoji(span) {
-  const strongSignals = span.text.match(STRONG_KAOMOJI_FACE_SIGNAL) ?? [];
-  return strongSignals.length >= 2 || HEART_EYES_KAOMOJI.test(span.text);
+  return KAOMOJI_FACE_STRUCTURE.test(span.text);
 }
 
 function isAllowedKaomojiTextOverlap(match, kaomojiSpans) {
