@@ -199,7 +199,7 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
         errors.push(
           `${change.path}:${record.sourceLine} 無法靜態解析讀者可見 MDX expression（${record.surfaceKind}${
             preview ? `: ${JSON.stringify(preview)}` : ''
-          }）；請改成一般文字、string literal 或無插值 template literal`
+          }）；請改成一般文字或純 static literal tree；identifier、call、spread、interpolation 與 tagged template 無法靜態驗證`
         );
         continue;
       }

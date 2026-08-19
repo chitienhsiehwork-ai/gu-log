@@ -1,17 +1,16 @@
 ## ADDED Requirements
 
-### Requirement: GP 譯文 MUST omit unapproved source emoji without losing payload
+### Requirement: GP automated 譯文 MUST omit source emoji glyphs without losing payload
 
 GP 來源翻譯 SHALL 在譯文封存之前套用 gu-log 的 emoji policy。來源中的裝飾性表情圖示 SHALL 預設省略；該字形的省略 SHALL NOT 單獨視為來源完整性或 voice-preservation failure。
 
 如果表情圖示在原句中承載可辨識的語意、態度或操作資訊，翻譯者 SHALL 用自然文字保留該意思，不得只刪字形而讓原文資訊消失。自動化來源翻譯者、來源審查者與英文 sidecar 翻譯者 SHALL NOT 直接保留或復原 Unicode emoji 字形，也 SHALL NOT 推定自己收到逐次授權 context。
 
-ShroomDog 若明確授權指定文章與 occurrence 保留原字形，該例外 SHALL 在自動化 pipeline 完成後以窄範圍 editorial patch 加回，再由 executable allowlist gate 驗證。來源翻譯者或來源審查者的 prompt contract 改變 SHALL 更新 GP runtime profile fingerprint，使舊 publish manifest 失效。英文 sidecar 不屬於該 runtime profile，其規則 SHALL 由 prompt rendering test 與最終內容 gate 驗證。Canonical body projection SHALL 繼續封存已套用規則的譯文，不得在正文投影階段偷偷移除表情圖示。
+本變更 SHALL NOT 為 GP automated lane 提供保留 Unicode emoji glyph 的例外；`editorial-charter` 的 exact allowlist 是 top-level `MAY` 能力，不構成每條 pipeline 都支援的承諾。來源翻譯者或來源審查者的 prompt contract 改變 SHALL 更新 GP runtime profile fingerprint，使舊 publish manifest 失效。英文 sidecar 不屬於該 runtime profile，其規則 SHALL 由 prompt rendering test 與最終內容 gate 驗證。Canonical body projection SHALL 繼續封存已套用規則的譯文，不得在正文投影階段偷偷移除表情圖示。
 
 #### Scenario: Decorative source emoji is omitted
 
 - **WHEN** source 在已完整表達意思的句尾附加裝飾性表情圖示
-- **AND** 沒有 ShroomDog 的明確保留授權
 - **THEN** GP 譯文 SHALL 保留句子內容並省略該字形
 - **AND** 來源審查者 SHALL NOT 只因字形省略而判定忠實度或完整性失敗
 
@@ -20,15 +19,6 @@ ShroomDog 若明確授權指定文章與 occurrence 保留原字形，該例外 
 - **WHEN** source 以表情圖示表達正文尚未寫出的語意、反應或操作
 - **THEN** 翻譯者 SHALL 用自然繁中把該意思寫出來
 - **AND** SHALL NOT 只刪除字形而遺失原文資訊
-
-#### Scenario: Explicitly approved source emoji is preserved
-
-- **WHEN** ShroomDog 明確授權保留指定 GP occurrence
-- **AND** executable exception record 精確符合該文章與內容行
-- **THEN** 自動化來源譯文與英文 sidecar SHALL 仍先省略或文字化該字形
-- **AND** pipeline 完成後的窄範圍 editorial patch MAY 加回該字形
-- **AND** 最終 executable allowlist gate SHALL 驗證該 occurrence
-- **AND** 其他未授權表情圖示仍 SHALL 被禁止
 
 #### Scenario: Prompt contract change invalidates stale manifests
 

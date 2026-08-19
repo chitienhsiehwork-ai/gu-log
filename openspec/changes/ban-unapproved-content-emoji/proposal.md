@@ -19,7 +19,7 @@ gu-log 目前沒有禁止 emoji 的內容規則，writer 仍可能把愛心或�
 ### Modified Capabilities
 
 - `editorial-charter`: 新增 reader-visible emoji 預設禁用、kaomoji 邊界、逐次明確授權例外，以及 pre-commit／CI 雙層 deterministic enforcement 的需求。
-- `gp-source-preservation`: 明定來源中的 emoji 預設不進譯文，移除 glyph 不算改變 source payload；若該符號承載可辨識語意，譯文須用自然文字保留意思，除非 ShroomDog 明確授權保留該 emoji。
+- `gp-source-preservation`: 明定來源中的 emoji 不進 automated GP 譯文，移除 glyph 不算改變 source payload；若該符號承載可辨識語意，譯文須用自然文字保留意思。本變更不替 GP automated lane 實作 glyph 保留例外。
 
 ## Impact
 
