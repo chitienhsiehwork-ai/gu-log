@@ -1,26 +1,14 @@
 import { createProcessor } from '@mdx-js/mdx';
-import { LineCounter, isAlias, isMap, isScalar, isSeq, parse, parseDocument } from 'yaml';
+import { LineCounter, isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 
-// This legacy hash projection is intentionally frozen. Expanding the emoji
-// policy surface must not invalidate every existing Reader Tracker record.
-export const READER_REVISION_FRONTMATTER_KEYS = Object.freeze([
-  'ticketId',
-  'title',
-  'originalDate',
-  'translatedDate',
-  'source',
-  'sourceUrl',
-  'author',
-  'summary',
-  'lang',
-  'tags',
-  'status',
-  'deprecatedBy',
-  'deprecatedReason',
-  'retiredReason',
-  'retiredAt',
-  'series',
-]);
+import { READER_REVISION_FRONTMATTER_KEYS, extractPostParts } from './reader-revision-core.mjs';
+
+export {
+  READER_REVISION_FRONTMATTER_KEYS,
+  extractPostParts,
+  readerRevisionCanonicalJSON,
+  stableReaderValue,
+} from './reader-revision-core.mjs';
 
 // Values from these fields are rendered by the zh-tw/en article pages,
 // banners, navigation, or technical-details panel. Keep this list aligned
@@ -35,47 +23,6 @@ export const READER_VISIBLE_FRONTMATTER_KEYS = Object.freeze([
 ]);
 
 const READER_VISIBLE_FRONTMATTER_KEY_SET = new Set(READER_VISIBLE_FRONTMATTER_KEYS);
-
-export function extractPostParts(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
-  if (!match) {
-    return {
-      frontmatter: {},
-      frontmatterRaw: '',
-      body: content,
-      bodyStartLine: 1,
-    };
-  }
-  return {
-    frontmatter: parse(match[1]) ?? {},
-    frontmatterRaw: match[1],
-    body: content.slice(match[0].length),
-    bodyStartLine: match[0].split('\n').length,
-  };
-}
-
-export function stableReaderValue(value) {
-  if (Array.isArray(value)) return value.map(stableReaderValue);
-  if (value && typeof value === 'object') {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        acc[key] = stableReaderValue(value[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
-
-export function readerRevisionCanonicalJSON(frontmatter, body) {
-  const readerVisibleFrontmatter = {};
-  for (const key of READER_REVISION_FRONTMATTER_KEYS) {
-    if (frontmatter[key] !== undefined) {
-      readerVisibleFrontmatter[key] = stableReaderValue(frontmatter[key]);
-    }
-  }
-  return JSON.stringify({ frontmatter: readerVisibleFrontmatter, body }, null, 2);
-}
 
 function sourceLineForYamlNode(node, lineCounter) {
   const sourceLines = sourceLinesForYamlNode(node, lineCounter);
@@ -196,8 +143,8 @@ function isNonRenderingNode(node) {
   if (node.type === 'mdxjsEsm') return true;
   if (node.type === 'html') return /^\s*<!--[\s\S]*-->\s*$/.test(node.value ?? '');
   if (node.type !== 'mdxFlowExpression' && node.type !== 'mdxTextExpression') return false;
-  const value = (node.value ?? '').trim();
-  return /^\/\*[\s\S]*\*\/$/.test(value) || /^\/\//.test(value);
+  const program = node.data?.estree;
+  return program?.type === 'Program' && program.body?.length === 0;
 }
 
 function walk(node, visit) {
@@ -214,24 +161,59 @@ function decodeNumericCharacterReferences(value) {
   });
 }
 
-function staticStringFromExpression(node) {
+function collectStaticStringValues(expression, values) {
+  if (expression?.type === 'Literal') {
+    if (typeof expression.value === 'string') values.push(expression.value);
+    else if (
+      expression.value !== null &&
+      typeof expression.value !== 'number' &&
+      typeof expression.value !== 'boolean' &&
+      typeof expression.value !== 'bigint'
+    ) {
+      return false;
+    }
+    return true;
+  }
+  if (expression?.type === 'TemplateLiteral') {
+    if (expression.expressions?.length !== 0) return false;
+    const cooked = expression.quasis?.map((quasi) => quasi.value?.cooked);
+    if (!cooked || cooked.some((value) => typeof value !== 'string')) return false;
+    values.push(cooked.join(''));
+    return true;
+  }
+  if (expression?.type === 'ArrayExpression') {
+    for (const element of expression.elements ?? []) {
+      if (element === null) continue;
+      if (element.type === 'SpreadElement' || !collectStaticStringValues(element, values)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (expression?.type === 'ObjectExpression') {
+    for (const property of expression.properties ?? []) {
+      if (
+        property.type !== 'Property' ||
+        property.kind !== 'init' ||
+        property.method ||
+        property.computed ||
+        !collectStaticStringValues(property.value, values)
+      ) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+function staticStringsFromExpression(node) {
   const program = node?.data?.estree;
   if (program?.type !== 'Program' || program.body?.length !== 1) return null;
   const statement = program.body[0];
   if (statement?.type !== 'ExpressionStatement') return null;
-  const expression = statement.expression;
-  if (expression?.type === 'Literal' && typeof expression.value === 'string') {
-    return expression.value;
-  }
-  if (
-    expression?.type === 'TemplateLiteral' &&
-    expression.expressions?.length === 0 &&
-    expression.quasis?.length === 1 &&
-    typeof expression.quasis[0]?.value?.cooked === 'string'
-  ) {
-    return expression.quasis[0].value.cooked;
-  }
-  return null;
+  const values = [];
+  return collectStaticStringValues(statement.expression, values) ? values : null;
 }
 
 function collectBodyRecords(body, bodyStartLine) {
@@ -254,15 +236,20 @@ function collectBodyRecords(body, bodyStartLine) {
     };
   }
 
-  function pushValue(value, node, lineOffset = 0) {
+  function pushValue(value, node, lineOffset = 0, useWholeSourceSpan = false) {
     if (typeof value !== 'string' || value === '') return;
-    const { sourceLine } = sourceLocation(node);
+    const { sourceLine, sourceLines } = sourceLocation(node);
     for (const [index, line] of value.split('\n').entries()) {
       if (line.trim() === '') continue;
+      const renderedLine = sourceLine + lineOffset + index;
       records.push({
         canonicalText: line,
         surfaceKind: 'mdx',
-        sourceLine: sourceLine + lineOffset + index,
+        sourceLine: sourceLines.has(renderedLine) ? renderedLine : sourceLine,
+        sourceLines:
+          useWholeSourceSpan || !sourceLines.has(renderedLine)
+            ? sourceLines
+            : new Set([renderedLine]),
       });
     }
   }
@@ -274,7 +261,12 @@ function collectBodyRecords(body, bodyStartLine) {
       surfaceKind,
       sourceLine,
       sourceLines,
-      unresolvedExpression: typeof node.value === 'string' ? node.value.trim() : '',
+      unresolvedExpression:
+        typeof node.value === 'string'
+          ? node.value.trim()
+          : typeof node.value?.value === 'string'
+            ? node.value.value.trim()
+            : '',
     });
   }
 
@@ -304,9 +296,9 @@ function collectBodyRecords(body, bodyStartLine) {
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
-      const staticValue = staticStringFromExpression(node);
-      if (staticValue === null) pushUnresolvedExpression(node, 'mdx.expression');
-      else pushValue(staticValue, node);
+      const staticValues = staticStringsFromExpression(node);
+      if (staticValues === null) pushUnresolvedExpression(node, 'mdx.expression');
+      else for (const value of staticValues) pushValue(value, node, 0, true);
       return;
     }
     if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
@@ -318,10 +310,10 @@ function collectBodyRecords(body, bodyStartLine) {
         if (attribute.type !== 'mdxJsxAttribute') continue;
         if (typeof attribute.value === 'string') pushValue(attribute.value, attribute);
         else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
-          const staticValue = staticStringFromExpression(attribute.value);
-          if (staticValue === null) {
+          const staticValues = staticStringsFromExpression(attribute.value);
+          if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
-          } else pushValue(staticValue, attribute);
+          } else for (const value of staticValues) pushValue(value, attribute, 0, true);
         }
       }
     }

@@ -223,7 +223,10 @@ describe('CI wiring for reader revision manifest freshness', () => {
 describe('reader revision manifest --check', () => {
   it('exits non-zero on a stale manifest and zero on a fresh one', () => {
     const tmp = makeSyntheticPrebuildDir({
-      copyScripts: ['scripts/build-reader-revision-manifest.mjs', 'scripts/lib/reader-surface.mjs'],
+      copyScripts: [
+        'scripts/build-reader-revision-manifest.mjs',
+        'scripts/lib/reader-revision-core.mjs',
+      ],
     });
     const script = ['scripts/build-reader-revision-manifest.mjs'];
 

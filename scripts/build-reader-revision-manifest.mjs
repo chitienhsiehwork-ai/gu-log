@@ -11,7 +11,7 @@ import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { extractPostParts, readerRevisionCanonicalJSON } from './lib/reader-surface.mjs';
+import { extractPostParts, readerRevisionCanonicalJSON } from './lib/reader-revision-core.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(__dirname, '..');

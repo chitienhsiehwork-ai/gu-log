@@ -17,11 +17,12 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
   translating only their text content.
 - Keep code blocks, external URLs, and technical identifiers unchanged except for
   the reader-visible emoji rule below.
-- Do not restore Unicode emoji from the original source. Omit decorative glyphs;
+- Do not restore any Unicode emoji glyph from the original source. Omit decorative glyphs;
   when a glyph carries meaning that is not otherwise expressed, write that meaning
-  in natural English. Preserve an emoji glyph only when the repo records
-  ShroomDog's explicit approval for that exact article occurrence. Kaomoji are
-  separate text-based brand language and must remain unchanged.
+  in natural English. Do not infer exceptions: an explicitly approved glyph is
+  restored only through a post-pipeline narrow editorial patch, then verified by
+  the final executable allowlist gate. Kaomoji are separate text-based brand
+  language and must remain unchanged.
 - Preserve internal links, except rewrite `/glossary#...` links to `/en/glossary#...`
   in English prose. The pipeline also enforces this language-specific glossary
   target deterministically.

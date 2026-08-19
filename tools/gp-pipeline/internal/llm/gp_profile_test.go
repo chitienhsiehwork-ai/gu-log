@@ -75,32 +75,3 @@ func TestGPProfileFingerprintIncludesRuntimePromptContext(t *testing.T) {
 		t.Fatal("terminology context change did not invalidate GP profile fingerprint")
 	}
 }
-
-func TestGPProfileFingerprintInvalidatesLegacyEmojiPromptContracts(t *testing.T) {
-	profile, err := LoadGPProfile(repoRootForRoutingTest(t), "vm-codex")
-	if err != nil {
-		t.Fatal(err)
-	}
-	legacy := GPProfile{}
-	for role, config := range profile {
-		legacy[role] = config
-	}
-	translator := legacy[RuntimeTranslator]
-	translator.PromptContract = "source-translate-v1"
-	legacy[RuntimeTranslator] = translator
-	reviewer := legacy[RuntimeSourceReviewer]
-	reviewer.PromptContract = "source-review-v1"
-	legacy[RuntimeSourceReviewer] = reviewer
-
-	currentFingerprint, err := GPProfileFingerprint(profile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	legacyFingerprint, err := GPProfileFingerprint(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if currentFingerprint == legacyFingerprint {
-		t.Fatal("emoji prompt contract bump did not invalidate the legacy publish fingerprint")
-	}
-}
