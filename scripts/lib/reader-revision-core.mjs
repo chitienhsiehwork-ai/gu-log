@@ -22,7 +22,10 @@ export const READER_REVISION_FRONTMATTER_KEYS = Object.freeze([
 ]);
 
 export function extractPostParts(content) {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n?/);
+  // Astro accepts a UTF-8 BOM before the opening delimiter and both LF and
+  // CRLF line endings. Keep the raw body bytes intact while matching the same
+  // frontmatter boundary so policy checks cannot disagree with publication.
+  const match = content.match(/^\uFEFF?---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u);
   if (!match) {
     return {
       frontmatter: {},
@@ -35,7 +38,7 @@ export function extractPostParts(content) {
     frontmatter: parse(match[1]) ?? {},
     frontmatterRaw: match[1],
     body: content.slice(match[0].length),
-    bodyStartLine: match[0].split('\n').length,
+    bodyStartLine: match[0].split(/\r?\n/u).length,
   };
 }
 
