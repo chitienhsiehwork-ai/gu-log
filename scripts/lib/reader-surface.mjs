@@ -91,24 +91,7 @@ function parseQuotedYamlFragment(fragment, quote, trimLeadingWhitespace) {
   return { canonicalText: String(fragmentDocument.contents.value ?? ''), continuesOnNextLine };
 }
 
-function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
-  const tokenType = node.srcToken?.type;
-  if (tokenType !== 'double-quoted-scalar' && tokenType !== 'single-quoted-scalar') return null;
-  const physicalLines = node.srcToken.source.split('\n');
-  if (physicalLines.length === 1) return null;
-
-  const quote = tokenType === 'double-quoted-scalar' ? '"' : "'";
-  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
-  const projectedLines = physicalLines.map((rawLine, index) => {
-    let fragment = rawLine;
-    if (index === 0 && fragment.startsWith(quote)) fragment = fragment.slice(1);
-    if (index === physicalLines.length - 1 && fragment.endsWith(quote)) {
-      fragment = fragment.slice(0, -1);
-    }
-    const sourceLine = firstSourceLine + index;
-    return { ...parseQuotedYamlFragment(fragment, quote, index > 0), sourceLine };
-  });
-
+function continuedPhysicalLineRecords(projectedLines, surfaceKind) {
   const records = [];
   for (let index = 0; index < projectedLines.length; index += 1) {
     const group = [projectedLines[index]];
@@ -179,6 +162,27 @@ function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
     records.push(...crossLineRecords);
   }
   return records;
+}
+
+function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
+  const tokenType = node.srcToken?.type;
+  if (tokenType !== 'double-quoted-scalar' && tokenType !== 'single-quoted-scalar') return null;
+  const physicalLines = node.srcToken.source.split('\n');
+  if (physicalLines.length === 1) return null;
+
+  const quote = tokenType === 'double-quoted-scalar' ? '"' : "'";
+  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
+  const projectedLines = physicalLines.map((rawLine, index) => {
+    let fragment = rawLine;
+    if (index === 0 && fragment.startsWith(quote)) fragment = fragment.slice(1);
+    if (index === physicalLines.length - 1 && fragment.endsWith(quote)) {
+      fragment = fragment.slice(0, -1);
+    }
+    const sourceLine = firstSourceLine + index;
+    return { ...parseQuotedYamlFragment(fragment, quote, index > 0), sourceLine };
+  });
+
+  return continuedPhysicalLineRecords(projectedLines, surfaceKind);
 }
 
 function plainYamlLineRecords(node, surfaceKind, lineCounter) {
@@ -328,6 +332,30 @@ function sourceLinesForEstreeNode(node, bodyStartLine) {
   );
 }
 
+function parseStaticTemplateFragment(fragment) {
+  let source = fragment;
+  let trailingBackslashes = 0;
+  for (let index = source.length - 1; index >= 0 && source[index] === '\\'; index -= 1) {
+    trailingBackslashes += 1;
+  }
+  const continuesOnNextLine = trailingBackslashes % 2 === 1;
+  if (continuesOnNextLine) source = source.slice(0, -1);
+
+  const fragmentTree = createProcessor({ format: 'mdx' }).parse(`{\`${source}\`}`);
+  const expression = fragmentTree.children?.[0]?.data?.estree?.body?.[0]?.expression;
+  if (
+    expression?.type !== 'TemplateLiteral' ||
+    expression.expressions?.length !== 0 ||
+    expression.quasis?.some((quasi) => typeof quasi.value?.cooked !== 'string')
+  ) {
+    throw new Error('reader-visible static template literal could not be projected per line');
+  }
+  return {
+    canonicalText: expression.quasis.map((quasi) => quasi.value.cooked).join(''),
+    continuesOnNextLine,
+  };
+}
+
 function collectStaticStringValues(expression, values, bodyStartLine) {
   if (expression?.type === 'Literal') {
     if (typeof expression.value === 'string') {
@@ -352,6 +380,7 @@ function collectStaticStringValues(expression, values, bodyStartLine) {
     values.push({
       value: cooked.join(''),
       sourceLines: sourceLinesForEstreeNode(expression, bodyStartLine),
+      templateRaw: expression.quasis.map((quasi) => quasi.value.raw).join(''),
     });
     return true;
   }
@@ -448,12 +477,18 @@ function collectBodyRecords(body, bodyStartLine) {
   }
 
   function pushStaticValue(record, fallbackNode) {
-    pushValue(
-      record.value,
-      fallbackNode,
-      0,
-      record.sourceLines ?? sourceLocation(fallbackNode).sourceLines
-    );
+    const sourceLines = record.sourceLines ?? sourceLocation(fallbackNode).sourceLines;
+    const templatePhysicalLines = record.templateRaw?.split('\n');
+    if (templatePhysicalLines?.length > 1) {
+      const firstSourceLine = sourceLines.values().next().value;
+      const projectedLines = templatePhysicalLines.map((rawLine, index) => ({
+        ...parseStaticTemplateFragment(rawLine),
+        sourceLine: firstSourceLine + index,
+      }));
+      records.push(...continuedPhysicalLineRecords(projectedLines, 'mdx'));
+      return;
+    }
+    pushValue(record.value, fallbackNode, 0, sourceLines);
   }
 
   function pushUnresolvedExpression(node, surfaceKind) {

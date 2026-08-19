@@ -726,6 +726,66 @@ lang: zh-tw
     expect(result.errors.join('\n')).toContain('未授權 emoji');
   });
 
+  it.each([
+    ['body', '{`只改安全文字\n歷史 ❤️`}'],
+    ['JSX prop', '<Card label={`只改安全文字\n歷史 ❤️`} />'],
+  ])(
+    'grandfathers an untouched legacy emoji on another multiline static template %s line',
+    (_label, expression) => {
+      const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+      const records = collectReaderSurfaceLineRecords(content).filter(
+        (record) => record.surfaceKind === 'mdx'
+      );
+      expect(records.map((record) => [record.canonicalText, [...record.sourceLines]])).toEqual(
+        expect.arrayContaining([
+          ['只改安全文字', [5]],
+          ['歷史 ❤️', [6]],
+        ])
+      );
+
+      const safeResult = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [5],
+      });
+      expect(safeResult.errors).toEqual([]);
+
+      const changedResult = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [6],
+      });
+      expect(changedResult.errors.join('\n')).toContain('未授權 emoji');
+    }
+  );
+
+  it('bridges an emoji split across static-template escaped line continuations', () => {
+    const slash = '\\';
+    const expression = ['{`safe', `split 👩${slash}`, `\\u200D${slash}`, '💻`}'].join('\n');
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+    const bridgeRecord = collectReaderSurfaceLineRecords(content).find(
+      (record) => record.emojiMatches?.[0]?.emoji === '👩‍💻'
+    );
+    expect(bridgeRecord).toMatchObject({ canonicalText: 'split 👩‍💻', sourceLine: 6 });
+    expect([...(bridgeRecord?.sourceLines ?? [])]).toEqual([6, 7, 8]);
+
+    const safeResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    for (const changedLine of [6, 7, 8]) {
+      const changedResult = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(changedResult.errors.join('\n')).toContain('未授權 emoji');
+    }
+  });
+
   it('grandfathers an unresolved legacy expression when only another line changes', () => {
     const content = '---\ntitle: test\nlang: zh-tw\n---\n{legacyReaderLabel}\n只改這行文字\n';
     const result = checkFixture({
