@@ -1347,6 +1347,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       if (!pushDecodedPhysicalValue(node.alt, node, markdownImageAltSource(node))) {
         pushValue(node.alt, node);
       }
+      pushMarkdownDestination(node.url, node);
       pushInlineTitle(node);
       return;
     }
@@ -1354,6 +1355,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       if (!pushDecodedPhysicalValue(node.alt, node, markdownImageAltSource(node))) {
         pushValue(node.alt, node);
       }
+      pushReferenceDestination(node);
       pushReferenceTitle(node);
       return;
     }

@@ -368,6 +368,7 @@ lang: zh-tw
     ['Markdown safe URL', MARKDOWN_POST_PATH, '<a href="/safe">safe</a>'],
     ['MDX safe URL', POST_PATH, '<a href="/safe">safe</a>'],
     ['Markdown safe link destination', MARKDOWN_POST_PATH, '[safe](/safe)'],
+    ['Markdown safe image destination', MARKDOWN_POST_PATH, '![safe](/safe.png)'],
   ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -403,6 +404,42 @@ lang: zh-tw
 [點][unsafe]
 
 [unsafe]: javascript:document.body.textContent=String.fromCodePoint(128512)
+`;
+    for (const changedLine of [5, 7]) {
+      const result = checkFixture({
+        current: { [MARKDOWN_POST_PATH]: content },
+        changedPath: MARKDOWN_POST_PATH,
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+    }
+  });
+
+  it('fails closed for an executable Markdown image destination', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+![點](data:image/svg+xml,<svg><text>&#128512;</text></svg>)
+`;
+    const result = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it('binds an executable image reference destination to the use and definition lines', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+![點][unsafe]
+
+[unsafe]: data:image/svg+xml,<svg><text>&#128512;</text></svg>
 `;
     for (const changedLine of [5, 7]) {
       const result = checkFixture({
