@@ -1180,6 +1180,92 @@ function collectBodyRecords(body, bodyStartLine, format) {
     };
   }
 
+  function markdownDestinationLocation(node) {
+    const source = rawSource(node);
+    if (source === null) return null;
+    let index = 0;
+
+    if (node.type === 'definition') {
+      const labelEnd = source.indexOf(']');
+      if (labelEnd < 0) return null;
+      index = source.indexOf(':', labelEnd + 1);
+      if (index < 0) return null;
+      index += 1;
+    } else if (source.startsWith('<') && source.endsWith('>')) {
+      index = 1;
+    } else {
+      const labelStart = source.startsWith('![') ? 2 : source.startsWith('[') ? 1 : -1;
+      if (labelStart < 0) return null;
+      let depth = 1;
+      index = labelStart;
+      for (; index < source.length; index += 1) {
+        if (source[index] === '\\') {
+          index += 1;
+          continue;
+        }
+        if (source[index] === '[') depth += 1;
+        else if (source[index] === ']') {
+          depth -= 1;
+          if (depth === 0) break;
+        }
+      }
+      index += 1;
+      while (/\s/u.test(source[index] ?? '')) index += 1;
+      if (source[index] !== '(') return null;
+      index += 1;
+    }
+
+    while (/\s/u.test(source[index] ?? '')) index += 1;
+    const wrapped = source[index] === '<';
+    if (wrapped) index += 1;
+    const start = index;
+    let nestedParentheses = 0;
+    while (index < source.length) {
+      if (source[index] === '\\') {
+        index += 2;
+        continue;
+      }
+      if (wrapped) {
+        if (source[index] === '>') break;
+      } else {
+        if (source[index] === '(') nestedParentheses += 1;
+        else if (source[index] === ')') {
+          if (nestedParentheses === 0) break;
+          nestedParentheses -= 1;
+        } else if (/\s/u.test(source[index])) {
+          break;
+        }
+      }
+      index += 1;
+    }
+    if (index <= start) return null;
+
+    const nodeSourceLine = sourceLocation(node).sourceLine;
+    const sourceLine = nodeSourceLine + source.slice(0, start).split('\n').length - 1;
+    const endSourceLine = nodeSourceLine + source.slice(0, index).split('\n').length - 1;
+    return {
+      sourceLine,
+      sourceLines: new Set(
+        Array.from(
+          { length: endSourceLine - sourceLine + 1 },
+          (_unused, lineIndex) => sourceLine + lineIndex
+        )
+      ),
+    };
+  }
+
+  function pushMarkdownDestination(url, node, associatedSourceLines = []) {
+    if (!isExecutableReaderAttribute('href', url)) return;
+    const location = markdownDestinationLocation(node) ?? sourceLocation(node);
+    records.push({
+      canonicalText: '',
+      surfaceKind: 'markdown.link.executable',
+      sourceLine: location.sourceLine,
+      sourceLines: new Set([...location.sourceLines, ...associatedSourceLines]),
+      unsafeExecutable: url,
+    });
+  }
+
   function pushMarkdownTitle(title, node, titleSource, associatedSourceLines = []) {
     if (!title) return;
     if (titleSource === null) {
@@ -1237,6 +1323,12 @@ function collectBodyRecords(body, bodyStartLine, format) {
     );
   }
 
+  function pushReferenceDestination(node) {
+    const definition = definitions.get(node.identifier);
+    if (!definition?.url) return;
+    pushMarkdownDestination(definition.url, definition, sourceLocation(node).sourceLines);
+  }
+
   walk(tree, (node) => {
     if (isNonRenderingNode(node)) return;
     if (node.type === 'text' || node.type === 'inlineCode') {
@@ -1266,10 +1358,12 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'link') {
+      pushMarkdownDestination(node.url, node);
       pushInlineTitle(node);
       return;
     }
     if (node.type === 'linkReference') {
+      pushReferenceDestination(node);
       pushReferenceTitle(node);
       return;
     }
