@@ -20,6 +20,7 @@ import {
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const POST_PATH = 'src/content/posts/gp-999-emoji-test.mdx';
+const BACKSLASH = String.fromCharCode(92);
 
 function writeApprovalCorpus(
   root: string,
@@ -727,10 +728,12 @@ lang: zh-tw
   });
 
   it.each([
-    ['body', '{`只改安全文字\n歷史 ❤️`}'],
-    ['JSX prop', '<Card label={`只改安全文字\n歷史 ❤️`} />'],
+    ['body template', '{`只改安全文字\n歷史 ❤️`}'],
+    ['JSX prop template', '<Card label={`只改安全文字\n歷史 ❤️`} />'],
+    ['body string', `{"只改安全文字${BACKSLASH}\n歷史 ❤️"}`],
+    ['JSX prop string', `<Card label={"只改安全文字${BACKSLASH}\n歷史 ❤️"} />`],
   ])(
-    'grandfathers an untouched legacy emoji on another multiline static template %s line',
+    'grandfathers an untouched legacy emoji on another multiline static %s line',
     (_label, expression) => {
       const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
       const records = collectReaderSurfaceLineRecords(content).filter(
@@ -759,9 +762,13 @@ lang: zh-tw
     }
   );
 
-  it('bridges an emoji split across static-template escaped line continuations', () => {
-    const slash = '\\';
-    const expression = ['{`safe', `split 👩${slash}`, `\\u200D${slash}`, '💻`}'].join('\n');
+  it.each([
+    ['template', ['{`safe', `split 👩${BACKSLASH}`, `\\u200D${BACKSLASH}`, '💻`}'].join('\n')],
+    [
+      'string',
+      [`{"safe${BACKSLASH}`, `split 👩${BACKSLASH}`, `\\u200D${BACKSLASH}`, '💻"}'].join('\n'),
+    ],
+  ])('bridges an emoji split across static-%s escaped line continuations', (_label, expression) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
     const bridgeRecord = collectReaderSurfaceLineRecords(content).find(
       (record) => record.emojiMatches?.[0]?.emoji === '👩‍💻'

@@ -356,11 +356,29 @@ function parseStaticTemplateFragment(fragment) {
   };
 }
 
+function parseStaticStringFragment(fragment, quote) {
+  let source = fragment;
+  let trailingBackslashes = 0;
+  for (let index = source.length - 1; index >= 0 && source[index] === '\\'; index -= 1) {
+    trailingBackslashes += 1;
+  }
+  const continuesOnNextLine = trailingBackslashes % 2 === 1;
+  if (continuesOnNextLine) source = source.slice(0, -1);
+
+  const fragmentTree = createProcessor({ format: 'mdx' }).parse(`{${quote}${source}${quote}}`);
+  const expression = fragmentTree.children?.[0]?.data?.estree?.body?.[0]?.expression;
+  if (expression?.type !== 'Literal' || typeof expression.value !== 'string') {
+    throw new Error('reader-visible static string literal could not be projected per line');
+  }
+  return { canonicalText: expression.value, continuesOnNextLine };
+}
+
 function collectStaticStringValues(expression, values, bodyStartLine) {
   if (expression?.type === 'Literal') {
     if (typeof expression.value === 'string') {
       values.push({
         value: expression.value,
+        literalRaw: expression.raw,
         sourceLines: sourceLinesForEstreeNode(expression, bodyStartLine),
       });
     } else if (
@@ -409,6 +427,7 @@ function collectStaticStringValues(expression, values, bodyStartLine) {
       }
       if (property.key.type === 'Literal' && typeof property.key.value === 'string') {
         values.push({
+          literalRaw: property.key.raw,
           value: property.key.value,
           sourceLines: sourceLinesForEstreeNode(property.key, bodyStartLine),
         });
@@ -478,6 +497,25 @@ function collectBodyRecords(body, bodyStartLine) {
 
   function pushStaticValue(record, fallbackNode) {
     const sourceLines = record.sourceLines ?? sourceLocation(fallbackNode).sourceLines;
+    const literalPhysicalLines = record.literalRaw?.split('\n');
+    if (literalPhysicalLines?.length > 1) {
+      const quote = literalPhysicalLines[0].at(0);
+      if ((quote !== '"' && quote !== "'") || literalPhysicalLines.at(-1).at(-1) !== quote) {
+        throw new Error('reader-visible static string literal is missing matching quotes');
+      }
+      const firstSourceLine = sourceLines.values().next().value;
+      const projectedLines = literalPhysicalLines.map((rawLine, index) => {
+        let fragment = rawLine;
+        if (index === 0) fragment = fragment.slice(1);
+        if (index === literalPhysicalLines.length - 1) fragment = fragment.slice(0, -1);
+        return {
+          ...parseStaticStringFragment(fragment, quote),
+          sourceLine: firstSourceLine + index,
+        };
+      });
+      records.push(...continuedPhysicalLineRecords(projectedLines, 'mdx'));
+      return;
+    }
     const templatePhysicalLines = record.templateRaw?.split('\n');
     if (templatePhysicalLines?.length > 1) {
       const firstSourceLine = sourceLines.values().next().value;
