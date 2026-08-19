@@ -33,6 +33,7 @@ func (s *State) Refine(ctx context.Context) error {
 	}
 
 	prompt, err := prompts.Render("refine", prompts.RefineData{
+		Prefix:   s.Prefix,
 		TicketID: s.PromptTicketID,
 		Angle:    s.Angle,
 	})

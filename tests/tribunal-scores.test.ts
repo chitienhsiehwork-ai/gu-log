@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isBelowPublishBar, meetsPublishBar } from '../src/utils/tribunal-scores';
+import {
+  classifyTribunalResult,
+  isBelowPublishBar,
+  meetsPublishBar,
+} from '../src/utils/tribunal-scores';
 
 type Scores = Parameters<typeof meetsPublishBar>[0];
 
@@ -47,6 +51,7 @@ function passScores(overrides: Partial<NonNullable<Scores>> = {}): Scores {
 describe('tribunal publish bar', () => {
   it('passes only when the full tribunal pass bar passes', () => {
     expect(meetsPublishBar(passScores())).toBe(true);
+    expect(classifyTribunalResult(passScores())).toBe('pass');
     expect(isBelowPublishBar(passScores())).toBe(false);
   });
 
@@ -63,6 +68,7 @@ describe('tribunal publish bar', () => {
     });
 
     expect(meetsPublishBar(scores)).toBe(false);
+    expect(classifyTribunalResult(scores)).toBe('fail');
     expect(isBelowPublishBar(scores)).toBe(true);
   });
 
@@ -114,6 +120,7 @@ describe('tribunal publish bar', () => {
     expect(isBelowPublishBar({} as NonNullable<Scores>)).toBe(false);
     // 沒分數也不算 meets bar——它是 unevaluated，兩邊都不成立
     expect(meetsPublishBar(undefined)).toBe(false);
+    expect(classifyTribunalResult(undefined)).toBe('incomplete');
   });
 
   it('fails partial tribunal scores instead of publishing from Vibe alone', () => {
@@ -130,6 +137,7 @@ describe('tribunal publish bar', () => {
     } satisfies Scores;
 
     expect(meetsPublishBar(scores)).toBe(false);
+    expect(classifyTribunalResult(scores)).toBe('incomplete');
     expect(isBelowPublishBar(scores)).toBe(true);
   });
 });

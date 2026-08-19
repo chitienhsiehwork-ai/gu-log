@@ -2,7 +2,7 @@
 # gp-pipeline — self-compiling wrapper around the Go binary.
 #
 # "GP" = Gu-log Picks, matching the blog's brand. This is the ONLY entry
-# point for the translation pipeline — no scripts/ wrapper, no legacy shim.
+# point for the GP translation / MP writing pipeline — no scripts/ wrapper, no legacy shim.
 #
 # First call on a fresh checkout builds the binary into ./bin/; subsequent calls
 # reuse it. Go's incremental build cache makes the "is the binary stale?" check
@@ -39,9 +39,9 @@ need_rebuild() {
   if [ ! -x "$BIN" ]; then
     return 0
   fi
-  # Any source file newer than the binary triggers a rebuild. `-newer` is a
+  # Any Go or embedded prompt source newer than the binary triggers a rebuild. `-newer` is a
   # POSIX find primary so this works on both GNU and BSD find.
-  if [ -n "$(find "$DIR" -name '*.go' -newer "$BIN" -print -quit 2>/dev/null)" ]; then
+  if [ -n "$(find "$DIR" \( -name '*.go' -o -name '*.tmpl' \) -newer "$BIN" -print -quit 2>/dev/null)" ]; then
     return 0
   fi
   if [ "$DIR/go.mod" -nt "$BIN" ] || [ "$DIR/go.sum" -nt "$BIN" ]; then

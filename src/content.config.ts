@@ -257,13 +257,13 @@ const postsCollection = defineCollection({
     .refine(
       (data) => {
         // Every post carries a model signature (translatedBy = model + harness).
-        // GP/MP translations render it as "translated by"; SD/Lv originals render
+        // GP translation renders it as "translated by"; MP/SD/Lv writing renders
         // it as "written by" (post page picks wording by ticketId prefix).
         return !!data.translatedBy;
       },
       {
         message:
-          'Every post requires translatedBy (model + harness) — the model signature is mandatory (translations: "translated by", originals: "written by")',
+          'Every post requires translatedBy (model + harness) — the model signature is mandatory (GP translation: "translated by", MP/SD/Lv writing: "written by")',
         path: ['translatedBy'],
       }
     ),

@@ -265,6 +265,41 @@ func TestStageEditorialContext_CopiesCanonicalFiles(t *testing.T) {
 	}
 }
 
+func TestStepsForStateKeepsGPAndMPRoutingDistinct(t *testing.T) {
+	stepNames := func(s *State) []string {
+		steps := stepsForState(s)
+		names := make([]string, 0, len(steps))
+		for _, step := range steps {
+			names = append(names, step.name)
+		}
+		return names
+	}
+
+	gp := strings.Join(stepNames(&State{Prefix: "GP"}), ",")
+	for _, want := range []string{"source-translate", "source-preservation", "enrich"} {
+		if !strings.Contains(gp, want) {
+			t.Errorf("GP route missing %s: %s", want, gp)
+		}
+	}
+	for _, forbidden := range []string{"write", "review", "refine"} {
+		if strings.Contains(gp, forbidden) {
+			t.Errorf("GP route unexpectedly contains %s: %s", forbidden, gp)
+		}
+	}
+
+	mp := strings.Join(stepNames(&State{Prefix: "MP"}), ",")
+	for _, want := range []string{"write", "review", "refine"} {
+		if !strings.Contains(mp, want) {
+			t.Errorf("MP route missing %s: %s", want, mp)
+		}
+	}
+	for _, forbidden := range []string{"source-translate", "source-preservation", "enrich"} {
+		if strings.Contains(mp, forbidden) {
+			t.Errorf("MP route unexpectedly contains %s: %s", forbidden, mp)
+		}
+	}
+}
+
 func TestRun_NonGPEditorialHappyPath(t *testing.T) {
 	s, _ := makeRunHarness(t)
 	_, _ = SetupWorkDir(s)
@@ -296,6 +331,32 @@ func TestRun_NonGPEditorialHappyPath(t *testing.T) {
 		t.Errorf("translate step should have set ActiveENFilename when RalphPassed")
 	} else if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.ActiveENFilename)); err != nil {
 		t.Errorf("en sidecar missing: %v", err)
+	}
+	deployed, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, s.Filename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(deployed, []byte("<MoguNote")) {
+		t.Fatal("synthetic complete MP fixture unexpectedly gained a required MoguNote")
+	}
+
+	calledPrompts := make([]string, 0)
+	for _, provider := range s.Dispatcher.Providers() {
+		if fake, ok := provider.(*llm.FakeProvider); ok {
+			for _, call := range fake.Called {
+				calledPrompts = append(calledPrompts, call.Prompt)
+			}
+		}
+	}
+	joinedPrompts := strings.Join(calledPrompts, "\n")
+	for _, want := range []string{
+		"Mogu owns the body voice",
+		"Do not score translation completeness",
+		"Do not add one merely because the article has none",
+	} {
+		if !strings.Contains(joinedPrompts, want) {
+			t.Errorf("MP end-to-end flow did not deliver contract %q", want)
+		}
 	}
 
 	// Summary output.

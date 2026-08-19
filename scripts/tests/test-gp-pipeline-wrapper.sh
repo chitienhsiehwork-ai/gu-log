@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Regression test: the self-compiling wrapper must rebuild when Go sources are
-# newer than the cached binary, even with `set -o pipefail` enabled.
+# Regression test: the self-compiling wrapper must rebuild when Go or embedded
+# prompt sources are newer than the cached binary, even with `set -o pipefail` enabled.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -13,6 +13,7 @@ mkdir -p "$PIPELINE_DIR/bin" "$PIPELINE_DIR/cmd/gp-pipeline" "$FAKE_BIN_DIR"
 cp "$ROOT_DIR/tools/gp-pipeline/gp-pipeline" "$PIPELINE_DIR/gp-pipeline"
 touch "$PIPELINE_DIR/go.mod" "$PIPELINE_DIR/go.sum"
 touch "$PIPELINE_DIR/cmd/gp-pipeline/main.go"
+touch "$PIPELINE_DIR/internal-prompts.tmpl"
 
 cat > "$PIPELINE_DIR/bin/gp-pipeline" <<'OLD_BINARY'
 #!/usr/bin/env bash
@@ -25,13 +26,18 @@ chmod +x "$PIPELINE_DIR/bin/gp-pipeline"
 # wrapper asks find to stop itself after the first match instead.
 cat > "$FAKE_BIN_DIR/find" <<'FAKE_FIND'
 #!/usr/bin/env bash
+found_prompt_pattern=0
 for argument in "$@"; do
+  if [ "$argument" = '*.tmpl' ]; then
+    found_prompt_pattern=1
+  fi
   if [ "$argument" = "-quit" ]; then
-    printf '%s\n' './cmd/gp-pipeline/main.go'
+    [ "$found_prompt_pattern" -eq 1 ] || exit 2
+    printf '%s\n' './internal-prompts.tmpl'
     exit 0
   fi
 done
-printf '%s\n' './cmd/gp-pipeline/main.go'
+printf '%s\n' './internal-prompts.tmpl'
 exit 141
 FAKE_FIND
 chmod +x "$FAKE_BIN_DIR/find"

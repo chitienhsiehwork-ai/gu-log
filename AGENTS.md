@@ -53,6 +53,7 @@ Feature branch 名稱常由沒 gu-log 上下文的 LLM 自動生成，只能當 
 預設走 feature branch + PR（命名 `<type>/<scope>-<desc>`，例 `fix/tribunal-badge`）——PR 給清楚的 review surface、讓 Vercel preview 在 merge 前先跑、revert 不沾其他 commit。流程（拉 branch → commit → push + PR → 盯 CI → 綠了自 merge → 刪 branch）是標準動作，solo repo 自己 merge 不等人；branch / merge 細節依 runtime playbook。Tribunal / 自動化 pipeline 同樣走 branch + PR。
 
 - **沒有「直推 `main`」這條路**：main 有 server-side branch protection，直推一律被拒（實測 403，連 doc typo 也一樣）。緊急修復（prod 炸 / main CI broken）走同一條 branch + PR + auto-merge 流——CI 綠了自動合，實務上跟直推一樣快，不要浪費時間嘗試繞過。
+- **GitHub Codex auto-review 是互動式 agent PR 的 merge gate**：repo 已啟用 auto-review 時，PR 轉 ready 後先等最新 review 並判斷完意見，才可掛 auto-merge；有界等待、誤報與失敗處理依 runtime playbook。依 OpenSpec 運作的無人值守 automation lane 走自己的 spec 與 guard，不套用互動式等待。
 - **PR size discipline**：gu-log PR 不必為「讓 human 逐行看」刻意切小。重點是 OpenSpec / tests / evidence / revertability 清楚，PR 大小本身不是問題。
 
 ## 💬 Human interface：chat + preview URL + production URL
@@ -67,11 +68,11 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 |---|---|
 | **任何內容 / editorial work**（寫文、修文、內容規則、writer prompt、judge prompt、editorial workflow） | [`openspec/specs/editorial-charter/spec.md`](openspec/specs/editorial-charter/spec.md)（編輯北極星與邊界 SSOT；先讀，再依下列主題續讀） |
 | **寫 / 翻譯文章（GP/MP/SD/Lv）、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
-| **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、翻譯誠實性、GP/MP 翻譯鐵則、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
+| **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、來源誠實性、GP／MP 編輯邊界、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
-| **GP/MP 自動翻譯 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
-| **User 丟 URL 但沒叫 agent 寫／發布 → 先翻譯與評估** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
+| **GP 翻譯／MP 來源寫作 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
+| **User 只丟 URL／只問是否值得收錄 → 先翻譯與評估** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / chat-first 決策介面 / archive gate）— MUST 動手前先讀 |
@@ -82,12 +83,12 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 
 ### 🔗 URL intake：先翻譯與評估，等 user 再叫才動手
 
-**User 丟 URL 進來、又沒有明確要求產出文章或發布時，一律走 URL intake，不得直接開始寫 GP 或跑 pipeline。** 「這篇如何？」「值得收嗎？」「幫我看」仍算 intake。第一輪只在 chat 交付兩樣東西：
+**User 只丟 URL、沒有附任何動作指示，或只問這份 source 是否值得收進 gu-log 時，才走 URL intake，不得直接開始寫 GP 或跑 pipeline。** User 若已明確要求摘要、解釋、查核、code review、除錯或其他非寫作任務，直接照該任務執行，不得改成交付 intake。第一輪只在 chat 交付兩樣東西：
 
 1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
 2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。
 
-交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
+交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。Fetch artifact 必須留在 repo 外（stdout 或暫存位置）；暫存檔須在讀完完整 source 後、送出回覆前清理。只有 user 授權後才可保存 durable source。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
 
 User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。依各 runtime 的 fetch skill 取得原文。
 

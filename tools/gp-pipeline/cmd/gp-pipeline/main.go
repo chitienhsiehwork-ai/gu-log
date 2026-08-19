@@ -1,4 +1,4 @@
-// Command gp-pipeline is gu-log's translation pipeline CLI; the canonical
+// Command gp-pipeline is gu-log's GP translation and MP writing pipeline CLI; the canonical
 // entrypoint is the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
@@ -54,9 +54,9 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log translation pipeline (Gu-log Picks)",
-		Long: `gp-pipeline ("Gu-log Picks") is the Go implementation of gu-log's
-GP/MP translation pipeline. The canonical entrypoint is
+		Short: "gu-log GP translation and MP source-grounded writing pipeline",
+		Long: `gp-pipeline is the Go implementation of gu-log's GP faithful-translation
+and MP source-grounded writing flows. The canonical entrypoint is
 tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP and post filename
 slugs are gp-/mp-.
 

@@ -37,6 +37,7 @@ func (s *State) Review(ctx context.Context) error {
 	}
 
 	prompt, err := prompts.Render("review", prompts.ReviewData{
+		Prefix:   s.Prefix,
 		TicketID: s.PromptTicketID,
 	})
 	if err != nil {

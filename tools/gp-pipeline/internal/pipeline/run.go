@@ -82,8 +82,43 @@ func (s *State) stageEditorialContext() error {
 	return nil
 }
 
+type pipelineStep struct {
+	name string
+	fn   func(context.Context) error
+}
+
+func stepsForState(s *State) []pipelineStep {
+	steps := []pipelineStep{
+		{"fetch", s.Fetch},
+		{"dedup-url", s.DedupURL},
+		{"eval", s.Eval},
+		{"dedup", s.Dedup},
+	}
+	if s.Prefix == "GP" && !s.LegacyShadow {
+		return append(steps,
+			pipelineStep{"source-translate", s.SourceTranslate},
+			pipelineStep{"source-preservation", s.PreserveGP},
+			pipelineStep{"enrich", s.Enrich},
+			pipelineStep{"credits", s.Credits},
+			pipelineStep{"ralph", s.Ralph},
+			pipelineStep{"translate", s.Translate},
+			pipelineStep{"deploy", s.Deploy},
+		)
+	}
+	return append(steps,
+		pipelineStep{"write", s.Write},
+		pipelineStep{"review", s.Review},
+		pipelineStep{"refine", s.Refine},
+		pipelineStep{"credits", s.Credits},
+		pipelineStep{"ralph", s.Ralph},
+		pipelineStep{"translate", s.Translate},
+		pipelineStep{"deploy", s.Deploy},
+	)
+}
+
 // Run executes the full pipeline end-to-end. GP uses source-translate and
-// source-preservation gates; the other series retain the editorial flow.
+// source-preservation gates; MP and the other series retain the existing
+// write-review-refine editorial flow.
 // honors s.FromStepInt so callers can resume partway through.
 //
 // Run is the single-invocation entrypoint of the pipeline. It
@@ -101,35 +136,10 @@ func Run(ctx context.Context, s *State) error {
 		}
 	}
 
-	type step struct {
-		name string
-		fn   func(context.Context) error
-	}
 	if s.Cfg != nil {
 		writeSnapshotBestEffort(s, "setup", "", "running", "")
 	}
-	steps := []step{
-		{"fetch", s.Fetch},
-		{"dedup-url", s.DedupURL},
-		{"eval", s.Eval},
-		{"dedup", s.Dedup},
-	}
-	if s.Prefix == "GP" && !s.LegacyShadow {
-		steps = append(steps,
-			step{"source-translate", s.SourceTranslate},
-			step{"source-preservation", s.PreserveGP},
-			step{"enrich", s.Enrich},
-			step{"credits", s.Credits},
-			step{"ralph", s.Ralph},
-			step{"translate", s.Translate},
-			step{"deploy", s.Deploy},
-		)
-	} else {
-		steps = append(steps,
-			step{"write", s.Write}, step{"review", s.Review}, step{"refine", s.Refine},
-			step{"credits", s.Credits}, step{"ralph", s.Ralph}, step{"translate", s.Translate}, step{"deploy", s.Deploy},
-		)
-	}
+	steps := stepsForState(s)
 	lastCompleted := ""
 	for _, st := range steps {
 		writeSnapshotBestEffort(s, st.name, lastCompleted, "running", "")

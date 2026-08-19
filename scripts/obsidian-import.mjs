@@ -180,7 +180,7 @@ function convertWikilinks(body) {
 
 function buildFrontmatter(draft, ticketId, _slug) {
   const series = draft.series;
-  const isOriginal = series === 'SD' || series === 'Lv';
+  const usesGuLogSource = series === 'SD' || series === 'Lv';
   const originalDate = dateString(draft.originalDate);
   const translatedDate = dateString(draft.translatedDate);
 
@@ -189,8 +189,8 @@ function buildFrontmatter(draft, ticketId, _slug) {
     title: draft.title,
     originalDate,
     translatedDate,
-    source: draft.source || (isOriginal ? 'ShroomDog Lab' : undefined),
-    sourceUrl: draft.sourceUrl || (isOriginal ? 'https://gu-log.vercel.app/' : undefined),
+    source: draft.source || (usesGuLogSource ? 'ShroomDog Lab' : undefined),
+    sourceUrl: draft.sourceUrl || (usesGuLogSource ? 'https://gu-log.vercel.app/' : undefined),
     lang: 'zh-tw',
     summary: draft.summary,
   };
@@ -198,7 +198,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
   if (draft.author) fm.author = draft.author;
   if (draft.tags && draft.tags.length) fm.tags = draft.tags;
 
-  const role = isOriginal ? 'Author' : 'Translator';
+  const role = series === 'GP' ? 'Translator' : 'Author';
   fm.translatedBy = {
     model: draft.model,
     harness: draft.harness,

@@ -11,7 +11,7 @@ import { dirname, resolve } from 'node:path';
 // viewport edge.
 //
 // Coverage is the high-risk subset on purpose — every /artifacts/ page (auto-
-// discovered) plus the home page and one HTML-heavy post — NOT all ~3k pages,
+// discovered) plus the home page and a small set of high-risk posts — NOT all ~3k pages,
 // so the gate stays fast. If a blowout ever ships from somewhere else, add the
 // offending route to ROUTES rather than widening to the whole site.
 
@@ -22,7 +22,12 @@ const artifactRoutes = readdirSync(artifactsDir)
   .filter((f) => f.endsWith('.astro'))
   .map((f) => `/artifacts/${f.replace(/\.astro$/, '')}/`);
 
-const ROUTES = ['/', '/posts/gp-245-20260624-mattpocockuk-skill-no-op/', ...artifactRoutes];
+const ROUTES = [
+  '/',
+  '/posts/gp-245-20260624-mattpocockuk-skill-no-op/',
+  '/posts/gp-275-20260817-article-qwen-3-8-27b/',
+  ...artifactRoutes,
+];
 
 const WIDTHS = [
   { label: 'mobile-390', width: 390, height: 844 },

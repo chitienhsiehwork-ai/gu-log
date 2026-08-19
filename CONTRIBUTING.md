@@ -64,7 +64,7 @@ ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log；Go 之前一
 Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是 attention waste。gu-log 的文章不是資料庫去重失敗的備份檔；每篇都要有新的資訊增量、判斷增量或敘事增量。
 
 - **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文與可選的 MoguNote／讀者脈絡。GP 保留來源作者與順序；重新編排只屬於具備該編輯權限的非 GP 系列。
-- **「二手整理」不是 No-go 理由**：GP 可忠實翻譯，MP／SD／Lv 可依各自編輯身份重寫、改編或整理脈絡；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
+- **「二手整理」不是 No-go 理由**：GP 可忠實翻譯，MP 由 Mogu 消化來源後寫成自己的 source-grounded article，SD／Lv 依各自編輯身份寫作；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
 - **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
 - 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → GP Go 就走 source-preserving pipeline；非 GP 再依該系列權限重寫並 cite。No-go 要講真正原因。
 
@@ -87,7 +87,7 @@ gu-log 寫的就是 AI / agent / tooling 圈，這個圈子有兩個特性：
 **操作原則**：
 
 - 寫 glossary、寫文章、跟 user 對話時，AI tooling 相關事實都要 verify
-- **⚠️ `WebFetch` 會偷偷摘要，不是原文**：WebFetch 會把 HTML 丟給一個小 model 濃縮後才回傳，**常常漏掉具體 examples、數字、邊界條件**（實測 Anthropic blog 的 `create_issue_from_thread` 例子、`Cloudflare ~2,500 endpoints in ~1K tokens`、elicitation form/URL mode 區別都被摘掉）。**GP/MP 翻譯任務、引述原文、事實查核一律用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析**；WebFetch 只適合「這頁大概在講什麼」這種粗粒度判斷。翻譯基於 WebFetch 輸出 = 基於二手摘要，必踩雷。
+- **⚠️ `WebFetch` 會偷偷摘要，不是原文**：WebFetch 會把 HTML 丟給一個小 model 濃縮後才回傳，**常常漏掉具體 examples、數字、邊界條件**（實測 Anthropic blog 的 `create_issue_from_thread` 例子、`Cloudflare ~2,500 endpoints in ~1K tokens`、elicitation form/URL mode 區別都被摘掉）。**GP 翻譯、MP 取材、引述原文與事實查核，一律用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析**；WebFetch 只適合「這頁大概在講什麼」這種粗粒度判斷。寫作基於 WebFetch 輸出 = 基於二手摘要，必踩雷。
 - **Subagent 的事實結論要自己驗證一次**：subagent 也會用聽起來合理但錯的詞（例如把 closed source 說成 source-available）。看到關鍵 claim 就 fetch 一次原始碼或 license 確認
 - 完整時間線參考 `src/data/glossary.json` 的 Claude Code 條目
 
@@ -151,7 +151,7 @@ translatedBy:
   model: "<detect-model output>"  # 必須換成 detect-model.mjs 的實際輸出
   harness: "OpenClaw"
   pipeline:
-    - role: "Translator"  # 或 "Author"（SD 系列）
+    - role: "Translator"  # GP 使用 Translator；MP/SD/Lv 使用 Author
       model: "<detect-model output>"
       harness: "Mogu"
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
@@ -278,7 +278,9 @@ import MoguNote from '../../components/MoguNote.astro';
 - 加入幽默感
 - 承接 GP body 不該放的 source-meta commentary 或 Mogu/gu-log opinion
 
-MoguNote 與翻譯 body 的 first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是在文章裡落實該邊界的 style guidance。
+GP 的 MoguNote 是來源作者正文與 Mogu commentary 的 provenance boundary。MP 正文本來就由 Mogu 擁有聲音；核心分析可直接放在 body，MoguNote 只是選配 aside。first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是 style guidance。
+
+MoguNote 可以用 Mogu 第一人稱表達反應與立場、描述實際發生的 editorial／tool interaction，或講一眼就能辨識為虛構的奇幻 persona 經歷。任何 reader-visible prose 都不得把來源作者的實驗、團隊或人生事件移植成 Mogu 親歷，也不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言。這條限制的是可信假履歷，不是禁止 Mogu 有自己的聲音。
 
 **風格指南** (from GU-LOG_WRITER_PROMPT.md):
 - 避免「維基百科式」的冷靜解釋
@@ -287,7 +289,7 @@ MoguNote 與翻譯 body 的 first-principles 邊界以 [`editorial-charter` spec
 - ❌ 不要用反問句問讀者顯而易見的答案
 - 可驗證 facts 要有來源或保守措辭；推測要明示是推測；不要把 source-limited claim 寫成 verified fact
 
-**沒有固定密度**：有真正 insight 才放；沒有就不硬擠。MoguNote 不能拿來灌篇幅，也不能只為滿足配額重講正文。
+**沒有固定密度**：有真正 insight 才放；沒有就不硬擠。MoguNote 不能拿來灌篇幅，也不能只為滿足配額重講正文。一篇完整 MP 沒有 MoguNote，不得因這個形式原因 fail、降級或被迫補 note。
 
 ### ShroomDogNote — ShroomDog 本人的聲音（SD 系列專用）
 
@@ -375,9 +377,9 @@ bash scripts/vibe-scorer.sh <file>
 bash scripts/tribunal-batch-runner.sh
 ```
 
-### Fact Checker（來源與翻譯驗證）
+### Fact Checker（來源與事實驗證）
 
-GP/MP 翻譯文章要跟完整 Tribunal 一起跑 Fact Checker，確認事實、翻譯忠實度，以及 source body 與 Mogu/gu-log commentary 的邊界。GP 的 source reviewer 與 natural-zh vibe scorer 是發布前 non-compensating hard gates；通用 Fact Checker／Tribunal 分數不會取代 hard gate，也不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
+GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker。GP 檢查 translation fidelity、完整 caveat 與 commentary separation；MP 不檢查全文翻譯完整度，也不把貼近或遠離來源當成分數，而是檢查每個被保留 claim 的 speaker、條件、hedge、controlling caveat、證據範圍與歸因，以及是否捏造事實、挪用來源作者經歷、冒充 ShroomDog 或杜撰可信的人類假履歷。MoguNote 裡的第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona 不應被誤判。GP 的 source reviewer 與 natural-zh vibe scorer 是發布前 non-compensating hard gates；通用 Fact Checker／Tribunal 分數不會取代 hard gate，也不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
 
 ## BDD Testing
 
@@ -439,14 +441,16 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 6. hard-gate manifest 仍 fresh 才產出 **en 版**；deploy 會重新驗證 source/body hashes、角色 provenance 與 verdict
 7. Merge 前由 deploy 配正式號、validate、build、commit、push
 
-### 新增翻譯／改編文章（MP）
+### 新增 Mogu 來源文章（MP）
 
 1. 抓完整原文並完成 overlap evaluation
-2. 寫 **zh-tw 版** `mp-pending-YYYYMMDD-<slug>.mdx`（有 insight 才加 MoguNote）
-3. `node scripts/validate-posts.mjs` 確認 frontmatter 合格
-4. 丟 **vibe-opus-scorer** 評分；沒過可依 MP 編輯身份改寫，最多 3 輪
-5. 過分數之後才翻 **en 版**
-6. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
+2. 先定 Mogu 自己的 thesis，再選擇最適合文章的距離：可以貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可以選材、刪減、重排、綜合、反駁或從頭重建。MP 沒有最低改寫幅度；不得只為證明「不像 GP」硬改好用的來源骨架
+3. 寫 **zh-tw 版** `mp-pending-YYYYMMDD-<slug>.mdx`；每個保留的 source claim 都要保留 speaker、條件、hedge、controlling caveat 與證據範圍，Mogu 新增分析要歸給 Mogu
+4. close-form MP 仍由 Mogu 擁有正文聲音，不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾；close-form 與自由重建共用同一個 MP contract，不新增子模式、schema 或 pipeline
+5. 不得捏造 facts、quote、number、causality，亦不得挪用來源作者經歷或杜撰看似真實的人類履歷。MoguNote 可寫第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona；可查證的新 premise 要有 inline citation。MoguNote 選配，沒有就不補
+6. `node scripts/validate-posts.mjs` 確認 frontmatter 合格，再丟 **vibe-opus-scorer** 與 Fact Checker 評分；不得只因文章貼近或遠離來源而扣分，真正的品質、claim closure、歸因與可查證性照常嚴格評審。沒過可依 MP 編輯身份改寫，最多 3 輪
+7. 過分數之後才翻 **en 版**
+8. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
 
 ### 新增原創文章 (SD)
 

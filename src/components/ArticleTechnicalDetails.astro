@@ -10,7 +10,7 @@ interface Props {
   translatedBy: PostData['translatedBy'];
   scores: PostData['scores'];
   authorshipNote?: string | null;
-  isOriginalPost: boolean;
+  contentMode: 'translation' | 'source-grounded-writing' | 'writing';
   postVersion: number;
   historyHref: string;
   lang?: 'zh-tw' | 'en';
@@ -21,7 +21,7 @@ const {
   translatedBy,
   scores,
   authorshipNote,
-  isOriginalPost,
+  contentMode,
   postVersion,
   historyHref,
   lang = 'zh-tw',
@@ -36,6 +36,7 @@ const strings =
         writtenOn: 'Written on',
         translatedOn: 'Translated on',
         writingPipeline: 'writing pipeline',
+        sourceGroundedPipeline: 'source-grounded writing pipeline',
         translationPipeline: 'translation pipeline',
         authorship: 'Authorship note:',
         history: 'View edit history',
@@ -45,10 +46,18 @@ const strings =
         writtenOn: '撰寫於',
         translatedOn: '翻譯於',
         writingPipeline: '撰寫 pipeline',
+        sourceGroundedPipeline: '來源寫作 pipeline',
         translationPipeline: '翻譯 pipeline',
         authorship: '作者推定：',
         history: '查看編輯歷史',
       };
+const pipelineLabel =
+  contentMode === 'translation'
+    ? strings.translationPipeline
+    : contentMode === 'source-grounded-writing'
+      ? strings.sourceGroundedPipeline
+      : strings.writingPipeline;
+const dateLabel = contentMode === 'translation' ? strings.translatedOn : strings.writtenOn;
 ---
 
 <details class="article-technical-details" data-article-technical-details>
@@ -75,11 +84,7 @@ const strings =
     <span class="technical-summary-title">{strings.title}</span>
     <span class="technical-summary-meta">
       {overallComposite !== null && <span>Tribunal {overallComposite}/10</span>}
-      {
-        hasTranslationInfo && (
-          <span>{isOriginalPost ? strings.writingPipeline : strings.translationPipeline}</span>
-        )
-      }
+      {hasTranslationInfo && <span>{pipelineLabel}</span>}
       <span>v{postVersion}</span>
     </span>
     <span class="technical-summary-chevron" aria-hidden="true">
@@ -107,7 +112,7 @@ const strings =
             (translatedBy.pipeline ? (
               <>
                 <div>
-                  {isOriginalPost ? strings.writtenOn : strings.translatedOn} {translatedDate}
+                  {dateLabel} {translatedDate}
                 </div>
                 {translatedBy.pipeline.map((step) => (
                   <div>
@@ -124,8 +129,7 @@ const strings =
               </>
             ) : (
               <div>
-                {isOriginalPost ? strings.writtenOn : strings.translatedOn} {translatedDate} by{' '}
-                {translatedBy.model} ({translatedBy.harness})
+                {dateLabel} {translatedDate} by {translatedBy.model} ({translatedBy.harness})
               </div>
             ))}
           {authorshipNote && (
