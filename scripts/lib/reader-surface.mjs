@@ -642,7 +642,21 @@ function collectFrontmatterRecords({ frontmatterRaw, frontmatterFormat, frontmat
 }
 
 function stripHtmlCommentsPreservingLines(value) {
-  return value.replace(/<!--[\s\S]*?-->/gu, (comment) => comment.replace(/[^\n]/gu, ' '));
+  const tree = fromHtml(value, { fragment: true });
+  const ranges = [];
+  walk(tree, (node) => {
+    if (node.type !== 'comment') return;
+    const start = node.position?.start?.offset;
+    const end = node.position?.end?.offset;
+    if (Number.isInteger(start) && Number.isInteger(end)) ranges.push({ start, end });
+  });
+
+  let visibleValue = value;
+  for (const { start, end } of ranges.sort((left, right) => right.start - left.start)) {
+    const masked = visibleValue.slice(start, end).replace(/[^\n]/gu, ' ');
+    visibleValue = `${visibleValue.slice(0, start)}${masked}${visibleValue.slice(end)}`;
+  }
+  return visibleValue;
 }
 
 function isNonRenderingNode(node) {

@@ -273,6 +273,20 @@ lang: zh-tw
     expect(result.errors.join('\n')).not.toContain('❤️');
   });
 
+  it.each(['<!-->😀-->', '<!-- hidden --!>😀<!-- x -->'])(
+    'uses HTML tokenizer boundaries for malformed comments: %s',
+    (readerSurface) => {
+      const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
+      const result = checkFixture({
+        current: { [MARKDOWN_POST_PATH]: content },
+        changedPath: MARKDOWN_POST_PATH,
+        changedContent: content,
+        changedLines: [5],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
+    }
+  );
+
   it.each([
     [
       'Markdown raw style',
