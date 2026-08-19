@@ -12,15 +12,35 @@ const EMOJI_RE = new RegExp(
   'gu'
 );
 const KAOMOJI_TEXT_EMOJI_OVERLAP = new Set(['♥', '♡', '❤']);
-const KAOMOJI_EYE = '[°□■◍◔◕๑ಠ♥♡❤⊙⌐¬]';
-const KAOMOJI_MOUTH = '[▽△￣ᴥᴗᵕ˃˂ᗜ∀ω‿╥﹏ヘヮД・≧≦ㅂ₃]';
+const KAOMOJI_EYE = '[°■◍◔◕๑ಠ♥♡❤⊙¬]';
+const KAOMOJI_MOUTH = '[□_▽△￣ᴥᴗᵕ˃˂ᗜ∀ω‿╥﹏ヘヮД・≧≦ㅂ₃]';
+const KAOMOJI_FACE_SEPARATOR = '(?:\\s|[•｡；´｀*:･ﾟ]|\\p{M})*';
 const KAOMOJI_FACE_STRUCTURE = new RegExp(
-  `${KAOMOJI_EYE}[^\n\r]{0,10}${KAOMOJI_MOUTH}[^\n\r]{0,10}${KAOMOJI_EYE}`,
-  'u'
+  `^${KAOMOJI_FACE_SEPARATOR}(${KAOMOJI_EYE})${KAOMOJI_FACE_SEPARATOR}(${KAOMOJI_MOUTH})${KAOMOJI_FACE_SEPARATOR}(${KAOMOJI_EYE})${KAOMOJI_FACE_SEPARATOR}$`,
+  'du'
 );
 
-function hasStructuredHeartKaomoji(span) {
-  return KAOMOJI_FACE_STRUCTURE.test(span.text);
+function hasStructuredHeartKaomoji(span, match) {
+  const openingIndex = span.text.search(/[（(]/u);
+  const closingIndex = Math.max(span.text.lastIndexOf(')'), span.text.lastIndexOf('）'));
+  if (openingIndex < 0 || closingIndex <= openingIndex) return false;
+
+  const face = span.text.slice(openingIndex + 1, closingIndex);
+  const faceMatch = KAOMOJI_FACE_STRUCTURE.exec(face);
+  if (!faceMatch?.indices) return false;
+
+  const relativeStart = match.index - span.start;
+  const relativeEnd = relativeStart + match[0].length;
+  const faceStart = openingIndex + 1;
+  if (relativeStart >= faceStart && relativeEnd <= closingIndex) {
+    const inFaceStart = relativeStart - faceStart;
+    const inFaceEnd = relativeEnd - faceStart;
+    return [faceMatch.indices[1], faceMatch.indices[3]].some(
+      ([eyeStart, eyeEnd]) => eyeStart === inFaceStart && eyeEnd === inFaceEnd
+    );
+  }
+
+  return relativeEnd === openingIndex || relativeStart === closingIndex + 1;
 }
 
 function isAllowedKaomojiTextOverlap(match, kaomojiSpans) {
@@ -28,7 +48,7 @@ function isAllowedKaomojiTextOverlap(match, kaomojiSpans) {
   const start = match.index;
   const end = start + match[0].length;
   return kaomojiSpans.some(
-    (span) => start >= span.start && end <= span.end && hasStructuredHeartKaomoji(span)
+    (span) => start >= span.start && end <= span.end && hasStructuredHeartKaomoji(span, match)
   );
 }
 

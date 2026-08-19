@@ -304,6 +304,11 @@ lang: zh-tw
       POST_PATH,
       String.raw`<ol style="list-style-type:'\1F600'"><li>x</li></ol>`,
     ],
+    [
+      'MDX uppercase inline style attribute',
+      POST_PATH,
+      String.raw`<ol STYLE="list-style-type:'\1F600'"><li>x</li></ol>`,
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -724,6 +729,12 @@ describe('Unicode emoji and kaomoji boundary', () => {
   it('does not treat an ordinary status legend as a heart-bearing kaomoji', () => {
     expect(
       findEmojiSequences('（狀態：□ 未選，■ 已選，支援 ❤）').map((match) => match.emoji)
+    ).toEqual(['❤']);
+  });
+
+  it('does not combine unrelated legend glyphs into a heart-bearing kaomoji', () => {
+    expect(
+      findEmojiSequences('（□ 正常 △ 注意 ■ 異常，支援 ❤）').map((match) => match.emoji)
     ).toEqual(['❤']);
   });
 

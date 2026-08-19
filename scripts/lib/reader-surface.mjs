@@ -1245,7 +1245,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
           continue;
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
-        if (attribute.name === 'style') {
+        if (/^style$/iu.test(attribute.name ?? '')) {
           pushUnsafeExecutable(attribute, 'mdx.attribute.style');
           continue;
         }
