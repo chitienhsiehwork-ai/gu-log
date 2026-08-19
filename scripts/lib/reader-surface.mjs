@@ -700,15 +700,22 @@ function decodeCssUnicodeEscapes(value) {
 }
 
 export function findTrustedComponentEmojiSequences(source) {
-  const htmlDecoded = decodeHTML(String(source));
-  const candidates = new Set([
-    String(source),
-    htmlDecoded,
-    decodeJavaScriptUnicodeEscapes(source),
-    decodeJavaScriptUnicodeEscapes(htmlDecoded),
-    decodeCssUnicodeEscapes(source),
-    decodeCssUnicodeEscapes(htmlDecoded),
-  ]);
+  const candidateLimit = 256;
+  const candidates = new Set([String(source)]);
+  const pending = [...candidates];
+  const decoders = [decodeHTML, decodeJavaScriptUnicodeEscapes, decodeCssUnicodeEscapes];
+  while (pending.length > 0) {
+    const candidate = pending.shift();
+    for (const decode of decoders) {
+      const decoded = decode(candidate);
+      if (candidates.has(decoded)) continue;
+      if (candidates.size >= candidateLimit) {
+        throw new Error('trusted component escape expansion exceeded the fail-closed limit');
+      }
+      candidates.add(decoded);
+      pending.push(decoded);
+    }
+  }
   const findings = [];
   const seen = new Set();
   for (const candidate of candidates) {

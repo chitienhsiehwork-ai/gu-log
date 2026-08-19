@@ -405,7 +405,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **AND** fenced code block 內的 `style`／`script` 範例 SHALL 維持可用
 - **AND** 無 binding 的 side-effect import，或無法由明確核准的既有 component path／相對 raster asset path 證明安全的 import／re-export SHALL 遇錯即停
 - **AND** approved local component default import、相對 raster default binding 在 inert image／poster attribute 的引用、其餘無 module source 的 MDX export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響
-- **AND** approved component 的 local import alias SHALL 映回真實 component 身分，其 trusted source SHALL 由測試維持不含 literal Unicode emoji，亦不得以 HTML entity、CSS escape 或 JavaScript Unicode escape 產生 emoji
+- **AND** approved component 的 local import alias SHALL 映回真實 component 身分，其 trusted source SHALL 由測試維持不含 literal Unicode emoji，亦不得以 HTML entity、CSS escape、JavaScript Unicode escape 或其疊層組合產生 emoji
 - **AND** 註解後仍有運算結果的混合節點 SHALL NOT 被當成純註解
 
 #### Scenario: Kaomoji remains allowed

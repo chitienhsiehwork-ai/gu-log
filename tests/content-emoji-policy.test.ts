@@ -483,6 +483,8 @@ lang: zh-tw
     ['CSS escape', String.raw`<style>.x::after { content: "\1F600" }</style>`],
     ['JavaScript code-point escape', String.raw`const icon = "\u{1F600}";`],
     ['JavaScript surrogate escapes', String.raw`const icon = "\uD83D\uDE00";`],
+    ['layered JavaScript-to-HTML escapes', String.raw`<Fragment set:html={'\u0026#128512;'} />`],
+    ['layered JavaScript-to-CSS escapes', String.raw`<style>{'\u005c1F600'}</style>`],
   ])('detects encoded emoji in trusted component source via %s', (_label, source) => {
     expect(findTrustedComponentEmojiSequences(source).map((match) => match.emoji)).toContain('😀');
   });
