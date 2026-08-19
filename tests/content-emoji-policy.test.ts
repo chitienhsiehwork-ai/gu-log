@@ -638,6 +638,49 @@ import hero from '../../assets/hero.png';
     expect(result.errors).toEqual([]);
   });
 
+  it.each([
+    ['decimal entity', '#128512;', '😀'],
+    ['named entity', '#hearts;', '♥'],
+  ])('projects a Mermaid %s before scanning', (_label, entity, emoji) => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import Diagram from '../../components/Mermaid.astro';
+
+<Diagram chart={"graph TD\\n  A[${entity}]"} />
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    expect(records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ canonicalText: expect.stringContaining(emoji), sourceLine: 7 }),
+      ])
+    );
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [7],
+    });
+    expect(result.errors.join('\n')).toContain(`未授權 emoji ${JSON.stringify(emoji)}`);
+  });
+
+  it('keeps non-emoji Mermaid entity codes valid', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import Mermaid from '../../components/Mermaid.astro';
+
+<Mermaid chart={"graph TD\\n  A[#quot;safe#quot;]"} />
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [7],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
   it.each([POST_PATH, MARKDOWN_POST_PATH])(
     'binds a linked stylesheet only to its rel and href lines in %s',
     (changedPath) => {

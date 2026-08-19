@@ -699,6 +699,22 @@ function decodeCssUnicodeEscapes(value) {
   );
 }
 
+function decodeMermaidEntityCodes(value) {
+  let decoded = String(value);
+  const seen = new Set([decoded]);
+  for (let iteration = 0; iteration < 16; iteration += 1) {
+    const next = decoded.replace(/#(?:\d{1,7}|x[0-9a-f]{1,6}|[a-z][a-z0-9]+);/giu, (entity) => {
+      const htmlEntity = /^#(?:\d|x[0-9a-f])/iu.test(entity) ? `&${entity}` : `&${entity.slice(1)}`;
+      const expanded = decodeHTML(htmlEntity);
+      return expanded === htmlEntity ? entity : expanded;
+    });
+    if (next === decoded || seen.has(next)) return next;
+    decoded = next;
+    seen.add(decoded);
+  }
+  return decoded;
+}
+
 export function findTrustedComponentEmojiSequences(source) {
   const candidateLimit = 256;
   const candidates = new Set([String(source)]);
@@ -1866,6 +1882,8 @@ function collectBodyRecords(body, bodyStartLine, format) {
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
         const attributeName = String(attribute.name ?? '').toLowerCase();
+        const isMermaidChartAttribute =
+          effectiveElementName === 'Mermaid' && attributeName === 'chart';
         const quotedSource =
           typeof attribute.value === 'string' ? quotedAttributeSource(attribute) : null;
         if (attributeName === 'srcset' && quotedSource) {
@@ -1905,6 +1923,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
           ) {
             pushValue(attribute.value, attribute);
           }
+          if (isMermaidChartAttribute) {
+            const projectedChart = decodeMermaidEntityCodes(attribute.value);
+            if (projectedChart !== attribute.value) pushValue(projectedChart, attribute);
+          }
         } else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
           const staticIdentifier = staticIdentifierFromExpression(attribute.value);
           if (
@@ -1928,7 +1950,16 @@ function collectBodyRecords(body, bodyStartLine, format) {
             )
           ) {
             pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
-          } else for (const value of staticValues) pushStaticValue(value, attribute);
+          } else {
+            for (const value of staticValues) {
+              pushStaticValue(value, attribute);
+              if (!isMermaidChartAttribute) continue;
+              const projectedChart = decodeMermaidEntityCodes(value.value);
+              if (projectedChart !== value.value) {
+                pushValue(projectedChart, attribute, 0, value.sourceLines);
+              }
+            }
+          }
         }
       }
     }
