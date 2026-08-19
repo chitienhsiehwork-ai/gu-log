@@ -455,8 +455,8 @@ function staticStringsFromExpression(node, bodyStartLine) {
   return collectStaticStringValues(statement.expression, values, bodyStartLine) ? values : null;
 }
 
-function collectBodyRecords(body, bodyStartLine) {
-  const tree = createProcessor({ format: 'mdx' }).parse(body);
+function collectBodyRecords(body, bodyStartLine, format) {
+  const tree = createProcessor({ format }).parse(body);
   const bodyLines = body.split('\n');
   const records = [];
   const definitions = new Map();
@@ -713,7 +713,13 @@ function collectBodyRecords(body, bodyStartLine) {
   return records;
 }
 
-export function collectReaderSurfaceLineRecords(content) {
+export function collectReaderSurfaceLineRecords(content, { format = 'mdx' } = {}) {
+  if (format !== 'md' && format !== 'mdx') {
+    throw new Error(`reader-surface format 無效：${JSON.stringify(format)}`);
+  }
   const { frontmatterRaw, body, bodyStartLine } = extractPostParts(content);
-  return [...collectFrontmatterRecords(frontmatterRaw), ...collectBodyRecords(body, bodyStartLine)];
+  return [
+    ...collectFrontmatterRecords(frontmatterRaw),
+    ...collectBodyRecords(body, bodyStartLine, format),
+  ];
 }

@@ -135,9 +135,15 @@ export function parseContentEmojiAllowlist(raw, approvalCorpus) {
   return Object.freeze({ version: 1, entries: Object.freeze(entries) });
 }
 
+function postFormat(postPath) {
+  return postPath.endsWith('.md') ? 'md' : 'mdx';
+}
+
 function countEntryOccurrences(entry, content) {
   let count = 0;
-  for (const record of collectReaderSurfaceLineRecords(content)) {
+  for (const record of collectReaderSurfaceLineRecords(content, {
+    format: postFormat(entry.path),
+  })) {
     if (sha256Line(record.canonicalText) !== entry.lineHash) continue;
     const matches = record.emojiMatches ?? findEmojiSequences(record.canonicalText);
     count += matches.filter((match) => match.emoji === entry.emoji).length;
@@ -164,7 +170,9 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
   const allowedCounts = new Map();
   const findings = [];
   for (const change of changes) {
-    for (const record of collectReaderSurfaceLineRecords(change.content)) {
+    for (const record of collectReaderSurfaceLineRecords(change.content, {
+      format: postFormat(change.path),
+    })) {
       const sourceLines = record.sourceLines ?? new Set([record.sourceLine]);
       if (![...sourceLines].some((sourceLine) => change.addedSourceLines.has(sourceLine))) continue;
       if (record.unresolvedExpression !== undefined) {

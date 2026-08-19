@@ -94,6 +94,14 @@ function checkFixture(options: {
 }
 
 describe('shared reader-surface projection', () => {
+  it('treats ESM-like source as visible prose in Markdown mode', () => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\nexport const message = "😀";\n`;
+    const visible = collectReaderSurfaceLineRecords(content, { format: 'md' })
+      .map((record) => record.canonicalText)
+      .join('\n');
+    expect(visible).toContain('export const message = "😀";');
+  });
+
   it('maps reader-visible frontmatter and MDX surfaces back to source lines', () => {
     const content = `---
 ticketId: GP-999
@@ -1189,52 +1197,58 @@ Body.
 
 describe('staged and PR-base CLI use the same validator', () => {
   it.each([
-    ['MDX', POST_PATH],
-    ['Markdown', MARKDOWN_POST_PATH],
-  ])('fails the same emoji change in staged and PR-base modes for %s posts', (_label, postPath) => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-git-'));
-    fs.mkdirSync(path.join(root, 'src', 'content', 'posts'), { recursive: true });
-    fs.mkdirSync(path.join(root, 'quality'), { recursive: true });
-    writeApprovalCorpus(root);
-    fs.writeFileSync(
-      path.join(root, 'quality', 'content-emoji-allowlist.json'),
-      '{"version":1,"entries":[]}\n'
-    );
-    fs.writeFileSync(path.join(root, postPath), '---\ntitle: test\nlang: zh-tw\n---\nclean\n');
-    execFileSync('git', ['init', '-q'], { cwd: root });
-    execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root });
-    execFileSync('git', ['config', 'user.name', 'Test'], { cwd: root });
-    execFileSync('git', ['add', '.'], { cwd: root });
-    execFileSync('git', ['commit', '-qm', 'base'], { cwd: root });
-    const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+    ['MDX', POST_PATH, 'new ❤️'],
+    ['Markdown', MARKDOWN_POST_PATH, 'export const message = "😀";'],
+  ])(
+    'fails the same emoji change in staged and PR-base modes for %s posts',
+    (_label, postPath, changedLine) => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-git-'));
+      fs.mkdirSync(path.join(root, 'src', 'content', 'posts'), { recursive: true });
+      fs.mkdirSync(path.join(root, 'quality'), { recursive: true });
+      writeApprovalCorpus(root);
+      fs.writeFileSync(
+        path.join(root, 'quality', 'content-emoji-allowlist.json'),
+        '{"version":1,"entries":[]}\n'
+      );
+      fs.writeFileSync(path.join(root, postPath), '---\ntitle: test\nlang: zh-tw\n---\nclean\n');
+      execFileSync('git', ['init', '-q'], { cwd: root });
+      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root });
+      execFileSync('git', ['config', 'user.name', 'Test'], { cwd: root });
+      execFileSync('git', ['add', '.'], { cwd: root });
+      execFileSync('git', ['commit', '-qm', 'base'], { cwd: root });
+      const base = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
 
-    fs.appendFileSync(path.join(root, postPath), 'new ❤️\n');
-    execFileSync('git', ['add', postPath], { cwd: root });
-    const staged = spawnSync(
-      process.execPath,
-      [
-        path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'),
-        '--staged',
-        `--repo-root=${root}`,
-      ],
-      { cwd: root, encoding: 'utf8' }
-    );
-    expect(staged.status, staged.stdout + staged.stderr).toBe(1);
+      fs.appendFileSync(path.join(root, postPath), `${changedLine}\n`);
+      execFileSync('git', ['add', postPath], { cwd: root });
+      const staged = spawnSync(
+        process.execPath,
+        [
+          path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'),
+          '--staged',
+          `--repo-root=${root}`,
+        ],
+        { cwd: root, encoding: 'utf8' }
+      );
+      expect(staged.status, staged.stdout + staged.stderr).toBe(1);
 
-    execFileSync('git', ['commit', '-qm', 'emoji'], { cwd: root });
-    const pr = spawnSync(
-      process.execPath,
-      [
-        path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'),
-        `--base=${base}`,
-        `--repo-root=${root}`,
-      ],
-      { cwd: root, encoding: 'utf8' }
-    );
-    expect(pr.status, pr.stdout + pr.stderr).toBe(1);
-    expect(staged.stderr).toContain('未授權 emoji');
-    expect(pr.stderr).toContain('未授權 emoji');
-  });
+      execFileSync('git', ['commit', '-qm', 'emoji'], { cwd: root });
+      const pr = spawnSync(
+        process.execPath,
+        [
+          path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'),
+          `--base=${base}`,
+          `--repo-root=${root}`,
+        ],
+        { cwd: root, encoding: 'utf8' }
+      );
+      expect(pr.status, pr.stdout + pr.stderr).toBe(1);
+      expect(staged.stderr).toContain('未授權 emoji');
+      expect(pr.stderr).toContain('未授權 emoji');
+    }
+  );
 
   it('does not let unstaged approval files authorize a staged post or committed PR head', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-snapshot-'));
