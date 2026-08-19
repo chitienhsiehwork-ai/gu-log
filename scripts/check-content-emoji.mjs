@@ -60,6 +60,9 @@ function parseApprovalDecisions(corpus) {
     if (typeof decision.emoji !== 'string' || decision.emoji === '') {
       throw new Error(`feedback corpus:${index + 1} 的 emoji decision 缺少 emoji`);
     }
+    if (!Number.isInteger(decision.sourceLine) || decision.sourceLine < 1) {
+      throw new Error(`feedback corpus:${index + 1} 的 emoji decision sourceLine 無效`);
+    }
     if (!isValidDate(decision.decidedAt)) {
       throw new Error(`feedback corpus:${index + 1} 的 emoji decision decidedAt 無效`);
     }
@@ -101,6 +104,9 @@ export function parseContentEmojiAllowlist(raw, approvalCorpus) {
     if (typeof entry.lineHash !== 'string' || !/^[a-f0-9]{64}$/.test(entry.lineHash)) {
       throw new Error(`${label}.lineHash 必須是 SHA-256 hex`);
     }
+    if (!Number.isInteger(entry.sourceLine) || entry.sourceLine < 1) {
+      throw new Error(`${label}.sourceLine 必須是正整數`);
+    }
     if (!Number.isInteger(entry.maxOccurrences) || entry.maxOccurrences < 1) {
       throw new Error(`${label}.maxOccurrences 必須是正整數`);
     }
@@ -126,9 +132,12 @@ export function parseContentEmojiAllowlist(raw, approvalCorpus) {
     if (
       approval.path !== entry.path ||
       approval.emoji !== entry.emoji ||
+      approval.sourceLine !== entry.sourceLine ||
       approval.decidedAt !== entry.approvedAt
     ) {
-      throw new Error(`${label}.approvalRef 的 path/emoji/date 與 executable record 不一致`);
+      throw new Error(
+        `${label}.approvalRef 的 path/sourceLine/emoji/date 與 executable record 不一致`
+      );
     }
     return Object.freeze({ ...entry });
   });
@@ -144,6 +153,7 @@ function countEntryOccurrences(entry, content) {
   for (const record of collectReaderSurfaceLineRecords(content, {
     format: postFormat(entry.path),
   })) {
+    if (record.sourceLine !== entry.sourceLine) continue;
     if (sha256Line(record.canonicalText) !== entry.lineHash) continue;
     const matches = record.emojiMatches ?? findEmojiSequences(record.canonicalText);
     count += matches.filter((match) => match.emoji === entry.emoji).length;
@@ -159,7 +169,9 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
     const content = readCurrentPost(entry.path);
     const count = content === null ? 0 : countEntryOccurrences(entry, content);
     if (count === 0) {
-      errors.push(`allowlist entries[${index}] 已 stale：找不到核准的 path/lineHash/emoji`);
+      errors.push(
+        `allowlist entries[${index}] 已 stale：找不到核准的 path/sourceLine/lineHash/emoji`
+      );
     } else if (count > entry.maxOccurrences) {
       errors.push(
         `allowlist entries[${index}] 超出 maxOccurrences：目前 ${count}，核准 ${entry.maxOccurrences}`
@@ -197,7 +209,10 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
         const lineHash = sha256Line(record.canonicalText);
         const entryIndex = policy.entries.findIndex(
           (entry) =>
-            entry.path === change.path && entry.emoji === match.emoji && entry.lineHash === lineHash
+            entry.path === change.path &&
+            entry.sourceLine === record.sourceLine &&
+            entry.emoji === match.emoji &&
+            entry.lineHash === lineHash
         );
         const used = entryIndex < 0 ? 0 : (allowedCounts.get(entryIndex) ?? 0);
         const entry = entryIndex < 0 ? null : policy.entries[entryIndex];

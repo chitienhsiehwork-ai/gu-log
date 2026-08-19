@@ -40,7 +40,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 #### Scenario: User grants a narrow exception
 
 - **WHEN** ShroomDog 明確授權某篇文章中的特定 emoji occurrence
-- **AND** repo 記錄精確綁定該 post path、emoji、內容行、授權理由與 feedback corpus 決策參照
+- **AND** repo 記錄精確綁定該 post path、原始 source line、emoji、內容行 hash、核准數量、授權理由與 feedback corpus 決策參照
 - **THEN** deterministic gate MAY 只放行該 occurrence
 - **AND** SHALL NOT 放行同檔其他 emoji、其他文章或超出核准數量的 occurrence
 - **AND** 此 `MAY` SHALL NOT 被解讀成每條 automated pipeline 都必須實作保留例外

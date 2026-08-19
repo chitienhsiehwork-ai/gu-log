@@ -51,7 +51,7 @@ Raw `style`／`script` element、inline `style`／`on*`／embedded-document attr
 
 ### 例外採 exact occurrence allowlist
 
-例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、emoji sequence、該 canonical 內容行的 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應內容行的 stale entry。
+例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、原始 source line、emoji sequence、該 canonical 內容行的 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應位置與內容行的 stale entry。
 
 這個檔案只是把 ShroomDog 已明確做出的保留決定寫成 executable record；它不是 agent 可以自行創造授權的 escape hatch。一般移除決策只留在 feedback prose 與 git history，不建立 validator 永遠不會使用的 `remove` marker。
 
@@ -71,7 +71,7 @@ GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，�
 
 - [歷史文章仍可看到 emoji] → 以 non-retroactive ratchet 上線，避免一次重寫大量 GP；後續只要碰到相關行就會被迫清理。
 - [Unicode emoji 邊界複雜] → 用 table-driven tests 鎖住心形、smiley、旗幟、keycap、ZWJ、文字符號與 kaomoji cases；偵測器只存在一份。
-- [allowlist 被濫用] → 精確綁 path、glyph、line hash 與 count，並要求指向 feedback corpus 具體決策的 `approvalRef`；沒有整篇或 glob 放行。
+- [allowlist 被濫用] → 精確綁 path、source line、glyph、line hash 與 count，並要求指向 feedback corpus 具體決策的 `approvalRef`；沒有整篇或 glob 放行。
 - [GP reviewer 把省略 emoji 視為不忠實] → translator 與 source reviewer 同步更新 contract，並用 prompt rendering tests 鎖住新邊界。
 - [diff base 不可解析時 gate 被跳過] → validator fail closed；CI 使用事件提供的 exact base SHA，pre-commit 使用 index 與 `HEAD`。
 

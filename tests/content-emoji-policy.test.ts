@@ -40,6 +40,7 @@ function approvalDecision(overrides: Record<string, unknown> = {}): Record<strin
     decision: 'approve',
     path: POST_PATH,
     emoji: '✨',
+    sourceLine: 5,
     decidedAt: '2026-08-16',
     ...overrides,
   };
@@ -55,6 +56,7 @@ function validEntry(line: string, overrides: Record<string, unknown> = {}) {
   return {
     path: POST_PATH,
     emoji: '✨',
+    sourceLine: 5,
     lineHash: sha256Line(line),
     maxOccurrences: 1,
     approvedAt: '2026-08-16',
@@ -1200,8 +1202,8 @@ Body.
       current: { [POST_PATH]: changedContent },
       changedContent,
       changedLines: [2],
-      entries: [validEntry('prefix 👩‍💻', { emoji: '👩‍💻' })],
-      approvalDecisions: [approvalDecision({ emoji: '👩‍💻' })],
+      entries: [validEntry('prefix 👩‍💻', { emoji: '👩‍💻', sourceLine: 3 })],
+      approvalDecisions: [approvalDecision({ emoji: '👩‍💻', sourceLine: 3 })],
     });
     expect(safeResult.errors).toEqual([]);
   });
@@ -1961,6 +1963,7 @@ Body.
       [5, 6],
       validEntry('核准火花 ✨'),
     ],
+    ['approved line moved', 'safe\n核准火花 ✨', [6], validEntry('核准火花 ✨')],
     ['approved line changed', '改過的核准火花 ✨', [5], validEntry('核准火花 ✨')],
     ['count exceeded', '核准火花 ✨✨', [5], validEntry('核准火花 ✨')],
     [
@@ -1995,6 +1998,8 @@ Body.
   });
 
   it.each([
+    ['missing sourceLine', { sourceLine: undefined }],
+    ['invalid sourceLine', { sourceLine: 0 }],
     ['missing approvalRef', { approvalRef: undefined }],
     ['unparseable approvalRef', { approvalRef: 'because user said so' }],
     ['missing approval heading', { approvalRef: 'docs/shroomdog-editorial-feedback.md#missing' }],
@@ -2012,6 +2017,11 @@ Body.
     ],
     ['duplicate approval marker', {}, approvalCorpus([approvalDecision(), approvalDecision()])],
     [
+      'approval marker without a source line',
+      {},
+      approvalCorpus([approvalDecision({ sourceLine: undefined })]),
+    ],
+    [
       'approval marker for another path',
       {},
       approvalCorpus([approvalDecision({ path: 'src/content/posts/gp-998-other.mdx' })]),
@@ -2021,6 +2031,11 @@ Body.
       'approval marker with another date',
       {},
       approvalCorpus([approvalDecision({ decidedAt: '2026-08-15' })]),
+    ],
+    [
+      'approval marker for another source line',
+      {},
+      approvalCorpus([approvalDecision({ sourceLine: 6 })]),
     ],
   ])(
     'rejects %s instead of treating arbitrary corpus content as approval',
