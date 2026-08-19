@@ -27,41 +27,43 @@ gu-log 的文章庫已有大量歷史 emoji，直接對全庫做絕對掃描會�
 
 共用 validator 先用新的 shared reader-surface library 取得 reader-visible line records，再讀取其 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。每筆 record 含 canonical text、surface kind 與原始 source line，讓錯誤訊息與 allowlist line hash 都能回到具體位置。新文章的所有可見內容都是 added lines；既有文章只有新寫、搬移或改過的可見行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
 
-shared library 擁有 frontmatter 解析、reader-visible key 清單與 MDX 可見行 projection。這個 surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。library 透過 MDX node positions 排除 import／export 與不會 render 的註解，保留換行以維持 source line mapping。
+reader-surface library 擁有 reader-visible key 清單與 MDX 可見行 projection。這個 surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。library 透過 MDX node positions 與 ESTree program 排除 import／export 與確定不會 render 的 comment-only expression，保留真實 source span 供 added-line 判定。
 
-`build-reader-revision-manifest.mjs` SHALL 改為匯入 shared library 的 frontmatter keys、parser 與 canonicalizer primitives，但本變更不改它既有「raw body 也參與 revision hash」的 bytes；`--check` 必須證明 manifest 無全庫 churn。Emoji validator 使用 library 新增的 line projection，不在自身另抄解析規則。未來若要讓 reader revision 也排除 import／註解，應另做有意識的 revision migration，不夾帶在本規則裡。
+小型 `reader-revision-core` 只擁有 frontmatter split、legacy frontmatter keys 與 canonicalizer；`build-reader-revision-manifest.mjs` 與 reader-surface 都匯入它。production manifest build 因此不載入 MDX policy parser，同時不改既有「raw body 也參與 revision hash」的 bytes；`--check` 必須證明 manifest 無全庫 churn。Emoji validator 使用 reader-surface 的 line projection，不在自身另抄解析規則。未來若要讓 reader revision 也排除 import／註解，應另做有意識的 revision migration，不夾帶在本規則裡。
 
 相較於保存一份數百筆 legacy emoji baseline，diff ratchet 沒有會 drift 的大型快照，也自然形成 touch-to-clean 行為。相較於只比較每個檔案的 emoji 總數，它也不允許把舊 emoji 移到新句子來規避檢查。
 
 ### Dynamic MDX expression 採靜態邊界，無法解析就 fail closed
 
-reader-surface parser 只直接取得可確定的字串：一般 MDX 文字、quoted JSX attribute、直接 string literal，以及沒有插值的 template literal。這些值不執行 JavaScript 就能還原，因此照常解碼並掃描 emoji。
+reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般 MDX 文字、quoted JSX attribute、直接 string literal、沒有插值的 template literal，以及只含 literal value 的 array／object。字串值照常解碼並掃描 emoji；number、boolean 與 null 確定不會產生 emoji，直接忽略。每筆解碼值保留實際 MDX node／attribute 的 source span，避免 escaped newline 或 character reference 把 rendered newline 誤當成另一條 source line。
 
-其他會影響讀者可見內容的 expression，包含 concatenation、identifier、function call、tagged template 與 spread attribute，不由 validator 執行或推演。parser 只保留該 expression 的 source line record；如果該行在本次 diff 被新增或修改，gate 以檔案與行號報錯，要求改成可靜態檢查的文字。這個邊界不建立通用 JavaScript evaluator，避免執行文章程式碼或實作一個會逐漸膨脹的部分 interpreter。
+其他會影響讀者可見內容的 expression，包含 concatenation、identifier、function call、interpolation、tagged template 與 spread，不由 validator 執行或推演。parser 只保留該 expression 的 source line record；如果該行在本次 diff 被新增或修改，gate 以檔案與行號報錯，要求改成可靜態檢查的 literal。這個邊界只是純 static literal walker，不建立通用 JavaScript evaluator 或會逐漸膨脹的部分 interpreter。
 
 因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。MDX import、export、註解與 parser 已確認不會 render 的 node 維持排除，不會因這條規則誤擋。
 
 ### 本機與 CI 共用同一支 validator
 
-`scripts/check-content-emoji.mjs` 擁有 Unicode 偵測、kaomoji 遮罩、allowlist schema 與 finding 格式。pre-commit 只呼叫 staged mode；CI 只提供精確 PR base。hook 與 workflow 不各自複製 regex 或例外邏輯。
+`scripts/check-content-emoji.mjs` 擁有 Unicode 偵測、kaomoji overlap、allowlist schema 與 finding 格式。pre-commit 只呼叫 staged mode；CI 只提供精確 PR base。hook 與 workflow 不各自複製 regex 或例外邏輯。
 
-偵測範圍包含具 emoji presentation 的 Unicode 序列、variation-selector emoji、旗幟、keycap、ZWJ 組合與常見心形 pictograph。validator 先用站內 canonical kaomoji detector 遮掉已辨識的 kaomoji span，再掃描剩餘文字。
+偵測範圍包含具 emoji presentation 的 Unicode 序列、variation-selector emoji、旗幟、keycap、ZWJ 組合與常見心形 pictograph。validator 照常掃描整段文字，只在 canonical kaomoji span 內窄豁免會與 emoji regex 重疊的純文字心形；rocket、smiley、ZWJ 或其他 emoji 即使塞進 kaomoji 外殼仍會失敗。
 
 ### 例外採 exact occurrence allowlist
 
 例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、emoji sequence、該 canonical 內容行的 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應內容行的 stale entry。
 
-這個檔案只是把 ShroomDog 已明確做出的決定寫成 executable record；它不是 agent 可以自行創造授權的 escape hatch。
+這個檔案只是把 ShroomDog 已明確做出的保留決定寫成 executable record；它不是 agent 可以自行創造授權的 escape hatch。一般移除決策只留在 feedback prose 與 git history，不建立 validator 永遠不會使用的 `remove` marker。
 
 ### GP 在 frozen translation 之前套用內容政策
 
-source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；若符號承載可辨識意思，改用自然文字翻出；只有已提供的明確授權才保留 glyph。source reviewer 也使用相同邊界，避免把合規省略誤報成 fidelity loss。英文 sidecar prompt 與人工翻譯指南不得從原始英文復原未授權 emoji。
+source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；若符號承載可辨識意思，改用自然文字翻出。source reviewer 也使用相同邊界，避免把合規省略誤報成 fidelity loss；英文 sidecar prompt 與人工翻譯指南同樣不直接復原任何 Unicode emoji 字形。這三個自動化角色都不接收 approval context，也不描述不可達的保留分支。
+
+若 ShroomDog 已明確核准指定 occurrence，字形只在 pipeline 完成後以窄範圍 editorial patch 加回，最後由 executable allowlist gate 驗證。這讓 automated translation 與 exact exception 各有單一、可達的責任邊界。
 
 GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，使 role-profile fingerprint 失效；舊 publish manifest 不能被新的 runtime 誤用。English sidecar 不屬於現行 GP runtime profile，因此不假稱它會改 manifest fingerprint；它的 emoji 邊界由 prompt rendering test、最終 content gate 與人工翻譯指南鎖住。GP canonical body projection 本身不做全域 emoji 正規化，因為 projection 的工作仍是證明 enrichment 沒改 frozen translation，而不是偷偷改正文。
 
 ### GP-274 只做使用者授權的最小正文修正
 
-繁中與英文版各移除結尾愛心，其他文字與 glossary links 不動。既有 Tribunal 分數不因這個單一裝飾符號重跑；reader revision manifest 依現行 hook 重新產生。這次授權記入 editorial feedback corpus 與 PR 證據。
+繁中與英文版各移除結尾愛心，其他文字與 glossary links 不動。既有 Tribunal 分數不因這個單一裝飾符號重跑；reader revision manifest 依現行 hook 重新產生。這次 feedback 與實際修法記入 editorial corpus，移除本身由 git diff 留下可稽核證據。
 
 ## Risks / Trade-offs
 
@@ -73,7 +75,7 @@ GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，�
 
 ## Migration Plan
 
-1. 先抽 shared reader-surface library，並以 manifest freshness test 證明 reader revision bytes 不變。
+1. 先抽小型 reader-revision core 與 reader-surface library，並以 manifest freshness test 證明 reader revision bytes 不變。
 2. 加入 validator、測試、空 allowlist 與本機／CI 接線，確認既有 corpus 不被 retroactive 掃描。
 3. 更新 editorial／GP contract 與 prompts，再移除 GP-274 中英文愛心。
 4. 跑 validator、Vitest、GP pipeline unit tests、post validation、format／lint 與 build。

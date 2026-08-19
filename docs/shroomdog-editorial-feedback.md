@@ -12,18 +12,15 @@
 - 這是 repo-tracked source of truth。不要把新的 gu-log 寫作回饋只記在聊天紀錄、個人 memory、未追蹤檔案或單一 agent 的私人筆記裡。
 - 寫 GP / MP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
-- Emoji occurrence 決策若要供 deterministic gate 稽核，必須在對應 feedback 下加入唯一的 `content-emoji-decision` JSON marker，明列 `id`、`decision`、`path`、`emoji`、`decidedAt`。只有 `decision: "approve"` 可被 allowlist 的 `approvalRef` 引用；移除決策使用 `decision: "remove"`，不能誤當保留授權。
+- 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
 
 ## 2026-08-16 — GP-274：讀者可見內容預設不用 emoji
 
 ### Feedback: 文章不要用未經逐次授權的表情圖示
 
-<!-- content-emoji-decision {"id":"GP-274-ZH-HEART-REMOVE-20260816","decision":"remove","path":"src/content/posts/gp-274-20260816-0xhvdes-better-decisions.mdx","emoji":"❤️","decidedAt":"2026-08-16"} -->
-<!-- content-emoji-decision {"id":"GP-274-EN-HEART-REMOVE-20260816","decision":"remove","path":"src/content/posts/en-gp-274-20260816-0xhvdes-better-decisions.mdx","emoji":"❤️","decidedAt":"2026-08-16"} -->
-
 - ShroomDog feedback：GP-274 結尾的愛心不符合 gu-log 語感；讀者可見文章內容預設不用 emoji，只有 ShroomDog 對指定 occurrence 明確授權時才能保留。
 - 情境：GP-274 的繁中與英文結尾各多了一個裝飾性 `❤️`。來源意思在句子裡已完整表達，移除字形不會損失 payload。
-- 修法：只刪除兩版結尾的愛心，不改正文、links 或 scores；新增 pre-commit／CI 共用的 added-line gate，例外精確綁 post path、emoji、line hash、count，並由 `approvalRef` 指回這類具體人類決策。
+- 修法：只刪除兩版結尾的愛心，不改正文、links 或 scores；另由 pre-commit／CI 共用的 added-line gate 防止未授權字形再次進站。
 - Reusable lesson：Unicode emoji 與 kaomoji 要分開。前者預設不進 title、summary、正文、Note、component props、圖片替代文字或 code block；後者仍是 gu-log 的文字型品牌語彙。來源 emoji 若只裝飾就省略，若承載額外意思則改用自然文字保留，不要只刪到資訊消失。
 
 ## 2026-07-16 — GP-256：比喻不是免費造型，換世界會收認知稅

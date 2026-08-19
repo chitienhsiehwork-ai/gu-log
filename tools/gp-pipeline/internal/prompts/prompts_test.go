@@ -342,7 +342,7 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 			t.Errorf("translator prompt missing %q", want)
 		}
 	}
-	for _, want := range []string{"只作裝飾", "改用自然台灣繁中", "executable 授權", "Kaomoji"} {
+	for _, want := range []string{"只作裝飾", "改用自然台灣繁中", "自動化 source translator", "pipeline 後", "final executable allowlist gate", "Kaomoji"} {
 		if !strings.Contains(translator, want) {
 			t.Errorf("translator prompt missing emoji boundary %q", want)
 		}
@@ -361,7 +361,7 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 			t.Errorf("source reviewer prompt missing %q", want)
 		}
 	}
-	for _, want := range []string{"只作裝飾", "自然文字保留", "executable 授權", "kaomoji"} {
+	for _, want := range []string{"只作裝飾", "自然文字保留", "自動化 translation", "source review 後", "final executable allowlist gate", "Kaomoji"} {
 		if !strings.Contains(reviewer, want) {
 			t.Errorf("source reviewer prompt missing emoji boundary %q", want)
 		}
@@ -373,7 +373,7 @@ func TestRender_EnglishSidecarDoesNotRestoreUnapprovedEmoji(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Do not restore Unicode emoji", "Omit decorative glyphs", "natural English", "Kaomoji"} {
+	for _, want := range []string{"Do not restore any Unicode emoji glyph", "Omit decorative glyphs", "natural English", "post-pipeline narrow editorial patch", "final executable allowlist gate", "Kaomoji"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("English sidecar prompt missing emoji boundary %q", want)
 		}

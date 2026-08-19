@@ -20,25 +20,27 @@ const EMOJI_RE = new RegExp(
   `(?:${TAG_FLAG_SEQUENCE}|\\p{Regional_Indicator}{2}|[#*0-9]\\uFE0F?\\u20E3|${EMOJI_SEQUENCE})`,
   'gu'
 );
+const KAOMOJI_TEXT_EMOJI_OVERLAP = new Set(['♥', '♡', '❤']);
 
 export function sha256Line(line) {
   return createHash('sha256').update(line).digest('hex');
 }
 
-function maskKaomoji(text) {
-  const masked = text.split('');
-  for (const span of findKaomojiSpans(text)) {
-    for (let index = span.start; index < span.end; index += 1) masked[index] = ' ';
-  }
-  return masked.join('');
+function isAllowedKaomojiTextOverlap(match, kaomojiSpans) {
+  if (!KAOMOJI_TEXT_EMOJI_OVERLAP.has(match[0])) return false;
+  const start = match.index;
+  const end = start + match[0].length;
+  return kaomojiSpans.some((span) => start >= span.start && end <= span.end);
 }
 
 export function findEmojiSequences(text) {
-  const masked = maskKaomoji(text);
-  return [...masked.matchAll(EMOJI_RE)].map((match) => ({
-    emoji: match[0],
-    index: match.index,
-  }));
+  const kaomojiSpans = findKaomojiSpans(text);
+  return [...text.matchAll(EMOJI_RE)]
+    .filter((match) => !isAllowedKaomojiTextOverlap(match, kaomojiSpans))
+    .map((match) => ({
+      emoji: match[0],
+      index: match.index,
+    }));
 }
 
 function assertPlainObject(value, label) {
@@ -77,8 +79,8 @@ function parseApprovalDecisions(corpus) {
     if (decisions.has(decision.id)) {
       throw new Error(`feedback corpus 的 emoji decision id 重複：${decision.id}`);
     }
-    if (decision.decision !== 'approve' && decision.decision !== 'remove') {
-      throw new Error(`feedback corpus:${index + 1} 的 emoji decision 必須是 approve 或 remove`);
+    if (decision.decision !== 'approve') {
+      throw new Error(`feedback corpus:${index + 1} 的 executable emoji decision 必須是 approve`);
     }
     validatePostPath(decision.path);
     if (typeof decision.emoji !== 'string' || decision.emoji === '') {
@@ -146,9 +148,6 @@ export function parseContentEmojiAllowlist(raw, approvalCorpus) {
     const approval = approvalDecisions.get(refMatch[1]);
     if (!approval) {
       throw new Error(`${label}.approvalRef 無法解析到 feedback corpus emoji decision`);
-    }
-    if (approval.decision !== 'approve') {
-      throw new Error(`${label}.approvalRef 指向的 emoji decision 並非明確保留授權`);
     }
     if (
       approval.path !== entry.path ||

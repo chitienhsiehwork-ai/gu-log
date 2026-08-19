@@ -18,12 +18,17 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 
 - **WHEN** 新增 emoji 出現在 MoguNote、ShroomDogNote、其他 reader-visible component text／props、圖片替代文字或 code block
 - **THEN** deterministic gate SHALL 將它視為 reader-visible article content
-- **AND** MDX import／export 與不會 render 的註解 SHALL 不受此規則影響
+- **AND** 純靜態陣列／物件中的字串 SHALL 被掃描，數字、布林值與 null SHALL 可正常使用
+- **AND** 無法靜態解析的新增讀者可見運算式 SHALL 遇錯即停
+- **AND** MDX import／export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響
+- **AND** 註解後仍有運算結果的混合節點 SHALL NOT 被當成純註解
 
 #### Scenario: Kaomoji remains allowed
 
 - **WHEN** 新增或修改的文章使用 canonical kaomoji detector 可辨識的文字型 kaomoji
 - **THEN** emoji policy SHALL NOT 因該 kaomoji 失敗
+- **AND** 只有 kaomoji 內與 emoji 偵測器重疊的標準文字型符號 MAY 被窄豁免
+- **AND** 塞進 kaomoji 外殼的笑臉、旗幟、按鍵或 ZWJ emoji 仍 SHALL 被阻擋
 - **AND** 既有 kaomoji 品牌規則 SHALL 維持有效
 
 #### Scenario: User grants a narrow exception

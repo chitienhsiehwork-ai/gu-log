@@ -6,10 +6,10 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
-  collectReaderSurfaceLineRecords,
   extractPostParts,
   readerRevisionCanonicalJSON,
-} from '../scripts/lib/reader-surface.mjs';
+} from '../scripts/lib/reader-revision-core.mjs';
+import { collectReaderSurfaceLineRecords } from '../scripts/lib/reader-surface.mjs';
 import {
   checkContentChanges,
   findEmojiSequences,
@@ -263,6 +263,21 @@ describe('Unicode emoji and kaomoji boundary', () => {
   it.each(['(๑•̀ㅂ•́)و✧', '(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧'])('does not flag kaomoji %s', (text) => {
     expect(findEmojiSequences(text)).toEqual([]);
   });
+
+  it.each(['(◕‿◕)♡', '(♥‿♥)', '(❤‿❤)'])(
+    'allows canonical text-heart overlap inside kaomoji %s',
+    (text) => {
+      expect(findEmojiSequences(text)).toEqual([]);
+    }
+  );
+
+  it.each([
+    ['rocket', '(◕‿◕🚀)', '🚀'],
+    ['smiley', '(◕😀◕)', '😀'],
+    ['ZWJ family', '(◕👨‍👩‍👧‍👦◕)', '👨‍👩‍👧‍👦'],
+  ])('still detects %s smuggled inside a kaomoji-shaped span', (_label, text, emoji) => {
+    expect(findEmojiSequences(text).map((match) => match.emoji)).toContain(emoji);
+  });
 });
 
 describe('added-line ratchet and exact occurrence allowlist', () => {
@@ -344,6 +359,53 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
     );
   });
 
+  it('ignores an ESTree-confirmed line-comment-only expression', () => {
+    const content = '---\ntitle: test\nlang: zh-tw\n---\n{\n// internal note only\n}\n';
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5, 6, 7],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it.each([
+    [
+      'line comment followed by an identifier',
+      '{\n// leading comment\nreaderLabel\n}',
+      '無法靜態解析',
+    ],
+    ['line comment followed by a string emoji', '{\n// leading comment\n"❤️"\n}', '未授權 emoji'],
+  ])('does not treat %s as a non-rendering comment', (_label, expression, expectedError) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5, 6, 7, 8],
+    });
+    expect(result.errors.join('\n')).toContain(expectedError);
+  });
+
+  it.each([
+    ['body string escaped newline', '{"safe\\n❤️"}'],
+    ['JSX prop string escaped newline', '<Card label={"safe\\n❤️"} />'],
+    ['body template escaped newline', '{`safe\\n❤️`}'],
+    ['MDX numeric newline reference', 'safe&#10;❤️'],
+  ])('uses the physical source span when %s decodes to multiple lines', (_label, expression) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+    const records = collectReaderSurfaceLineRecords(content);
+    const emojiRecord = records.find((record) => record.canonicalText.includes('❤️'));
+    expect(emojiRecord).toBeDefined();
+    expect([...(emojiRecord?.sourceLines ?? [])]).toContain(5);
+
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('未授權 emoji');
+  });
+
   it.each([
     ['string concatenation', '{"clean " + "text"}'],
     ['identifier', '{readerLabel}'],
@@ -359,6 +421,50 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
     expect(result.errors.join('\n')).toContain(
       `${POST_PATH}:5 無法靜態解析讀者可見 MDX expression`
     );
+  });
+
+  it('accepts the existing LevelUp static literal authoring contract', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<LevelUpProgress current={0} total={6} enabled={true} optional={null} title="OAuth" />
+
+<LevelUpQuiz
+  question="安全問題"
+  options={[
+    { label: "A", text: "第一個答案" },
+    { label: "B", text: "第二個答案" },
+  ]}
+  answer="B"
+/>
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: Array.from({ length: 11 }, (_unused, index) => index + 5),
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('recursively scans static LevelUp options for emoji', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<LevelUpQuiz
+  options={[
+    { label: "A", text: "安全答案" },
+    { label: "B", text: "偷渡 ❤️" },
+  ]}
+/>
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [8],
+    });
+    expect(result.errors.join('\n')).toContain('未授權 emoji');
   });
 
   it('grandfathers an unresolved legacy expression when only another line changes', () => {
@@ -449,7 +555,6 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
       approvalCorpus(),
     ],
     ['duplicate approval marker', {}, approvalCorpus([approvalDecision(), approvalDecision()])],
-    ['non-authorizing decision', {}, approvalCorpus([approvalDecision({ decision: 'remove' })])],
     [
       'approval marker for another path',
       {},
