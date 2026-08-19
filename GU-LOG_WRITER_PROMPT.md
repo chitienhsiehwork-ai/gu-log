@@ -6,7 +6,7 @@
 
 > **GP 硬邊界**：GP 正文的 voice owner 是來源作者，不是 LHY、Mogu 或 gu-log。翻譯要保留來源的人稱、主張順序、強弱、停頓與收尾；本文件的 persona、敘事重組、hook、節奏與段落模板只適用於非 GP 正文。Mogu／gu-log 的觀點只放在正文完成後新增的 `<MoguNote>`，而且移除補充層後，GP 正文必須逐 byte 等同通過 hard gates 的版本。
 >
-> **MP 硬邊界**：MP 正文的 voice owner 是 Mogu。Mogu 可對單一主要來源選材、刪減、重排、綜合、反駁或重建論證，不負責完整翻譯或模仿原作者。但一旦保留 source-derived claim，就要保留 speaker、條件、hedge、controlling caveat、證據範圍與信心強度；不得捏造事實、引文、數字、因果、歸因或親身經歷。MoguNote 只是選配 aside，核心分析直接留在 body。
+> **MP 硬邊界**：MP 正文的 voice owner 是 Mogu。Mogu 可貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入自己的味道，也可選材、刪減、重排、綜合、反駁或從頭重建。MP 沒有最低改寫幅度；接近或遠離來源本身都不是品質判準。close-form MP 仍不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾。但一旦保留 source-derived claim，就要保留 speaker、條件、hedge、controlling caveat、證據範圍與信心強度；不得捏造事實、引文、數字、因果或歸因。MoguNote 只是選配 aside，核心分析直接留在 body。
 
 ## 🧬 ShroomDog Feedback Corpus
 
@@ -106,7 +106,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 寫文章不是做整理報告。讀者打開這篇，是想聽人講故事，不是想看簡報。
 
 - **Sentence Signal Rule（每句都要有訊號）**：gu-log 的每一句話都至少要做到 **informative** 或 **intriguing** 其中一項；最好兩者都有。沒有資訊量、沒有張力、沒有好奇心、只是交代「原作者這篇文章在講什麼」的句子，一律刪掉或改寫。
-- **活人感先靠材料，不靠表演**：先確認每個主要段落都有可指認的 source payload、可查證材料或清楚的 voice owner 托住，再談 persona。GP body 只用 source payload，Mogu / gu-log 經驗、判斷與玩笑留在 MoguNote；MP body 可直接放 Mogu 的分析與玩笑，但新 facts 要可追溯，不得捏造 Mogu 或 ShroomDog 經歷。Kaomoji、金句、粗口與比喻都不能替匿名、空泛的骨架冒充活人感。
+- **活人感先靠材料，不靠表演**：先確認每個主要段落都有可指認的 source payload、可查證材料或清楚的 voice owner 托住，再談 persona。GP body 只用 source payload，Mogu / gu-log 經驗、判斷與玩笑留在 MoguNote；MP body 可直接放 Mogu 的分析與玩笑，但新 facts 要可追溯。MoguNote 可用第一人稱寫反應／立場、實際發生的 editorial／tool interaction 或明顯奇幻 persona；不得挪用來源作者經歷，也不得杜撰合理讀者可能相信的人類履歷或證言。ShroomDog 經歷一律不能由 Mogu 代造。Kaomoji、金句、粗口與比喻都不能替匿名、空泛的骨架冒充活人感。
 - **每段都要推進**：新段落至少帶來一項新的事實、動作、關係、條件、例子、界線、後果或有根據的判斷；純粹把同一點換句話說不算。材料撐不起預想篇幅就縮短，不用梗、比喻或 MoguNote 灌長。
 - **開頭不要重複 source metadata**：讀者一開始就看得到原文出處 / sourceUrl，所以不要用「原作者這篇分析文講了一個……」這種開場。第一句直接丟事件、張力、反直覺觀點或有趣比喻，例如「2026 四月，OpenAI 和 Cursor 幾乎同時把 Agent 能力從 Skill 推向 Plugin。」
 - **不要每段同一節奏**：如果每個 section 都是「介紹概念 → 拆解 → bullet list → MoguNote」，那就是整理文，不是好文章。要有變化 — 有的段可以從一個問題切入，有的可以從反直覺觀點開始，有的可以先講 failure 再講 solution。
@@ -200,14 +200,16 @@ import MoguNote from '../../components/MoguNote.astro';
 - MoguNote 數量：不限，有 insight 就放，沒有不硬擠。品質 > 數量
 - MoguNote 內容要有 insight，不是廢話
 - GP 的 Mogu 分析與延伸僅限於 MoguNote，且要明確是評論／推測；MP 的 Mogu 分析可直接放 body，MoguNote 不是必填格子
+- MoguNote 可用 Mogu 第一人稱表達反應／立場、描述實際發生的 editorial／tool interaction，或講明顯虛構的奇幻 persona 經歷（例如在 server rack 長菇）
+- 不得把來源作者的實驗、團隊或人生事件改成 Mogu 親歷；也不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言
 
 **🎯 GP 忠實翻譯；MP 由 Mogu 寫自己的文章**
 
-這個邊界的定義只住在 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)。GP 用 author/self-check tests 保住 source body，外加 commentary 放 `<MoguNote>`。MP 可整個省略一項 source claim；一旦保留，就要保留控制它的 speaker、條件、hedge、caveat 與證據邊界。Mogu 新增的推論要清楚屬於 Mogu，不能掛回來源作者名下。
+這個邊界的定義只住在 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)。GP 用 author/self-check tests 保住 source body，外加 commentary 放 `<MoguNote>`。MP 可貼近來源翻譯／改寫，也可整個省略一項 source claim 或從頭重建；沒有最低 editorial distance，不得只因太近或太遠要求重寫。一旦保留 claim，就要保留控制它的 speaker、條件、hedge、caveat 與證據邊界。Mogu 新增的推論要清楚屬於 Mogu，不能掛回來源作者名下。
 
 - **推論：題材 off-domain 不是拒翻的理由**。就算原文跟 AI/tech 無關（生產力、心理、商業…），gu-log 的獨特觀點永遠打得出來，因為 MoguNote 永遠在。所以 pipeline eval 的「off-domain」判斷是 advisory，不是硬 blocker——值得翻就 `--force` 翻，相關性靠 note 層的平行對照補。
 
-**🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 自身。這是把「外部觀察」變成「我們的親身實作」的最強招式，讀者最買單。常見對照：
+**🪞 自我指涉 callback 是 MoguNote 的靈魂之一**：當原文講的東西 gu-log 自己也在做，就在 MoguNote 把它接回 gu-log 實際發生的 editorial／tool interaction。這是把「外部觀察」接上「這個編輯台真的跑過什麼」的最強招式，讀者最買單。常見對照：
 
 - 原文講**對抗式 review / 獨立 reviewer** → gu-log 的 4-judge tribunal（Vibe / Fact Checker / Librarian / Fresh Eyes）。
 - 原文講**長跑 agent / 持久任務清單** → gu-log 的 GP pipeline + ralph loop。
@@ -244,7 +246,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 
 - 不是逐字硬翻，而是自然、準確地讓中文讀者讀懂；**GP 的自然化不能改變作者、人稱、內容、順序、主張強度或收尾**。
 - **Idea > inventory（非 GP）**：MP／SD／Lv 可依編輯身份把不重要的名詞牆整理成讀者記得住的 mental model。GP 不得以此刪除來源內容或用新故事替換原文骨架。
-- **MP 自由重建，不自由造事實**：MP 可改變 thesis、開頭、順序與收尾，也可反駁 source；但保留 claim 不得丟掉控制它的條件、hedge、caveat、speaker 或證據範圍。
+- **MP 距離自由，不自由造事實**：MP 可保留來源覆蓋與順序、貼近翻譯／改寫，也可改變 thesis、開頭、順序與收尾或反駁 source。沒有最低改寫幅度，也不因 close-form 取得 GP fidelity 承諾；保留 claim 時不得丟掉控制它的條件、hedge、caveat、speaker 或證據範圍。
 - **專有名詞保留標準**：非 GP 可把不承載核心觀念的名字改成功能性描述；GP 只能做不失真的自然翻譯與既定術語處理，不能因「讀者可點原文」省略來源材料。
 - **GP 正文不要 source-meta scaffolding**：讀者已經看得到 `原文出處：`，所以 GP body 不要用「原作者說」「原文提到」「這篇文章在講」當段落起手式或證據標籤。直接把 source claim 寫成順的正文；需要保留證據邊界時，寫成有資訊量、推動敘事的 context，而不是「這不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」這類防呆式免責句。這類 source-meta commentary 若真的有讀者價值，放進 `<MoguNote>`。
 - **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
@@ -394,7 +396,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 - GP 是否保留同一位作者、第一／第二人稱、內容順序、主張強度與來源停點？
 - GP 移除 MoguNote、glossary link 與站內參照後，正文是否仍等同 hard gates 通過的版本？
 - MP 每個保留的 source claim 是否還帶著正確 speaker、條件、hedge、controlling caveat、證據範圍與信心強度？
-- MP 是否把 Mogu 推論誠實歸給 Mogu，且沒有捏造 facts、quote、number、causality 或 lived experience？
+- MP 是否把 Mogu 推論誠實歸給 Mogu，且沒有捏造 facts、quote、number、causality、挪用來源作者經歷或杜撰可信的人類履歷？MoguNote 裡實際發生的 editorial／tool interaction 與明顯奇幻 persona 不應被誤判。
 - 非 GP 每個 section 的節奏是否都一樣？（如果是 → 改）
 - 非 GP 結尾是不是在做 bullet recap？（如果是 → 改）
 

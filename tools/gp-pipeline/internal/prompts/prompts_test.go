@@ -157,7 +157,7 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 	}
 }
 
-func TestRender_MPWriteContractAllowsSelectionButRequiresClaimClosure(t *testing.T) {
+func TestRender_MPWriteContractAllowsCloseOrFarFormAndRequiresGrounding(t *testing.T) {
 	out, err := Render("write", WriteData{
 		Prefix:         "MP",
 		TicketID:       "MP-PENDING",
@@ -173,25 +173,35 @@ func TestRender_MPWriteContractAllowsSelectionButRequiresClaimClosure(t *testing
 	}
 	for _, want := range []string{
 		"Mogu owns the body voice",
-		"MAY omit whole claims",
+		"minimum editorial distance",
+		"MAY preserve most source coverage and order",
+		"MAY also omit whole claims",
+		"does not inherit GP's promise",
 		"complete claim closure",
 		"correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
 		"must not attribute those additions to the source author",
-		"Do not fabricate facts, quotes, numbers, causality, citations, or lived experience",
+		"Do not transfer the source author's experiments, teams, or life events to Mogu",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences are valid",
+		"Do not fabricate plausible human work, travel, relationship, purchase",
 		"A complete MP needs no MoguNote",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("MP write prompt missing %q", want)
 		}
 	}
-	for _, forbidden := range []string{"Cover ALL of it", "Cover ALL tweets"} {
+	for _, forbidden := range []string{
+		"Cover ALL of it",
+		"Cover ALL tweets",
+		"Do not fabricate facts, quotes, numbers, causality, citations, or lived experience",
+	} {
 		if strings.Contains(out, forbidden) {
 			t.Errorf("MP write prompt still requires translation completeness via %q", forbidden)
 		}
 	}
 }
 
-func TestRender_MPReviewAndRefineDoNotRequireMoguNoteOrTranslationCompleteness(t *testing.T) {
+func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.T) {
 	review, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
 	if err != nil {
 		t.Fatalf("Render review: %v", err)
@@ -201,9 +211,15 @@ func TestRender_MPReviewAndRefineDoNotRequireMoguNoteOrTranslationCompleteness(t
 		t.Fatalf("Render refine: %v", err)
 	}
 	for _, want := range []string{
-		"may omit whole source claims",
-		"Do not score translation completeness",
+		"may preserve most source coverage/order in a close translation/rewrite",
+		"There is no minimum editorial distance",
+		"do not score closeness or distance itself",
+		"does not inherit GP fidelity promises",
 		"Mogu may synthesize, disagree, extend, or infer in the body",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
 		"do not require, add, or reward one by count",
 	} {
 		if !strings.Contains(review, want) {
@@ -211,8 +227,13 @@ func TestRender_MPReviewAndRefineDoNotRequireMoguNoteOrTranslationCompleteness(t
 		}
 	}
 	for _, want := range []string{
-		"do not restore omitted source sections",
+		"a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid",
+		"rewrite solely because the draft is too close to or too far from the source",
 		"speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
 		"Do not add one merely because the article has none",
 	} {
 		if !strings.Contains(refine, want) {

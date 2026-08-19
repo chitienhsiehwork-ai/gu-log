@@ -280,6 +280,8 @@ import MoguNote from '../../components/MoguNote.astro';
 
 GP 的 MoguNote 是來源作者正文與 Mogu commentary 的 provenance boundary。MP 正文本來就由 Mogu 擁有聲音；核心分析可直接放在 body，MoguNote 只是選配 aside。first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是 style guidance。
 
+MoguNote 可以用 Mogu 第一人稱表達反應與立場、描述實際發生的 editorial／tool interaction，或講一眼就能辨識為虛構的奇幻 persona 經歷。任何 reader-visible prose 都不得把來源作者的實驗、團隊或人生事件移植成 Mogu 親歷，也不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言。這條限制的是可信假履歷，不是禁止 Mogu 有自己的聲音。
+
 **風格指南** (from GU-LOG_WRITER_PROMPT.md):
 - 避免「維基百科式」的冷靜解釋
 - 優先用吐槽、類比、或誇張手法讓資訊變有趣
@@ -377,7 +379,7 @@ bash scripts/tribunal-batch-runner.sh
 
 ### Fact Checker（來源與事實驗證）
 
-GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker。GP 檢查 translation fidelity、完整 caveat 與 commentary separation；MP 不檢查全文翻譯完整度，而是檢查每個被保留 claim 的 speaker、條件、hedge、controlling caveat、證據範圍與歸因，以及是否捏造事實或經歷。GP 的 source reviewer 與 natural-zh vibe scorer 是發布前 non-compensating hard gates；通用 Fact Checker／Tribunal 分數不會取代 hard gate，也不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
+GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker。GP 檢查 translation fidelity、完整 caveat 與 commentary separation；MP 不檢查全文翻譯完整度，也不把貼近或遠離來源當成分數，而是檢查每個被保留 claim 的 speaker、條件、hedge、controlling caveat、證據範圍與歸因，以及是否捏造事實、挪用來源作者經歷、冒充 ShroomDog 或杜撰可信的人類假履歷。MoguNote 裡的第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona 不應被誤判。GP 的 source reviewer 與 natural-zh vibe scorer 是發布前 non-compensating hard gates；通用 Fact Checker／Tribunal 分數不會取代 hard gate，也不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
 
 ## BDD Testing
 
@@ -442,12 +444,13 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 ### 新增 Mogu 來源文章（MP）
 
 1. 抓完整原文並完成 overlap evaluation
-2. 先定 Mogu 自己的 thesis，再選材、刪減、重排、綜合、反駁或重建論證；不要把 MP 寫成完整翻譯或摘要
+2. 先定 Mogu 自己的 thesis，再選擇最適合文章的距離：可以貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可以選材、刪減、重排、綜合、反駁或從頭重建。MP 沒有最低改寫幅度；不得只為證明「不像 GP」硬改好用的來源骨架
 3. 寫 **zh-tw 版** `mp-pending-YYYYMMDD-<slug>.mdx`；每個保留的 source claim 都要保留 speaker、條件、hedge、controlling caveat 與證據範圍，Mogu 新增分析要歸給 Mogu
-4. 不得捏造 facts、quote、number、causality 或 Mogu／ShroomDog 親身經歷；可查證的新 premise 要有 inline citation。MoguNote 選配，沒有就不補
-5. `node scripts/validate-posts.mjs` 確認 frontmatter 合格，再丟 **vibe-opus-scorer** 與 Fact Checker 評分；沒過可依 MP 編輯身份改寫，最多 3 輪
-6. 過分數之後才翻 **en 版**
-7. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
+4. close-form MP 仍由 Mogu 擁有正文聲音，不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾；close-form 與自由重建共用同一個 MP contract，不新增子模式、schema 或 pipeline
+5. 不得捏造 facts、quote、number、causality，亦不得挪用來源作者經歷或杜撰看似真實的人類履歷。MoguNote 可寫第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona；可查證的新 premise 要有 inline citation。MoguNote 選配，沒有就不補
+6. `node scripts/validate-posts.mjs` 確認 frontmatter 合格，再丟 **vibe-opus-scorer** 與 Fact Checker 評分；不得只因文章貼近或遠離來源而扣分，真正的品質、claim closure、歸因與可查證性照常嚴格評審。沒過可依 MP 編輯身份改寫，最多 3 輪
+7. 過分數之後才翻 **en 版**
+8. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
 
 ### 新增原創文章 (SD)
 

@@ -6,7 +6,7 @@
 
 ## 2. 生成與編輯審查 contract
 
-- [x] 2.1 讓 MP 的 `write`、`review`、`refine` prompt 能辨識系列；允許選材與重建結構，同時禁止遺失 controlling caveat、錯誤歸因、捏造事實或親身經歷。
+- [x] 2.1 讓 MP 的 `write`、`review`、`refine` prompt 能辨識系列；允許選材與重建結構，同時禁止遺失 controlling caveat、錯誤歸因、挪用來源經歷或杜撰可信的人類假履歷。
 - [x] 2.2 更新 prompt data 與 call sites，讓 review／refine template 收到 series prefix，且不改變 GP、SD 或 Lv routing。
 - [x] 2.3 將 Fact Checker 與 Librarian 判準拆成 GP translation fidelity 和 MP grounding／attribution，並同步 Claude、Codex agent 定義。
 - [x] 2.4 更新 Tribunal Writer 與 Vibe scoring 指引，允許 MP 把 Mogu 分析留在 body，且不因省略或重排來源而扣分。
@@ -26,3 +26,11 @@
 - [x] 4.4 新增雙語 UI tests，證明 MP 不再顯示翻譯標示，且 GP 標示不變。
 - [x] 4.5 執行 strict OpenSpec validation、focused tests、相關 full repository checks 與 deterministic MP prompt／routing fixtures；由 correctness reviewer 對無法做 deterministic semantic verdict 的 scenarios 做 Tier-2 binary 對帳。所有 change-specific checks 通過；`pnpm spec:ownership` 仍只回報 base branch 既有的 `tests/theme-toggle.spec.ts` quarantine 於 2026-08-15 到期，與本 change 新增且已登記為 blocking 的 MP spec 無關。
 - [x] 4.6 完成兩種 theme 的 reader-visible UI QA，並記錄適用證據。
+
+## 5. Debrief 拍板後的 contract 收斂
+
+- [x] 5.1 更新 MP contract：允許貼近來源翻譯／改寫或自由重建，不設最低改寫幅度，也不新增子模式或 GP fidelity 承諾。
+- [x] 5.2 更新 writer／reviewer／judge：不得只因 MP 太接近或太遠離來源而扣分，仍須檢查 claim closure、歸因與可查證性。
+- [x] 5.3 收窄 MoguNote 第一人稱經驗邊界：允許實際發生的 editorial／tool interaction 與明顯奇幻 persona；阻止挪用來源作者經歷及看似真實的人類假履歷。
+- [x] 5.4 新增 deterministic contract／semantic fixtures，並完成 scenario-to-tier 對帳。
+- [x] 5.5 執行 strict OpenSpec validation、focused／full checks、correctness review 與 simplify review，確認 change 已可 archive。

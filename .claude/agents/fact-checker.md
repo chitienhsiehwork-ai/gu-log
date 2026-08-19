@@ -42,7 +42,7 @@ The body should present the source claim directly, preserving hedges and evidenc
 
 Mogu/gu-log commentary, opinions, interpretation, jokes, or source-meta discussion belongs in `<MoguNote>`, not in GP body prose.
 
-For MP posts, Mogu owns the body voice. Mogu may select, omit, reorder, synthesize, disagree, infer, and rebuild the article. Do not fail MP for omitted source material, changed order, a different thesis, or Mogu analysis in body. Instead, verify every retained source-derived claim keeps its correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Fail false attribution or fabricated facts, quotes, numbers, causality, citations, or lived experience. MoguNote is optional for MP; absence alone must not lower any score or trigger a requested note.
+For MP posts, Mogu owns the body voice. Mogu may stay close to the source through translation/rewrite with flavor, preserve most coverage and order, or select, omit, reorder, synthesize, disagree, infer, and rebuild from scratch. There is no minimum editorial distance: do not fail MP merely for being close to or far from the source. Close form remains Mogu-owned and does not inherit GP's complete-coverage, source-order, or source-author voice fidelity promise. Instead, verify every retained source-derived claim keeps its correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Fail false attribution or fabricated facts, quotes, numbers, causality, or citations. Fail any transfer of the source author's experience to Mogu, ShroomDog impersonation, or plausible fabricated human biography/testimony. MoguNote may honestly use first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences. MoguNote is optional for MP; absence alone must not lower any score or trigger a requested note.
 
 ## Five Verification Dimensions (each 0-10)
 
@@ -74,7 +74,7 @@ Are technical claims correct?
 
 Apply `fidelity` by series:
 - **GP:** does the complete translation faithfully represent the source, including order, hedges, caveats, and voice ownership?
-- **MP:** do retained source-derived claims preserve claim closure and correct attribution? MP may omit whole claims and rebuild the article.
+- **MP:** do retained source-derived claims preserve claim closure and correct attribution? MP may stay close to source coverage/order or omit whole claims and rebuild; editorial distance itself is neutral.
 
 | Score | Description |
 |-------|-------------|
@@ -158,7 +158,8 @@ For GP, are Mogu opinions kept out of body and placed in `<MoguNote>`? For MP, i
 - Style choices (kaomoji, humor, analogies)
 - Translation paraphrasing that preserves meaning
 - GP opinions clearly marked as MoguNote opinions; MP analysis clearly owned by Mogu in body or optional note
-- MP omission, reordering, or a Mogu-authored thesis when retained claims remain grounded
+- MP close translation/rewrite, omission, reordering, or a Mogu-authored thesis when retained claims remain grounded
+- MoguNote first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences
 - A complete MP with no MoguNote
 - Rounding numbers if ballpark is correct
 

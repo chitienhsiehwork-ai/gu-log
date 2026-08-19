@@ -5,11 +5,11 @@ gu-log 現行規格把 GP 與 MP 都定義成忠實翻譯，但實際 MP pipelin
 ## What Changes
 
 - 將 GP 定義為「來源作者擁有正文聲音」的忠實翻譯：保留完整 source spine、論點強弱、caveat、敘事人稱與自然結尾；Mogu 的額外評論留在可辨識的 MoguNote。
-- 將 MP 定義為「Mogu 擁有正文聲音」的 source-grounded article：Mogu 消化單一主要來源後，可選材、刪減、重排、綜合、反駁或重建論證，不負有完整覆蓋來源或模仿原作者文筆的義務。
-- 為 MP 建立 claim-level grounding 邊界：只要正文保留某個來源主張，就必須保留會控制該主張的 speaker、條件、hedge、caveat、證據範圍與信心水準；Mogu 新增的分析不得被錯誤歸因給來源作者，也不得捏造事實、引文、數字、因果或親身經驗。
+- 將 MP 定義為「Mogu 擁有正文聲音」的 source-grounded article：Mogu 消化單一主要來源後，可貼近來源翻譯／改寫並加入自己的味道，也可選材、刪減、重排、綜合、反駁或從頭重建；MP 沒有最低改寫幅度，也不因此承諾 GP 的完整翻譯 fidelity。
+- 為 MP 建立 claim-level grounding 邊界：只要正文保留某個來源主張，就必須保留會控制該主張的 speaker、條件、hedge、caveat、證據範圍與信心水準；Mogu 新增的分析不得被錯誤歸因給來源作者。MoguNote 可用第一人稱描述實際發生的 editorial／tool interaction，或一眼可辨識的奇幻 persona 經歷，但不得挪用來源作者的經歷，也不得杜撰看似真實的人類履歷或證言。
 - 依 reader job 區分 MP 與 Lv：主要承諾是提出 Mogu 自己的文章主張時使用 MP；主要承諾是分步教會讀者理解概念或來源時使用 Lv。SD 仍由 ShroomDog 擁有正文聲音。
 - 同步 writer／review／refine prompt、Fact Checker、Librarian、Tribunal Writer、公開系列說明、來源標示與 technical details，讓生成、評審和讀者看到相同定義。
-- 沿用現有 MP 的 `write → review → refine → Tribunal rewrite` 路徑與單一 `sourceUrl`；不新增另一套 pipeline、editorial mode、frontmatter schema 或多主要來源機制。
+- 沿用現有 MP 的 `write → review → refine → Tribunal rewrite` 路徑與單一 `sourceUrl`；不把貼近來源與自由重建拆成子模式，也不新增另一套 pipeline、editorial mode、frontmatter schema 或多主要來源機制。
 - 既有 MP 文章不做 mass rewrite，也不宣稱曾通過本 change 之後才建立的檢查。新的 MP 與日後有實質正文修改的 MP 必須遵守新 contract。
 - 本 change 取代 `add-editorial-spine-rebuild` 中為這個問題提出的通用三模式、固定刪減比例與 judge schema 擴張；保留「可重建死骨架」的編輯自由，但不建立新的 editorial-mode framework。
 

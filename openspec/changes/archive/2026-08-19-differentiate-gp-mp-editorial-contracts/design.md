@@ -11,18 +11,20 @@
 **Goals:**
 
 - 讓規格、writer、reviewer、judge、UI 與測試共享同一個 GP／MP contract。
-- GP 保留完整 translation fidelity；MP 取得選材與重建文章的自由。
+- GP 保留完整 translation fidelity；MP 可依文章需要貼近來源或自由重建，沒有最低改寫幅度。
 - 讓 MP 的自由以 claim closure、正確歸因與可查證性為硬邊界。
+- 讓 MoguNote 能以 Mogu 第一人稱描述實際發生的 editorial／tool interaction 或明顯奇幻的 persona 經歷，同時阻止挪用來源作者經歷與看似真實的人類假履歷。
 - 以一篇「觀點好但原文文筆不理想」的單一來源文章作為 MP acceptance case。
 - 保持現有 ticket、route、counter、`sourceUrl` 與 pipeline routing。
 
 **Non-Goals:**
 
 - 不新增 `mp-pipeline`、第五個系列、editorial mode 或 per-article mode frontmatter。
+- 不把貼近來源的 MP 與自由重建的 MP 拆成子模式，也不規定最低改寫比例。
 - 不在第一版開放多個同權重主要來源；額外查證資料仍以 inline citation 表達。
 - 不 mass rewrite 既有 MP，也不倒填新的驗證狀態。
 - 不修改現行 Tribunal best-effort publish policy，亦不新增 manifest／hash lifecycle。
-- 不要求 MP 使用第一人稱親身經驗；Mogu voice ownership 不構成捏造經歷的許可。
+- 不要求 MP body 使用第一人稱，也不把 MoguNote 的 persona 許可擴張成杜撰看似真實的人類生平或證言。
 
 ## Decisions
 
@@ -32,9 +34,9 @@
 
 替代方案是只按來源長短分流。這會讓同一個主張因來源媒介不同而換系列，也無法說明 MP 與 Lv 對讀者的承諾，因此不採用。
 
-### 2. MP 的編輯自由以 claim closure 為單位
+### 2. MP 沒有最低改寫幅度，事實邊界以 claim closure 為單位
 
-MP 可以完全省略一個來源主張；一旦保留，就必須保留會控制它的 speaker、條件、hedge、caveat、證據範圍與信心水準。Mogu 可提出自己的推論或反對意見，但不得把它掛回來源作者名下。
+MP 可保留來源覆蓋與順序、貼近翻譯／改寫，也可完全省略一個來源主張或從頭重建文章；接近或遠離來源本身都不是品質判準。貼近來源的 MP 仍由 Mogu 擁有正文聲音，不自動取得 GP 的完整翻譯 fidelity 承諾。一旦保留來源主張，就必須保留會控制它的 speaker、條件、hedge、caveat、證據範圍與信心水準。Mogu 可提出自己的推論或反對意見，但不得把它掛回來源作者名下。
 
 這比「完整覆蓋來源」更符合 Mogu 寫自己文章的目的，也比只寫「不得捏造」更能防止 cherry-pick、觀察變因果、benchmark 變 production 等常見失真。
 
@@ -52,9 +54,9 @@ MP 不標示為「翻譯自」或「原文出處」，也不假裝成無來源�
 
 既有 MP 也使用中性來源標示，因為它不宣稱每篇都採自由重建，更不宣稱通過新 gate；只修正錯誤的 translation identity。
 
-### 5. MoguNote 在 GP 是 provenance boundary，在 MP 是選配 aside
+### 5. MoguNote 在 GP 是 provenance boundary，在 MP 是選配的第一人稱 persona surface
 
-GP 的 Mogu commentary 必須與來源作者正文隔離。MP 正文本來就是 Mogu voice，核心分析可直接寫在 body；MoguNote 只能作為選配的側註，不得為了形式或 scoring 強迫文章出現「Mogu 裡面的 Mogu」。不論位置，reader-visible prose 都不得捏造事實或經驗。
+GP 的 Mogu commentary 必須與來源作者正文隔離。MP 正文本來就是 Mogu voice，核心分析可直接寫在 body；MoguNote 只能作為選配的側註，不得為了形式或 scoring 強迫文章出現「Mogu 裡面的 Mogu」。MoguNote 可用第一人稱表達反應與立場、描述實際發生的 editorial／tool interaction，或講一眼可辨識的奇幻 persona 經歷；它不得把來源作者的實驗、團隊或人生事件改成 Mogu 親歷，也不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言。
 
 ### 6. 收掉重複的通用 editorial-mode 提案
 
@@ -63,7 +65,7 @@ GP 的 Mogu commentary 必須與來源作者正文隔離。MP 正文本來就是
 ## Risks / Trade-offs
 
 - **[MP 自由選材被濫用成 cherry-pick]** → prompt、judge 與 fixtures 明訂 claim closure；省略整個 claim 可以，保留 claim 卻刪 controlling caveat 必須 fail。
-- **[Mogu voice 被誤解為可捏造第一人稱經歷]** → writer／reviewer／Fact Checker 明訂不得捏造 lived experience，並保留既有 pronoun lint。
+- **[Mogu persona 被誤解為可杜撰可信的人類生平]** → writer／reviewer／Fact Checker 明分三層：實際發生的 editorial／tool interaction 可寫，明顯奇幻 persona 可寫，挪用來源作者經歷或看似真實的人類假履歷必須 fail；既有 pronoun lint 繼續阻止 MP body 冒充 ShroomDog。
 - **[現有 Tribunal FAIL 仍可能 best-effort publish]** → 本 change 不宣稱提供新的發布安全保證；若要不可補償的 grounding gate，另開 change 設計 artifact lifecycle 與 deploy ordering。
 - **[舊 MP 品質不一，統一新 label 可能過度宣稱]** → UI 使用中性「來源材料／依來源撰寫」，不顯示新規則已驗證；不回溯改文。
 - **[MP 與 Lv／SD 邊界變模糊]** → 先用 reader job 分 Lv，再用 voice owner 分 MP／SD；source 是否存在或長短不是唯一分類條件。
@@ -73,7 +75,7 @@ GP 的 Mogu commentary 必須與來源作者正文隔離。MP 正文本來就是
 
 1. 先更新 stable contract 的 delta spec、writer／judge 派生文件與 semantic tests。
 2. 同步 zh-TW／English reader labels，不改既有 URL、frontmatter 或 counter。
-3. 以 deterministic prompt／routing fixtures 驗證 MP 能只保留一個完整論點並重建文章；錯誤 speaker、遺失 controlling caveat、假經驗與新造因果則由 correctness reviewer 逐 scenario 做 binary Tier-2 對帳。本 change 不以 nondeterministic LLM run 冒充新的 publish gate。
+3. 以 deterministic prompt／routing fixtures 驗證 MP 可貼近來源或只保留一個完整論點並重建文章；錯誤 speaker、遺失 controlling caveat、挪用來源經歷、可信的人類假履歷與新造因果則由 correctness reviewer 逐 scenario 做 binary Tier-2 對帳。本 change 不以 nondeterministic LLM run 冒充新的 publish gate。
 4. 對 reader-visible copy 做雙語與雙 theme UI QA。
 5. 不 mass rewrite 既有 MP；新文與日後實質修改的 MP 採新 contract。
 

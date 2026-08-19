@@ -58,7 +58,7 @@ tools/gp-pipeline/gp-pipeline doctor
 tools/gp-pipeline/gp-pipeline counter next --prefix GP
 ```
 
-MP 沿用現有非 GP 的 `write → review → refine → Tribunal rewrite` 路徑。Mogu 可重建文章，不需完整覆蓋或模仿來源；但每個保留的 source claim 都必須保留 controlling caveat 與正確歸因，且不得捏造事實或經歷。
+MP 沿用現有非 GP 的 `write → review → refine → Tribunal rewrite` 路徑。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 不取得 GP fidelity 承諾；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 
