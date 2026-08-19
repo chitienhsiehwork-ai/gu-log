@@ -20,4 +20,4 @@
 ## 4. 驗證
 
 - [x] 4.1 跑 emoji 規則測試、完整 Vitest、GP pipeline Go tests、文章驗證、lint、format check 與 production build。
-- [ ] 4.2 逐條對帳 OpenSpec scenarios，完成正確性審查與 Keep／Simplify／Drop 簡化審查，修正所有 blocking findings。
+- [x] 4.2 逐條對帳 OpenSpec scenarios，完成正確性審查與 Keep／Simplify／Drop 簡化審查，修正所有 blocking findings。
