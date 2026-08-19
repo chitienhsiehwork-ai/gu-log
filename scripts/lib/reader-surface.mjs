@@ -1,5 +1,6 @@
 import { createProcessor } from '@mdx-js/mdx';
 import { decodeHTML } from 'entities';
+import { DecodingMode, EntityDecoder, htmlDecodeTree } from 'entities/decode';
 import { fromHtml } from 'hast-util-from-html';
 import { LineCounter, isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 
@@ -680,8 +681,45 @@ const EXECUTABLE_URL_ATTRIBUTE_NAMES = new Set([
   'xlinkhref',
 ]);
 
+function decodeHtmlWithRawOffsets(value) {
+  const raw = String(value);
+  let decoded = '';
+  const rawStarts = [];
+  const rawEnds = [];
+  let entityStart = 0;
+
+  function append(fragment, rawStart, rawEnd, oneToOne = false) {
+    decoded += fragment;
+    for (let index = 0; index < fragment.length; index += 1) {
+      rawStarts.push(oneToOne ? rawStart + index : rawStart);
+      rawEnds.push(oneToOne ? rawStart + index + 1 : rawEnd);
+    }
+  }
+
+  const decoder = new EntityDecoder(htmlDecodeTree, (codePoint, consumed) => {
+    append(String.fromCodePoint(codePoint), entityStart, entityStart + consumed);
+  });
+  let lastIndex = 0;
+  let offset = 0;
+  while ((offset = raw.indexOf('&', offset)) >= 0) {
+    append(raw.slice(lastIndex, offset), lastIndex, offset, true);
+    entityStart = offset;
+    decoder.startEntity(DecodingMode.Legacy);
+    let consumed = decoder.write(raw, offset + 1);
+    if (consumed < 0) {
+      consumed = decoder.end();
+      lastIndex = offset + consumed;
+      break;
+    }
+    lastIndex = offset + consumed;
+    offset = consumed === 0 ? lastIndex + 1 : lastIndex;
+  }
+  append(raw.slice(lastIndex), lastIndex, raw.length, true);
+  return { decoded, rawStarts, rawEnds };
+}
+
 function srcsetCandidateUrls(value) {
-  const source = String(decodeHTML(String(value)));
+  const { decoded: source, rawStarts, rawEnds } = decodeHtmlWithRawOffsets(value);
   const urls = [];
   let index = 0;
   while (index < source.length) {
@@ -691,7 +729,14 @@ function srcsetCandidateUrls(value) {
     let url = source.slice(start, index);
     const endedWithComma = url.endsWith(',');
     url = url.replace(/,+$/u, '');
-    if (url) urls.push({ url, start, end: start + url.length });
+    if (url) {
+      const decodedEnd = start + url.length;
+      urls.push({
+        url,
+        start: rawStarts[start],
+        end: rawEnds[decodedEnd - 1],
+      });
+    }
     if (endedWithComma) continue;
 
     let parentheses = 0;

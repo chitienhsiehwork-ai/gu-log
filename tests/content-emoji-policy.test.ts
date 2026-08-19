@@ -478,7 +478,7 @@ title: test
 lang: zh-tw
 ---
 <img srcset="
-  /safe.png 1x,
+  /safe.png 1x&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;&Tab;,
   data:image/svg+xml,%3Csvg%3E%3Ctext%3E%26%23128512%3B%3C/text%3E%3C/svg%3E 2x
 " alt="safe" />
 `;
