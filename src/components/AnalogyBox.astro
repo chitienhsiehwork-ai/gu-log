@@ -3,7 +3,7 @@
  * AnalogyBox - Visual callout for analogies / metaphors
  *
  * Usage in .mdx:
- *   <AnalogyBox title="🏢 辦公室大樓的比喻">
+ *   <AnalogyBox title="辦公室大樓的比喻">
  *     DNS 就像大樓的總機小姐…
  *   </AnalogyBox>
  */
@@ -13,7 +13,7 @@ interface Props {
 }
 
 const isEnglish = Astro.url.pathname.startsWith('/en/');
-const { title = isEnglish ? '💡 Analogy time' : '💡 類比時間' } = Astro.props;
+const { title = isEnglish ? 'Analogy time' : '類比時間' } = Astro.props;
 const badgeLabel = isEnglish ? 'Analogy' : '類比';
 ---
 
