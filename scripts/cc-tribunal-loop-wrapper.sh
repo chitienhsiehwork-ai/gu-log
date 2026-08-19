@@ -6,11 +6,23 @@
 set -euo pipefail
 export TZ=Asia/Taipei
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
-export GP_WRITER_MODE=codex
+export TRIBUNAL_RUNTIME_PROFILE="${TRIBUNAL_RUNTIME_PROFILE:-legacy}"
+export GP_WRITER_MODE="${GP_WRITER_MODE:-codex}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 cd "$GU_LOG_DIR"
+
+if [ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" ]; then
+  detected_identity="$(
+    bash "$SCRIPT_DIR/detect-env.sh" --runtime codex --identity 2>/dev/null || true
+  )"
+  if [ "$detected_identity" != "vm-codex" ]; then
+    printf 'vm-codex profile rejected on detected identity: %s\n' \
+      "${detected_identity:-unknown}" >&2
+    exit 78
+  fi
+fi
 
 if [ "${1:-}" = "--doctor" ]; then
   if [ "$#" -gt 2 ]; then

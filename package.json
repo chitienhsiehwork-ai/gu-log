@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22 <23"
+    "node": ">=22.13.0 <23"
   },
   "scripts": {
     "dev": "astro dev",
@@ -21,7 +21,7 @@
     "test:toc": "pnpm exec playwright test tests/toc.spec.ts",
     "test:visual": "node scripts/visual-test.mjs",
     "test:search": "node scripts/search-test.mjs",
-    "test:search-relevance": "pnpm exec vitest run tests/search-relevance.test.ts",
+    "test:search-relevance": "pnpm exec vitest run tests/search-relevance.test.ts tests/search-ranking.test.ts",
     "test:tribunal-v2": "pnpm exec vitest run tests/tribunal-v2",
     "tribunal:run": "tsx scripts/tribunal-v2-run.ts",
     "tribunal:list": "tsx scripts/tribunal-v2-run.ts --list-in-progress",
@@ -60,7 +60,7 @@
     "redirects:verify": "node scripts/verify-brand-redirects.mjs"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.9",
+    "@astrojs/check": "^0.9.10",
     "@astrojs/mdx": "^6.0.3",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.3",
@@ -68,6 +68,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "3.7.6",
     "astro": "^6.4.8",
+    "entities": "6.0.1",
     "fuse.js": "^7.5.0",
     "hast-util-from-html": "^2.0.3",
     "sharp": "^0.35.3",
@@ -99,7 +100,7 @@
     "serialize-javascript": "^7.0.3",
     "tmp": "^0.2.4",
     "fast-xml-builder": "^1.1.7",
-    "fast-uri": "^3.1.4"
+    "fast-uri": "^3.1.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -113,12 +114,15 @@
       "flatted": ">=3.4.2",
       "fast-xml-parser": ">=5.5.6",
       "fast-xml-builder": ">=1.1.7",
-      "fast-uri": ">=3.1.4 <4",
+      "fast-uri": ">=3.1.5 <4",
       "h3": ">=1.15.6",
       "defu": ">=6.1.5",
       "devalue": ">=5.6.4",
-      "brace-expansion@>=5.0.0 <=5.0.7": ">=5.0.8",
-      "js-yaml@>=4.0.0 <4.3.0": "4.3.0"
+      "brace-expansion@>=1.0.0 <2.0.0": "1.1.18",
+      "brace-expansion@>=5.0.0 <=5.0.8": ">=5.0.9",
+      "js-yaml@>=3.0.0 <3.15.1": "3.15.1",
+      "js-yaml@>=4.0.0 <4.3.1": "4.3.1",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18"
     }
   }
 }

@@ -32,6 +32,8 @@ type Config struct {
 	FetchArticle string
 	// ValidatePosts is $RepoRoot/scripts/validate-posts.mjs.
 	ValidatePosts string
+	// ModelRouting is the VM-only LLM routing SSOT.
+	ModelRouting string
 }
 
 // Resolve walks up from startDir (or the current working directory when
@@ -73,6 +75,7 @@ func fromRoot(root string) (*Config, error) {
 		FetchXArticle: filepath.Join(abs, "scripts", "fetch-x-article.sh"),
 		FetchArticle:  filepath.Join(abs, "scripts", "fetch-article.py"),
 		ValidatePosts: filepath.Join(abs, "scripts", "validate-posts.mjs"),
+		ModelRouting:  filepath.Join(abs, "config", "llm-pipeline.json"),
 	}
 	return cfg, nil
 }

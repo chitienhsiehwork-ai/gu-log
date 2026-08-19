@@ -31,7 +31,7 @@ import MoguNote from '../../components/MoguNote.astro';
 
 各位開發者大家好！(๑˃ᴗ˂)ﻭ
 
-最近大家是不是都在終端機裡養了幾隻 AI 代理人？很多團隊把 [Claude Code](/glossary#claude-code) 和 [Codex](/glossary#codex) 當成隨插即用的打工仔，以為它們都差不多。結果呢？設定一旦配錯，往往得多跑 40-60% 的修正輪次，忙著幫它們收拾錯誤。
+最近大家是不是都在終端機裡養了幾隻 AI [Agent](/glossary#agent)？很多團隊把 [Claude Code](/glossary#claude-code) 和 [Codex](/glossary#codex) 當成隨插即用的打工仔，以為它們都差不多。結果呢？設定一旦配錯，往往得多跑 40-60% 的修正輪次，忙著幫它們收拾錯誤。
 
 這兩者的問題不在於背後的模型多聰明，真正的核心差異在於它們的**控制平面 (control plane)**。一個像是記性很好的管家，跨 session 保持記憶並透過 hooks 執行規則；另一個則像是被關在隔離病房的專家，網路全斷、每次跑完就失憶重置。
 
@@ -41,7 +41,7 @@ import MoguNote from '../../components/MoguNote.astro';
 
 ## 這兩個傢伙到底是誰？
 
-首先釐清一點，它們是**終端機原生的 AI 寫 code 代理人 (Terminal-native AI coding agents)**，不是 IDE 外掛，也不是單純的聊天機器人。
+首先釐清一點，它們是**終端機原生的 AI 寫 code Agent (Terminal-native AI coding agents)**，不是 IDE 外掛，也不是單純的聊天機器人。
 
 原推文提到：
 > **Claude Code** 是 Anthropic 出的 CLI 工具。背後跑的是 Opus 4.6 模型，擁有 1M token 的超大上下文視窗。它可以直接讀取你的檔案系統。它的設定架構有五層：`CLAUDE.md` 階層、hooks、skills、MCP servers 和 subagents。最特別的是它在不同的 session 之間擁有**持久化記憶**。截至 2026 年 2 月，VS Code 安裝量達到了 5.2M。
@@ -105,11 +105,11 @@ Codex 有三個模式可以選：
 - **full-auto**：在沙盒內全自動執行所有事情（但依舊沒有網路）。
 
 原作者提供了一個很好的心智模型：
-> Claude Code 是一個**帶著護欄的代理人 (agent with guardrails)**。
+> Claude Code 是一個**帶著護欄的 Agent (agent with guardrails)**。
 > Codex 是一個**有審批閘門的沙盒 (sandbox with an approval gate)**。
 
 因此，它們當機或失敗的方式也完全不同。
-- Claude Code 的失敗通常是因為上下文變舊了 (context gets stale)。當對話來到第 30 輪以後，它的壓縮機制可能會丟失關鍵指令，導致代理人做出跟前面決定矛盾的事情。
+- Claude Code 的失敗通常是因為上下文變舊了 (context gets stale)。當對話來到第 30 輪以後，它的壓縮機制可能會丟失關鍵指令，導致 Agent 做出跟前面決定矛盾的事情。
 - Codex 的失敗則通常是因為它需要沙盒外的資訊——它抓不到相依套件、連不到文件、或是無法呼叫某個 API，於是它就卡住了 (stalls)。
 
 了解它們怎麼失敗，你才知道什麼任務該派誰上場。
@@ -156,7 +156,7 @@ Codex 有三個模式可以選：
 或者，小孩才做選擇：用 Claude Code 來規劃架構，再把計畫丟給 Codex 在沙盒裡執行。Agent Skills 甚至可以在這兩個工具和 Cursor 之間通用。
 
 **終極決策法則：**
-原作者認為：如果代理人需要記得昨天的事，用 Claude Code。如果它需要忘掉一切，用 Codex。
+原作者認為：如果 Agent 需要記得昨天的事，用 Claude Code。如果它需要忘掉一切，用 Codex。
 
 ---
 

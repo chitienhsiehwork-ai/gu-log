@@ -6,6 +6,7 @@ import { importReadStore, parseReadStore } from './reading-tracker';
 import type { ReadRecord, ReadStoreV1, ReadStoreV2 } from './reading-tracker';
 
 export type GistReadStore = ReadStoreV1 | ReadStoreV2;
+export const READER_SYNC_TIMEOUT_MS = 15_000;
 
 function safeReauthorizeUrl(value: unknown, apiUrl: string): string | undefined {
   if (typeof value !== 'string' || !value) return undefined;
@@ -40,15 +41,50 @@ function invalidPayloadError(): ReaderSyncApiError {
   return new ReaderSyncApiError('同步資料格式不正確', 'READER_SYNC_INVALID_PAYLOAD');
 }
 
+function timeoutError(): ReaderSyncApiError {
+  return new ReaderSyncApiError('同步逾時，請檢查網路後重試', 'READER_SYNC_TIMEOUT');
+}
+
+async function withReaderSyncDeadline<T>(
+  operation: (signal: AbortSignal) => Promise<T>
+): Promise<T> {
+  const controller = new AbortController();
+  let deadlineError: ReaderSyncApiError | undefined;
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      deadlineError = timeoutError();
+      reject(deadlineError);
+      // Abort the underlying fetch after settling the deadline promise so the
+      // caller always receives the typed timeout instead of a raw AbortError.
+      controller.abort();
+    }, READER_SYNC_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([operation(controller.signal), deadline]);
+  } catch (error) {
+    if (deadlineError) throw deadlineError;
+    throw error;
+  } finally {
+    clearTimeout(timeoutId!);
+  }
+}
+
 export function getGuLogSessionToken(): string | null {
   return localStorage.getItem('gu-log-jwt');
 }
 
-async function apiFetch(apiUrl: string, init?: RequestInit): Promise<Response> {
+async function apiFetch(
+  apiUrl: string,
+  signal: AbortSignal,
+  init?: RequestInit
+): Promise<Response> {
   const jwt = getGuLogSessionToken();
   if (!jwt) throw new ReaderSyncApiError('請先登入 GitHub', 'SESSION_EXPIRED');
   return fetch(`${apiUrl.replace(/\/$/, '')}/reader-sync`, {
     ...init,
+    signal,
     headers: {
       Authorization: `Bearer ${jwt}`,
       'Content-Type': 'application/json',
@@ -82,23 +118,25 @@ async function readerSyncApiError(
 }
 
 export async function pullFromReaderSyncApi(apiUrl: string): Promise<GistReadStore | null> {
-  const resp = await apiFetch(apiUrl);
-  if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗', apiUrl);
-  let payload: unknown;
-  try {
-    payload = await resp.json();
-  } catch {
-    throw invalidPayloadError();
-  }
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    throw invalidPayloadError();
-  }
-  if (!Object.hasOwn(payload, 'store')) throw invalidPayloadError();
-  const store = (payload as { store?: unknown }).store;
-  if (store === null) return null;
-  const parsed = parseReadStore(store);
-  if (!parsed) throw invalidPayloadError();
-  return parsed;
+  return withReaderSyncDeadline(async (signal) => {
+    const resp = await apiFetch(apiUrl, signal);
+    if (!resp.ok) throw await readerSyncApiError(resp, '拉取失敗', apiUrl);
+    let payload: unknown;
+    try {
+      payload = await resp.json();
+    } catch {
+      throw invalidPayloadError();
+    }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw invalidPayloadError();
+    }
+    if (!Object.hasOwn(payload, 'store')) throw invalidPayloadError();
+    const store = (payload as { store?: unknown }).store;
+    if (store === null) return null;
+    const parsed = parseReadStore(store);
+    if (!parsed) throw invalidPayloadError();
+    return parsed;
+  });
 }
 
 export function importSyncStore(store: unknown): void {
@@ -109,15 +147,17 @@ export async function pushToReaderSyncApi(
   apiUrl: string,
   store: GistReadStore | string[]
 ): Promise<void> {
-  const data = Array.isArray(store)
-    ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
-    : normalizeForSync(store);
-  data.lastUpdated = new Date().toISOString();
-  const resp = await apiFetch(apiUrl, {
-    method: 'PUT',
-    body: JSON.stringify({ store: data }),
+  return withReaderSyncDeadline(async (signal) => {
+    const data = Array.isArray(store)
+      ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
+      : normalizeForSync(store);
+    data.lastUpdated = new Date().toISOString();
+    const resp = await apiFetch(apiUrl, signal, {
+      method: 'PUT',
+      body: JSON.stringify({ store: data }),
+    });
+    if (!resp.ok) throw await readerSyncApiError(resp, '推送失敗', apiUrl);
   });
-  if (!resp.ok) throw await readerSyncApiError(resp, '推送失敗', apiUrl);
 }
 
 /**
@@ -128,9 +168,15 @@ export function getGitHubToken(): string | null {
   return localStorage.getItem('gu-log-github-pat');
 }
 
-async function ghFetch(url: string, token: string, init?: RequestInit): Promise<Response> {
+async function ghFetch(
+  url: string,
+  token: string,
+  signal: AbortSignal,
+  init?: RequestInit
+): Promise<Response> {
   return fetch(url, {
     ...init,
+    signal,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -178,17 +224,17 @@ function recordTime(record: ReadRecord): number {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-export async function findOrCreateGist(token: string): Promise<string> {
+async function findOrCreateGistWithSignal(token: string, signal: AbortSignal): Promise<string> {
   // Fast path: cached id
   const cachedId = localStorage.getItem(GIST_ID_KEY);
   if (cachedId) {
-    const r = await ghFetch(`https://api.github.com/gists/${cachedId}`, token);
+    const r = await ghFetch(`https://api.github.com/gists/${cachedId}`, token, signal);
     if (r.ok) return cachedId;
     localStorage.removeItem(GIST_ID_KEY);
   }
 
   // Search existing gists (up to 100)
-  const listResp = await ghFetch('https://api.github.com/gists?per_page=100', token);
+  const listResp = await ghFetch('https://api.github.com/gists?per_page=100', token, signal);
   if (!listResp.ok) throw githubApiError(listResp.status, 'GitHub API 錯誤');
   const gists: Array<{ id: string; description: string }> = await listResp.json();
   const existing = gists.find((g) => g.description === GIST_DESCRIPTION);
@@ -198,7 +244,7 @@ export async function findOrCreateGist(token: string): Promise<string> {
   }
 
   // Create a new private gist
-  const createResp = await ghFetch('https://api.github.com/gists', token, {
+  const createResp = await ghFetch('https://api.github.com/gists', token, signal, {
     method: 'POST',
     body: JSON.stringify({
       description: GIST_DESCRIPTION,
@@ -216,47 +262,55 @@ export async function findOrCreateGist(token: string): Promise<string> {
   return created.id;
 }
 
+export async function findOrCreateGist(token: string): Promise<string> {
+  return withReaderSyncDeadline((signal) => findOrCreateGistWithSignal(token, signal));
+}
+
 export async function pushToGist(token: string, store: GistReadStore | string[]): Promise<void> {
-  const gistId = await findOrCreateGist(token);
-  const data = Array.isArray(store)
-    ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
-    : normalizeForSync(store);
-  data.lastUpdated = new Date().toISOString();
-  const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token, {
-    method: 'PATCH',
-    body: JSON.stringify({
-      files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
-    }),
+  return withReaderSyncDeadline(async (signal) => {
+    const gistId = await findOrCreateGistWithSignal(token, signal);
+    const data = Array.isArray(store)
+      ? normalizeForSync({ version: 1, slugs: store, lastUpdated: new Date().toISOString() })
+      : normalizeForSync(store);
+    data.lastUpdated = new Date().toISOString();
+    const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token, signal, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        files: { [GIST_FILENAME]: { content: JSON.stringify(data, null, 2) } },
+      }),
+    });
+    if (!resp.ok) throw githubApiError(resp.status, '推送失敗');
   });
-  if (!resp.ok) throw githubApiError(resp.status, '推送失敗');
 }
 
 export async function pullFromGist(token: string): Promise<GistReadStore | null> {
-  const gistId = await findOrCreateGist(token);
-  const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token);
-  if (!resp.ok) throw githubApiError(resp.status, '拉取失敗');
-  let gist: unknown;
-  try {
-    gist = await resp.json();
-  } catch {
+  return withReaderSyncDeadline(async (signal) => {
+    const gistId = await findOrCreateGistWithSignal(token, signal);
+    const resp = await ghFetch(`https://api.github.com/gists/${gistId}`, token, signal);
+    if (!resp.ok) throw githubApiError(resp.status, '拉取失敗');
+    let gist: unknown;
+    try {
+      gist = await resp.json();
+    } catch {
+      throw invalidPayloadError();
+    }
+    if (!gist || typeof gist !== 'object' || Array.isArray(gist)) throw invalidPayloadError();
+    const files = (gist as { files?: unknown }).files;
+    if (!files || typeof files !== 'object' || Array.isArray(files)) throw invalidPayloadError();
+    if (!Object.hasOwn(files, GIST_FILENAME)) return null;
+    const file = (files as Record<string, unknown>)[GIST_FILENAME];
+    if (!file || typeof file !== 'object' || Array.isArray(file)) throw invalidPayloadError();
+    if (!Object.hasOwn(file, 'content')) throw invalidPayloadError();
+    const content = (file as { content?: unknown }).content;
+    if (typeof content !== 'string') throw invalidPayloadError();
+    try {
+      const parsed = parseReadStore(JSON.parse(content));
+      if (parsed) return parsed;
+    } catch {
+      // handled below
+    }
     throw invalidPayloadError();
-  }
-  if (!gist || typeof gist !== 'object' || Array.isArray(gist)) throw invalidPayloadError();
-  const files = (gist as { files?: unknown }).files;
-  if (!files || typeof files !== 'object' || Array.isArray(files)) throw invalidPayloadError();
-  if (!Object.hasOwn(files, GIST_FILENAME)) return null;
-  const file = (files as Record<string, unknown>)[GIST_FILENAME];
-  if (!file || typeof file !== 'object' || Array.isArray(file)) throw invalidPayloadError();
-  if (!Object.hasOwn(file, 'content')) throw invalidPayloadError();
-  const content = (file as { content?: unknown }).content;
-  if (typeof content !== 'string') throw invalidPayloadError();
-  try {
-    const parsed = parseReadStore(JSON.parse(content));
-    if (parsed) return parsed;
-  } catch {
-    // handled below
-  }
-  throw invalidPayloadError();
+  });
 }
 
 /** Merge per-article records — keep the record with the newest read timestamp. */

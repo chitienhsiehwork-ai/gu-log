@@ -12,6 +12,16 @@
 - 這是 repo-tracked source of truth。不要把新的 gu-log 寫作回饋只記在聊天紀錄、個人 memory、未追蹤檔案或單一 agent 的私人筆記裡。
 - 寫 GP / MP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
+- 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
+
+## 2026-08-16 — GP-274：讀者可見內容預設不用 emoji
+
+### Feedback: 文章不要用未經逐次授權的表情圖示
+
+- ShroomDog feedback：GP-274 結尾的愛心不符合 gu-log 語感；讀者可見文章內容預設不用 emoji，只有 ShroomDog 對指定 occurrence 明確授權時才能保留。
+- 情境：GP-274 的繁中與英文結尾各多了一個裝飾性 `❤️`。來源意思在句子裡已完整表達，移除字形不會損失 payload。
+- 修法：只刪除兩版結尾的愛心，不改正文、links 或 scores；另由 pre-commit／CI 共用的 added-line gate 防止未授權字形再次進站。
+- Reusable lesson：Unicode emoji 與 kaomoji 要分開。前者預設不進 title、summary、正文、Note、component props、圖片替代文字或 code block；後者仍是 gu-log 的文字型品牌語彙。來源 emoji 若只裝飾就省略，若承載額外意思則改用自然文字保留，不要只刪到資訊消失。
 
 ## 2026-07-16 — GP-256：比喻不是免費造型，換世界會收認知稅
 
@@ -610,3 +620,39 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 撞到的前置 bug：`claude-opus-5` 是**整數版號**，而 Go 的 `claudeFamilyRe` 只認 `major-minor`，直接換 pin 會讓 `DisplayName` 把生 id 寫進 provenance、`HarnessName` 回 `Unknown Harness`。已修成 optional minor group 並加 regression test。教訓：**Claude 5 世代的命名換了形狀，任何靠 regex 解析 model id 的地方都要先驗一次**，不要假設 4.x 的 `major-minor` 還成立。
 - 一併收的 drift：`OPUS_ALIAS_CURRENT` 還寫 `claude-opus-4-8`，但實測 `claude -p --model opus --output-format json` 的 `modelUsage` key 已經是 `claude-opus-5`。
 - ⚠️ **待 ShroomDog 決定的副作用**：2026-06-18 刻意讓 Fresh Eyes / Fact Checker / Librarian 走浮動 `opus`，理由是「用跟 writer 不同代的 model 當陌生讀者，才抓得到 writer 同代看不到的盲點」。alias 現在也解析到 `claude-opus-5`，所以 **writer 跟這三個 judge 暫時是同一個 model，那個 model diversity 目前等於 0**。要救有兩條路：把 Fresh Eyes pin 到前一代（例如 4.5）換回 diversity，或接受「同代但 zero-context」已經夠當陌生讀者。這不是 agent 能自己定的品味決策，先記著。
+
+## 2026-08-09 — GPT-Live 英語口說陪練：看完整潛力，MoguNote 用吐槽守事實邊界
+
+### Feedback: 主軸是低壓、可重複的練習，不要把免費額度寫成整篇世界觀
+
+- ShroomDog feedback：喜歡「如何把 GPT-Live 變成低壓、可重複的口說陪練」這個 angle；同時要求從 Free user 與 paid subscriber 兩邊寫，不要一天到晚只考慮免費使用者的處境，文章應該更關心 AI 的完整潛力。
+- 情境：來源用「零元取代外教」當最大賣點，但 GPT-Live 真正值得寫的是把口說練習量從昂貴、稀缺的人力，變成可以隨時卡詞、重講、重刷情境的日常資源。Free tier 的限制需要交代，卻不該主導全文。
+- 修法：正文同時呈現 Free user 如何先驗證練法，以及 paid subscriber 如何把較高額度與較強模型變成長期訓練環境；主敘事放在 AI 陪練的完整能力與學習方法如何改變。標題定為「把 GPT‑Live 變成有耐心到離譜的口說陪練」。
+- Reusable lesson：價格與免費額度是產品事實，不一定是文章 spine。當 source 用「免費」搶眼球、而真正的新東西是能力邊界或行為改變時，完整交代各方案視角，敘事重心留給更耐久的 mental model。
+
+### Feedback: 事實校正要長成吐槽與洞見，不要把 MoguNote 寫成糾察隊
+
+- ShroomDog feedback：讀者不會喜歡看純校正；MoguNote 應該用吐槽、浮誇或有趣的方式守住事實邊界。另指出反覆使用「不是……而是……」是 classic AI slop。
+- 情境：來源宣稱「英文老師可以下崗」、免費無限練習、噪音免疫。GP 仍要保留 source 的刀口，但若 MoguNote 只逐條糾正，文章會像查核報告；若用反義對偶包裝每個修正，又會落進既有 T1 AI-tell。
+- 修法：保留這段指定 MoguNote，不得由 writer、refiner 或 rewrite loop 改寫：
+
+  > 原作者喊「英文老師可以回家了」喊得像裁員大會。AI 大概會先搶走口說陪練最磨人的苦工：陪人卡詞、重來、同一句念一百遍。真人英文老師則能少當一點沙包、多做一點教練。畢竟付老師薪水請他站著挨拳，怎麼算都有點浪費。
+
+- Reusable lesson：Fact boundary 可以有娛樂性。先保留 source claim，再讓 MoguNote 用具體角色與動作說清楚能力重分配；不要把每個 caveat 寫成板著臉的更正，也不要靠「不是 X、而是 Y」製造假金句。
+
+### Feedback: 台灣英語教學語境用「英文老師」，不用「外教」或「下崗」
+
+- ShroomDog feedback：台灣人不會說「外教」；「外師」通常指外籍教師，這篇則應該寫「外語老師」或「英文老師」。在指定 MoguNote 的薪資語境裡，「老師」也比「教練」合適。
+- 情境：來源是簡體中文，把線上英語口說教師統稱「外教」，並使用「下崗」。照字面轉成繁中仍然不是台灣中文，也可能把「教授英文」誤縮成「教師具有外籍身分」。
+- 修法：本文預設用「英文老師」；要對比 AI 時可寫「真人英文老師」；只有身分本身承重時才寫「外籍英文老師」。`下崗` 依語境改成「失業」或「可以回家了」。
+- Reusable lesson：簡轉繁不只是換字形。人物稱呼要按台灣情境選最直接的職能名稱；國籍沒有承載論點時，不要把它硬留在教師稱呼裡。
+
+## 2026-08-16 — 入門文章可以當知識地圖，glossary 用雙向連結把深度補回來
+
+### Feedback: 「I am fine with gu-log cover one of a beginner's post. People needs to start somewhere anyway. And i think the 7 ideas can 雙向連結到 glossary to enrich it.」
+
+- 情境：@0xHvdes 的〈The Principles of Better Decisions〉整理第一性原理、機會成本、二階思考、複利、誘因、機率思考與逆向思考。內容正確、清楚，但例子與結論都很基礎；gu-log 已在不同文章裡實際用過其中多數概念，卻沒有一篇讓初學者先看見全圖。
+- ShroomDog 的判斷：**入門不是拒收理由**。讀者總要有起點；只要文章沒有講錯、確實清楚，而且品質分數誠實記錄，就可以收錄。不要為了通過 Tribunal 把來源硬改深，也不要把「普通但好懂」假裝成首頁級洞見。
+- 這篇的產品角色：GP-274 是七個心智模型的入口目錄，不是最終解釋。正文七個標題各連到 glossary；每個 glossary 條目再用 `definedIn` 回指 GP-274 與真正把概念用在 AI、職涯、知識系統或制度分析裡的舊文，條目之間也用 `related` 串成圖。
+- 定義的加值方式：glossary 不重抄來源的一句話版定義，而是補上容易誤用的邊界，例如機會成本只看最佳替代方案、二階思考要把機率與下行一起算、單純重複不等於複利、避開失敗也不會自動成功。
+- Reusable lesson：**文章的價值不只來自新穎度，也可以來自「替讀者建立入口」**。遇到清楚但基礎、而且站內知識已經散落各處的 source，可以讓文章當 map、glossary 當穩定節點、舊文當深挖路徑。這樣收錄 beginner post 不會稀釋 gu-log，反而會把既有內容從文章清單變成可走的知識網。

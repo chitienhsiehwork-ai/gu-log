@@ -21,6 +21,17 @@ function isEnglishPost(filePath) {
   return path.basename(filePath).startsWith('en-');
 }
 
+function isGPPost(content) {
+  const lines = content.split(/\r?\n/);
+  if (lines[0] !== '---') return false;
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i] === '---') return false;
+    const match = lines[i].match(/^ticketId:\s*['"]?([^'"\s]+)['"]?\s*$/);
+    if (match) return match[1].startsWith('GP-');
+  }
+  return false;
+}
+
 function markFrontmatter(lines, masked) {
   if (lines[0] !== '---') return 0;
 
@@ -155,6 +166,11 @@ function formatContext(lines, index) {
 
 function findViolations(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
+  // GP body is the source author's voice. First/second-person pronouns are
+  // required when the source uses them; source-preservation gates, rather
+  // than this context-free lint, verify that ownership. Other series retain
+  // the ambiguity guard below.
+  if (isGPPost(content)) return [];
   const lines = content.split(/\r?\n/);
   const masked = buildMask(lines);
   const violations = [];
@@ -176,7 +192,7 @@ function findViolations(filePath) {
   return violations;
 }
 
-export { buildMask, findViolations, stripInlineCode, isEnglishPost };
+export { buildMask, findViolations, stripInlineCode, isEnglishPost, isGPPost };
 
 if (!__isCli) {
   // imported as module; skip CLI body

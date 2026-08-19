@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -14,6 +15,23 @@ func writeStubScript(t *testing.T, dir, body string) string {
 		t.Fatalf("write stub script: %v", err)
 	}
 	return p
+}
+
+func TestRunPassesNoRewriteToTribunal(t *testing.T) {
+	dir := t.TempDir()
+	script := writeStubScript(t, dir, "printf '%s\\n' \"$*\"; exit 0")
+	stdout := filepath.Join(dir, "out.txt")
+	passed, err := Run(context.Background(), Options{RalphScript: script, Filename: "gp-1-test.mdx", StdoutFile: stdout, NoRewrite: true})
+	if err != nil || !passed {
+		t.Fatalf("Run = (%v, %v)", passed, err)
+	}
+	data, err := os.ReadFile(stdout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "gp-1-test.mdx --no-rewrite") {
+		t.Fatalf("args = %q", data)
+	}
 }
 
 // Spec: openspec/specs/publish-bar-visibility/spec.md
@@ -51,5 +69,31 @@ func TestRunReportsPassOnCleanExit(t *testing.T) {
 	}
 	if !passed {
 		t.Fatal("clean exit must report passed=true")
+	}
+}
+
+func TestRunCanDisableTribunalCommitOwnership(t *testing.T) {
+	dir := t.TempDir()
+	script := writeStubScript(t, dir, "echo no_commit=$TRIBUNAL_NO_COMMIT; exit 0")
+	stdoutFile := filepath.Join(dir, "tribunal-stdout.txt")
+
+	passed, err := Run(context.Background(), Options{
+		RalphScript: script,
+		Filename:    "gp-000-test.mdx",
+		StdoutFile:  stdoutFile,
+		NoCommit:    true,
+	})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if !passed {
+		t.Fatal("Run should pass")
+	}
+	got, err := os.ReadFile(stdoutFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "no_commit=1\n" {
+		t.Fatalf("tribunal env = %q, want no_commit=1", got)
 	}
 }

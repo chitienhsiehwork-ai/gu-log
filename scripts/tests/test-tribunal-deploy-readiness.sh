@@ -819,7 +819,8 @@ printf '{}\n' > "$writer_progress"
 fixture_lock_dir="$ROOT_DIR/.score-loop/locks"
 mkdir -p "$fixture_lock_dir"
 chmod 700 "$fixture_lock_dir"
-exec 198>>"$fixture_lock_dir/tracked-gp-1-20260128-demo.lock"
+fixture_post="mp-31-20260204-rauchg-vercel-ai-support.mdx"
+exec 198>>"$fixture_lock_dir/tracked-$fixture_post.lock"
 flock -x 198
 PATH="$writer_bin:$PATH" \
 FAKE_JUDGE_COUNT="$TMP/judge-count" \
@@ -831,10 +832,10 @@ TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
-  gp-1-20260128-demo.mdx >"$TMP/writer.out" 2>&1 ||
+  "$fixture_post" >"$TMP/writer.out" 2>&1 ||
   fail "real fail→writer→pass tribunal fixture failed"
 flock -u 198
-[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-$fixture_post.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
 [ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Codex writer"
 grep -q -- '--sandbox workspace-write' "$TMP/writer-calls" ||

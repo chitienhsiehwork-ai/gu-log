@@ -1,4 +1,4 @@
-// Command gp-pipeline is gu-log's translation pipeline CLI; the canonical
+// Command gp-pipeline is gu-log's GP translation and MP writing pipeline CLI; the canonical
 // entrypoint is the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
@@ -54,9 +54,9 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log translation pipeline (Gu-log Picks)",
-		Long: `gp-pipeline ("Gu-log Picks") is the Go implementation of gu-log's
-GP/MP translation pipeline. The canonical entrypoint is
+		Short: "gu-log GP translation and MP source-grounded writing pipeline",
+		Long: `gp-pipeline is the Go implementation of gu-log's GP faithful-translation
+and MP source-grounded writing flows. The canonical entrypoint is
 tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP and post filename
 slugs are gp-/mp-.
 
@@ -68,9 +68,9 @@ one step at a time without inheriting the whole pipeline's side effects:
   status     inspect an active/recent run from work-dir + repo artifacts
   eval       decide whether a source is GP-worthy
   dedup      check whether the source is already covered
-  write      draft the zh-tw MDX only (en is a separate, later step)
-  review     run the 12-point review checklist
-  refine     apply the review back into the draft
+  write      legacy/non-GP editorial draft step
+  review     legacy/non-GP editorial review step
+  refine     legacy/non-GP full-article refine step
   ralph      run the 4-judge tribunal
   translate  produce the en sidecar, but only after ralph passed
              (zh-tw-first: never translates an unstable draft)

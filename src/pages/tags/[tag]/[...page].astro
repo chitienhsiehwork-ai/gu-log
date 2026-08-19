@@ -7,27 +7,14 @@ import TicketBadge from '../../../components/TicketBadge.astro';
 import PostStatusLabel from '../../../components/PostStatusLabel.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { getListablePosts, getPostStatus } from '../../../utils/post-status';
+import { groupPostsByTag } from '../../../utils/tag-groups';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
   const allPosts = getListablePosts(allPostsFull, 'zh-tw');
 
-  // Get all unique tags
-  const tags = new Set<string>();
-  allPosts.forEach((post) => {
-    (post.data.tags || []).forEach((tag: string) => tags.add(tag));
-  });
-
   // Generate paginated pages for each tag
-  return Array.from(tags).flatMap((tag) => {
-    const tagPosts = allPosts
-      .filter((post) => post.data.tags?.includes(tag))
-      .sort((a, b) => {
-        const dateA = a.data.translatedDate || a.data.originalDate;
-        const dateB = b.data.translatedDate || b.data.originalDate;
-        return dateB.localeCompare(dateA);
-      });
-
+  return groupPostsByTag(allPosts).flatMap(({ tag, posts: tagPosts }) => {
     return paginate(tagPosts, {
       pageSize: 20,
       params: { tag },

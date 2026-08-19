@@ -61,6 +61,10 @@ API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
 GP MP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
+# GenAI = 同 AI/AGI 那類的通用縮寫；deepfake 是已無短中譯的技術名詞（「深偽」在台灣
+# 尚未通用）；slop 是 AI 時代的專有講法，原文 item 22「screens fill with slop」直接引用
+# — GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單
+GenAI deepfake Deepfake slop
 PR CI CD DevOps PR/CI Q&A FAQ TODO DONE WIP
 EOL EOS DRM
 GraphQL Webhook
@@ -71,12 +75,18 @@ KPI OKR ROI SLA SLO MTTR
 # Phil Chen career-advice post (2026-07-03)
 xG
 N/A TBD TBA
+# 原文結尾逐字引用的兩個字 — GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單
+KEEP BUILDING
 
 # gu-log MDX components
 MoguNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
 PrevNextNav
 # 站名本身。MoguNote 講「gu-log 的規則是⋯」時被判成晶晶體是誤判 — GP-262（2026-07-27）
 gu-log
+# Tribunal 四個 judge 的角色名，同 MoguNote 那類 gu-log 自家系統專名。MoguNote 提到
+# 「四個法官（Vibe / Fact Checker / Librarian / Fresh Eyes）」時被判成晶晶體是誤判
+# — GP-265（2026-07-29），Fresh Eyes judge 自己也標記為 misclassification
+Tribunal Vibe Fact Checker Librarian Fresh Eyes
 
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
@@ -95,6 +105,13 @@ LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 # Letta = AI 公司（Letta Code / MemGPT）；Harbor = agent trajectory 框架。
 # 同 LangChain / Mistral 那一類的產品與組織名 — GP-261（2026-07-25）
 Letta Harbor
+# MCP 生態系 company / product / person names — GP MCP 2026-07-28 spec post
+Honeycomb Supabase Manufact mcp-use WAF EMA
+Inian Parameshwaran Parker David Soria Parra Nick
+# MCP 規格書 canonical feature/concept names — 讀者需要跟官方文件對齊
+session Session Streamable elicitation redirect
+Tasks Roots Sampling Logging
+Multi Round-Trip Dynamic Client Registration Metadata Documents
 # GP-262（2026-07-27）的筆記／閱讀工具與軟體名：Roam Research、Kortex（作者的舊產品）、
 # Eden（作者現在的產品）、MyMind、Kindle，以及 After Effects
 Roam Kortex Eden MyMind Kindle Effects
@@ -111,6 +128,9 @@ Tom's Hardware
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow Subreddit Reddit Answers
+# GP（2026-08-01）Greg Isenberg 清單引用到的公司／產品：Etsy（手作市集）、
+# Intercom／Zendesk（按解決工單計價）、@ideabrowser（原文自家的推廣連結）
+Etsy Intercom Zendesk ideabrowser
 
 # Frontier models and product names
 Symphony Fusion
@@ -129,6 +149,11 @@ Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 # Model tier names (Gemini Flash, DeepSeek V4 Flash, etc.)
 Flash
 Agent Swarm
+
+# Legacy tech / tools cited in source material
+valgrind dBase Clipper HyperCard WordPress
+# Source-cited proper nouns that do not need glossary entries
+Old El Paso Lobsters cmux
 
 # Programming languages / runtimes / tools
 Python JavaScript TypeScript Go Rust Zig C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell
@@ -185,6 +210,13 @@ Ryo Lu
 # Thomas Jefferson、Ronald Reagan、Montaigne、Rick Rubin、Seneca
 Norbert Wiener Naval Eriksen Austin Kleon
 Marcus Aurelius Twain H.P Lovecraft Jefferson Ronald Reagan Montaigne Rick Rubin Seneca
+# GP-265（2026-07-29）Adam Hunt 的 AI 看空長推，以及他引用的 Tomas Pueyo
+#（2025-11 那張「刺蝟球」AGI 能力圖）
+Adam Hunt Tomas Pueyo
+# GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單，以及文中引用的經濟學家 Keynes
+Greg Isenberg Keynes
+# GP-272（2026-08-10）Senko Rašić 的「code was never the hard part」反駁文
+Senko Ra
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
@@ -258,6 +290,14 @@ Instant instant
 Humanity's
 tokens
 app
+
+# Classic CS/engineering book titles (GP-272 and general reuse)
+Art Cracking Interview Mom Continuous Discovery Habits Obviously Awesome
+Design Everyday Don't Make Me Think Powers Working Backwards Topologies
+Soul New Machine Programming
+
+# Technical terms that lose meaning when translated (GP-272)
+monad affordance allowance bit-rot meat Meat proxy
 
 # Research / dataset / paper names that show up as multi-word proper nouns
 # (already covered by their constituent words in some cases; explicit listing
