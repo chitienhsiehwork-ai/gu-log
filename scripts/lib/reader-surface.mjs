@@ -665,8 +665,9 @@ function potentiallyRenderingEsmStatements(node) {
   if (program?.type !== 'Program') return [];
   return (program.body ?? []).filter((statement) => {
     const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
-    if (/\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source)) return true;
-    return statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0;
+    if (statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0) return true;
+    if (!source) return false;
+    return !/^(?:\.{1,2}\/).+\.(?:astro|avif|gif|jpe?g|png|webp)$/iu.test(source);
   });
 }
 

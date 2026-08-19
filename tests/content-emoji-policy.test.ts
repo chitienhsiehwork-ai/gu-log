@@ -410,6 +410,8 @@ lang: zh-tw
       POST_PATH,
       "export { default as styles } from './emoji.module.css';",
     ],
+    ['MDX package-alias binding import', POST_PATH, "import styles from '@example/emoji-theme';"],
+    ['MDX relative extensionless binding import', POST_PATH, "import styles from './theme';"],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -437,6 +439,7 @@ lang: zh-tw
       '<img srcset="/safe.png 1x, /safe@2x.png 2x" alt="safe">',
     ],
     ['MDX component binding import', POST_PATH, "import Note from './Note.astro';"],
+    ['MDX raster asset binding import', POST_PATH, "import hero from '../../assets/hero.png';"],
     [
       'Markdown preload link',
       MARKDOWN_POST_PATH,
