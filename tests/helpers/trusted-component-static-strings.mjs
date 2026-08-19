@@ -11,6 +11,17 @@ function known(value) {
 
 function evaluateStaticValue(node, bindings, resolving = new Set()) {
   if (!node) return UNKNOWN;
+  if (
+    [
+      'ParenthesizedExpression',
+      'TSAsExpression',
+      'TSNonNullExpression',
+      'TSSatisfiesExpression',
+      'TSTypeAssertion',
+    ].includes(node.type)
+  ) {
+    return evaluateStaticValue(node.expression, bindings, resolving);
+  }
   if (node.type === 'Literal') {
     return ['string', 'number', 'boolean'].includes(typeof node.value) || node.value === null
       ? known(node.value)

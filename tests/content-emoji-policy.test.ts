@@ -524,6 +524,24 @@ lang: zh-tw
     expect(emoji).toContain('😀');
   });
 
+  it.each([
+    ['as const', "const prefix = '&#' as const;"],
+    ['satisfies', "const prefix = '&#' satisfies string;"],
+  ])('unwraps %s around immutable trusted component bindings', (_label, declaration) => {
+    const source = [
+      '---',
+      declaration,
+      "const icon = prefix + '128512;';",
+      '---',
+      '<Fragment set:html={icon} />',
+    ].join('\n');
+    const projected = collectTrustedComponentStaticStrings(source);
+    const emoji = projected.flatMap((value) =>
+      findTrustedComponentEmojiSequences(value).map((match) => match.emoji)
+    );
+    expect(emoji).toContain('😀');
+  });
+
   it('keeps every trusted component source free of encoded or literal Unicode emoji', () => {
     const findings = TRUSTED_CONTENT_COMPONENT_IMPORTS.flatMap(([source, componentName]) => {
       const componentSource = fs.readFileSync(
