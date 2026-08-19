@@ -75,6 +75,38 @@ function evaluateUnaryOperator(operator, argument) {
   }
 }
 
+function normalizeStaticPropertyKey(value) {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : null;
+}
+
+function readStaticMember(receiver, key) {
+  const property = normalizeStaticPropertyKey(key);
+  if (property === null || ['__proto__', 'constructor', 'prototype'].includes(property)) {
+    return UNKNOWN;
+  }
+  if (Array.isArray(receiver)) {
+    if (property === 'length') return known(receiver.length);
+    return /^(?:0|[1-9]\d*)$/.test(property) && Number(property) < receiver.length
+      ? known(receiver[Number(property)])
+      : UNKNOWN;
+  }
+  if (typeof receiver === 'string') {
+    if (property === 'length') return known(receiver.length);
+    return /^(?:0|[1-9]\d*)$/.test(property) && Number(property) < receiver.length
+      ? known(receiver[Number(property)])
+      : UNKNOWN;
+  }
+  if (
+    receiver &&
+    typeof receiver === 'object' &&
+    Object.getPrototypeOf(receiver) === null &&
+    Object.hasOwn(receiver, property)
+  ) {
+    return known(receiver[property]);
+  }
+  return UNKNOWN;
+}
+
 function evaluateStaticValue(node, bindings, resolving = new Set()) {
   if (!node) return UNKNOWN;
   if (
@@ -159,6 +191,30 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
     }
     return known(values);
   }
+  if (node.type === 'ObjectExpression') {
+    const value = Object.create(null);
+    for (const property of node.properties) {
+      if (property.type !== 'Property' || property.kind !== 'init' || property.method)
+        return UNKNOWN;
+      const key = property.computed
+        ? evaluateStaticValue(property.key, bindings, resolving)
+        : known(property.key.type === 'Identifier' ? property.key.name : property.key.value);
+      const entry = evaluateStaticValue(property.value, bindings, resolving);
+      const normalizedKey = key.known ? normalizeStaticPropertyKey(key.value) : null;
+      if (normalizedKey === null || !entry.known) return UNKNOWN;
+      value[normalizedKey] = entry.value;
+    }
+    return known(value);
+  }
+  if (node.type === 'MemberExpression' && !node.optional) {
+    const receiver = evaluateStaticValue(node.object, bindings, resolving);
+    const property = node.computed
+      ? evaluateStaticValue(node.property, bindings, resolving)
+      : known(node.property.type === 'Identifier' ? node.property.name : null);
+    return receiver.known && property.known
+      ? readStaticMember(receiver.value, property.value)
+      : UNKNOWN;
+  }
   if (
     node.type !== 'CallExpression' ||
     node.optional ||
@@ -233,6 +289,8 @@ export function collectTrustedComponentStaticStrings(source, filePath = 'trusted
           'CallExpression',
           'ConditionalExpression',
           'LogicalExpression',
+          'MemberExpression',
+          'ObjectExpression',
           'TemplateLiteral',
           'UnaryExpression',
         ].includes(node.type)
