@@ -1,6 +1,7 @@
 import { createProcessor } from '@mdx-js/mdx';
 import { LineCounter, isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 
+import { findEmojiSequences } from './emoji-sequences.mjs';
 import { READER_REVISION_FRONTMATTER_KEYS, extractPostParts } from './reader-revision-core.mjs';
 
 export {
@@ -67,6 +68,119 @@ function collectResolvedYamlValue(value, surfaceKind, sourceLine, sourceLines, r
   }
 }
 
+function parseQuotedYamlFragment(fragment, quote, trimLeadingWhitespace) {
+  let source = trimLeadingWhitespace ? fragment.trimStart() : fragment;
+  let continuesOnNextLine = false;
+  if (quote === '"') {
+    let trailingBackslashes = 0;
+    for (let index = source.length - 1; index >= 0 && source[index] === '\\'; index -= 1) {
+      trailingBackslashes += 1;
+    }
+    // An odd trailing backslash escapes the physical line break in a YAML
+    // double-quoted scalar. It contributes no reader-visible character.
+    if (trailingBackslashes % 2 === 1) {
+      source = source.slice(0, -1);
+      continuesOnNextLine = true;
+    }
+  }
+
+  const fragmentDocument = parseDocument(`${quote}${source}${quote}`);
+  if (fragmentDocument.errors.length > 0 || !isScalar(fragmentDocument.contents)) {
+    throw new Error('reader-visible multiline quoted YAML scalar could not be projected per line');
+  }
+  return { canonicalText: String(fragmentDocument.contents.value ?? ''), continuesOnNextLine };
+}
+
+function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
+  const tokenType = node.srcToken?.type;
+  if (tokenType !== 'double-quoted-scalar' && tokenType !== 'single-quoted-scalar') return null;
+  const physicalLines = node.srcToken.source.split('\n');
+  if (physicalLines.length === 1) return null;
+
+  const quote = tokenType === 'double-quoted-scalar' ? '"' : "'";
+  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
+  const projectedLines = physicalLines.map((rawLine, index) => {
+    let fragment = rawLine;
+    if (index === 0 && fragment.startsWith(quote)) fragment = fragment.slice(1);
+    if (index === physicalLines.length - 1 && fragment.endsWith(quote)) {
+      fragment = fragment.slice(0, -1);
+    }
+    const sourceLine = firstSourceLine + index;
+    return { ...parseQuotedYamlFragment(fragment, quote, index > 0), sourceLine };
+  });
+
+  const records = [];
+  for (let index = 0; index < projectedLines.length; index += 1) {
+    const group = [projectedLines[index]];
+    while (group.at(-1).continuesOnNextLine && index + 1 < projectedLines.length) {
+      index += 1;
+      group.push(projectedLines[index]);
+    }
+    if (group.length === 1) {
+      const [line] = group;
+      if (line.canonicalText.trim() !== '') {
+        records.push({
+          canonicalText: line.canonicalText,
+          surfaceKind,
+          sourceLine: line.sourceLine,
+          sourceLines: new Set([line.sourceLine]),
+        });
+      }
+      continue;
+    }
+
+    const canonicalText = group.map((line) => line.canonicalText).join('');
+    const offsets = [];
+    let offset = 0;
+    for (const line of group) {
+      offsets.push({ start: offset, end: offset + line.canonicalText.length });
+      offset += line.canonicalText.length;
+    }
+    const localMatches = group.map(() => []);
+    const crossLineRecords = [];
+    for (const match of findEmojiSequences(canonicalText)) {
+      const matchEnd = match.index + match.emoji.length;
+      let lineIndexes = offsets.flatMap(({ start, end }, lineIndex) =>
+        match.index < end && matchEnd > start ? [lineIndex] : []
+      );
+      if (lineIndexes.length === 1) {
+        const lineIndex = lineIndexes[0];
+        localMatches[lineIndex].push({
+          ...match,
+          index: match.index - offsets[lineIndex].start,
+        });
+        continue;
+      }
+      lineIndexes = Array.from(
+        { length: lineIndexes.at(-1) - lineIndexes[0] + 1 },
+        (_unused, spanIndex) => lineIndexes[0] + spanIndex
+      );
+      const sliceStart = offsets[lineIndexes[0]].start;
+      const sliceEnd = offsets[lineIndexes.at(-1)].end;
+      const sourceLines = new Set(lineIndexes.map((lineIndex) => group[lineIndex].sourceLine));
+      crossLineRecords.push({
+        canonicalText: canonicalText.slice(sliceStart, sliceEnd),
+        surfaceKind,
+        sourceLine: group[lineIndexes[0]].sourceLine,
+        sourceLines,
+        emojiMatches: [{ ...match, index: match.index - sliceStart }],
+      });
+    }
+    for (const [lineIndex, line] of group.entries()) {
+      if (line.canonicalText.trim() === '') continue;
+      records.push({
+        canonicalText: line.canonicalText,
+        surfaceKind,
+        sourceLine: line.sourceLine,
+        sourceLines: new Set([line.sourceLine]),
+        emojiMatches: localMatches[lineIndex],
+      });
+    }
+    records.push(...crossLineRecords);
+  }
+  return records;
+}
+
 function collectYamlValueRecords(node, surfaceKind, lineCounter, document, records) {
   if (isScalar(node)) {
     if (node.value === null || node.value === undefined) return;
@@ -83,6 +197,11 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
           sourceLines: new Set([physicalSourceLine]),
         });
       }
+      return;
+    }
+    const quotedLineRecords = quotedYamlLineRecords(node, surfaceKind, lineCounter);
+    if (quotedLineRecords) {
+      records.push(...quotedLineRecords);
       return;
     }
     const canonicalValue = String(node.value);
@@ -331,19 +450,20 @@ function collectBodyRecords(body, bodyStartLine) {
     });
   }
 
-  function definitionTitleSourceLines(definition) {
-    const startOffset = definition.position?.start?.offset;
-    const endOffset = definition.position?.end?.offset;
-    const startLine = definition.position?.start?.line;
+  function markdownTitleSourceLines(node, stripContainerCloser = false) {
+    const startOffset = node.position?.start?.offset;
+    const endOffset = node.position?.end?.offset;
+    const startLine = node.position?.start?.line;
     if (
       !Number.isInteger(startOffset) ||
       !Number.isInteger(endOffset) ||
       !Number.isInteger(startLine)
     ) {
-      return sourceLocation(definition).sourceLines;
+      return null;
     }
 
-    const source = body.slice(startOffset, endOffset).trimEnd();
+    let source = body.slice(startOffset, endOffset).trimEnd();
+    if (stripContainerCloser && source.endsWith(')')) source = source.slice(0, -1).trimEnd();
     const closing = source.at(-1);
     let openingIndex = -1;
     if (closing === '"' || closing === "'") {
@@ -376,7 +496,7 @@ function collectBodyRecords(body, bodyStartLine) {
         }
       }
     }
-    if (openingIndex < 0) return sourceLocation(definition).sourceLines;
+    if (openingIndex < 0) return null;
 
     const precedingLines = source.slice(0, openingIndex).split('\n').length - 1;
     const titleLineCount = source.slice(openingIndex).split('\n').length;
@@ -384,26 +504,50 @@ function collectBodyRecords(body, bodyStartLine) {
     return new Set(Array.from({ length: titleLineCount }, (_unused, index) => firstLine + index));
   }
 
-  function pushReferenceTitle(node) {
-    const definition = definitions.get(node.identifier);
-    if (!definition?.title) return;
-    const definitionLines = [...definitionTitleSourceLines(definition)];
-    const referenceLines = sourceLocation(node).sourceLines;
-    const titleLines = definition.title.split('\n');
-    if (titleLines.length !== definitionLines.length) {
-      pushValue(definition.title, definition, 0, new Set([...definitionLines, ...referenceLines]));
+  function pushMarkdownTitle(title, node, titleSourceLines, associatedSourceLines = []) {
+    if (!title) return;
+    if (titleSourceLines === null) {
+      pushValue(
+        title,
+        node,
+        0,
+        new Set([...sourceLocation(node).sourceLines, ...associatedSourceLines])
+      );
       return;
     }
-    for (const [index, line] of titleLines.entries()) {
+    const physicalTitleLines = [...titleSourceLines];
+    const canonicalTitleLines = title.split('\n');
+    if (canonicalTitleLines.length !== physicalTitleLines.length) {
+      pushValue(title, node, 0, new Set([...physicalTitleLines, ...associatedSourceLines]));
+      return;
+    }
+    for (const [index, line] of canonicalTitleLines.entries()) {
       if (line.trim() === '') continue;
-      const sourceLine = definitionLines[index];
+      const sourceLine = physicalTitleLines[index];
       records.push({
         canonicalText: line,
         surfaceKind: 'mdx',
         sourceLine,
-        sourceLines: new Set([sourceLine, ...referenceLines]),
+        sourceLines: new Set([sourceLine, ...associatedSourceLines]),
       });
     }
+  }
+
+  function pushInlineTitle(node) {
+    if (!node.title) return;
+    pushMarkdownTitle(node.title, node, markdownTitleSourceLines(node, true));
+  }
+
+  function pushReferenceTitle(node) {
+    const definition = definitions.get(node.identifier);
+    if (!definition?.title) return;
+    const referenceLines = sourceLocation(node).sourceLines;
+    pushMarkdownTitle(
+      definition.title,
+      definition,
+      markdownTitleSourceLines(definition),
+      referenceLines
+    );
   }
 
   walk(tree, (node) => {
@@ -420,7 +564,7 @@ function collectBodyRecords(body, bodyStartLine) {
     }
     if (node.type === 'image') {
       pushValue(node.alt, node);
-      pushValue(node.title, node);
+      pushInlineTitle(node);
       return;
     }
     if (node.type === 'imageReference') {
@@ -429,7 +573,7 @@ function collectBodyRecords(body, bodyStartLine) {
       return;
     }
     if (node.type === 'link') {
-      pushValue(node.title, node);
+      pushInlineTitle(node);
       return;
     }
     if (node.type === 'linkReference') {
