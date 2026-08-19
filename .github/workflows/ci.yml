@@ -155,6 +155,14 @@ jobs:
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
+      - name: Reader-visible emoji policy (PR added-line ratchet)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
       - name: Block retired brand taxonomy contracts
@@ -264,8 +272,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-pnpm
-      - name: Install ShellCheck for hook regression
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends shellcheck
+      - name: Verify runner ShellCheck for hook regression
+        # ubuntu-latest includes ShellCheck. Probe it directly so an image
+        # contract change fails fast instead of making every PR depend on apt.
+        run: shellcheck --version
       - name: Install article fetcher dependencies
         run: python3 -m pip install --requirement scripts/requirements-fetch-article.txt
       - name: Vitest unit tests
@@ -348,7 +358,12 @@ jobs:
           restore-keys: |
             playwright-${{ runner.os }}-
       - name: Install Chromium
-        run: pnpm exec playwright install chromium --with-deps
+        # The PR runner already carries Chromium's shared libraries, while the
+        # browser binary is cached above. Avoid --with-deps here because it
+        # always refreshes apt indexes and a mirror stall can consume this
+        # job's entire timeout. Browser launch still fails closed if the image
+        # contract changes; nightly-deep retains the full --with-deps install.
+        run: pnpm exec playwright install chromium
       - name: Run core interaction specs (blocking)
         # Checked assignment, not an inline $(...) — bash -e does not check
         # the exit code of a command substitution used as bare arguments, so

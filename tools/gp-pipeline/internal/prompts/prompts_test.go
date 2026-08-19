@@ -342,6 +342,11 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 			t.Errorf("translator prompt missing %q", want)
 		}
 	}
+	for _, want := range []string{"只作裝飾", "改用自然台灣繁中", "GP automated lane", "不支援保留 Unicode emoji 原字形的例外", "一律不把 glyph 寫進", "Kaomoji"} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing emoji boundary %q", want)
+		}
+	}
 	for _, want := range []string{"runtime 提供的 canonical terminology", `"term":"Agent"`, `"forbiddenZhTw":["代理人"]`} {
 		if !strings.Contains(translator, want) {
 			t.Errorf("translator prompt missing terminology context %q", want)
@@ -354,6 +359,23 @@ func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
 	for _, want := range []string{"Fidelity 看語意，不看字面", "不得要求恢復 natural hard gate", "BODY", "SOURCE", "不要做 byte arithmetic"} {
 		if !strings.Contains(reviewer, want) {
 			t.Errorf("source reviewer prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{"只作裝飾", "自然文字保留", "GP automated lane", "不支援 emoji 原字形例外", "不要要求或推定", "Kaomoji"} {
+		if !strings.Contains(reviewer, want) {
+			t.Errorf("source reviewer prompt missing emoji boundary %q", want)
+		}
+	}
+}
+
+func TestRender_EnglishSidecarDoesNotRestoreUnapprovedEmoji(t *testing.T) {
+	out, err := Render("translate", TranslateData{TicketID: "GP-7", Source: "body"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Do not restore any Unicode emoji glyph", "Omit decorative glyphs", "natural English", "automated GP sidecar lane", "no glyph-retention exception", "Kaomoji"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("English sidecar prompt missing emoji boundary %q", want)
 		}
 	}
 }

@@ -327,6 +327,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
+- 讀者可見內容預設不用 Unicode emoji；kaomoji 保留。逐次授權邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，deterministic enforcement 以 `scripts/check-content-emoji.mjs` 為準；沒有 writer 自行開啟的整篇旗標。例外是 top-level editorial `MAY` 能力，不保證每條 pipeline 都支援；目前 automated GP／英文翻譯一律省略裝飾字形或用自然文字保留語意，不保留 glyph。
 - GP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Mogu/gu-log commentary 放 `<MoguNote>`。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
@@ -345,6 +346,8 @@ SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived vi
 - 程式碼內的註解 → 預設不翻
 
 ### Kaomoji（推薦）
+
+Kaomoji 是文字型品牌語彙，不屬於 Unicode emoji 禁令；新文章仍須維持既有 kaomoji 品牌規則。
 
 ```
 (◕‿◕) (￣▽￣)／ ╰(°▽°)╯ (๑•̀ㅂ•́)و✧ 
