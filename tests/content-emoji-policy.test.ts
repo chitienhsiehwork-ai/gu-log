@@ -363,6 +363,16 @@ lang: zh-tw
       POST_PATH,
       '<object data="data:text/plain,%F0%9F%98%80" />',
     ],
+    [
+      'Markdown dangerous second srcset candidate',
+      MARKDOWN_POST_PATH,
+      '<img srcset="/safe.png 1x, data:image/svg+xml,%3Csvg%3E%3Ctext%3E%26%23128512%3B%3C/text%3E%3C/svg%3E 2x" alt="safe">',
+    ],
+    [
+      'MDX dangerous source srcSet candidate',
+      POST_PATH,
+      '<source srcSet="data:image/svg+xml;base64,PHN2Zz48dGV4dD7wn5iAPC90ZXh0Pjwvc3ZnPg== 1x" />',
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -383,6 +393,11 @@ lang: zh-tw
       'Markdown inert raster data URL',
       MARKDOWN_POST_PATH,
       '<img src="data:image/png;base64,AAAA" alt="safe">',
+    ],
+    [
+      'Markdown safe srcset candidates',
+      MARKDOWN_POST_PATH,
+      '<img srcset="/safe.png 1x, /safe@2x.png 2x" alt="safe">',
     ],
   ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;

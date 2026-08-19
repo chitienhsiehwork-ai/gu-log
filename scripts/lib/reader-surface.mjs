@@ -679,6 +679,34 @@ const EXECUTABLE_URL_ATTRIBUTE_NAMES = new Set([
   'xlinkhref',
 ]);
 
+function srcsetCandidateUrls(value) {
+  const source = String(decodeHTML(String(value)));
+  const urls = [];
+  let index = 0;
+  while (index < source.length) {
+    while (index < source.length && /[\s,]/u.test(source[index])) index += 1;
+    const start = index;
+    while (index < source.length && !/\s/u.test(source[index])) index += 1;
+    let url = source.slice(start, index);
+    const endedWithComma = url.endsWith(',');
+    url = url.replace(/,+$/u, '');
+    if (url) urls.push(url);
+    if (endedWithComma) continue;
+
+    let parentheses = 0;
+    while (index < source.length) {
+      if (source[index] === '(') parentheses += 1;
+      else if (source[index] === ')' && parentheses > 0) parentheses -= 1;
+      else if (source[index] === ',' && parentheses === 0) {
+        index += 1;
+        break;
+      }
+      index += 1;
+    }
+  }
+  return urls;
+}
+
 function isExecutableReaderAttribute(name, value = '', elementName = '') {
   const normalizedName = String(name).toLowerCase();
   const normalizedElementName = String(elementName).toLowerCase();
@@ -689,6 +717,11 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
     normalizedName.startsWith('on')
   ) {
     return true;
+  }
+  if (normalizedName === 'srcset') {
+    return srcsetCandidateUrls(value).some((url) =>
+      isExecutableReaderAttribute('src', url, normalizedElementName)
+    );
   }
   if (!EXECUTABLE_URL_ATTRIBUTE_NAMES.has(normalizedName)) return false;
   const normalizedValue = Array.from(decodeHTML(String(value)))
