@@ -663,6 +663,23 @@ lang: zh-tw
     expect(result.errors).toEqual([]);
   });
 
+  it.each([
+    ['body negative number', '{-1}'],
+    ['body positive number', '{+1}'],
+    ['body negative bigint', '{-1n}'],
+    ['JSX prop negative number', '<LevelUpProgress current={-1} />'],
+    ['JSX prop positive number', '<LevelUpProgress current={+1} />'],
+    ['JSX prop negative bigint', '<LevelUpProgress current={-1n} />'],
+  ])('accepts a static signed numeric %s', (_label, expression) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
   it('recursively scans static LevelUp options for emoji', () => {
     const content = `---
 title: test

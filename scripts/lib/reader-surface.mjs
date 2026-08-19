@@ -391,6 +391,14 @@ function collectStaticStringValues(expression, values, bodyStartLine) {
     }
     return true;
   }
+  if (
+    expression?.type === 'UnaryExpression' &&
+    (expression.operator === '+' || expression.operator === '-') &&
+    expression.argument?.type === 'Literal' &&
+    (typeof expression.argument.value === 'number' || typeof expression.argument.value === 'bigint')
+  ) {
+    return true;
+  }
   if (expression?.type === 'TemplateLiteral') {
     if (expression.expressions?.length !== 0) return false;
     const cooked = expression.quasis?.map((quasi) => quasi.value?.cooked);
