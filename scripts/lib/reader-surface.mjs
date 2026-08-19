@@ -677,6 +677,51 @@ export const TRUSTED_CONTENT_COMPONENT_IMPORTS = Object.freeze(
 );
 const TRUSTED_CONTENT_COMPONENT_IMPORT_BY_SOURCE = new Map(TRUSTED_CONTENT_COMPONENT_IMPORTS);
 
+function decodeJavaScriptUnicodeEscapes(value) {
+  return String(value).replace(
+    /\\u(?:\{([0-9a-f]{1,6})\}|([0-9a-f]{4}))/giu,
+    (match, bracedCodePoint, fixedCodeUnit) => {
+      const hexadecimal = bracedCodePoint ?? fixedCodeUnit;
+      const codePoint = Number.parseInt(hexadecimal, 16);
+      if (codePoint > 0x10ffff) return match;
+      return bracedCodePoint ? String.fromCodePoint(codePoint) : String.fromCharCode(codePoint);
+    }
+  );
+}
+
+function decodeCssUnicodeEscapes(value) {
+  return String(value).replace(
+    /\\([0-9a-f]{1,6})(?:\r\n|[\t\n\f\r ])?/giu,
+    (match, hexadecimal) => {
+      const codePoint = Number.parseInt(hexadecimal, 16);
+      return codePoint === 0 || codePoint > 0x10ffff ? '\uFFFD' : String.fromCodePoint(codePoint);
+    }
+  );
+}
+
+export function findTrustedComponentEmojiSequences(source) {
+  const htmlDecoded = decodeHTML(String(source));
+  const candidates = new Set([
+    String(source),
+    htmlDecoded,
+    decodeJavaScriptUnicodeEscapes(source),
+    decodeJavaScriptUnicodeEscapes(htmlDecoded),
+    decodeCssUnicodeEscapes(source),
+    decodeCssUnicodeEscapes(htmlDecoded),
+  ]);
+  const findings = [];
+  const seen = new Set();
+  for (const candidate of candidates) {
+    for (const match of findEmojiSequences(candidate)) {
+      const key = `${match.emoji}\0${match.index}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      findings.push(match);
+    }
+  }
+  return findings;
+}
+
 function isTrustedRasterImportSource(source) {
   return /^(?:\.{1,2}\/).+\.(?:avif|gif|jpe?g|png|webp)$/iu.test(source);
 }
@@ -822,6 +867,12 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
     return unsafeSrcsetCandidateRanges(value, normalizedElementName).length > 0;
   }
   if (!EXECUTABLE_URL_ATTRIBUTE_NAMES.has(normalizedName)) return false;
+  if (
+    (normalizedName === 'src' && /^(?:iframe|frame|embed)$/u.test(normalizedElementName)) ||
+    (normalizedName === 'data' && normalizedElementName === 'object')
+  ) {
+    return true;
+  }
   const normalizedValue = Array.from(decodeHTML(String(value)))
     .filter((character) => {
       const codePoint = character.codePointAt(0);
@@ -837,12 +888,6 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
         /^(?:img|input|source|iframe|frame|embed|postimage)$/u.test(normalizedElementName)) ||
       (/^(?:href|xlink:href|xlinkhref)$/u.test(normalizedName) &&
         /^(?:image|use)$/u.test(normalizedElementName)))
-  ) {
-    return true;
-  }
-  if (
-    /^(?:iframe|frame|object|embed)$/u.test(normalizedElementName) &&
-    normalizedValue.startsWith('data:')
   ) {
     return true;
   }

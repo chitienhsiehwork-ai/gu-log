@@ -11,6 +11,7 @@ import {
 } from '../scripts/lib/reader-revision-core.mjs';
 import {
   collectReaderSurfaceLineRecords,
+  findTrustedComponentEmojiSequences,
   TRUSTED_CONTENT_COMPONENT_IMPORTS,
 } from '../scripts/lib/reader-surface.mjs';
 import {
@@ -412,6 +413,10 @@ lang: zh-tw
     ],
     ['Markdown linked SVG image', MARKDOWN_POST_PATH, '<img src="/emoji.svg" alt="safe">'],
     ['MDX linked SVG image', POST_PATH, '<PostImage src="/emoji.svg" alt="safe" />'],
+    ['Markdown linked iframe document', MARKDOWN_POST_PATH, '<iframe src="/emoji.html"></iframe>'],
+    ['MDX linked frame document', POST_PATH, '<frame src="/emoji.html" />'],
+    ['Markdown linked object document', MARKDOWN_POST_PATH, '<object data="/emoji.html"></object>'],
+    ['MDX linked embed document', POST_PATH, '<embed src="/emoji.html" />'],
     ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
     ['MDX bound CSS module import', POST_PATH, "import styles from './emoji.module.css';"],
     [
@@ -472,13 +477,23 @@ lang: zh-tw
     expect(result.errors).toEqual([]);
   });
 
-  it('keeps every trusted component source free of Unicode emoji', () => {
+  it.each([
+    ['HTML decimal entity', '<span>&#128512;</span>'],
+    ['HTML hexadecimal entity', '<span>&#x1F600;</span>'],
+    ['CSS escape', String.raw`<style>.x::after { content: "\1F600" }</style>`],
+    ['JavaScript code-point escape', String.raw`const icon = "\u{1F600}";`],
+    ['JavaScript surrogate escapes', String.raw`const icon = "\uD83D\uDE00";`],
+  ])('detects encoded emoji in trusted component source via %s', (_label, source) => {
+    expect(findTrustedComponentEmojiSequences(source).map((match) => match.emoji)).toContain('😀');
+  });
+
+  it('keeps every trusted component source free of encoded or literal Unicode emoji', () => {
     const findings = TRUSTED_CONTENT_COMPONENT_IMPORTS.flatMap(([source, componentName]) => {
       const componentSource = fs.readFileSync(
         path.resolve(REPO_ROOT, 'src/content/posts', source),
         'utf8'
       );
-      return findEmojiSequences(componentSource).map((match) => ({
+      return findTrustedComponentEmojiSequences(componentSource).map((match) => ({
         componentName,
         emoji: match.emoji,
       }));
