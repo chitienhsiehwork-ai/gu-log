@@ -262,6 +262,12 @@ function collectBodyRecords(body, bodyStartLine) {
   const tree = createProcessor({ format: 'mdx' }).parse(body);
   const bodyLines = body.split('\n');
   const records = [];
+  const definitions = new Map();
+
+  walk(tree, (node) => {
+    if (node.type !== 'definition' || definitions.has(node.identifier)) return;
+    definitions.set(node.identifier, node);
+  });
 
   function sourceLocation(node) {
     const startLine = node.position?.start?.line;
@@ -325,6 +331,81 @@ function collectBodyRecords(body, bodyStartLine) {
     });
   }
 
+  function definitionTitleSourceLines(definition) {
+    const startOffset = definition.position?.start?.offset;
+    const endOffset = definition.position?.end?.offset;
+    const startLine = definition.position?.start?.line;
+    if (
+      !Number.isInteger(startOffset) ||
+      !Number.isInteger(endOffset) ||
+      !Number.isInteger(startLine)
+    ) {
+      return sourceLocation(definition).sourceLines;
+    }
+
+    const source = body.slice(startOffset, endOffset).trimEnd();
+    const closing = source.at(-1);
+    let openingIndex = -1;
+    if (closing === '"' || closing === "'") {
+      for (let index = source.length - 2; index >= 0; index -= 1) {
+        if (source[index] !== closing) continue;
+        let backslashes = 0;
+        for (let cursor = index - 1; cursor >= 0 && source[cursor] === '\\'; cursor -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 === 0) {
+          openingIndex = index;
+          break;
+        }
+      }
+    } else if (closing === ')') {
+      let depth = 1;
+      for (let index = source.length - 2; index >= 0; index -= 1) {
+        let backslashes = 0;
+        for (let cursor = index - 1; cursor >= 0 && source[cursor] === '\\'; cursor -= 1) {
+          backslashes += 1;
+        }
+        if (backslashes % 2 !== 0) continue;
+        if (source[index] === ')') depth += 1;
+        else if (source[index] === '(') {
+          depth -= 1;
+          if (depth === 0) {
+            openingIndex = index;
+            break;
+          }
+        }
+      }
+    }
+    if (openingIndex < 0) return sourceLocation(definition).sourceLines;
+
+    const precedingLines = source.slice(0, openingIndex).split('\n').length - 1;
+    const titleLineCount = source.slice(openingIndex).split('\n').length;
+    const firstLine = bodyStartLine + startLine - 1 + precedingLines;
+    return new Set(Array.from({ length: titleLineCount }, (_unused, index) => firstLine + index));
+  }
+
+  function pushReferenceTitle(node) {
+    const definition = definitions.get(node.identifier);
+    if (!definition?.title) return;
+    const definitionLines = [...definitionTitleSourceLines(definition)];
+    const referenceLines = sourceLocation(node).sourceLines;
+    const titleLines = definition.title.split('\n');
+    if (titleLines.length !== definitionLines.length) {
+      pushValue(definition.title, definition, 0, new Set([...definitionLines, ...referenceLines]));
+      return;
+    }
+    for (const [index, line] of titleLines.entries()) {
+      if (line.trim() === '') continue;
+      const sourceLine = definitionLines[index];
+      records.push({
+        canonicalText: line,
+        surfaceKind: 'mdx',
+        sourceLine,
+        sourceLines: new Set([sourceLine, ...referenceLines]),
+      });
+    }
+  }
+
   walk(tree, (node) => {
     if (isNonRenderingNode(node)) return;
     if (node.type === 'text' || node.type === 'inlineCode') {
@@ -342,8 +423,17 @@ function collectBodyRecords(body, bodyStartLine) {
       pushValue(node.title, node);
       return;
     }
+    if (node.type === 'imageReference') {
+      pushValue(node.alt, node);
+      pushReferenceTitle(node);
+      return;
+    }
     if (node.type === 'link') {
       pushValue(node.title, node);
+      return;
+    }
+    if (node.type === 'linkReference') {
+      pushReferenceTitle(node);
       return;
     }
     if (node.type === 'html') {

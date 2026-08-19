@@ -255,7 +255,12 @@ describe('Unicode emoji and kaomoji boundary', () => {
       '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}',
       ['\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}'],
     ],
-  ])('detects %s as one sequence', (_label, text, expected) => {
+    ['text-default modifier base', '☝🏽', ['☝🏽']],
+    ['text-default modifier base with VS16', '✌️🏽', ['✌️🏽']],
+    ['modified ZWJ sequence', '👩🏽‍💻', ['👩🏽‍💻']],
+    ['non-modifier base followed by modifier', '🚀🏽', ['🚀', '🏽']],
+    ['invalid modifier ZWJ chain', '🚀🏽‍👨', ['🚀', '🏽', '👨']],
+  ])('tokenizes %s into complete emoji sequences', (_label, text, expected) => {
     expect(findEmojiSequences(text).map((match) => match.emoji)).toEqual(expected);
   });
 
@@ -319,6 +324,93 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
       changedLines: [changedLine],
     });
     expect(result.errors.join('\n')).toContain('未授權 emoji');
+  });
+
+  it('scans reference-style image alt text and title from both physical source sites', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+![safe alt][pic]
+
+[pic]: /x "❤️"
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    const titleRecord = records.find((record) => record.canonicalText === '❤️');
+    expect([...(titleRecord?.sourceLines ?? [])]).toEqual([7, 5]);
+
+    for (const changedLine of [5, 7]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji');
+    }
+
+    const emojiAlt = content.replace('safe alt', '😀').replace(' "❤️"', '');
+    const altResult = checkFixture({
+      current: { [POST_PATH]: emojiAlt },
+      changedContent: emojiAlt,
+      changedLines: [5],
+    });
+    expect(altResult.errors.join('\n')).toContain('未授權 emoji');
+  });
+
+  it('scans a reference-style link title from the use and definition lines', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+[safe link][pic]
+
+[pic]: /x "❤️"
+`;
+    for (const changedLine of [5, 7]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji');
+    }
+  });
+
+  it('keeps a safe multiline reference destination separate from its legacy title', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+![safe alt][pic]
+
+[pic]: /x
+  "safe title
+  legacy ❤️"
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    const safeTitleRecord = records.find((record) => record.canonicalText === 'safe title');
+    const emojiTitleRecord = records.find((record) => record.canonicalText === 'legacy ❤️');
+    expect([...(safeTitleRecord?.sourceLines ?? [])]).toEqual([8, 5]);
+    expect(emojiTitleRecord).toMatchObject({ sourceLine: 9 });
+    expect([...(emojiTitleRecord?.sourceLines ?? [])]).toEqual([9, 5]);
+
+    for (const changedLine of [7, 8]) {
+      const safeResult = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(safeResult.errors).toEqual([]);
+    }
+
+    for (const changedLine of [5, 9]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji');
+    }
   });
 
   it.each([

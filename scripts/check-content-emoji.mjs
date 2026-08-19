@@ -12,12 +12,14 @@ const ALLOWLIST_PATH = 'quality/content-emoji-allowlist.json';
 const APPROVAL_CORPUS_PATH = 'docs/shroomdog-editorial-feedback.md';
 
 const TAG_FLAG_SEQUENCE = '\\u{1F3F4}[\\u{E0061}-\\u{E007A}]+\\u{E007F}';
-const EMOJI_JOIN_ATOM = '(?:\\p{Extended_Pictographic}\\uFE0F?)(?:\\p{Emoji_Modifier})?';
-const EMOJI_ATOM =
-  '(?:(?:\\p{Emoji_Presentation}\\uFE0F?|\\p{Emoji}\\uFE0F|[♥♡❤])(?:\\p{Emoji_Modifier})?)';
+const EMOJI_MODIFIED_ATOM = '\\p{Emoji_Modifier_Base}\\uFE0F?\\p{Emoji_Modifier}';
+const EMOJI_DEFAULT_ATOM =
+  '(?:(?!\\p{Emoji_Modifier})(?:\\p{Emoji_Presentation}\\uFE0F?|\\p{Emoji}\\uFE0F)|[♥♡❤])';
+const EMOJI_JOIN_ATOM = `(?:${EMOJI_MODIFIED_ATOM}|\\p{Extended_Pictographic}\\uFE0F?)`;
+const EMOJI_ATOM = `(?:${EMOJI_MODIFIED_ATOM}|${EMOJI_DEFAULT_ATOM})`;
 const EMOJI_SEQUENCE = `${EMOJI_ATOM}(?:\\u200D${EMOJI_JOIN_ATOM})*`;
 const EMOJI_RE = new RegExp(
-  `(?:${TAG_FLAG_SEQUENCE}|\\p{Regional_Indicator}{2}|[#*0-9]\\uFE0F?\\u20E3|${EMOJI_SEQUENCE})`,
+  `(?:${TAG_FLAG_SEQUENCE}|\\p{Regional_Indicator}{2}|[#*0-9]\\uFE0F?\\u20E3|${EMOJI_SEQUENCE}|\\p{Emoji_Modifier})`,
   'gu'
 );
 const KAOMOJI_TEXT_EMOJI_OVERLAP = new Set(['♥', '♡', '❤']);
