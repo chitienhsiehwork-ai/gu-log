@@ -283,7 +283,7 @@ test.describe('Content Integrity: Model Signature', () => {
   test('GIVEN all posts WHEN checking frontmatter THEN every post should have translatedBy (model signature)', async () => {
     const posts = getAllPosts();
     // Every post carries a model signature (translatedBy = model + harness).
-    // GP/MP translations say "translated by"; SD/Lv originals say "written by"
+    // GP translation says "translated by"; MP/SD/Lv writing says "written by"
     // (the post page picks the wording by ticketId prefix). The schema enforces
     // this for all posts — see src/content.config.ts.
     const missing = posts.filter((p) => p.ticketId && !p.hasTranslatedBy);

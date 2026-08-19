@@ -98,7 +98,7 @@ func TestRender_Write_WithAngleAndCustomSource(t *testing.T) {
 }
 
 func TestRender_Review(t *testing.T) {
-	out, err := Render("review", ReviewData{TicketID: "MP-278"})
+	out, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -108,8 +108,8 @@ func TestRender_Review(t *testing.T) {
 	if !strings.Contains(out, "MP-278") {
 		t.Errorf("missing ticket id in review prompt")
 	}
-	// All 12 checklist items must survive rendering.
-	for i := 1; i <= 12; i++ {
+	// All MP checklist items must survive rendering without inheriting GP-only items.
+	for i := 1; i <= 11; i++ {
 		needle := "\n" + itoa(i) + "."
 		if !strings.Contains(out, needle) {
 			t.Errorf("checklist item %d missing from review prompt", i)
@@ -118,7 +118,7 @@ func TestRender_Review(t *testing.T) {
 }
 
 func TestRender_Refine(t *testing.T) {
-	out, err := Render("refine", RefineData{TicketID: "GP-170"})
+	out, err := Render("refine", RefineData{Prefix: "GP", TicketID: "GP-170"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -139,6 +139,7 @@ func TestRender_Refine(t *testing.T) {
 
 func TestRender_Refine_WithAngle(t *testing.T) {
 	out, err := Render("refine", RefineData{
+		Prefix:   "GP",
 		TicketID: "GP-PENDING",
 		Angle:    "Focus on Task Flow while introducing the others.",
 	})
@@ -153,6 +154,133 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in rendered refine prompt with angle:\n---\n%s\n---", want, out)
 		}
+	}
+}
+
+func TestRender_MPWriteContractAllowsCloseOrFarFormAndRequiresGrounding(t *testing.T) {
+	out, err := Render("write", WriteData{
+		Prefix:         "MP",
+		TicketID:       "MP-PENDING",
+		OriginalDate:   "2026-08-16",
+		TranslatedDate: "2026-08-16",
+		SourceField:    "Source Author",
+		TweetURL:       "https://example.com/source",
+		StyleGuide:     "GUIDE",
+		Source:         "SOURCE",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	for _, want := range []string{
+		"Mogu owns the body voice",
+		"minimum editorial distance",
+		"MAY preserve most source coverage and order",
+		"MAY also omit whole claims",
+		"does not inherit GP's promise",
+		"complete claim closure",
+		"correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
+		"must not attribute those additions to the source author",
+		"Do not transfer the source author's experiments, teams, or life events to Mogu",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences are valid",
+		"Do not fabricate plausible human work, travel, relationship, purchase",
+		"A complete MP needs no MoguNote",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("MP write prompt missing %q", want)
+		}
+	}
+	for _, forbidden := range []string{
+		"Cover ALL of it",
+		"Cover ALL tweets",
+		"Do not fabricate facts, quotes, numbers, causality, citations, or lived experience",
+	} {
+		if strings.Contains(out, forbidden) {
+			t.Errorf("MP write prompt still requires translation completeness via %q", forbidden)
+		}
+	}
+}
+
+func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.T) {
+	review, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
+	if err != nil {
+		t.Fatalf("Render review: %v", err)
+	}
+	refine, err := Render("refine", RefineData{Prefix: "MP", TicketID: "MP-278"})
+	if err != nil {
+		t.Fatalf("Render refine: %v", err)
+	}
+	for _, want := range []string{
+		"may preserve most source coverage/order in a close translation/rewrite",
+		"There is no minimum editorial distance",
+		"do not score closeness or distance itself",
+		"does not inherit GP fidelity promises",
+		"Mogu may synthesize, disagree, extend, or infer in the body",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
+		"do not require, add, or reward one by count",
+	} {
+		if !strings.Contains(review, want) {
+			t.Errorf("MP review prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		"a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid",
+		"rewrite solely because the draft is too close to or too far from the source",
+		"speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
+		"Do not add one merely because the article has none",
+	} {
+		if !strings.Contains(refine, want) {
+			t.Errorf("MP refine prompt missing %q", want)
+		}
+	}
+	if strings.Contains(review, "Coverage Completeness") {
+		t.Fatal("MP review prompt still includes translation completeness")
+	}
+	for _, forbidden := range []string{
+		"no hallucinated claims beyond source context",
+		"every number in translation must trace back to source",
+		"source limitations, caveats, and conditions must be preserved",
+		"conclusion must not introduce claims beyond source material",
+		"all commentary goes through MoguNote",
+	} {
+		if strings.Contains(review, forbidden) {
+			t.Errorf("MP review prompt still includes GP-only rule %q", forbidden)
+		}
+	}
+}
+
+func TestRender_GPWriteContractKeepsTranslationCompleteness(t *testing.T) {
+	out, err := Render("write", WriteData{
+		Prefix:         "GP",
+		TicketID:       "GP-PENDING",
+		OriginalDate:   "2026-08-16",
+		TranslatedDate: "2026-08-16",
+		SourceField:    "Source Author",
+		TweetURL:       "https://example.com/source",
+		StyleGuide:     "GUIDE",
+		Source:         "SOURCE",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	for _, want := range []string{
+		"Cover ALL of it",
+		"Cover ALL tweets",
+		"Put Mogu/gu-log opinions",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("GP write prompt lost translation boundary %q", want)
+		}
+	}
+	if strings.Contains(out, "MAY omit whole claims") {
+		t.Fatal("GP write prompt inherited MP selection freedom")
 	}
 }
 
