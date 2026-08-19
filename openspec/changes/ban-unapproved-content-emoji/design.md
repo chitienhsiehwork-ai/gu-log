@@ -35,7 +35,7 @@ reader-surface library 擁有 reader-visible key 清單與 MDX 可見行 project
 
 ### Dynamic MDX expression 採靜態邊界，無法解析就 fail closed
 
-reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般 MDX 文字、quoted JSX attribute、直接 string literal、沒有插值的 template literal，以及只含 literal value 的 array／object。字串值照常解碼並掃描 emoji；number、boolean 與 null 確定不會產生 emoji，直接忽略。每筆解碼值保留實際 MDX node／attribute 的 source span，避免 escaped newline 或 character reference 把 rendered newline 誤當成另一條 source line。
+reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般 MDX 文字、quoted JSX attribute、直接 string literal、沒有插值的 template literal，以及只含 literal value 的 array／object。字串 value 與非 computed quoted string key 照常解碼並掃描 emoji；number、boolean 與 null 確定不會產生 emoji，直接忽略。walker 讓每個 literal 保留自己的 ESTree source span；只有 AST 缺少 position 時才保守退回外層 expression／attribute span。這既避免 escaped newline 把 rendered newline 誤當成另一條 source line，也不會因多行 prop 的安全行變更而掃到另一條未修改的歷史 emoji literal。
 
 其他會影響讀者可見內容的 expression，包含 concatenation、identifier、function call、interpolation、tagged template 與 spread，不由 validator 執行或推演。parser 只保留該 expression 的 source line record；如果該行在本次 diff 被新增或修改，gate 以檔案與行號報錯，要求改成可靜態檢查的 literal。這個邊界只是純 static literal walker，不建立通用 JavaScript evaluator 或會逐漸膨脹的部分 interpreter。
 
@@ -57,7 +57,7 @@ reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般
 
 source translator prompt 會明定：裝飾性 emoji 不進 `translation_mdx`；若符號承載可辨識意思，改用自然文字翻出。source reviewer 也使用相同邊界，避免把合規省略誤報成 fidelity loss；英文 sidecar prompt 與人工翻譯指南同樣不直接復原任何 Unicode emoji 字形。這三個自動化角色都不接收 approval context，也不描述不可達的保留分支。
 
-若 ShroomDog 已明確核准指定 occurrence，字形只在 pipeline 完成後以窄範圍 editorial patch 加回，最後由 executable allowlist gate 驗證。這讓 automated translation 與 exact exception 各有單一、可達的責任邊界。
+本變更明確不替 GP automated lane 實作 glyph 保留例外；自動 GP 與英文 sidecar 一律省略裝飾字形或把必要語意寫成文字。`editorial-charter` 的 exact allowlist 仍是 top-level `MAY` 能力，可供已實際接線的非 GP automated lane 使用，但不承諾每條 pipeline 都支援。這避免建立會在 canonical body projection 封存後破壞 publish manifest hash 的 post-processing lane。
 
 GP source translator 與 source reviewer 的 prompt contract 會 bump 版本，使 role-profile fingerprint 失效；舊 publish manifest 不能被新的 runtime 誤用。English sidecar 不屬於現行 GP runtime profile，因此不假稱它會改 manifest fingerprint；它的 emoji 邊界由 prompt rendering test、最終 content gate 與人工翻譯指南鎖住。GP canonical body projection 本身不做全域 emoji 正規化，因為 projection 的工作仍是證明 enrichment 沒改 frozen translation，而不是偷偷改正文。
 

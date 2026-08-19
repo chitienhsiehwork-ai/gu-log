@@ -354,9 +354,10 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
       changedContent: content,
       changedLines: [5],
     });
-    expect(result.errors.join('\n')).toContain(
-      `${POST_PATH}:5 無法靜態解析讀者可見 MDX expression`
-    );
+    const errors = result.errors.join('\n');
+    expect(errors).toContain(`${POST_PATH}:5 無法靜態解析讀者可見 MDX expression`);
+    expect(errors).toContain('一般文字或純 static literal tree');
+    expect(errors).toContain('identifier、call、spread、interpolation 與 tagged template');
   });
 
   it('ignores an ESTree-confirmed line-comment-only expression', () => {
@@ -411,6 +412,10 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
     ['identifier', '{readerLabel}'],
     ['function call', '{renderLabel()}'],
     ['component prop identifier', '<Card label={readerLabel} />'],
+    ['computed object key', '{{ [readerLabel]: true }}'],
+    ['object spread', '{{ ...readerLabels }}'],
+    ['component prop computed key', '<Card labels={{ [readerLabel]: true }} />'],
+    ['component prop object spread', '<Card labels={{ ...readerLabels }} />'],
   ])('fails closed for a changed reader-visible %s', (_label, expression) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
     const result = checkFixture({
@@ -421,6 +426,19 @@ describe('added-line ratchet and exact occurrence allowlist', () => {
     expect(result.errors.join('\n')).toContain(
       `${POST_PATH}:5 無法靜態解析讀者可見 MDX expression`
     );
+  });
+
+  it.each([
+    ['body object', '{{ "❤️": true }}'],
+    ['JSX prop object', '<Card labels={{ "❤️": true }} />'],
+  ])('scans a quoted string key in a static %s', (_label, expression) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${expression}\n`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('未授權 emoji');
   });
 
   it('accepts the existing LevelUp static literal authoring contract', () => {
@@ -463,6 +481,50 @@ lang: zh-tw
       current: { [POST_PATH]: content },
       changedContent: content,
       changedLines: [8],
+    });
+    expect(result.errors.join('\n')).toContain('未授權 emoji');
+  });
+
+  it('keeps an untouched legacy emoji literal grandfathered within a multi-line prop', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<LevelUpQuiz
+  options={[
+    { label: "A", text: "歷史 🤷" },
+    { label: "B", text: "只改安全答案" },
+  ]}
+/>
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    const legacyRecord = records.find((record) => record.canonicalText.includes('歷史 🤷'));
+    expect([...(legacyRecord?.sourceLines ?? [])]).toEqual([7]);
+
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [8],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('blocks a changed legacy emoji literal within a multi-line prop', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<LevelUpQuiz
+  options={[
+    { label: "A", text: "歷史 🤷" },
+    { label: "B", text: "安全答案" },
+  ]}
+/>
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [7],
     });
     expect(result.errors.join('\n')).toContain('未授權 emoji');
   });

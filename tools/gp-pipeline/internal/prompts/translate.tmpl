@@ -19,10 +19,9 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
   the reader-visible emoji rule below.
 - Do not restore any Unicode emoji glyph from the original source. Omit decorative glyphs;
   when a glyph carries meaning that is not otherwise expressed, write that meaning
-  in natural English. Do not infer exceptions: an explicitly approved glyph is
-  restored only through a post-pipeline narrow editorial patch, then verified by
-  the final executable allowlist gate. Kaomoji are separate text-based brand
-  language and must remain unchanged.
+  in natural English. This automated GP sidecar lane has no glyph-retention exception:
+  do not preserve or restore a Unicode emoji glyph. Kaomoji are separate text-based
+  brand language and must remain unchanged.
 - Preserve internal links, except rewrite `/glossary#...` links to `/en/glossary#...`
   in English prose. The pipeline also enforces this language-specific glossary
   target deterministically.

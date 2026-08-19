@@ -161,10 +161,24 @@ function decodeNumericCharacterReferences(value) {
   });
 }
 
-function collectStaticStringValues(expression, values) {
+function sourceLinesForEstreeNode(node, bodyStartLine) {
+  const startLine = node?.loc?.start?.line;
+  const endLine = node?.loc?.end?.line;
+  if (!Number.isInteger(startLine) || !Number.isInteger(endLine)) return null;
+  const sourceLine = bodyStartLine + startLine - 1;
+  return new Set(
+    Array.from({ length: endLine - startLine + 1 }, (_unused, index) => sourceLine + index)
+  );
+}
+
+function collectStaticStringValues(expression, values, bodyStartLine) {
   if (expression?.type === 'Literal') {
-    if (typeof expression.value === 'string') values.push(expression.value);
-    else if (
+    if (typeof expression.value === 'string') {
+      values.push({
+        value: expression.value,
+        sourceLines: sourceLinesForEstreeNode(expression, bodyStartLine),
+      });
+    } else if (
       expression.value !== null &&
       typeof expression.value !== 'number' &&
       typeof expression.value !== 'boolean' &&
@@ -178,13 +192,19 @@ function collectStaticStringValues(expression, values) {
     if (expression.expressions?.length !== 0) return false;
     const cooked = expression.quasis?.map((quasi) => quasi.value?.cooked);
     if (!cooked || cooked.some((value) => typeof value !== 'string')) return false;
-    values.push(cooked.join(''));
+    values.push({
+      value: cooked.join(''),
+      sourceLines: sourceLinesForEstreeNode(expression, bodyStartLine),
+    });
     return true;
   }
   if (expression?.type === 'ArrayExpression') {
     for (const element of expression.elements ?? []) {
       if (element === null) continue;
-      if (element.type === 'SpreadElement' || !collectStaticStringValues(element, values)) {
+      if (
+        element.type === 'SpreadElement' ||
+        !collectStaticStringValues(element, values, bodyStartLine)
+      ) {
         return false;
       }
     }
@@ -197,9 +217,15 @@ function collectStaticStringValues(expression, values) {
         property.kind !== 'init' ||
         property.method ||
         property.computed ||
-        !collectStaticStringValues(property.value, values)
+        !collectStaticStringValues(property.value, values, bodyStartLine)
       ) {
         return false;
+      }
+      if (property.key.type === 'Literal' && typeof property.key.value === 'string') {
+        values.push({
+          value: property.key.value,
+          sourceLines: sourceLinesForEstreeNode(property.key, bodyStartLine),
+        });
       }
     }
     return true;
@@ -207,13 +233,13 @@ function collectStaticStringValues(expression, values) {
   return false;
 }
 
-function staticStringsFromExpression(node) {
+function staticStringsFromExpression(node, bodyStartLine) {
   const program = node?.data?.estree;
   if (program?.type !== 'Program' || program.body?.length !== 1) return null;
   const statement = program.body[0];
   if (statement?.type !== 'ExpressionStatement') return null;
   const values = [];
-  return collectStaticStringValues(statement.expression, values) ? values : null;
+  return collectStaticStringValues(statement.expression, values, bodyStartLine) ? values : null;
 }
 
 function collectBodyRecords(body, bodyStartLine) {
@@ -236,9 +262,13 @@ function collectBodyRecords(body, bodyStartLine) {
     };
   }
 
-  function pushValue(value, node, lineOffset = 0, useWholeSourceSpan = false) {
+  function pushValue(value, node, lineOffset = 0, sourceLinesOverride = null) {
     if (typeof value !== 'string' || value === '') return;
-    const { sourceLine, sourceLines } = sourceLocation(node);
+    const fallbackLocation = sourceLocation(node);
+    const sourceLines = sourceLinesOverride ?? fallbackLocation.sourceLines;
+    const sourceLine = sourceLinesOverride
+      ? sourceLines.values().next().value
+      : fallbackLocation.sourceLine;
     for (const [index, line] of value.split('\n').entries()) {
       if (line.trim() === '') continue;
       const renderedLine = sourceLine + lineOffset + index;
@@ -247,11 +277,20 @@ function collectBodyRecords(body, bodyStartLine) {
         surfaceKind: 'mdx',
         sourceLine: sourceLines.has(renderedLine) ? renderedLine : sourceLine,
         sourceLines:
-          useWholeSourceSpan || !sourceLines.has(renderedLine)
+          sourceLinesOverride || !sourceLines.has(renderedLine)
             ? sourceLines
             : new Set([renderedLine]),
       });
     }
+  }
+
+  function pushStaticValue(record, fallbackNode) {
+    pushValue(
+      record.value,
+      fallbackNode,
+      0,
+      record.sourceLines ?? sourceLocation(fallbackNode).sourceLines
+    );
   }
 
   function pushUnresolvedExpression(node, surfaceKind) {
@@ -296,9 +335,9 @@ function collectBodyRecords(body, bodyStartLine) {
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
-      const staticValues = staticStringsFromExpression(node);
+      const staticValues = staticStringsFromExpression(node, bodyStartLine);
       if (staticValues === null) pushUnresolvedExpression(node, 'mdx.expression');
-      else for (const value of staticValues) pushValue(value, node, 0, true);
+      else for (const value of staticValues) pushStaticValue(value, node);
       return;
     }
     if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
@@ -310,10 +349,10 @@ function collectBodyRecords(body, bodyStartLine) {
         if (attribute.type !== 'mdxJsxAttribute') continue;
         if (typeof attribute.value === 'string') pushValue(attribute.value, attribute);
         else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
-          const staticValues = staticStringsFromExpression(attribute.value);
+          const staticValues = staticStringsFromExpression(attribute.value, bodyStartLine);
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
-          } else for (const value of staticValues) pushValue(value, attribute, 0, true);
+          } else for (const value of staticValues) pushStaticValue(value, attribute);
         }
       }
     }
