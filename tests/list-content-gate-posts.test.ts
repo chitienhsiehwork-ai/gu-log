@@ -20,6 +20,10 @@ function post(ticketId: string, marker: string, extra = ''): string {
   return `---\nticketId: "${ticketId}"\n---\n\n${body}\n${extra}`;
 }
 
+function postWithStatus(ticketId: string, marker: string, status: string, extra = ''): string {
+  return post(ticketId, marker, extra).replace('\n---\n\n', `\nstatus: ${status}\n---\n\n`);
+}
+
 function makeRepo(): string {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-content-gate-'));
   fs.mkdirSync(path.join(repo, 'src', 'content', 'posts'), { recursive: true });
@@ -94,6 +98,63 @@ describe('list-content-gate-posts fail-closed base contract', () => {
       git(repo, ['commit', '-qm', 'add unique post']);
 
       expect(runGate(repo)).toEqual([newFile]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('still gates reader prose whose lines start with a metadata key', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = 'src/content/posts/gp-1-metadata-like-prose.mdx';
+      fs.writeFileSync(
+        path.join(repo, file),
+        post('GP-1', 'stable-post', 'status: 這是讀者看得到的舊段落\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed baseline']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(
+        path.join(repo, file),
+        post('GP-1', 'stable-post', 'status: Scalable workflow for every reader\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'edit metadata-like reader prose']);
+
+      expect(runGate(repo)).toEqual([file]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('still exempts an allowed frontmatter change when body contains a metadata-like line', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = 'src/content/posts/gp-1-frontmatter-status.mdx';
+      fs.writeFileSync(
+        path.join(repo, file),
+        postWithStatus('GP-1', 'stable-post', 'active', 'status: reader prose stays unchanged\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed baseline']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(
+        path.join(repo, file),
+        postWithStatus(
+          'GP-1',
+          'stable-post',
+          'deprecated',
+          'status: reader prose stays unchanged\n'
+        )
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'deprecate post']);
+
+      expect(runGate(repo)).toEqual([]);
     } finally {
       fs.rmSync(repo, { recursive: true, force: true });
     }
