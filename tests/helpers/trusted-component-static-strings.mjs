@@ -9,6 +9,72 @@ function known(value) {
   return { known: true, value };
 }
 
+function evaluateBinaryOperator(operator, left, right) {
+  switch (operator) {
+    case '+':
+      return known(left + right);
+    case '-':
+      return known(left - right);
+    case '*':
+      return known(left * right);
+    case '/':
+      return known(left / right);
+    case '%':
+      return known(left % right);
+    case '**':
+      return known(left ** right);
+    case '<<':
+      return known(left << right);
+    case '>>':
+      return known(left >> right);
+    case '>>>':
+      return known(left >>> right);
+    case '|':
+      return known(left | right);
+    case '^':
+      return known(left ^ right);
+    case '&':
+      return known(left & right);
+    case '==':
+      return known(left == right);
+    case '!=':
+      return known(left != right);
+    case '===':
+      return known(left === right);
+    case '!==':
+      return known(left !== right);
+    case '<':
+      return known(left < right);
+    case '<=':
+      return known(left <= right);
+    case '>':
+      return known(left > right);
+    case '>=':
+      return known(left >= right);
+    default:
+      return UNKNOWN;
+  }
+}
+
+function evaluateUnaryOperator(operator, argument) {
+  switch (operator) {
+    case '+':
+      return known(+argument);
+    case '-':
+      return known(-argument);
+    case '!':
+      return known(!argument);
+    case '~':
+      return known(~argument);
+    case 'typeof':
+      return known(typeof argument);
+    case 'void':
+      return known(undefined);
+    default:
+      return UNKNOWN;
+  }
+}
+
 function evaluateStaticValue(node, bindings, resolving = new Set()) {
   if (!node) return UNKNOWN;
   if (
@@ -47,10 +113,32 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
     nextResolving.add(node.name);
     return evaluateStaticValue(binding, bindings, nextResolving);
   }
-  if (node.type === 'BinaryExpression' && node.operator === '+') {
+  if (node.type === 'BinaryExpression') {
     const left = evaluateStaticValue(node.left, bindings, resolving);
     const right = evaluateStaticValue(node.right, bindings, resolving);
-    return left.known && right.known ? known(left.value + right.value) : UNKNOWN;
+    return left.known && right.known
+      ? evaluateBinaryOperator(node.operator, left.value, right.value)
+      : UNKNOWN;
+  }
+  if (node.type === 'LogicalExpression') {
+    const left = evaluateStaticValue(node.left, bindings, resolving);
+    if (!left.known) return UNKNOWN;
+    if (node.operator === '&&') {
+      return left.value ? evaluateStaticValue(node.right, bindings, resolving) : left;
+    }
+    if (node.operator === '||') {
+      return left.value ? left : evaluateStaticValue(node.right, bindings, resolving);
+    }
+    if (node.operator === '??') {
+      return left.value === null || left.value === undefined
+        ? evaluateStaticValue(node.right, bindings, resolving)
+        : left;
+    }
+    return UNKNOWN;
+  }
+  if (node.type === 'UnaryExpression') {
+    const argument = evaluateStaticValue(node.argument, bindings, resolving);
+    return argument.known ? evaluateUnaryOperator(node.operator, argument.value) : UNKNOWN;
   }
   if (node.type === 'ConditionalExpression') {
     const test = evaluateStaticValue(node.test, bindings, resolving);
@@ -144,7 +232,9 @@ export function collectTrustedComponentStaticStrings(source, filePath = 'trusted
           'BinaryExpression',
           'CallExpression',
           'ConditionalExpression',
+          'LogicalExpression',
           'TemplateLiteral',
+          'UnaryExpression',
         ].includes(node.type)
       ) {
         return;

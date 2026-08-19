@@ -500,6 +500,7 @@ lang: zh-tw
     ['static String.concat', "'&#'.concat('128512;')"],
     ['static Array.join', "['&#', '128512;'].join('')"],
     ['static String.fromCodePoint', 'String.fromCodePoint(0x1f600)'],
+    ['static numeric calculation', 'String.fromCodePoint(128513 - 1)'],
   ])('projects trusted component %s before scanning', (_label, expression) => {
     const source = ['---', '---', `<Fragment set:html={${expression}} />`].join('\n');
     const projected = collectTrustedComponentStaticStrings(source);
@@ -532,6 +533,21 @@ lang: zh-tw
       '---',
       declaration,
       "const icon = prefix + '128512;';",
+      '---',
+      '<Fragment set:html={icon} />',
+    ].join('\n');
+    const projected = collectTrustedComponentStaticStrings(source);
+    const emoji = projected.flatMap((value) =>
+      findTrustedComponentEmojiSequences(value).map((match) => match.emoji)
+    );
+    expect(emoji).toContain('😀');
+  });
+
+  it('resolves numeric calculations through immutable trusted component bindings', () => {
+    const source = [
+      '---',
+      'const codePoint = 128513 - 1;',
+      'const icon = String.fromCodePoint(codePoint);',
       '---',
       '<Fragment set:html={icon} />',
     ].join('\n');
