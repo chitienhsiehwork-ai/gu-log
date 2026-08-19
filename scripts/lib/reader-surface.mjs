@@ -674,6 +674,7 @@ const EXECUTABLE_URL_ATTRIBUTE_NAMES = new Set([
   'data',
   'formaction',
   'href',
+  'poster',
   'src',
   'xlink:href',
   'xlinkhref',
@@ -690,7 +691,7 @@ function srcsetCandidateUrls(value) {
     let url = source.slice(start, index);
     const endedWithComma = url.endsWith(',');
     url = url.replace(/,+$/u, '');
-    if (url) urls.push(url);
+    if (url) urls.push({ url, start, end: start + url.length });
     if (endedWithComma) continue;
 
     let parentheses = 0;
@@ -707,6 +708,12 @@ function srcsetCandidateUrls(value) {
   return urls;
 }
 
+function unsafeSrcsetCandidateRanges(value, elementName = '') {
+  return srcsetCandidateUrls(value).filter(({ url }) =>
+    isExecutableReaderAttribute('src', url, elementName)
+  );
+}
+
 function isExecutableReaderAttribute(name, value = '', elementName = '') {
   const normalizedName = String(name).toLowerCase();
   const normalizedElementName = String(elementName).toLowerCase();
@@ -719,9 +726,7 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
     return true;
   }
   if (normalizedName === 'srcset') {
-    return srcsetCandidateUrls(value).some((url) =>
-      isExecutableReaderAttribute('src', url, normalizedElementName)
-    );
+    return unsafeSrcsetCandidateRanges(value, normalizedElementName).length > 0;
   }
   if (!EXECUTABLE_URL_ATTRIBUTE_NAMES.has(normalizedName)) return false;
   const normalizedValue = Array.from(decodeHTML(String(value)))
@@ -1074,7 +1079,28 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
-  function rawHtmlAttributeRanges(value, elementStartOffset, isTargetName) {
+  function pushUnsafePhysicalRanges(rawValue, firstSourceLine, ranges, surfaceKind) {
+    for (const range of ranges) {
+      const sourceLine =
+        firstSourceLine + (rawValue.slice(0, range.start).match(/\n/gu)?.length ?? 0);
+      const endSourceLine =
+        firstSourceLine + (rawValue.slice(0, range.end).match(/\n/gu)?.length ?? 0);
+      records.push({
+        canonicalText: '',
+        surfaceKind,
+        sourceLine,
+        sourceLines: new Set(
+          Array.from(
+            { length: endSourceLine - sourceLine + 1 },
+            (_unused, index) => sourceLine + index
+          )
+        ),
+        unsafeExecutable: rawValue.slice(range.start, range.end),
+      });
+    }
+  }
+
+  function rawHtmlAttributeRanges(value, elementStartOffset) {
     const ranges = [];
     let index = elementStartOffset;
     if (value[index] !== '<') return ranges;
@@ -1091,6 +1117,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       while (!/[\s=/>]/u.test(value[index] ?? '>')) index += 1;
       const name = value.slice(start, index).toLowerCase();
       let rawValue = '';
+      let valueStart = index;
       while (/\s/u.test(value[index] ?? '')) index += 1;
       if (value[index] === '=') {
         index += 1;
@@ -1098,17 +1125,17 @@ function collectBodyRecords(body, bodyStartLine, format) {
         const quote = value[index];
         if (quote === '"' || quote === "'") {
           index += 1;
-          const valueStart = index;
+          valueStart = index;
           while (index < value.length && value[index] !== quote) index += 1;
           rawValue = value.slice(valueStart, index);
           if (value[index] === quote) index += 1;
         } else {
-          const valueStart = index;
+          valueStart = index;
           while (!/[\s>]/u.test(value[index] ?? '>')) index += 1;
           rawValue = value.slice(valueStart, index);
         }
       }
-      if (isTargetName(name, rawValue)) ranges.push({ start, end: index, name });
+      ranges.push({ start, end: index, name, rawValue, valueStart });
       if (index === start) index += 1;
     }
     return ranges;
@@ -1148,11 +1175,32 @@ function collectBodyRecords(body, bodyStartLine, format) {
         return false;
       }
 
-      for (const range of rawHtmlAttributeRanges(value, start, (name, rawValue) =>
-        isExecutableReaderAttribute(name, rawValue, htmlNode.tagName)
-      )) {
-        pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.executable');
-        executableRanges.push(range);
+      for (const attributeRange of rawHtmlAttributeRanges(value, start)) {
+        if (attributeRange.name === 'srcset') {
+          for (const candidateRange of unsafeSrcsetCandidateRanges(
+            attributeRange.rawValue,
+            htmlNode.tagName
+          )) {
+            const range = {
+              start: attributeRange.valueStart + candidateRange.start,
+              end: attributeRange.valueStart + candidateRange.end,
+            };
+            pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.executable');
+            executableRanges.push(range);
+          }
+          continue;
+        }
+        if (
+          !isExecutableReaderAttribute(
+            attributeRange.name,
+            attributeRange.rawValue,
+            htmlNode.tagName
+          )
+        ) {
+          continue;
+        }
+        pushRawHtmlUnsafeRange(value, node, attributeRange, 'html.attribute.executable');
+        executableRanges.push(attributeRange);
       }
     });
 
@@ -1436,6 +1484,20 @@ function collectBodyRecords(body, bodyStartLine, format) {
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
         const attributeName = String(attribute.name ?? '').toLowerCase();
+        const quotedSource =
+          typeof attribute.value === 'string' ? quotedAttributeSource(attribute) : null;
+        if (attributeName === 'srcset' && quotedSource) {
+          const unsafeRanges = unsafeSrcsetCandidateRanges(quotedSource.rawValue, node.name);
+          if (unsafeRanges.length > 0) {
+            pushUnsafePhysicalRanges(
+              quotedSource.rawValue,
+              quotedSource.firstSourceLine,
+              unsafeRanges,
+              'mdx.attribute.executable'
+            );
+            continue;
+          }
+        }
         if (
           isExecutableReaderAttribute(
             attributeName,
@@ -1447,7 +1509,6 @@ function collectBodyRecords(body, bodyStartLine, format) {
           continue;
         }
         if (typeof attribute.value === 'string') {
-          const quotedSource = quotedAttributeSource(attribute);
           if (
             !quotedSource ||
             !pushDecodedPhysicalValue(

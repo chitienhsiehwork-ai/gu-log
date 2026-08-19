@@ -373,6 +373,16 @@ lang: zh-tw
       POST_PATH,
       '<source srcSet="data:image/svg+xml;base64,PHN2Zz48dGV4dD7wn5iAPC90ZXh0Pjwvc3ZnPg== 1x" />',
     ],
+    [
+      'Markdown dangerous video poster',
+      MARKDOWN_POST_PATH,
+      '<video poster="data:image/svg+xml,%3Csvg%3E%3Ctext%3E%26%23128512%3B%3C/text%3E%3C/svg%3E"></video>',
+    ],
+    [
+      'MDX dangerous PostVideo poster',
+      POST_PATH,
+      '<PostVideo poster="data:image/svg+xml;base64,PHN2Zz48dGV4dD7wn5iAPC90ZXh0Pjwvc3ZnPg==" />',
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -460,6 +470,37 @@ lang: zh-tw
       changedLines: [5],
     });
     expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it('binds a multiline srcset failure only to the dangerous candidate line', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<img srcset="
+  /safe.png 1x,
+  data:image/svg+xml,%3Csvg%3E%3Ctext%3E%26%23128512%3B%3C/text%3E%3C/svg%3E 2x
+" alt="safe" />
+`;
+    for (const changedPath of [POST_PATH, MARKDOWN_POST_PATH]) {
+      const safeLineResult = checkFixture({
+        current: { [changedPath]: content },
+        changedPath,
+        changedContent: content,
+        changedLines: [6],
+      });
+      expect(safeLineResult.errors).toEqual([]);
+
+      const dangerousLineResult = checkFixture({
+        current: { [changedPath]: content },
+        changedPath,
+        changedContent: content,
+        changedLines: [7],
+      });
+      expect(dangerousLineResult.errors.join('\n')).toContain(
+        '無法靜態驗證可執行的 reader-visible markup'
+      );
+    }
   });
 
   it('binds an executable image reference destination to the use and definition lines', () => {
