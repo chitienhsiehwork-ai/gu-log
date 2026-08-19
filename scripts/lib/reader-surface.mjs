@@ -660,8 +660,18 @@ function stripHtmlCommentsPreservingLines(value) {
   return visibleValue;
 }
 
+function hasSideEffectOnlyImport(node) {
+  const program = node.data?.estree;
+  return (
+    program?.type === 'Program' &&
+    program.body?.some(
+      (statement) => statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0
+    )
+  );
+}
+
 function isNonRenderingNode(node) {
-  if (node.type === 'mdxjsEsm') return true;
+  if (node.type === 'mdxjsEsm') return !hasSideEffectOnlyImport(node);
   if (node.type === 'html') {
     return stripHtmlCommentsPreservingLines(node.value ?? '').trim() === '';
   }
@@ -1555,6 +1565,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
 
   walk(tree, (node) => {
     if (isNonRenderingNode(node)) return;
+    if (node.type === 'mdxjsEsm') {
+      pushUnsafeExecutable(node, 'mdx.esm.side-effect-import');
+      return;
+    }
     if (node.type === 'text' || node.type === 'inlineCode') {
       if (node.type === 'text' && pushDecodedPhysicalValue(node.value, node, rawSource(node)))
         return;

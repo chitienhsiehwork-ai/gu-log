@@ -393,6 +393,7 @@ lang: zh-tw
       POST_PATH,
       String.raw`<link rel="stylesheet" href="data:text/css,.emoji::after%7Bcontent:'\1F600'%7D" /><span className="emoji" />`,
     ],
+    ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -419,6 +420,7 @@ lang: zh-tw
       MARKDOWN_POST_PATH,
       '<img srcset="/safe.png 1x, /safe@2x.png 2x" alt="safe">',
     ],
+    ['MDX component binding import', POST_PATH, "import Note from './Note.astro';"],
   ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
