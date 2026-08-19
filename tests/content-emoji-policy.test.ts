@@ -600,6 +600,22 @@ lang: zh-tw
     expect(emoji).toContain('😀');
   });
 
+  it.each(['__proto__', 'constructor', 'prototype'])(
+    'does not model prototype-sensitive object key %s as an inert own property',
+    (key) => {
+      const source = [
+        '---',
+        `const parts = { ${key}: { prefix: '&#', suffix: '128512;' } };`,
+        'const icon = parts.prefix + parts.suffix;',
+        '---',
+        '<Fragment set:html={icon} />',
+      ].join('\n');
+      expect(() => collectTrustedComponentStaticStrings(source)).toThrow(
+        `prototype-sensitive static object key is not trusted: ${key}`
+      );
+    }
+  );
+
   it('keeps every trusted component source free of encoded or literal Unicode emoji', () => {
     const findings = TRUSTED_CONTENT_COMPONENT_IMPORTS.flatMap(([source, componentName]) => {
       const componentSource = fs.readFileSync(

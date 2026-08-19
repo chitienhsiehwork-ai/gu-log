@@ -4,6 +4,7 @@ import tseslint from 'typescript-eslint';
 const ASTRO_PARSER = eslintPluginAstro.configs.base.find((config) => config.languageOptions?.parser)
   .languageOptions.parser;
 const UNKNOWN = Object.freeze({ known: false });
+const PROTOTYPE_SENSITIVE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function known(value) {
   return { known: true, value };
@@ -81,7 +82,7 @@ function normalizeStaticPropertyKey(value) {
 
 function readStaticMember(receiver, key) {
   const property = normalizeStaticPropertyKey(key);
-  if (property === null || ['__proto__', 'constructor', 'prototype'].includes(property)) {
+  if (property === null || PROTOTYPE_SENSITIVE_KEYS.has(property)) {
     return UNKNOWN;
   }
   if (Array.isArray(receiver)) {
@@ -213,7 +214,9 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
           return UNKNOWN;
         }
         for (const [key, entry] of Object.entries(spread.value)) {
-          if (['__proto__', 'constructor', 'prototype'].includes(key)) return UNKNOWN;
+          if (PROTOTYPE_SENSITIVE_KEYS.has(key)) {
+            throw new Error(`prototype-sensitive static object key is not trusted: ${key}`);
+          }
           value[key] = entry;
         }
         continue;
@@ -225,7 +228,12 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
         : known(property.key.type === 'Identifier' ? property.key.name : property.key.value);
       const entry = evaluateStaticValue(property.value, bindings, resolving);
       const normalizedKey = key.known ? normalizeStaticPropertyKey(key.value) : null;
-      if (normalizedKey === null || !entry.known) return UNKNOWN;
+      if (normalizedKey === null || !entry.known) {
+        return UNKNOWN;
+      }
+      if (PROTOTYPE_SENSITIVE_KEYS.has(normalizedKey)) {
+        throw new Error(`prototype-sensitive static object key is not trusted: ${normalizedKey}`);
+      }
       value[normalizedKey] = entry.value;
     }
     return known(value);
