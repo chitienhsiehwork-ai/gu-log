@@ -665,10 +665,9 @@ function hasPotentiallyRenderingImport(node) {
   return (
     program?.type === 'Program' &&
     program.body?.some((statement) => {
-      if (statement.type !== 'ImportDeclaration') return false;
-      if (statement.specifiers?.length === 0) return true;
       const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
-      return /\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source);
+      if (/\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source)) return true;
+      return statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0;
     })
   );
 }

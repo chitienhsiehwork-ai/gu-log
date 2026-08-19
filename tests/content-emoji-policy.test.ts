@@ -395,6 +395,11 @@ lang: zh-tw
     ],
     ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
     ['MDX bound CSS module import', POST_PATH, "import styles from './emoji.module.css';"],
+    [
+      'MDX CSS module re-export',
+      POST_PATH,
+      "export { default as styles } from './emoji.module.css';",
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
