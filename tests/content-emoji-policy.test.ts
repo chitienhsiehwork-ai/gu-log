@@ -68,7 +68,6 @@ function checkFixture(options: {
   const root = options.root ?? fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-policy-'));
   writeApprovalCorpus(root);
   return checkContentChanges({
-    repoRoot: root,
     changes: [
       {
         path: options.changedPath ?? POST_PATH,
