@@ -82,6 +82,20 @@ export function protectKaomoji(text) {
   });
 }
 
+/**
+ * Return the exact UTF-16 spans recognized by the canonical kaomoji detector.
+ * Content policy gates use this to mask brand kaomoji before scanning Unicode
+ * emoji; keeping the detector here prevents the two boundaries from drifting.
+ */
+export function findKaomojiSpans(text) {
+  const spans = [];
+  for (const match of text.matchAll(POTENTIAL_KAOMOJI)) {
+    if (!KAOMOJI_CHARS.test(match[0])) continue;
+    spans.push({ start: match.index, end: match.index + match[0].length, text: match[0] });
+  }
+  return spans;
+}
+
 // Code points whose Unicode line-break class permits a break with the glyph
 // next to them even without a space: CJK ideographs, kana (full + halfwidth),
 // Hangul, CJK symbols/punct, Thai. Latin letters / ASCII punctuation / most

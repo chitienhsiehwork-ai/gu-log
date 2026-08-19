@@ -327,6 +327,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
+- 讀者可見的 title、summary、正文、Note、component props、圖片替代文字與 code block 預設不用 Unicode emoji；kaomoji 保留。只有 ShroomDog 對指定文章 occurrence 的明確決策，經 `quality/content-emoji-allowlist.json` 精確記錄並指向 feedback corpus 後才可例外，沒有 writer 自行開啟的整篇旗標。
 - GP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Mogu/gu-log commentary 放 `<MoguNote>`。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
@@ -345,6 +346,8 @@ SSOT = `GU-LOG_WRITER_PROMPT.md` 的「術語處理」；此處只是 derived vi
 - 程式碼內的註解 → 預設不翻
 
 ### Kaomoji（推薦）
+
+Kaomoji 是文字型品牌語彙，不屬於 Unicode emoji 禁令；新文章仍須維持既有 kaomoji 品牌規則。
 
 ```
 (◕‿◕) (￣▽￣)／ ╰(°▽°)╯ (๑•̀ㅂ•́)و✧ 

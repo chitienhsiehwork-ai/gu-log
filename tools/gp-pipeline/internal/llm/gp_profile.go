@@ -49,8 +49,8 @@ type gpRoleContract struct {
 }
 
 var executableGPRoleContracts = map[RuntimeRole]gpRoleContract{
-	RuntimeTranslator:     {Prompt: "source-translate-v1", Output: "source-translation-v1"},
-	RuntimeSourceReviewer: {Prompt: "source-review-v1", Output: "gate-envelope-v1"},
+	RuntimeTranslator:     {Prompt: "source-translate-v2", Output: "source-translation-v1"},
+	RuntimeSourceReviewer: {Prompt: "source-review-v2", Output: "gate-envelope-v1"},
 	RuntimeCorrector:      {Prompt: "bounded-correct-v1", Output: "bounded-patch-v1"},
 	RuntimeCommentary:     {Prompt: "commentary-candidates-v1", Output: "enrichment-candidates-v1"},
 	RuntimeVibeScorer:     {Prompt: "vibe-gate-v1", Output: "gate-envelope-v1"},

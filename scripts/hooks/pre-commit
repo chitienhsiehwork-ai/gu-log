@@ -26,6 +26,14 @@ while IFS= read -r -d '' file; do
     STAGED_POST_CHANGES+=("$file")
 done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
+# ─── Step -4: Reader-visible emoji ratchet ────────────────────────
+# Fail closed before any generator mutates the index. CI invokes this exact
+# executable with the PR base SHA, so detector and exception semantics cannot
+# drift between local commits and pull requests.
+echo "🚫 Content emoji policy: checking staged reader-visible lines..."
+node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
+echo ""
+
 # ─── Step -3: Regenerate post manifests for staged content changes ──
 # `post-versions.json` is derived from git history. Pre-commit runs before the
 # new commit exists, so the generator includes staged post touches to write the

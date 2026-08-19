@@ -33,6 +33,14 @@ shared library 擁有 frontmatter 解析、reader-visible key 清單與 MDX 可�
 
 相較於保存一份數百筆 legacy emoji baseline，diff ratchet 沒有會 drift 的大型快照，也自然形成 touch-to-clean 行為。相較於只比較每個檔案的 emoji 總數，它也不允許把舊 emoji 移到新句子來規避檢查。
 
+### Dynamic MDX expression 採靜態邊界，無法解析就 fail closed
+
+reader-surface parser 只直接取得可確定的字串：一般 MDX 文字、quoted JSX attribute、直接 string literal，以及沒有插值的 template literal。這些值不執行 JavaScript 就能還原，因此照常解碼並掃描 emoji。
+
+其他會影響讀者可見內容的 expression，包含 concatenation、identifier、function call、tagged template 與 spread attribute，不由 validator 執行或推演。parser 只保留該 expression 的 source line record；如果該行在本次 diff 被新增或修改，gate 以檔案與行號報錯，要求改成可靜態檢查的文字。這個邊界不建立通用 JavaScript evaluator，避免執行文章程式碼或實作一個會逐漸膨脹的部分 interpreter。
+
+因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。MDX import、export、註解與 parser 已確認不會 render 的 node 維持排除，不會因這條規則誤擋。
+
 ### 本機與 CI 共用同一支 validator
 
 `scripts/check-content-emoji.mjs` 擁有 Unicode 偵測、kaomoji 遮罩、allowlist schema 與 finding 格式。pre-commit 只呼叫 staged mode；CI 只提供精確 PR base。hook 與 workflow 不各自複製 regex 或例外邏輯。

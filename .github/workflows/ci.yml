@@ -155,6 +155,14 @@ jobs:
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
+      - name: Reader-visible emoji policy (PR added-line ratchet)
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
       - name: Block retired brand taxonomy contracts
