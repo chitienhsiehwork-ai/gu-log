@@ -208,6 +208,22 @@ lang: zh-tw
   });
 
   it.each([
+    ['named attribute reference', '<img alt="&hearts;">', '♥'],
+    ['named title reference', '<abbr title="&hearts;">', '♥'],
+    ['unterminated hexadecimal attribute reference', '<img alt="&#x1F600">', '😀'],
+    ['unterminated decimal attribute reference', '<img alt="&#128512">', '😀'],
+  ])('decodes %s in Markdown raw HTML', (_label, rawHtml, emoji) => {
+    const content = `---\ntitle: test\nlang: zh-tw\n---\n${rawHtml}\n`;
+    const result = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain(`未授權 emoji ${JSON.stringify(emoji)}`);
+  });
+
+  it.each([
     ['JSX prop string literal', '<Card label={"\\u2764\\uFE0F"} />', '❤️'],
     ['JSX prop static template', '<Card label={`\\u{1F600}`} />', '😀'],
     ['body string literal', '{"\\u2764\\uFE0F"}', '❤️'],

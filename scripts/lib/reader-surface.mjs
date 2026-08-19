@@ -1,4 +1,5 @@
 import { createProcessor } from '@mdx-js/mdx';
+import { decodeHTML } from 'entities';
 import { LineCounter, isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 
 import { findEmojiSequences } from './emoji-sequences.mjs';
@@ -312,14 +313,6 @@ function walk(node, visit) {
   visit(node);
   if (!Array.isArray(node.children)) return;
   for (const child of node.children) walk(child, visit);
-}
-
-function decodeNumericCharacterReferences(value) {
-  return value.replace(/&#(?:x([\da-f]+)|(\d+));/giu, (reference, hex, decimal) => {
-    const codePoint = Number.parseInt(hex ?? decimal, hex ? 16 : 10);
-    if (!Number.isInteger(codePoint) || codePoint < 0 || codePoint > 0x10ffff) return reference;
-    return String.fromCodePoint(codePoint);
-  });
 }
 
 function sourceLinesForEstreeNode(node, bodyStartLine) {
@@ -684,7 +677,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'html') {
-      pushValue(decodeNumericCharacterReferences(node.value ?? ''), node);
+      pushValue(decodeHTML(node.value ?? ''), node);
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
