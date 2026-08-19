@@ -679,8 +679,9 @@ const EXECUTABLE_URL_ATTRIBUTE_NAMES = new Set([
   'xlinkhref',
 ]);
 
-function isExecutableReaderAttribute(name, value = '') {
+function isExecutableReaderAttribute(name, value = '', elementName = '') {
   const normalizedName = String(name).toLowerCase();
+  const normalizedElementName = String(elementName).toLowerCase();
   if (
     normalizedName === 'style' ||
     normalizedName === 'srcdoc' ||
@@ -697,7 +698,15 @@ function isExecutableReaderAttribute(name, value = '') {
     })
     .join('')
     .toLowerCase();
-  return /^(?:javascript:|data:(?:text\/html|image\/svg\+xml)(?:[;,]|$))/u.test(normalizedValue);
+  if (
+    /^(?:iframe|frame|object|embed)$/u.test(normalizedElementName) &&
+    normalizedValue.startsWith('data:')
+  ) {
+    return true;
+  }
+  return /^(?:javascript:|data:(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)(?:[;,]|$))/u.test(
+    normalizedValue
+  );
 }
 
 function walk(node, visit) {
@@ -1106,7 +1115,9 @@ function collectBodyRecords(body, bodyStartLine, format) {
         return false;
       }
 
-      for (const range of rawHtmlAttributeRanges(value, start, isExecutableReaderAttribute)) {
+      for (const range of rawHtmlAttributeRanges(value, start, (name, rawValue) =>
+        isExecutableReaderAttribute(name, rawValue, htmlNode.tagName)
+      )) {
         pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.executable');
         executableRanges.push(range);
       }
@@ -1395,7 +1406,8 @@ function collectBodyRecords(body, bodyStartLine, format) {
         if (
           isExecutableReaderAttribute(
             attributeName,
-            typeof attribute.value === 'string' ? attribute.value : ''
+            typeof attribute.value === 'string' ? attribute.value : '',
+            node.name
           )
         ) {
           pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
@@ -1419,7 +1431,9 @@ function collectBodyRecords(body, bodyStartLine, format) {
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
           } else if (
-            staticValues.some((value) => isExecutableReaderAttribute(attributeName, value.value))
+            staticValues.some((value) =>
+              isExecutableReaderAttribute(attributeName, value.value, node.name)
+            )
           ) {
             pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
           } else for (const value of staticValues) pushStaticValue(value, attribute);

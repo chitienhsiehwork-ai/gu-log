@@ -353,6 +353,16 @@ lang: zh-tw
       POST_PATH,
       String.raw`<a href={"javascript:document.body.textContent='\u{1F600}'"}>點</a>`,
     ],
+    [
+      'Markdown XHTML data URL in an iframe',
+      MARKDOWN_POST_PATH,
+      '<iframe src="data:application/xhtml+xml,%3Chtml%3E%26%23128512%3B%3C/html%3E"></iframe>',
+    ],
+    [
+      'MDX opaque data URL in an object',
+      POST_PATH,
+      '<object data="data:text/plain,%F0%9F%98%80" />',
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -369,6 +379,11 @@ lang: zh-tw
     ['MDX safe URL', POST_PATH, '<a href="/safe">safe</a>'],
     ['Markdown safe link destination', MARKDOWN_POST_PATH, '[safe](/safe)'],
     ['Markdown safe image destination', MARKDOWN_POST_PATH, '![safe](/safe.png)'],
+    [
+      'Markdown inert raster data URL',
+      MARKDOWN_POST_PATH,
+      '<img src="data:image/png;base64,AAAA" alt="safe">',
+    ],
   ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
