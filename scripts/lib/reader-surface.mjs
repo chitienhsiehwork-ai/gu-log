@@ -181,6 +181,23 @@ function quotedYamlLineRecords(node, surfaceKind, lineCounter) {
   return records;
 }
 
+function plainYamlLineRecords(node, surfaceKind, lineCounter) {
+  if (node.srcToken?.type !== 'scalar') return null;
+  const physicalLines = node.srcToken.source.split('\n');
+  if (physicalLines.length === 1) return null;
+
+  const firstSourceLine = sourceLineForYamlNode(node, lineCounter);
+  return physicalLines.flatMap((rawLine, index) => {
+    // YAML folds plain-scalar line breaks to whitespace, so an emoji sequence
+    // cannot span two physical lines. Attribute each visible fragment only to
+    // the line that supplied it, matching the line-level ratchet.
+    const canonicalText = rawLine.trim();
+    if (canonicalText === '') return [];
+    const sourceLine = firstSourceLine + index;
+    return [{ canonicalText, surfaceKind, sourceLine, sourceLines: new Set([sourceLine]) }];
+  });
+}
+
 function collectYamlValueRecords(node, surfaceKind, lineCounter, document, records) {
   if (isScalar(node)) {
     if (node.value === null || node.value === undefined) return;
@@ -202,6 +219,11 @@ function collectYamlValueRecords(node, surfaceKind, lineCounter, document, recor
     const quotedLineRecords = quotedYamlLineRecords(node, surfaceKind, lineCounter);
     if (quotedLineRecords) {
       records.push(...quotedLineRecords);
+      return;
+    }
+    const plainLineRecords = plainYamlLineRecords(node, surfaceKind, lineCounter);
+    if (plainLineRecords) {
+      records.push(...plainLineRecords);
       return;
     }
     const canonicalValue = String(node.value);

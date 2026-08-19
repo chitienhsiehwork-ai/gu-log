@@ -817,6 +817,71 @@ Body.
     }
   );
 
+  it('grandfathers an untouched legacy emoji on another multiline plain YAML line', () => {
+    const content = `---
+title: 只改安全文字
+  歷史 ❤️
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content).filter(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(records.map((record) => [record.canonicalText, [...record.sourceLines]])).toEqual([
+      ['只改安全文字', [2]],
+      ['歷史 ❤️', [3]],
+    ]);
+
+    const safeResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [2],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    const changedResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [3],
+    });
+    expect(changedResult.errors.join('\n')).toContain('未授權 emoji');
+  });
+
+  it('tracks an aliased multiline plain YAML scalar per physical line', () => {
+    const content = `---
+hidden: &readerTitle 只改安全文字
+  歷史 ❤️
+title: *readerTitle
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content).filter(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(records.map((record) => [record.canonicalText, [...record.sourceLines]])).toEqual([
+      ['只改安全文字', [2, 4]],
+      ['歷史 ❤️', [3, 4]],
+    ]);
+
+    const safeTargetResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [2],
+    });
+    expect(safeTargetResult.errors).toEqual([]);
+
+    for (const changedLine of [3, 4]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji');
+    }
+  });
+
   it.each([
     [
       'surrogate pair',
