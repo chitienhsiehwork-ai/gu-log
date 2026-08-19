@@ -815,6 +815,17 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
     .join('')
     .toLowerCase();
   if (
+    /\.svg(?:[?#]|$)/u.test(normalizedValue) &&
+    (normalizedName === 'poster' ||
+      (normalizedName === 'data' && /^(?:object|embed)$/u.test(normalizedElementName)) ||
+      (normalizedName === 'src' &&
+        /^(?:img|input|source|iframe|frame|embed|postimage)$/u.test(normalizedElementName)) ||
+      (/^(?:href|xlink:href|xlinkhref)$/u.test(normalizedName) &&
+        /^(?:image|use)$/u.test(normalizedElementName)))
+  ) {
+    return true;
+  }
+  if (
     /^(?:iframe|frame|object|embed)$/u.test(normalizedElementName) &&
     normalizedValue.startsWith('data:')
   ) {
@@ -1582,8 +1593,9 @@ function collectBodyRecords(body, bodyStartLine, format) {
     };
   }
 
-  function pushMarkdownDestination(url, node, associatedSourceLines = []) {
-    if (!isExecutableReaderAttribute('href', url)) return;
+  function pushMarkdownDestination(url, node, associatedSourceLines = [], elementName = 'a') {
+    const attributeName = elementName === 'img' ? 'src' : 'href';
+    if (!isExecutableReaderAttribute(attributeName, url, elementName)) return;
     const location = markdownDestinationLocation(node) ?? sourceLocation(node);
     records.push({
       canonicalText: '',
@@ -1654,7 +1666,12 @@ function collectBodyRecords(body, bodyStartLine, format) {
   function pushReferenceDestination(node) {
     const definition = definitions.get(node.identifier);
     if (!definition?.url) return;
-    pushMarkdownDestination(definition.url, definition, sourceLocation(node).sourceLines);
+    pushMarkdownDestination(
+      definition.url,
+      definition,
+      sourceLocation(node).sourceLines,
+      node.type === 'imageReference' ? 'img' : 'a'
+    );
   }
 
   walk(tree, (node) => {
@@ -1690,7 +1707,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       if (!pushDecodedPhysicalValue(node.alt, node, markdownImageAltSource(node))) {
         pushValue(node.alt, node);
       }
-      pushMarkdownDestination(node.url, node);
+      pushMarkdownDestination(node.url, node, [], 'img');
       pushInlineTitle(node);
       return;
     }

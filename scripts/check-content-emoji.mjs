@@ -63,6 +63,12 @@ function parseApprovalDecisions(corpus) {
     if (!Number.isInteger(decision.sourceLine) || decision.sourceLine < 1) {
       throw new Error(`feedback corpus:${index + 1} 的 emoji decision sourceLine 無效`);
     }
+    if (typeof decision.lineHash !== 'string' || !/^[a-f0-9]{64}$/.test(decision.lineHash)) {
+      throw new Error(`feedback corpus:${index + 1} 的 emoji decision lineHash 無效`);
+    }
+    if (!Number.isInteger(decision.maxOccurrences) || decision.maxOccurrences < 1) {
+      throw new Error(`feedback corpus:${index + 1} 的 emoji decision maxOccurrences 無效`);
+    }
     if (!isValidDate(decision.decidedAt)) {
       throw new Error(`feedback corpus:${index + 1} 的 emoji decision decidedAt 無效`);
     }
@@ -133,10 +139,12 @@ export function parseContentEmojiAllowlist(raw, approvalCorpus) {
       approval.path !== entry.path ||
       approval.emoji !== entry.emoji ||
       approval.sourceLine !== entry.sourceLine ||
+      approval.lineHash !== entry.lineHash ||
+      approval.maxOccurrences !== entry.maxOccurrences ||
       approval.decidedAt !== entry.approvedAt
     ) {
       throw new Error(
-        `${label}.approvalRef 的 path/sourceLine/emoji/date 與 executable record 不一致`
+        `${label}.approvalRef 的 path/sourceLine/lineHash/emoji/maxOccurrences/date 與 executable record 不一致`
       );
     }
     return Object.freeze({ ...entry });

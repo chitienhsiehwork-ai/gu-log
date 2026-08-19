@@ -41,6 +41,8 @@ function approvalDecision(overrides: Record<string, unknown> = {}): Record<strin
     path: POST_PATH,
     emoji: '✨',
     sourceLine: 5,
+    lineHash: sha256Line('核准火花 ✨'),
+    maxOccurrences: 1,
     decidedAt: '2026-08-16',
     ...overrides,
   };
@@ -405,6 +407,8 @@ lang: zh-tw
       POST_PATH,
       '<link rel="stylesheet" href="/emoji.css" /><span className="emoji" />',
     ],
+    ['Markdown linked SVG image', MARKDOWN_POST_PATH, '<img src="/emoji.svg" alt="safe">'],
+    ['MDX linked SVG image', POST_PATH, '<PostImage src="/emoji.svg" alt="safe" />'],
     ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
     ['MDX bound CSS module import', POST_PATH, "import styles from './emoji.module.css';"],
     [
@@ -431,6 +435,7 @@ lang: zh-tw
     ['MDX safe URL', POST_PATH, '<a href="/safe">safe</a>'],
     ['Markdown safe link destination', MARKDOWN_POST_PATH, '[safe](/safe)'],
     ['Markdown safe image destination', MARKDOWN_POST_PATH, '![safe](/safe.png)'],
+    ['Markdown ordinary SVG link', MARKDOWN_POST_PATH, '[diagram](/diagram.svg)'],
     [
       'Markdown inert raster data URL',
       MARKDOWN_POST_PATH,
@@ -585,6 +590,22 @@ title: test
 lang: zh-tw
 ---
 ![點](data:image/svg+xml,<svg><text>&#128512;</text></svg>)
+`;
+    const result = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it('fails closed for a normal SVG Markdown image destination', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+![圖](/emoji.svg)
 `;
     const result = checkFixture({
       current: { [MARKDOWN_POST_PATH]: content },
@@ -1203,7 +1224,13 @@ Body.
       changedContent,
       changedLines: [2],
       entries: [validEntry('prefix 👩‍💻', { emoji: '👩‍💻', sourceLine: 3 })],
-      approvalDecisions: [approvalDecision({ emoji: '👩‍💻', sourceLine: 3 })],
+      approvalDecisions: [
+        approvalDecision({
+          emoji: '👩‍💻',
+          sourceLine: 3,
+          lineHash: sha256Line('prefix 👩‍💻'),
+        }),
+      ],
     });
     expect(safeResult.errors).toEqual([]);
   });
@@ -1980,6 +2007,16 @@ Body.
       changedContent: content,
       changedLines,
       entries: [entry],
+      approvalDecisions: [
+        approvalDecision({
+          path: entry.path,
+          emoji: entry.emoji,
+          sourceLine: entry.sourceLine,
+          lineHash: entry.lineHash,
+          maxOccurrences: entry.maxOccurrences,
+          decidedAt: entry.approvedAt,
+        }),
+      ],
     });
     expect(result.errors.length).toBeGreaterThan(0);
   });
@@ -2036,6 +2073,16 @@ Body.
       'approval marker for another source line',
       {},
       approvalCorpus([approvalDecision({ sourceLine: 6 })]),
+    ],
+    [
+      'approval marker for another line hash',
+      {},
+      approvalCorpus([approvalDecision({ lineHash: '0'.repeat(64) })]),
+    ],
+    [
+      'approval marker for another count',
+      {},
+      approvalCorpus([approvalDecision({ maxOccurrences: 2 })]),
     ],
   ])(
     'rejects %s instead of treating arbitrary corpus content as approval',
