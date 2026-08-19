@@ -10,7 +10,6 @@ import { test, expect } from './fixtures';
 test.describe('MoguNote Component', () => {
   const testPostUrl = '/posts/gp-24-20260204-claude-is-a-space-to-think';
   const componentFixtureUrl = '/artifacts/levelup-components-fixture';
-  const chineseCollapsiblePostUrl = '/posts/gp-230-20260616-agentic-code-review';
   const englishCollapsiblePostUrl =
     '/en/posts/en-gp-227-20260615-dimillian-codex-mobile-control-center';
 
@@ -117,9 +116,9 @@ test.describe('MoguNote Component', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(chineseCollapsiblePostUrl);
+    await page.goto(componentFixtureUrl);
 
-    const note = page.locator('.mogu-note[data-collapsible="true"]').first();
+    const note = page.locator('.mogu-note[data-has-summary="true"]').nth(1);
     const summaryLabel = note.locator('.mogu-note-summary-label');
     const toggle = note.locator('.mogu-note-toggle');
 
