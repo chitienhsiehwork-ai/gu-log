@@ -223,6 +223,38 @@ lang: zh-tw
     expect(result.errors.join('\n')).toContain(`未授權 emoji ${JSON.stringify(emoji)}`);
   });
 
+  it('keeps decoded raw HTML on its physical source line', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<div title="&#10;">
+<img alt="😀">
+</div>
+`;
+    const emojiRecord = collectReaderSurfaceLineRecords(content, { format: 'md' }).find(
+      (record) => record.canonicalText.includes('😀')
+    );
+    expect(emojiRecord).toMatchObject({ sourceLine: 6 });
+    expect([...(emojiRecord?.sourceLines ?? [])]).toEqual([6]);
+
+    const safeResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    const emojiResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [6],
+    });
+    expect(emojiResult.errors.join('\n')).toContain('未授權 emoji');
+  });
+
   it.each([
     ['JSX prop string literal', '<Card label={"\\u2764\\uFE0F"} />', '❤️'],
     ['JSX prop static template', '<Card label={`\\u{1F600}`} />', '😀'],

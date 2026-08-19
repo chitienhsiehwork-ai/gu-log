@@ -496,6 +496,14 @@ function collectBodyRecords(body, bodyStartLine, format) {
     }
   }
 
+  function pushHtmlValue(value, node) {
+    const { sourceLine } = sourceLocation(node);
+    for (const [index, rawLine] of value.split('\n').entries()) {
+      const physicalSourceLine = sourceLine + index;
+      pushValue(decodeHTML(rawLine), node, 0, new Set([physicalSourceLine]));
+    }
+  }
+
   function pushStaticValue(record, fallbackNode) {
     const sourceLines = record.sourceLines ?? sourceLocation(fallbackNode).sourceLines;
     const literalPhysicalLines = record.literalRaw?.split('\n');
@@ -677,7 +685,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'html') {
-      pushValue(decodeHTML(node.value ?? ''), node);
+      pushHtmlValue(node.value ?? '', node);
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
