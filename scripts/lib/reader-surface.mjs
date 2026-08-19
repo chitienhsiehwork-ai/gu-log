@@ -870,9 +870,35 @@ function srcsetCandidateUrls(value) {
 }
 
 function unsafeSrcsetCandidateRanges(value, elementName = '') {
-  return srcsetCandidateUrls(value).filter(({ url }) =>
-    isExecutableReaderAttribute('src', url, elementName)
+  return srcsetCandidateUrls(value).filter(
+    ({ url }) =>
+      !isProvablyInertRasterUrl(url) || isExecutableReaderAttribute('src', url, elementName)
   );
+}
+
+function isProvablyInertRasterUrl(value) {
+  const normalizedValue = Array.from(decodeHTML(String(value)))
+    .filter((character) => {
+      const codePoint = character.codePointAt(0);
+      return codePoint > 0x20 && codePoint !== 0x7f;
+    })
+    .join('')
+    .toLowerCase();
+  if (
+    /^data:image\/(?:avif|bmp|gif|jpe?g|png|tiff?|vnd\.microsoft\.icon|webp|x-icon)(?:[;,]|$)/u.test(
+      normalizedValue
+    )
+  ) {
+    return true;
+  }
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/u.test(normalizedValue)) return false;
+  return /\.(?:avif|bmp|gif|ico|jpe?g|png|tiff?|webp)(?:[?#]|$)/u.test(normalizedValue);
+}
+
+function isVisualResourceAttribute(name, elementName) {
+  if (name === 'poster') return true;
+  if (name === 'src') return /^(?:img|input|postimage)$/u.test(elementName);
+  return /^(?:href|xlink:href|xlinkhref)$/u.test(name) && /^(?:image|use)$/u.test(elementName);
 }
 
 function isExecutableReaderAttribute(name, value = '', elementName = '') {
@@ -903,6 +929,13 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
     })
     .join('')
     .toLowerCase();
+  if (
+    normalizedValue !== '' &&
+    isVisualResourceAttribute(normalizedName, normalizedElementName) &&
+    !isProvablyInertRasterUrl(normalizedValue)
+  ) {
+    return true;
+  }
   if (
     /\.svg(?:[?#]|$)/u.test(normalizedValue) &&
     (normalizedName === 'poster' ||

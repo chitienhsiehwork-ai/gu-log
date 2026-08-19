@@ -226,6 +226,20 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
   const args = node.arguments.map((argument) => evaluateStaticValue(argument, bindings, resolving));
   if (args.some((arg) => !arg.known)) return UNKNOWN;
   const values = args.map((arg) => arg.value);
+  if (
+    node.callee.type === 'Identifier' &&
+    ['decodeURI', 'decodeURIComponent'].includes(node.callee.name) &&
+    values.length === 1 &&
+    typeof values[0] === 'string'
+  ) {
+    try {
+      return known(
+        node.callee.name === 'decodeURI' ? decodeURI(values[0]) : decodeURIComponent(values[0])
+      );
+    } catch {
+      return UNKNOWN;
+    }
+  }
   if (node.callee.type === 'Identifier' && node.callee.name === 'String' && values.length <= 1) {
     return known(String(values[0] ?? ''));
   }

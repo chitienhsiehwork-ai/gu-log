@@ -414,6 +414,16 @@ lang: zh-tw
     ],
     ['Markdown linked SVG image', MARKDOWN_POST_PATH, '<img src="/emoji.svg" alt="safe">'],
     ['MDX linked SVG image', POST_PATH, '<PostImage src="/emoji.svg" alt="safe" />'],
+    [
+      'Markdown extensionless remote image',
+      MARKDOWN_POST_PATH,
+      '![safe](https://host.example/emoji)',
+    ],
+    [
+      'MDX remote image with a raster-looking suffix',
+      POST_PATH,
+      '<PostImage src="https://host.example/emoji.png" alt="safe" />',
+    ],
     ['Markdown linked iframe document', MARKDOWN_POST_PATH, '<iframe src="/emoji.html"></iframe>'],
     ['MDX linked frame document', POST_PATH, '<frame src="/emoji.html" />'],
     ['Markdown linked object document', MARKDOWN_POST_PATH, '<object data="/emoji.html"></object>'],
@@ -501,6 +511,7 @@ lang: zh-tw
     ['static Array.join', "['&#', '128512;'].join('')"],
     ['static String.fromCodePoint', 'String.fromCodePoint(0x1f600)'],
     ['static numeric calculation', 'String.fromCodePoint(128513 - 1)'],
+    ['static URI decoding', "decodeURIComponent('%F0%9F%98%80')"],
   ])('projects trusted component %s before scanning', (_label, expression) => {
     const source = ['---', '---', `<Fragment set:html={${expression}} />`].join('\n');
     const projected = collectTrustedComponentStaticStrings(source);
@@ -1535,7 +1546,7 @@ lang: zh-tw
 ---
 ![safe alt][pic]
 
-[pic]: /x
+[pic]: /x.png
   "safe title
   legacy ❤️"
 `;
@@ -1577,7 +1588,7 @@ title: test
 lang: zh-tw
 ---
 ${opener}(
-  /x
+  /x.png
   ${titleOpen}safe title
   legacy ❤️${titleClose}
 )
