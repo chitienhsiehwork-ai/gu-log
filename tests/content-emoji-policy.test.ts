@@ -255,6 +255,58 @@ lang: zh-tw
     expect(emojiResult.errors.join('\n')).toContain('未授權 emoji');
   });
 
+  it('ignores HTML comments without hiding visible content between them', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<!-- hidden 🚀 -->😀<!-- hidden ❤️ -->
+`;
+    const result = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
+    expect(result.errors.join('\n')).not.toContain('🚀');
+    expect(result.errors.join('\n')).not.toContain('❤️');
+  });
+
+  it.each([
+    ['Markdown text', MARKDOWN_POST_PATH, 'safe&#10;\n歷史 😀'],
+    ['Markdown image alt', MARKDOWN_POST_PATH, '![safe&#10;\n歷史 😀](/image.png)'],
+    ['Markdown link title', MARKDOWN_POST_PATH, '[link](/target "safe&#10;\n歷史 😀")'],
+    ['MDX quoted prop', POST_PATH, '<Card label="safe&#10;\n歷史 😀" />'],
+  ])(
+    'keeps decoded entity newlines on their physical source line in %s',
+    (_label, changedPath, readerSurface) => {
+      const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
+      const format = changedPath.endsWith('.md') ? 'md' : 'mdx';
+      const emojiRecord = collectReaderSurfaceLineRecords(content, { format }).find((record) =>
+        record.canonicalText.includes('😀')
+      );
+      expect(emojiRecord).toMatchObject({ sourceLine: 6 });
+      expect([...(emojiRecord?.sourceLines ?? [])]).toEqual([6]);
+
+      const safeResult = checkFixture({
+        current: { [changedPath]: content },
+        changedPath,
+        changedContent: content,
+        changedLines: [5],
+      });
+      expect(safeResult.errors).toEqual([]);
+
+      const emojiResult = checkFixture({
+        current: { [changedPath]: content },
+        changedPath,
+        changedContent: content,
+        changedLines: [6],
+      });
+      expect(emojiResult.errors.join('\n')).toContain('未授權 emoji');
+    }
+  );
+
   it.each([
     ['JSX prop string literal', '<Card label={"\\u2764\\uFE0F"} />', '❤️'],
     ['JSX prop static template', '<Card label={`\\u{1F600}`} />', '😀'],

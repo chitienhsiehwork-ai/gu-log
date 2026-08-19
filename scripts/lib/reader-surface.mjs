@@ -301,9 +301,15 @@ function collectFrontmatterRecords(frontmatterRaw) {
   return records;
 }
 
+function stripHtmlCommentsPreservingLines(value) {
+  return value.replace(/<!--[\s\S]*?-->/gu, (comment) => comment.replace(/[^\n]/gu, ' '));
+}
+
 function isNonRenderingNode(node) {
   if (node.type === 'mdxjsEsm') return true;
-  if (node.type === 'html') return /^\s*<!--[\s\S]*-->\s*$/.test(node.value ?? '');
+  if (node.type === 'html') {
+    return stripHtmlCommentsPreservingLines(node.value ?? '').trim() === '';
+  }
   if (node.type !== 'mdxFlowExpression' && node.type !== 'mdxTextExpression') return false;
   const program = node.data?.estree;
   return program?.type === 'Program' && program.body?.length === 0;
@@ -496,6 +502,82 @@ function collectBodyRecords(body, bodyStartLine, format) {
     }
   }
 
+  function rawSource(node) {
+    const startOffset = node.position?.start?.offset;
+    const endOffset = node.position?.end?.offset;
+    if (!Number.isInteger(startOffset) || !Number.isInteger(endOffset)) return null;
+    return body.slice(startOffset, endOffset);
+  }
+
+  function pushDecodedPhysicalValue(
+    value,
+    node,
+    rawValue,
+    firstSourceLine = sourceLocation(node).sourceLine,
+    associatedSourceLines = []
+  ) {
+    if (typeof value !== 'string' || value === '' || typeof rawValue !== 'string') return false;
+    const canonicalLines = value.split('\n');
+    const physicalLines = rawValue.split('\n');
+    const canonicalLineCounts = physicalLines.map(
+      (rawLine) => decodeHTML(rawLine).split('\n').length
+    );
+    if (canonicalLineCounts.reduce((sum, count) => sum + count, 0) !== canonicalLines.length) {
+      return false;
+    }
+
+    let canonicalLineIndex = 0;
+    for (const [physicalLineIndex, canonicalLineCount] of canonicalLineCounts.entries()) {
+      const sourceLine = firstSourceLine + physicalLineIndex;
+      for (let index = 0; index < canonicalLineCount; index += 1) {
+        const canonicalText = canonicalLines[canonicalLineIndex];
+        canonicalLineIndex += 1;
+        if (canonicalText.trim() === '') continue;
+        records.push({
+          canonicalText,
+          surfaceKind: 'mdx',
+          sourceLine,
+          sourceLines: new Set([sourceLine, ...associatedSourceLines]),
+        });
+      }
+    }
+    return true;
+  }
+
+  function markdownImageAltSource(node) {
+    const source = rawSource(node);
+    if (!source?.startsWith('![')) return null;
+    let depth = 1;
+    for (let index = 2; index < source.length; index += 1) {
+      if (source[index] === '\\') {
+        index += 1;
+        continue;
+      }
+      if (source[index] === '[') depth += 1;
+      else if (source[index] === ']') {
+        depth -= 1;
+        if (depth === 0) return source.slice(2, index);
+      }
+    }
+    return null;
+  }
+
+  function quotedAttributeSource(node) {
+    const source = rawSource(node);
+    if (source === null) return null;
+    const equalsIndex = source.indexOf('=');
+    if (equalsIndex < 0) return null;
+    let openingIndex = equalsIndex + 1;
+    while (/\s/u.test(source[openingIndex] ?? '')) openingIndex += 1;
+    const quote = source[openingIndex];
+    if ((quote !== '"' && quote !== "'") || source.at(-1) !== quote) return null;
+    return {
+      rawValue: source.slice(openingIndex + 1, -1),
+      firstSourceLine:
+        sourceLocation(node).sourceLine + source.slice(0, openingIndex + 1).split('\n').length - 1,
+    };
+  }
+
   function pushHtmlValue(value, node) {
     const { sourceLine } = sourceLocation(node);
     for (const [index, rawLine] of value.split('\n').entries()) {
@@ -554,7 +636,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
-  function markdownTitleSourceLines(node, stripContainerCloser = false) {
+  function markdownTitleSource(node, stripContainerCloser = false) {
     const startOffset = node.position?.start?.offset;
     const endOffset = node.position?.end?.offset;
     const startLine = node.position?.start?.line;
@@ -605,12 +687,18 @@ function collectBodyRecords(body, bodyStartLine, format) {
     const precedingLines = source.slice(0, openingIndex).split('\n').length - 1;
     const titleLineCount = source.slice(openingIndex).split('\n').length;
     const firstLine = bodyStartLine + startLine - 1 + precedingLines;
-    return new Set(Array.from({ length: titleLineCount }, (_unused, index) => firstLine + index));
+    return {
+      rawValue: source.slice(openingIndex + 1, -1),
+      firstSourceLine: firstLine,
+      sourceLines: new Set(
+        Array.from({ length: titleLineCount }, (_unused, index) => firstLine + index)
+      ),
+    };
   }
 
-  function pushMarkdownTitle(title, node, titleSourceLines, associatedSourceLines = []) {
+  function pushMarkdownTitle(title, node, titleSource, associatedSourceLines = []) {
     if (!title) return;
-    if (titleSourceLines === null) {
+    if (titleSource === null) {
       pushValue(
         title,
         node,
@@ -619,7 +707,18 @@ function collectBodyRecords(body, bodyStartLine, format) {
       );
       return;
     }
-    const physicalTitleLines = [...titleSourceLines];
+    if (
+      pushDecodedPhysicalValue(
+        title,
+        node,
+        titleSource.rawValue,
+        titleSource.firstSourceLine,
+        associatedSourceLines
+      )
+    ) {
+      return;
+    }
+    const physicalTitleLines = [...titleSource.sourceLines];
     const canonicalTitleLines = title.split('\n');
     if (canonicalTitleLines.length !== physicalTitleLines.length) {
       pushValue(title, node, 0, new Set([...physicalTitleLines, ...associatedSourceLines]));
@@ -639,7 +738,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
 
   function pushInlineTitle(node) {
     if (!node.title) return;
-    pushMarkdownTitle(node.title, node, markdownTitleSourceLines(node, true));
+    pushMarkdownTitle(node.title, node, markdownTitleSource(node, true));
   }
 
   function pushReferenceTitle(node) {
@@ -649,7 +748,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
     pushMarkdownTitle(
       definition.title,
       definition,
-      markdownTitleSourceLines(definition),
+      markdownTitleSource(definition),
       referenceLines
     );
   }
@@ -657,6 +756,8 @@ function collectBodyRecords(body, bodyStartLine, format) {
   walk(tree, (node) => {
     if (isNonRenderingNode(node)) return;
     if (node.type === 'text' || node.type === 'inlineCode') {
+      if (node.type === 'text' && pushDecodedPhysicalValue(node.value, node, rawSource(node)))
+        return;
       pushValue(node.value, node);
       return;
     }
@@ -667,12 +768,16 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'image') {
-      pushValue(node.alt, node);
+      if (!pushDecodedPhysicalValue(node.alt, node, markdownImageAltSource(node))) {
+        pushValue(node.alt, node);
+      }
       pushInlineTitle(node);
       return;
     }
     if (node.type === 'imageReference') {
-      pushValue(node.alt, node);
+      if (!pushDecodedPhysicalValue(node.alt, node, markdownImageAltSource(node))) {
+        pushValue(node.alt, node);
+      }
       pushReferenceTitle(node);
       return;
     }
@@ -685,7 +790,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'html') {
-      pushHtmlValue(node.value ?? '', node);
+      pushHtmlValue(stripHtmlCommentsPreservingLines(node.value ?? ''), node);
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {
@@ -701,8 +806,20 @@ function collectBodyRecords(body, bodyStartLine, format) {
           continue;
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
-        if (typeof attribute.value === 'string') pushValue(attribute.value, attribute);
-        else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
+        if (typeof attribute.value === 'string') {
+          const quotedSource = quotedAttributeSource(attribute);
+          if (
+            !quotedSource ||
+            !pushDecodedPhysicalValue(
+              attribute.value,
+              attribute,
+              quotedSource.rawValue,
+              quotedSource.firstSourceLine
+            )
+          ) {
+            pushValue(attribute.value, attribute);
+          }
+        } else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
           const staticValues = staticStringsFromExpression(attribute.value, bodyStartLine);
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
