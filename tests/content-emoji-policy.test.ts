@@ -412,6 +412,7 @@ lang: zh-tw
     ],
     ['MDX package-alias binding import', POST_PATH, "import styles from '@example/emoji-theme';"],
     ['MDX relative extensionless binding import', POST_PATH, "import styles from './theme';"],
+    ['MDX unapproved Astro component import', POST_PATH, "import Note from './Note.astro';"],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -438,7 +439,11 @@ lang: zh-tw
       MARKDOWN_POST_PATH,
       '<img srcset="/safe.png 1x, /safe@2x.png 2x" alt="safe">',
     ],
-    ['MDX component binding import', POST_PATH, "import Note from './Note.astro';"],
+    [
+      'MDX approved component binding import',
+      POST_PATH,
+      "import MoguNote from '../../components/MoguNote.astro';",
+    ],
     ['MDX raster asset binding import', POST_PATH, "import hero from '../../assets/hero.png';"],
     [
       'Markdown preload link',
@@ -646,6 +651,43 @@ lang: zh-tw
     expect(dangerousLineResult.errors.join('\n')).toContain(
       '無法靜態驗證可執行的 reader-visible markup'
     );
+  });
+
+  it('allows a trusted raster binding in an inert image source attribute', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import PostImage from '../../components/PostImage.astro';
+import hero from '../../assets/hero.png';
+
+<PostImage src={hero} alt="safe" />
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedPath: POST_PATH,
+      changedContent: content,
+      changedLines: [5, 6, 8],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('does not allow a trusted raster binding in an arbitrary visible prop', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import hero from '../../assets/hero.png';
+
+<Card title={hero} />
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedPath: POST_PATH,
+      changedContent: content,
+      changedLines: [7],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態解析讀者可見 MDX expression');
   });
 
   it('binds an executable image reference destination to the use and definition lines', () => {

@@ -660,6 +660,28 @@ function stripHtmlCommentsPreservingLines(value) {
   return visibleValue;
 }
 
+const TRUSTED_CONTENT_COMPONENT_IMPORTS = new Set([
+  '../../components/AnalogyBox.astro',
+  '../../components/CodexLearningMap.astro',
+  '../../components/DiffBlock.astro',
+  '../../components/LevelUpProgress.astro',
+  '../../components/LevelUpQuiz.astro',
+  '../../components/Mermaid.astro',
+  '../../components/MoguNote.astro',
+  '../../components/PostImage.astro',
+  '../../components/PostVideo.astro',
+  '../../components/ShroomDogNote.astro',
+  '../../components/Toggle.astro',
+]);
+
+function isTrustedRasterImportSource(source) {
+  return /^(?:\.{1,2}\/).+\.(?:avif|gif|jpe?g|png|webp)$/iu.test(source);
+}
+
+function isTrustedContentImportSource(source) {
+  return TRUSTED_CONTENT_COMPONENT_IMPORTS.has(source) || isTrustedRasterImportSource(source);
+}
+
 function potentiallyRenderingEsmStatements(node) {
   const program = node.data?.estree;
   if (program?.type !== 'Program') return [];
@@ -667,7 +689,7 @@ function potentiallyRenderingEsmStatements(node) {
     const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
     if (statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0) return true;
     if (!source) return false;
-    return !/^(?:\.{1,2}\/).+\.(?:astro|avif|gif|jpe?g|png|webp)$/iu.test(source);
+    return !isTrustedContentImportSource(source);
   });
 }
 
@@ -948,15 +970,46 @@ function staticStringsFromExpression(node, bodyStartLine) {
   return collectStaticStringValues(statement.expression, values, bodyStartLine) ? values : null;
 }
 
+function staticIdentifierFromExpression(node) {
+  const program = node?.data?.estree;
+  if (program?.type !== 'Program' || program.body?.length !== 1) return null;
+  const statement = program.body[0];
+  return statement?.type === 'ExpressionStatement' && statement.expression?.type === 'Identifier'
+    ? statement.expression.name
+    : null;
+}
+
+function isInertRasterBindingAttribute(elementName, attributeName) {
+  const element = String(elementName).toLowerCase();
+  const attribute = String(attributeName).toLowerCase();
+  if (attribute === 'src') return /^(?:img|source|postimage)$/u.test(element);
+  if (attribute === 'poster') return /^(?:video|postvideo)$/u.test(element);
+  return false;
+}
+
 function collectBodyRecords(body, bodyStartLine, format) {
   const tree = createProcessor({ format }).parse(body);
   const bodyLines = body.split('\n');
   const records = [];
   const definitions = new Map();
+  const trustedRasterBindings = new Set();
 
   walk(tree, (node) => {
     if (node.type !== 'definition' || definitions.has(node.identifier)) return;
     definitions.set(node.identifier, node);
+  });
+
+  walk(tree, (node) => {
+    if (node.type !== 'mdxjsEsm') return;
+    for (const statement of node.data?.estree?.body ?? []) {
+      const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
+      if (statement.type !== 'ImportDeclaration' || !isTrustedRasterImportSource(source)) continue;
+      for (const specifier of statement.specifiers ?? []) {
+        if (specifier.type === 'ImportDefaultSpecifier' && specifier.local?.name) {
+          trustedRasterBindings.add(specifier.local.name);
+        }
+      }
+    }
   });
 
   function sourceLocation(node) {
@@ -1765,6 +1818,14 @@ function collectBodyRecords(body, bodyStartLine, format) {
             pushValue(attribute.value, attribute);
           }
         } else if (attribute.value?.type === 'mdxJsxAttributeValueExpression') {
+          const staticIdentifier = staticIdentifierFromExpression(attribute.value);
+          if (
+            staticIdentifier !== null &&
+            trustedRasterBindings.has(staticIdentifier) &&
+            isInertRasterBindingAttribute(node.name, attributeName)
+          ) {
+            continue;
+          }
           const staticValues = staticStringsFromExpression(attribute.value, bodyStartLine);
           if (staticValues === null) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
