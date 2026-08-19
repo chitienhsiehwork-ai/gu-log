@@ -677,11 +677,11 @@ export const TRUSTED_CONTENT_COMPONENT_IMPORTS = Object.freeze(
 );
 const TRUSTED_CONTENT_COMPONENT_IMPORT_BY_SOURCE = new Map(TRUSTED_CONTENT_COMPONENT_IMPORTS);
 
-function decodeJavaScriptUnicodeEscapes(value) {
+function decodeJavaScriptCharacterEscapes(value) {
   return String(value).replace(
-    /\\u(?:\{([0-9a-f]{1,6})\}|([0-9a-f]{4}))/giu,
-    (match, bracedCodePoint, fixedCodeUnit) => {
-      const hexadecimal = bracedCodePoint ?? fixedCodeUnit;
+    /\\(?:u(?:\{([0-9a-f]{1,6})\}|([0-9a-f]{4}))|x([0-9a-f]{2}))/giu,
+    (match, bracedCodePoint, fixedCodeUnit, hexadecimalByte) => {
+      const hexadecimal = bracedCodePoint ?? fixedCodeUnit ?? hexadecimalByte;
       const codePoint = Number.parseInt(hexadecimal, 16);
       if (codePoint > 0x10ffff) return match;
       return bracedCodePoint ? String.fromCodePoint(codePoint) : String.fromCharCode(codePoint);
@@ -703,7 +703,7 @@ export function findTrustedComponentEmojiSequences(source) {
   const candidateLimit = 256;
   const candidates = new Set([String(source)]);
   const pending = [...candidates];
-  const decoders = [decodeHTML, decodeJavaScriptUnicodeEscapes, decodeCssUnicodeEscapes];
+  const decoders = [decodeHTML, decodeJavaScriptCharacterEscapes, decodeCssUnicodeEscapes];
   while (pending.length > 0) {
     const candidate = pending.shift();
     for (const decode of decoders) {
