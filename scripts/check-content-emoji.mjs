@@ -156,13 +156,18 @@ function postFormat(postPath) {
   return postPath.endsWith('.md') ? 'md' : 'mdx';
 }
 
+function rawSourceLine(content, sourceLine) {
+  return content.split('\n')[sourceLine - 1] ?? null;
+}
+
 function countEntryOccurrences(entry, content) {
   let count = 0;
   for (const record of collectReaderSurfaceLineRecords(content, {
     format: postFormat(entry.path),
   })) {
     if (record.sourceLine !== entry.sourceLine) continue;
-    if (sha256Line(record.canonicalText) !== entry.lineHash) continue;
+    const sourceText = rawSourceLine(content, record.sourceLine);
+    if (sourceText === null || sha256Line(sourceText) !== entry.lineHash) continue;
     const matches = record.emojiMatches ?? findEmojiSequences(record.canonicalText);
     count += matches.filter((match) => match.emoji === entry.emoji).length;
   }
@@ -214,7 +219,13 @@ export function checkContentChanges({ changes, allowlist, approvalCorpus, readCu
         continue;
       }
       for (const match of record.emojiMatches ?? findEmojiSequences(record.canonicalText)) {
-        const lineHash = sha256Line(record.canonicalText);
+        const sourceText = rawSourceLine(change.content, record.sourceLine);
+        if (sourceText === null) {
+          throw new Error(
+            `${change.path}:${record.sourceLine} 找不到 reader-visible record 的原始行`
+          );
+        }
+        const lineHash = sha256Line(sourceText);
         const entryIndex = policy.entries.findIndex(
           (entry) =>
             entry.path === change.path &&

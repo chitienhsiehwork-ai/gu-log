@@ -27,7 +27,7 @@ gu-log 的文章庫已有大量歷史 emoji，直接對全庫做絕對掃描會�
 
 共用 validator 先用新的 shared reader-surface library 取得 reader-visible line records，再讀取其 added lines：pre-commit 比對 index 與 `HEAD`，CI 比對 PR base 與 head。每筆 record 含 canonical text、surface kind 與原始 source line，讓錯誤訊息與 allowlist line hash 都能回到具體位置。新文章的所有可見內容都是 added lines；既有文章只有新寫、搬移或改過的可見行會被檢查。因此歷史內容不會讓 gate 首日全紅，但任何被改到的 emoji 行都必須清掉或取得明確例外。
 
-reader-surface library 擁有 reader-visible key 清單與 MDX 可見行 projection。這個 surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。library 透過 MDX node positions 與 ESTree program 排除明確核准的 local component／raster import、無 module source 的 export 與確定不會 render 的 comment-only expression；其他 import／re-export 遇錯即停，並保留真實 source span 供 added-line 判定。
+reader-surface library 擁有 reader-visible key 清單與 MDX 可見行 projection。這個 surface 包含現行 reader revision SSOT 宣告的可見 frontmatter、完整 MDX body、MoguNote／ShroomDogNote 內容、讀者可見或無障礙可讀的 component 文字屬性、圖片替代文字與 code block。library 透過 MDX node positions 與 ESTree program 排除明確核准的 local component／raster default import、無 module source 的 export 與確定不會 render 的 comment-only expression；其他 import／re-export 遇錯即停。核准 component 的 local alias 會映回真實 component 身分，測試則保證整份 trusted component source 不含 Unicode emoji，並保留真實 source span 供 added-line 判定。
 
 小型 `reader-revision-core` 只擁有 frontmatter split、legacy frontmatter keys 與 canonicalizer；`build-reader-revision-manifest.mjs` 與 reader-surface 都匯入它。production manifest build 因此不載入 MDX policy parser，同時不改既有「raw body 也參與 revision hash」的 bytes；`--check` 必須證明 manifest 無全庫 churn。Emoji validator 使用 reader-surface 的 line projection，不在自身另抄解析規則。未來若要讓 reader revision 也排除 import／註解，應另做有意識的 revision migration，不夾帶在本規則裡。
 
@@ -39,7 +39,7 @@ reader-surface parser 只解析不需執行 JavaScript 的 literal tree：一般
 
 其他會影響讀者可見內容的 expression，包含 concatenation、identifier、function call、interpolation、tagged template 與 spread，不由 validator 執行或推演。parser 只保留該 expression 的 source line record；如果該行在本次 diff 被新增或修改，gate 以檔案與行號報錯，要求改成可靜態檢查的 literal。這個邊界只是純 static literal walker，不建立通用 JavaScript evaluator 或會逐漸膨脹的部分 interpreter。
 
-因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。明確核准的 local component import、相對 raster binding 在 inert image／poster attribute 的引用、無 module source 的 MDX export、註解與 parser 已確認不會 render 的 node 維持排除；opaque、side-effect 或 potentially-rendering import／re-export 則遇錯即停。
+因為判定仍先套用 added-line ratchet，未碰觸的歷史 dynamic expression 繼續 grandfathered；只要搬移或改寫該行，就必須改為可靜態解析的內容。明確核准的 local component default import、相對 raster default binding 在 inert image／poster attribute 的引用、無 module source 的 MDX export、註解與 parser 已確認不會 render 的 node 維持排除；component alias 的 attribute 分類仍使用原 component 身分。opaque、side-effect、非 default 或 potentially-rendering import／re-export 則遇錯即停。
 
 Raw `style`／`script` element、stylesheet link、SVG visual resource、inline `style`／`on*`／embedded-document attribute 與可執行 URL scheme 採同一個遇錯即停邊界。CSS／JavaScript escape 與 SVG entity 即使 source 沒有 Unicode glyph，仍可能在瀏覽器產生 emoji；validator 不建立半套 CSS／JavaScript／SVG evaluator，而是在新增或修改這類 executable markup 時要求移除。一般安全 URL 與普通 SVG 文字連結維持可用；教學文章若要展示 executable markup，照常使用 fenced code block，不會被當成執行內容。
 
@@ -51,7 +51,7 @@ Raw `style`／`script` element、stylesheet link、SVG visual resource、inline 
 
 ### 例外採 exact occurrence allowlist
 
-例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、原始 source line、emoji sequence、該 canonical 內容行的 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`；feedback decision 必須鏡像 path、source line、emoji、line hash 與核准數量，executable record 不能自行擴張授權。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應位置與內容行的 stale entry。
+例外存放在 `quality/content-emoji-allowlist.json`。每筆紀錄綁定 repo-relative post path、原始 source line、emoji sequence、包含同一行其他文字與 markup 的完整原始實體行 SHA-256、最多出現次數、授權日期、理由，以及指向 `docs/shroomdog-editorial-feedback.md` 具體決策條目的 `approvalRef`；feedback decision 必須鏡像 path、source line、emoji、line hash 與核准數量，executable record 不能自行擴張授權。allowlist 沒有 glob，也不能只靠 ticketId 放行整篇。validator 會拒絕 schema 錯誤、缺少或無法解析的授權參照、超量，或已找不到對應位置與完整原始行的 stale entry。
 
 這個檔案只是把 ShroomDog 已明確做出的保留決定寫成 executable record；它不是 agent 可以自行創造授權的 escape hatch。一般移除決策只留在 feedback prose 與 git history，不建立 validator 永遠不會使用的 `remove` marker。
 

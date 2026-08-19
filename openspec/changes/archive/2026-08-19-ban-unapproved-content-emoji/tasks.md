@@ -1,7 +1,7 @@
 ## 1. Emoji 確定性規則
 
-- [x] 1.1 先新增 Vitest 回歸測試，涵蓋新文章表情圖示、修改既有表情圖示行、未修改的歷史內容、MoguNote／component props／圖片替代文字／code block、trusted／potentially-rendering MDX import 邊界、註解、executable markup／URL／SVG visual resource、`(๑•̀ㅂ•́)و✧`／`(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` 顏文字、Unicode 旗幟／按鍵／ZWJ，以及精確例外清單。
-- [x] 1.2 鎖住例外清單的負向案例：同字形複製到另一行、搬移或改動已核准行、超出 count、stale line hash、同檔不同字形、不同檔相同字形、缺少或無法解析 `approvalRef`，以及 feedback decision 與 executable record 的 line hash／count 不一致都必須失敗。
+- [x] 1.1 先新增 Vitest 回歸測試，涵蓋新文章表情圖示、修改既有表情圖示行、未修改的歷史內容、MoguNote／component props／圖片替代文字／code block、trusted component alias／source 無 emoji freshness／raster binding、potentially-rendering MDX import 邊界、註解、executable markup／URL／SVG visual resource、`(๑•̀ㅂ•́)و✧`／`(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧` 顏文字、Unicode 旗幟／按鍵／ZWJ，以及精確例外清單。
+- [x] 1.2 鎖住例外清單的負向案例：同字形複製到另一行、搬移或改動已核准行、同一實體行的周邊 context 改寫、超出 count、stale line hash、同檔不同字形、不同檔相同字形、缺少或無法解析 `approvalRef`，以及 feedback decision 與 executable record 的 line hash／count 不一致都必須失敗。
 - [x] 1.3 建立 shared reader-surface library，匯出可見 frontmatter／MDX line records 與 source line mapping；讓 reader revision manifest 共用解析 primitives，並以 freshness test 證明現有 hash bytes 不變。
 - [x] 1.4 實作 `scripts/check-content-emoji.mjs` 與 `quality/content-emoji-allowlist.json`，重用 shared reader-surface library，讓 staged／PR-base 模式共用偵測器、顏文字邊界、遇錯即停的 diff 處理與例外清單驗證。
 - [x] 1.5 把 validator 接進 `scripts/hooks/pre-commit` 與 `.github/workflows/ci.yml`，並以測試鎖住兩邊確實呼叫同一支可執行 SSOT。

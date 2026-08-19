@@ -404,7 +404,8 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **AND** 新增或修改的 raw `style`／`script` element、stylesheet link、SVG visual resource、inline `style`／`on*`／embedded-document attribute 或可執行 URL scheme SHALL 遇錯即停，避免 CSS／JavaScript／SVG escape 或 entity 在 source 不含 Unicode glyph 時仍產生讀者可見 emoji
 - **AND** fenced code block 內的 `style`／`script` 範例 SHALL 維持可用
 - **AND** 無 binding 的 side-effect import，或無法由明確核准的既有 component path／相對 raster asset path 證明安全的 import／re-export SHALL 遇錯即停
-- **AND** approved local component import、相對 raster binding 在 inert image／poster attribute 的引用、其餘無 module source 的 MDX export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響
+- **AND** approved local component default import、相對 raster default binding 在 inert image／poster attribute 的引用、其餘無 module source 的 MDX export 與 ESTree 確認完全不會顯示的純註解運算式 SHALL 不受此規則影響
+- **AND** approved component 的 local import alias SHALL 映回真實 component 身分，其 trusted source SHALL 由測試維持不含 Unicode emoji
 - **AND** 註解後仍有運算結果的混合節點 SHALL NOT 被當成純註解
 
 #### Scenario: Kaomoji remains allowed
@@ -418,7 +419,7 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 #### Scenario: User grants a narrow exception
 
 - **WHEN** ShroomDog 明確授權某篇文章中的特定 emoji occurrence
-- **AND** repo 記錄精確綁定該 post path、原始 source line、emoji、內容行 hash、核准數量、授權理由與 feedback corpus 決策參照
+- **AND** repo 記錄精確綁定該 post path、原始 source line、emoji、完整原始實體行 hash、核准數量、授權理由與 feedback corpus 決策參照
 - **AND** feedback corpus decision SHALL 鏡像同一組 path、source line、emoji、line hash 與核准數量，executable record 不得自行擴張授權
 - **THEN** deterministic gate MAY 只放行該 occurrence
 - **AND** SHALL NOT 放行同檔其他 emoji、其他文章或超出核准數量的 occurrence

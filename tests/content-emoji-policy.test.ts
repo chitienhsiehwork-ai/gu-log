@@ -9,7 +9,10 @@ import {
   extractPostParts,
   readerRevisionCanonicalJSON,
 } from '../scripts/lib/reader-revision-core.mjs';
-import { collectReaderSurfaceLineRecords } from '../scripts/lib/reader-surface.mjs';
+import {
+  collectReaderSurfaceLineRecords,
+  TRUSTED_CONTENT_COMPONENT_IMPORTS,
+} from '../scripts/lib/reader-surface.mjs';
 import {
   checkContentChanges,
   findEmojiSequences,
@@ -465,6 +468,55 @@ lang: zh-tw
       changedPath,
       changedContent: content,
       changedLines: [5],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('keeps every trusted component source free of Unicode emoji', () => {
+    const findings = TRUSTED_CONTENT_COMPONENT_IMPORTS.flatMap(([source, componentName]) => {
+      const componentSource = fs.readFileSync(
+        path.resolve(REPO_ROOT, 'src/content/posts', source),
+        'utf8'
+      );
+      return findEmojiSequences(componentSource).map((match) => ({
+        componentName,
+        emoji: match.emoji,
+      }));
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it('tracks a trusted PostImage alias when classifying an SVG source', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import Picture from '../../components/PostImage.astro';
+
+<Picture src="/emoji.svg" alt="safe" />
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [7],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+  });
+
+  it('allows a trusted raster binding through a PostImage alias', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import Picture from '../../components/PostImage.astro';
+import hero from '../../assets/hero.png';
+
+<Picture src={hero} alt="safe" />
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [8],
     });
     expect(result.errors).toEqual([]);
   });
@@ -1223,12 +1275,12 @@ Body.
       current: { [POST_PATH]: changedContent },
       changedContent,
       changedLines: [2],
-      entries: [validEntry('prefix 👩‍💻', { emoji: '👩‍💻', sourceLine: 3 })],
+      entries: [validEntry('  prefix 👩\\', { emoji: '👩‍💻', sourceLine: 3 })],
       approvalDecisions: [
         approvalDecision({
           emoji: '👩‍💻',
           sourceLine: 3,
-          lineHash: sha256Line('prefix 👩‍💻'),
+          lineHash: sha256Line('  prefix 👩\\'),
         }),
       ],
     });
@@ -1971,6 +2023,30 @@ Body.
       entries: [validEntry(line)],
     });
     expect(result.errors).toEqual([]);
+  });
+
+  it('invalidates an approval when surrounding source-line context changes', () => {
+    const approvedLine = '安全前文 <span title="核准 ✨">A</span>';
+    const approvedContent = `---\ntitle: test\nlang: zh-tw\n---\n${approvedLine}\n`;
+    const approval = validEntry(approvedLine);
+    const decisions = [approvalDecision({ lineHash: approval.lineHash })];
+    const approvedResult = checkFixture({
+      current: { [POST_PATH]: approvedContent },
+      changedContent: approvedContent,
+      entries: [approval],
+      approvalDecisions: decisions,
+    });
+    expect(approvedResult.errors).toEqual([]);
+
+    const changedContent = approvedContent.replace('安全前文', '新語境').replace('>A<', '>B<');
+    const changedResult = checkFixture({
+      current: { [POST_PATH]: changedContent },
+      changedContent,
+      entries: [approval],
+      approvalDecisions: decisions,
+    });
+    expect(changedResult.errors.join('\n')).toContain('stale');
+    expect(changedResult.errors.join('\n')).toContain('未授權 emoji');
   });
 
   it('accepts an exact approval for a Markdown post loaded by Astro', () => {

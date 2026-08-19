@@ -660,26 +660,41 @@ function stripHtmlCommentsPreservingLines(value) {
   return visibleValue;
 }
 
-const TRUSTED_CONTENT_COMPONENT_IMPORTS = new Set([
-  '../../components/AnalogyBox.astro',
-  '../../components/CodexLearningMap.astro',
-  '../../components/DiffBlock.astro',
-  '../../components/LevelUpProgress.astro',
-  '../../components/LevelUpQuiz.astro',
-  '../../components/Mermaid.astro',
-  '../../components/MoguNote.astro',
-  '../../components/PostImage.astro',
-  '../../components/PostVideo.astro',
-  '../../components/ShroomDogNote.astro',
-  '../../components/Toggle.astro',
-]);
+export const TRUSTED_CONTENT_COMPONENT_IMPORTS = Object.freeze(
+  [
+    ['../../components/AnalogyBox.astro', 'AnalogyBox'],
+    ['../../components/CodexLearningMap.astro', 'CodexLearningMap'],
+    ['../../components/DiffBlock.astro', 'DiffBlock'],
+    ['../../components/LevelUpProgress.astro', 'LevelUpProgress'],
+    ['../../components/LevelUpQuiz.astro', 'LevelUpQuiz'],
+    ['../../components/Mermaid.astro', 'Mermaid'],
+    ['../../components/MoguNote.astro', 'MoguNote'],
+    ['../../components/PostImage.astro', 'PostImage'],
+    ['../../components/PostVideo.astro', 'PostVideo'],
+    ['../../components/ShroomDogNote.astro', 'ShroomDogNote'],
+    ['../../components/Toggle.astro', 'Toggle'],
+  ].map((entry) => Object.freeze(entry))
+);
+const TRUSTED_CONTENT_COMPONENT_IMPORT_BY_SOURCE = new Map(TRUSTED_CONTENT_COMPONENT_IMPORTS);
 
 function isTrustedRasterImportSource(source) {
   return /^(?:\.{1,2}\/).+\.(?:avif|gif|jpe?g|png|webp)$/iu.test(source);
 }
 
-function isTrustedContentImportSource(source) {
-  return TRUSTED_CONTENT_COMPONENT_IMPORTS.has(source) || isTrustedRasterImportSource(source);
+function defaultImportBinding(statement) {
+  if (statement.type !== 'ImportDeclaration' || statement.specifiers?.length !== 1) return null;
+  const [specifier] = statement.specifiers;
+  return specifier.type === 'ImportDefaultSpecifier' && specifier.local?.name
+    ? specifier.local.name
+    : null;
+}
+
+function isTrustedContentImportStatement(statement) {
+  const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
+  return (
+    defaultImportBinding(statement) !== null &&
+    (TRUSTED_CONTENT_COMPONENT_IMPORT_BY_SOURCE.has(source) || isTrustedRasterImportSource(source))
+  );
 }
 
 function potentiallyRenderingEsmStatements(node) {
@@ -689,7 +704,7 @@ function potentiallyRenderingEsmStatements(node) {
     const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
     if (statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0) return true;
     if (!source) return false;
-    return !isTrustedContentImportSource(source);
+    return !isTrustedContentImportStatement(statement);
   });
 }
 
@@ -1004,6 +1019,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
   const records = [];
   const definitions = new Map();
   const trustedRasterBindings = new Set();
+  const trustedComponentBindings = new Map();
 
   walk(tree, (node) => {
     if (node.type !== 'definition' || definitions.has(node.identifier)) return;
@@ -1014,12 +1030,11 @@ function collectBodyRecords(body, bodyStartLine, format) {
     if (node.type !== 'mdxjsEsm') return;
     for (const statement of node.data?.estree?.body ?? []) {
       const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
-      if (statement.type !== 'ImportDeclaration' || !isTrustedRasterImportSource(source)) continue;
-      for (const specifier of statement.specifiers ?? []) {
-        if (specifier.type === 'ImportDefaultSpecifier' && specifier.local?.name) {
-          trustedRasterBindings.add(specifier.local.name);
-        }
-      }
+      const binding = defaultImportBinding(statement);
+      if (binding === null) continue;
+      if (isTrustedRasterImportSource(source)) trustedRasterBindings.add(binding);
+      const componentName = TRUSTED_CONTENT_COMPONENT_IMPORT_BY_SOURCE.get(source);
+      if (componentName) trustedComponentBindings.set(binding, componentName);
     }
   });
 
@@ -1741,6 +1756,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
       return;
     }
     if (node.type === 'mdxJsxFlowElement' || node.type === 'mdxJsxTextElement') {
+      const effectiveElementName = trustedComponentBindings.get(node.name) ?? node.name;
       if (typeof node.name === 'string' && /^(?:style|script)$/iu.test(node.name)) {
         pushUnsafeExecutable(node, `mdx.element.${node.name.toLowerCase()}`);
         return false;
@@ -1801,7 +1817,10 @@ function collectBodyRecords(body, bodyStartLine, format) {
         const quotedSource =
           typeof attribute.value === 'string' ? quotedAttributeSource(attribute) : null;
         if (attributeName === 'srcset' && quotedSource) {
-          const unsafeRanges = unsafeSrcsetCandidateRanges(quotedSource.rawValue, node.name);
+          const unsafeRanges = unsafeSrcsetCandidateRanges(
+            quotedSource.rawValue,
+            effectiveElementName
+          );
           if (unsafeRanges.length > 0) {
             pushUnsafePhysicalRanges(
               quotedSource.rawValue,
@@ -1816,7 +1835,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
           isExecutableReaderAttribute(
             attributeName,
             typeof attribute.value === 'string' ? attribute.value : '',
-            node.name
+            effectiveElementName
           )
         ) {
           pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
@@ -1839,7 +1858,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
           if (
             staticIdentifier !== null &&
             trustedRasterBindings.has(staticIdentifier) &&
-            isInertRasterBindingAttribute(node.name, attributeName)
+            isInertRasterBindingAttribute(effectiveElementName, attributeName)
           ) {
             continue;
           }
@@ -1848,12 +1867,12 @@ function collectBodyRecords(body, bodyStartLine, format) {
             pushUnresolvedExpression(attribute, `mdx.attribute.${attribute.name}`);
           } else if (
             attributeName === 'srcset' &&
-            pushStaticSrcsetExecutables(staticValues, node.name)
+            pushStaticSrcsetExecutables(staticValues, effectiveElementName)
           ) {
             continue;
           } else if (
             staticValues.some((value) =>
-              isExecutableReaderAttribute(attributeName, value.value, node.name)
+              isExecutableReaderAttribute(attributeName, value.value, effectiveElementName)
             )
           ) {
             pushUnsafeExecutable(attribute, 'mdx.attribute.executable');
