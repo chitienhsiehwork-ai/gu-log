@@ -471,6 +471,141 @@ Body.
       expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
     }
   );
+
+  it('expands top-level YAML merges with anchor and alias source lines', () => {
+    const content = `---
+warning: &warning
+  warnReason: "\\U0001F600"
+  warnedByStage0: true
+<<: *warning
+title: test
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    const warningRecord = records.find((record) => record.surfaceKind === 'frontmatter.warnReason');
+    expect(warningRecord).toMatchObject({ canonicalText: '😀', sourceLine: 3 });
+    expect([...(warningRecord?.sourceLines ?? [])]).toEqual([3, 5]);
+
+    for (const changedLine of [3, 5]) {
+      const result = checkFixture({
+        current: { [POST_PATH]: content },
+        changedContent: content,
+        changedLines: [changedLine],
+      });
+      expect(result.errors.join('\n')).toContain('未授權 emoji "😀"');
+    }
+
+    const safeResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [4],
+    });
+    expect(safeResult.errors).toEqual([]);
+  });
+
+  it('does not scan a merged YAML value overridden by an explicit top-level key', () => {
+    const content = `---
+warning: &warning
+  warnReason: "\\U0001F600"
+<<: *warning
+warnReason: safe
+title: test
+lang: zh-tw
+---
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content);
+    expect(records.filter((record) => record.surfaceKind === 'frontmatter.warnReason')).toEqual([
+      expect.objectContaining({ canonicalText: 'safe', sourceLine: 5, sourceLines: new Set([5]) }),
+    ]);
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedContent: content,
+      changedLines: [2, 3, 4, 5],
+    });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('projects TOML frontmatter values onto their physical source lines', () => {
+    const content = `+++
+title = "只改安全文字"
+summary = "歷史 \\U0001F600"
+lang = "zh-tw"
++++
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content, { format: 'md' });
+    const titleRecord = records.find((record) => record.surfaceKind === 'frontmatter.title');
+    const summaryRecord = records.find((record) => record.surfaceKind === 'frontmatter.summary');
+    expect(titleRecord).toMatchObject({ canonicalText: '只改安全文字', sourceLine: 2 });
+    expect([...(titleRecord?.sourceLines ?? [])]).toEqual([2]);
+    expect(summaryRecord).toMatchObject({ canonicalText: '歷史 😀', sourceLine: 3 });
+    expect([...(summaryRecord?.sourceLines ?? [])]).toEqual([3]);
+
+    const safeResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [2],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    const emojiResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [3],
+    });
+    expect(emojiResult.errors.join('\n')).toContain('未授權 emoji "😀"');
+  });
+
+  it('keeps TOML literal-string escapes literal while scanning basic-string escapes', () => {
+    const content = `+++
+title = 'literal \\U0001F600'
+summary = "reader \\U0001F600"
+lang = "zh-tw"
++++
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content, { format: 'md' });
+    expect(records.find((record) => record.surfaceKind === 'frontmatter.title')).toMatchObject({
+      canonicalText: 'literal \\U0001F600',
+      sourceLine: 2,
+    });
+    expect(records.find((record) => record.surfaceKind === 'frontmatter.summary')).toMatchObject({
+      canonicalText: 'reader 😀',
+      sourceLine: 3,
+    });
+  });
+
+  it('projects a multiline TOML string one physical line at a time', () => {
+    const content = `+++
+title = """只改安全文字
+歷史 \\U0001F600"""
+lang = "zh-tw"
++++
+Body.
+`;
+    const records = collectReaderSurfaceLineRecords(content, { format: 'md' }).filter(
+      (record) => record.surfaceKind === 'frontmatter.title'
+    );
+    expect(records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ canonicalText: '只改安全文字', sourceLines: new Set([2]) }),
+        expect.objectContaining({ canonicalText: '歷史 😀', sourceLines: new Set([3]) }),
+      ])
+    );
+
+    const safeResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [2],
+    });
+    expect(safeResult.errors).toEqual([]);
+  });
 });
 
 describe('Unicode emoji and kaomoji boundary', () => {
@@ -506,14 +641,16 @@ describe('Unicode emoji and kaomoji boundary', () => {
     }
   );
 
-  it.each(['（版本 A • 支援 ❤）', '（版本 B · 支援 ♥）'])(
-    'does not treat ordinary bullet parenthetical as kaomoji: %s',
-    (text) => {
-      expect(findEmojiSequences(text).map((match) => match.emoji)).toEqual([
-        text.includes('❤') ? '❤' : '♥',
-      ]);
-    }
-  );
+  it.each([
+    '（版本 A • 支援 ❤）',
+    '（版本 B · 支援 ♥）',
+    '（版本 C - 支援 ❤）',
+    '（版本 D ･ 支援 ♥）',
+  ])('does not treat ordinary bullet parenthetical as kaomoji: %s', (text) => {
+    expect(findEmojiSequences(text).map((match) => match.emoji)).toEqual([
+      text.includes('❤') ? '❤' : '♥',
+    ]);
+  });
 
   it.each([
     ['rocket', '(◕‿◕🚀)', '🚀'],

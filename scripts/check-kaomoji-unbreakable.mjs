@@ -77,6 +77,7 @@ const NEGATIVES = [
   '（`agent/agent.py`）當病人',
   '（版本 A • 支援 ❤）',
   '（版本 B · 支援 ♥）',
+  '（版本 C - 支援 ❤）',
 ];
 
 // Soft-warning scan only. Halfwidth katakana (U+FF65–FF9F) almost never appears

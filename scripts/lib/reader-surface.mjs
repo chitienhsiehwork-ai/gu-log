@@ -166,6 +166,221 @@ function continuedPhysicalLineRecords(projectedLines, surfaceKind) {
   return records;
 }
 
+const TOML_ESCAPE_VALUES = Object.freeze({
+  b: '\b',
+  t: '\t',
+  n: '\n',
+  f: '\f',
+  r: '\r',
+  e: '\x1b',
+  '"': '"',
+  '\\': '\\',
+});
+
+function decodeTomlEscape(source, backslashIndex) {
+  const kind = source[backslashIndex + 1];
+  const digits = kind === 'x' ? 2 : kind === 'u' ? 4 : kind === 'U' ? 8 : 0;
+  if (digits > 0) {
+    const hex = source.slice(backslashIndex + 2, backslashIndex + 2 + digits);
+    if (/^[0-9a-f]+$/iu.test(hex) && hex.length === digits) {
+      return {
+        value: String.fromCodePoint(Number.parseInt(hex, 16)),
+        nextIndex: backslashIndex + 2 + digits,
+      };
+    }
+  }
+  return {
+    value: TOML_ESCAPE_VALUES[kind] ?? kind ?? '',
+    nextIndex: backslashIndex + Math.min(2, source.length - backslashIndex),
+  };
+}
+
+function firstTomlKey(source) {
+  const trimmed = source.trimStart();
+  if (trimmed.startsWith('"')) {
+    let value = '';
+    for (let index = 1; index < trimmed.length;) {
+      if (trimmed[index] === '"') return value;
+      if (trimmed[index] === '\\') {
+        const decoded = decodeTomlEscape(trimmed, index);
+        value += decoded.value;
+        index = decoded.nextIndex;
+      } else {
+        value += trimmed[index];
+        index += 1;
+      }
+    }
+    return '';
+  }
+  if (trimmed.startsWith("'")) {
+    const endIndex = trimmed.indexOf("'", 1);
+    return endIndex < 0 ? '' : trimmed.slice(1, endIndex);
+  }
+  return trimmed.match(/^[A-Za-z0-9_-]+/u)?.[0] ?? '';
+}
+
+function tomlEqualsIndex(line) {
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote !== null) {
+      if (quote === '"' && character === '\\') index += 1;
+      else if (character === quote) quote = null;
+      continue;
+    }
+    if (character === '"' || character === "'") quote = character;
+    else if (character === '=') return index;
+    else if (character === '#') return -1;
+  }
+  return -1;
+}
+
+function tomlTableTopKey(line) {
+  const trimmed = line.trimStart();
+  if (!trimmed.startsWith('[')) return null;
+  const openingLength = trimmed.startsWith('[[') ? 2 : 1;
+  return firstTomlKey(trimmed.slice(openingLength));
+}
+
+function projectTomlValueLine(rawLine, state) {
+  let index = 0;
+  let canonicalText = '';
+  let continuesOnNextLine = false;
+  if (state.trimLeadingWhitespace) {
+    while (/[ \t]/u.test(rawLine[index] ?? '')) index += 1;
+    if (index === rawLine.length) {
+      return { canonicalText: '', continuesOnNextLine: true };
+    }
+    state.trimLeadingWhitespace = false;
+  } else if (state.quote === null) {
+    while (/[ \t]/u.test(rawLine[index] ?? '')) index += 1;
+  }
+
+  while (index < rawLine.length) {
+    if (state.quote === null) {
+      if (rawLine[index] === '#') break;
+      if (rawLine.startsWith('"""', index)) {
+        state.quote = 'multiline-basic';
+        index += 3;
+        continue;
+      }
+      if (rawLine.startsWith("'''", index)) {
+        state.quote = 'multiline-literal';
+        index += 3;
+        continue;
+      }
+      if (rawLine[index] === '"') {
+        state.quote = 'basic';
+        index += 1;
+        continue;
+      }
+      if (rawLine[index] === "'") {
+        state.quote = 'literal';
+        index += 1;
+        continue;
+      }
+      if (rawLine[index] === '[' || rawLine[index] === '{') state.depth += 1;
+      else if (rawLine[index] === ']' || rawLine[index] === '}') state.depth -= 1;
+      canonicalText += rawLine[index];
+      index += 1;
+      continue;
+    }
+
+    if (state.quote === 'multiline-basic' && rawLine.startsWith('"""', index)) {
+      state.quote = null;
+      index += 3;
+      continue;
+    }
+    if (state.quote === 'multiline-literal' && rawLine.startsWith("'''", index)) {
+      state.quote = null;
+      index += 3;
+      continue;
+    }
+    if (state.quote === 'basic' && rawLine[index] === '"') {
+      state.quote = null;
+      index += 1;
+      continue;
+    }
+    if (state.quote === 'literal' && rawLine[index] === "'") {
+      state.quote = null;
+      index += 1;
+      continue;
+    }
+    if (state.quote === 'basic' || state.quote === 'multiline-basic') {
+      if (rawLine[index] === '\\') {
+        if (state.quote === 'multiline-basic' && /^[ \t]*$/u.test(rawLine.slice(index + 1))) {
+          state.trimLeadingWhitespace = true;
+          continuesOnNextLine = true;
+          break;
+        }
+        const decoded = decodeTomlEscape(rawLine, index);
+        canonicalText += decoded.value;
+        index = decoded.nextIndex;
+        continue;
+      }
+    }
+    canonicalText += rawLine[index];
+    index += 1;
+  }
+  return { canonicalText: canonicalText.trimEnd(), continuesOnNextLine };
+}
+
+function tomlFrontmatterLineRecords(frontmatterRaw, frontmatterStartLine) {
+  const records = [];
+  const lines = frontmatterRaw.split('\n');
+  let currentTableKey = null;
+  let currentTableHeaderLines = new Set();
+  let statement = null;
+
+  function flushStatement() {
+    if (!statement) return;
+    if (READER_VISIBLE_FRONTMATTER_KEY_SET.has(statement.topLevelKey)) {
+      for (const record of continuedPhysicalLineRecords(
+        statement.projectedLines,
+        `frontmatter.${statement.topLevelKey}`
+      )) {
+        records.push({
+          ...record,
+          sourceLines: new Set([
+            ...(record.sourceLines ?? [record.sourceLine]),
+            ...statement.tableHeaderLines,
+          ]),
+        });
+      }
+    }
+    statement = null;
+  }
+
+  for (const [lineIndex, rawLine] of lines.entries()) {
+    const sourceLine = frontmatterStartLine + lineIndex;
+    if (statement === null) {
+      const tableKey = tomlTableTopKey(rawLine);
+      if (tableKey !== null) {
+        currentTableKey = tableKey;
+        currentTableHeaderLines = new Set([sourceLine]);
+        continue;
+      }
+      const equalsIndex = tomlEqualsIndex(rawLine);
+      if (equalsIndex < 0) continue;
+      statement = {
+        topLevelKey: currentTableKey ?? firstTomlKey(rawLine),
+        tableHeaderLines: currentTableHeaderLines,
+        state: { quote: null, depth: 0, trimLeadingWhitespace: false },
+        projectedLines: [],
+      };
+      const projected = projectTomlValueLine(rawLine.slice(equalsIndex + 1), statement.state);
+      statement.projectedLines.push({ ...projected, sourceLine });
+    } else {
+      const projected = projectTomlValueLine(rawLine, statement.state);
+      statement.projectedLines.push({ ...projected, sourceLine });
+    }
+
+    if (statement.state.quote === null && statement.state.depth === 0) flushStatement();
+  }
+  flushStatement();
+  return records;
+}
+
 function quotedYamlLineRecords(node, surfaceKind, lineCounter, frontmatterStartLine) {
   const tokenType = node.srcToken?.type;
   if (tokenType !== 'double-quoted-scalar' && tokenType !== 'single-quoted-scalar') return null;
@@ -318,32 +533,10 @@ function collectYamlValueRecords(
   }
 }
 
-function collectFrontmatterRecords({
-  frontmatter,
-  frontmatterRaw,
-  frontmatterFormat,
-  frontmatterStartLine,
-}) {
+function collectFrontmatterRecords({ frontmatterRaw, frontmatterFormat, frontmatterStartLine }) {
   if (!frontmatterRaw) return [];
   if (frontmatterFormat === 'toml') {
-    const sourceLines = new Set(
-      Array.from(
-        { length: frontmatterRaw.split('\n').length },
-        (_unused, index) => frontmatterStartLine + index
-      )
-    );
-    const records = [];
-    for (const key of READER_VISIBLE_FRONTMATTER_KEYS) {
-      if (frontmatter[key] === undefined) continue;
-      collectResolvedYamlValue(
-        frontmatter[key],
-        `frontmatter.${key}`,
-        frontmatterStartLine,
-        sourceLines,
-        records
-      );
-    }
-    return records;
+    return tomlFrontmatterLineRecords(frontmatterRaw, frontmatterStartLine);
   }
   const lineCounter = new LineCounter();
   const document = parseDocument(frontmatterRaw, { keepSourceTokens: true, lineCounter });
@@ -351,9 +544,11 @@ function collectFrontmatterRecords({
   if (!isMap(document.contents)) return [];
 
   const records = [];
-  for (const pair of document.contents.items) {
-    const topLevelKey = isScalar(pair.key) ? String(pair.key.value) : '';
-    if (!READER_VISIBLE_FRONTMATTER_KEY_SET.has(topLevelKey)) continue;
+  const emittedKeys = new Set();
+  const visitedMaps = new Set();
+
+  function collectVisiblePair(pair, topLevelKey, inheritedSourceLines) {
+    const firstRecordIndex = records.length;
     collectYamlValueRecords(
       pair.value,
       `frontmatter.${topLevelKey}`,
@@ -362,7 +557,62 @@ function collectFrontmatterRecords({
       records,
       frontmatterStartLine
     );
+    for (const record of records.slice(firstRecordIndex)) {
+      record.sourceLines = new Set([
+        ...(record.sourceLines ?? [record.sourceLine]),
+        ...inheritedSourceLines,
+      ]);
+    }
+    emittedKeys.add(topLevelKey);
   }
+
+  function collectMergedValue(node, inheritedSourceLines) {
+    if (isAlias(node)) {
+      const aliasSourceLines = sourceLinesForYamlNode(node, lineCounter, frontmatterStartLine);
+      const target = node.resolve(document);
+      if (isMap(target)) {
+        collectEffectiveMap(target, new Set([...inheritedSourceLines, ...aliasSourceLines]));
+      }
+      return;
+    }
+    if (isSeq(node)) {
+      for (const item of node.items) collectMergedValue(item, inheritedSourceLines);
+      return;
+    }
+    if (isMap(node)) collectEffectiveMap(node, inheritedSourceLines);
+  }
+
+  function collectEffectiveMap(map, inheritedSourceLines = new Set()) {
+    if (visitedMaps.has(map)) return;
+    visitedMaps.add(map);
+
+    // Explicit keys override every merged source, regardless of source order.
+    for (const pair of map.items) {
+      const topLevelKey = isScalar(pair.key) ? String(pair.key.value) : '';
+      if (
+        topLevelKey === '<<' ||
+        emittedKeys.has(topLevelKey) ||
+        !READER_VISIBLE_FRONTMATTER_KEY_SET.has(topLevelKey)
+      ) {
+        continue;
+      }
+      collectVisiblePair(pair, topLevelKey, inheritedSourceLines);
+    }
+
+    // YAML merge sequences give earlier maps precedence over later maps.
+    for (const pair of map.items) {
+      const topLevelKey = isScalar(pair.key) ? String(pair.key.value) : '';
+      if (topLevelKey !== '<<') continue;
+      const mergeKeySourceLines = sourceLinesForYamlNode(
+        pair.key,
+        lineCounter,
+        frontmatterStartLine
+      );
+      collectMergedValue(pair.value, new Set([...inheritedSourceLines, ...mergeKeySourceLines]));
+    }
+  }
+
+  collectEffectiveMap(document.contents);
   return records;
 }
 
@@ -960,17 +1210,10 @@ export function collectReaderSurfaceLineRecords(content, { format = 'mdx' } = {}
   if (format !== 'md' && format !== 'mdx') {
     throw new Error(`reader-surface format 無效：${JSON.stringify(format)}`);
   }
-  const {
-    frontmatter,
-    frontmatterRaw,
-    frontmatterFormat,
-    frontmatterStartLine,
-    body,
-    bodyStartLine,
-  } = extractPostParts(content);
+  const { frontmatterRaw, frontmatterFormat, frontmatterStartLine, body, bodyStartLine } =
+    extractPostParts(content);
   return [
     ...collectFrontmatterRecords({
-      frontmatter,
       frontmatterRaw,
       frontmatterFormat,
       frontmatterStartLine,

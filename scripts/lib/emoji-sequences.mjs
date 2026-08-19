@@ -12,12 +12,21 @@ const EMOJI_RE = new RegExp(
   'gu'
 );
 const KAOMOJI_TEXT_EMOJI_OVERLAP = new Set(['♥', '♡', '❤']);
+const STRONG_KAOMOJI_FACE_SIGNAL = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω‿╥﹏⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง]/gu;
+const HEART_EYES_KAOMOJI = /[♥♡❤][^\n\r]{0,12}[ᴥᴗᵕω‿﹏ヮДㅂ₃][^\n\r]{0,12}[♥♡❤]/u;
+
+function hasStructuredHeartKaomoji(span) {
+  const strongSignals = span.text.match(STRONG_KAOMOJI_FACE_SIGNAL) ?? [];
+  return strongSignals.length >= 2 || HEART_EYES_KAOMOJI.test(span.text);
+}
 
 function isAllowedKaomojiTextOverlap(match, kaomojiSpans) {
   if (!KAOMOJI_TEXT_EMOJI_OVERLAP.has(match[0])) return false;
   const start = match.index;
   const end = start + match[0].length;
-  return kaomojiSpans.some((span) => start >= span.start && end <= span.end);
+  return kaomojiSpans.some(
+    (span) => start >= span.start && end <= span.end && hasStructuredHeartKaomoji(span)
+  );
 }
 
 export function findEmojiSequences(text) {
