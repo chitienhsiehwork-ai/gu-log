@@ -24,7 +24,7 @@
 - [x] 4.2 新增無 MoguNote 的 MP acceptance fixture，證明完整文章不會只因缺少 note 而 fail 或被強迫補寫。
 - [x] 4.3 新增 pipeline regression tests，證明 MP 繼續使用既有 non-GP flow，GP 繼續使用 source-preservation。
 - [x] 4.4 新增雙語 UI tests，證明 MP 不再顯示翻譯標示，且 GP 標示不變。
-- [x] 4.5 執行 strict OpenSpec validation、focused tests、相關 full repository checks 與 deterministic MP prompt／routing fixtures；由 correctness reviewer 對無法做 deterministic semantic verdict 的 scenarios 做 Tier-2 binary 對帳。所有 change-specific checks 通過；`pnpm spec:ownership` 仍只回報 base branch 既有的 `tests/theme-toggle.spec.ts` quarantine 於 2026-08-15 到期，與本 change 新增且已登記為 blocking 的 MP spec 無關。
+- [x] 4.5 執行 strict OpenSpec validation、focused tests、相關 full repository checks 與 deterministic MP prompt／routing fixtures；由 correctness reviewer 對無法做 deterministic semantic verdict 的 scenarios 做 Tier-2 binary 對帳。所有 checks 通過；同步 `origin/main` 的 theme-toggle 修正後，`pnpm spec:ownership` 回報 18 個 blocking、27 個 nightly、0 個 quarantined specs。
 - [x] 4.6 完成兩種 theme 的 reader-visible UI QA，並記錄適用證據。
 
 ## 5. Debrief 拍板後的 contract 收斂
