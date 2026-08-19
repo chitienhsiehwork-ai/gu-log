@@ -1001,7 +1001,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
-  function rawHtmlAttributeRanges(value, elementStartOffset, targetName) {
+  function rawHtmlAttributeRanges(value, elementStartOffset, isTargetName) {
     const ranges = [];
     let index = elementStartOffset;
     if (value[index] !== '<') return ranges;
@@ -1030,7 +1030,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
           while (!/[\s>]/u.test(value[index] ?? '>')) index += 1;
         }
       }
-      if (name === targetName) ranges.push({ start, end: index });
+      if (isTargetName(name)) ranges.push({ start, end: index, name });
       if (index === start) index += 1;
     }
     return ranges;
@@ -1070,8 +1070,14 @@ function collectBodyRecords(body, bodyStartLine, format) {
         return false;
       }
 
-      for (const range of rawHtmlAttributeRanges(value, start, 'style')) {
-        pushRawHtmlUnsafeRange(value, node, range, 'html.attribute.style');
+      for (const range of rawHtmlAttributeRanges(
+        value,
+        start,
+        (name) => name === 'style' || name.startsWith('on')
+      )) {
+        const surfaceKind =
+          range.name === 'style' ? 'html.attribute.style' : 'html.attribute.event';
+        pushRawHtmlUnsafeRange(value, node, range, surfaceKind);
         executableRanges.push(range);
       }
     });
@@ -1259,8 +1265,11 @@ function collectBodyRecords(body, bodyStartLine, format) {
           continue;
         }
         if (attribute.type !== 'mdxJsxAttribute') continue;
-        if (/^style$/iu.test(attribute.name ?? '')) {
-          pushUnsafeExecutable(attribute, 'mdx.attribute.style');
+        const attributeName = String(attribute.name ?? '').toLowerCase();
+        if (attributeName === 'style' || attributeName.startsWith('on')) {
+          const surfaceKind =
+            attributeName === 'style' ? 'mdx.attribute.style' : 'mdx.attribute.event';
+          pushUnsafeExecutable(attribute, surfaceKind);
           continue;
         }
         if (typeof attribute.value === 'string') {

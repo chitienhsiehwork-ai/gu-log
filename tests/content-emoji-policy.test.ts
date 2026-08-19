@@ -323,6 +323,16 @@ lang: zh-tw
       POST_PATH,
       String.raw`<ol STYLE="list-style-type:'\1F600'"><li>x</li></ol>`,
     ],
+    [
+      'Markdown inline event attribute',
+      MARKDOWN_POST_PATH,
+      String.raw`<button onclick="this.textContent='\u{1F600}'">點</button>`,
+    ],
+    [
+      'MDX inline event attribute',
+      POST_PATH,
+      String.raw`<button onclick="this.textContent='\u{1F600}'">點</button>`,
+    ],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
