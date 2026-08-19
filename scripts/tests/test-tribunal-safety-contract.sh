@@ -8,6 +8,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
+GROK_BRIDGE="$ROOT_DIR/scripts/tribunal-grok-provider.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
@@ -53,6 +54,23 @@ if ! bash "$TRIBUNAL" --help 2>&1 | grep -q -- '--allow-rewrite'; then
   fail "--allow-rewrite is not documented in help"
 fi
 pass "judge-only/--only-stage requires explicit --allow-rewrite"
+
+gp_rewrite_output=""
+gp_rewrite_rc=0
+gp_rewrite_output="$(bash "$TRIBUNAL" --allow-rewrite gp-nonexistent.mdx 2>&1)" || gp_rewrite_rc=$?
+if [ "$gp_rewrite_rc" -eq 0 ] || ! grep -q 'GP source-preservation contract forbids --allow-rewrite' <<<"$gp_rewrite_output"; then
+  fail "GP can still enter Tribunal writer/rebuild mode"
+fi
+en_gp_rewrite_output=""
+en_gp_rewrite_rc=0
+en_gp_rewrite_output="$(bash "$TRIBUNAL" --allow-rewrite en-gp-nonexistent.mdx 2>&1)" || en_gp_rewrite_rc=$?
+if [ "$en_gp_rewrite_rc" -eq 0 ] || ! grep -q 'GP source-preservation contract forbids --allow-rewrite' <<<"$en_gp_rewrite_output"; then
+  fail "English GP sidecar can still enter Tribunal writer/rebuild mode"
+fi
+if ! sed -n '/^repair_final_build_failure()/,/^}/p' "$TRIBUNAL" | grep -q 'ALLOW_REWRITE'; then
+  fail "final build repair can bypass GP no-rewrite mode"
+fi
+pass "GP forbids Tribunal rewrite, including final-build repair"
 
 if ! grep -q -- '--score-only --only-stage vibe' "$VIBE"; then
   fail "vibe-scorer does not delegate through non-mutating score-only mode"
@@ -351,10 +369,13 @@ pass "Claude model parser is frontmatter-only and exec fails before invocation"
 pass "strict routing keeps all four judges on role-pinned Codex; compatibility fallback remains strict-off only"
 
 if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
-   ! grep -q '^Environment=GP_WRITER_MODE=codex$' "$SERVICE" ||
+   ! grep -q '^Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex$' "$SERVICE" ||
+   ! grep -q '^Environment=GP_WRITER_MODE=grok$' "$SERVICE" ||
    ! grep -q '^Slice=tribunal-runtime.slice$' "$SERVICE" ||
-   ! grep -q '^export GP_WRITER_MODE=codex$' "$WRAPPER"; then
-  fail "systemd unit does not select strict Codex judges + Codex writer"
+   ! grep -q '^export TRIBUNAL_RUNTIME_PROFILE="${TRIBUNAL_RUNTIME_PROFILE:-legacy}"$' "$WRAPPER" ||
+   ! grep -q '^export GP_WRITER_MODE="${GP_WRITER_MODE:-codex}"$' "$WRAPPER" ||
+   ! grep -q '^if \[ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" \]; then$' "$WRAPPER"; then
+  fail "service must select VM/Grok while the generic wrapper preserves legacy defaults and guards host identity"
 fi
 if ! grep -q '^MemoryMax=4G$' "$SLICE" ||
    ! grep -q '^CPUQuota=200%$' "$SLICE" ||
@@ -465,7 +486,17 @@ EXPECTED_ARGS
     exit 1
   }
 ) || fail "bounded Codex write-canary preflight behavioral check failed"
-pass "deployed runtime selects strict Codex routing and reuses the exact writer sandbox for preflight"
+pass "deployed runtime selects the VM profile while legacy Codex preflight stays compatible"
+
+if ! grep -Fq 'codex|grok) ;;' "$TRIBUNAL" ||
+   grep -Fq 'complete Codex provider/model provenance' "$TRIBUNAL"; then
+  fail "isolated writer transaction does not accept complete Grok provenance"
+fi
+if ! grep -Fq 'tribunal_grok_prompt_exec' "$GROK_BRIDGE" ||
+   ! grep -Fq 'model_router_assert_profile_compatible' "$GROK_BRIDGE"; then
+  fail "Go Grok bridge bypasses the shared VM compatibility/containment executor"
+fi
+pass "Grok writer transactions and Go calls share provider-neutral provenance + containment"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"

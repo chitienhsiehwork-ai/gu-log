@@ -33,6 +33,9 @@ const (
 	ModelGemini31Pro  ModelID = "gemini-3.1-pro-preview"
 	ModelGPT55        ModelID = "gpt-5.5"
 	ModelGPT56Sol     ModelID = "gpt-5.6-sol"
+	ModelGPT56Luna    ModelID = "gpt-5.6-luna"
+	ModelGrok46       ModelID = "grok-4.6"
+	ModelGrok45       ModelID = "grok-4.5"
 	ModelGPT54        ModelID = "gpt-5.4"
 	ModelGPT53Codex   ModelID = "gpt-5.3-codex"
 	ModelClaudeSonnet ModelID = "claude-sonnet"
@@ -46,6 +49,7 @@ const (
 // through to DisplayName's default branch (raw id into provenance) and to
 // HarnessName's "Unknown Harness" — both silent breakages.
 var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)(?:-([0-9]+))?`)
+var grokFamilyRe = regexp.MustCompile(`^grok-([0-9]+)\.([0-9]+)$`)
 
 // DisplayName returns the human-readable model name the validator expects
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
@@ -63,6 +67,9 @@ func DisplayName(m ModelID) string {
 			return family + " " + match[2]
 		}
 		return family + " " + match[2] + "." + match[3]
+	}
+	if match := grokFamilyRe.FindStringSubmatch(normalized); match != nil {
+		return "Grok " + match[1] + "." + match[2]
 	}
 	// Never display the floating `opus` alias verbatim. If a path ever stamps
 	// the bare alias (e.g. runtime JSON reporting "opus" instead of a concrete
@@ -84,6 +91,8 @@ func DisplayName(m ModelID) string {
 		return "GPT-5.5"
 	case ModelGPT56Sol:
 		return "GPT-5.6-Sol"
+	case ModelGPT56Luna:
+		return "GPT-5.6-Luna"
 	case ModelGPT54:
 		return "GPT-5.4"
 	case ModelGPT53Codex:
@@ -101,12 +110,15 @@ func HarnessName(m ModelID) string {
 	if claudeFamilyRe.MatchString(string(m)) {
 		return "Claude Code CLI"
 	}
+	if grokFamilyRe.MatchString(string(m)) {
+		return "Grok Build CLI"
+	}
 	switch m {
 	case ModelClaudeOpus, ModelClaudeSonnet, ModelClaudeHaiku:
 		return "Claude Code CLI"
 	case ModelGemini31Pro:
 		return "Gemini CLI"
-	case ModelGPT56Sol, ModelGPT55, ModelGPT54, ModelGPT53Codex:
+	case ModelGPT56Sol, ModelGPT56Luna, ModelGPT55, ModelGPT54, ModelGPT53Codex:
 		return "Codex CLI"
 	default:
 		return "Unknown Harness"

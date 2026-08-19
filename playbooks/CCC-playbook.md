@@ -37,38 +37,39 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 ## Self-merge policy
 
-**🔴 預設就是「綠了直接 merge」，不要為了確認而問 user。** 判斷三連：**CI 全綠** + **改動 logical/safe/appropriate（在 CCC scope 內）** + **不是 critical design decision** → CCC **自己 mark ready + merge + 讓 GitHub auto-delete branch**，不需要、也不該回頭問 user「要不要 merge / 要不要我合」。問這種問題 = 拖慢流程、浪費 user 注意力。
+**🔴 預設就是「過 gate 後直接 merge」，不要為了確認而問 user。** 互動式 CCC PR 必須同時滿足：**CI 全綠** + **GitHub Codex auto-review gate 通過** + **改動 logical/safe/appropriate（在 CCC scope 內）** + **不是 critical design decision**。條件成立就自己 merge、讓 GitHub auto-delete branch，不需要、也不該回頭問 user「要不要 merge / 要不要我合」。問這種問題 = 拖慢流程、浪費 user 注意力。
 
-**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章只要過了 vibe gate + CI 綠，就屬於「safe & appropriate」，直接 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
+**唯一該停下來問的**：critical design decision——會改變產品方向、架構、對外承諾、或 user 個人品牌調性的東西（例：要不要砍掉一個系列、要不要改 site 結構、要不要公開某個敏感立場）。內容文章過了 vibe gate 後通常可視為「safe & appropriate」，但仍須通過上方完整 Self-merge policy 才能 merge；revert 很便宜（auto-merge + atomic commit 就是為了讓 ship 快、回退也快）。
 
-### ShroomDog 只在 merge 之後才參與（所以不准 merge 前停下來問要不要先讀 draft）
+### ShroomDog 只看已部署 surface（不讀 draft／diff）
 
-- **User 只看 production**（gu-log.vercel.app）。不要叫 user 開 dev server。
-- **🔴 ShroomDog（作者本人）只在 merge 之後才參與**，而且是在 **prod URL（gu-log.vercel.app）或 branch/preview URL** 上讀成品——**不讀 draft、不看 diff、不在 merge 前審稿**。所以任何 agent **不准停下來問 user「要不要先讀這篇 draft 再 merge」**，那等於把 author 拖進 pre-merge 流程，違反這條。寫作 / 翻譯任務只要 (1) 品質 gate 全綠（pre-commit / pre-push / tribunal floor composite ≥3）、(2) 內容 logical / safe、(3) 不是 critical product / 架構決策 → **自己 merge**，author 之後在 prod 或 branch URL 上看，要回饋他會在 merge 後給（進 `docs/shroomdog-editorial-feedback.md`）。唯一要 merge 前停下來問的：產品方向、對外承諾、或不確定該不該公開的 critical design decision。「文章寫得好不好 / 語氣對不對」**不是** stop 的理由——那靠 tribunal gate 把關，author 在 prod 上事後挑。
+- **User 透過 chat 收 preview／production URL**。不要叫 user 開 dev server，也不要把 draft、diff、OpenSpec 或 CI log 當成 user 的閱讀作業。
+- **🔴 ShroomDog（作者本人）只在已部署 surface 上讀成品**：有 branch/preview URL 就在 chat 提供，merge 後再提供 prod URL（gu-log.vercel.app）。Preview 對 safe／non-critical 變更是資訊交付，不等待批准、不阻擋 auto-merge；只有產品方向、架構、對外承諾、品牌調性或不確定該不該公開的 critical decision，才附一個具體問題並停下來等答覆。寫作 / 翻譯任務通過上方 Self-merge policy 與內容品質 gate 後就自己 merge。Author 的後續回饋進 `docs/shroomdog-editorial-feedback.md`；不准問「要不要先讀 draft／diff 再 merge」。
 
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**這條沒有「除非」**：開了 `enable_pr_auto_merge`、CI 還在 pending、改動很 safe、你覺得「應該會自己合」——通通不解除盯的責任。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 7 的 send_later check-in。）
-4. **開完 PR 同一個 round 就把 merge 交給 server-side**：harness 若強制開 draft，立刻 `mcp__github__update_pull_request` 轉 ready，接著 `mcp__github__enable_pr_auto_merge`（品質 gate 本來就在開 PR 前跑完，沒有理由停在 draft 等 CI）。CI 綠了 GitHub 自己合，**不依賴 session 醒著**。CCC session 閒置會被睡掉，任何 in-session 排程（CronCreate / Monitor / background polling，不管幾分鐘一次）都跟著凍結——「等 CI 綠我再回來 merge」= 賭 session 還活著（2026-07-02 GP-247 實測：draft 停等 → session 睡 2 小時 → main 前進變 behind → 又多卡兩小時等 user 手動叫醒）。醒著等到 CI 綠直接 `mcp__github__merge_pull_request` 當然更快，但 auto-merge 必須先掛上當保險，不是二選一
-5. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
-6. Merge 完跟 user 回報 PR URL + 簡短 summary（branch 由 GitHub auto-delete 收尾），並附上**驗收用的 URL**——預設是 **prod URL**（`gu-log.vercel.app` 或文章深連結）。什麼時候給 prod URL、什麼時候才給 preview URL、什麼時候停下來問，照下面〈Preview URL vs 直接 merge〉那張表判斷。每個 turn 都要以可驗收的東西收尾（prod URL / preview URL+問題 / critical question），不留空回合。
-   - **URL 不等 merge 才第一次給**：內容任務的 prod URL 是 deterministic——由檔名推導（`/posts/<slug>/`，en 版 `/en/posts/en-<slug>/`），不需要等 deploy 才知道。所以在「開 PR + auto-merge 掛好」的**同一個回合**就先給**預定 prod URL**，講明「CI 綠了會自動 merge + 上線」；這樣就算 session 之後被睡掉（見步驟 4），user 手上已經有可點的連結，成果自己上線、不會卡在沒人回報。之後醒著時再補一句 deploy 完成的 smoke test 結果（HTTP 200 + 標題）即可，那是驗證、不是 user 拿到連結的前提。
-7. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
+3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**——不要問 user「要不要幫你盯」。CCC 開 PR 預設就要盯 CI + review comment，這是工作的一部分，不是 opt-in 服務。問就是 dumb question。**訂閱是無條件動作，跟 subscribe 同一個 round 一起做完，不留到下個 turn、更不丟回給 user 決定。** 你盯，不然誰盯？（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 8 的 send_later check-in。）
+4. **先轉 ready，暫不掛 auto-merge**：非 OpenSpec PR 若 harness 強制開 draft，立刻 `mcp__github__update_pull_request` 轉 ready，讓 GitHub Codex auto-review 啟動。採用 OpenSpec 的變更依 `.agents/openspec-sdlc.md` 維持 draft，完成 preview touchpoint 與 archive 後才轉 ready。此時不得先掛 auto-merge。
+5. **讀完 auto-review 才把 merge 交給 server-side**：每次把球交給 auto-review（轉 ready，或 push review 修正）的同一輪，就記錄交球時間，並用 `send_later` 或 runtime 等價的 durable wake-up 排定 15 分鐘後重查；不能假設 session 會一直醒著。等 review 完成後，fresh-read 最新 review threads，逐條判斷是否成立；actionable 就修、push，然後以新 commit 重新計時走這道 gate，誤報則留下理由。沒有 unresolved actionable thread 後才 `mcp__github__enable_pr_auto_merge`。喚醒時仍沒有該輪新 review，就記錄查詢結果，並排定在交球後 25 分鐘再查；屆時仍無結果，記錄交球時間與兩次查詢結果，視為本輪 auto-review 不可用並繼續，不能無限等。若 runtime 沒有 durable wake-up，當前 turn 必須持續用 wait／poll 到 gate 通過或 25 分鐘期限，不得留下無喚醒機制的 ready PR。Gate 通過或有不可用證據後要立刻掛 auto-merge，讓 CI 綠時 GitHub 自己合，**不依賴 session 醒著**。
+6. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
+7. 有 deployable preview 時，在 chat 提供 preview URL + 簡短 summary；safe／non-critical 不等待回覆。Merge 完再回報 production URL（`gu-log.vercel.app` 或文章深連結）與 smoke-test 結果。什麼時候 preview 會阻擋 merge，照下面〈Preview URL 與 merge gate〉判斷。每個 turn 都要以可驗收的東西收尾（preview／prod URL、preview unavailable 的驗證證據、`AGENTS.md` 定義的 URL intake 交付物，或 critical question），不留空回合。
+   - **URL 不等 merge 才第一次給**：內容任務的 prod URL 是 deterministic——由檔名推導（`/posts/<slug>/`，en 版 `/en/posts/en-<slug>/`），不需要等 deploy 才知道。所以在「auto-review gate 通過 + auto-merge 掛好」的**同一個回合**就先給**預定 prod URL**，講明「CI 綠了會自動 merge + 上線」；這樣就算 session 之後被睡掉，user 手上已經有可點的連結，成果自己上線、不會卡在沒人回報。之後醒著時再補一句 deploy 完成的 smoke test 結果（HTTP 200 + 標題）即可，那是驗證、不是 user 拿到連結的前提。
+8. **盯到 merge / closed 才算收尾，中途不准把球丟回 user。** 訂閱不是「設定好就沒事」：webhook **不送** CI success、新 push、merge-conflict transition，所以光等事件會卡死。`send_later`（claude-code-remote MCP）可用時，排一個約 1 小時後的自我 check-in，醒來重查 PR 的 CI / review threads / mergeability / 狀態，有事就處理、沒事就**靜默 re-arm**（不要為了「沒事」去吵 user 或在 PR 灌留言），直到 PR merged/closed 或 user 喊停。`send_later` 不可用時，就在每次相關 event 醒來時順手重查一次。
 
 **禁問句**（出現任一句 = 違規，預設答案永遠是 yes，user 不該被叫去確認 default behavior）：「要不要 subscribe PR activity？」「要不要盯 CI？」「要不要幫你看 review comment？」「要我盯著確認真的 merge 嗎？」「還是放著讓 auto-merge 處理就好？」「要不要我 watch 這條 PR？」——**特別注意最後這幾句**：開了 `enable_pr_auto_merge` 之後在結尾問「要我盯 vs 放著讓它自動合」是最常見的偷懶收尾，**auto-merge 開了 ≠ 你可以不盯**，照樣要 subscribe + follow-through 到真的 merge。CCC 的工作是「開 PR → 盯 CI → merge → 回報」整條收乾淨；branch cleanup 交給 repo 的 auto-delete 設定，CCC 不去 `git push --delete`（那會 403）。
 
-### Preview URL vs 直接 merge（收尾要給哪個）
+### Preview URL 與 merge gate
 
-**預設收尾不是給 preview URL，是 merge。** Preview URL 不是正常的 end-state，是「還不能 merge」或「reader-facing 又拿不準算不算 critical」的 fallback。給了 preview 又問「要不要我合？」是**反模式**——能 merge 就 merge，不能就問 critical question，中間沒有「我合好了但先停著等你看一眼」這種選項。
+**Preview 是 chat 裡的可驗收 surface，不是預設 approval gate。** 有 deployable preview 就提供；safe／non-critical 通過 auto-review gate 後照常掛 auto-merge，不問「要不要合」。只有尚未決的 critical decision 才以 preview + 一個具體問題阻擋 merge。Preview 不適用或取得失敗時，說明原因並提供最接近使用者體驗的驗證證據，不得假稱已驗證。
 
 | 情況 | 收尾動作 |
 |---|---|
-| CI 綠 + safe + 非 critical（content 過 tribunal、bugfix、infra、doc typo） | **直接 merge → 部署完給 prod URL**。不要給 preview、不要問「要不要合」 |
-| 改動 safe 但 CI 還在跑 | `enable_pr_auto_merge`（綠了自動合）→ 收尾講「已排 auto-merge，綠了會自動上」+ prod URL。仍不需要 preview |
-| Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，讓 user 拍板。這是 preview URL 唯一的正常用途 |
+| CI 綠 + safe + 非 critical（content 過 tribunal、bugfix、infra、doc typo） | auto-review gate 通過後，提供可用的 **preview URL** 作資訊交付；不等待 user，直接 merge → 部署完再給 prod URL |
+| 改動 safe 但 CI 還在跑 | auto-review gate 通過後，提供已就緒的 preview（若有）+ `enable_pr_auto_merge`；講明綠了會自動上，不等待 user |
+| Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，等待 user 拍板；答覆前不得 auto-merge |
 | 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | `AskUserQuestion` 停下來問，**不要**先 merge |
 
-**白話**：「safe 但我想讓你看一眼再合」**不是**給 preview 的理由——safe 就直接合，ShroomDog 在 prod 上事後審（這正是 merge-後-審稿的設計，見上面〈ShroomDog 只在 merge 之後才參與〉）。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「merge」靠，不要往「問」靠。
+**白話**：safe 就把 preview 當收據交付，照常 merge；不因「想讓你看一眼」停住。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「提供 preview 並繼續 merge」靠，不要往「等待批准」靠。
 
 ### Merge method 選擇
 
@@ -161,15 +162,11 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content.config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
-## URL 貼過來 → 預設走 gp-pipeline
+## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「解釋這個」「總結這個」「fix bug in this PR」等）→ **預設當成是要你開 GP 任務**，走 `tools/gp-pipeline/gp-pipeline run <url>`。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url>`。
 
-### 為什麼 URL-only paste = GP 任務
-
-這個 repo 的主產出就是 GP/MP 翻譯文章。User 拋 URL 沒多話 = 最常見的 workflow 就是「幫我把這條評估一下、該寫就寫」。**不要再回頭問「你想幹嘛？」**——直接跑 pipeline，它內建的 eval gate 會自己判斷該不該寫。
-
-### pipeline 內建的 eval gate（不是你決定該不該寫）
+### pipeline 內建的 eval gate
 
 `gp-pipeline run` 的 step 1.5 `eval` 是雙評估（Gemini + Codex）worthiness gate：
 
@@ -177,7 +174,7 @@ User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「�
 - **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不夠 GP-worthy）
 - **split（一 GO 一 SKIP）** → exit 2 → 需要 human review，用 `--force` 可以 override gate 硬寫
 
-**這代表 CCC 不用事先判斷「這條推文值不值得翻」**——交給 pipeline 的 eval 決定。你的工作是 run，不是 gatekeep。
+intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，pipeline eval 才作為第二道寫作 gate。不得拿 eval 取代 intake，或把 eval verdict 當成 user 的寫作授權。
 
 ### URL 範圍
 
@@ -191,7 +188,7 @@ User 在 CCC 丟一個 URL 進來、**沒有附任何其他指示**（沒說「�
 ### 建議指令
 
 ```bash
-# 預設：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
+# user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
 tools/gp-pipeline/gp-pipeline run <url>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
@@ -211,7 +208,7 @@ tools/gp-pipeline/gp-pipeline run <url> --force
 - **`x.com` / `twitter.com` 直接 curl**：會拿到 React shell（沒 prerender content）——所以 X 專用的 fetch 路徑走 `fetch-x-article.sh`（fxtwitter）而不是 raw curl。這跟「外網通不通」無關，是 X 自己 anti-bot
 - **`WebFetch` tool**：對某些 host 會被 upstream proxy 檔掉，curl 反而可以
 
-結論：CCC 沙箱可以直接 `gp-pipeline run <url>`，fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
+結論：user 授權寫作後，CCC 沙箱可以直接 `gp-pipeline run <url>`；fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
 
 ### 什麼時候才真的要 fallback 到手動 `claude -p`
 

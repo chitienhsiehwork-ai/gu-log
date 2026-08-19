@@ -65,6 +65,15 @@
   /* Source citation link — must be readable on --color-surface */
   --color-source-link: #ffb3e0; /* soft pink — 5.54:1 on #44475a */
 
+  /* Code line numbers — warm enough to scan, quiet enough to stay secondary. */
+  --color-code-line-number: #e9bb84; /* caramel brown — 5.19:1 on #44475a */
+
+  /* Article links: cool stays inside gu-log; warm leaves the site. */
+  --color-post-link-internal: #a4b6d5; /* soft blue — 6.94:1 on #282a36 */
+  --color-post-link-external: #d5a6bf; /* dusty rose — 6.81:1 on #282a36 */
+  --color-post-link-internal-surface: #b0c2df; /* soft blue — 5.07:1 on #44475a */
+  --color-post-link-external-surface: #e0b4cb; /* dusty rose — 5.04:1 on #44475a */
+
   /* Mogu murmur variant accent — must be readable on --color-bg */
   --color-mogu-murmur: #ad8ae0; /* soft violet — 4.68:1 on #282a36 */
   --color-mogu-murmur-bg: rgba(173, 138, 224, 0.08);
@@ -157,6 +166,15 @@
   /* Source citation link — Solarized navy readable on cream surface */
   --color-source-link: #195d8c; /* navy — 5.73:1 on #eee8d5 */
 
+  /* Code line numbers — the darker counterpart for the cream code surface. */
+  --color-code-line-number: #84563a; /* coffee brown — 5.08:1 on #eee8d5 */
+
+  /* Article links: same cool/warm semantics, tuned for Solarized surfaces. */
+  --color-post-link-internal: #326f91; /* muted blue — 5.10:1 on #fdf6e3 */
+  --color-post-link-external: #806071; /* muted plum — 5.08:1 on #fdf6e3 */
+  --color-post-link-internal-surface: #256887; /* muted blue — 5.03:1 on #eee8d5 */
+  --color-post-link-external-surface: #765869; /* muted plum — 5.09:1 on #eee8d5 */
+
   /* Mogu murmur variant accent — indigo readable on cream background */
   --color-mogu-murmur: #555aa0; /* indigo — 5.41:1 on #fdf6e3 */
   --color-mogu-murmur-bg: rgba(85, 90, 160, 0.08);
@@ -193,12 +211,22 @@ html {
   scroll-padding-top: 80px;
 }
 
+/* Safari does not map rem units to the user's iOS text-size preference.
+   Use the Dynamic Type root metric on touch WebKit without changing desktop Safari. */
+@supports (font: -apple-system-body) {
+  @media (hover: none) {
+    html {
+      font: -apple-system-body;
+    }
+  }
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--color-bg);
   color: var(--color-text);
   line-height: 1.7;
-  padding: var(--spacing-sm);
+  padding: clamp(16px, var(--spacing-sm), 24px);
   min-height: 100vh;
   transition:
     background 0.3s ease,
@@ -282,11 +310,56 @@ a:hover {
   text-decoration: underline;
 }
 
-.post-content a,
+.post-content a:where(:not(.artifact-callout, .mogu-prefix-link)),
 .source-citation-link-text {
   text-decoration: underline;
   text-decoration-thickness: 0.08em;
   text-underline-offset: 0.15em;
+}
+
+.post-content a:where(:not(.artifact-callout, .mogu-prefix-link)) {
+  color: var(--color-post-link-internal);
+  text-decoration-color: color-mix(in srgb, currentColor 72%, transparent);
+}
+
+.post-content a[data-link-kind='external']:where(:not(.artifact-callout, .mogu-prefix-link)) {
+  color: var(--color-post-link-external);
+  text-decoration: none;
+}
+
+.post-content
+  :is([data-mogu-note], [data-shroomdog-note])
+  a:where(:not(.artifact-callout, .mogu-prefix-link)) {
+  color: var(--color-post-link-internal-surface);
+}
+
+.post-content
+  :is([data-mogu-note], [data-shroomdog-note])
+  a[data-link-kind='external']:where(:not(.artifact-callout, .mogu-prefix-link)) {
+  color: var(--color-post-link-external-surface);
+}
+
+.post-content a:where(:not(.artifact-callout, .mogu-prefix-link)):hover {
+  text-decoration-thickness: 0.12em;
+}
+
+.post-content a[data-link-kind='external']:where(:not(.artifact-callout, .mogu-prefix-link)):hover {
+  text-decoration: underline;
+}
+
+.post-content a:where(:not(.artifact-callout, .mogu-prefix-link)):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.external-link-marker {
+  display: inline;
+  margin-inline-start: 0.14em;
+  font-size: 0.7em;
+  line-height: 1;
+  vertical-align: 0.18em;
+  text-decoration: none;
 }
 
 .source-citation-link-text {
@@ -297,7 +370,7 @@ a:hover {
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: var(--spacing-sm);
+  padding: clamp(16px, var(--spacing-sm), 24px);
 }
 
 /* Code */
@@ -454,6 +527,11 @@ blockquote.mogu-note br {
   margin: 1.75rem 0 0;
 }
 
+.post-content img:not([data-post-image-expanded-img]) {
+  max-width: 100%;
+  height: auto;
+}
+
 .post-content p {
   margin-bottom: 1.15rem;
   line-height: var(--post-prose-line-height);
@@ -501,6 +579,43 @@ blockquote.mogu-note br {
 .post-content pre {
   margin: 1.5rem 0;
   padding: 1rem 1.05rem;
+  padding-inline-start: 0.4rem;
+  overflow-x: hidden !important;
+}
+
+.post-content pre code {
+  display: flex;
+  flex-direction: column;
+  counter-reset: code-line;
+  font-size: clamp(0.75rem, calc(0.71rem + 0.14vw), 0.8rem);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.post-content pre code > .line {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 1.55em;
+  padding-inline-start: 2rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.post-content pre code > .line::before {
+  position: absolute;
+  inset-inline-start: 0;
+  width: 1.25rem;
+  color: var(--color-code-line-number);
+  font-size: 0.84em;
+  line-height: 2.02;
+  text-align: end;
+  content: counter(code-line);
+  counter-increment: code-line;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Article meta */
@@ -814,10 +929,12 @@ blockquote.mogu-note br {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .ticket-wrapper .ticket-badge {
   display: inline-block;
+  white-space: nowrap;
   font-size: 0.75rem;
   font-weight: 600;
   padding: 0.1rem 0.4rem;

@@ -3,13 +3,24 @@ Refine the {{.TicketID}} draft using review feedback.
 Inputs:
 - draft-v1.mdx
 - review.md
+- openspec/specs/editorial-charter/spec.md
+- CONTRIBUTING.md
+- GU-LOG_WRITER_PROMPT.md
+- docs/shroomdog-editorial-feedback.md
 
 Task:
 - Produce a corrected final article.
 - Keep style-guide compliance.
 - Apply relevant lessons from `docs/shroomdog-editorial-feedback.md`.
 - Ensure frontmatter values remain accurate.
-- Preserve Source Boundary: do not move Mogu/gu-log opinion or source-meta commentary into GP body. Remove「原作者說」「原文提到」「這篇文章在講」style scaffolding from GP body and rewrite evidence limits as natural prose.
+{{if eq .Prefix "MP"}}- Preserve MP editorial-distance freedom: a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid. Do not force omitted sections back, force structural change, or otherwise rewrite solely because the draft is too close to or too far from the source.
+- Keep close-form MP Mogu-owned without adding GP's complete-coverage, source-order, or source-author voice fidelity promise.
+- Preserve claim closure for every retained source-derived claim: speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level.
+- Keep Mogu's synthesis, disagreement, extensions, and explicit inferences in the body. Do not attribute them to the source author.
+- Remove fabricated facts, quotes, numbers, causality, citations, transferred source-author experience, ShroomDog impersonation, and plausible fabricated human biography/testimony. New factual premises require traceable evidence.
+- MoguNote is optional. Do not add one merely because the article has none, and do not move Mogu's core thesis into a note. Preserve valid first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences in an existing MoguNote.
+{{else}}- Preserve Source Boundary: do not move Mogu/gu-log opinion or source-meta commentary into GP body. Remove「原作者說」「原文提到」「這篇文章在講」style scaffolding from GP body and rewrite evidence limits as natural prose.
+{{end}}
 {{if .Angle}}
 NARRATIVE ANGLE:
 {{.Angle}}
@@ -19,5 +30,5 @@ The angle-pivoted structure is intentional. Preserve it while applying review fe
 
 Output requirements:
 - Write final output to final.mdx in the current directory.
-- Only use MoguNote for commentary (no CodexNote/GeminiNote). Add MoguNotes wherever there's genuine insight — no fixed number, quality over quantity.
+- Only use MoguNote for optional asides (no CodexNote/GeminiNote). {{if eq .Prefix "MP"}}Do not add one solely for form or scoring.{{else}}Add MoguNotes wherever there's genuine insight — no fixed number, quality over quantity.{{end}}
 - Only import MoguNote from '../../components/MoguNote.astro' — no other note components.

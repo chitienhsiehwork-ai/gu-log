@@ -1,0 +1,51 @@
+---
+interface Props {
+  src: string;
+  poster: string;
+  label: string;
+  width: number;
+  height: number;
+}
+
+const { src, poster, label, width, height } = Astro.props;
+const isEnglish = Astro.url.pathname.startsWith('/en/');
+const fallbackLabel = isEnglish ? 'Open the original MP4 video' : '開啟原始 MP4 影片';
+---
+
+<figure class="post-video" data-post-video data-markdown-adapter="post-video">
+  <video
+    controls
+    loop
+    playsinline
+    preload="none"
+    poster={poster}
+    width={width}
+    height={height}
+    aria-label={label}
+  >
+    <source src={src} type="video/mp4" />
+    <a href={src}>{fallbackLabel}</a>
+  </video>
+</figure>
+
+<style>
+  .post-video {
+    margin: 1.5rem 0;
+  }
+
+  .post-video video {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    object-fit: contain;
+  }
+
+  .post-video video:focus-visible {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+</style>

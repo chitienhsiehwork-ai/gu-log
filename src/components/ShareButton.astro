@@ -203,15 +203,21 @@ const t = i18n[lang];
     // Copy link button
     const copyBtn = container.querySelector('.share-copy') as HTMLButtonElement;
     if (copyBtn) {
+      let copyResetTimer: ReturnType<typeof setTimeout> | undefined;
+
       copyBtn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(url);
           record('copy_link', 'completed');
           const span = copyBtn.querySelector('.copy-text');
           if (span) {
+            if (copyResetTimer !== undefined) {
+              clearTimeout(copyResetTimer);
+            }
             span.textContent = copiedText;
-            setTimeout(() => {
+            copyResetTimer = setTimeout(() => {
               span.textContent = copyText;
+              copyResetTimer = undefined;
             }, 2000);
           }
         } catch (_e) {

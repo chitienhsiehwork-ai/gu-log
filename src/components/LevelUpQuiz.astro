@@ -54,7 +54,6 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   data-markdown-adapter="level-up-quiz"
 >
   <div class="quiz-header">
-    <span class="quiz-icon">❓</span>
     <span class="quiz-label">{labels.quiz}</span>
   </div>
   <p class="quiz-question">{question}</p>
@@ -70,12 +69,10 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   </div>
   <div class="quiz-result" aria-live="polite">
     <div class="result-correct" hidden>
-      <span class="result-icon">✅</span>
       <strong>{labels.correct}</strong>
       <p class="result-explanation">{explanation}</p>
     </div>
     <div class="result-wrong" hidden>
-      <span class="result-icon">❌</span>
       <strong>{labels.wrong}</strong>
       <p class="result-answer">{labels.correctAnswer} <strong>{answer}</strong></p>
       <p class="result-explanation">{explanation}</p>
@@ -136,16 +133,11 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   .quiz-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
     margin-bottom: 0.75rem;
     font-size: 0.85rem;
-    color: var(--color-text-muted);
+    color: var(--color-surface-meta);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-  }
-
-  .quiz-icon {
-    font-size: 1.1rem;
   }
 
   .quiz-question {
@@ -254,11 +246,6 @@ const quizId = `quiz-${Math.random().toString(36).slice(2, 9)}`;
   .result-wrong {
     background: color-mix(in srgb, var(--color-status-danger) 8%, transparent);
     border-left: 3px solid var(--color-status-danger);
-  }
-
-  .result-icon {
-    font-size: 1.1rem;
-    margin-right: 0.25rem;
   }
 
   .result-explanation {

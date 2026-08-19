@@ -27,10 +27,7 @@ beforeAll(() => {
   mkdirSync(testDir, { recursive: true });
 
   // Create test fixtures
-  writeFileSync(
-    join(testDir, 'test-data.json'),
-    JSON.stringify({ value: 42, name: 'test' })
-  );
+  writeFileSync(join(testDir, 'test-data.json'), JSON.stringify({ value: 42, name: 'test' }));
   writeFileSync(join(testDir, 'invalid.json'), 'not valid json {{{');
 
   setQualityDir(testDir);
@@ -43,9 +40,7 @@ afterAll(() => {
 
 describe('readMetricFile', () => {
   it('reads and parses a valid JSON file', async () => {
-    const data = await readMetricFile<{ value: number; name: string }>(
-      'test-data.json'
-    );
+    const data = await readMetricFile<{ value: number; name: string }>('test-data.json');
     expect(data).toEqual({ value: 42, name: 'test' });
   });
 
@@ -61,16 +56,12 @@ describe('readMetricFile', () => {
 
 describe('readRequiredMetricFile', () => {
   it('reads existing file successfully', async () => {
-    const data = await readRequiredMetricFile<{ value: number }>(
-      'test-data.json'
-    );
+    const data = await readRequiredMetricFile<{ value: number }>('test-data.json');
     expect(data.value).toBe(42);
   });
 
   it('throws MetricNotFoundError for missing file', async () => {
-    await expect(
-      readRequiredMetricFile('missing.json')
-    ).rejects.toThrow(MetricNotFoundError);
+    await expect(readRequiredMetricFile('missing.json')).rejects.toThrow(MetricNotFoundError);
   });
 });
 
@@ -140,15 +131,19 @@ describe('filterHistory', () => {
 describe('validateHistoryParams', () => {
   it('returns null for valid params', () => {
     expect(validateHistoryParams('2026-02-01', '10')).toBeNull();
+    expect(validateHistoryParams('2024-02-29')).toBeNull();
     expect(validateHistoryParams(undefined, undefined)).toBeNull();
     expect(validateHistoryParams('2026-02-01')).toBeNull();
     expect(validateHistoryParams(undefined, '5')).toBeNull();
   });
 
-  it('rejects invalid date', () => {
-    const err = validateHistoryParams('not-a-date');
-    expect(err).toContain('Invalid');
-  });
+  it.each(['not-a-date', '2026-02-30', '2026-2-1', 'February 1, 2026', '2026-02-01T00:00:00Z'])(
+    'rejects invalid ISO date: %s',
+    (from) => {
+      const err = validateHistoryParams(from);
+      expect(err).toContain('Invalid');
+    }
+  );
 
   it('rejects invalid limit', () => {
     expect(validateHistoryParams(undefined, 'abc')).toContain('Invalid');

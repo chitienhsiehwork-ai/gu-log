@@ -53,6 +53,9 @@ node scripts/validate-posts.mjs.
 Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
+GP deploy additionally requires --work-dir with source-tweet.md and a fresh
+gp-publish-gate.json bound to the active article's canonical body projection.
+
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.
 
@@ -143,6 +146,15 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	s.DateStamp = opts.DateStamp
 	s.AuthorSlug = opts.AuthorSlug
 	s.TitleSlug = opts.TitleSlug
+	s.WorkDir = flagWorkDir
+	if opts.Prefix == "GP" && s.WorkDir == "" {
+		return newExitError(1, fmt.Errorf("deploy: GP requires --work-dir containing source-tweet.md and a fresh gp-publish-gate.json"))
+	}
+	if opts.Prefix == "GP" {
+		if err := bindGPDeployProfile(state, s); err != nil {
+			return newExitError(1, err)
+		}
+	}
 
 	// The State.Deploy method drives the whole thing, but does not
 	// honor --skip-build / --skip-validate. For standalone debugging,
@@ -170,6 +182,16 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	report.Filename = s.Filename
 	report.ENFilename = s.ENFilename
 	emitDeployReport(state, report)
+	return nil
+}
+
+func bindGPDeployProfile(state *rootState, s *pipeline.State) error {
+	gp, failedRole, err := buildGPDispatchers(state)
+	if err != nil {
+		return fmt.Errorf("deploy: GP role %s preflight: %w", failedRole, err)
+	}
+	s.GPProfile, s.GPProfileSHA256 = gp.Profile, gp.ProfileSHA256
+	s.CanonicalTerminology = gp.CanonicalTerminology
 	return nil
 }
 

@@ -65,7 +65,6 @@ const FIXTURES = {
     <div class="levelup-quiz" data-quiz-id="quiz-one" data-answer="A"
       data-markdown-adapter="level-up-quiz">
       <div class="quiz-header">
-        <span class="quiz-icon">?</span>
         <span class="quiz-label">Quiz</span>
       </div>
       <p class="quiz-question">Question?</p>
@@ -77,12 +76,10 @@ const FIXTURES = {
       </div>
       <div class="quiz-result" aria-live="polite">
         <div class="result-correct" hidden>
-          <span class="result-icon">yes</span>
           <strong>Correct</strong>
           <p class="result-explanation">Explanation</p>
         </div>
         <div class="result-wrong" hidden>
-          <span class="result-icon">no</span>
           <strong>Wrong</strong>
           <p class="result-answer">Answer: <strong>A</strong></p>
           <p class="result-explanation">Explanation</p>
@@ -130,6 +127,14 @@ const FIXTURES = {
           </div>
         </div>
       </div>
+    </figure>`,
+  'post-video': `
+    <figure class="post-video" data-post-video data-markdown-adapter="post-video">
+      <video controls loop playsinline preload="none" poster="https://example.com/poster.jpg"
+        width="720" height="548" aria-label="Meaningful video label">
+        <source src="https://example.com/video.mp4" type="video/mp4">
+        <a href="https://example.com/video.mp4">Open the original MP4 video</a>
+      </video>
     </figure>`,
   'diff-block': `
     <div class="diff-block" data-markdown-adapter="diff-block">

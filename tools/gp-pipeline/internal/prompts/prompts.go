@@ -67,7 +67,7 @@ type WriteData struct {
 	Prefix         string // GP / MP / SD / Lv
 	TicketID       string // e.g. "GP-PENDING" or "GP-170"
 	OriginalDate   string // YYYY-MM-DD
-	TranslatedDate string // YYYY-MM-DD (today)
+	TranslatedDate string // YYYY-MM-DD; new post defaults to today, rewrite preserves existing value
 	AuthorHandle   string // without @ prefix
 	// SourceField is the pre-rendered value for the `source:` frontmatter
 	// line, e.g. "@karpathy on X", "Sequoia Capital", or a hostname.
@@ -84,11 +84,13 @@ type WriteData struct {
 
 // ReviewData is the template data for review.tmpl.
 type ReviewData struct {
+	Prefix   string
 	TicketID string
 }
 
 // RefineData is the template data for refine.tmpl.
 type RefineData struct {
+	Prefix   string
 	TicketID string
 	Angle    string
 }
@@ -99,4 +101,24 @@ type TranslateData struct {
 	// Source is the full contents of the tribunal-passed zh-tw MDX file
 	// (frontmatter + body) to be translated into the en sidecar.
 	Source string
+}
+
+type SourceTranslateData struct {
+	Version, TicketID, OriginalDate, TranslatedDate, SourceField, SourceURL string
+	SourceSHA256, Source, CanonicalTerminology                              string
+}
+
+type PreservationGateData struct {
+	Version, Gate, SourceSHA256, TranslationSHA256, BodyProjectionSHA256 string
+	Source, Translation                                                  string
+}
+
+type CorrectData struct {
+	Version, SourceSHA256, TranslationSHA256  string
+	Source, Translation, ApprovedFindingsJSON string
+}
+
+type CommentaryData struct {
+	Version, SourceSHA256, TranslationSHA256 string
+	Source, Translation                      string
 }
