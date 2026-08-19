@@ -660,20 +660,18 @@ function stripHtmlCommentsPreservingLines(value) {
   return visibleValue;
 }
 
-function hasPotentiallyRenderingImport(node) {
+function potentiallyRenderingEsmStatements(node) {
   const program = node.data?.estree;
-  return (
-    program?.type === 'Program' &&
-    program.body?.some((statement) => {
-      const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
-      if (/\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source)) return true;
-      return statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0;
-    })
-  );
+  if (program?.type !== 'Program') return [];
+  return (program.body ?? []).filter((statement) => {
+    const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
+    if (/\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source)) return true;
+    return statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0;
+  });
 }
 
 function isNonRenderingNode(node) {
-  if (node.type === 'mdxjsEsm') return !hasPotentiallyRenderingImport(node);
+  if (node.type === 'mdxjsEsm') return potentiallyRenderingEsmStatements(node).length === 0;
   if (node.type === 'html') {
     return stripHtmlCommentsPreservingLines(node.value ?? '').trim() === '';
   }
@@ -802,6 +800,12 @@ function isExecutableReaderAttribute(name, value = '', elementName = '') {
   return /^(?:javascript:|data:(?:text\/(?:html|css)|application\/xhtml\+xml|image\/svg\+xml)(?:[;,]|$))/u.test(
     normalizedValue
   );
+}
+
+function isStylesheetRelValue(value) {
+  return String(decodeHTML(String(value)))
+    .split(/\s+/u)
+    .some((token) => token.toLowerCase() === 'stylesheet');
 }
 
 function walk(node, visit) {
@@ -1125,15 +1129,20 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
-  function pushUnsafeExecutable(node, surfaceKind) {
-    const { sourceLine, sourceLines } = sourceLocation(node);
+  function pushUnsafeExecutableSourceLines(sourceLines, surfaceKind, unsafeExecutable = '') {
+    const sourceLine = Math.min(...sourceLines);
     records.push({
       canonicalText: '',
       surfaceKind,
       sourceLine,
       sourceLines,
-      unsafeExecutable: rawSource(node)?.trim() ?? '',
+      unsafeExecutable,
     });
+  }
+
+  function pushUnsafeExecutable(node, surfaceKind) {
+    const { sourceLines } = sourceLocation(node);
+    pushUnsafeExecutableSourceLines(sourceLines, surfaceKind, rawSource(node)?.trim() ?? '');
   }
 
   function pushUnsafePhysicalRanges(rawValue, firstSourceLine, ranges, surfaceKind) {
@@ -1319,7 +1328,36 @@ function collectBodyRecords(body, bodyStartLine, format) {
         return false;
       }
 
-      for (const attributeRange of rawHtmlAttributeRanges(value, start)) {
+      const attributeRanges = rawHtmlAttributeRanges(value, start);
+      const stylesheetLinkRanges = new Set();
+      if (String(htmlNode.tagName).toLowerCase() === 'link') {
+        const relRanges = attributeRanges.filter(
+          (range) => range.name === 'rel' && isStylesheetRelValue(range.rawValue)
+        );
+        const hrefRanges = attributeRanges.filter((range) => range.name === 'href');
+        if (relRanges.length > 0 && hrefRanges.length > 0) {
+          const linkedRanges = [...relRanges, ...hrefRanges];
+          const sourceLines = new Set();
+          for (const range of linkedRanges) {
+            stylesheetLinkRanges.add(range);
+            const nodeSourceLine = sourceLocation(node).sourceLine;
+            const firstLine =
+              nodeSourceLine + (value.slice(0, range.start).match(/\n/gu)?.length ?? 0);
+            const lastLine =
+              nodeSourceLine + (value.slice(0, range.end).match(/\n/gu)?.length ?? 0);
+            for (let line = firstLine; line <= lastLine; line += 1) sourceLines.add(line);
+          }
+          pushUnsafeExecutableSourceLines(
+            sourceLines,
+            'html.attribute.executable',
+            linkedRanges.map((range) => value.slice(range.start, range.end)).join(' ')
+          );
+          executableRanges.push(...linkedRanges);
+        }
+      }
+
+      for (const attributeRange of attributeRanges) {
+        if (stylesheetLinkRanges.has(attributeRange)) continue;
         if (attributeRange.name === 'srcset') {
           for (const candidateRange of unsafeSrcsetCandidateRanges(
             attributeRange.rawValue,
@@ -1568,7 +1606,18 @@ function collectBodyRecords(body, bodyStartLine, format) {
   walk(tree, (node) => {
     if (isNonRenderingNode(node)) return;
     if (node.type === 'mdxjsEsm') {
-      pushUnsafeExecutable(node, 'mdx.esm.side-effect-import');
+      for (const statement of potentiallyRenderingEsmStatements(node)) {
+        const sourceLines = sourceLinesForEstreeNode(statement, bodyStartLine);
+        if (sourceLines === null) {
+          pushUnsafeExecutable(node, 'mdx.esm.side-effect-import');
+          break;
+        }
+        pushUnsafeExecutableSourceLines(
+          sourceLines,
+          'mdx.esm.side-effect-import',
+          typeof statement.source?.value === 'string' ? statement.source.value : statement.type
+        );
+      }
       return;
     }
     if (node.type === 'text' || node.type === 'inlineCode') {
@@ -1625,7 +1674,53 @@ function collectBodyRecords(body, bodyStartLine, format) {
         pushUnsafeExecutable(node, `mdx.element.${node.name.toLowerCase()}`);
         return false;
       }
+      const stylesheetLinkAttributes = new Set();
+      if (String(node.name).toLowerCase() === 'link') {
+        const staticAttributeValues = (attribute) => {
+          if (typeof attribute.value === 'string') return [attribute.value];
+          if (attribute.value?.type !== 'mdxJsxAttributeValueExpression') return null;
+          const values = staticStringsFromExpression(attribute.value, bodyStartLine);
+          return values?.map((value) => value.value) ?? null;
+        };
+        const linkAttributes = node.attributes ?? [];
+        const spreadAttributes = linkAttributes.filter(
+          (attribute) => attribute.type === 'mdxJsxExpressionAttribute'
+        );
+        const relAttributes = linkAttributes.filter(
+          (attribute) =>
+            attribute.type === 'mdxJsxAttribute' && String(attribute.name).toLowerCase() === 'rel'
+        );
+        const potentiallyStylesheetRelAttributes = relAttributes.filter((attribute) => {
+          const values = staticAttributeValues(attribute);
+          return values === null || values.some(isStylesheetRelValue);
+        });
+        const hrefAttributes = linkAttributes.filter(
+          (attribute) =>
+            attribute.type === 'mdxJsxAttribute' && String(attribute.name).toLowerCase() === 'href'
+        );
+        const potentiallyRelAttributes = [
+          ...potentiallyStylesheetRelAttributes,
+          ...spreadAttributes,
+        ];
+        const potentiallyHrefAttributes = [...hrefAttributes, ...spreadAttributes];
+        if (potentiallyRelAttributes.length > 0 && potentiallyHrefAttributes.length > 0) {
+          const linkedAttributes = [
+            ...new Set([...potentiallyRelAttributes, ...potentiallyHrefAttributes]),
+          ];
+          const sourceLines = new Set(
+            linkedAttributes.flatMap((attribute) => [...sourceLocation(attribute).sourceLines])
+          );
+          pushUnsafeExecutableSourceLines(
+            sourceLines,
+            'mdx.attribute.executable',
+            linkedAttributes.map((attribute) => rawSource(attribute)?.trim() ?? '').join(' ')
+          );
+          for (const attribute of linkedAttributes) stylesheetLinkAttributes.add(attribute);
+        }
+      }
+
       for (const attribute of node.attributes ?? []) {
+        if (stylesheetLinkAttributes.has(attribute)) continue;
         if (attribute.type === 'mdxJsxExpressionAttribute') {
           pushUnresolvedExpression(attribute, 'mdx.spread-attribute');
           continue;

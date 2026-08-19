@@ -393,6 +393,16 @@ lang: zh-tw
       POST_PATH,
       String.raw`<link rel="stylesheet" href="data:text/css,.emoji::after%7Bcontent:'\1F600'%7D" /><span className="emoji" />`,
     ],
+    [
+      'Markdown linked stylesheet',
+      MARKDOWN_POST_PATH,
+      '<link rel="stylesheet" href="/emoji.css"><span class="emoji"></span>',
+    ],
+    [
+      'MDX linked stylesheet',
+      POST_PATH,
+      '<link rel="stylesheet" href="/emoji.css" /><span className="emoji" />',
+    ],
     ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
     ['MDX bound CSS module import', POST_PATH, "import styles from './emoji.module.css';"],
     [
@@ -427,6 +437,12 @@ lang: zh-tw
       '<img srcset="/safe.png 1x, /safe@2x.png 2x" alt="safe">',
     ],
     ['MDX component binding import', POST_PATH, "import Note from './Note.astro';"],
+    [
+      'Markdown preload link',
+      MARKDOWN_POST_PATH,
+      '<link rel="preload" href="/app.css" as="style">',
+    ],
+    ['MDX preload link', POST_PATH, '<link rel="preload" href="/app.css" as="style" />'],
   ])('allows a non-executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
@@ -436,6 +452,85 @@ lang: zh-tw
       changedLines: [5],
     });
     expect(result.errors).toEqual([]);
+  });
+
+  it.each([POST_PATH, MARKDOWN_POST_PATH])(
+    'binds a linked stylesheet only to its rel and href lines in %s',
+    (changedPath) => {
+      const content = `---
+title: test
+lang: zh-tw
+---
+<link
+  rel="stylesheet"
+  href="/emoji.css"
+  data-safe="changed"
+/>
+`;
+      for (const changedLine of [6, 7]) {
+        const result = checkFixture({
+          current: { [changedPath]: content },
+          changedPath,
+          changedContent: content,
+          changedLines: [changedLine],
+        });
+        expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
+      }
+
+      const safeLineResult = checkFixture({
+        current: { [changedPath]: content },
+        changedPath,
+        changedContent: content,
+        changedLines: [8],
+      });
+      expect(safeLineResult.errors).toEqual([]);
+    }
+  );
+
+  it('binds potentially-rendering ESM to the exact statement lines', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+import './old.css';
+export const safe = 'changed';
+`;
+    const dangerousLineResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedPath: POST_PATH,
+      changedContent: content,
+      changedLines: [5],
+    });
+    expect(dangerousLineResult.errors.join('\n')).toContain(
+      '無法靜態驗證可執行的 reader-visible markup'
+    );
+
+    const safeLineResult = checkFixture({
+      current: { [POST_PATH]: content },
+      changedPath: POST_PATH,
+      changedContent: content,
+      changedLines: [6],
+    });
+    expect(safeLineResult.errors).toEqual([]);
+  });
+
+  it('binds a dynamic link rel to an adjacent href line', () => {
+    const content = `---
+title: test
+lang: zh-tw
+---
+<link
+  rel={runtimeRel}
+  href="/emoji.css"
+/>
+`;
+    const result = checkFixture({
+      current: { [POST_PATH]: content },
+      changedPath: POST_PATH,
+      changedContent: content,
+      changedLines: [7],
+    });
+    expect(result.errors.join('\n')).toContain('無法靜態驗證可執行的 reader-visible markup');
   });
 
   it('fails closed for an executable Markdown link destination', () => {
