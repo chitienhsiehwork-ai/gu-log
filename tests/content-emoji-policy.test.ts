@@ -232,8 +232,8 @@ lang: zh-tw
 <img alt="😀">
 </div>
 `;
-    const emojiRecord = collectReaderSurfaceLineRecords(content, { format: 'md' }).find(
-      (record) => record.canonicalText.includes('😀')
+    const emojiRecord = collectReaderSurfaceLineRecords(content, { format: 'md' }).find((record) =>
+      record.canonicalText.includes('😀')
     );
     expect(emojiRecord).toMatchObject({ sourceLine: 6 });
     expect([...(emojiRecord?.sourceLines ?? [])]).toEqual([6]);
