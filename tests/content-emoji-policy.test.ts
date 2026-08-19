@@ -584,6 +584,11 @@ lang: zh-tw
       "const parts = { prefix: '&#', suffix: '128512;' };",
       'const icon = parts.prefix + parts.suffix;',
     ],
+    [
+      'immutable object spreads',
+      "const parts = { ...{ prefix: '&#' }, suffix: '128512;' };",
+      'const icon = parts.prefix + parts.suffix;',
+    ],
   ])('resolves %s in trusted component output', (_label, declaration, expression) => {
     const source = ['---', declaration, expression, '---', '<Fragment set:html={icon} />'].join(
       '\n'

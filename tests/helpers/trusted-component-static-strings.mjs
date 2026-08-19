@@ -202,6 +202,22 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
   if (node.type === 'ObjectExpression') {
     const value = Object.create(null);
     for (const property of node.properties) {
+      if (property.type === 'SpreadElement') {
+        const spread = evaluateStaticValue(property.argument, bindings, resolving);
+        if (
+          !spread.known ||
+          !spread.value ||
+          typeof spread.value !== 'object' ||
+          Object.getPrototypeOf(spread.value) !== null
+        ) {
+          return UNKNOWN;
+        }
+        for (const [key, entry] of Object.entries(spread.value)) {
+          if (['__proto__', 'constructor', 'prototype'].includes(key)) return UNKNOWN;
+          value[key] = entry;
+        }
+        continue;
+      }
       if (property.type !== 'Property' || property.kind !== 'init' || property.method)
         return UNKNOWN;
       const key = property.computed
