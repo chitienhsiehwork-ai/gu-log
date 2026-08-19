@@ -512,6 +512,8 @@ lang: zh-tw
     ['static String.fromCodePoint', 'String.fromCodePoint(0x1f600)'],
     ['static numeric calculation', 'String.fromCodePoint(128513 - 1)'],
     ['static URI decoding', "decodeURIComponent('%F0%9F%98%80')"],
+    ['static Base64 decoding', "atob('JiMxMjg1MTI7')"],
+    ['static JSON decoding', String.raw`JSON.parse('"\uD83D\uDE00"')`],
   ])('projects trusted component %s before scanning', (_label, expression) => {
     const source = ['---', '---', `<Fragment set:html={${expression}} />`].join('\n');
     const projected = collectTrustedComponentStaticStrings(source);

@@ -228,17 +228,36 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
   const values = args.map((arg) => arg.value);
   if (
     node.callee.type === 'Identifier' &&
-    ['decodeURI', 'decodeURIComponent'].includes(node.callee.name) &&
+    ['atob', 'decodeURI', 'decodeURIComponent', 'unescape'].includes(node.callee.name) &&
     values.length === 1 &&
     typeof values[0] === 'string'
   ) {
     try {
-      return known(
-        node.callee.name === 'decodeURI' ? decodeURI(values[0]) : decodeURIComponent(values[0])
-      );
+      if (node.callee.name === 'atob') return known(globalThis.atob(values[0]));
+      if (node.callee.name === 'decodeURI') return known(decodeURI(values[0]));
+      if (node.callee.name === 'decodeURIComponent') return known(decodeURIComponent(values[0]));
+      return known(globalThis.unescape(values[0]));
     } catch {
       return UNKNOWN;
     }
+  }
+  if (node.callee.type === 'Identifier' && node.callee.name === 'Number' && values.length <= 1) {
+    return known(Number(values[0]));
+  }
+  if (
+    node.callee.type === 'Identifier' &&
+    node.callee.name === 'parseInt' &&
+    values.length >= 1 &&
+    values.length <= 2
+  ) {
+    return known(Number.parseInt(values[0], values[1]));
+  }
+  if (
+    node.callee.type === 'Identifier' &&
+    node.callee.name === 'parseFloat' &&
+    values.length === 1
+  ) {
+    return known(Number.parseFloat(values[0]));
   }
   if (node.callee.type === 'Identifier' && node.callee.name === 'String' && values.length <= 1) {
     return known(String(values[0] ?? ''));
@@ -252,6 +271,14 @@ function evaluateStaticValue(node, bindings, resolving = new Set()) {
     return UNKNOWN;
   }
   const method = node.callee.property.name;
+  if (node.callee.object.type === 'Identifier' && node.callee.object.name === 'JSON') {
+    if (method !== 'parse' || values.length !== 1 || typeof values[0] !== 'string') return UNKNOWN;
+    try {
+      return known(JSON.parse(values[0]));
+    } catch {
+      return UNKNOWN;
+    }
+  }
   if (node.callee.object.type === 'Identifier' && node.callee.object.name === 'String') {
     if (method === 'fromCharCode' && values.every(Number.isInteger)) {
       return known(String.fromCharCode(...values));
