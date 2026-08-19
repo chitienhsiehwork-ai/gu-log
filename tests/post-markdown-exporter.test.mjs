@@ -407,12 +407,12 @@ import fixtureImage from '../../assets/posts/fixture.png';
       <div class="progress-percentage">50%</div>
     </div>
     <div class="levelup-quiz" data-quiz-id="quiz-all" data-markdown-adapter="level-up-quiz" data-answer="A">
-      <div class="quiz-header"><span class="quiz-icon">?</span><span class="quiz-label">Quiz</span></div>
+      <div class="quiz-header"><span class="quiz-label">Quiz</span></div>
       <p class="quiz-question">Question?</p>
       <div class="quiz-options"><button class="quiz-option" data-label="A" type="button"><span class="option-label">A</span><span class="option-text">Option</span></button></div>
       <div class="quiz-result" aria-live="polite">
-        <div class="result-correct" hidden><span class="result-icon">yes</span><strong>Correct</strong><p class="result-explanation">Because.</p></div>
-        <div class="result-wrong" hidden><span class="result-icon">no</span><strong>Wrong</strong><p class="result-answer">Answer: <strong>A</strong></p><p class="result-explanation">duplicate explanation</p></div>
+        <div class="result-correct" hidden><strong>Correct</strong><p class="result-explanation">Because.</p></div>
+        <div class="result-wrong" hidden><strong>Wrong</strong><p class="result-answer">Answer: <strong>A</strong></p><p class="result-explanation">duplicate explanation</p></div>
       </div>
     </div>
     <aside class="analogy-box" role="note" data-markdown-adapter="analogy-box">

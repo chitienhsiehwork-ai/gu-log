@@ -65,7 +65,6 @@ const FIXTURES = {
     <div class="levelup-quiz" data-quiz-id="quiz-one" data-answer="A"
       data-markdown-adapter="level-up-quiz">
       <div class="quiz-header">
-        <span class="quiz-icon">?</span>
         <span class="quiz-label">Quiz</span>
       </div>
       <p class="quiz-question">Question?</p>
@@ -77,12 +76,10 @@ const FIXTURES = {
       </div>
       <div class="quiz-result" aria-live="polite">
         <div class="result-correct" hidden>
-          <span class="result-icon">yes</span>
           <strong>Correct</strong>
           <p class="result-explanation">Explanation</p>
         </div>
         <div class="result-wrong" hidden>
-          <span class="result-icon">no</span>
           <strong>Wrong</strong>
           <p class="result-answer">Answer: <strong>A</strong></p>
           <p class="result-explanation">Explanation</p>
