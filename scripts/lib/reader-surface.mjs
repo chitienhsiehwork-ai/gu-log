@@ -660,18 +660,21 @@ function stripHtmlCommentsPreservingLines(value) {
   return visibleValue;
 }
 
-function hasSideEffectOnlyImport(node) {
+function hasPotentiallyRenderingImport(node) {
   const program = node.data?.estree;
   return (
     program?.type === 'Program' &&
-    program.body?.some(
-      (statement) => statement.type === 'ImportDeclaration' && statement.specifiers?.length === 0
-    )
+    program.body?.some((statement) => {
+      if (statement.type !== 'ImportDeclaration') return false;
+      if (statement.specifiers?.length === 0) return true;
+      const source = typeof statement.source?.value === 'string' ? statement.source.value : '';
+      return /\.(?:css|scss|sass|less|styl|stylus)(?:[?#]|$)/iu.test(source);
+    })
   );
 }
 
 function isNonRenderingNode(node) {
-  if (node.type === 'mdxjsEsm') return !hasSideEffectOnlyImport(node);
+  if (node.type === 'mdxjsEsm') return !hasPotentiallyRenderingImport(node);
   if (node.type === 'html') {
     return stripHtmlCommentsPreservingLines(node.value ?? '').trim() === '';
   }

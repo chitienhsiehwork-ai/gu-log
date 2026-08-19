@@ -394,6 +394,7 @@ lang: zh-tw
       String.raw`<link rel="stylesheet" href="data:text/css,.emoji::after%7Bcontent:'\1F600'%7D" /><span className="emoji" />`,
     ],
     ['MDX side-effect stylesheet import', POST_PATH, "import './emoji.css';"],
+    ['MDX bound CSS module import', POST_PATH, "import styles from './emoji.module.css';"],
   ])('fails closed for executable %s', (_label, changedPath, readerSurface) => {
     const content = `---\ntitle: test\nlang: zh-tw\n---\n${readerSurface}\n`;
     const result = checkFixture({
