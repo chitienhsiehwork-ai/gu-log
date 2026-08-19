@@ -1,5 +1,6 @@
 import { createProcessor } from '@mdx-js/mdx';
 import { decodeHTML } from 'entities';
+import { fromHtml } from 'hast-util-from-html';
 import { LineCounter, isAlias, isMap, isScalar, isSeq, parseDocument } from 'yaml';
 
 import { findEmojiSequences } from './emoji-sequences.mjs';
@@ -711,6 +712,50 @@ function collectBodyRecords(body, bodyStartLine, format) {
     });
   }
 
+  function projectRawHtmlExecutables(value, node) {
+    const htmlTree = fromHtml(value, { fragment: true });
+    const nodeSourceLine = sourceLocation(node).sourceLine;
+    const executableRanges = [];
+    walk(htmlTree, (htmlNode) => {
+      if (
+        htmlNode.type !== 'element' ||
+        !/^(?:style|script)$/iu.test(htmlNode.tagName) ||
+        !Number.isInteger(htmlNode.position?.start?.line) ||
+        !Number.isInteger(htmlNode.position?.end?.line) ||
+        !Number.isInteger(htmlNode.position?.start?.offset) ||
+        !Number.isInteger(htmlNode.position?.end?.offset)
+      ) {
+        return;
+      }
+      const sourceLine = nodeSourceLine + htmlNode.position.start.line - 1;
+      const endSourceLine = nodeSourceLine + htmlNode.position.end.line - 1;
+      records.push({
+        canonicalText: '',
+        surfaceKind: 'html.executable',
+        sourceLine,
+        sourceLines: new Set(
+          Array.from(
+            { length: endSourceLine - sourceLine + 1 },
+            (_unused, index) => sourceLine + index
+          )
+        ),
+        unsafeExecutable: value.slice(htmlNode.position.start.offset, htmlNode.position.end.offset),
+      });
+      executableRanges.push({
+        start: htmlNode.position.start.offset,
+        end: htmlNode.position.end.offset,
+      });
+      return false;
+    });
+
+    let scanValue = value;
+    for (const { start, end } of executableRanges.sort((left, right) => right.start - left.start)) {
+      const masked = scanValue.slice(start, end).replace(/[^\n]/gu, ' ');
+      scanValue = `${scanValue.slice(0, start)}${masked}${scanValue.slice(end)}`;
+    }
+    return scanValue;
+  }
+
   function markdownTitleSource(node, stripContainerCloser = false) {
     const startOffset = node.position?.start?.offset;
     const endOffset = node.position?.end?.offset;
@@ -866,11 +911,7 @@ function collectBodyRecords(body, bodyStartLine, format) {
     }
     if (node.type === 'html') {
       const visibleHtml = stripHtmlCommentsPreservingLines(node.value ?? '');
-      if (/<(?:style|script)\b/iu.test(visibleHtml)) {
-        pushUnsafeExecutable(node, 'html.executable');
-        return;
-      }
-      pushHtmlValue(visibleHtml, node);
+      pushHtmlValue(projectRawHtmlExecutables(visibleHtml, node), node);
       return;
     }
     if (node.type === 'mdxFlowExpression' || node.type === 'mdxTextExpression') {

@@ -31,7 +31,9 @@ const WJ = '⁠';
 // katakana (U+FF65–FF9F, e.g. ﾟ ﾉ ･ ｡) + a few Cyrillic/symbol eyes.
 // NOTE: do NOT add the backtick ` here — inline-code parentheticals like
 // （`Cmd+D`）are prose, not kaomoji. (´・ω・`) is still detected via ´ / ・ / ω.
-const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω·•‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
+// Middle-dot and bullet may appear inside a detected face, but are too common
+// in ordinary parenthetical prose to establish kaomoji identity by themselves.
+const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
 
 // Decoration / arm glyphs that flank the bracket group (leading or trailing),
 // e.g. ╰(°▽°)╯, ヽ(°〇°)ﾉ, ٩(◕‿◕｡)۶, (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧. Halfwidth katakana is

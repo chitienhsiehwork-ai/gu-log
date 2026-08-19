@@ -325,6 +325,39 @@ lang: zh-tw
     expect(result.errors).toEqual([]);
   });
 
+  it('binds raw HTML executable markup only to its physical tag span', () => {
+    const content = [
+      '---',
+      'title: test',
+      'lang: zh-tw',
+      '---',
+      '<div>',
+      '只改安全文字',
+      '<style>',
+      String.raw`.emoji::after { content: "\1F600" }`,
+      '</style>',
+      '</div>',
+      '',
+    ].join('\n');
+    const safeResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [6],
+    });
+    expect(safeResult.errors).toEqual([]);
+
+    const executableResult = checkFixture({
+      current: { [MARKDOWN_POST_PATH]: content },
+      changedPath: MARKDOWN_POST_PATH,
+      changedContent: content,
+      changedLines: [8],
+    });
+    expect(executableResult.errors.join('\n')).toContain(
+      '無法靜態驗證可執行的 reader-visible markup'
+    );
+  });
+
   it.each([
     ['Markdown text', MARKDOWN_POST_PATH, 'safe&#10;\n歷史 😀'],
     ['Markdown image alt', MARKDOWN_POST_PATH, '![safe&#10;\n歷史 😀](/image.png)'],
@@ -470,6 +503,15 @@ describe('Unicode emoji and kaomoji boundary', () => {
     'allows canonical text-heart overlap inside kaomoji %s',
     (text) => {
       expect(findEmojiSequences(text)).toEqual([]);
+    }
+  );
+
+  it.each(['（版本 A • 支援 ❤）', '（版本 B · 支援 ♥）'])(
+    'does not treat ordinary bullet parenthetical as kaomoji: %s',
+    (text) => {
+      expect(findEmojiSequences(text).map((match) => match.emoji)).toEqual([
+        text.includes('❤') ? '❤' : '♥',
+      ]);
     }
   );
 
