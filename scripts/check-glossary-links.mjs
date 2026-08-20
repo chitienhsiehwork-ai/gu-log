@@ -497,16 +497,20 @@ export function listPostFiles() {
 
 function gitChangedFiles(base, pattern = 'src/content/posts') {
   try {
-    const out = execFileSync('git', ['diff', '--name-only', `${base}...HEAD`, '--', pattern], {
-      cwd: REPO_ROOT,
-      encoding: 'utf8',
-    });
+    const out = execFileSync(
+      'git',
+      ['diff', '--name-only', '--end-of-options', `${base}...HEAD`, '--', pattern],
+      {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      }
+    );
     return out
       .split('\n')
       .filter(Boolean)
       .map((p) => path.join(REPO_ROOT, p));
   } catch {
-    return [];
+    throw new Error(`Could not enumerate changed posts from Git base ${JSON.stringify(base)}`);
   }
 }
 
