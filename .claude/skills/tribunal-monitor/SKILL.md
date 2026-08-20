@@ -8,7 +8,7 @@ description: Check the remote Tribunal VM daemon — service health, progress, q
 ## Prerequisites
 
 - Export `TRIBUNAL_HOST` from the runtime's local-only machine note; never copy its value into tracked files.
-- Provision the remote host-local `~/.config/gu-log/tribunal.env` with `GU_LOG_DIR` and `USAGE_MONITOR` by following `docs/tribunal-runbook.md`.
+- Provision the remote host-local `~/.config/gu-log/tribunal.env` with `GU_LOG_DIR` by following `docs/tribunal-runbook.md`.
 - If SSH is restricted, use the runtime's minimum necessary escalation instead of disabling unrelated safeguards.
 
 ## Procedure
