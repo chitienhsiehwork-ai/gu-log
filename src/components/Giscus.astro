@@ -97,7 +97,7 @@ const errorText =
   }
 
   function updateGiscusTheme() {
-    const iframe = document.querySelector('iframe.giscus-frame');
+    const iframe = giscusContainer?.querySelector('iframe.giscus-frame');
     if (iframe) {
       iframe.contentWindow?.postMessage(
         { giscus: { setConfig: { theme: getGiscusThemeUrl() } } },
