@@ -1,11 +1,11 @@
-const LOOPBACK_IPV4_PREFIX = '127.';
+const LOOPBACK_IPV4_PATTERN = /^127(?:\.\d{1,3}){3}$/;
 
 function isLoopbackHostname(hostname: string): boolean {
   return (
     hostname === 'localhost' ||
     hostname.endsWith('.localhost') ||
     hostname === '[::1]' ||
-    hostname.startsWith(LOOPBACK_IPV4_PREFIX)
+    LOOPBACK_IPV4_PATTERN.test(hostname)
   );
 }
 

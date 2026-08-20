@@ -15,6 +15,7 @@ describe('buildPublicApiEndpoint', () => {
   it.each([
     ['non-http scheme', 'javascript:alert(document.domain)//'],
     ['remote HTTP', 'http://api.example.test/'],
+    ['127-prefixed remote hostname', 'http://127.evil.example/'],
     ['credentials', 'https://user:secret@api.example.test/'],
     ['query', 'https://api.example.test/?tenant=a'],
     ['fragment', 'https://api.example.test/#frag'],
