@@ -6,10 +6,10 @@
   const JWT_KEY = 'gu-log-jwt';
   const RETURN_KEY = 'gu-log-return-url';
 
-  const root = document.getElementById('ai-popup-root');
+  const root = document.querySelector('main > #ai-popup-root');
   if (!root) return;
 
-  const loginTarget = document.getElementById('ai-popup-login-target');
+  const loginTarget = root.querySelector('#ai-popup-login-target');
   const filePath = root.getAttribute('data-file-path') || '';
   const postTitle = root.getAttribute('data-post-title') || '';
   const apiUrl = root.getAttribute('data-api-url') || '';
