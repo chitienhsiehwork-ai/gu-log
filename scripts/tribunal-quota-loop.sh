@@ -997,11 +997,12 @@ spawn_worker() {
   return 0
 }
 
-# Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
-# then propagates rc=77/70/124 into drain mode.
+# Wait for ANY worker to finish. Releases its claim only after attributable
+# completion; attribution failures retain claim/evidence and force fatal drain.
+# Classifies the runner's watchdog-marked rc=70 as rc=124, then propagates
+# rc=77/70/124 into drain mode.
 wait_any_worker() {
-  local claimed_marker finished_id pid article_slug worker_result_log tracking_file rc
+  local claimed_marker finished_id recorded_rc pid article_slug worker_result_log tracking_file rc
   tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR" "$LOG_FILE"
   if [ "$TRIBUNAL_WORKER_COMPLETION_KIND" = "missing_marker" ]; then
     finished_id="$TRIBUNAL_COMPLETED_WORKER_ID"
@@ -1023,12 +1024,17 @@ wait_any_worker() {
   fi
   claimed_marker="$TRIBUNAL_WORKER_COMPLETION_MARKER"
   finished_id="$(sed -n 's/^worker_id=//p' "$claimed_marker" | head -1)"
+  recorded_rc="$(sed -n 's/^rc=//p' "$claimed_marker" | head -1)"
+  case "$recorded_rc" in
+    ''|*[!0-9]*) recorded_rc=invalid ;;
+  esac
   if [ -z "$finished_id" ] || [ -z "${WORKER_PID[$finished_id]:-}" ]; then
     tlog "ERROR: completion marker does not match an active worker: $claimed_marker"
     stop_requested=true
     stop_source="${stop_source:-worker-attribution-error}"
-    rc_write_state "draining" "worker_attribution_error marker=$claimed_marker"
-    rm -f "$claimed_marker"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_attribution_error worker=${finished_id:-unknown} marker_rc=$recorded_rc marker=$claimed_marker"
+    rc_write_state "draining" "$fatal_worker_detail"
     return 70
   fi
 
@@ -1038,12 +1044,14 @@ wait_any_worker() {
   tracking_file="${WORKER_TRACKING[$finished_id]}"
   if ! tribunal_collect_worker_completion \
     "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE" "$tracking_file"; then
-    tlog "ERROR: worker completion attribution/flush failed for worker-$finished_id pid=$pid"
+    tlog "ERROR: worker completion attribution failed for worker-$finished_id pid=$pid article=$article_slug; retaining claim and worker log"
     stop_requested=true
     stop_source="${stop_source:-worker-attribution-error}"
-    rc_write_state "draining" "worker_attribution_error worker=$finished_id pid=$pid"
-    rm -f "$worker_result_log" "$claimed_marker"
-    rc_release_claim "$article_slug"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_attribution_error worker=$finished_id pid=$pid article=$article_slug marker_rc=$recorded_rc claim_retained=true result_log=$worker_result_log"
+    rc_write_state "draining" "$fatal_worker_detail"
+    wait "$pid" 2>/dev/null || true
+    [ -n "$tracking_file" ] && rm -f "$tracking_file"
     unset "WORKER_PID[$finished_id]"
     unset "WORKER_ARTICLE[$finished_id]"
     unset "WORKER_RESULT_LOG[$finished_id]"
