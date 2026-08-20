@@ -521,7 +521,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     expect(errors).toEqual([]);
   });
 
-  test('only accepts Giscus payloads sent by the current comments iframe', async ({ page }) => {
+  test('binds Giscus message traffic to the current comments iframe', async ({ page }) => {
     await page.route('https://giscus.app/client.js', async (route) => {
       await route.fulfill({
         contentType: 'application/javascript',
@@ -539,6 +539,14 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
       const status = container?.querySelector<HTMLElement>('.giscus-status');
       if (!container || !status) throw new Error('Giscus fixture was not rendered');
 
+      const decoyFrame = document.createElement('iframe');
+      decoyFrame.className = 'giscus-frame';
+      decoyFrame.src = 'about:blank';
+      const decoyLoaded = new Promise<void>((resolve) => {
+        decoyFrame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.before(decoyFrame);
+
       const frame = document.createElement('iframe');
       frame.className = 'giscus-frame';
       frame.src = 'about:blank';
@@ -546,7 +554,16 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         frame.addEventListener('load', () => resolve(), { once: true });
       });
       container.appendChild(frame);
-      await loaded;
+      await Promise.all([decoyLoaded, loaded]);
+
+      let decoyMessageCount = 0;
+      let currentMessageCount = 0;
+      decoyFrame.contentWindow!.postMessage = () => {
+        decoyMessageCount += 1;
+      };
+      frame.contentWindow!.postMessage = () => {
+        currentMessageCount += 1;
+      };
 
       status.hidden = false;
       window.dispatchEvent(
@@ -566,10 +583,20 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         })
       );
 
-      return { afterWrongSource, afterCurrentSource: status.hidden };
+      return {
+        afterWrongSource,
+        afterCurrentSource: status.hidden,
+        decoyMessageCount,
+        currentMessageCount,
+      };
     });
 
-    expect(result).toEqual({ afterWrongSource: false, afterCurrentSource: true });
+    expect(result).toEqual({
+      afterWrongSource: false,
+      afterCurrentSource: true,
+      decoyMessageCount: 0,
+      currentMessageCount: 1,
+    });
     await expect(status).toBeHidden();
   });
 
