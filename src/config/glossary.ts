@@ -1,5 +1,71 @@
 // Glossary configuration
 
+const GLOSSARY_INTERNAL_ORIGIN = 'https://gu-log.invalid';
+const ABSOLUTE_HTTP_URL = /^https?:\/\/[^/?#]+/i;
+
+export interface ParsedGlossaryUrl {
+  href: string;
+  external: boolean;
+}
+
+interface ParseGlossaryUrlOptions {
+  allowInternal: boolean;
+  field: string;
+}
+
+function hasUnsafeUrlCharacter(value: string): boolean {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (character === '\\' || codePoint <= 0x1f || (codePoint >= 0x7f && codePoint <= 0x9f)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function invalidGlossaryUrl(field: string, allowInternal: boolean): never {
+  const expected = allowInternal
+    ? 'a same-origin root-relative path or an absolute http(s) URL'
+    : 'an absolute http(s) URL';
+  throw new Error(`Invalid glossary URL at ${field}: expected ${expected}`);
+}
+
+export function parseGlossaryUrl(
+  value: string,
+  { allowInternal, field }: ParseGlossaryUrlOptions
+): ParsedGlossaryUrl {
+  if (!value || value !== value.trim() || hasUnsafeUrlCharacter(value)) {
+    return invalidGlossaryUrl(field, allowInternal);
+  }
+
+  if (allowInternal && value.startsWith('/') && !value.startsWith('//')) {
+    try {
+      const parsed = new URL(value, GLOSSARY_INTERNAL_ORIGIN);
+      if (parsed.origin === GLOSSARY_INTERNAL_ORIGIN) {
+        return { href: value, external: false };
+      }
+    } catch {
+      // Fall through to the fail-closed diagnostic.
+    }
+  }
+
+  if (ABSOLUTE_HTTP_URL.test(value)) {
+    try {
+      const parsed = new URL(value);
+      if (
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+        parsed.hostname.length > 0
+      ) {
+        return { href: value, external: true };
+      }
+    } catch {
+      // Fall through to the fail-closed diagnostic.
+    }
+  }
+
+  return invalidGlossaryUrl(field, allowInternal);
+}
+
 // Terms that are common enough to NOT need glossary links
 // These are either:
 // - Too basic (readers should know)
