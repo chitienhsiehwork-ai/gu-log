@@ -3,8 +3,34 @@ interface Props {
   lang?: 'zh-tw' | 'en';
 }
 
+import loginCtaRuntimeUrl from './login-cta-client.js?url&no-inline';
+import { buildPublicApiEndpoint } from '../lib/public-api-url';
+
 const { lang = 'zh-tw' } = Astro.props;
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const loginUrl = buildPublicApiEndpoint(configuredApiUrl, '/auth/github');
+const copy =
+  lang === 'en'
+    ? {
+        loggedOutTitle: 'Want to improve this article?',
+        loggedOutDescription: 'Log in to use AI features:',
+        askAi: 'Ask AI — Select text for an explanation',
+        editWithAi: 'Edit with AI — Select text to suggest an edit',
+        login: 'Log in with GitHub',
+        loggedInTitle: 'Select text to use AI features',
+        loggedInPrefix: 'Logged in as:',
+        logout: 'Log out',
+      }
+    : {
+        loggedOutTitle: '想幫忙改進這篇文章？',
+        loggedOutDescription: '登入後可以用 AI 功能：',
+        askAi: 'Ask AI — 選取文字，請 AI 幫你解釋',
+        editWithAi: 'Edit with AI — 選取文字，請 AI 建議修改',
+        login: '使用 GitHub 登入',
+        loggedInTitle: '選取文章中的文字來使用 AI 功能',
+        loggedInPrefix: '已登入：',
+        logout: '登出',
+      };
 ---
 
 <div class="login-cta-container" style="display: none;" data-login-cta>
@@ -26,171 +52,42 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         <path d="m20 6 2 2-2 2"></path>
       </svg>
     </div>
-    <div class="login-cta-content" id="login-cta-content">
-      <!-- Injected by JS -->
+    <div class="login-cta-content">
+      <div data-login-logged-out>
+        <div class="cta-title">{copy.loggedOutTitle}</div>
+        <div class="cta-desc">
+          {copy.loggedOutDescription}
+          <ul class="cta-features">
+            <li>{copy.askAi}</li>
+            <li>{copy.editWithAi}</li>
+          </ul>
+        </div>
+        <div class="cta-action">
+          <a id="cta-login-btn" class="github-login-btn" href={loginUrl} data-login-action="login">
+            <svg height="20" width="20" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+              ></path>
+            </svg>
+            <span>{copy.login}</span>
+          </a>
+        </div>
+      </div>
+      <div data-login-logged-in hidden>
+        <div class="cta-title">{copy.loggedInTitle}</div>
+        <div class="cta-status">
+          {copy.loggedInPrefix}{lang === 'en' && ' '}<span data-login-email></span>{' '}
+          <button id="cta-logout-btn" class="cta-logout" type="button" data-login-action="logout"
+            >{copy.logout}</button
+          >
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<script is:inline define:vars={{ apiUrl, lang }}>
-  const JWT_KEY = 'gu-log-jwt';
-  const RETURN_KEY = 'gu-log-return-url';
-
-  function getJwt() {
-    try {
-      return localStorage.getItem(JWT_KEY);
-    } catch (_error) {
-      return null;
-    }
-  }
-
-  function parseJwt(token) {
-    try {
-      const base64 = token.split('.')[1];
-      const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-      return JSON.parse(json);
-    } catch (_error) {
-      return null;
-    }
-  }
-
-  function resetContent(content) {
-    content.replaceChildren();
-  }
-
-  function appendText(parent, text) {
-    parent.appendChild(document.createTextNode(text));
-  }
-
-  function createGithubIcon() {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('height', '20');
-    svg.setAttribute('width', '20');
-    svg.setAttribute('viewBox', '0 0 16 16');
-    svg.setAttribute('version', '1.1');
-    svg.setAttribute('aria-hidden', 'true');
-
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('fill', 'currentColor');
-    path.setAttribute(
-      'd',
-      'M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'
-    );
-    svg.appendChild(path);
-    return svg;
-  }
-
-  function renderLoggedIn(content, email) {
-    const title = document.createElement('div');
-    title.className = 'cta-title';
-    title.textContent =
-      lang === 'en' ? 'Select text to use AI features' : '選取文章中的文字來使用 AI 功能';
-
-    const status = document.createElement('div');
-    status.className = 'cta-status';
-    appendText(status, lang === 'en' ? `Logged in as: ${email} ` : `已登入：${email} `);
-
-    const button = document.createElement('button');
-    button.id = 'cta-logout-btn';
-    button.className = 'cta-logout';
-    button.type = 'button';
-    button.textContent = lang === 'en' ? 'Log out' : '登出';
-    button.addEventListener('click', () => {
-      try {
-        localStorage.removeItem(JWT_KEY);
-      } catch (_error) {
-        // Keep the authenticated UI when storage cannot persist the logout.
-        return;
-      }
-      render();
-    });
-    status.appendChild(button);
-
-    content.append(title, status);
-  }
-
-  function renderLoggedOut(content) {
-    const title = document.createElement('div');
-    title.className = 'cta-title';
-    title.textContent = lang === 'en' ? 'Want to improve this article?' : '想幫忙改進這篇文章？';
-
-    const desc = document.createElement('div');
-    desc.className = 'cta-desc';
-    appendText(desc, lang === 'en' ? 'Log in to use AI features:' : '登入後可以用 AI 功能：');
-
-    const list = document.createElement('ul');
-    list.className = 'cta-features';
-
-    const askItem = document.createElement('li');
-    askItem.textContent =
-      lang === 'en'
-        ? 'Ask AI — Select text for an explanation'
-        : 'Ask AI — 選取文字，請 AI 幫你解釋';
-
-    const editItem = document.createElement('li');
-    editItem.textContent =
-      lang === 'en'
-        ? 'Edit with AI — Select text to suggest an edit'
-        : 'Edit with AI — 選取文字，請 AI 建議修改';
-
-    list.append(askItem, editItem);
-    desc.appendChild(list);
-
-    const action = document.createElement('div');
-    action.className = 'cta-action';
-
-    const link = document.createElement('a');
-    link.href = `${apiUrl}/auth/github`;
-    link.id = 'cta-login-btn';
-    link.className = 'github-login-btn';
-    link.addEventListener('click', () => {
-      try {
-        localStorage.setItem(RETURN_KEY, window.location.href);
-      } catch (_error) {
-        // Ignore storage failures (private mode / quota).
-      }
-    });
-
-    link.appendChild(createGithubIcon());
-    const label = document.createElement('span');
-    label.textContent = lang === 'en' ? 'Log in with GitHub' : '使用 GitHub 登入';
-    link.appendChild(label);
-
-    action.appendChild(link);
-    content.append(title, desc, action);
-  }
-
-  function render() {
-    const container = document.querySelector('[data-login-cta]');
-    const content = document.getElementById('login-cta-content');
-    if (!container || !content) return;
-
-    const jwt = getJwt();
-    let email = null;
-    if (jwt) {
-      const payload = parseJwt(jwt);
-      email = (payload && (payload.email || payload.login || payload.sub)) || '?';
-    }
-
-    if (email) {
-      resetContent(content);
-      renderLoggedIn(content, email);
-    } else {
-      resetContent(content);
-      renderLoggedOut(content);
-    }
-
-    container.style.display = 'block';
-  }
-
-  // Run on load
-  render();
-
-  // Re-run if localStorage changes (e.g. from another tab)
-  window.addEventListener('storage', (e) => {
-    if (e.key === JWT_KEY) render();
-  });
-</script>
+<script is:inline type="module" src={loginCtaRuntimeUrl}></script>
 
 <style>
   .login-cta-container {
@@ -218,6 +115,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   .login-cta-content {
     flex: 1;
+    min-width: 0;
   }
 
   .login-cta-content :global(.cta-title) {
@@ -280,6 +178,11 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
   .login-cta-content :global(.cta-status) {
     color: var(--login-cta-copy);
     font-size: 0.9rem;
+  }
+
+  .login-cta-content :global([data-login-email]) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .login-cta-content :global(.cta-logout) {

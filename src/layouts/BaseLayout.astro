@@ -131,9 +131,11 @@ const finalDescription = description || t.defaultDescription;
     <!-- Show reading tracker nav icon only when logged in -->
     <script is:inline>
       (function () {
-        function showTrackerNav() {
+        let currentAuthenticated = false;
+        function setTrackerNav(authenticated) {
+          currentAuthenticated = authenticated;
           const el = document.getElementById('nav-reading-tracker');
-          if (el) el.style.display = '';
+          if (el) el.style.display = authenticated ? '' : 'none';
         }
         let hasSession = false;
         try {
@@ -142,13 +144,20 @@ const finalDescription = description || t.defaultDescription;
           // Storage can be unavailable; keep the authenticated nav fail closed.
         }
         if (hasSession) {
+          currentAuthenticated = true;
           // Inline to avoid FOUC — runs before body renders
-          document.addEventListener('DOMContentLoaded', showTrackerNav);
+          document.addEventListener('DOMContentLoaded', function () {
+            setTrackerNav(currentAuthenticated);
+          });
         }
         window.addEventListener('storage', function (e) {
           if (e.key === 'gu-log-jwt') {
-            const navEl = document.getElementById('nav-reading-tracker');
-            if (navEl) navEl.style.display = e.newValue ? '' : 'none';
+            setTrackerNav(Boolean(e.newValue));
+          }
+        });
+        window.addEventListener('gu-log-auth-changed', function (e) {
+          if (e instanceof CustomEvent && typeof e.detail?.authenticated === 'boolean') {
+            setTrackerNav(e.detail.authenticated);
           }
         });
       })();
