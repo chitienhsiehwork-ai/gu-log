@@ -135,7 +135,11 @@ const t = i18n[lang];
     if (!container) return;
 
     const title = container.getAttribute('data-title') || document.title;
-    const url = window.location.href;
+    const canonicalHref = document.querySelector<HTMLLinkElement>('link[rel~="canonical"]')?.href;
+    const shareUrl = new URL(canonicalHref ?? window.location.href);
+    shareUrl.search = '';
+    shareUrl.hash = '';
+    const url = shareUrl.href;
     const copyText = container.getAttribute('data-copy-text') || 'Copy link';
     const copiedText = container.getAttribute('data-copied-text') || 'Copied!';
 
