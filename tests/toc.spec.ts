@@ -12,6 +12,18 @@ test.describe('Table of Contents', () => {
   // Use a post that definitely has TOC (multiple h2 headings)
   const testPostUrl = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
+  test('GIVEN a post with TOC WHEN the page loads THEN one shared external runtime owns the behavior', async ({
+    page,
+  }) => {
+    await page.goto(testPostUrl);
+
+    await expect(
+      page.locator('script[type="module"][src*="table-of-contents-client"]')
+    ).toHaveCount(1);
+    const inlineScripts = await page.locator('script:not([src])').allTextContents();
+    expect(inlineScripts.join('\n')).not.toContain('initTableOfContents');
+  });
+
   async function scrollPastHeader(page: Page) {
     await page.evaluate(() => {
       const header = document.querySelector('.post-header');
@@ -88,6 +100,77 @@ test.describe('Table of Contents', () => {
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     });
 
+    test('GIVEN Astro reinitializes the page WHEN the user toggles TOC once THEN one listener owns the disclosure state', async ({
+      page,
+    }) => {
+      await page.goto(testPostUrl);
+      await page.evaluate(() => document.dispatchEvent(new Event('astro:page-load')));
+
+      const container = page.locator('.toc-mobile .toc-toggle-container');
+      const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      await toggle.click();
+
+      await expect(container).toHaveAttribute('data-open', 'true');
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    test('GIVEN Astro reinitializes the page WHEN a collapsed TOC link is used THEN navigation and scroll each run once', async ({
+      page,
+    }) => {
+      await page.goto(testPostUrl);
+      await page.evaluate(() => {
+        document.documentElement.dataset.tocPushCount = '0';
+        document.documentElement.dataset.tocScrollCount = '0';
+        const originalPushState = history.pushState.bind(history);
+        history.pushState = (data, unused, url) => {
+          const root = document.documentElement;
+          root.dataset.tocPushCount = String(Number(root.dataset.tocPushCount) + 1);
+          originalPushState(data, unused, url);
+        };
+        Object.defineProperty(window, 'scrollTo', {
+          configurable: true,
+          value: () => {
+            const root = document.documentElement;
+            root.dataset.tocScrollCount = String(Number(root.dataset.tocScrollCount) + 1);
+          },
+        });
+        document.dispatchEvent(new Event('astro:page-load'));
+      });
+
+      await page
+        .locator('.toc-mobile .toc-link')
+        .first()
+        .evaluate((link) => (link as HTMLElement).click());
+
+      await expect(page.locator('html')).toHaveAttribute('data-toc-push-count', '1');
+      await expect(page.locator('html')).toHaveAttribute('data-toc-scroll-count', '1');
+    });
+
+    test('GIVEN a mobile TOC scroll is pending WHEN Astro reinitializes THEN the stale timer cannot scroll the new lifecycle', async ({
+      page,
+    }) => {
+      await page.goto(testPostUrl);
+      const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      await toggle.click();
+
+      await page.evaluate(() => {
+        document.documentElement.dataset.tocScrollCount = '0';
+        Object.defineProperty(window, 'scrollTo', {
+          configurable: true,
+          value: () => {
+            const root = document.documentElement;
+            root.dataset.tocScrollCount = String(Number(root.dataset.tocScrollCount) + 1);
+          },
+        });
+      });
+
+      await page.locator('.toc-mobile .toc-link').first().click();
+      await page.evaluate(() => document.dispatchEvent(new Event('astro:page-load')));
+      await page.waitForTimeout(450);
+
+      await expect(page.locator('html')).toHaveAttribute('data-toc-scroll-count', '0');
+    });
+
     test('GIVEN TOC is expanded WHEN user clicks a heading link THEN page should scroll to heading AND TOC should collapse', async ({
       page,
     }) => {
@@ -139,6 +222,39 @@ test.describe('Table of Contents', () => {
         await expect(target).toBeAttached();
       }
     });
+  });
+
+  test('GIVEN a lookalike link outside the TOC WHEN Astro reinitializes THEN the TOC runtime does not intercept it', async ({
+    page,
+  }) => {
+    await page.goto(testPostUrl);
+
+    const result = await page.evaluate(() => {
+      const target = document.createElement('div');
+      target.id = 'outside-toc-target';
+      document.body.append(target);
+
+      const link = document.createElement('a');
+      link.className = 'toc-link';
+      link.href = '#outside-toc-target';
+      link.textContent = 'Outside TOC';
+      document.body.append(link);
+
+      let pushCount = 0;
+      const originalPushState = history.pushState.bind(history);
+      history.pushState = (data, unused, url) => {
+        pushCount += 1;
+        originalPushState(data, unused, url);
+      };
+
+      document.dispatchEvent(new Event('astro:page-load'));
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      link.dispatchEvent(click);
+
+      return { defaultPrevented: click.defaultPrevented, pushCount };
+    });
+
+    expect(result).toEqual({ defaultPrevented: false, pushCount: 0 });
   });
 
   test.describe('Desktop TOC (@desktop)', () => {
