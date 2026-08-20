@@ -129,13 +129,17 @@ const t = i18n[lang];
 <script>
   import { recordShareIntent } from '../lib/human-signals';
   import type { ArticleVersionSnapshot, GuLogLang, ShareTarget } from '../lib/human-signals';
+  import { getShareUrl } from './share-url';
 
   function initShareButtons() {
     const container = document.querySelector('.share-buttons');
     if (!container) return;
 
     const title = container.getAttribute('data-title') || document.title;
-    const url = window.location.href;
+    const canonicalHref =
+      document.querySelector<HTMLLinkElement>('link[rel~="canonical"]')?.getAttribute('href') ??
+      null;
+    const url = getShareUrl(canonicalHref, window.location.href);
     const copyText = container.getAttribute('data-copy-text') || 'Copy link';
     const copiedText = container.getAttribute('data-copied-text') || 'Copied!';
 
