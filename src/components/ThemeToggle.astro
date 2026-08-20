@@ -64,14 +64,12 @@ const labels =
 <script>
   const toggle = document.getElementById('theme-toggle');
 
-  function getPreferredTheme(): 'dark' | 'light' {
-    try {
-      const saved = localStorage.getItem('theme');
-      if (saved === 'light' || saved === 'dark') return saved;
-    } catch {
-      // Storage can be unavailable; fall back to the default theme.
+  function updateToggleLabel(theme: 'dark' | 'light') {
+    const nextLabel = theme === 'dark' ? toggle?.dataset.labelLight : toggle?.dataset.labelDark;
+    if (nextLabel) {
+      toggle?.setAttribute('aria-label', nextLabel);
+      toggle?.setAttribute('title', nextLabel);
     }
-    return 'dark';
   }
 
   function setTheme(theme: 'dark' | 'light') {
@@ -81,14 +79,12 @@ const labels =
     } catch {
       // Keep the session-only DOM theme when persistence is unavailable.
     }
-    const nextLabel = theme === 'dark' ? toggle?.dataset.labelLight : toggle?.dataset.labelDark;
-    if (nextLabel) {
-      toggle?.setAttribute('aria-label', nextLabel);
-      toggle?.setAttribute('title', nextLabel);
-    }
+    updateToggleLabel(theme);
   }
 
-  setTheme(getPreferredTheme());
+  const initialTheme =
+    document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  updateToggleLabel(initialTheme);
 
   toggle?.addEventListener('click', () => {
     const current = document.documentElement.getAttribute('data-theme');
