@@ -838,6 +838,8 @@ FAKE_CLAUDE
   chmod +x "$fallback_root/bin/codex" "$fallback_root/bin/claude"
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
+  # Read dynamically by functions from the sourced helper.
+  # shellcheck disable=SC2034
   REPO_ROOT="$fallback_root"
   provenance="$fallback_root/provenance"
   PATH="$fallback_root/bin:$PATH" \
@@ -867,7 +869,10 @@ NOTIFIER
   source "$HELPERS"
   export TRIBUNAL_ALERT_CAPTURE="$alert_root/messages"
   export TRIBUNAL_NOTIFIER="$alert_root/notifier"
+  # Read and mutated dynamically by functions from the sourced helper.
+  # shellcheck disable=SC2034
   TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD=3
+  # shellcheck disable=SC2034
   TRIBUNAL_EXHAUSTED_STREAK=0
   tribunal_alert_worker_completion 2 article-a
   tribunal_alert_worker_completion 2 article-b
@@ -881,6 +886,7 @@ NOTIFIER
   tribunal_alert_worker_completion 2 article-g
   tribunal_alert_worker_completion 124 article-stall
 
+  # shellcheck disable=SC2034
   TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE=""
   tribunal_alert_controller_mode_transition fallback 23
   tribunal_alert_controller_mode_transition fallback 23
