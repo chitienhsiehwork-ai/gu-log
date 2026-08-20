@@ -563,6 +563,9 @@ for skill in \
   "$ROOT/.claude/skills/tribunal-monitor/SKILL.md"; do
   grep -q 'scripts/tribunal-monitor-snapshot.sh' "$skill" ||
     fail "$skill does not reference the shared snapshot entrypoint"
+  if grep -Fq "with \`GU_LOG_DIR\` and \`USAGE_MONITOR\`" "$skill"; then
+    fail "$skill still requires the retired off-repo quota monitor"
+  fi
   procedure="$(
     sed -n '/^## Procedure$/,/^## Interpreting results$/p' "$skill"
   )"
