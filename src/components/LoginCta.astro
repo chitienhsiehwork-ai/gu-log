@@ -4,17 +4,11 @@ interface Props {
 }
 
 import loginCtaRuntimeUrl from './login-cta-client.js?url&no-inline';
+import { buildPublicApiEndpoint } from '../lib/public-api-url';
 
 const { lang = 'zh-tw' } = Astro.props;
 const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
-const parsedApiUrl = new URL(configuredApiUrl);
-
-if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
-  throw new Error('PUBLIC_API_URL must use http or https');
-}
-
-const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
-const loginUrl = `${apiUrl}/auth/github`;
+const loginUrl = buildPublicApiEndpoint(configuredApiUrl, '/auth/github');
 const copy =
   lang === 'en'
     ? {
@@ -69,7 +63,7 @@ const copy =
           </ul>
         </div>
         <div class="cta-action">
-          <a id="cta-login-btn" class="github-login-btn" href={loginUrl}>
+          <a id="cta-login-btn" class="github-login-btn" href={loginUrl} data-login-action="login">
             <svg height="20" width="20" viewBox="0 0 16 16" version="1.1" aria-hidden="true">
               <path
                 fill="currentColor"
@@ -84,7 +78,9 @@ const copy =
         <div class="cta-title">{copy.loggedInTitle}</div>
         <div class="cta-status">
           {copy.loggedInPrefix}{lang === 'en' && ' '}<span data-login-email></span>{' '}
-          <button id="cta-logout-btn" class="cta-logout" type="button">{copy.logout}</button>
+          <button id="cta-logout-btn" class="cta-logout" type="button" data-login-action="logout"
+            >{copy.logout}</button
+          >
         </div>
       </div>
     </div>
@@ -119,6 +115,7 @@ const copy =
 
   .login-cta-content {
     flex: 1;
+    min-width: 0;
   }
 
   .login-cta-content :global(.cta-title) {
@@ -181,6 +178,11 @@ const copy =
   .login-cta-content :global(.cta-status) {
     color: var(--login-cta-copy);
     font-size: 0.9rem;
+  }
+
+  .login-cta-content :global([data-login-email]) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .login-cta-content :global(.cta-logout) {

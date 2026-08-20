@@ -34,6 +34,7 @@ test.describe('LoginCta Component', () => {
         if (!document.body) return;
 
         const marker = document.createElement('div');
+        marker.className = 'login-cta-container';
         marker.dataset.loginCta = '';
         marker.dataset.apiUrl = 'javascript:alert(document.domain)//';
 
@@ -52,7 +53,7 @@ test.describe('LoginCta Component', () => {
 
     await page.goto(TEST_POST);
 
-    const cta = page.locator('.login-cta-container[data-login-cta]');
+    const cta = page.locator('[data-article-action-area] > .login-cta-container[data-login-cta]');
     const realLogin = cta.locator('#cta-login-btn');
     await expect(cta).toBeVisible();
     await expect(realLogin).toHaveAttribute('href', 'https://api.shroomdog.dev/auth/github');
@@ -169,6 +170,7 @@ test.describe('LoginCta Component', () => {
     // Should show email
     await expect(cta).toContainText('tester@example.com');
     await expect(cta).toContainText('已登入'); // or 'Logged in as' depending on lang
+    await expect(page.locator('#nav-reading-tracker')).toBeVisible();
 
     // Should show logout button
     const logoutBtn = cta.locator('.cta-logout');
@@ -185,14 +187,13 @@ test.describe('LoginCta Component', () => {
   test('GIVEN user is logged in WHEN logout clicked THEN switches to logged out state', async ({
     page,
   }) => {
-    await page.goto(TEST_POST, { waitUntil: 'networkidle' });
+    await page.goto(TEST_POST);
     await page.evaluate(() => {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
       const payload = btoa(JSON.stringify({ email: 'tester@example.com' }));
       localStorage.setItem('gu-log-jwt', header + '.' + payload + '.sig');
     });
     await page.reload();
-    await page.waitForLoadState('networkidle');
 
     await page.waitForSelector('[data-login-cta]', { state: 'visible' });
 
@@ -201,10 +202,84 @@ test.describe('LoginCta Component', () => {
 
     // Wait for update
     await expect(page.locator('.github-login-btn')).toBeVisible();
+    await expect(page.locator('.github-login-btn')).toBeFocused();
+    await expect(page.locator('#nav-reading-tracker')).not.toBeVisible();
 
     // Check localStorage
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBeNull();
+  });
+
+  test('GIVEN malformed JWT variants WHEN the CTA renders THEN keeps the login action available', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+    const malformedTokens = await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'two-part@example.com' }));
+      const nonNumericExpiry = btoa(JSON.stringify({ email: 'bad-exp@example.com', exp: 'never' }));
+      const arrayPayload = btoa(JSON.stringify(['array-is-not-a-payload-object']));
+
+      return [
+        'not-a-jwt',
+        `${header}.${payload}`,
+        `.${payload}.sig`,
+        `${header}.${payload}.`,
+        `${header}.${payload}.sig.extra`,
+        `${header}.${nonNumericExpiry}.sig`,
+        `${header}.${arrayPayload}.sig`,
+      ];
+    });
+
+    for (const token of malformedTokens) {
+      await page.evaluate((candidate) => localStorage.setItem('gu-log-jwt', candidate), token);
+      await page.reload();
+
+      const cta = page.locator('[data-login-cta]');
+      await expect(cta.locator('.github-login-btn')).toBeVisible();
+      await expect(cta.locator('[data-login-logged-in]')).not.toBeVisible();
+      await expect(page.locator('#nav-reading-tracker')).not.toBeVisible();
+      await expect(cta).not.toContainText('two-part@example.com');
+      await expect(cta).not.toContainText('bad-exp@example.com');
+    }
+  });
+
+  test('GIVEN an expired JWT WHEN the CTA renders THEN treats the reader as logged out', async ({
+    page,
+  }) => {
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(
+        JSON.stringify({ email: 'expired@example.com', exp: Math.floor(Date.now() / 1000) - 60 })
+      );
+      localStorage.setItem('gu-log-jwt', `${header}.${payload}.sig`);
+    });
+    await page.reload();
+
+    const cta = page.locator('[data-login-cta]');
+    await expect(cta.locator('.github-login-btn')).toBeVisible();
+    await expect(cta.locator('[data-login-logged-in]')).not.toBeVisible();
+    await expect(page.locator('#nav-reading-tracker')).not.toBeVisible();
+    await expect(cta).not.toContainText('expired@example.com');
+  });
+
+  test('GIVEN a long identity on mobile WHEN the CTA renders THEN it does not widen the viewport', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(TEST_POST);
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: `${'x'.repeat(64)}@example.com` }));
+      localStorage.setItem('gu-log-jwt', `${header}.${payload}.sig`);
+    });
+    await page.reload();
+
+    await expect(page.locator('[data-login-email]')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
+    ).toBe(true);
   });
 
   test('GIVEN logout storage is denied WHEN logout clicked THEN keeps the authenticated UI without a page error', async ({
@@ -240,6 +315,7 @@ test.describe('LoginCta Component', () => {
     const cta = page.locator('[data-login-cta]');
     const logoutButton = cta.locator('.cta-logout');
     await expect(logoutButton).toBeVisible();
+    pageErrors.length = 0;
     await logoutButton.click();
     await page.waitForTimeout(50);
 

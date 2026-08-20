@@ -1,33 +1,15 @@
 // @ts-check
-/* global document, window, localStorage, atob */
+/* global document, window, localStorage, atob, CustomEvent */
 
 const JWT_KEY = 'gu-log-jwt';
 const RETURN_KEY = 'gu-log-return-url';
-
-const container = /** @type {HTMLElement | null} */ (
-  document.querySelector('.login-cta-container[data-login-cta]')
-);
-const loggedOut = /** @type {HTMLElement | null} */ (
-  container?.querySelector('[data-login-logged-out]') ?? null
-);
-const loggedIn = /** @type {HTMLElement | null} */ (
-  container?.querySelector('[data-login-logged-in]') ?? null
-);
-const emailNode = /** @type {HTMLElement | null} */ (
-  container?.querySelector('[data-login-email]') ?? null
-);
-const loginButton = /** @type {HTMLAnchorElement | null} */ (
-  container?.querySelector('#cta-login-btn') ?? null
-);
-const logoutButton = /** @type {HTMLButtonElement | null} */ (
-  container?.querySelector('#cta-logout-btn') ?? null
-);
 
 /**
  * @typedef {object} JwtPayload
  * @property {string} [email]
  * @property {string} [login]
  * @property {string} [sub]
+ * @property {number} [exp]
  */
 
 function getJwt() {
@@ -44,59 +26,115 @@ function getJwt() {
  */
 function parseJwt(token) {
   try {
-    const base64 = token.split('.')[1];
-    const json = atob(base64.replace(/-/g, '+').replace(/_/g, '/'));
-    return /** @type {JwtPayload} */ (JSON.parse(json));
+    const parts = token.split('.');
+    if (parts.length !== 3 || parts.some((part) => !part)) return null;
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+    const json = atob(padded);
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+
+    const payload = /** @type {JwtPayload} */ (parsed);
+    if ('exp' in payload && (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp))) {
+      return null;
+    }
+    return payload;
   } catch (_error) {
     return null;
   }
 }
 
-loginButton?.addEventListener('click', () => {
-  try {
-    localStorage.setItem(RETURN_KEY, window.location.href);
-  } catch (_error) {
-    // Navigation still works when storage is unavailable.
-  }
-});
-
-logoutButton?.addEventListener('click', () => {
-  try {
-    localStorage.removeItem(JWT_KEY);
-  } catch (_error) {
-    // Keep the authenticated UI when storage cannot persist the logout.
-    return;
-  }
-  render();
-});
-
-function render() {
-  if (!container || !loggedOut || !loggedIn || !emailNode) return;
-
-  const jwt = getJwt();
-  let email = null;
-  if (jwt) {
-    const payload = parseJwt(jwt);
-    email = (payload && (payload.email || payload.login || payload.sub)) || '?';
+/**
+ * @param {JwtPayload | null} payload
+ * @returns {string | null}
+ */
+function getIdentity(payload) {
+  if (!payload || (typeof payload.exp === 'number' && payload.exp <= Date.now() / 1000)) {
+    return null;
   }
 
-  if (email) {
-    emailNode.textContent = email;
-    loggedOut.hidden = true;
-    loggedIn.hidden = false;
-  } else {
-    emailNode.textContent = '';
-    loggedOut.hidden = false;
-    loggedIn.hidden = true;
+  for (const claim of [payload.email, payload.login, payload.sub]) {
+    if (typeof claim === 'string' && claim.trim()) return claim;
   }
-
-  container.style.display = 'block';
+  return null;
 }
 
-// Run on load
-render();
+/**
+ * @param {Element} container
+ * @returns {(() => void) | null}
+ */
+function initializeContainer(container) {
+  const loggedOut = /** @type {HTMLElement | null} */ (
+    container.querySelector('[data-login-logged-out]')
+  );
+  const loggedIn = /** @type {HTMLElement | null} */ (
+    container.querySelector('[data-login-logged-in]')
+  );
+  const emailNode = /** @type {HTMLElement | null} */ (
+    container.querySelector('[data-login-email]')
+  );
+  const loginButton = /** @type {HTMLAnchorElement | null} */ (
+    container.querySelector('[data-login-action="login"]')
+  );
+  const logoutButton = /** @type {HTMLButtonElement | null} */ (
+    container.querySelector('[data-login-action="logout"]')
+  );
+
+  if (!loggedOut || !loggedIn || !emailNode || !loginButton || !logoutButton) return null;
+  const nodes = { loggedOut, loggedIn, emailNode };
+
+  function render() {
+    const jwt = getJwt();
+    const payload = jwt ? parseJwt(jwt) : null;
+    const identity = getIdentity(payload);
+
+    if (identity) {
+      nodes.emailNode.textContent = identity;
+      nodes.loggedOut.hidden = true;
+      nodes.loggedIn.hidden = false;
+    } else {
+      nodes.emailNode.textContent = '';
+      nodes.loggedOut.hidden = false;
+      nodes.loggedIn.hidden = true;
+    }
+
+    /** @type {HTMLElement} */ (container).style.display = 'block';
+    window.dispatchEvent(
+      new CustomEvent('gu-log-auth-changed', { detail: { authenticated: Boolean(identity) } })
+    );
+  }
+
+  loginButton.addEventListener('click', () => {
+    try {
+      localStorage.setItem(RETURN_KEY, window.location.href);
+    } catch (_error) {
+      // Navigation still works when storage is unavailable.
+    }
+  });
+
+  logoutButton.addEventListener('click', () => {
+    try {
+      localStorage.removeItem(JWT_KEY);
+    } catch (_error) {
+      // Keep the authenticated UI when storage cannot persist the logout.
+      return;
+    }
+    render();
+    loginButton.focus();
+  });
+
+  render();
+  return render;
+}
+
+const renderers = Array.from(
+  document.querySelectorAll('[data-article-action-area] > .login-cta-container[data-login-cta]'),
+  initializeContainer
+).filter(Boolean);
 
 // Re-run if localStorage changes (e.g. from another tab)
 window.addEventListener('storage', (event) => {
-  if (event.key === JWT_KEY) render();
+  if (event.key === JWT_KEY) {
+    for (const render of renderers) render?.();
+  }
 });

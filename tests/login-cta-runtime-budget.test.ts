@@ -14,17 +14,19 @@ describe('LoginCta shared runtime budget', () => {
     expect(component).toContain(
       '<script is:inline type="module" src={loginCtaRuntimeUrl}></script>'
     );
-    expect(component).toContain("parsedApiUrl.protocol !== 'https:'");
-    expect(component).toContain("parsedApiUrl.protocol !== 'http:'");
+    expect(component).toContain("buildPublicApiEndpoint(configuredApiUrl, '/auth/github')");
     expect(component).toContain('id="cta-login-btn"');
     expect(component).toContain('href={loginUrl}');
     expect(component).toContain('data-login-logged-out');
     expect(component).toContain('data-login-logged-in');
     expect(component).not.toContain("const RETURN_KEY = 'gu-log-return-url'");
     const runtime = readFileSync(runtimeUrl, 'utf8');
-    expect(runtime).toContain("document.querySelector('.login-cta-container[data-login-cta]')");
-    expect(runtime).toContain("container?.querySelector('#cta-login-btn')");
-    expect(runtime).toContain("container?.querySelector('[data-login-logged-out]')");
+    expect(Buffer.byteLength(runtime)).toBeLessThanOrEqual(4096);
+    expect(runtime).toContain(
+      "'[data-article-action-area] > .login-cta-container[data-login-cta]'"
+    );
+    expect(runtime).toContain('container.querySelector(\'[data-login-action="login"]\')');
+    expect(runtime).toContain("container.querySelector('[data-login-logged-out]')");
     expect(runtime).toContain("const RETURN_KEY = 'gu-log-return-url';");
     expect(runtime).not.toContain('dataset.apiUrl');
     expect(runtime).not.toContain("document.getElementById('cta-login-target')");
