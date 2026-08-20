@@ -166,12 +166,26 @@ rc_exit_stopped() {
 # defense-in-depth across supervisor, worker-worktree, and manual invocations.
 : "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
 : "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
+: "${RC_CLAIMS_LOCK:=$RC_ROOT_DIR/.score-loop/claims.lock}"
 : "${RC_PROGRESS_LOCK:=$RC_ROOT_DIR/.score-loop/progress.lock}"
 : "${RC_PUSH_LOCK:=$RC_ROOT_DIR/.score-loop/push.lock}"
 mkdir -p "$RC_CLAIMS_DIR"
 # Ensure lock files exist so flock doesn't race on file creation.
+: >>"$RC_CLAIMS_LOCK"
 : >>"$RC_PROGRESS_LOCK"
 : >>"$RC_PUSH_LOCK"
+
+# Serialize only the destructive half of stale recovery. Normal mkdir
+# acquisition, metadata writes, claim release, enumeration, and logging stay
+# outside this rare-path lock.
+_rc_release_stale_claim_if_current() {
+  local slug="$1"
+  (
+    flock -x 9 || exit 1
+    rc_claim_is_stale "$slug" || exit 1
+    rc_release_claim "$slug"
+  ) 9>>"$RC_CLAIMS_LOCK"
+}
 
 # Usage: rc_try_claim <slug> [worker_id]
 # Returns 0 if claim acquired, 1 if already held (by another worker).
@@ -195,9 +209,9 @@ rc_try_claim() {
     return 0
   fi
 
-  # mkdir failed — either already claimed, or it's stale from a crashed worker.
-  if rc_claim_is_stale "$slug"; then
-    rc_release_claim "$slug"
+  # mkdir failed — recheck stale state while serialized with GC and other
+  # reclaimers. Once deletion is complete, mkdir elects the next owner.
+  if _rc_release_stale_claim_if_current "$slug"; then
     # One more attempt after GC.
     if mkdir "$claim_dir" 2>/dev/null; then
       local ts tmp
@@ -276,11 +290,10 @@ rc_gc_stale_claims() {
   for claim_dir in "$RC_CLAIMS_DIR"/*.claim; do
     [ -d "$claim_dir" ] || continue
     slug=$(basename "$claim_dir" .claim)
-    if rc_claim_is_stale "$slug"; then
+    if _rc_release_stale_claim_if_current "$slug"; then
       if declare -f tlog >/dev/null 2>&1; then
         tlog "Releasing stale claim: $slug"
       fi
-      rc_release_claim "$slug"
     fi
   done
 }
