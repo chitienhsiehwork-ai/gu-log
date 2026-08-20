@@ -13,17 +13,13 @@ interface Props {
   lang?: 'zh-tw' | 'en';
 }
 
+import { buildPublicApiEndpoint, normalizePublicApiBaseUrl } from '../lib/public-api-url';
+
 const { filePath = '', postTitle = '', lang = 'zh-tw' } = Astro.props;
 
 const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
-const parsedApiUrl = new URL(configuredApiUrl);
-
-if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
-  throw new Error('PUBLIC_API_URL must use http or https');
-}
-
-const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
-const loginUrl = `${apiUrl}/auth/github`;
+const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
+const loginUrl = buildPublicApiEndpoint(configuredApiUrl, '/auth/github');
 ---
 
 <div

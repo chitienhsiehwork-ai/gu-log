@@ -4,6 +4,7 @@ const GIST_ID_KEY = 'gu-log-gist-id';
 
 import { importReadStore, parseReadStore } from './reading-tracker';
 import type { ReadRecord, ReadStoreV1, ReadStoreV2 } from './reading-tracker';
+import { PUBLIC_API_AUTH_PATH } from './public-api-url';
 
 export type GistReadStore = ReadStoreV1 | ReadStoreV2;
 export const READER_SYNC_TIMEOUT_MS = 15_000;
@@ -13,11 +14,15 @@ function safeReauthorizeUrl(value: unknown, apiUrl: string): string | undefined 
   try {
     const apiBase = new URL(apiUrl);
     if (apiBase.protocol !== 'https:' && apiBase.protocol !== 'http:') return undefined;
-    if (apiBase.username || apiBase.password) return undefined;
+    if (apiBase.username || apiBase.password || apiBase.search || apiBase.hash) return undefined;
 
-    const candidate = new URL(value, `${apiBase.origin}/`);
+    const basePath = apiBase.pathname.replace(/\/+$/, '');
+    const expectedPath = `${basePath}${PUBLIC_API_AUTH_PATH}`;
+    apiBase.pathname = `${basePath}/`;
+
+    const candidate = new URL(value, apiBase);
     if (candidate.origin !== apiBase.origin) return undefined;
-    if (candidate.pathname !== '/auth/github') return undefined;
+    if (candidate.pathname !== expectedPath) return undefined;
     if (candidate.username || candidate.password) return undefined;
     return candidate.href;
   } catch {

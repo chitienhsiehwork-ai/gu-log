@@ -9,6 +9,8 @@ interface Props {
   pathname: string;
 }
 
+import { normalizePublicApiBaseUrl } from '../lib/public-api-url';
+
 const {
   slug,
   lang = 'zh-tw',
@@ -19,7 +21,8 @@ const {
   pathname,
 } = Astro.props;
 
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 ---
 
 <div

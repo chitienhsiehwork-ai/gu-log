@@ -28,11 +28,11 @@ describe('reading tracker semantic status colors', () => {
     expect(source).not.toContain('#ff5555');
   });
 
-  it('fails the build when the configured API URL is not HTTP(S)', () => {
-    expect(source).toContain('new URL(configuredApiUrl)');
-    expect(source).toContain("parsedApiUrl.protocol !== 'https:'");
-    expect(source).toContain("parsedApiUrl.protocol !== 'http:'");
-    expect(source).toContain('PUBLIC_API_URL must use http or https');
+  it('routes every configured API URL through the shared fail-closed helper', () => {
+    expect(source).toContain('normalizePublicApiBaseUrl(configuredApiUrl)');
+    expect(source).toContain("buildPublicApiEndpoint(configuredApiUrl, '/auth/github')");
+    expect(source).not.toContain('new URL(configuredApiUrl)');
+    expect(readButtonSource).toContain('normalizePublicApiBaseUrl(configuredApiUrl)');
   });
 
   it('routes foreground and background sync imports through the fail-closed helper', () => {

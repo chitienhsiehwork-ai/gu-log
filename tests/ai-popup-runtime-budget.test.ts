@@ -27,8 +27,8 @@ describe('AiPopup shared runtime budget', () => {
 
     expect(component).toContain('id="ai-popup-login-target"');
     expect(component).toContain('href={loginUrl}');
-    expect(component).toContain("parsedApiUrl.protocol !== 'https:'");
-    expect(component).toContain("parsedApiUrl.protocol !== 'http:'");
+    expect(component).toContain('normalizePublicApiBaseUrl(configuredApiUrl)');
+    expect(component).toContain("buildPublicApiEndpoint(configuredApiUrl, '/auth/github')");
     expect(runtime).toContain("document.getElementById('ai-popup-login-target')");
     expect(runtime).toContain('loginTarget.click()');
     expect(runtime).not.toMatch(/\blocation(?:\.href)?\s*=|\blocation\.(?:assign|replace)\s*\(/);
