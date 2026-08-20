@@ -364,7 +364,7 @@ describe('reading-tracker', () => {
 // gist-sync
 // ════════════════════════════════════════════════════════════════════════════
 describe('gist-sync', () => {
-  async function backendScopeError(reauthorizeUrl: unknown) {
+  async function backendScopeError(reauthorizeUrl: unknown, apiUrl = 'https://api.shroomdog.dev') {
     (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
     (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -379,7 +379,7 @@ describe('gist-sync', () => {
     });
     const module = await import('../src/lib/gist-sync');
     try {
-      await module.pullFromReaderSyncApi('https://api.shroomdog.dev');
+      await module.pullFromReaderSyncApi(apiUrl);
       throw new Error('expected ReaderSyncApiError');
     } catch (error) {
       return { error, module };
@@ -495,6 +495,38 @@ describe('gist-sync', () => {
     const { error, module } = await backendScopeError(reauthorizeUrl);
     expect(error).toBeInstanceOf(module.ReaderSyncApiError);
     expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
+  });
+
+  it.each([
+    [
+      'absolute',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+    ],
+    [
+      'same-base relative',
+      'auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+    ],
+  ])(
+    'keeps a valid %s backend reauthorization URL under an API base path',
+    async (_, reauthorizeUrl, expected) => {
+      const { error, module } = await backendScopeError(
+        reauthorizeUrl,
+        'https://api.shroomdog.dev/v1/'
+      );
+      expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+      expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
+    }
+  );
+
+  it('drops an origin-root OAuth URL when the configured API uses a base path', async () => {
+    const { error, module } = await backendScopeError(
+      '/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/'
+    );
+    expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+    expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBeUndefined();
   });
 
   it.each([

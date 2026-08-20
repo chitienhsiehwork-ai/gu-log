@@ -31,9 +31,13 @@ describe('auth callback API URL', () => {
     }
   );
 
-  it('fails closed instead of rendering a script-scheme retry link', async () => {
-    await expect(renderCallback('javascript:alert(document.domain)//')).rejects.toThrow(
-      'PUBLIC_API_URL must use http or https'
-    );
+  it.each([
+    ['a script scheme', 'javascript:alert(document.domain)//'],
+    ['remote HTTP', 'http://api.example.test/'],
+    ['credentials', 'https://user:secret@api.example.test/'],
+    ['a query', 'https://api.example.test/?tenant=a'],
+    ['a fragment', 'https://api.example.test/#frag'],
+  ])('fails closed instead of rendering %s', async (_label, apiUrl) => {
+    await expect(renderCallback(apiUrl)).rejects.toThrow(/PUBLIC_API_URL/);
   });
 });

@@ -1,16 +1,15 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { buildPublicApiEndpoint, normalizePublicApiBaseUrl } from '../lib/public-api-url';
 import { getPublishedPosts } from '../utils/post-status';
 import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
 const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
-const parsedApiUrl = new URL(configuredApiUrl);
-if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
-  throw new Error('PUBLIC_API_URL must use http or https');
-}
-const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
+const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
+const syncLoginUrl = new URL(buildPublicApiEndpoint(configuredApiUrl, '/auth/github'));
+syncLoginUrl.searchParams.set('reader_sync', '1');
 
 // Sort by date descending
 allPosts.sort((a, b) => {
@@ -114,13 +113,7 @@ const totalArticles = allPosts.length;
         <p class="sync-desc">
           已改用 gu-log 登入狀態同步閱讀紀錄，不需要手貼 GitHub private token。
         </p>
-        <a
-          id="sync-reauth-link"
-          class="sync-action-btn"
-          href={`${apiUrl}/auth/github?reader_sync=1`}
-        >
-          重新授權同步
-        </a>
+        <a id="sync-reauth-link" class="sync-action-btn" href={syncLoginUrl.href}> 重新授權同步 </a>
         <details class="legacy-sync-details">
           <summary>Legacy token fallback</summary>
           <p class="sync-pat-hint">只有 backend OAuth sync 暫時不可用時才用這條舊路。</p>

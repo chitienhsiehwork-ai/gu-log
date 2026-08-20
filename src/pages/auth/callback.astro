@@ -7,16 +7,10 @@
  * Stores the JWT in localStorage and redirects back to the original page.
  */
 import '../../styles/global.css';
+import { buildPublicApiEndpoint } from '../../lib/public-api-url';
 
 const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
-const parsedApiUrl = new URL(configuredApiUrl);
-
-if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
-  throw new Error('PUBLIC_API_URL must use http or https');
-}
-
-const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
-const loginUrl = `${apiUrl}/auth/github`;
+const loginUrl = buildPublicApiEndpoint(configuredApiUrl, '/auth/github');
 ---
 
 <html lang="en">
