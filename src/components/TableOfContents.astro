@@ -49,11 +49,16 @@ const t = labels[lang];
       {/* Mobile Toggle Version */}
       <div class="toc-mobile">
         <div class="toc-toggle-container" data-open="false">
-          <button class="toc-toggle-header" aria-expanded="false">
+          <button
+            class="toc-toggle-header"
+            type="button"
+            aria-expanded="false"
+            aria-controls="toc-mobile-content"
+          >
             <span class="toc-toggle-icon" />
             <span class="toc-toggle-title">{t.title}</span>
           </button>
-          <div class="toc-toggle-wrapper">
+          <div id="toc-mobile-content" class="toc-toggle-wrapper" inert>
             <div class="toc-toggle-inner">
               <nav class="toc-content">
                 {tocHeadings.map((heading) => (
@@ -179,6 +184,12 @@ const t = labels[lang];
     margin-inline-start: 0.75rem;
     padding: 0.35rem 0.75rem 0.7rem;
     border-inline-start: 0 solid var(--color-toc-rail);
+  }
+
+  .toc-mobile .toc-link {
+    display: flex;
+    align-items: center;
+    min-block-size: 44px;
   }
 
   .toc-mobile .toc-toggle-container[data-open='true'] .toc-content {

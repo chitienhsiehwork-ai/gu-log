@@ -62,10 +62,13 @@ test.describe('Table of Contents', () => {
 
       const container = page.locator('.toc-mobile .toc-toggle-container');
       const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const wrapper = page.locator('.toc-mobile .toc-toggle-wrapper');
       const content = page.locator('.toc-mobile .toc-content');
 
       // Verify initial state is collapsed
       await expect(container).toHaveAttribute('data-open', 'false');
+      await expect(toggle).toHaveAttribute('aria-controls', 'toc-mobile-content');
+      await expect(wrapper).toHaveAttribute('inert', '');
       await expect(content).toHaveCSS('border-left-width', '0px');
       await expect(toggle).toHaveCSS('border-left-width', '0px');
 
@@ -75,6 +78,7 @@ test.describe('Table of Contents', () => {
       // Verify expanded state
       await expect(container).toHaveAttribute('data-open', 'true');
       await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(wrapper).not.toHaveAttribute('inert', '');
       await expect(content).toHaveCSS('border-left-width', '1px');
       await expect(content).toHaveCSS('border-left-color', /rgb/);
       await expect(toggle).toHaveCSS('border-left-width', '0px');
@@ -87,6 +91,7 @@ test.describe('Table of Contents', () => {
 
       const container = page.locator('.toc-mobile .toc-toggle-container');
       const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const wrapper = page.locator('.toc-mobile .toc-toggle-wrapper');
 
       // Expand first
       await toggle.click();
@@ -98,6 +103,28 @@ test.describe('Table of Contents', () => {
       // Verify collapsed state
       await expect(container).toHaveAttribute('data-open', 'false');
       await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(wrapper).toHaveAttribute('inert', '');
+    });
+
+    test('GIVEN TOC is collapsed WHEN keyboard user tabs past the toggle THEN hidden links are skipped until expanded', async ({
+      page,
+    }) => {
+      await page.goto(testPostUrl);
+
+      const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const firstLink = page.locator('.toc-mobile .toc-link').first();
+
+      await toggle.focus();
+      await page.keyboard.press('Tab');
+      expect(
+        await page.evaluate(
+          () => document.activeElement?.closest('.toc-mobile .toc-toggle-wrapper') === null
+        )
+      ).toBe(true);
+
+      await toggle.click();
+      await page.keyboard.press('Tab');
+      await expect(firstLink).toBeFocused();
     });
 
     test('GIVEN Astro reinitializes the page WHEN the user toggles TOC once THEN one listener owns the disclosure state', async ({
@@ -178,6 +205,7 @@ test.describe('Table of Contents', () => {
 
       const container = page.locator('.toc-mobile .toc-toggle-container');
       const toggle = page.locator('.toc-mobile .toc-toggle-header');
+      const wrapper = page.locator('.toc-mobile .toc-toggle-wrapper');
 
       // Expand TOC
       await toggle.click();
@@ -192,6 +220,8 @@ test.describe('Table of Contents', () => {
 
       // Wait for collapse (animation is 400ms in component)
       await expect(container).toHaveAttribute('data-open', 'false', { timeout: 5000 });
+      await expect(wrapper).toHaveAttribute('inert', '');
+      await expect(toggle).toBeFocused();
 
       // URL should have hash (use decodeURIComponent for Chinese characters)
       const currentUrl = decodeURIComponent(page.url());
@@ -214,6 +244,8 @@ test.describe('Table of Contents', () => {
       // Check each link has a valid target
       for (let i = 0; i < count; i++) {
         const link = links.nth(i);
+        const box = await link.boundingBox();
+        expect(box?.height).toBeGreaterThanOrEqual(44);
         const targetId = await link.getAttribute('data-heading-id');
         expect(targetId).toBeTruthy();
 

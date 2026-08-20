@@ -135,6 +135,25 @@ function setupScrollHighlight(tocContainer, headings, linksByHeadingId) {
   };
 }
 
+/**
+ * @param {Element} container
+ * @param {boolean} isOpen
+ */
+function setMobileDisclosureState(container, isOpen) {
+  const toggleHeader = container.querySelector('.toc-toggle-header');
+  const wrapper = container.querySelector('.toc-toggle-wrapper');
+
+  if (!toggleHeader || !wrapper) return;
+
+  if (!isOpen && wrapper.contains(document.activeElement) && toggleHeader instanceof HTMLElement) {
+    toggleHeader.focus({ preventScroll: true });
+  }
+
+  container.setAttribute('data-open', isOpen.toString());
+  toggleHeader.setAttribute('aria-expanded', isOpen.toString());
+  wrapper.toggleAttribute('inert', !isOpen);
+}
+
 /** @param {Element} tocContainer */
 function setupSmoothScroll(tocContainer) {
   const SCROLL_OFFSET = 80; // px offset from top to account for reading progress bar etc.
@@ -162,10 +181,7 @@ function setupSmoothScroll(tocContainer) {
           window.innerWidth < 1280 && mobileContainer?.getAttribute('data-open') === 'true';
 
         if (isMobileOpen) {
-          mobileContainer.setAttribute('data-open', 'false');
-          mobileContainer
-            .querySelector('.toc-toggle-header')
-            ?.setAttribute('aria-expanded', 'false');
+          setMobileDisclosureState(mobileContainer, false);
 
           const timeoutId = window.setTimeout(() => {
             pendingScrollTimeouts.delete(timeoutId);
@@ -210,8 +226,7 @@ function setupMobileToggle() {
 
   const handleToggle = () => {
     const isOpen = container.getAttribute('data-open') === 'true';
-    container.setAttribute('data-open', (!isOpen).toString());
-    toggleHeader.setAttribute('aria-expanded', (!isOpen).toString());
+    setMobileDisclosureState(container, !isOpen);
   };
 
   toggleHeader.addEventListener('click', handleToggle);
