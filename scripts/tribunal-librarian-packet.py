@@ -14,6 +14,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 POSTS_DIR = ROOT / "src" / "content" / "posts"
@@ -54,6 +55,7 @@ def split_post(path: Path) -> tuple[dict[str, Any], str, str]:
         "sourceUrl": parse_scalar(fm_text, "sourceUrl"),
         "summary": parse_scalar(fm_text, "summary"),
         "tags": parse_tags(fm_text),
+        "lang": parse_scalar(fm_text, "lang"),
     }
     return fm, fm_text, body
 
@@ -107,10 +109,6 @@ def slug_for(path: Path) -> str:
     return path.stem
 
 
-def existing_post_index() -> dict[str, Path]:
-    return {slug_for(p): p for p in POSTS_DIR.glob("*.mdx")}
-
-
 def main() -> int:
     if len(sys.argv) != 2:
         print("Usage: tribunal-librarian-packet.py <post-filename-or-path>", file=sys.stderr)
@@ -138,22 +136,16 @@ def main() -> int:
             if f"](/glossary#{term.lower().replace(' ', '-')}" not in lower_body and f"/glossary" not in lower_body[max(0, lower_body.find(term.lower())-80):lower_body.find(term.lower())+120]:
                 unlinked_terms.append(term)
 
-    post_index = existing_post_index()
-    links = []
-    broken = []
-    for href in LINK_RE.findall(target_body):
-        if href.startswith("/posts/") or href.startswith("/en/posts/"):
-            slug = href.rstrip("/").split("/")[-1]
-            ok = slug in post_index
-            links.append((href, ok))
-            if not ok:
-                broken.append(href)
-
     candidates = []
+    post_routes = set()
     for path in POSTS_DIR.glob("*.mdx"):
+        fm, _fm_text, body = split_post(path)
+        if fm.get("lang") == "zh-tw":
+            post_routes.add(f"/posts/{slug_for(path)}")
+        elif fm.get("lang") == "en":
+            post_routes.add(f"/en/posts/{slug_for(path)}")
         if path == post_path or path.name.startswith("en-"):
             continue
-        fm, _fm_text, body = split_post(path)
         meta_text = "\n".join([fm.get("title", ""), fm.get("summary", ""), " ".join(fm.get("tags", []))])
         sim = jaccard(target_tokens, tokens(meta_text + "\n" + body[:2500]))
         tag_overlap = len(target_tags & set(fm.get("tags", [])))
@@ -163,6 +155,16 @@ def main() -> int:
             candidates.append((score, sim, tag_overlap, same_source, path, fm))
     candidates.sort(reverse=True, key=lambda x: x[0])
     top = candidates[:18]
+
+    links = []
+    broken = []
+    for href in LINK_RE.findall(target_body):
+        if href.startswith("/posts/") or href.startswith("/en/posts/"):
+            route = urlsplit(href).path.rstrip("/")
+            ok = route in post_routes
+            links.append((href, ok))
+            if not ok:
+                broken.append(href)
 
     headings = [line.strip() for line in target_body.splitlines() if line.startswith("## ")][:12]
     body_word_counts = Counter(WORD_RE.findall(target_body.lower()))
