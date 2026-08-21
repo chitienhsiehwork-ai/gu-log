@@ -1,0 +1,168 @@
+---
+ticketId: "MP-315"
+title: "AI 指南沒有一半都在瞎掰，先翻車的是查核方法"
+originalDate: "2026-02-11"
+translatedDate: "2026-02-13"
+translatedBy:
+  model: "gpt-5.6-sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Writer"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+    - role: "Fact Checker"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+source: "@witcheer on X"
+sourceUrl: "https://x.com/witcheer/status/2021610036980543767"
+lang: "zh-tw"
+summary: "gu-log 先前把一份由 Opus 4.6 整理的 OpenClaw 設定指南判成有近半指令是幻覺；對照指定版本的官方原始碼後，真正翻車的反而是查核方法。這篇更正舊文，留下可用步驟，也抓出真正危險的設定。"
+tags: ["openclaw", "security", "setup-guide", "ai-generated", "fact-checking"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 10
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-21"
+    model: "codex-gpt-5-family-fallback"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+有人把 20 多篇 [OpenClaw](/glossary#openclaw) 文章丟給 Opus 4.6，要求它交叉查證後整理成一份從專用 Mac 開箱、接 Telegram、開 Docker 沙箱，一路到 `Matrix` 遷移與事故應變的設定指南。
+
+gu-log 先前把這份指南的查核發成 GP-53，判定裡面近半指令是幻覺。那次查核錯了；本文取代舊文，也把舊網址導向這份更正。
+
+這種文件最容易得到兩種懶惰的評語：一種是「排版這麼完整，照抄就好」；另一種是「AI 寫 CLI 一定都在幻覺」。兩種反射動作都很省事，也都不叫查核。
+
+真正公平的做法，是拿指南自己指定的 OpenClaw `v2026.2.9`，逐層檢查指令註冊、設定結構與同版本文件。這樣查完，結論比「AI 又亂掰」有趣得多：**指南裡大部分被懷疑的指令真的存在；真正危險的是少數看起來最普通的設定值。**
+
+<MoguNote>
+CLI 查核有一個很蠢、也很常見的陷阱：看到 `openclaw help` 摘錄末尾有 `...`，還是把它當成完整名單。這就像餐廳菜單只拍到第一頁，然後很有自信地宣布店裡沒有甜點。省略號不是證據，是警告燈。 ┐(￣ヘ￣)┌
+</MoguNote>
+
+## 被判成幻覺的指令，其實都在那裡
+
+先把最關鍵的結果攤開。下表直接對照 [`v2026.2.9`](https://github.com/openclaw/openclaw/tree/v2026.2.9) 的官方原始碼與套件資訊：
+
+| 指南中的操作 | 指定版本的結果 | 一級證據 |
+|---|---|---|
+| `openclaw models auth add` | 存在，走互動式認證流程 | [`models-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/models-cli.ts) |
+| `openclaw models fallbacks add ...` | 存在，參數就是模型識別字 | [`models-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/models-cli.ts) |
+| `openclaw config set ...` | 存在，接受點號路徑與 JSON5／字串值 | [`config-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/config-cli.ts) |
+| `openclaw pairing approve telegram <CODE>` | 存在，兩段式通訊管道加配對碼的語法正確 | [`pairing-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/pairing-cli.ts) |
+| `openclaw sandbox recreate --all` | 存在，`--all` 是官方選項 | [`sandbox-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/sandbox-cli.ts) |
+| `openclaw plugins install @openclaw/matrix` | 套件存在，而且 npm spec 就叫這個名字 | [`extensions/matrix/package.json`](https://github.com/openclaw/openclaw/blob/v2026.2.9/extensions/matrix/package.json) |
+| `openclaw update` | 存在，會依安裝方式選更新路徑 | [`update-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/update-cli.ts) |
+| `openclaw status --usage` | 存在，會輸出各模型服務商的用量 | [CLI 文件](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/cli/status.md) |
+
+更尷尬的是，有些被拿來吐槽的指令根本不是來源指南寫的。來源用的是不帶服務商參數的互動式 `models auth add`，Telegram 的設定鍵也正確寫成 `channels.telegram.botToken`；先改寫來源再證明改過的版本不存在，只是打倒了查核者自己立的稻草人。
+
+`openclaw doctor` 顯示哪些外掛已載入，也不能證明 `sandbox` 指令不存在；`channels status` 只列目前啟用的通訊管道，也不能證明 npm 套件庫沒有 `Matrix` 外掛。**要否定一條 CLI，至少要問到那條 CLI 本人。**
+
+## 第一層：指令存在，不代表設定能跑
+
+指南反覆建議：
+
+```bash
+openclaw config set gateway.bind "127.0.0.1"
+```
+
+這個值不符合 `v2026.2.9` 的設定結構。`gateway.bind` 只接受 `auto`、`lan`、`loopback`、`custom` 或 `tailnet`；要只聽 localhost，正確值是：
+
+```bash
+openclaw config set gateway.bind loopback
+```
+
+同一段指南又說，綁在 `127.0.0.1` 後可以直接從手機打開 `http://100.x.x.x:18789/`。這兩句互相打架：`loopback` 不會突然因為安裝 Tailscale 就開始接 `tailnet` IP。官方同版本的[遠端存取文件](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/gateway/remote.md)給了兩條清楚的路：保留 `loopback` 並用 `Tailscale Serve`／SSH 通道，或改成 `tailnet` 綁定並設定 token／密碼。
+
+這份指南真正的錯誤藏在值的型別與背後的網路模型。CLI 名稱查到了，驗證才做一半。
+
+### 模型識別字與密碼設定，要分開判
+
+指南把 Kimi K2.5 寫成 `moonshotai/kimi-k2.5`。官方 `v2026.2.9` 文件與設定範例使用的是 `moonshot/kimi-k2.5`。`models fallbacks add anthropic/claude-sonnet-4-5` 本身有效；別名對照裡的主要模型識別字拼錯後，後面的「切換成功」仍然缺乏驗證。
+
+Gateway 的密碼設定可以成立。指南只設定：
+
+```bash
+openclaw config set gateway.auth.password "YOUR_STRONG_PASSWORD_HERE"
+```
+
+`v2026.2.9` 的 [`resolveGatewayAuth`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/gateway/auth.ts)會在未指定 `mode`、但設定或環境裡有密碼時自動選密碼驗證。明寫 `gateway.auth.mode password` 會更清楚，卻不是必要條件。官方安全文件另外建議用 `OPENCLAW_GATEWAY_PASSWORD`，避免把秘密直接留在設定檔。
+
+這裡真正的錯只有模型識別字。查核設定時不能只讀型別宣告，也要沿著實際解析邏輯看到預設行為；不然只是把「看起來少一欄」誤判成「執行時一定少一欄」。
+
+### 裝好 `Matrix` 之後，E2EE 還沒開
+
+`@openclaw/matrix` 在 `v2026.2.9` 存在，官方套件資訊也直接把它列為預設 npm 安裝項目。問題出在後續設定：
+
+- Telegram 使用 `channels.telegram.dmPolicy`；`Matrix` 的設定結構則是 `channels.matrix.dm.policy`。
+- `Matrix` 的 `encryption` 預設是 `false`。指南說要遷移到 E2EE，卻沒有設定 `channels.matrix.encryption true`。
+- `groupPolicy` 的確存在，但「裝好 `Matrix`」與「已經完成端對端加密、驗證裝置」是兩件事。
+
+少一層路徑或一個布林值，就足以讓預期中的加密防線整堵消失。
+
+## 第二層：`SOUL.md` 是提醒，不是防火牆
+
+指南把 `SOUL.md` 稱為抵抗 [prompt injection](/glossary#prompt) 的「主要防線」。這句牽涉的是整套安全模型，後果比一條指令打錯更大。
+
+OpenClaw 自己的 [`v2026.2.9` 安全文件](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/gateway/security/index.md)寫得很直接：再強的 system prompt 也沒有解決 prompt injection。`SOUL.md` 可以規定角色與偏好，但它仍是給模型讀的軟性提示。真正能硬性縮小影響範圍的，是通訊管道配對／允許清單、工具政策、命令執行核准、沙箱與憑證隔離。
+
+指南其實也安排了這些防線，只是把優先順序講反了。安全設計要假設模型終究可能被操弄，再確保它被操弄時也拿不到危險工具與秘密；不能把「請不要做壞事」當成門鎖。
+
+## 會查出錯，也要會承認原文是對的
+
+指南把兩件事分開寫：建議使用 `2026.2.9` 以上版本，而低於 `2026.1.29` 才會受 `CVE-2026-25253` 影響。這個區分是對的。OpenClaw `2026.1.28` 及以前會信任查詢字串裡的 `gatewayUrl`，自動連線並外送儲存的 gateway token，最後可能演變成管理者權限與遠端執行程式碼。[NVD](https://nvd.nist.gov/vuln/detail/CVE-2026-25253)與[原廠安全公告](https://github.com/openclaw/openclaw/security/advisories/GHSA-g8p2-7wf7-98mq)都能對上漏洞、攻擊路徑與 `2026.1.29` 修補門檻。
+
+事故應變裡這條 `find` 也有運算優先順序錯誤：
+
+```bash
+find ~ -newer ~/.openclaw/openclaw.json -name "*.sh" -o -name "*.py"
+```
+
+`-a` 比 `-o` 綁得緊，所以 `-newer` 只約束 `*.sh`；所有 `*.py` 都可能被列出。若要兩種副檔名都套用時間條件，必須替名稱條件加括號。這不會直接入侵電腦，但會讓事故現場充滿假陽性，剛好在最不該浪費時間的時候浪費時間。
+
+## 這份指南怎麼用？
+
+把它當成檢查清單，每一條操作仍要回到指定版本驗證。
+
+它的威脅模型、磁碟加密、DM 配對、`openclaw security audit`、沙箱、工具拒絕清單、檔案權限、憑證輪替與停機應變，組成了一條合理的防禦路線。多數具體 OpenClaw 指令確實存在；幾個設定路徑、列舉值、驗證狀態、網路假設，以及「system prompt 是主要防線」的排序需要修正。
+
+查這類文件要沿著同一個版本，從指令註冊走到設定結構，再走到實際解析邏輯與安全文件。只看最上層的指令說明，會把真的指令判成假的；只看指令存在，又會漏掉錯誤的值與安全假設。
+
+AI 會很有自信地寫錯。查核者也會。差別只在誰願意把證據鏈補完。 (•̀ᴗ•́)و
+
+## 延伸閱讀
+
+- [GP-36：OpenClaw 安全架設指南（上）](/posts/gp-36-20260206-jordanlyall-openclaw-security-part1-infra/)
+- [GP-37：Jordan Lyall 的 OpenClaw 安全部署（下）](/posts/gp-37-20260206-jordanlyall-openclaw-security-part2-ops/)
+- [GP-18：OpenClaw 安全指南：9 步驟打造不會洩密的 AI 助理](/posts/gp-18-20260202-openclaw-security-first-guide/)

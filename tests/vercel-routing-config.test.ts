@@ -141,11 +141,9 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
-  it('has no duplicate sources, no duplicate destinations, and no self-loops', () => {
+  it('has no duplicate sources or self-loops', () => {
     const sources = config.redirects.map((r) => r.source);
-    const destinations = config.redirects.map((r) => r.destination);
     expect(new Set(sources).size).toBe(sources.length);
-    expect(new Set(destinations).size).toBe(destinations.length);
     for (const redirect of config.redirects) {
       expect(redirect.source).not.toBe(redirect.destination);
     }
@@ -282,17 +280,22 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect source/);
   });
 
-  it('rejects a duplicate redirect destination across entries', () => {
-    const bad = cloneManifest();
-    bad.entries[1] = {
-      ...bad.entries[1],
-      lang: bad.entries[0].lang,
-      oldSlug: `${bad.entries[1].oldSlug}-x`,
-      oldFilename: `${bad.entries[1].oldSlug}-x.mdx`,
-      newSlug: bad.entries[0].newSlug,
-      newFilename: `${bad.entries[0].newSlug}.mdx`,
+  it('allows multiple historical aliases to share one canonical destination', () => {
+    const aliases = cloneManifest();
+    aliases.entries[1] = {
+      ...aliases.entries[1],
+      lang: aliases.entries[0].lang,
+      oldSlug: `${aliases.entries[1].oldSlug}-x`,
+      oldFilename: `${aliases.entries[1].oldSlug}-x.mdx`,
+      newSlug: aliases.entries[0].newSlug,
+      newFilename: `${aliases.entries[0].newSlug}.mdx`,
     };
-    expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect destination/);
+
+    const result = buildRedirectConfig(aliases);
+    const sharedDestination = articlePath(aliases.entries[0].lang, aliases.entries[0].newSlug);
+    expect(
+      result.redirects.filter((route) => route.destination === sharedDestination)
+    ).toHaveLength(2);
   });
 
   it('fails closed when the route count is at/over the documented budget', () => {

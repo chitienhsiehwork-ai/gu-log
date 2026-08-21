@@ -1,0 +1,168 @@
+---
+ticketId: "MP-315"
+title: "The AI Guide Did Not Hallucinate Half Its Commands. The Fact-Check Failed First."
+originalDate: "2026-02-11"
+translatedDate: "2026-02-13"
+translatedBy:
+  model: "gpt-5.6-sol"
+  harness: "Codex CLI"
+  pipeline:
+    - role: "Writer"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+    - role: "Fact Checker"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+source: "@witcheer on X"
+sourceUrl: "https://x.com/witcheer/status/2021610036980543767"
+lang: "en"
+summary: "gu-log previously accused an OpenClaw setup guide assembled by Opus 4.6 of hallucinating nearly half its commands. The exact-version source code tells a different story: our fact-check failed. This correction preserves the useful steps and identifies the guide's real defects."
+tags: ["openclaw", "security", "setup-guide", "ai-generated", "fact-checking"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  librarian:
+    glossary: 10
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-08-21"
+    model: "gpt-5.5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-21"
+    model: "codex-gpt-5-family-fallback"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Someone fed more than 20 [OpenClaw](/en/glossary#openclaw) articles to Opus 4.6 and asked it to cross-check them into one setup guide: Mac Mini setup, Telegram, Docker sandboxing, Matrix migration, incident response, and everything in between.
+
+gu-log previously published its fact-check of this guide as GP-53 and concluded that nearly half its commands were hallucinated. That fact-check was wrong. This article replaces the old post, and its former URLs now redirect here.
+
+Documents like this invite two lazy reactions. One is, "The formatting is thorough, so I can paste every command." The other is, "AI wrote a CLI guide, so the commands must be hallucinated." Both reactions are convenient. Neither is verification.
+
+The fair test is to use the version the guide itself specifies, OpenClaw `v2026.2.9`, and inspect command registration, config schemas, and the documentation from that exact tag. That produces a much more interesting result: **most of the supposedly suspicious commands are real; the dangerous errors hide in a few ordinary-looking configuration values.**
+
+<MoguNote>
+CLI fact-checking has a wonderfully silly trap: finding a top-level `openclaw help` excerpt that ends in `...`, then treating it as the complete command list. That is like photographing page one of a restaurant menu and confidently announcing that the restaurant serves no dessert. An ellipsis is not evidence. It is a warning light. ┐(￣ヘ￣)┌
+</MoguNote>
+
+## The "hallucinated" commands are all there
+
+Here are the important results, checked against the official source and package metadata at [`v2026.2.9`](https://github.com/openclaw/openclaw/tree/v2026.2.9):
+
+| Operation in the guide | Exact-version result | Primary evidence |
+|---|---|---|
+| `openclaw models auth add` | Exists; starts an interactive authentication flow | [`models-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/models-cli.ts) |
+| `openclaw models fallbacks add ...` | Exists; takes a model ref | [`models-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/models-cli.ts) |
+| `openclaw config set ...` | Exists; accepts a dot path and a JSON5 or string value | [`config-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/config-cli.ts) |
+| `openclaw pairing approve telegram <CODE>` | Exists; the channel-plus-code form is valid | [`pairing-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/pairing-cli.ts) |
+| `openclaw sandbox recreate --all` | Exists; `--all` is an official option | [`sandbox-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/sandbox-cli.ts) |
+| `openclaw plugins install @openclaw/matrix` | The package exists under that exact npm spec | [`extensions/matrix/package.json`](https://github.com/openclaw/openclaw/blob/v2026.2.9/extensions/matrix/package.json) |
+| `openclaw update` | Exists; selects an update path based on installation type | [`update-cli.ts`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/cli/update-cli.ts) |
+| `openclaw status --usage` | Exists; prints provider usage | [CLI documentation](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/cli/status.md) |
+
+Worse, some commands criticized as source hallucinations were not in the source guide. The guide used the interactive `models auth add` form without a provider argument, and it correctly used `channels.telegram.botToken`. Rewriting the source and then disproving the rewrite merely knocks down the fact-checker's own straw man.
+
+An `openclaw doctor` report about loaded plugins cannot prove that a `sandbox` command is absent. A `channels status` report listing enabled channels cannot prove that the npm registry lacks a Matrix plugin. **Before sentencing a CLI command to death, the minimum courtesy is to ask that command directly.**
+
+## Layer one: a real command can still carry a broken configuration
+
+The guide repeatedly recommends:
+
+```bash
+openclaw config set gateway.bind "127.0.0.1"
+```
+
+The value violates the `v2026.2.9` schema. `gateway.bind` accepts only `auto`, `lan`, `loopback`, `custom`, or `tailnet`. To listen on localhost, the correct value is:
+
+```bash
+openclaw config set gateway.bind loopback
+```
+
+The same section says an iPhone can then open `http://100.x.x.x:18789/` directly. Those statements contradict each other: a loopback listener does not start accepting tailnet traffic merely because Tailscale is installed. The exact-version [remote-access documentation](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/gateway/remote.md) gives two coherent paths: keep `loopback` and use Tailscale Serve or an SSH tunnel, or bind to `tailnet` and configure token or password authentication.
+
+The guide's real failures hide in value types and the network model behind them. Finding a CLI name completes only half the verification.
+
+### Model references and password setup need separate verdicts
+
+The guide calls Kimi K2.5 `moonshotai/kimi-k2.5`. Official `v2026.2.9` documentation and examples use `moonshot/kimi-k2.5`. The command `models fallbacks add anthropic/claude-sonnet-4-5` is valid. Once the alias map uses the wrong primary model ref, however, the later claim of a successful switch remains unverified.
+
+Gateway password configuration can work as written. The guide sets only:
+
+```bash
+openclaw config set gateway.auth.password "YOUR_STRONG_PASSWORD_HERE"
+```
+
+At `v2026.2.9`, [`resolveGatewayAuth`](https://github.com/openclaw/openclaw/blob/v2026.2.9/src/gateway/auth.ts) automatically selects password authentication when no `mode` is specified but a password exists in config or the environment. Explicitly setting `gateway.auth.mode password` may be clearer, but it is not required. The security guide separately recommends `OPENCLAW_GATEWAY_PASSWORD` so the secret does not have to live directly in config.
+
+The actual defect in this section is the model ref. Verifying configuration means following runtime resolution as well as reading type declarations; otherwise, "this field looks absent" can become another unsupported verdict.
+
+### Installing Matrix still leaves E2EE disabled
+
+At `v2026.2.9`, `@openclaw/matrix` exists and its package metadata identifies it as the default npm install for the Matrix channel. The errors appear later:
+
+- Telegram uses `channels.telegram.dmPolicy`; Matrix uses `channels.matrix.dm.policy`.
+- Matrix `encryption` defaults to `false`. The guide promises an E2EE migration without setting `channels.matrix.encryption true`.
+- `groupPolicy` exists, but installing Matrix and completing encrypted, device-verified setup are different milestones.
+
+One missing path segment and one boolean are enough to erase the expected encryption boundary.
+
+## Layer two: SOUL.md is a reminder, not a firewall
+
+The guide calls SOUL.md the "primary defense" against [prompt injection](/en/glossary#prompt). That claim shapes the entire security model, making it more consequential than a mistyped command.
+
+OpenClaw's own [`v2026.2.9` security documentation](https://github.com/openclaw/openclaw/blob/v2026.2.9/docs/gateway/security/index.md) is explicit: strong system prompts do not solve prompt injection. SOUL.md can define identity and preferences, but it remains soft guidance presented to a model. Hard limits come from channel pairing and allowlists, tool policy, exec approvals, sandboxing, and credential isolation.
+
+The guide includes many of those defenses. It simply ranks them backward. A safe design assumes that the model may eventually be manipulated, then makes sure a manipulated model cannot reach dangerous tools or secrets. "Please do not do bad things" is not a lock.
+
+## Finding errors also means admitting what the source got right
+
+The guide keeps two statements separate: it recommends `2026.2.9` or later, while identifying versions below `2026.1.29` as vulnerable to `CVE-2026-25253`. That distinction is correct. OpenClaw `2026.1.28` and earlier trusted a query-string `gatewayUrl`, connected automatically, and sent the stored gateway token, enabling operator access and potentially remote code execution. The [NVD record](https://nvd.nist.gov/vuln/detail/CVE-2026-25253) and [vendor advisory](https://github.com/openclaw/openclaw/security/advisories/GHSA-g8p2-7wf7-98mq) agree on the mechanism, attack path, and `2026.1.29` patch boundary.
+
+The incident-response section also contains this `find` command:
+
+```bash
+find ~ -newer ~/.openclaw/openclaw.json -name "*.sh" -o -name "*.py"
+```
+
+Because `-a` binds more tightly than `-o`, `-newer` constrains only the `*.sh` branch. Every `*.py` file may be listed regardless of age. Both name tests need parentheses if both should share the time condition. This does not compromise the machine, but it floods an incident investigation with false positives precisely when time matters most.
+
+## How should you use the guide?
+
+Treat it as a checklist, and verify each operation against the version it names.
+
+Its threat model, FileVault advice, DM pairing, security audit, sandbox, tool deny list, file permissions, credential rotation, and shutdown procedure form a reasonable defensive path. Most of its concrete OpenClaw commands are real. A handful of config paths, enum values, auth states, network assumptions, and the ranking of system prompts as the primary defense require correction.
+
+Auditing this kind of document means staying on one exact version and following the chain from command registration to config schema, runtime resolution, and security documentation. Stop at top-level help and real commands look fake. Stop after proving a command exists and bad values or security assumptions slip through.
+
+AI can be confidently wrong. So can a fact-checker. The difference is who finishes the evidence chain. (•̀ᴗ•́)و
+
+## Related reading
+
+- [GP-36: OpenClaw Security Setup Guide, Part 1](/en/posts/en-gp-36-20260206-jordanlyall-openclaw-security-part1-infra/)
+- [GP-37: Jordan Lyall's Secure OpenClaw Setup, Part 2](/en/posts/en-gp-37-20260206-jordanlyall-openclaw-security-part2-ops/)
+- [GP-18: A Security-First Guide to Running OpenClaw in 9 Steps](/en/posts/en-gp-18-20260202-openclaw-security-first-guide/)

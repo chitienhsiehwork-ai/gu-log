@@ -102,10 +102,13 @@ function articlePath(lang, slug) {
   return lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`;
 }
 
-/** Accumulates redirects while failing closed on self-loops and collisions. */
+/**
+ * Accumulates redirects while failing closed on self-loops and source
+ * collisions. Multiple historical aliases may intentionally converge on the
+ * same canonical article.
+ */
 function createRedirectRegistry() {
   const seenSources = new Set();
-  const seenDestinations = new Set();
   const redirects = [];
   return {
     add(source, destination) {
@@ -115,11 +118,7 @@ function createRedirectRegistry() {
       if (seenSources.has(source)) {
         throw new RedirectConfigError(`duplicate redirect source: ${source}`);
       }
-      if (seenDestinations.has(destination)) {
-        throw new RedirectConfigError(`duplicate redirect destination: ${destination}`);
-      }
       seenSources.add(source);
-      seenDestinations.add(destination);
       redirects.push({ source, destination, permanent: true });
     },
     redirects,
