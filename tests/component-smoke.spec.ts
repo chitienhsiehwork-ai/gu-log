@@ -270,6 +270,44 @@ test.describe('Component smoke — storage fallbacks', () => {
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
+  test('reading tracker redirects home when auth storage is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/reading-tracker');
+
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    await expect(page.locator('#tracker-wrap')).toHaveCount(0);
+  });
+
+  test('post read controls stay hidden without crashing when auth storage is unavailable', async ({
+    page,
+  }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader auth storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    await expect(page.locator('article').first()).toBeVisible();
+    await expect(page.locator('[data-read-button]')).toHaveCSS('display', 'none');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
   test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
     page,
   }) => {

@@ -136,7 +136,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 
   function initReadButtons() {
     // Only show when logged in
-    const jwt = localStorage.getItem('gu-log-jwt');
+    const jwt = getGuLogSessionToken();
     if (!jwt) return;
 
     document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((el) => {
@@ -196,7 +196,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 
   // Auto-mark as read when scrolled to near bottom
   function initScrollRead() {
-    const jwt = localStorage.getItem('gu-log-jwt');
+    const jwt = getGuLogSessionToken();
     if (!jwt) return;
 
     const el = document.querySelector<HTMLElement>('[data-read-button]');

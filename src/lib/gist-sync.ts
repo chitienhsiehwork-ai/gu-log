@@ -77,7 +77,11 @@ async function withReaderSyncDeadline<T>(
 }
 
 export function getGuLogSessionToken(): string | null {
-  return localStorage.getItem('gu-log-jwt');
+  try {
+    return localStorage.getItem('gu-log-jwt');
+  } catch {
+    return null;
+  }
 }
 
 async function apiFetch(

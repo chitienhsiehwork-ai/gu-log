@@ -44,7 +44,12 @@ const totalArticles = allPosts.length;
   <!-- Immediate auth check — redirect if not logged in -->
   <script is:inline>
     (function () {
-      const jwt = localStorage.getItem('gu-log-jwt');
+      let jwt = null;
+      try {
+        jwt = localStorage.getItem('gu-log-jwt');
+      } catch {
+        // Inaccessible auth storage is unauthenticated; fail closed instead of leaving a blank page.
+      }
       if (!jwt) {
         window.location.replace('/');
       } else {
