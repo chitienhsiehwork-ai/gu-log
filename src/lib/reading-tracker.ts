@@ -31,6 +31,11 @@ export interface ReadStoreV2 {
 
 type ReadStore = ReadStoreV2;
 
+interface StoreLoadResult {
+  store: ReadStore;
+  storageReadable: boolean;
+}
+
 function nowIso(): string {
   return new Date().toISOString();
 }
@@ -201,24 +206,36 @@ function emptyStore(): ReadStoreV2 {
   return { version: 2, slugs: [], records: [], lastUpdated: nowIso() };
 }
 
-function getStore(): ReadStore {
+function loadStore(): StoreLoadResult {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = parseReadStore(JSON.parse(raw));
-      if (parsed?.version === 2) {
-        return parsed;
-      }
-      if (parsed?.version === 1) {
-        const migrated = migrateV1(parsed);
-        if (saveStore(migrated)) recordV1Migration(migrated);
-        return migrated;
-      }
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return { store: emptyStore(), storageReadable: false };
+  }
+
+  if (!raw) {
+    return { store: emptyStore(), storageReadable: true };
+  }
+
+  try {
+    const parsed = parseReadStore(JSON.parse(raw));
+    if (parsed?.version === 2) {
+      return { store: parsed, storageReadable: true };
+    }
+    if (parsed?.version === 1) {
+      const migrated = migrateV1(parsed);
+      if (saveStore(migrated)) recordV1Migration(migrated);
+      return { store: migrated, storageReadable: true };
     }
   } catch {
-    // ignore
+    // Corrupt data is still writable storage; mutations may replace it.
   }
-  return emptyStore();
+  return { store: emptyStore(), storageReadable: true };
+}
+
+function getStore(): ReadStore {
+  return loadStore().store;
 }
 
 function saveStore(store: ReadStore): boolean {
@@ -226,7 +243,7 @@ function saveStore(store: ReadStore): boolean {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     return true;
   } catch {
-    // ignore storage errors (private mode / quota)
+    // Surface private-mode, permission, and quota failures to mutation callers.
     return false;
   }
 }
@@ -260,26 +277,62 @@ function upsertReadRecord(
   }
 }
 
-export function markAsRead(
+function markStoreAsRead(
+  store: ReadStore,
   slug: string,
-  method: ReadMethod = 'manual_mark_read',
+  method: ReadMethod,
   currentRevision?: string | null
 ): void {
-  const store = getStore();
   if (store.slugs.indexOf(slug) === -1) {
     store.slugs.push(slug);
   }
   upsertReadRecord(store, slug, method, currentRevision);
   store.lastUpdated = nowIso();
-  saveStore(store);
 }
 
-export function markAsUnread(slug: string): void {
-  const store = getStore();
+function markStoreAsUnread(store: ReadStore, slug: string): void {
   store.slugs = store.slugs.filter((s) => s !== slug);
   store.records = store.records.filter((record) => record.slug !== slug);
   store.lastUpdated = nowIso();
-  saveStore(store);
+}
+
+export function markAsRead(
+  slug: string,
+  method: ReadMethod = 'manual_mark_read',
+  currentRevision?: string | null
+): boolean {
+  const { store, storageReadable } = loadStore();
+  if (!storageReadable) return false;
+  markStoreAsRead(store, slug, method, currentRevision);
+  return saveStore(store);
+}
+
+export function markAsUnread(slug: string): boolean {
+  const { store, storageReadable } = loadStore();
+  if (!storageReadable) return false;
+  markStoreAsUnread(store, slug);
+  return saveStore(store);
+}
+
+export function setReadStates(
+  updates: readonly {
+    slug: string;
+    read: boolean;
+    currentRevision?: string | null;
+  }[]
+): boolean {
+  if (updates.length === 0) return true;
+
+  const { store, storageReadable } = loadStore();
+  if (!storageReadable) return false;
+  for (const update of updates) {
+    if (update.read) {
+      markStoreAsRead(store, update.slug, 'manual_mark_read', update.currentRevision);
+    } else {
+      markStoreAsUnread(store, update.slug);
+    }
+  }
+  return saveStore(store);
 }
 
 export function isRead(slug: string): boolean {
@@ -318,14 +371,17 @@ export function getReadState(
   return record.revisionState;
 }
 
-export function toggleRead(slug: string, currentRevision?: string | null): boolean {
-  if (isRead(slug)) {
-    markAsUnread(slug);
-    return false;
+export function toggleRead(slug: string, currentRevision?: string | null): boolean | null {
+  const { store, storageReadable } = loadStore();
+  if (!storageReadable) return null;
+
+  const nowRead = store.slugs.indexOf(slug) === -1;
+  if (nowRead) {
+    markStoreAsRead(store, slug, 'manual_mark_read', currentRevision);
   } else {
-    markAsRead(slug, 'manual_mark_read', currentRevision);
-    return true;
+    markStoreAsUnread(store, slug);
   }
+  return saveStore(store) ? nowRead : null;
 }
 
 export function getStats(currentRevisions?: Record<string, string | null>) {

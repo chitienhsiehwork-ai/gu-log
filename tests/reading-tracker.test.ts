@@ -88,6 +88,131 @@ describe('reading-tracker', () => {
     expect(m.toggleRead('gp-1')).toBe(false);
   });
 
+  it('fails closed when marking an article read cannot be persisted', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.markAsRead('gp-denied')).toBe(false);
+      expect(m.isRead('gp-denied')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('fails closed when marking an article unread cannot be persisted', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.markAsUnread('gp-existing')).toBe(false);
+      expect(m.isRead('gp-existing')).toBe(true);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('returns no toggled state when either storage write is rejected', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.toggleRead('gp-unread')).toBeNull();
+      expect(m.isRead('gp-unread')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.markAsRead('gp-read')).toBe(true);
+    const secondSetItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.toggleRead('gp-read')).toBeNull();
+      expect(m.isRead('gp-read')).toBe(true);
+    } finally {
+      secondSetItem.mockRestore();
+    }
+  });
+
+  it('does not attempt a mutation when storage cannot be read', async () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('storage denied', 'SecurityError');
+    });
+    const setItem = vi.spyOn(localStorage, 'setItem');
+    const m = await import('../src/lib/reading-tracker');
+
+    try {
+      expect(m.markAsRead('gp-read-denied')).toBe(false);
+      expect(m.toggleRead('gp-toggle-denied')).toBeNull();
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+
+  it('replaces corrupt JSON when storage remains readable and writable', async () => {
+    localStorage.setItem('gu-log-read-articles', '{not valid}');
+    const m = await import('../src/lib/reading-tracker');
+
+    expect(m.markAsRead('gp-recovered')).toBe(true);
+    expect(m.isRead('gp-recovered')).toBe(true);
+  });
+
+  it('persists a bulk read-state update with one storage write', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+    const setItem = vi.spyOn(localStorage, 'setItem');
+
+    try {
+      expect(
+        m.setReadStates([
+          { slug: 'gp-existing', read: false },
+          { slug: 'gp-a', read: true, currentRevision: 'rev-a' },
+          { slug: 'gp-b', read: true, currentRevision: 'rev-b' },
+        ])
+      ).toBe(true);
+      expect(setItem).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.getReadSlugs().sort()).toEqual(['gp-a', 'gp-b']);
+    expect(m.getReadState('gp-a', 'rev-a')).toBe('current');
+  });
+
+  it('keeps the whole prior store when a bulk write is rejected', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing', 'manual_mark_read', 'rev-existing')).toBe(true);
+    const before = m.exportJson();
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage quota exceeded');
+    });
+
+    try {
+      expect(
+        m.setReadStates([
+          { slug: 'gp-existing', read: false },
+          { slug: 'gp-a', read: true, currentRevision: 'rev-a' },
+          { slug: 'gp-b', read: true, currentRevision: 'rev-b' },
+        ])
+      ).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.exportJson()).toBe(before);
+  });
+
   it('getStats reports total + slugs + lastUpdated', async () => {
     const m = await import('../src/lib/reading-tracker');
     m.markAsRead('a');

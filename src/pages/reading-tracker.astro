@@ -219,9 +219,8 @@ const totalArticles = allPosts.length;
 
 <script>
   import {
-    isRead,
-    markAsRead,
-    markAsUnread,
+    toggleRead,
+    setReadStates,
     getReadRecordMap,
     exportJson,
     importJson,
@@ -360,11 +359,8 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const row = btn.closest<HTMLElement>('.article-row')!;
       const slug = row.dataset.slug!;
-      if (isRead(slug)) {
-        markAsUnread(slug);
-      } else {
-        markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-      }
+      const nowRead = toggleRead(slug, row.dataset.currentRevision || null);
+      if (nowRead === null) return;
       updateAllRows();
     });
   });
@@ -387,16 +383,15 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const action = btn.dataset.bulkAction as 'read' | 'unread';
       const group = btn.dataset.group!;
-      document
-        .querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`)
-        .forEach((row) => {
-          const slug = row.dataset.slug!;
-          if (action === 'read') {
-            markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-          } else {
-            markAsUnread(slug);
-          }
-        });
+      const updates = Array.from(
+        document.querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`),
+        (row) => ({
+          slug: row.dataset.slug!,
+          read: action === 'read',
+          currentRevision: row.dataset.currentRevision || null,
+        })
+      );
+      if (!setReadStates(updates)) return;
       updateAllRows();
     });
   });
