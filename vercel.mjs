@@ -110,6 +110,19 @@ function articlePath(lang, slug) {
 }
 
 /**
+ * One exact Vercel path pattern covers the two pathname forms Vercel serves
+ * for an existing article when trailingSlash is unset. Slugs are validated
+ * before interpolation so pattern metacharacters cannot enter the source.
+ */
+export function articleRedirectSource(lang, slug) {
+  if (!SUPPORTED_LANGS.has(lang)) {
+    throw new RedirectConfigError(`unsupported article redirect language: ${JSON.stringify(lang)}`);
+  }
+  assertSafeSlug('article redirect slug', slug);
+  return `${articlePath(lang, slug)}{/}?`;
+}
+
+/**
  * Accumulates redirects while failing closed on self-loops and source
  * collisions. Multiple historical aliases may intentionally converge on the
  * same canonical article.
@@ -313,7 +326,12 @@ export function buildRedirectConfig(manifest) {
       entry.lang,
       CANONICAL_TICKET_SERIES
     );
-    registry.add(articlePath(entry.lang, entry.oldSlug), articlePath(entry.lang, entry.newSlug));
+    const oldPath = articlePath(entry.lang, entry.oldSlug);
+    const newPath = articlePath(entry.lang, entry.newSlug);
+    if (oldPath === newPath) {
+      throw new RedirectConfigError(`redirect self-loop: ${oldPath}`);
+    }
+    registry.add(articleRedirectSource(entry.lang, entry.oldSlug), newPath);
   });
 
   assertManifestCounts(manifest.counts, deriveManifestCounts(entries));
