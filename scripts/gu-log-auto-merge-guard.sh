@@ -107,6 +107,7 @@ state="$(jq -r '.state // ""' <<<"$PR_JSON")"
 is_draft="$(jq -r '.isDraft // false' <<<"$PR_JSON")"
 mergeable="$(jq -r '.mergeable // ""' <<<"$PR_JSON")"
 base_ref="$(jq -r '.baseRefName // ""' <<<"$PR_JSON")"
+head_ref="$(jq -r '.headRefName // ""' <<<"$PR_JSON")"
 
 if [ "$state" != "OPEN" ]; then
   deny_reason="pr-state-not-open:$state"
@@ -146,11 +147,27 @@ is_denied_path() {
   return 1
 }
 
+publisher_manifest_allowed() {
+  [[ "$head_ref" == publisher/* ]] || return 1
+  grep -Eq '^src/content/posts/[^/]+\.mdx$' <<<"$CHANGED_FILES" || return 1
+  jq -e '
+    any(
+      .[];
+      (.name // "") == "ci-passed"
+      and (((.state // .conclusion // "") | ascii_downcase) as $s | ($s == "pass" or $s == "success"))
+    )
+  ' <<<"$CHECKS_JSON" >/dev/null
+}
+
 is_allowed_path() {
   local path="$1"
   case "$path" in
     src/content/posts/*.mdx|src/data/glossary.json|src/config/glossary.ts)
       return 0
+      ;;
+    src/data/post-versions.json)
+      publisher_manifest_allowed
+      return
       ;;
     src/pages/glossary.astro|src/styles/global.css)
       return 0
