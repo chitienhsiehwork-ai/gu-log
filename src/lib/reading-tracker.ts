@@ -30,6 +30,12 @@ export interface ReadStoreV2 {
 }
 
 type ReadStore = ReadStoreV2;
+type ReadStateUpdate = readonly [
+  slug: string,
+  read?: boolean,
+  currentRevision?: string | null,
+  method?: ReadMethod,
+];
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -201,24 +207,36 @@ function emptyStore(): ReadStoreV2 {
   return { version: 2, slugs: [], records: [], lastUpdated: nowIso() };
 }
 
-function getStore(): ReadStore {
+function loadStore(): ReadStore | null {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = parseReadStore(JSON.parse(raw));
-      if (parsed?.version === 2) {
-        return parsed;
-      }
-      if (parsed?.version === 1) {
-        const migrated = migrateV1(parsed);
-        if (saveStore(migrated)) recordV1Migration(migrated);
-        return migrated;
-      }
+    raw = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+
+  if (!raw) {
+    return emptyStore();
+  }
+
+  try {
+    const parsed = parseReadStore(JSON.parse(raw));
+    if (parsed?.version === 2) {
+      return parsed;
+    }
+    if (parsed?.version === 1) {
+      const migrated = migrateV1(parsed);
+      if (saveStore(migrated)) recordV1Migration(migrated);
+      return migrated;
     }
   } catch {
-    // ignore
+    // Corrupt data is still writable storage; mutations may replace it.
   }
   return emptyStore();
+}
+
+function getStore(): ReadStore {
+  return loadStore() ?? emptyStore();
 }
 
 function saveStore(store: ReadStore): boolean {
@@ -226,7 +244,7 @@ function saveStore(store: ReadStore): boolean {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
     return true;
   } catch {
-    // ignore storage errors (private mode / quota)
+    // Surface private-mode, permission, and quota failures to mutation callers.
     return false;
   }
 }
@@ -260,26 +278,50 @@ function upsertReadRecord(
   }
 }
 
-export function markAsRead(
+function markStoreAsRead(
+  store: ReadStore,
   slug: string,
-  method: ReadMethod = 'manual_mark_read',
+  method: ReadMethod,
   currentRevision?: string | null
 ): void {
-  const store = getStore();
   if (store.slugs.indexOf(slug) === -1) {
     store.slugs.push(slug);
   }
   upsertReadRecord(store, slug, method, currentRevision);
   store.lastUpdated = nowIso();
-  saveStore(store);
 }
 
-export function markAsUnread(slug: string): void {
-  const store = getStore();
+function markStoreAsUnread(store: ReadStore, slug: string): void {
   store.slugs = store.slugs.filter((s) => s !== slug);
   store.records = store.records.filter((record) => record.slug !== slug);
   store.lastUpdated = nowIso();
-  saveStore(store);
+}
+
+export function markAsRead(
+  slug: string,
+  method: ReadMethod = 'manual_mark_read',
+  currentRevision?: string | null
+): boolean {
+  return setReadStates([[slug, true, currentRevision, method]]) !== null;
+}
+
+export function markAsUnread(slug: string): boolean {
+  return setReadStates([[slug, false]]) !== null;
+}
+
+export function setReadStates(updates: readonly ReadStateUpdate[]): boolean | null {
+  const store = loadStore();
+  if (!store) return null;
+  let read = true;
+  for (const [slug, requestedRead, currentRevision, method = 'manual_mark_read'] of updates) {
+    read = requestedRead ?? !store.slugs.includes(slug);
+    if (read) {
+      markStoreAsRead(store, slug, method, currentRevision);
+    } else {
+      markStoreAsUnread(store, slug);
+    }
+  }
+  return saveStore(store) ? read : null;
 }
 
 export function isRead(slug: string): boolean {
@@ -318,14 +360,8 @@ export function getReadState(
   return record.revisionState;
 }
 
-export function toggleRead(slug: string, currentRevision?: string | null): boolean {
-  if (isRead(slug)) {
-    markAsUnread(slug);
-    return false;
-  } else {
-    markAsRead(slug, 'manual_mark_read', currentRevision);
-    return true;
-  }
+export function toggleRead(slug: string, currentRevision?: string | null): boolean | null {
+  return setReadStates([[slug, undefined, currentRevision]]);
 }
 
 export function getStats(currentRevisions?: Record<string, string | null>) {

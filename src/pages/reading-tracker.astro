@@ -218,14 +218,7 @@ const totalArticles = allPosts.length;
 </BaseLayout>
 
 <script>
-  import {
-    isRead,
-    markAsRead,
-    markAsUnread,
-    getReadRecordMap,
-    exportJson,
-    importJson,
-  } from '../lib/reading-tracker';
+  import { setReadStates, getReadRecordMap, exportJson, importJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -360,11 +353,8 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const row = btn.closest<HTMLElement>('.article-row')!;
       const slug = row.dataset.slug!;
-      if (isRead(slug)) {
-        markAsUnread(slug);
-      } else {
-        markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-      }
+      const nowRead = setReadStates([[slug, undefined, row.dataset.currentRevision]]);
+      if (nowRead === null) return;
       updateAllRows();
     });
   });
@@ -387,16 +377,11 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const action = btn.dataset.bulkAction as 'read' | 'unread';
       const group = btn.dataset.group!;
-      document
-        .querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`)
-        .forEach((row) => {
-          const slug = row.dataset.slug!;
-          if (action === 'read') {
-            markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-          } else {
-            markAsUnread(slug);
-          }
-        });
+      const updates = Array.from(
+        document.querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`),
+        (row) => [row.dataset.slug!, action === 'read', row.dataset.currentRevision] as const
+      );
+      if (setReadStates(updates) === null) return;
       updateAllRows();
     });
   });

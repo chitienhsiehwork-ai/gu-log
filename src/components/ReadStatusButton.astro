@@ -74,7 +74,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 </div>
 
 <script>
-  import { isRead, toggleRead, markAsRead, exportJson } from '../lib/reading-tracker';
+  import { isRead, setReadStates, exportJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -144,7 +144,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 
       const slug = el.dataset.slug || '';
       const btn = el.querySelector<HTMLButtonElement>('.read-status-btn');
-      const readerRevision = el.dataset.readerRevision || null;
+      const readerRevision = el.dataset.readerRevision;
       if (!btn) return;
 
       function updateUI(read: boolean) {
@@ -175,7 +175,8 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
       updateUI(isRead(slug));
 
       btn.addEventListener('click', () => {
-        const nowRead = toggleRead(slug, readerRevision);
+        const nowRead = setReadStates([[slug, undefined, readerRevision]]);
+        if (nowRead === null) return;
         if (nowRead) {
           recordManualMarkRead(getSnapshot(el));
         }
@@ -201,7 +202,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
     const el = document.querySelector<HTMLElement>('[data-read-button]');
     if (!el) return;
     const slug = el.dataset.slug || '';
-    const readerRevision = el.dataset.readerRevision || null;
+    const readerRevision = el.dataset.readerRevision;
     if (!slug || isRead(slug)) return;
 
     const postContent = document.querySelector('.post-content');
@@ -290,24 +291,27 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
         if (entries[0].isIntersecting) {
           // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
           finished = true;
-          markAsRead(slug, 'active_scroll_end', readerRevision);
+          const readPersisted =
+            setReadStates([[slug, true, readerRevision, 'active_scroll_end']]) !== null;
           recordReadFinish(getSnapshot(el!), {
             method: 'active_scroll_end',
             activeReadMs: checkpointActiveRead(),
             maxScrollPercent: Math.max(maxScrollPercent, 100),
           });
-          markDirtyForSync();
-          scheduleDebouncedSync();
-          // Update button UI
-          document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
-            if (btn.dataset.slug === slug) {
-              btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
-              btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
-              btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
-            }
-          });
+          if (readPersisted) {
+            markDirtyForSync();
+            scheduleDebouncedSync();
+            // Update button UI
+            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+              if (btn.dataset.slug === slug) {
+                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+              }
+            });
+          }
           cleanupTracking();
         }
       },
