@@ -8,6 +8,7 @@ import {
   buildRedirectConfig,
   countPlatformRoutes,
   config,
+  deriveManifestCounts,
   LISTING_REDIRECT_COUNT,
   ROUTE_BUDGET,
   RedirectConfigError,
@@ -27,6 +28,11 @@ function articlePath(lang: string, slug: string): string {
 
 function cloneManifest() {
   return JSON.parse(JSON.stringify(manifest));
+}
+
+function refreshManifestCounts(value: typeof manifest) {
+  value.counts = deriveManifestCounts(value.entries);
+  return value;
 }
 
 const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
@@ -75,6 +81,16 @@ describe('vercel.mjs Git deployment policy', () => {
 });
 
 describe('vercel.mjs redirect config — full manifest coverage', () => {
+  it('declares the exact summary derived from oldTicketId language groups', () => {
+    expect(manifest.counts).toEqual({
+      files: 1071,
+      tickets: 559,
+      complete: 512,
+      incomplete: 47,
+    });
+    expect(deriveManifestCounts(manifest.entries)).toEqual(manifest.counts);
+  });
+
   it('produces exactly one redirect per manifest entry plus the 8 listing rules', () => {
     expect(manifest.entries.length).toBe(manifest.counts.files);
     expect(config.redirects.length).toBe(manifest.entries.length + LISTING_REDIRECT_COUNT);
@@ -276,11 +292,14 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(bad)).toThrow(/entries/);
   });
 
-  it('rejects counts inconsistent with the manifest', () => {
-    const bad = cloneManifest();
-    bad.counts = { ...bad.counts, files: bad.entries.length - 1 };
-    expect(() => buildRedirectConfig(bad)).toThrow(/counts\.files/);
-  });
+  it.each(['files', 'tickets', 'complete', 'incomplete'] as const)(
+    'rejects counts.%s inconsistent with the manifest',
+    (field) => {
+      const bad = cloneManifest();
+      bad.counts = { ...bad.counts, [field]: bad.counts[field] + 1 };
+      expect(() => buildRedirectConfig(bad)).toThrow(new RegExp(`counts\\.${field}`));
+    }
+  );
 
   it('rejects an unsupported language', () => {
     const bad = cloneManifest();
@@ -398,7 +417,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       (entry: { oldTicketId: string }) =>
         entry.oldTicketId === 'SP-53' || entry.oldTicketId === 'GP-53'
     );
-    aliases.counts = { ...aliases.counts, files: aliases.entries.length };
+    refreshManifestCounts(aliases);
 
     const result = buildRedirectConfig(aliases);
     const bySource = new Map(result.redirects.map((redirect) => [redirect.source, redirect]));
@@ -424,7 +443,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       };
     });
     bad.entries = [...bad.entries, ...filler];
-    bad.counts = { ...bad.counts, files: bad.entries.length };
+    refreshManifestCounts(bad);
     expect(() => buildRedirectConfig(bad)).toThrow(/route budget/);
   });
 });

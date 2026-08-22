@@ -241,34 +241,13 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Glossary maintenance preserves the visible label. Post-link maintenance
-    # may also update that label when a destination article is reclassified or
-    # retitled, so normalize the whole internal post link while preserving all
-    # surrounding prose. If the normalized lines match, this is maintenance-only.
+    # Post links may update labels only when the staged target's canonical
+    # ticket, title, language, and filename prove the new identity. The shared
+    # validator also preserves glossary behavior and surrounding prose equality.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
-
-    git diff --cached --no-color -U0 -- "$file" | python3 -c '
-import re, sys
-lines = []
-for line in sys.stdin:
-    if not (line.startswith("+") or line.startswith("-")):
-        continue
-    if line.startswith("+++ ") or line.startswith("--- "):
-        continue
-    lines.append(line.rstrip("\n"))
-if not lines:
-    sys.exit(0)
-def norm(line):
-    text = line[1:]
-    text = re.sub(r"\[([^\]\n]+)\]\(/(?:en/)?glossary#[^)\n]+\)", r"\1", text)
-    text = re.sub(r"\[[^\]\n]+\]\(/(?:en/)?posts/[^)\n]+\)", "[INTERNAL_POST_LINK]", text)
-    return text.strip()
-removed = sorted(norm(line) for line in lines if line.startswith("-"))
-added = sorted(norm(line) for line in lines if line.startswith("+"))
-sys.exit(0 if removed == added else 1)
-'
+    node "$REPO_ROOT/scripts/check-staged-internal-post-links.mjs" "$file" >/dev/null 2>&1
 }
 
 is_existing_ticket_post_addition() {

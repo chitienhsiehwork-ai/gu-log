@@ -200,6 +200,40 @@ function assertTicketMatchesFilename(
   );
 }
 
+export function deriveManifestCounts(entries) {
+  const languagesByTicket = new Map();
+  for (const entry of entries) {
+    const languages = languagesByTicket.get(entry.oldTicketId) ?? new Set();
+    languages.add(entry.lang);
+    languagesByTicket.set(entry.oldTicketId, languages);
+  }
+
+  let complete = 0;
+  for (const languages of languagesByTicket.values()) {
+    if ([...SUPPORTED_LANGS].every((lang) => languages.has(lang))) complete += 1;
+  }
+
+  return {
+    files: entries.length,
+    tickets: languagesByTicket.size,
+    complete,
+    incomplete: languagesByTicket.size - complete,
+  };
+}
+
+function assertManifestCounts(declaredCounts, derivedCounts) {
+  if (!declaredCounts || typeof declaredCounts !== 'object') {
+    throw new RedirectConfigError('manifest.counts must be an object');
+  }
+  for (const field of ['files', 'tickets', 'complete', 'incomplete']) {
+    if (declaredCounts[field] !== derivedCounts[field]) {
+      throw new RedirectConfigError(
+        `manifest.counts.${field} (${declaredCounts[field]}) does not match derived ${field} (${derivedCounts[field]})`
+      );
+    }
+  }
+}
+
 /**
  * Builds the Vercel redirects array from a parsed migration manifest.
  * Pure function (no filesystem access) so tests can exercise fail-closed
@@ -215,12 +249,6 @@ export function buildRedirectConfig(manifest) {
   const entries = manifest.entries;
   if (!Array.isArray(entries) || entries.length === 0) {
     throw new RedirectConfigError('manifest.entries must be a non-empty array');
-  }
-  const declaredCount = manifest.counts?.files;
-  if (declaredCount !== entries.length) {
-    throw new RedirectConfigError(
-      `manifest.counts.files (${declaredCount}) does not match entries.length (${entries.length})`
-    );
   }
 
   const registry = createRedirectRegistry();
@@ -300,6 +328,8 @@ export function buildRedirectConfig(manifest) {
     );
     registry.add(articlePath(entry.lang, entry.oldSlug), articlePath(entry.lang, entry.newSlug));
   });
+
+  assertManifestCounts(manifest.counts, deriveManifestCounts(entries));
 
   for (const { oldBase, newBase } of LISTING_SERIES) {
     for (const prefix of LANG_PREFIXES) {

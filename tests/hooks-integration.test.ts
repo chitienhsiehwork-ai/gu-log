@@ -15,6 +15,10 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const CANONICAL_TARGET_SLUG = 'mp-316-20260213-openclaw-setup-guide-audit';
+const CANONICAL_TARGET_TITLE = 'AI 指南沒有一半都在瞎掰，先翻車的是查核方法';
+const CANONICAL_TARGET_LABEL = `MP-316: ${CANONICAL_TARGET_TITLE}`;
+const CANONICAL_TARGET_URL = `/posts/${CANONICAL_TARGET_SLUG}/`;
 
 function makeFakeRepo(): string {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-'));
@@ -68,6 +72,9 @@ function makeScoreGateProbeEnv(): NodeJS.ProcessEnv {
     node,
     `#!/bin/sh
 case "$1" in
+  */check-staged-internal-post-links.mjs)
+    exec "$REAL_NODE" "$@"
+    ;;
   */reader-revision-of-stdin.mjs)
     cksum | awk '{ print $1 ":" $2 }'
     exit 0
@@ -88,20 +95,53 @@ exit 0
   return {
     ...process.env,
     PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
+    REAL_NODE: process.execPath,
   };
 }
 
-function seedLinkMaintenanceRepo(repo: string): string {
+function seedLinkMaintenanceRepo(
+  repo: string,
+  sourceLabel = 'GP-53: 舊標題',
+  sourceUrl = '/posts/gp-53-20260213-openclaw-setup-guide-review/'
+): string {
   const post = path.join(repo, 'src', 'content', 'posts', 'mp-162-related-reading.mdx');
+  const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
   fs.mkdirSync(path.join(repo, 'src', 'data'), { recursive: true });
+  fs.mkdirSync(path.join(repo, 'scripts'), { recursive: true });
+  fs.symlinkSync(
+    path.join(REPO_ROOT, 'scripts', 'check-staged-internal-post-links.mjs'),
+    path.join(repo, 'scripts', 'check-staged-internal-post-links.mjs')
+  );
   fs.writeFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), '{}\n');
   fs.writeFileSync(path.join(repo, 'src', 'data', 'post-reader-revisions.json'), '{}\n');
   fs.writeFileSync(
     post,
-    `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[舊標題](/posts/mp-315-old-slug/)\n`
+    `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${sourceLabel}](${sourceUrl})\n`
+  );
+  fs.writeFileSync(
+    target,
+    `---\nticketId: MP-316\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\n目標文章\n`
   );
   commitAll(repo, 'base related-reading post');
   return post;
+}
+
+function runLinkMaintenanceHook(repo: string, post: string, line: string) {
+  fs.writeFileSync(post, `---\nticketId: MP-162\nlang: zh-tw\n---\n${line}\n`);
+  execSync('git add -A', { cwd: repo });
+  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    cwd: repo,
+    env: makeScoreGateProbeEnv(),
+    encoding: 'utf-8',
+  });
+}
+
+function runLinkValidator(repo: string, post: string) {
+  return spawnSync(
+    process.execPath,
+    [path.join(repo, 'scripts', 'check-staged-internal-post-links.mjs'), path.relative(repo, post)],
+    { cwd: repo, encoding: 'utf-8' }
+  );
 }
 
 function commitAll(repo: string, message: string): string {
@@ -185,43 +225,124 @@ describe('pre-commit: Gitleaks staged scan', () => {
 });
 
 describe('pre-commit: internal post-link maintenance exemption', () => {
-  it('allows a post link label and destination to change together', () => {
+  it('allows the real canonical post label and destination to change together', () => {
     const repo = makeFakeRepo();
     const post = seedLinkMaintenanceRepo(repo);
-    fs.writeFileSync(
+    const r = runLinkMaintenanceHook(
+      repo,
       post,
-      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[新標題](/posts/mp-316-new-slug/)\n`
+      `延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
     );
-    execSync('git add -A', { cwd: repo });
 
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
-      cwd: repo,
-      env: makeScoreGateProbeEnv(),
-      encoding: 'utf-8',
-    });
-
+    expect(runLinkValidator(repo, post).status).toBe(0);
     expect(r.status, r.stdout + r.stderr).toBe(0);
     expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
   });
 
-  it('still gates surrounding prose changes made beside a post link update', () => {
+  it('rejects a label-only arbitrary prose change', () => {
     const repo = makeFakeRepo();
-    const post = seedLinkMaintenanceRepo(repo);
-    fs.writeFileSync(
+    const post = seedLinkMaintenanceRepo(repo, CANONICAL_TARGET_LABEL, CANONICAL_TARGET_URL);
+    const r = runLinkMaintenanceHook(
+      repo,
       post,
-      `---\nticketId: MP-162\nlang: zh-tw\n---\n推薦閱讀：[新標題](/posts/mp-316-new-slug/)\n`
+      `延伸閱讀：[這段文案與 canonical identity 無關](${CANONICAL_TARGET_URL})`
     );
-    execSync('git add -A', { cwd: repo });
 
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
-      cwd: repo,
-      env: makeScoreGateProbeEnv(),
-      encoding: 'utf-8',
-    });
-
+    expect(runLinkValidator(repo, post).status).toBe(1);
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
     expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it.each([
+    ['wrong ticket', `GP-316: ${CANONICAL_TARGET_TITLE}`, CANONICAL_TARGET_URL],
+    ['wrong title', 'MP-316: 這不是 target frontmatter 的標題', CANONICAL_TARGET_URL],
+    ['missing target', 'MP-999: 不存在的文章', '/posts/mp-999-missing-target/'],
+    ['noncanonical URL', CANONICAL_TARGET_LABEL, `/posts/${CANONICAL_TARGET_SLUG}`],
+    ['locale/path mismatch', CANONICAL_TARGET_LABEL, `/en/posts/${CANONICAL_TARGET_SLUG}/`],
+  ])('rejects %s', (_name, label, url) => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const r = runLinkMaintenanceHook(repo, post, `延伸閱讀：[${label}](${url})`);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects malformed target frontmatter', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'mp-317-malformed-target.mdx'),
+      '---\nticketId: "MP-317\ntitle: malformed\nlang: zh-tw\n---\nbody\n'
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      '延伸閱讀：[MP-317: malformed](/posts/mp-317-malformed-target/)'
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+  });
+
+  it('rejects an ambiguous staged target route', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG.toUpperCase()}.mdx`),
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\nambiguous\n`
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+  });
+
+  it('still gates surrounding prose changes made beside a valid post link update', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `推薦閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('reads canonical target identity from the staged index rather than the worktree', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
+    const stagedTitle = `${CANONICAL_TARGET_TITLE}（staged）`;
+    fs.writeFileSync(
+      target,
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify(stagedTitle)}\nlang: zh-tw\n---\nstaged target\n`
+    );
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[MP-316: ${stagedTitle}](${CANONICAL_TARGET_URL})\n`
+    );
+    execSync('git add -A', { cwd: repo });
+
+    fs.writeFileSync(
+      target,
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify('worktree-only title')}\nlang: zh-tw\n---\nworktree target\n`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(0);
   });
 });
 
