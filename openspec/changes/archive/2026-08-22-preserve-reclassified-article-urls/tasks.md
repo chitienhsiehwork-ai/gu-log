@@ -19,5 +19,6 @@
 ## 4. 驗證與交付
 
 - [x] 4.1 跑 MP-316 的 Fact Checker、Librarian、Fresh Eyes 與 Vibe，將真實 PASS 分數寫回兩語 frontmatter。
-- [ ] 4.2 跑 pre-commit 與 pre-push hooks、完整 Vitest、內容完整性、taxonomy／glossary／emoji gates、production build 與正式輸出驗證。
-- [ ] 4.3 在 Vercel preview 驗證四條歷史 URL 回 308、兩個正式 URL 回 200，完成雙 reviewer 收斂後交給 archive 階段；archive commit 同步移除這批 active-change exact exceptions。
+- [x] 4.2 跑 pre-commit 與 pre-push hooks、完整 Vitest、內容完整性、taxonomy／glossary／emoji gates、production build 與正式輸出驗證。
+- [ ] 4.3 在 Vercel preview 驗證四條歷史 URL 回 308、兩個正式 URL 回 200。Exact-head deployment 與雙 reviewer 已通過，但 preview 啟用 SSO protection，clawd-vm 未配置 repo 支援的 bypass secret／cookie；不得把 SSO 302 當作路由證據，merge 後仍須在 public production 做同一組 smoke。
+- [x] 4.4 同步 delta spec、archive change，並移除這批 active-change exact exceptions。
