@@ -91,6 +91,19 @@ if (document.startsWith('---\n')) {
 const sha256 = createHash('sha256').update(body, 'utf8').digest('hex');
 process.stdout.write(JSON.stringify({ version: 'gp-source-preservation/v1', body, sha256 }) + '\n');
 `)
+	mustWrite(t, filepath.Join(root, "scripts", "check-jingjing.mjs"), `
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const inputPath = process.argv.at(-1);
+const input = readFileSync(inputPath);
+process.stdout.write(JSON.stringify({
+  version: 'check-jingjing/v1',
+  policy_sha256: createHash('sha256').update('fixture-policy').digest('hex'),
+  baseline_ref: '',
+  baseline_ref_unavailable: false,
+  files: [{ path: inputPath, sha256: createHash('sha256').update(input).digest('hex'), skipped: false, violations: [] }],
+}) + '\n');
+`)
 }
 
 func writeCompleteFakeGPRoles(t *testing.T, path string) {
@@ -127,8 +140,12 @@ func writeFreshGPPublishManifest(t *testing.T, root, workDir, sourcePath, bodyPa
 			},
 		}
 	}
+	jingjing, _, err := preservation.CheckJingjing(context.Background(), root, bodyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	manifest := preservation.PublishManifest{
-		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), SourceSHA256: preservation.SHA256(source),
+		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), JingjingPolicySHA256: jingjing.PolicySHA256, SourceSHA256: preservation.SHA256(source),
 		BodyProjectionSHA256: projection.SHA256, Verdict: "PASS",
 		Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now,
 	}

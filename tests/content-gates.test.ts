@@ -234,6 +234,28 @@ describe('check-jingjing.checkFile', () => {
     const r = jj.checkFile(filepath);
     expect(r.violations).toEqual([]);
   });
+
+  it('reports exact UTF-8 byte boundaries for deterministic correction', () => {
+    const filepath = tmpPath('jj-byte-boundary.mdx');
+    const raw = `---\nlang: zh-tw\n---\n系統的 traces 要逐筆檢查。\n`;
+    fs.writeFileSync(filepath, raw);
+    const [violation] = jj.checkFile(filepath).violations;
+    const start = Buffer.byteLength(raw.slice(0, raw.indexOf('traces')));
+    expect(violation).toMatchObject({
+      word: 'traces',
+      line: 4,
+      startByte: start,
+      endByte: start + Buffer.byteLength('traces'),
+    });
+    expect(Buffer.from(raw).subarray(violation.startByte, violation.endByte).toString()).toBe(
+      'traces'
+    );
+  });
+
+  it('binds the accepted-English policy inputs to a stable digest', () => {
+    expect(jj.policySHA256()).toMatch(/^[a-f0-9]{64}$/);
+    expect(jj.policySHA256()).toBe(jj.policySHA256());
+  });
 });
 
 describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {

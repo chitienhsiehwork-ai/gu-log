@@ -26,12 +26,17 @@
 // Usage:
 //   node scripts/check-jingjing.mjs <file.mdx>...
 //   node scripts/check-jingjing.mjs --baseline-ref=origin/main <file.mdx>...
+//   node scripts/check-jingjing.mjs --format=json <file.mdx>...
 //   node scripts/check-jingjing.mjs                  # scans all zh-tw posts
 //
 // Exit codes:
 //   0 — no violations (or no zh-tw files staged)
 //   1 — violations found; see stderr
+//   --format=json returns 0 for any successfully validated scan; callers read
+//   the violations array. Scan/policy/read failures still return non-zero.
 
+import crypto from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -47,8 +52,18 @@ const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
+const CHECKER_PATH = fileURLToPath(import.meta.url);
+const BRAND_TAXONOMY_CHECKER_PATH = path.join(REPO_ROOT, 'scripts', 'check-brand-taxonomy.mjs');
+const POLICY_INPUTS = [
+  CHECKER_PATH,
+  BRAND_TAXONOMY_CHECKER_PATH,
+  GLOSSARY_PATH,
+  TAXONOMY_POLICY_PATH,
+];
+const POLICY_INPUT_SNAPSHOTS = POLICY_INPUTS.map((input) => fs.readFileSync(input));
 const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
 const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
+const JSON_CONTRACT_VERSION = 'check-jingjing/v1';
 
 function gitFetchTimeoutMs() {
   const raw = process.env.CHECK_JINGJING_FETCH_TIMEOUT_MS;
@@ -803,7 +818,7 @@ for (const line of ALLOWLIST_RAW.split('\n')) {
 
 const GLOSSARY_TERMS = new Set();
 try {
-  const glossary = JSON.parse(fs.readFileSync(GLOSSARY_PATH, 'utf8'));
+  const glossary = JSON.parse(POLICY_INPUT_SNAPSHOTS[2].toString('utf8'));
   for (const t of glossary) {
     if (t.term) {
       GLOSSARY_TERMS.add(t.term);
@@ -946,6 +961,7 @@ function checkText(raw, filePath = '') {
   const masked = maskContent(raw);
   const lines = raw.split('\n');
   const maskedLines = masked.split('\n');
+  let lineStartByte = 0;
 
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
@@ -959,11 +975,15 @@ function checkText(raw, filePath = '') {
         violations.push({
           line: i + 1,
           word,
+          startByte: lineStartByte + Buffer.byteLength(lines[i].slice(0, m.index ?? 0)),
+          endByte:
+            lineStartByte + Buffer.byteLength(lines[i].slice(0, (m.index ?? 0) + word.length)),
           context: comparisonContext.slice(0, 140),
           comparisonContext,
         });
       }
     }
+    lineStartByte += Buffer.byteLength(lines[i]) + (i < lines.length - 1 ? 1 : 0);
   }
 
   return { violations };
@@ -1009,6 +1029,27 @@ function violationKey(v) {
 
 function violationContext(v) {
   return (v.comparisonContext ?? v.context).replace(/\s+/g, ' ').trim();
+}
+
+// This digest binds machine-readable findings to every repository input that
+// can change the accepted-English boundary. A sealed GP manifest therefore
+// becomes stale when the checker, glossary, or taxonomy policy changes.
+function policySHA256() {
+  const hash = crypto.createHash('sha256');
+  hash.update(`${JSON_CONTRACT_VERSION}\0`);
+  for (const [index, input] of POLICY_INPUTS.entries()) {
+    hash.update(path.relative(REPO_ROOT, input));
+    hash.update('\0');
+    hash.update(POLICY_INPUT_SNAPSHOTS[index]);
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+function policyInputsUnchanged() {
+  return POLICY_INPUTS.every((input, index) =>
+    fs.readFileSync(input).equals(POLICY_INPUT_SNAPSHOTS[index])
+  );
 }
 
 function readBaselineFile(repoRelative, baselineRef) {
@@ -1178,7 +1219,7 @@ function filterBaselineViolations(violations, baseline) {
 function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
   if (violations.length === 0) return violations;
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
-  const activePolicy = policy ?? JSON.parse(fs.readFileSync(TAXONOMY_POLICY_PATH, 'utf8'));
+  const activePolicy = policy ?? JSON.parse(POLICY_INPUT_SNAPSHOTS[3].toString('utf8'));
   const findings = scanLegacyText(repoRelative, raw);
   const budgets = new Map();
 
@@ -1212,6 +1253,7 @@ export {
   filterBaselineViolations,
   filterTaxonomyExactResiduals,
   violationKey,
+  policySHA256,
 };
 
 // ── Main ───────────────────────────────────────────────────────────
@@ -1222,13 +1264,21 @@ if (!__isCli) {
 } else {
   const args = process.argv.slice(2).filter(Boolean);
   const baselineArg = args.find((arg) => arg.startsWith('--baseline-ref='));
+  const formatArg = args.find((arg) => arg.startsWith('--format='));
+  const outputFormat = formatArg?.slice('--format='.length) || 'text';
+  if (outputFormat !== 'text' && outputFormat !== 'json') {
+    console.error(`[check-jingjing] Unsupported format: ${outputFormat}`);
+    process.exit(2);
+  }
   const explicitBaselineRef = baselineArg?.slice('--baseline-ref='.length) || '';
   const ciBaselineRef =
     process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_BASE_REF
       ? `origin/${process.env.GITHUB_BASE_REF}`
       : '';
   const baselineRef = explicitBaselineRef || ciBaselineRef;
-  let files = args.filter((arg) => !arg.startsWith('--baseline-ref='));
+  let files = args.filter(
+    (arg) => !arg.startsWith('--baseline-ref=') && !arg.startsWith('--format=')
+  );
 
   if (files.length === 0) {
     // Scan all zh-tw posts
@@ -1245,6 +1295,7 @@ if (!__isCli) {
   let totalViolations = 0;
   const filesWithViolations = [];
   let baselineRefUnavailable = false;
+  const jsonFiles = [];
 
   for (const filePath of files) {
     const { violations, error, skipped } = checkFile(filePath);
@@ -1252,7 +1303,17 @@ if (!__isCli) {
       console.error(`[check-jingjing] ${filePath}: ${error}`);
       process.exit(2);
     }
-    if (skipped) continue;
+    if (skipped) {
+      if (outputFormat === 'json') {
+        jsonFiles.push({
+          path: path.relative(REPO_ROOT, filePath).split(path.sep).join('/'),
+          sha256: crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex'),
+          skipped: true,
+          violations: [],
+        });
+      }
+      continue;
+    }
     const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
     baselineRefUnavailable ||= refUnavailable;
     const raw = fs.readFileSync(filePath, 'utf8');
@@ -1261,10 +1322,41 @@ if (!__isCli) {
       raw,
       filterBaselineViolations(violations, baseline)
     );
+    if (outputFormat === 'json') {
+      jsonFiles.push({
+        path: path.relative(REPO_ROOT, filePath).split(path.sep).join('/'),
+        sha256: crypto.createHash('sha256').update(raw).digest('hex'),
+        skipped: false,
+        violations: newViolations.map((violation) => ({
+          word: violation.word,
+          line: violation.line,
+          start_byte: violation.startByte,
+          end_byte: violation.endByte,
+          context: violation.context,
+        })),
+      });
+    }
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });
     totalViolations += newViolations.length;
+  }
+
+  if (outputFormat === 'json') {
+    if (!policyInputsUnchanged()) {
+      console.error('[check-jingjing] Policy inputs changed during scan; retry required.');
+      process.exit(2);
+    }
+    process.stdout.write(
+      `${JSON.stringify({
+        version: JSON_CONTRACT_VERSION,
+        policy_sha256: policySHA256(),
+        baseline_ref: baselineRef,
+        baseline_ref_unavailable: baselineRefUnavailable,
+        files: jsonFiles,
+      })}\n`
+    );
+    process.exit(0);
   }
 
   if (totalViolations === 0) {

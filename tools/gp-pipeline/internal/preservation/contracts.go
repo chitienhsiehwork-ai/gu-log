@@ -96,6 +96,7 @@ type GateEnvelope struct {
 type PublishManifest struct {
 	Version              string         `json:"version"`
 	ProfileSHA256        string         `json:"profile_sha256"`
+	JingjingPolicySHA256 string         `json:"jingjing_policy_sha256"`
 	SourceSHA256         string         `json:"source_sha256"`
 	BodyProjectionSHA256 string         `json:"body_projection_sha256"`
 	Verdict              string         `json:"verdict"`
@@ -199,7 +200,7 @@ func ValidateVerdictFindings(verdict string, findings []Finding) error {
 }
 
 // ValidateManifest is the final fail-closed deploy check.
-func ValidateManifest(m PublishManifest, source, projection []byte, requiredGates []string, expectedProfileSHA256 string) error {
+func ValidateManifest(m PublishManifest, source, projection []byte, requiredGates []string, expectedProfileSHA256, expectedJingjingPolicySHA256 string) error {
 	if m.Version != ContractVersion {
 		return fmt.Errorf("manifest version %q, want %q", m.Version, ContractVersion)
 	}
@@ -211,6 +212,9 @@ func ValidateManifest(m PublishManifest, source, projection []byte, requiredGate
 	}
 	if expectedProfileSHA256 == "" || m.ProfileSHA256 != expectedProfileSHA256 {
 		return errors.New("publish manifest runtime profile is missing or stale")
+	}
+	if expectedJingjingPolicySHA256 == "" || m.JingjingPolicySHA256 != expectedJingjingPolicySHA256 {
+		return errors.New("publish manifest Jingjing policy is missing or stale")
 	}
 	sourceHash, projectionHash := SHA256(source), SHA256(projection)
 	if m.SourceSHA256 != sourceHash || m.BodyProjectionSHA256 != projectionHash {

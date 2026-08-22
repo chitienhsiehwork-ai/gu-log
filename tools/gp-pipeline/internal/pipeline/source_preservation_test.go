@@ -1,8 +1,10 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -355,7 +357,12 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	translationBytes := []byte(translation)
+	path := filepath.Join(s.WorkDir, "source-translation.mdx")
+	translationBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	translation = string(translationBytes)
 	start := strings.Index(translation, "一定")
 	finding := preservation.Finding{ID: "hedge", IssueType: "fidelity", SourceQuote: "may be correct", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), StartByte: len([]byte(translation[:start])), EndByte: len([]byte(translation[:start+len("一定")])), OldText: "一定", OldTextSHA256: preservation.SHA256([]byte("一定")), SuggestedReplacement: "可能", Approved: true}
 	failReview := preservation.ReviewArtifact{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), Verdict: "FAIL", Findings: []preservation.Finding{finding}}
@@ -363,7 +370,6 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	patch.Patches[0].SuggestedReplacement = "可能"
 	corrected := strings.Replace(translation, "一定", "可能", 1)
 	correctedBytes := []byte(corrected)
-	path := filepath.Join(s.WorkDir, "source-translation.mdx")
 	projection1, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
 	if err != nil {
 		t.Fatal(err)
@@ -435,7 +441,7 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	}
 
 	var stale preservation.PatchArtifact
-	correctorPath := filepath.Join(s.WorkDir, "corrector.json")
+	correctorPath := filepath.Join(s.WorkDir, "corrector-attempt-1.json")
 	data, err := os.ReadFile(correctorPath)
 	if err != nil {
 		t.Fatal(err)
@@ -461,14 +467,18 @@ func TestGPNaturalCalibrationFindingCanBeCorrectedBeforeDeterministicRecheck(t *
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatal(err)
 	}
-	translationBytes := []byte(translation)
+	path := filepath.Join(s.WorkDir, "source-translation.mdx")
+	translationBytes, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	translation = string(translationBytes)
 	start := strings.Index(translation, "演算法動態")
 	finding := preservation.Finding{ID: "natural-feed", IssueType: "natural_zh_tw", SourceQuote: "", SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), StartByte: len([]byte(translation[:start])), EndByte: len([]byte(translation[:start+len("演算法動態")])), OldText: "演算法動態", OldTextSHA256: preservation.SHA256([]byte("演算法動態")), SuggestedReplacement: "推薦動態", Approved: true}
 	failVibe := preservation.GateEnvelope{Version: preservation.ContractVersion, Gate: "vibe-scorer", SourceSHA256: preservation.SHA256(source), Verdict: "FAIL", Findings: []preservation.Finding{finding}}
 	patch := preservation.PatchArtifact{Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source), TranslationSHA256: preservation.SHA256(translationBytes), Patches: []preservation.Finding{finding}}
 	corrected := strings.Replace(translation, "演算法動態", "推薦動態", 1)
 	correctedBytes := []byte(corrected)
-	path := filepath.Join(s.WorkDir, "source-translation.mdx")
 	projection1, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
 	if err != nil {
 		t.Fatal(err)
@@ -502,10 +512,189 @@ func TestGPNaturalCalibrationFindingCanBeCorrectedBeforeDeterministicRecheck(t *
 	}
 }
 
+func TestGPJingjingGateAuthorizesBoundedCorrectionAndRerunsEveryGate(t *testing.T) {
+	ctx := context.Background()
+	source := []byte("# Source\n\nI inspect system traces and outputs before choosing an evaluation.\n")
+	translation := "---\nticketId: GP-PENDING\ntitle: 評估系統\noriginalDate: 2026-08-22\ntranslatedDate: 2026-08-22\nsource: Example\nsourceUrl: https://example.com/source\nsummary: 我會先檢查系統紀錄。\nlang: zh-tw\ntags: [ai]\n---\n\n# 來源\n\n我會先看系統的 traces 與輸出，再決定評估方式。\n"
+	s, _ := newGPState(t, string(source), translation)
+	if err := s.SourceTranslate(ctx); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(s.WorkDir, "source-translation.mdx")
+	initial, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	jingjing, _, err := preservation.CheckJingjing(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findings, err := preservation.JingjingFindings(source, initial, jingjing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(findings) != 1 || findings[0].OldText != "traces" {
+		t.Fatalf("Jingjing findings = %#v, want one traces finding", findings)
+	}
+	patch := preservation.PatchArtifact{
+		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+		TranslationSHA256: preservation.SHA256(initial), Patches: append([]preservation.Finding(nil), findings...),
+	}
+	patch.Patches[0].SuggestedReplacement = "執行軌跡"
+	corrected := bytes.Replace(initial, []byte("traces"), []byte("執行軌跡"), 1)
+	projection1, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, corrected, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	projection2, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, initial, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, initial)), artifactJSON(t, passReview(source, corrected)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(source, initial, projection1)), artifactJSON(t, passVibe(source, corrected, projection2)))
+	s.CorrectorDispatcher = gpFakeDispatcher(t, "fake-corrector", llm.ModelGPT56Sol, artifactJSON(t, patch))
+	if err := s.PreserveGP(ctx); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, corrected) {
+		t.Fatalf("bounded Jingjing correction mismatch:\n%s", got)
+	}
+	for _, artifact := range []string{"jingjing-gate-attempt-1.json", "jingjing-gate-attempt-2.json", "source-review-attempt-2.json", "vibe-gate-attempt-2.json", "corrector-attempt-1.json"} {
+		if _, err := os.Stat(filepath.Join(s.WorkDir, artifact)); err != nil {
+			t.Errorf("missing replay artifact %s: %v", artifact, err)
+		}
+	}
+	clean, _, err := preservation.CheckJingjing(ctx, s.Cfg.RepoRoot, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(clean.Files[0].Violations) != 0 {
+		t.Fatalf("corrected translation still fails Jingjing: %#v", clean.Files[0].Violations)
+	}
+	if err := s.ValidateGPPublishManifest(ctx, path); err != nil {
+		t.Fatalf("fresh Jingjing-bound manifest rejected: %v", err)
+	}
+}
+
+func TestCorrectorRecoveryReplaysMultipleNoncontiguousAttempts(t *testing.T) {
+	ctx := context.Background()
+	source := []byte("I inspect traces and solid outputs before deciding.\n")
+	initial := []byte("---\nlang: zh-tw\n---\n\n我會看 traces、一定可靠的輸出，以及 solid 結果。\n")
+	s := NewState()
+	s.WorkDir = t.TempDir()
+	s.Log = logx.New()
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-tweet.md"), source, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translation.initial.mdx"), initial, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().UTC()
+	makePatch := func(input []byte, id, oldText, replacement string) (preservation.Finding, preservation.PatchArtifact, []byte) {
+		t.Helper()
+		start := bytes.Index(input, []byte(oldText))
+		if start < 0 {
+			t.Fatalf("missing %q in correction input", oldText)
+		}
+		finding := preservation.Finding{
+			ID: id, IssueType: "natural_zh_tw", SourceSHA256: preservation.SHA256(source),
+			TranslationSHA256: preservation.SHA256(input), StartByte: start, EndByte: start + len([]byte(oldText)),
+			OldText: oldText, OldTextSHA256: preservation.SHA256([]byte(oldText)), SuggestedReplacement: replacement, Approved: true,
+		}
+		artifact := preservation.PatchArtifact{
+			Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
+			TranslationSHA256: preservation.SHA256(input), Patches: []preservation.Finding{finding},
+			Provenance: preservation.Provenance{Role: "corrector", Provider: "fixture", Model: "fixture", Harness: "go-test", CompletedAt: now},
+		}
+		output, err := preservation.ApplyPatches(source, input, artifact)
+		if err != nil {
+			t.Fatal(err)
+		}
+		artifact.ResultTranslationSHA256 = preservation.SHA256(output)
+		return finding, artifact, output
+	}
+
+	_, first, afterFirst := makePatch(initial, "first", "traces", "執行軌跡")
+	_, second, afterSecond := makePatch(afterFirst, "second", "一定", "可能")
+	for attempt, fixture := range map[int]struct {
+		input    []byte
+		artifact preservation.PatchArtifact
+	}{1: {initial, first}, 3: {afterFirst, second}} {
+		if err := os.WriteFile(filepath.Join(s.WorkDir, fmt.Sprintf("corrector-input-attempt-%d.mdx", attempt)), fixture.input, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := preservation.WriteJSON(filepath.Join(s.WorkDir, fmt.Sprintf("corrector-attempt-%d.json", attempt)), fixture.artifact); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, "source-translation.mdx"), afterSecond, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	beforeFirst, _ := os.ReadFile(filepath.Join(s.WorkDir, "corrector-attempt-1.json"))
+	beforeSecond, _ := os.ReadFile(filepath.Join(s.WorkDir, "corrector-attempt-3.json"))
+	if err := s.restoreOptionalCorrectorRun(); err != nil {
+		t.Fatalf("two-step replay failed: %v", err)
+	}
+	if highest, err := highestPreservationAttempt(s.WorkDir); err != nil || highest != 3 {
+		t.Fatalf("highest attempt = %d, %v; want 3", highest, err)
+	}
+
+	thirdFinding, third, afterThird := makePatch(afterSecond, "third", "solid", "扎實")
+	third.Provenance = preservation.Provenance{}
+	third.ResultTranslationSHA256 = ""
+	s.CorrectorDispatcher = gpFakeDispatcher(t, "fresh-corrector", llm.ModelGPT56Sol, artifactJSON(t, third))
+	if err := s.runCorrector(ctx, source, afterSecond, []preservation.Finding{thirdFinding}, 4); err != nil {
+		t.Fatal(err)
+	}
+	for path, before := range map[string][]byte{
+		"corrector-attempt-1.json": beforeFirst,
+		"corrector-attempt-3.json": beforeSecond,
+	} {
+		after, err := os.ReadFile(filepath.Join(s.WorkDir, path))
+		if err != nil || !bytes.Equal(after, before) {
+			t.Fatalf("append overwrote %s: %v", path, err)
+		}
+	}
+	current, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
+	if err != nil || !bytes.Equal(current, afterThird) {
+		t.Fatalf("third correction mismatch: %v\n%s", err, current)
+	}
+	s.RoleRuns = map[string]RoleRun{}
+	if err := s.restoreOptionalCorrectorRun(); err != nil {
+		t.Fatalf("fresh recovery could not replay appended chain: %v", err)
+	}
+	if _, ok := s.RoleRuns["corrector"]; !ok {
+		t.Fatal("fresh recovery did not restore latest corrector provenance")
+	}
+}
+
+func TestJingjingOverlapNeverSwallowsManualCheckpoint(t *testing.T) {
+	deterministic := preservation.Finding{ID: "jingjing", StartByte: 10, EndByte: 16, Approved: true}
+	manual := preservation.Finding{ID: "manual", StartByte: 8, EndByte: 20, Approved: false}
+	independent := preservation.Finding{ID: "independent", StartByte: 30, EndByte: 35, Approved: true}
+	if err := validateApprovedFindings([]preservation.Finding{manual, independent}); err == nil || !strings.Contains(err.Error(), "manual") {
+		t.Fatalf("overlapping manual checkpoint was not rejected: %v", err)
+	}
+	merged := appendNonOverlappingFindings([]preservation.Finding{deterministic}, []preservation.Finding{manual, independent})
+	if len(merged) != 2 || merged[0].ID != "jingjing" || merged[1].ID != "independent" {
+		t.Fatalf("overlap merge = %#v", merged)
+	}
+}
+
 func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	ctx := context.Background()
 	source := []byte("source")
-	body := []byte("---\ntitle: T\n---\n\nbody\n")
+	body := []byte("---\ntitle: 測試\nlang: zh-tw\n---\n\n內文。\n")
 	s := NewState()
 	s.Cfg = &config.Config{RepoRoot: findRepoRoot()}
 	s.Log, s.WorkDir = logx.New(), t.TempDir()
@@ -528,7 +717,11 @@ func TestGPRecoveryAndDeployRejectMissingOrStaleManifest(t *testing.T) {
 	gate := func(name string) preservation.GateEnvelope {
 		return preservation.GateEnvelope{Version: preservation.ContractVersion, Gate: name, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Provenance: preservation.Provenance{Role: name, Provider: "fixture", Model: name, Harness: "test", CompletedAt: now}}
 	}
-	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
+	jingjing, _, err := preservation.CheckJingjing(ctx, s.Cfg.RepoRoot, bodyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, JingjingPolicySHA256: jingjing.PolicySHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
 	if err := preservation.WriteJSON(filepath.Join(s.WorkDir, "gp-publish-gate.json"), manifest); err != nil {
 		t.Fatal(err)
 	}
