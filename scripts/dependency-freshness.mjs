@@ -348,7 +348,7 @@ async function main() {
       /* start fresh */
     }
   }
-  history.push({
+  const historyEntry = {
     date: report.date,
     total: report.total,
     fresh: report.fresh,
@@ -356,7 +356,9 @@ async function main() {
     outdated: report.outdated,
     deprecated: report.deprecated,
     possiblyUnmaintained: report.possiblyUnmaintained,
-  });
+  };
+  history = history.filter((entry) => entry?.date !== report.date);
+  history.push(historyEntry);
   writeFileSync(HISTORY_PATH, JSON.stringify(history, null, 2) + '\n');
   console.log(`History updated → ${HISTORY_PATH}`);
 
