@@ -55,6 +55,55 @@ function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
   };
 }
 
+function makeScoreGateProbeEnv(): NodeJS.ProcessEnv {
+  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-score-bin-'));
+  for (const name of ['gitleaks', 'npx']) {
+    const tool = path.join(bin, name);
+    fs.writeFileSync(tool, '#!/bin/sh\nexit 0\n');
+    fs.chmodSync(tool, 0o755);
+  }
+
+  const node = path.join(bin, 'node');
+  fs.writeFileSync(
+    node,
+    `#!/bin/sh
+case "$1" in
+  */reader-revision-of-stdin.mjs)
+    cksum | awk '{ print $1 ":" $2 }'
+    exit 0
+    ;;
+  */score-floor-check.mjs)
+    echo score-check-sentinel
+    exit 1
+    ;;
+esac
+if [ "$2" = "--check-canonical-staged-file" ]; then
+  exit 1
+fi
+exit 0
+`
+  );
+  fs.chmodSync(node, 0o755);
+
+  return {
+    ...process.env,
+    PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
+  };
+}
+
+function seedLinkMaintenanceRepo(repo: string): string {
+  const post = path.join(repo, 'src', 'content', 'posts', 'mp-162-related-reading.mdx');
+  fs.mkdirSync(path.join(repo, 'src', 'data'), { recursive: true });
+  fs.writeFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), '{}\n');
+  fs.writeFileSync(path.join(repo, 'src', 'data', 'post-reader-revisions.json'), '{}\n');
+  fs.writeFileSync(
+    post,
+    `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[舊標題](/posts/mp-315-old-slug/)\n`
+  );
+  commitAll(repo, 'base related-reading post');
+  return post;
+}
+
 function commitAll(repo: string, message: string): string {
   execSync('git add -A', { cwd: repo });
   execSync(`git commit -q -m "${message}"`, { cwd: repo });
@@ -132,6 +181,47 @@ describe('pre-commit: Gitleaks staged scan', () => {
     expect(fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'))).toEqual(
       fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'))
     );
+  });
+});
+
+describe('pre-commit: internal post-link maintenance exemption', () => {
+  it('allows a post link label and destination to change together', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[新標題](/posts/mp-316-new-slug/)\n`
+    );
+    execSync('git add -A', { cwd: repo });
+
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeScoreGateProbeEnv(),
+      encoding: 'utf-8',
+    });
+
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+  });
+
+  it('still gates surrounding prose changes made beside a post link update', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n推薦閱讀：[新標題](/posts/mp-316-new-slug/)\n`
+    );
+    execSync('git add -A', { cwd: repo });
+
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeScoreGateProbeEnv(),
+      encoding: 'utf-8',
+    });
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
   });
 });
 

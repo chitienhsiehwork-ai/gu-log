@@ -40,6 +40,25 @@ const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
   ['/en/clawd-picks/:page(\\d+)', '/en/mogu-picks/:page'],
 ];
 
+const EXPECTED_RECLASSIFIED_REDIRECTS: Array<[string, string]> = [
+  [
+    '/posts/sp-53-20260213-openclaw-setup-guide-review',
+    '/posts/mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/posts/gp-53-20260213-openclaw-setup-guide-review',
+    '/posts/mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/en/posts/en-sp-53-20260213-openclaw-setup-guide-review',
+    '/en/posts/en-mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/en/posts/en-gp-53-20260213-openclaw-setup-guide-review',
+    '/en/posts/en-mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+];
+
 describe('vercel.mjs Git deployment policy', () => {
   it('disables previews only for GitHub Actions Dependabot branches', () => {
     expect(config.git?.deploymentEnabled).toEqual({
@@ -87,6 +106,41 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
       expect(redirect!.destination).toBe(destination);
       expect(redirect!.permanent).toBe(true);
     }
+  });
+
+  it('fans the real SP-53 and GP-53 localized aliases directly into MP-316', () => {
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
+      const redirect = bySource.get(source);
+      expect(redirect, `missing reclassified redirect for ${source}`).toBeDefined();
+      expect(redirect!.destination).toBe(destination);
+      expect(redirect!.permanent).toBe(true);
+    }
+
+    const destinationCounts = new Map<string, number>();
+    for (const [, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
+      destinationCounts.set(destination, (destinationCounts.get(destination) ?? 0) + 1);
+    }
+    expect([...destinationCounts.values()]).toEqual([2, 2]);
+  });
+
+  it('preserves the real SP-162 content identity with its explicit SP-163 route identity', () => {
+    const anomaly = manifest.entries.find(
+      (entry: { oldRouteTicketId?: string }) => entry.oldRouteTicketId === 'SP-163'
+    );
+    expect(anomaly).toMatchObject({
+      lang: 'zh-tw',
+      oldTicketId: 'SP-162',
+      oldRouteTicketId: 'SP-163',
+      oldFilename: 'sp-163-20260405-meta-alchemist-claude-claude.mdx',
+      oldSlug: 'sp-163-20260405-meta-alchemist-claude-claude',
+      newTicketId: 'GP-162',
+    });
+
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    expect(bySource.get('/posts/sp-163-20260405-meta-alchemist-claude-claude')?.destination).toBe(
+      '/posts/gp-162-20260405-meta-alchemist-claude-claude'
+    );
   });
 
   it('derives every legacy article source from the lowercase evidence filename stem', () => {
@@ -252,20 +306,77 @@ describe('buildRedirectConfig — fail-closed validation', () => {
 
   it('rejects a mixed-case legacy slug while preserving its evidence filename', () => {
     const bad = cloneManifest();
-    bad.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
-    bad.entries[0].oldSlug = 'Legacy-Mixed-Case';
+    const languagePrefix = bad.entries[0].lang === 'en' ? 'en-' : '';
+    const evidenceFilename = `${languagePrefix}${bad.entries[0].oldTicketId.toLowerCase()}-Legacy-Mixed-Case.mdx`;
+    bad.entries[0].oldFilename = evidenceFilename;
+    bad.entries[0].oldSlug = path.basename(evidenceFilename, '.mdx');
     expect(() => buildRedirectConfig(bad)).toThrow(/lowercase evidence filename stem/);
 
     const good = cloneManifest();
-    good.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
-    good.entries[0].oldSlug = 'legacy-mixed-case';
+    good.entries[0].oldFilename = evidenceFilename;
+    good.entries[0].oldSlug = path.basename(evidenceFilename, '.mdx').toLowerCase();
     expect(() => buildRedirectConfig(good)).not.toThrow();
+  });
+
+  it('rejects a newTicketId whose prefix or number disagrees with newSlug/newFilename', () => {
+    const numberMismatch = cloneManifest();
+    const [series, number] = numberMismatch.entries[0].newTicketId.split('-');
+    numberMismatch.entries[0].newTicketId = `${series}-${Number(number) + 100_000}`;
+    expect(() => buildRedirectConfig(numberMismatch)).toThrow(/newFilename.*newTicketId/);
+
+    const seriesMismatch = cloneManifest();
+    seriesMismatch.entries[0].newTicketId = `${series === 'GP' ? 'MP' : 'GP'}-${number}`;
+    expect(() => buildRedirectConfig(seriesMismatch)).toThrow(/newFilename.*newTicketId/);
+  });
+
+  it('rejects an oldTicketId or lang that disagrees with oldSlug/oldFilename', () => {
+    const ticketMismatch = cloneManifest();
+    const numberedEntryIndex = ticketMismatch.entries.findIndex(
+      (entry: { oldTicketId: string; oldFilename: string; lang: string }) => {
+        const languagePrefix = entry.lang === 'en' ? 'en-' : '';
+        return entry.oldFilename
+          .toLowerCase()
+          .startsWith(`${languagePrefix}${entry.oldTicketId.toLowerCase()}-`);
+      }
+    );
+    const [series, number] = ticketMismatch.entries[numberedEntryIndex].oldTicketId.split('-');
+    ticketMismatch.entries[numberedEntryIndex].oldTicketId =
+      `${series}-${Number(number) + 100_000}`;
+    expect(() => buildRedirectConfig(ticketMismatch)).toThrow(/oldFilename.*oldTicketId/);
+
+    const languageMismatch = cloneManifest();
+    languageMismatch.entries[0].lang = languageMismatch.entries[0].lang === 'en' ? 'zh-tw' : 'en';
+    expect(() => buildRedirectConfig(languageMismatch)).toThrow(/oldFilename.*lang/);
+  });
+
+  it('requires a narrow, same-series oldRouteTicketId for a historical filename mismatch', () => {
+    const anomalyIndex = manifest.entries.findIndex(
+      (entry: { oldRouteTicketId?: string }) => entry.oldRouteTicketId === 'SP-163'
+    );
+
+    const missingOverride = cloneManifest();
+    delete missingOverride.entries[anomalyIndex].oldRouteTicketId;
+    expect(() => buildRedirectConfig(missingOverride)).toThrow(/oldFilename.*oldTicketId/);
+
+    const sameTicket = cloneManifest();
+    sameTicket.entries[anomalyIndex].oldRouteTicketId =
+      sameTicket.entries[anomalyIndex].oldTicketId;
+    expect(() => buildRedirectConfig(sameTicket)).toThrow(/must differ from oldTicketId/);
+
+    const wrongSeries = cloneManifest();
+    wrongSeries.entries[anomalyIndex].oldRouteTicketId = 'CP-163';
+    expect(() => buildRedirectConfig(wrongSeries)).toThrow(/same series as oldTicketId/);
+
+    const wrongNumber = cloneManifest();
+    wrongNumber.entries[anomalyIndex].oldRouteTicketId = 'SP-164';
+    expect(() => buildRedirectConfig(wrongNumber)).toThrow(/oldFilename.*oldRouteTicketId/);
   });
 
   it('rejects a self-loop entry', () => {
     const bad = cloneManifest();
-    bad.entries[0].newSlug = bad.entries[0].oldSlug;
-    bad.entries[0].newFilename = `${bad.entries[0].newSlug}.mdx`;
+    bad.entries[0].oldTicketId = bad.entries[0].newTicketId;
+    bad.entries[0].oldSlug = bad.entries[0].newSlug;
+    bad.entries[0].oldFilename = bad.entries[0].newFilename;
     expect(() => buildRedirectConfig(bad)).toThrow(/self-loop/);
   });
 
@@ -274,43 +385,44 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     bad.entries[1] = {
       ...bad.entries[1],
       lang: bad.entries[0].lang,
+      oldTicketId: bad.entries[0].oldTicketId,
       oldSlug: bad.entries[0].oldSlug,
-      oldFilename: `${bad.entries[0].oldSlug}.mdx`,
+      oldFilename: bad.entries[0].oldFilename,
     };
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect source/);
   });
 
-  it('allows multiple historical aliases to share one canonical destination', () => {
+  it('allows the real historical aliases to share localized canonical destinations', () => {
     const aliases = cloneManifest();
-    aliases.entries[1] = {
-      ...aliases.entries[1],
-      lang: aliases.entries[0].lang,
-      oldSlug: `${aliases.entries[1].oldSlug}-x`,
-      oldFilename: `${aliases.entries[1].oldSlug}-x.mdx`,
-      newSlug: aliases.entries[0].newSlug,
-      newFilename: `${aliases.entries[0].newSlug}.mdx`,
-    };
+    aliases.entries = aliases.entries.filter(
+      (entry: { oldTicketId: string }) =>
+        entry.oldTicketId === 'SP-53' || entry.oldTicketId === 'GP-53'
+    );
+    aliases.counts = { ...aliases.counts, files: aliases.entries.length };
 
     const result = buildRedirectConfig(aliases);
-    const sharedDestination = articlePath(aliases.entries[0].lang, aliases.entries[0].newSlug);
-    expect(
-      result.redirects.filter((route) => route.destination === sharedDestination)
-    ).toHaveLength(2);
+    const bySource = new Map(result.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
+      expect(bySource.get(source)?.destination).toBe(destination);
+    }
   });
 
   it('fails closed when the route count is at/over the documented budget', () => {
     const bad = cloneManifest();
-    const template = bad.entries[0];
     const neededArticleCount = ROUTE_BUDGET - LISTING_REDIRECT_COUNT;
     const fillerCount = Math.max(0, neededArticleCount - bad.entries.length);
-    const filler = Array.from({ length: fillerCount }, (_, i) => ({
-      ...template,
-      lang: 'zh-tw',
-      oldSlug: `budget-filler-${i}`,
-      oldFilename: `budget-filler-${i}.mdx`,
-      newSlug: `budget-filler-new-${i}`,
-      newFilename: `budget-filler-new-${i}.mdx`,
-    }));
+    const filler = Array.from({ length: fillerCount }, (_, i) => {
+      const number = 100_000 + i;
+      return {
+        lang: 'zh-tw',
+        oldTicketId: `SP-${number}`,
+        newTicketId: `GP-${number}`,
+        oldSlug: `sp-${number}-budget-filler`,
+        oldFilename: `sp-${number}-budget-filler.mdx`,
+        newSlug: `gp-${number}-budget-filler-new`,
+        newFilename: `gp-${number}-budget-filler-new.mdx`,
+      };
+    });
     bad.entries = [...bad.entries, ...filler];
     bad.counts = { ...bad.counts, files: bad.entries.length };
     expect(() => buildRedirectConfig(bad)).toThrow(/route budget/);
