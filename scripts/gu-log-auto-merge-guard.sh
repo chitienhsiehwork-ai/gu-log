@@ -2,8 +2,8 @@
 # gu-log-auto-merge-guard.sh — conservative PR auto-merge gate.
 #
 # This script is intentionally boring: inspect PR state, required checks, and
-# changed paths; only then call GitHub auto-merge. It does not bypass branch
-# protection and it denies sensitive paths by default.
+# changed paths; only then merge the exact verified head. It does not bypass
+# branch protection and it denies sensitive paths by default.
 
 set -euo pipefail
 
@@ -12,8 +12,9 @@ PR_NUMBER=""
 DRY_RUN=0
 ALLOW_LOW_RISK_CODE=0
 PR_JSON_FILE=""
+RECHECK_PR_JSON_FILE=""
 CHECKS_JSON_FILE=""
-CHANGED_FILES_FILE=""
+FILES_JSON_FILE=""
 AUDIT_LOG="${GU_LOG_AUTO_MERGE_AUDIT_LOG:-.auto-merge-guard/decisions.jsonl}"
 GH_BIN="${GH_BIN:-gh}"
 
@@ -27,8 +28,9 @@ Options:
   --allow-low-risk-code         Allow ordinary src/ code in addition to content/glossary lane
   --audit-log <path>            JSONL audit log path
   --pr-json-file <path>         Test hook: read gh pr view JSON from file
+  --recheck-pr-json-file <path> Test hook: read final gh pr view JSON from file
   --checks-json-file <path>     Test hook: read gh pr checks JSON from file
-  --changed-files-file <path>   Test hook: read changed paths from file
+  --files-json-file <path>      Test hook: read structured PR files JSON from file
 EOF
 }
 
@@ -63,12 +65,16 @@ while [ "$#" -gt 0 ]; do
       PR_JSON_FILE="${2:-}"
       shift 2
       ;;
+    --recheck-pr-json-file)
+      RECHECK_PR_JSON_FILE="${2:-}"
+      shift 2
+      ;;
     --checks-json-file)
       CHECKS_JSON_FILE="${2:-}"
       shift 2
       ;;
-    --changed-files-file)
-      CHANGED_FILES_FILE="${2:-}"
+    --files-json-file)
+      FILES_JSON_FILE="${2:-}"
       shift 2
       ;;
     -h|--help)
@@ -86,7 +92,7 @@ done
 if [ -n "$PR_JSON_FILE" ]; then
   PR_JSON="$(cat "$PR_JSON_FILE")"
 else
-  PR_JSON="$("$GH_BIN" pr view "$PR_NUMBER" --repo "$REPO" --json number,state,isDraft,mergeable,baseRefName,headRefName)"
+  PR_JSON="$("$GH_BIN" pr view "$PR_NUMBER" --repo "$REPO" --json number,state,isDraft,mergeable,baseRefName,headRefName,headRefOid,changedFiles)"
 fi
 
 if [ -n "$CHECKS_JSON_FILE" ]; then
@@ -95,18 +101,68 @@ else
   CHECKS_JSON="$("$GH_BIN" pr checks "$PR_NUMBER" --repo "$REPO" --required --json name,state,bucket 2>/dev/null || printf '[]')"
 fi
 
-if [ -n "$CHANGED_FILES_FILE" ]; then
-  CHANGED_FILES="$(cat "$CHANGED_FILES_FILE")"
+if [ -n "$FILES_JSON_FILE" ]; then
+  FILES_JSON="$(cat "$FILES_JSON_FILE")"
 else
-  CHANGED_FILES="$("$GH_BIN" pr diff "$PR_NUMBER" --repo "$REPO" --name-only)"
+  FILES_JSON="$("$GH_BIN" api --paginate --slurp "repos/$REPO/pulls/$PR_NUMBER/files?per_page=100")"
+  FILES_JSON="$(jq -c 'add | map({filename, status, previous_filename})' <<<"$FILES_JSON")"
 fi
 
-deny_reason=""
+if ! jq -e '
+  type == "array"
+  and all(.[ ];
+    (.filename | type) == "string"
+    and (.filename | length) > 0
+    and (.status | type) == "string"
+    and (if .status == "renamed"
+      then ((.previous_filename | type) == "string" and (.previous_filename | length) > 0)
+      else true
+    end)
+  )
+' <<<"$FILES_JSON" >/dev/null; then
+  die "invalid PR files JSON"
+fi
+
+CURRENT_PATHS_JSON="$(jq -c '[.[] | .filename]' <<<"$FILES_JSON")"
+POLICY_PATHS_JSON="$(jq -c '[.[] | .filename, (if .status == "renamed" then .previous_filename else empty end)]' <<<"$FILES_JSON")"
+expected_changed_files="$(jq -r '.changedFiles // ""' <<<"$PR_JSON")"
+actual_changed_files="$(jq 'length' <<<"$FILES_JSON")"
+files_input_deny_reason=""
+if ! [[ "$expected_changed_files" =~ ^[0-9]+$ ]]; then
+  files_input_deny_reason="invalid-changed-files-count"
+elif [ "$actual_changed_files" -ne "$expected_changed_files" ]; then
+  files_input_deny_reason="incomplete-files-list:$expected_changed_files:$actual_changed_files"
+fi
+
+is_flat_post_path() {
+  local path="$1" relative
+  case "$path" in
+    src/content/posts/*.mdx)
+      relative="${path#src/content/posts/}"
+      case "$relative" in
+        ""|*/*) return 1 ;;
+        *) return 0 ;;
+      esac
+      ;;
+  esac
+  return 1
+}
+
+HAS_POST_CHANGE=0
+while IFS= read -r -d '' path; do
+  if is_flat_post_path "$path"; then
+    HAS_POST_CHANGE=1
+    break
+  fi
+done < <(jq -j '.[] | ., "\u0000"' <<<"$CURRENT_PATHS_JSON")
+
+deny_reason="$files_input_deny_reason"
 
 state="$(jq -r '.state // ""' <<<"$PR_JSON")"
 is_draft="$(jq -r '.isDraft // false' <<<"$PR_JSON")"
 mergeable="$(jq -r '.mergeable // ""' <<<"$PR_JSON")"
 base_ref="$(jq -r '.baseRefName // ""' <<<"$PR_JSON")"
+head_oid="$(jq -r '.headRefOid // ""' <<<"$PR_JSON")"
 
 if [ "$state" != "OPEN" ]; then
   deny_reason="pr-state-not-open:$state"
@@ -116,6 +172,8 @@ elif [ "$base_ref" != "main" ]; then
   deny_reason="base-is-not-main:$base_ref"
 elif [ "$mergeable" != "MERGEABLE" ]; then
   deny_reason="not-mergeable:$mergeable"
+elif ! [[ "$head_oid" =~ ^[0-9a-f]{40}$ ]]; then
+  deny_reason="invalid-head-oid"
 fi
 
 if [ -z "$deny_reason" ]; then
@@ -148,9 +206,15 @@ is_denied_path() {
 
 is_allowed_path() {
   local path="$1"
+  if is_flat_post_path "$path"; then
+    return 0
+  fi
   case "$path" in
-    src/content/posts/*.mdx|src/data/glossary.json|src/config/glossary.ts)
+    src/data/glossary.json|src/config/glossary.ts)
       return 0
+      ;;
+    src/data/post-versions.json|src/data/post-reader-revisions.json)
+      [ "$HAS_POST_CHANGE" -eq 1 ] && return 0
       ;;
     src/pages/glossary.astro|src/styles/global.css)
       return 0
@@ -167,11 +231,10 @@ is_allowed_path() {
 }
 
 if [ -z "$deny_reason" ]; then
-  if [ -z "$CHANGED_FILES" ]; then
+  if [ "$(jq 'length' <<<"$FILES_JSON")" -eq 0 ]; then
     deny_reason="no-changed-files"
   else
-    while IFS= read -r path; do
-      [ -n "$path" ] || continue
+    while IFS= read -r -d '' path; do
       if is_denied_path "$path"; then
         deny_reason="denied-path:$path"
         break
@@ -180,7 +243,24 @@ if [ -z "$deny_reason" ]; then
         deny_reason="not-allowlisted:$path"
         break
       fi
-    done <<<"$CHANGED_FILES"
+    done < <(jq -j '.[] | ., "\u0000"' <<<"$POLICY_PATHS_JSON")
+  fi
+fi
+
+if [ -z "$deny_reason" ]; then
+  if [ -n "$RECHECK_PR_JSON_FILE" ]; then
+    RECHECK_PR_JSON="$(cat "$RECHECK_PR_JSON_FILE")"
+  elif [ -n "$PR_JSON_FILE" ]; then
+    RECHECK_PR_JSON="$PR_JSON"
+  else
+    RECHECK_PR_JSON="$("$GH_BIN" pr view "$PR_NUMBER" --repo "$REPO" --json state,headRefOid)"
+  fi
+  recheck_state="$(jq -r '.state // ""' <<<"$RECHECK_PR_JSON")"
+  recheck_head_oid="$(jq -r '.headRefOid // ""' <<<"$RECHECK_PR_JSON")"
+  if [ "$recheck_state" != "OPEN" ]; then
+    deny_reason="pr-state-changed:$recheck_state"
+  elif [ "$recheck_head_oid" != "$head_oid" ]; then
+    deny_reason="head-changed:$head_oid:$recheck_head_oid"
   fi
 fi
 
@@ -197,7 +277,9 @@ jq -nc \
   --arg decision "$decision" \
   --arg reason "${deny_reason:-green-path-guard-passed}" \
   --arg dryRun "$DRY_RUN" \
-  --arg paths "$CHANGED_FILES" \
+  --arg headOid "$head_oid" \
+  --argjson paths "$POLICY_PATHS_JSON" \
+  --argjson files "$FILES_JSON" \
   --arg checks "$CHECKS_JSON" \
   '{
     timestamp: $ts,
@@ -206,7 +288,9 @@ jq -nc \
     decision: $decision,
     reason: $reason,
     dryRun: ($dryRun == "1"),
-    paths: ($paths | split("\n") | map(select(length > 0))),
+    headOid: $headOid,
+    paths: $paths,
+    files: $files,
     checks: ($checks | fromjson)
   }' >>"$AUDIT_LOG"
 
@@ -220,4 +304,4 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" --auto --squash --delete-branch
+exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --match-head-commit "$head_oid"
