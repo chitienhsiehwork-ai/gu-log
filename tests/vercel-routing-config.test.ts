@@ -3,7 +3,9 @@ import * as fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { pathToRegexp } from 'path-to-regexp';
 import {
+  articleRedirectSource,
   assertRouteBudget,
   buildRedirectConfig,
   countPlatformRoutes,
@@ -13,6 +15,7 @@ import {
   ROUTE_BUDGET,
   RedirectConfigError,
 } from '../vercel.mjs';
+import { materializeRedirectSources } from '../scripts/verify-brand-redirects.mjs';
 import {
   buildLegacySurfaces,
   isLegacyUrlPath,
@@ -109,7 +112,7 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('maps every manifest entry to its exact canonical source/destination with permanent:true', () => {
     const bySource = new Map(config.redirects.map((r) => [r.source, r]));
     for (const entry of manifest.entries) {
-      const source = articlePath(entry.lang, entry.oldSlug);
+      const source = articleRedirectSource(entry.lang, entry.oldSlug);
       const destination = articlePath(entry.lang, entry.newSlug);
       const redirect = bySource.get(source);
       expect(redirect, `missing redirect for ${source}`).toBeDefined();
@@ -121,7 +124,7 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('fans the real SP-53 and GP-53 localized aliases directly into MP-316', () => {
     const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
     for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
-      const redirect = bySource.get(source);
+      const redirect = bySource.get(`${source}{/}?`);
       expect(redirect, `missing reclassified redirect for ${source}`).toBeDefined();
       expect(redirect!.destination).toBe(destination);
       expect(redirect!.permanent).toBe(true);
@@ -142,9 +145,30 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     });
 
     const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
-    expect(bySource.get('/posts/sp-163-20260405-meta-alchemist-claude-claude')?.destination).toBe(
-      '/posts/gp-162-20260405-meta-alchemist-claude-claude'
-    );
+    expect(
+      bySource.get('/posts/sp-163-20260405-meta-alchemist-claude-claude{/}?')?.destination
+    ).toBe('/posts/gp-162-20260405-meta-alchemist-claude-claude');
+  });
+
+  it('matches each exact article alias with or without one trailing slash only', () => {
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const entry of manifest.entries) {
+      const path = articlePath(entry.lang, entry.oldSlug);
+      const source = articleRedirectSource(entry.lang, entry.oldSlug);
+      const redirect = bySource.get(source);
+      expect(redirect, `missing exact optional-slash rule for ${path}`).toBeDefined();
+
+      const matcher = pathToRegexp(source, [], {
+        strict: true,
+        sensitive: true,
+        delimiter: '/',
+      });
+      expect(matcher.test(path)).toBe(true);
+      expect(matcher.test(`${path}/`)).toBe(true);
+      expect(matcher.test(`${path}//`)).toBe(false);
+      expect(matcher.test(`${path}/extra`)).toBe(false);
+      expect(materializeRedirectSources(source)).toEqual([path, `${path}/`]);
+    }
   });
 
   it('derives every legacy article source from the lowercase evidence filename stem', () => {
@@ -162,8 +186,8 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     const sources = new Set(config.redirects.map((redirect) => redirect.source));
     for (const entry of mixedCaseEntries) {
       const evidenceStem = path.basename(entry.oldFilename, '.mdx');
-      const lowercaseRoute = articlePath(entry.lang, evidenceStem.toLowerCase());
-      const mixedCaseRoute = articlePath(entry.lang, evidenceStem);
+      const lowercaseRoute = articleRedirectSource(entry.lang, evidenceStem.toLowerCase());
+      const mixedCaseRoute = articleRedirectSource(entry.lang, evidenceStem);
       expect(sources.has(lowercaseRoute), `missing lowercase route ${lowercaseRoute}`).toBe(true);
       expect(sources.has(mixedCaseRoute), `unexpected mixed-case route ${mixedCaseRoute}`).toBe(
         false
@@ -197,6 +221,22 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     for (const source of listingSources) {
       expect(source).not.toContain(':path*');
     }
+  });
+
+  it('materializes finite listing rules but rejects unknown regex source shapes', () => {
+    const [listingSource] = EXPECTED_LISTING_REDIRECTS[0];
+    const [paginatedSource] = EXPECTED_LISTING_REDIRECTS[1];
+    expect(materializeRedirectSources(listingSource)).toEqual([listingSource]);
+    expect(materializeRedirectSources(paginatedSource)).toEqual([`${listingSource}/2`]);
+    expect(() => materializeRedirectSources('/posts/:slug(.*)')).toThrow(
+      /unsupported redirect source/
+    );
+    expect(() => materializeRedirectSources('/unknown-listing')).toThrow(
+      /unsupported redirect source/
+    );
+    expect(() => materializeRedirectSources('/evil/:page(\\d+)')).toThrow(
+      /unsupported redirect source/
+    );
   });
 
   it('has no duplicate sources or self-loops', () => {
@@ -417,7 +457,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     const result = buildRedirectConfig(aliases);
     const bySource = new Map(result.redirects.map((redirect) => [redirect.source, redirect]));
     for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
-      expect(bySource.get(source)?.destination).toBe(destination);
+      expect(bySource.get(`${source}{/}?`)?.destination).toBe(destination);
     }
   });
 
