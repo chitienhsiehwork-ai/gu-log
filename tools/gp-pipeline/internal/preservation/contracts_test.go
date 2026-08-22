@@ -92,12 +92,13 @@ func TestApplyPatchesRejectsStaleOverlapParagraphAndFrontmatter(t *testing.T) {
 func TestValidateManifestRejectsMissingStaleAndInvalidVerdicts(t *testing.T) {
 	source, projection := []byte("source"), []byte("body")
 	profileHash := SHA256([]byte("profile"))
+	jingjingPolicyHash := SHA256([]byte("jingjing-policy"))
 	now := time.Now().UTC()
 	gate := func(name string) GateEnvelope {
 		return GateEnvelope{Version: ContractVersion, Gate: name, SourceSHA256: SHA256(source), BodyProjectionSHA256: SHA256(projection), Verdict: "PASS", Provenance: Provenance{Role: name, Provider: "fixture", Model: name + "-model", Harness: "go-test", CompletedAt: now}}
 	}
-	m := PublishManifest{Version: ContractVersion, ProfileSHA256: profileHash, SourceSHA256: SHA256(source), BodyProjectionSHA256: SHA256(projection), Verdict: "PASS", Gates: []GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
-	if err := ValidateManifest(m, source, projection, []string{"source-reviewer", "vibe-scorer"}, profileHash); err != nil {
+	m := PublishManifest{Version: ContractVersion, ProfileSHA256: profileHash, JingjingPolicySHA256: jingjingPolicyHash, SourceSHA256: SHA256(source), BodyProjectionSHA256: SHA256(projection), Verdict: "PASS", Gates: []GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now}
+	if err := ValidateManifest(m, source, projection, []string{"source-reviewer", "vibe-scorer"}, profileHash, jingjingPolicyHash); err != nil {
 		t.Fatal(err)
 	}
 	tests := map[string]func(*PublishManifest){
@@ -107,13 +108,14 @@ func TestValidateManifestRejectsMissingStaleAndInvalidVerdicts(t *testing.T) {
 		"invalid verdict":    func(m *PublishManifest) { m.Gates[0].Verdict = "MAYBE" },
 		"missing provenance": func(m *PublishManifest) { m.Gates[0].Provenance.Model = "" },
 		"stale profile":      func(m *PublishManifest) { m.ProfileSHA256 = SHA256([]byte("old-profile")) },
+		"stale Jingjing":     func(m *PublishManifest) { m.JingjingPolicySHA256 = SHA256([]byte("old-policy")) },
 	}
 	for name, mutate := range tests {
 		t.Run(name, func(t *testing.T) {
 			copy := m
 			copy.Gates = append([]GateEnvelope(nil), m.Gates...)
 			mutate(&copy)
-			if ValidateManifest(copy, source, projection, []string{"source-reviewer", "vibe-scorer"}, profileHash) == nil {
+			if ValidateManifest(copy, source, projection, []string{"source-reviewer", "vibe-scorer"}, profileHash, jingjingPolicyHash) == nil {
 				t.Fatal("expected rejection")
 			}
 		})
