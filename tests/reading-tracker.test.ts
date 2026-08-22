@@ -593,6 +593,19 @@ describe('gist-sync', () => {
     expect(m.getGitHubToken()).toBeNull();
   });
 
+  it('getGuLogSessionToken fails closed when auth storage is unavailable', async () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('auth storage denied', 'SecurityError');
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    try {
+      expect(m.getGuLogSessionToken()).toBeNull();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   it('falls through to PAT when JWT lacks token', async () => {
     (globalThis as any).localStorage.setItem('gu-log-github-pat', 'ghp_pat_abc');
     const m = await import('../src/lib/gist-sync');
