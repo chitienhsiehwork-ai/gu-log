@@ -9,7 +9,7 @@ const componentSource = readFileSync(
 describe('Search loading budget', () => {
   it('loads Fuse with the locale index only after the first search', () => {
     expect(componentSource).not.toMatch(
-      /(?:^|\n)\s*import\s+(?!type\b)[^;\n]+from\s+['"]fuse\.js['"]/
+      /(?:^|\n)\s*import\s+(?!type\b)[^;\n]+from\s+['"]fuse\.js(?:\/basic)?['"]/
     );
 
     const loaderStart = componentSource.indexOf('async function loadSearchIndex');
@@ -19,7 +19,7 @@ describe('Search loading budget', () => {
 
     const loaderSource = componentSource.slice(loaderStart, loaderEnd);
     expect(loaderSource).toContain('Promise.all([');
-    expect(loaderSource).toContain("import('fuse.js')");
+    expect(loaderSource).toContain("import('fuse.js/basic')");
     expect(loaderSource).toContain('fetch(`/search-index.${currentLang}.json`)');
   });
 });
