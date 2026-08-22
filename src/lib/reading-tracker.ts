@@ -30,11 +30,12 @@ export interface ReadStoreV2 {
 }
 
 type ReadStore = ReadStoreV2;
-
-interface StoreLoadResult {
-  store: ReadStore;
-  storageReadable: boolean;
-}
+type ReadStateUpdate = readonly [
+  slug: string,
+  read?: boolean,
+  currentRevision?: string | null,
+  method?: ReadMethod,
+];
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -206,36 +207,36 @@ function emptyStore(): ReadStoreV2 {
   return { version: 2, slugs: [], records: [], lastUpdated: nowIso() };
 }
 
-function loadStore(): StoreLoadResult {
+function loadStore(): ReadStore | null {
   let raw: string | null;
   try {
     raw = localStorage.getItem(STORAGE_KEY);
   } catch {
-    return { store: emptyStore(), storageReadable: false };
+    return null;
   }
 
   if (!raw) {
-    return { store: emptyStore(), storageReadable: true };
+    return emptyStore();
   }
 
   try {
     const parsed = parseReadStore(JSON.parse(raw));
     if (parsed?.version === 2) {
-      return { store: parsed, storageReadable: true };
+      return parsed;
     }
     if (parsed?.version === 1) {
       const migrated = migrateV1(parsed);
       if (saveStore(migrated)) recordV1Migration(migrated);
-      return { store: migrated, storageReadable: true };
+      return migrated;
     }
   } catch {
     // Corrupt data is still writable storage; mutations may replace it.
   }
-  return { store: emptyStore(), storageReadable: true };
+  return emptyStore();
 }
 
 function getStore(): ReadStore {
-  return loadStore().store;
+  return loadStore() ?? emptyStore();
 }
 
 function saveStore(store: ReadStore): boolean {
@@ -301,38 +302,26 @@ export function markAsRead(
   method: ReadMethod = 'manual_mark_read',
   currentRevision?: string | null
 ): boolean {
-  const { store, storageReadable } = loadStore();
-  if (!storageReadable) return false;
-  markStoreAsRead(store, slug, method, currentRevision);
-  return saveStore(store);
+  return setReadStates([[slug, true, currentRevision, method]]) !== null;
 }
 
 export function markAsUnread(slug: string): boolean {
-  const { store, storageReadable } = loadStore();
-  if (!storageReadable) return false;
-  markStoreAsUnread(store, slug);
-  return saveStore(store);
+  return setReadStates([[slug, false]]) !== null;
 }
 
-export function setReadStates(
-  updates: readonly {
-    slug: string;
-    read: boolean;
-    currentRevision?: string | null;
-  }[]
-): boolean {
-  if (updates.length === 0) return true;
-
-  const { store, storageReadable } = loadStore();
-  if (!storageReadable) return false;
-  for (const update of updates) {
-    if (update.read) {
-      markStoreAsRead(store, update.slug, 'manual_mark_read', update.currentRevision);
+export function setReadStates(updates: readonly ReadStateUpdate[]): boolean | null {
+  const store = loadStore();
+  if (!store) return null;
+  let read = true;
+  for (const [slug, requestedRead, currentRevision, method = 'manual_mark_read'] of updates) {
+    read = requestedRead ?? !store.slugs.includes(slug);
+    if (read) {
+      markStoreAsRead(store, slug, method, currentRevision);
     } else {
-      markStoreAsUnread(store, update.slug);
+      markStoreAsUnread(store, slug);
     }
   }
-  return saveStore(store);
+  return saveStore(store) ? read : null;
 }
 
 export function isRead(slug: string): boolean {
@@ -372,16 +361,7 @@ export function getReadState(
 }
 
 export function toggleRead(slug: string, currentRevision?: string | null): boolean | null {
-  const { store, storageReadable } = loadStore();
-  if (!storageReadable) return null;
-
-  const nowRead = store.slugs.indexOf(slug) === -1;
-  if (nowRead) {
-    markStoreAsRead(store, slug, 'manual_mark_read', currentRevision);
-  } else {
-    markStoreAsUnread(store, slug);
-  }
-  return saveStore(store) ? nowRead : null;
+  return setReadStates([[slug, undefined, currentRevision]]);
 }
 
 export function getStats(currentRevisions?: Record<string, string | null>) {

@@ -176,9 +176,9 @@ describe('reading-tracker', () => {
     try {
       expect(
         m.setReadStates([
-          { slug: 'gp-existing', read: false },
-          { slug: 'gp-a', read: true, currentRevision: 'rev-a' },
-          { slug: 'gp-b', read: true, currentRevision: 'rev-b' },
+          ['gp-existing', false],
+          ['gp-a', true, 'rev-a'],
+          ['gp-b', true, 'rev-b'],
         ])
       ).toBe(true);
       expect(setItem).toHaveBeenCalledTimes(1);
@@ -188,6 +188,14 @@ describe('reading-tracker', () => {
 
     expect(m.getReadSlugs().sort()).toEqual(['gp-a', 'gp-b']);
     expect(m.getReadState('gp-a', 'rev-a')).toBe('current');
+  });
+
+  it('reports a successful bulk unread as false rather than a persistence failure', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+
+    expect(m.setReadStates([['gp-existing', false]])).toBe(false);
+    expect(m.isRead('gp-existing')).toBe(false);
   });
 
   it('keeps the whole prior store when a bulk write is rejected', async () => {
@@ -201,11 +209,11 @@ describe('reading-tracker', () => {
     try {
       expect(
         m.setReadStates([
-          { slug: 'gp-existing', read: false },
-          { slug: 'gp-a', read: true, currentRevision: 'rev-a' },
-          { slug: 'gp-b', read: true, currentRevision: 'rev-b' },
+          ['gp-existing', false],
+          ['gp-a', true, 'rev-a'],
+          ['gp-b', true, 'rev-b'],
         ])
-      ).toBe(false);
+      ).toBeNull();
     } finally {
       setItem.mockRestore();
     }

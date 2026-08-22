@@ -218,13 +218,7 @@ const totalArticles = allPosts.length;
 </BaseLayout>
 
 <script>
-  import {
-    toggleRead,
-    setReadStates,
-    getReadRecordMap,
-    exportJson,
-    importJson,
-  } from '../lib/reading-tracker';
+  import { setReadStates, getReadRecordMap, exportJson, importJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -359,7 +353,7 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const row = btn.closest<HTMLElement>('.article-row')!;
       const slug = row.dataset.slug!;
-      const nowRead = toggleRead(slug, row.dataset.currentRevision || null);
+      const nowRead = setReadStates([[slug, undefined, row.dataset.currentRevision]]);
       if (nowRead === null) return;
       updateAllRows();
     });
@@ -385,13 +379,9 @@ const totalArticles = allPosts.length;
       const group = btn.dataset.group!;
       const updates = Array.from(
         document.querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`),
-        (row) => ({
-          slug: row.dataset.slug!,
-          read: action === 'read',
-          currentRevision: row.dataset.currentRevision || null,
-        })
+        (row) => [row.dataset.slug!, action === 'read', row.dataset.currentRevision] as const
       );
-      if (!setReadStates(updates)) return;
+      if (setReadStates(updates) === null) return;
       updateAllRows();
     });
   });

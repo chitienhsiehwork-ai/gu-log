@@ -55,7 +55,9 @@ describe('reading tracker semantic status colors', () => {
   });
 
   it('keeps manual read UI, telemetry, events, and sync unchanged after a failed write', () => {
-    const toggle = readButtonSource.indexOf('const nowRead = toggleRead(slug, readerRevision)');
+    const toggle = readButtonSource.indexOf(
+      'const nowRead = setReadStates([[slug, undefined, readerRevision]])'
+    );
     const failedWriteGuard = readButtonSource.indexOf('if (nowRead === null) return;', toggle);
     const recordSignal = readButtonSource.indexOf('recordManualMarkRead', toggle);
     const updateUi = readButtonSource.indexOf('updateUI(nowRead)', toggle);
@@ -72,7 +74,7 @@ describe('reading tracker semantic status colors', () => {
 
   it('only updates auto-read UI and sync after the tracker write succeeds', () => {
     const persistRead = readButtonSource.indexOf(
-      "const readPersisted = markAsRead(slug, 'active_scroll_end', readerRevision)"
+      "setReadStates([[slug, true, readerRevision, 'active_scroll_end']]) !== null"
     );
     const successGuard = readButtonSource.indexOf('if (readPersisted) {', persistRead);
     const recordFinish = readButtonSource.indexOf('recordReadFinish', persistRead);
@@ -96,7 +98,7 @@ describe('reading tracker semantic status colors', () => {
 
   it('does not read back dashboard state after a failed single or bulk mutation', () => {
     const singleToggle = source.indexOf(
-      'const nowRead = toggleRead(slug, row.dataset.currentRevision || null)'
+      'const nowRead = setReadStates([[slug, undefined, row.dataset.currentRevision]])'
     );
     const singleGuard = source.indexOf('if (nowRead === null) return;', singleToggle);
     const singleReadback = source.indexOf('updateAllRows()', singleToggle);
@@ -107,7 +109,7 @@ describe('reading tracker semantic status colors', () => {
 
     const bulkUpdates = source.indexOf('const updates = Array.from(');
     const bulkMutation = source.indexOf('setReadStates(updates)', bulkUpdates);
-    const bulkGuard = source.indexOf('if (!setReadStates(updates)) return;', bulkUpdates);
+    const bulkGuard = source.indexOf('if (setReadStates(updates) === null) return;', bulkUpdates);
     const bulkReadback = source.indexOf('updateAllRows()', bulkGuard);
 
     expect(bulkUpdates).toBeGreaterThanOrEqual(0);
