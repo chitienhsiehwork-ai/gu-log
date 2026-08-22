@@ -176,6 +176,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 
       btn.addEventListener('click', () => {
         const nowRead = toggleRead(slug, readerRevision);
+        if (nowRead === null) return;
         if (nowRead) {
           recordManualMarkRead(getSnapshot(el));
         }
@@ -290,24 +291,26 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
         if (entries[0].isIntersecting) {
           // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
           finished = true;
-          markAsRead(slug, 'active_scroll_end', readerRevision);
+          const readPersisted = markAsRead(slug, 'active_scroll_end', readerRevision);
           recordReadFinish(getSnapshot(el!), {
             method: 'active_scroll_end',
             activeReadMs: checkpointActiveRead(),
             maxScrollPercent: Math.max(maxScrollPercent, 100),
           });
-          markDirtyForSync();
-          scheduleDebouncedSync();
-          // Update button UI
-          document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
-            if (btn.dataset.slug === slug) {
-              btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
-              btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
-              btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
-            }
-          });
+          if (readPersisted) {
+            markDirtyForSync();
+            scheduleDebouncedSync();
+            // Update button UI
+            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+              if (btn.dataset.slug === slug) {
+                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+              }
+            });
+          }
           cleanupTracking();
         }
       },
