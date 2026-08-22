@@ -1233,6 +1233,48 @@
       "reason": "Routing config test uses a synthetic unmapped slug to prove unknown legacy article URLs stay unmapped (negative scope)."
     },
     {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "post-slug",
+      "token": "sp-53-20260213-openclaw-setup-guide-review",
+      "expectedCount": 2,
+      "reason": "Routing regression fixture names the exact retired zh-tw article alias that must redirect directly to MP-316."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "post-slug",
+      "token": "sp-163-20260405-meta-alchemist-claude-claude",
+      "expectedCount": 3,
+      "reason": "Routing regression fixture preserves the exact historical filename alias whose route ticket differed from its content ticket."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-53",
+      "expectedCount": 2,
+      "reason": "Routing regression fixture names the retired ticket only to prove its exact aliases fan into MP-316."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-162",
+      "expectedCount": 2,
+      "reason": "Routing regression fixture preserves the historical article's real content identity while testing its explicit route identity."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-163",
+      "expectedCount": 4,
+      "reason": "Routing regression fixture names the historical route identity and validates its narrow override boundary."
+    },
+    {
+      "path": "tests/vercel-routing-config.test.ts",
+      "rule": "ticket-id",
+      "token": "SP-164",
+      "expectedCount": 1,
+      "reason": "Negative routing fixture proves a route-ticket override must match the historical filename number."
+    },
+    {
       "path": "specs/review-tribunal.md",
       "rule": "dangling-root-series-script-reference",
       "token": "scripts/gp-pipeline.sh",
@@ -1257,22 +1299,22 @@
       "path": "vercel.mjs",
       "rule": "legacy-route",
       "token": "clawd-picks",
-      "expectedCount": 1,
-      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
+      "expectedCount": 2,
+      "reason": "Redirect config defines the retired listing route and its exact historical filename grammar."
     },
     {
       "path": "vercel.mjs",
       "rule": "legacy-route",
       "token": "shroom-picks",
-      "expectedCount": 1,
-      "reason": "Doc comment naming the never-published listing namespace that intentionally has no redirect rule."
+      "expectedCount": 2,
+      "reason": "Redirect config names the never-published listing boundary and the exact historical filename grammar that used the same token."
     },
     {
       "path": "vercel.mjs",
       "rule": "legacy-route",
       "token": "shroomdog-picks",
-      "expectedCount": 1,
-      "reason": "Redirect config source route for the retired listing namespace; the only place old->new listing routes are defined."
+      "expectedCount": 2,
+      "reason": "Redirect config defines the retired listing route and its exact historical filename grammar."
     }
   ]
 }

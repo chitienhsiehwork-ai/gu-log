@@ -1,30 +1,6 @@
 <!-- md-zh-tw: ignore -->
 
-# brand-taxonomy Specification
-
-## Purpose
-
-Define the one canonical Mogu / GP / MP vocabulary across public UI, stored data, routes, feeds, pipelines, and operator-facing contracts, including the rules for an atomic breaking migration from retired taxonomy.
-## Requirements
-### Requirement: Public and machine taxonomy SHALL share one canonical vocabulary
-
-gu-log SHALL use the same canonical names in reader-facing UI and machine-facing storage. The commentary persona SHALL be `Mogu`; its note component SHALL be `MoguNote`; its Vibe score dimension SHALL be `moguNote`. The external-content series SHALL be `GP` (`Gu-log Picks`) for source-author-voice faithful translation and `MP` (`Mogu Picks`) for Mogu-authored source-grounded writing. Original and tutorial series SHALL remain `SD` and `Lv`.
-
-The application SHALL NOT store a retired taxonomy alias and translate it to GP/MP only at render time. Frontmatter, filenames, routes, counters, filters, APIs, search, feeds, pipelines, tests and generated data SHALL use the canonical values directly.
-
-#### Scenario: GP article renders without an alias translation
-
-- **GIVEN** a Gu-log Picks article has ticket `GP-258`
-- **WHEN** the article is indexed, rendered, searched or returned by the feed API
-- **THEN** every layer SHALL use `GP-258`
-- **AND** no layer SHALL first store a retired alias and replace its prefix for display
-
-#### Scenario: MP article uses the same identity across layers
-
-- **GIVEN** a Mogu Picks article has ticket `MP-314` and an `mp-314-*` slug
-- **WHEN** pipeline output is validated and published
-- **THEN** counter, frontmatter, filename, route, badge, search and feed SHALL agree on the MP identity
-- **AND** reader-facing copy SHALL identify its source-grounded Mogu writing contract rather than translation
+## MODIFIED Requirements
 
 ### Requirement: Canonical series routes and CLI paths SHALL match the taxonomy
 
@@ -87,31 +63,6 @@ Reader-facing listing and article URLs that were publicly reachable before being
 - **THEN** the application SHALL NOT synthesize a destination from a legacy prefix
 - **AND** the request SHALL remain retired with the contract-appropriate 404, 410, or validation failure
 
-### Requirement: Legacy branding contracts SHALL be retired atomically
-
-The merge-ready tree SHALL NOT expose `Clawd`, `ClawdNote`, `clawdNote`, ShroomDog Picks / `SP`, or Clawd Picks / `CP` as active persona, component, schema, series, ticket, slug, route, tag, pipeline or authoring contract. Legacy aliases, fallback readers, dual writers, display translations and wrappers SHALL be removed in the same change after data migration succeeds.
-
-The only permitted legacy compatibility surface SHALL be the declarative reader-facing HTTP redirects sourced from `quality/brand-taxonomy-post-migration.json` plus the finite set of actual legacy listing routes. Redirect sources MAY contain retired public URL tokens solely in the centralized routing implementation, tests, specifications and operations evidence. New content, sitemap entries and generated links SHALL remain canonical-only, and deterministic taxonomy checks SHALL reject legacy tokens outside those exact audited exceptions.
-
-#### Scenario: New content attempts to use a retired contract
-
-- **WHEN** a changed post, prompt, fixture or runtime file introduces `ClawdNote`, `clawdNote`, an `SP-N` / `CP-N` ticket, or an `sp-` / `cp-` canonical slug
-- **THEN** the deterministic taxonomy gate SHALL fail
-- **AND** the diagnostic SHALL identify the file, token and expected canonical replacement
-
-#### Scenario: Merge-ready site retains only the public URL boundary
-
-- **WHEN** the migration is complete
-- **THEN** the site SHALL retain only controlled HTTP redirects for manifest-backed old articles and actual legacy listings
-- **AND** SHALL NOT retain Reader Tracker slug aliases, API aliases, SP pipeline shims, a ClawdNote wrapper, legacy frontmatter, legacy counters, or other machine compatibility paths
-- **AND** all repo-owned callers and generated links SHALL already use the canonical contract
-
-#### Scenario: Taxonomy gate audits intentional redirect sources
-
-- **WHEN** a redirect source contains a retired public slug or listing token
-- **THEN** its file, pattern, reason and expected count SHALL be centralized in the exact residual allowlist
-- **AND** stale, broadened or newly introduced exceptions SHALL fail the taxonomy gate
-
 ### Requirement: Migration SHALL preserve numeric article identity and pair integrity
 
 At the initial taxonomy cutover, existing SP and CP article numbers SHALL map one-to-one to the same numeric GP and MP identities. Translation pairs SHALL retain matching ticket IDs and base slugs. Counter next values SHALL move to the new namespace without decrementing or reallocating a published number.
@@ -141,45 +92,3 @@ A later editorial correction or reclassification MAY replace that article with a
 - **AND** the withdrawn ticket SHALL NOT be assigned to another article
 - **AND** zh-tw and English SHALL share the replacement ticket
 - **AND** all earlier public URLs SHALL resolve through exact aliases to that pair
-
-### Requirement: Factual names and deployment coordinates SHALL not be corrupted by branding migration
-
-The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain retired naming MAY remain only when they are actual deployment coordinates rather than persona branding.
-
-Immutable history trees such as `sources/**` and archived OpenSpec decision records MAY be named as scanner-scope exclusions. Active code, docs, posts and authoring inputs SHALL NOT use broad directory exclusions: every allowed residual there SHALL be centralized as exact path + exact token/pattern + reason + expected count. The scanner SHALL target semantically explicit ticket, slug, route, tag, label, component, schema-key and command patterns rather than bare `SP` / `CP` substrings.
-
-#### Scenario: Article discusses Claude Code
-
-- **WHEN** a post factually names Claude Code or Anthropic
-- **THEN** the migration SHALL leave that product/entity name unchanged
-- **AND** the residual checker SHALL NOT confuse `Claude` with the retired persona name
-
-#### Scenario: Operator still uses a legacy SSH coordinate
-
-- **WHEN** an operator must still connect through an actual legacy SSH alias or host-specific Unix path
-- **THEN** the coordinate MAY remain in local machine context or external runtime config
-- **AND** tracked repo docs / scripts SHALL prefer neutral host/path variables
-- **AND** any unavoidable active-tree coordinate SHALL have an exact allowlist entry and reason
-
-### Requirement: Reader-facing series labels MUST state the editorial relationship to source
-
-Reader-facing zh-TW 與 English UI SHALL 用符合系列 contract 的文字描述 source relationship。GP SHALL 使用翻譯語言；MP SHALL 使用 source-grounded writing 語言，並清楚指出正文由 Mogu 依來源撰寫。MP SHALL NOT 顯示為「翻譯自」、「原文出處」、`Translated from`、`Original source` 或 translation pipeline，也 SHALL NOT 假裝成沒有來源的 original writing。
-
-#### Scenario: GP keeps translation labels
-
-- **WHEN** reader 開啟 GP 首頁卡片、系列頁或文章頁
-- **THEN** zh-TW UI SHALL 使用「翻譯自／原文出處／翻譯 pipeline」等 translation language
-- **AND** English UI SHALL 使用對應的 translation language
-
-#### Scenario: MP uses source-material labels
-
-- **WHEN** reader 開啟 MP 首頁卡片、系列頁或文章頁
-- **THEN** zh-TW UI SHALL 使用「來源材料／Mogu 依來源撰寫」等 source-grounded language
-- **AND** English UI SHALL 使用 `Source material` 或同義的 source-grounded language
-- **AND** MP technical details SHALL 描述 source-grounded writing pipeline
-
-#### Scenario: legacy MP receives no new verification claim
-
-- **WHEN** 既有 MP 使用新的中性 source-grounded label
-- **THEN** UI SHALL NOT 宣稱該文曾通過本 change 之後才建立的 judge 或 verification
-- **AND** SHALL NOT 因 label 更新而改寫文章內容或 frontmatter
