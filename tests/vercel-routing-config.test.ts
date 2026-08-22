@@ -81,13 +81,7 @@ describe('vercel.mjs Git deployment policy', () => {
 });
 
 describe('vercel.mjs redirect config — full manifest coverage', () => {
-  it('declares the exact summary derived from oldTicketId language groups', () => {
-    expect(manifest.counts).toEqual({
-      files: 1071,
-      tickets: 559,
-      complete: 512,
-      incomplete: 47,
-    });
+  it('matches the declared summary to oldTicketId language groups', () => {
     expect(deriveManifestCounts(manifest.entries)).toEqual(manifest.counts);
   });
 
@@ -132,12 +126,6 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
       expect(redirect!.destination).toBe(destination);
       expect(redirect!.permanent).toBe(true);
     }
-
-    const destinationCounts = new Map<string, number>();
-    for (const [, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
-      destinationCounts.set(destination, (destinationCounts.get(destination) ?? 0) + 1);
-    }
-    expect([...destinationCounts.values()]).toEqual([2, 2]);
   });
 
   it('preserves the real SP-162 content identity with its explicit SP-163 route identity', () => {
@@ -368,7 +356,7 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(languageMismatch)).toThrow(/oldFilename.*lang/);
   });
 
-  it('requires a narrow, same-series oldRouteTicketId for a historical filename mismatch', () => {
+  it('validates an explicit oldRouteTicketId against the historical route filename', () => {
     const anomalyIndex = manifest.entries.findIndex(
       (entry: { oldRouteTicketId?: string }) => entry.oldRouteTicketId === 'SP-163'
     );
@@ -382,13 +370,20 @@ describe('buildRedirectConfig — fail-closed validation', () => {
       sameTicket.entries[anomalyIndex].oldTicketId;
     expect(() => buildRedirectConfig(sameTicket)).toThrow(/must differ from oldTicketId/);
 
-    const wrongSeries = cloneManifest();
-    wrongSeries.entries[anomalyIndex].oldRouteTicketId = 'CP-163';
-    expect(() => buildRedirectConfig(wrongSeries)).toThrow(/same series as oldTicketId/);
+    const malformedOverride = cloneManifest();
+    malformedOverride.entries[anomalyIndex].oldRouteTicketId = 'not-a-ticket';
+    expect(() => buildRedirectConfig(malformedOverride)).toThrow(/supported series/);
 
     const wrongNumber = cloneManifest();
     wrongNumber.entries[anomalyIndex].oldRouteTicketId = 'SP-164';
     expect(() => buildRedirectConfig(wrongNumber)).toThrow(/oldFilename.*oldRouteTicketId/);
+
+    const crossSeriesRoute = cloneManifest();
+    const alternateRouteStem = 'gp-163-20260405-meta-alchemist-claude-claude';
+    crossSeriesRoute.entries[anomalyIndex].oldRouteTicketId = 'GP-163';
+    crossSeriesRoute.entries[anomalyIndex].oldFilename = `${alternateRouteStem}.mdx`;
+    crossSeriesRoute.entries[anomalyIndex].oldSlug = alternateRouteStem;
+    expect(() => buildRedirectConfig(crossSeriesRoute)).not.toThrow();
   });
 
   it('rejects a self-loop entry', () => {

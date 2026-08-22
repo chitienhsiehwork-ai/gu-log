@@ -279,28 +279,15 @@ export function buildRedirectConfig(manifest) {
       entry.newSlug,
       'content'
     );
-    const oldTicket = parseTicketId(
-      `${label}.oldTicketId`,
-      entry.oldTicketId,
-      HISTORICAL_TICKET_SERIES
-    );
+    parseTicketId(`${label}.oldTicketId`, entry.oldTicketId, HISTORICAL_TICKET_SERIES);
     let routeTicketLabel = 'oldTicketId';
     let routeTicketId = entry.oldTicketId;
     let allowLegacyBrandPrefix = true;
     if (entry.oldRouteTicketId !== undefined) {
-      const oldRouteTicket = parseTicketId(
-        `${label}.oldRouteTicketId`,
-        entry.oldRouteTicketId,
-        HISTORICAL_TICKET_SERIES
-      );
+      parseTicketId(`${label}.oldRouteTicketId`, entry.oldRouteTicketId, HISTORICAL_TICKET_SERIES);
       if (entry.oldRouteTicketId === entry.oldTicketId) {
         throw new RedirectConfigError(
           `${label}.oldRouteTicketId must differ from oldTicketId when present`
-        );
-      }
-      if (oldRouteTicket.series !== oldTicket.series) {
-        throw new RedirectConfigError(
-          `${label}.oldRouteTicketId must use the same series as oldTicketId`
         );
       }
       routeTicketLabel = 'oldRouteTicketId';

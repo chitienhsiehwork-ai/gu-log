@@ -129,6 +129,10 @@ function seedLinkMaintenanceRepo(
 function runLinkMaintenanceHook(repo: string, post: string, line: string) {
   fs.writeFileSync(post, `---\nticketId: MP-162\nlang: zh-tw\n---\n${line}\n`);
   execSync('git add -A', { cwd: repo });
+  return runStagedLinkMaintenanceHook(repo);
+}
+
+function runStagedLinkMaintenanceHook(repo: string) {
   return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
     cwd: repo,
     env: makeScoreGateProbeEnv(),
@@ -239,6 +243,48 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
     expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
   });
 
+  it('rejects reordered canonical-link lines even when every added link validates', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n第一筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第二筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n`
+    );
+    commitAll(repo, 'base ordered canonical links');
+
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n第二筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第一筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n`
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects prose-only reordering when no internal post link changed', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第一段\n第二段\n`
+    );
+    commitAll(repo, 'base prose order');
+
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第二段\n第一段\n`
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
   it('rejects a label-only arbitrary prose change', () => {
     const repo = makeFakeRepo();
     const post = seedLinkMaintenanceRepo(repo, CANONICAL_TARGET_LABEL, CANONICAL_TARGET_URL);
@@ -287,6 +333,28 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
     expect(runLinkValidator(repo, post).status).toBe(1);
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+  });
+
+  it.each([
+    ['a malformed canonical ticketId', 'NOT-A-CANONICAL-TICKET'],
+    ['a ticketId that disagrees with the mp-316 filename', 'MP-317'],
+  ])('rejects %s in staged target frontmatter', (_name, ticketId) => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
+    fs.writeFileSync(
+      target,
+      `---\nticketId: ${ticketId}\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\ninvalid identity\n`
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[${ticketId}: ${CANONICAL_TARGET_TITLE}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
   });
 
   it('rejects an ambiguous staged target route', () => {

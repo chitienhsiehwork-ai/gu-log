@@ -13,6 +13,7 @@ const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 const GLOSSARY_LINK = /^\/(?:en\/)?glossary#[^)\n]+$/u;
 const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 const CANONICAL_POST_LINK = /^\/(en\/)?posts\/([a-z0-9][a-z0-9-]*)\/$/u;
+const CANONICAL_TICKET_ID = /^(GP|MP)-([1-9]\d*)$/u;
 
 function git(args, options = {}) {
   return execFileSync('git', args, {
@@ -39,7 +40,6 @@ function stagedPostRecords() {
 
 function changedLines(file) {
   const diff = git(['diff', '--cached', '--no-color', '-U0', '--', file]);
-  const removed = [];
   const added = [];
   let inHunk = false;
 
@@ -53,11 +53,10 @@ function changedLines(file) {
       continue;
     }
     if (!inHunk) continue;
-    if (line.startsWith('-')) removed.push(line.slice(1));
     if (line.startsWith('+')) added.push(line.slice(1));
   }
 
-  return { removed, added };
+  return { added };
 }
 
 function targetForSlug(records, slug) {
@@ -111,6 +110,16 @@ function validateCanonicalLink(records, label, url) {
     throw new Error(`staged target title is missing or malformed: ${targetFile}`);
   }
 
+  const ticketMatch = CANONICAL_TICKET_ID.exec(ticketId);
+  if (!ticketMatch) {
+    throw new Error(`staged target ticketId is not canonical: ${targetFile}`);
+  }
+  const localizedSlug = expectedLang === 'en' ? slug.slice('en-'.length) : slug;
+  const expectedSlugPrefix = `${ticketMatch[1].toLowerCase()}-${ticketMatch[2]}-`;
+  if (!localizedSlug.startsWith(expectedSlugPrefix)) {
+    throw new Error(`staged target ticketId does not match its filename and slug: ${targetFile}`);
+  }
+
   const expectedLabel = `${ticketId}: ${title}`;
   if (label !== expectedLabel) {
     throw new Error(
@@ -119,18 +128,28 @@ function validateCanonicalLink(records, label, url) {
   }
 }
 
-function normalizeLine(line, records, validateAddedLinks) {
+function normalizeLine(line, records, validateAddedLinks, validationState) {
   const normalized = line.replace(MARKDOWN_LINK, (fullMatch, label, url) => {
     if (GLOSSARY_LINK.test(url)) return label;
     if (!INTERNAL_POST_PREFIX.test(url)) return fullMatch;
-    if (validateAddedLinks) validateCanonicalLink(records, label, url);
+    if (validateAddedLinks) {
+      validateCanonicalLink(records, label, url);
+      validationState.validatedPostLinks += 1;
+    }
     return '[INTERNAL_POST_LINK]';
   });
 
   if (validateAddedLinks && INTERNAL_POST_PREFIX.test(normalized)) {
     throw new Error('added line contains a malformed or non-Markdown internal post URL');
   }
-  return normalized.trim();
+  return normalized;
+}
+
+function normalizeDocument(content) {
+  return content
+    .split('\n')
+    .map((line) => normalizeLine(line, [], false, undefined))
+    .join('\n');
 }
 
 export function isCanonicalInternalPostLinkOnlyDiff(file) {
@@ -138,13 +157,19 @@ export function isCanonicalInternalPostLinkOnlyDiff(file) {
     throw new Error('expected one staged post path under src/content/posts');
   }
 
-  const { removed, added } = changedLines(file);
-  if (removed.length === 0 && added.length === 0) return true;
+  const { added } = changedLines(file);
+  if (added.length === 0) return false;
 
   const records = stagedPostRecords();
-  const normalizedRemoved = removed.map((line) => normalizeLine(line, records, false)).sort();
-  const normalizedAdded = added.map((line) => normalizeLine(line, records, true)).sort();
-  return JSON.stringify(normalizedRemoved) === JSON.stringify(normalizedAdded);
+  const validationState = { validatedPostLinks: 0 };
+  for (const line of added) {
+    normalizeLine(line, records, true, validationState);
+  }
+  if (validationState.validatedPostLinks === 0) return false;
+
+  const headContent = git(['show', `HEAD:${file}`]);
+  const stagedContent = git(['show', `:${file}`]);
+  return normalizeDocument(headContent) === normalizeDocument(stagedContent);
 }
 
 if (
