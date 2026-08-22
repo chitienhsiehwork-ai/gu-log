@@ -26,7 +26,7 @@ manifest 保存「現在應如何導流」，Git history 保存先前曾導向�
 
 ### 匯流是一般登錄器能力，遇錯即停放在來源與 entry 一致性
 
-HTTP 轉址是否衝突由來源決定；兩個來源共用目標不會產生歧義。登錄器因此只拒絕重複來源與自我迴圈。manifest entry 另驗證新舊編號與 slug／filename 的 prefix、number、language 一致，完整 manifest 測試驗證現行目標檔案存在。
+HTTP 轉址是否衝突由來源決定；兩個來源共用目標不會產生歧義。登錄器因此只拒絕重複來源與自我迴圈。manifest entry 另驗證新舊編號與 slug／filename 的 prefix、number、language 一致，並重算 files／tickets／complete／incomplete 四個摘要欄位；完整 manifest 測試驗證現行目標檔案存在。若歷史文章的 frontmatter ticket 與實際公開 filename 不一致，entry 必須分別保存內容身份與路由身份，且路由身份要和舊 filename／slug 一致；沒有這種歷史 mismatch 時不得靜默拆成兩個身份。
 
 ### regression 使用真實四條 route
 
@@ -34,13 +34,13 @@ HTTP 轉址是否衝突由來源決定；兩個來源共用目標不會產生歧
 
 ### 站內連結不用歷史 alias
 
-別名只服務外部舊連結。repo 內仍在維護的延伸閱讀連結要更新目標、編號標籤與標題，避免讀者看到 GP-53 卻被送到 MP-316。
+別名只服務外部舊連結。repo 內仍在維護的延伸閱讀連結要更新目標、編號標籤與標題，避免讀者看到 GP-53 卻被送到 MP-316。pre-commit 只有在新 URL 能解析到 staged canonical post，且 label 精確等於該篇的 `${ticketId}: ${title}` 時，才可把這次差異視為 link-only maintenance；解析不到、歧義或 label 不符都遇錯即停並保留完整內容 gates。
 
 ## Risks / Trade-offs
 
 - **[風險] manifest 不再是不可變的初次遷移帳冊** → Git history 保留 lineage；proposal 與 spec 明定它是現行 routing SSOT。
 - **[風險] 放寬目標唯一後，錯誤匯流不再被一刀切 guard 攔截** → 編號／slug／filename 一致性、目標檔案存在、四條真實回歸案例與人工 review 一起限縮。
-- **[風險] 更新歷史文章連結標籤會觸發現行內容 gates** → 只修 gate 明確指出的既有 MoguNote 摘要／評分 metadata，不繞過 hooks，也不順手改正文。
+- **[風險] 更新歷史文章連結標籤會觸發現行內容 gates** → 只對 staged canonical target 與精確 canonical label 開放窄 maintenance 判定；任何任意 label／正文變更仍跑完整內容 gates。
 
 ## Migration Plan
 
