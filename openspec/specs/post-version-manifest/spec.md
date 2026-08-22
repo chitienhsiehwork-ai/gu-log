@@ -41,10 +41,7 @@ The reader-facing revision SHALL represent changes that matter to a reader's nee
 
 ### Requirement: Staged post 變更 SHALL 在同一個 commit 投影出 fresh manifest
 
-在完整 Git history 可用的本機 worktree 中，commit 變更
-`src/content/posts/*.mdx` 時，repo-owned pre-commit automation SHALL 把 staged
-post 變更投影到完整 Git history 上，重生 `src/data/post-versions.json`，並把結果
-stage 進同一個 authored commit。
+在完整 Git history 可用的本機 worktree 中，commit 變更 `src/content/posts/*.mdx` 時，repo-owned pre-commit automation SHALL 把 staged post 變更投影到完整 Git history 上，重生 `src/data/post-versions.json`，並把結果 stage 進同一個 authored commit。
 
 #### Scenario: Staged post edit 改變版本
 
