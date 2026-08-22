@@ -147,7 +147,7 @@ const t = i18n[lang];
   async function loadSearchIndex(session: number) {
     try {
       const [{ default: FuseConstructor }, res] = await Promise.all([
-        import('fuse.js'),
+        import('fuse.js/basic'),
         fetch(`/search-index.${currentLang}.json`),
       ]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
