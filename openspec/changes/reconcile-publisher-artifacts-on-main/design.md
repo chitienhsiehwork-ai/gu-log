@@ -26,13 +26,13 @@ Tribunal runtime ledger 可能包含大量歷史 PASS artifact。Publisher 依�
 
 3. **不建立 synthetic batch。** No-diff 路徑清除 entry 可能殘留的 `batchId`、PR 與 merge metadata，不在 `.batches` 新增紀錄。`publicationMethod` 與 `mainCommit` 已能誠實說明結果，虛構 PR lifecycle 反而會污染 audit trail。
 
-4. **一次 `jq reduce` 加 temp-file／`mv` 更新整批 entry。** 相較逐 entry 反覆讀寫，單次 transaction 不會留下半批 published、半批 ready 的中間狀態，也維持既有 runtime ledger 的原子寫檔模式。
+4. **一次 `jq reduce` 加同目錄 temp-file／rename 更新整批 entry。** Temp file 必須建立在 publisher ledger 所在目錄；完整 JSON 成功產出並驗證後，才以同 filesystem rename 取代原檔，任何失敗都清理 temp 並保留原 ledger。相較逐 entry 反覆讀寫，單次 transaction 不會留下半批 published、半批 ready 的中間狀態，也維持既有 runtime ledger 的原子寫檔模式。
 
-5. **collector 接收 limit 並自行停止。** Producer 每 emit 一筆就計數，到 `MAX_BATCH` 後正常 `break`；caller 不再接 `head`。這保留排序與 batch size，並避免 `pipefail` 下的 SIGPIPE 噪音，不需要收集完整 queue 到記憶體。
+5. **collector 接收 optional limit 並自行停止。** Apply selection 傳入 `MAX_BATCH`，producer 每 emit 一筆就計數，到上限後正常 `break`；caller 不再接 `head`。Dry-run report 不傳 limit，仍計算完整 queue。這保留報表、排序與 batch size，並避免 `pipefail` 下的 SIGPIPE 噪音，不需要先把完整 queue 收進記憶體再切片。
 
 ## Risks / Trade-offs
 
-- **Fresh ref 取得失敗卻誤判為已在 main** → 沿用既有 fetch-before-worktree gate；fetch 失敗時 ledger 保持不變。
-- **Cleanup 後 ledger 寫入失敗** → 下輪仍會重試同批；沒有 remote branch／PR 副作用，失敗可恢復。
+- **Fresh ref 取得失敗卻誤判為已在 main** → 沿用既有 fetch-before-worktree gate；fetch 失敗時 publisher ledger 保持 byte-identical，也不建立 remote lifecycle。
+- **Ledger transaction 寫入失敗** → 同目錄 temp-file 清理後保留原 ledger，下一輪重試同批；沒有 remote branch／PR 副作用，失敗可恢復。
 - **混合 changed／unchanged candidate 被錯走 shortcut** → shortcut 只在整個 staged index 無 diff 時生效，任一 sidecar 有差異就維持正常 publisher lifecycle。
 - **舊 consumer 不認得 provenance 欄位** → 欄位是向後相容的附加 metadata；既有 `publishState` 語意不變。
