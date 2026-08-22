@@ -174,6 +174,14 @@ already_on_main_runtime="$TMP/already-on-main-runtime"
 setup_reconciliation_runtime "$already_on_main_runtime"
 cp "$already_on_main_runtime/src/content/posts/gp-1-test.mdx" \
   "$already_on_main_runtime/src/content/posts/gp-3-test.mdx"
+already_on_main_pre_fetch_sha="$(git -C "$already_on_main_runtime" rev-parse origin/main)"
+printf 'fresh main marker\n' > "$seed/publisher-main-marker.txt"
+git -C "$seed" add publisher-main-marker.txt
+git -C "$seed" commit -m "advance main without article changes" >/dev/null
+git -C "$seed" push origin HEAD:main >/dev/null 2>&1
+already_on_main_fresh_sha="$(git --git-dir="$origin" rev-parse refs/heads/main)"
+[ "$already_on_main_pre_fetch_sha" != "$already_on_main_fresh_sha" ] \
+  || fail "mainCommit fixture must start from a stale runtime origin/main ref"
 cat > "$already_on_main_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
 {
   "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 },
@@ -237,7 +245,7 @@ git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$empty_batch_branc
   || fail "already-materialized PASS artifacts should not attempt PR lifecycle"
 for article in gp-1-test.mdx gp-2-test.mdx; do
   jq -e --arg article "$article" \
-    --arg mainCommit "$(git -C "$already_on_main_runtime" rev-parse origin/main)" '
+    --arg mainCommit "$already_on_main_fresh_sha" '
       (.entries[$article].publishState == "published")
       and (.entries[$article].publicationMethod == "already_on_main")
       and (.entries[$article].mainCommit == $mainCommit)
@@ -250,6 +258,8 @@ for article in gp-1-test.mdx gp-2-test.mdx; do
     ' "$already_on_main_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
     || fail "already-materialized $article should have terminal provenance without stale lifecycle metadata"
 done
+[ "$(git -C "$already_on_main_runtime" rev-parse origin/main)" = "$already_on_main_fresh_sha" ] \
+  || fail "publisher apply should refresh the runtime clone to the new origin/main"
 jq -e '.batches == {}' "$already_on_main_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
   || fail "already-materialized PASS artifacts must not create a synthetic batch"
 empty_batch_retry_out="$(cd "$already_on_main_runtime" && \
@@ -268,6 +278,51 @@ git -C "$already_on_main_runtime" show-ref --verify --quiet "refs/heads/$empty_b
   "$already_on_main_runtime/.score-loop/state/tribunal-publisher.json")" = "batch_selected" ] \
   || fail "the changed artifact behind reconciled entries should reserve normal batch state"
 pass "already-materialized PASS artifacts reconcile once without starving later batches"
+
+mixed_runtime="$TMP/publisher-mixed-runtime"
+mixed_worktree="$TMP/publisher-mixed-worktree"
+mixed_branch="publisher/mixed-diff"
+setup_reconciliation_runtime "$mixed_runtime"
+cat > "$mixed_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+{
+  "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 },
+  "gp-2-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
+}
+JSON
+printf 'Runtime en-only mixed-batch rewrite.\n' \
+  >> "$mixed_runtime/src/content/posts/en-gp-2-test.mdx"
+mixed_out="$(cd "$mixed_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$mixed_runtime/scripts/test-validate-hook.sh" \
+  bash scripts/tribunal-publisher.sh --apply --max 2 \
+    --branch "$mixed_branch" --worktree "$mixed_worktree")"
+for article in gp-1-test.mdx gp-2-test.mdx; do
+  grep -q "selected $article" <<<"$mixed_out" \
+    || fail "mixed batch should select both unchanged and changed candidates"
+  [ "$(jq -r --arg article "$article" '.entries[$article].publishState' \
+    "$mixed_runtime/.score-loop/state/tribunal-publisher.json")" = "batch_selected" ] \
+    || fail "mixed batch candidate $article should enter normal batch lifecycle"
+  jq -e --arg article "$article" \
+    '.entries[$article] | has("publicationMethod") | not' \
+    "$mixed_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
+    || fail "mixed batch candidate $article must not use already-on-main provenance"
+done
+mixed_batch_id="$(jq -r '.entries["gp-1-test.mdx"].batchId' \
+  "$mixed_runtime/.score-loop/state/tribunal-publisher.json")"
+if [ -z "$mixed_batch_id" ] || [ "$mixed_batch_id" = "null" ]; then
+  fail "mixed batch should reserve one real batchId"
+fi
+jq -e --arg batchId "$mixed_batch_id" '
+  (.entries["gp-2-test.mdx"].batchId == $batchId)
+  and ((.batches[$batchId].entries | sort) == ["gp-1-test.mdx", "gp-2-test.mdx"])
+' "$mixed_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
+  || fail "mixed candidates should share one normal batch record"
+[ ! -e "$mixed_worktree" ] \
+  || fail "mixed batch cleanup should remove its publisher worktree"
+git -C "$mixed_runtime" show-ref --verify --quiet "refs/heads/$mixed_branch" \
+  || fail "mixed batch should preserve the committed normal lifecycle branch"
+pass "one changed sidecar keeps the entire mixed selection in normal batch lifecycle"
 
 queue_runtime="$TMP/publisher-limit-runtime"
 setup_reconciliation_runtime "$queue_runtime"
@@ -369,18 +424,61 @@ git -C "$invalid_identical_runtime" show-ref --verify --quiet "refs/heads/$inval
   && fail "invalid identical artifact should stop before branch creation"
 pass "validation remains authoritative before already-on-main reconciliation"
 
-transaction_runtime="$TMP/publisher-transaction-runtime"
-transaction_worktree="$TMP/publisher-transaction-worktree"
-transaction_branch="publisher/transaction-failure"
 transaction_bin="$TMP/publisher-transaction-bin"
-transaction_gh_log="$TMP/publisher-transaction-gh.log"
-setup_reconciliation_runtime "$transaction_runtime"
-cat > "$transaction_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
+mkdir -p "$transaction_bin"
+transaction_real_jq="$(command -v jq)"
+transaction_real_mv="$(command -v mv)"
+cat > "$transaction_bin/jq" <<'JQ'
+#!/usr/bin/env bash
+set -euo pipefail
+is_reconciliation_write=0
+previous=""
+for argument in "$@"; do
+  if [ "$previous" = "--arg" ] && [ "$argument" = "mainCommit" ]; then
+    is_reconciliation_write=1
+    break
+  fi
+  previous="$argument"
+done
+if [ "$is_reconciliation_write" -eq 1 ]; then
+  case "$TRANSACTION_FAILURE_STAGE" in
+    candidate-write)
+      exit 71
+      ;;
+    candidate-validation)
+      printf '{}\n'
+      exit 0
+      ;;
+  esac
+fi
+exec "$TRANSACTION_REAL_JQ" "$@"
+JQ
+chmod +x "$transaction_bin/jq"
+cat > "$transaction_bin/mv" <<'MV'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$TRANSACTION_FAILURE_STAGE" = "final-rename" ] &&
+   [[ "$1" == *tribunal-publisher.json.reconcile.* ]] &&
+   [[ "$2" == *tribunal-publisher.json ]]; then
+  exit 73
+fi
+exec "$TRANSACTION_REAL_MV" "$@"
+MV
+chmod +x "$transaction_bin/mv"
+
+for transaction_failure_stage in candidate-write candidate-validation final-rename; do
+  transaction_runtime="$TMP/publisher-transaction-$transaction_failure_stage-runtime"
+  transaction_worktree="$TMP/publisher-transaction-$transaction_failure_stage-worktree"
+  transaction_branch="publisher/transaction-$transaction_failure_stage"
+  transaction_gh_log="$TMP/publisher-transaction-$transaction_failure_stage-gh.log"
+  transaction_before="$TMP/publisher-transaction-$transaction_failure_stage.before"
+  setup_reconciliation_runtime "$transaction_runtime"
+  cat > "$transaction_runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
 {
   "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 }
 }
 JSON
-cat > "$transaction_runtime/.score-loop/state/tribunal-publisher.json" <<'JSON'
+  cat > "$transaction_runtime/.score-loop/state/tribunal-publisher.json" <<'JSON'
 {
   "schemaVersion": 1,
   "entries": {
@@ -389,44 +487,60 @@ cat > "$transaction_runtime/.score-loop/state/tribunal-publisher.json" <<'JSON'
   "batches": {}
 }
 JSON
-cp "$transaction_runtime/.score-loop/state/tribunal-publisher.json" \
-  "$TMP/publisher-transaction.before"
-mkdir -p "$transaction_bin"
-cat > "$transaction_bin/mv" <<'MV'
-#!/usr/bin/env bash
-exit 73
-MV
-chmod +x "$transaction_bin/mv"
-if transaction_out="$(cd "$transaction_runtime" && \
-  PATH="$transaction_bin:$PATH" \
-  GH_BIN="$already_on_main_gh" \
-  GH_CALL_LOG="$transaction_gh_log" \
-  GU_LOG_GH_TOKEN_FILE="$TMP/transaction-missing-token" \
-  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
-  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
-  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$transaction_runtime/scripts/test-validate-hook.sh" \
-  bash scripts/tribunal-publisher.sh --apply --push-pr --max 1 \
-    --branch "$transaction_branch" --worktree "$transaction_worktree" 2>&1)"; then
-  fail "publisher must return nonzero when atomic ledger rename fails"
-fi
-cmp -s "$TMP/publisher-transaction.before" \
-  "$transaction_runtime/.score-loop/state/tribunal-publisher.json" \
-  || fail "failed ledger replacement must preserve the original ledger byte-for-byte"
-if find "$transaction_runtime/.score-loop/state" -maxdepth 1 \
-  -name 'tribunal-publisher.json.reconcile.*' -print -quit | grep -q .; then
-  fail "failed ledger replacement must clean its same-directory temp file"
-fi
-[ ! -e "$transaction_worktree" ] \
-  || fail "ledger transaction failure should clean the no-diff worktree"
-git -C "$transaction_runtime" show-ref --verify --quiet "refs/heads/$transaction_branch" \
-  && fail "ledger transaction failure should not leave a publisher branch"
-git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$transaction_branch" \
-  && fail "ledger transaction failure should not push a publisher branch"
-[ ! -s "$transaction_gh_log" ] \
-  || fail "ledger transaction failure should stop before PR lifecycle"
-grep -q 'publisher ledger' <<<"$transaction_out" \
-  || fail "publisher should explain the failed ledger transaction"
-pass "same-directory ledger transaction fails atomically and cleans temporary state"
+  cp "$transaction_runtime/.score-loop/state/tribunal-publisher.json" \
+    "$transaction_before"
+  if transaction_out="$(cd "$transaction_runtime" && \
+    PATH="$transaction_bin:$PATH" \
+    TRANSACTION_FAILURE_STAGE="$transaction_failure_stage" \
+    TRANSACTION_REAL_JQ="$transaction_real_jq" \
+    TRANSACTION_REAL_MV="$transaction_real_mv" \
+    GH_BIN="$already_on_main_gh" \
+    GH_CALL_LOG="$transaction_gh_log" \
+    GU_LOG_GH_TOKEN_FILE="$TMP/transaction-missing-token" \
+    TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+    TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+    TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$transaction_runtime/scripts/test-validate-hook.sh" \
+    bash scripts/tribunal-publisher.sh --apply --push-pr --max 1 \
+      --branch "$transaction_branch" --worktree "$transaction_worktree" 2>&1)"; then
+    fail "publisher must return nonzero for $transaction_failure_stage ledger failure"
+  fi
+  cmp -s "$transaction_before" \
+    "$transaction_runtime/.score-loop/state/tribunal-publisher.json" \
+    || fail "$transaction_failure_stage must preserve the original ledger byte-for-byte"
+  if find "$transaction_runtime/.score-loop/state" -maxdepth 1 \
+    -name 'tribunal-publisher.json.reconcile.*' -print -quit | grep -q .; then
+    fail "$transaction_failure_stage must clean its same-directory temp file"
+  fi
+  [ ! -e "$transaction_worktree" ] \
+    || fail "$transaction_failure_stage should clean the no-diff worktree"
+  git -C "$transaction_runtime" show-ref --verify --quiet "refs/heads/$transaction_branch" \
+    && fail "$transaction_failure_stage should not leave a publisher branch"
+  git --git-dir="$origin" show-ref --verify --quiet "refs/heads/$transaction_branch" \
+    && fail "$transaction_failure_stage should not push a publisher branch"
+  [ ! -s "$transaction_gh_log" ] \
+    || fail "$transaction_failure_stage should stop before PR lifecycle"
+  grep -q 'publisher ledger' <<<"$transaction_out" \
+    || fail "publisher should explain the $transaction_failure_stage ledger failure"
+
+  transaction_retry_out="$(cd "$transaction_runtime" && \
+    PATH="$transaction_bin:$PATH" \
+    TRANSACTION_FAILURE_STAGE="none" \
+    TRANSACTION_REAL_JQ="$transaction_real_jq" \
+    TRANSACTION_REAL_MV="$transaction_real_mv" \
+    TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+    TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+    TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$transaction_runtime/scripts/test-validate-hook.sh" \
+    bash scripts/tribunal-publisher.sh --apply --max 1 \
+      --branch "$transaction_branch" --worktree "$transaction_worktree")"
+  grep -q 'Selected artifacts already match origin/main' <<<"$transaction_retry_out" \
+    || fail "$transaction_failure_stage should leave the entry retryable"
+  jq -e '
+    .entries["gp-1-test.mdx"].publishState == "published"
+    and .entries["gp-1-test.mdx"].publicationMethod == "already_on_main"
+  ' "$transaction_runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
+    || fail "$transaction_failure_stage retry should reconcile the same entry"
+done
+pass "all ledger transaction stages fail atomically, clean up, and remain retryable"
 
 setup_batch_validation_runtime() {
   local target="$1"
