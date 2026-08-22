@@ -318,6 +318,29 @@ describe('dependency freshness scanner registry boundaries', () => {
     ]);
   });
 
+  it('replaces the same-day history snapshot instead of duplicating it', () => {
+    const harness = makeHarness('success');
+
+    const firstResult = harness.run();
+    const secondResult = harness.run();
+
+    expect(firstResult.status, firstResult.stderr).toBe(0);
+    expect(secondResult.status, secondResult.stderr).toBe(0);
+    const baseline = JSON.parse(fs.readFileSync(harness.baselinePath, 'utf-8'));
+    const history = JSON.parse(fs.readFileSync(harness.historyPath, 'utf-8'));
+    expect(history).toEqual([
+      {
+        date: baseline.date,
+        total: baseline.total,
+        fresh: baseline.fresh,
+        stale: baseline.stale,
+        outdated: baseline.outdated,
+        deprecated: baseline.deprecated,
+        possiblyUnmaintained: baseline.possiblyUnmaintained,
+      },
+    ]);
+  });
+
   it('accepts pnpm keyed metadata when a package is deprecated', () => {
     const harness = makeHarness('deprecated');
 
