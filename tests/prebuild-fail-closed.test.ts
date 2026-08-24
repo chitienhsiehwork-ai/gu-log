@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const makeTempDirectory = useTestTempDirectories();
 
 function run(command: string, args: string[], cwd: string): string {
   return execFileSync(command, args, { cwd, encoding: 'utf-8' });
@@ -37,7 +38,7 @@ function lifecycleScriptRefs(command: string): string[] {
  * is symlinked so `import yaml from 'yaml'` resolves.
  */
 function makeSyntheticPrebuildDir(options: { copyScripts: string[] }): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prebuild-'));
+  const tmp = makeTempDirectory('gu-log-prebuild-');
   fs.mkdirSync(path.join(tmp, 'scripts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'content', 'posts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'data'), { recursive: true });
@@ -332,7 +333,7 @@ describe('prebuild handles post versions manifest failures and shallow clones', 
     run('git', ['add', 'scripts', 'src'], origin);
     run('git', ['commit', '-qm', 'seed shallow prebuild'], origin);
 
-    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prebuild-shallow-'));
+    const clone = makeTempDirectory('gu-log-prebuild-shallow-');
     run('git', ['clone', '-q', '--depth', '1', `file://${origin}`, clone], origin);
     expect(run('git', ['rev-parse', '--is-shallow-repository'], clone).trim()).toBe('true');
 
