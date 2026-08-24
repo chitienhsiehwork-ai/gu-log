@@ -1,13 +1,14 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { chmodSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CURRENT_TRIBUNAL_VERSION, LEGACY_TRIBUNAL_VERSION } from '../scripts/tribunal-version.mjs';
 import * as frontmatterScores from '../scripts/frontmatter-scores.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const ROOT = path.resolve(__dirname, '..');
 const VERSION_SCRIPT = path.join(ROOT, 'scripts', 'tribunal-version.mjs');
+const makeTempDirectory = useTestTempDirectories();
 const SHELL_CALLERS = [
   'scripts/tribunal.sh',
   'scripts/tribunal-batch-runner.sh',
@@ -36,7 +37,7 @@ describe('Tribunal schema version SSOT', () => {
   });
 
   it('prints versions when invoked through a symlinked CLI path', () => {
-    const tempRoot = mkdtempSync(path.join(tmpdir(), 'tribunal-version-realpath-'));
+    const tempRoot = makeTempDirectory('tribunal-version-realpath-');
     const tempScript = path.join(tempRoot, 'tribunal-version.mjs');
     symlinkSync(VERSION_SCRIPT, tempScript);
 
@@ -54,7 +55,7 @@ describe('Tribunal schema version SSOT', () => {
   it.each(['', 'not-a-version'])(
     'all shell callers fail closed with exit 78 when the SSOT CLI prints %j',
     (fakeOutput) => {
-      const fakeBin = mkdtempSync(path.join(tmpdir(), 'tribunal-version-node-'));
+      const fakeBin = makeTempDirectory('tribunal-version-node-');
       const fakeNode = path.join(fakeBin, 'node');
       writeFileSync(fakeNode, `#!/bin/sh\nprintf '%s' '${fakeOutput}'\n`);
       chmodSync(fakeNode, 0o755);

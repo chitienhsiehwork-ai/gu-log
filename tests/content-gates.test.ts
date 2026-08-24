@@ -8,12 +8,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gucg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 import { formatModelName } from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
