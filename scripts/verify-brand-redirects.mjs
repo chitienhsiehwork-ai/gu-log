@@ -18,8 +18,9 @@
  */
 
 import { existsSync, readFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
-import { config as redirectConfig } from '../vercel.mjs';
+import { config as redirectConfig, LANG_PREFIXES, LISTING_SERIES } from '../vercel.mjs';
 
 // vercel.mjs emits the numeric-pagination rule as source `:page(\d+)`
 // (Vercel capture-with-regex syntax) and destination `:page` (bare capture
@@ -28,6 +29,14 @@ import { config as redirectConfig } from '../vercel.mjs';
 const SOURCE_PAGE_PATTERN = ':page(\\d+)';
 const DESTINATION_PAGE_PATTERN = ':page';
 const AUDIT_PAGE_NUMBER = 2;
+const LITERAL_LISTING_SOURCES = new Set(
+  LISTING_SERIES.flatMap(({ oldBase }) =>
+    LANG_PREFIXES.map((langPrefix) => `${langPrefix}/${oldBase}`)
+  )
+);
+const PAGINATED_LISTING_SOURCES = new Set(
+  [...LITERAL_LISTING_SOURCES].map((source) => `${source}/${SOURCE_PAGE_PATTERN}`)
+);
 
 function protectionBypassHeaders() {
   const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
@@ -50,10 +59,30 @@ function protectionBypassHeaders() {
 
 const BYPASS_HEADERS = protectionBypassHeaders();
 
-function materializeSource(routeString) {
-  return routeString.includes(SOURCE_PAGE_PATTERN)
-    ? routeString.replace(SOURCE_PAGE_PATTERN, String(AUDIT_PAGE_NUMBER))
-    : routeString;
+export function materializeRedirectSources(routeString) {
+  if (routeString.includes(SOURCE_PAGE_PATTERN)) {
+    if (!PAGINATED_LISTING_SOURCES.has(routeString)) {
+      throw new Error(`unsupported redirect source: ${routeString}`);
+    }
+    return [routeString.replace(SOURCE_PAGE_PATTERN, String(AUDIT_PAGE_NUMBER))];
+  }
+
+  if (routeString.startsWith('/')) {
+    const optionalSlashSuffix = '{/}?';
+    if (!routeString.endsWith(optionalSlashSuffix)) {
+      if (!LITERAL_LISTING_SOURCES.has(routeString)) {
+        throw new Error(`unsupported redirect source: ${routeString}`);
+      }
+      return [routeString];
+    }
+    const literalPath = routeString.slice(0, -optionalSlashSuffix.length);
+    if (!/^\/(?:en\/)?posts\/[A-Za-z0-9][A-Za-z0-9-]*$/.test(literalPath)) {
+      throw new Error(`unsupported redirect source: ${routeString}`);
+    }
+    return [literalPath, `${literalPath}/`];
+  }
+
+  throw new Error(`unsupported redirect source: ${routeString}`);
 }
 
 function materializeDestination(routeString) {
@@ -88,8 +117,7 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
-async function checkRedirect(baseUrl, redirect, timeoutMs) {
-  const source = materializeSource(redirect.source);
+async function checkRedirect(baseUrl, redirect, source, timeoutMs) {
   const destination = materializeDestination(redirect.destination);
   const oldUrl = new URL(source, baseUrl).toString();
   const expectedLocation = new URL(destination, baseUrl).toString();
@@ -172,13 +200,16 @@ async function main() {
   }
 
   const redirects = redirectConfig.redirects;
+  const auditItems = redirects.flatMap((redirect) =>
+    materializeRedirectSources(redirect.source).map((source) => ({ redirect, source }))
+  );
   console.log(
-    `Auditing ${redirects.length} redirects against ${args.baseUrl} (concurrency=${args.concurrency})`
+    `Auditing ${auditItems.length} URL variants from ${redirects.length} redirects against ${args.baseUrl} (concurrency=${args.concurrency})`
   );
 
   const results = await runPool(
-    redirects,
-    (redirect) => checkRedirect(args.baseUrl, redirect, args.timeoutMs),
+    auditItems,
+    ({ redirect, source }) => checkRedirect(args.baseUrl, redirect, source, args.timeoutMs),
     args.concurrency
   );
 
@@ -194,4 +225,6 @@ async function main() {
   process.exitCode = failures.length > 0 ? 1 : 0;
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}

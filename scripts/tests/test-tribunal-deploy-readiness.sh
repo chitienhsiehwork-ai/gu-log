@@ -330,12 +330,21 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
   doctor_home="$TMP/doctor-home"
   doctor_root="$TMP/doctor-root"
   doctor_bin="$TMP/doctor-bin"
+  doctor_unit_dir="$doctor_home/.config/systemd/user"
+  doctor_service="$doctor_unit_dir/tribunal-loop.service"
+  doctor_same_bytes="$doctor_root/same-bytes-tribunal-loop.service"
+  doctor_snapshot_state="$doctor_root/service-snapshot-count"
   mkdir -p "$doctor_home" "$doctor_root/.score-loop/state" \
-    "$doctor_root/.codex/agents" "$doctor_root/scripts" "$doctor_bin"
+    "$doctor_root/.codex/agents" "$doctor_root/scripts" "$doctor_bin" \
+    "$doctor_unit_dir"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
     "$doctor_root/scripts/tribunal-runtime.slice"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
     "$doctor_root/installed-tribunal-runtime.slice"
+  cp "$ROOT_DIR/scripts/tribunal-loop.service" \
+    "$doctor_service"
+  cp "$ROOT_DIR/scripts/tribunal-loop.service" \
+    "$doctor_same_bytes"
   printf 'model = "gpt-writer-fixture"\n' \
     > "$doctor_root/.codex/agents/tribunal-writer.toml"
   for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
@@ -357,6 +366,40 @@ case "$*" in
   *'tribunal-runtime.slice -p NeedDaemonReload --value'*) printf 'no\n' ;;
   *'tribunal-runtime.slice -p DropInPaths --value'*) printf '\n' ;;
   *'tribunal-loop.service -p Slice --value'*) printf 'tribunal-runtime.slice\n' ;;
+  *'tribunal-loop.service -p FragmentPath')
+    [ "${DOCTOR_SERVICE_QUERY_FAIL:-}" != "FragmentPath" ] || exit 1
+    if [ "${DOCTOR_SERVICE_MISSING_PROPERTY:-}" = "FragmentPath" ]; then
+      printf '\n'
+      exit 0
+    fi
+    fragment="$DOCTOR_SERVICE_FRAGMENT"
+    if [ -n "${DOCTOR_SERVICE_SNAPSHOT_STATE:-}" ]; then
+      count=0
+      if [ -f "$DOCTOR_SERVICE_SNAPSHOT_STATE" ]; then
+        read -r count < "$DOCTOR_SERVICE_SNAPSHOT_STATE" || count=0
+      fi
+      count=$((count + 1))
+      printf '%s\n' "$count" > "$DOCTOR_SERVICE_SNAPSHOT_STATE"
+      if [ "$count" -gt 1 ] &&
+         [ -n "${DOCTOR_SERVICE_FRAGMENT_AFTER:-}" ]; then
+        fragment="$DOCTOR_SERVICE_FRAGMENT_AFTER"
+      fi
+    fi
+    printf 'FragmentPath=%s\n' "$fragment" ;;
+  *'tribunal-loop.service -p NeedDaemonReload')
+    [ "${DOCTOR_SERVICE_QUERY_FAIL:-}" != "NeedDaemonReload" ] || exit 1
+    if [ "${DOCTOR_SERVICE_MISSING_PROPERTY:-}" = "NeedDaemonReload" ]; then
+      printf '\n'
+      exit 0
+    fi
+    printf 'NeedDaemonReload=%s\n' "${DOCTOR_SERVICE_NEED_RELOAD:-no}" ;;
+  *'tribunal-loop.service -p DropInPaths')
+    [ "${DOCTOR_SERVICE_QUERY_FAIL:-}" != "DropInPaths" ] || exit 1
+    if [ "${DOCTOR_SERVICE_MISSING_PROPERTY:-}" = "DropInPaths" ]; then
+      printf '\n'
+      exit 0
+    fi
+    printf 'DropInPaths=%s\n' "${DOCTOR_SERVICE_DROP_INS:-}" ;;
   *) exit 1 ;;
 esac
 SYSTEMCTL
@@ -379,18 +422,105 @@ CODEX
   cat > "$doctor_root/.score-loop/state/writer-preflight.json" <<'STATE'
 {"status":"passed","mode":"codex","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
 STATE
+  rm -f "$doctor_snapshot_state"
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
+  DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
+  DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
   FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
       >"$TMP/doctor-state.out"
   grep -q 'writer_preflight=passed source=state pid=4242' "$TMP/doctor-state.out"
   grep -q 'systemd_containment=passed slice=tribunal-runtime.slice' \
     "$TMP/doctor-state.out"
+  grep -q 'systemd_service_contract=passed unit=tribunal-loop.service' \
+    "$TMP/doctor-state.out" ||
+    fail "doctor did not attest the tracked tribunal-loop.service"
   [ ! -e "$TMP/doctor-codex-called" ]
 
+  assert_doctor_service_contract_rejects() {
+    local label="$1" fragment="$2" need_reload="$3" drop_ins="$4"
+    local query_fail="$5" expected="$6"
+    local fragment_after="${7:-}" missing_property="${8:-}"
+    local output="$TMP/doctor-service-${label}.out"
+    local rc
+    rm -f "$doctor_snapshot_state"
+    set +e
+    HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
+    DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
+    DOCTOR_SERVICE_FRAGMENT="$fragment" \
+    DOCTOR_SERVICE_NEED_RELOAD="$need_reload" \
+    DOCTOR_SERVICE_DROP_INS="$drop_ins" \
+    DOCTOR_SERVICE_QUERY_FAIL="$query_fail" \
+    DOCTOR_SERVICE_FRAGMENT_AFTER="$fragment_after" \
+    DOCTOR_SERVICE_MISSING_PROPERTY="$missing_property" \
+    DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
+    FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
+      bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
+        >"$output" 2>&1
+    rc=$?
+    set -e
+    [ "$rc" -eq 1 ] ||
+      fail "doctor accepted tribunal-loop.service drift: $label (rc=$rc)"
+    grep -q "$expected" "$output" ||
+      fail "doctor service drift $label lacked diagnostic: $expected"
+  }
+
+  assert_doctor_service_contract_rejects \
+    wrong-path "$doctor_same_bytes" no \
+    '' '' 'reason=fragment-mismatch'
+  assert_doctor_service_contract_rejects \
+    drop-in "$doctor_service" no \
+    /tmp/override.conf '' 'reason=unreviewed-drift'
+  assert_doctor_service_contract_rejects \
+    need-reload "$doctor_service" yes \
+    '' '' 'reason=unreviewed-drift'
+
+  printf 'stale tribunal service fixture\n' > "$doctor_service"
+  assert_doctor_service_contract_rejects \
+    stale-fragment "$doctor_service" no \
+    '' '' 'reason=fragment-mismatch'
+  cp "$ROOT_DIR/scripts/tribunal-loop.service" "$doctor_service"
+
+  rm "$doctor_service"
+  ln -s "$doctor_same_bytes" "$doctor_service"
+  assert_doctor_service_contract_rejects \
+    symlink-fragment "$doctor_service" no \
+    '' '' 'reason=fragment-mismatch'
+  rm "$doctor_service"
+  cp "$ROOT_DIR/scripts/tribunal-loop.service" "$doctor_service"
+
+  mv "$doctor_service" "${doctor_service}.saved"
+  assert_doctor_service_contract_rejects \
+    missing-fragment "$doctor_service" no \
+    '' '' 'reason=fragment-mismatch'
+  mv "${doctor_service}.saved" "$doctor_service"
+
+  if [ "$(id -u)" -ne 0 ]; then
+    chmod 000 "$doctor_service"
+    assert_doctor_service_contract_rejects \
+      unreadable-fragment "$doctor_service" no \
+      '' '' 'reason=fragment-mismatch'
+    chmod 0644 "$doctor_service"
+  fi
+
+  for property in FragmentPath NeedDaemonReload DropInPaths; do
+    assert_doctor_service_contract_rejects \
+      "query-failed-$property" "$doctor_service" no \
+      '' "$property" 'reason=query-failed'
+  done
+  assert_doctor_service_contract_rejects \
+    missing-property "$doctor_service" no \
+    '' '' 'reason=query-failed' '' DropInPaths
+  assert_doctor_service_contract_rejects \
+    snapshot-changed "$doctor_service" no \
+    '' '' 'reason=snapshot-changed' "$doctor_same_bytes"
+
+  rm -f "$doctor_snapshot_state"
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
+  DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
+  DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
   FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
@@ -708,6 +838,8 @@ FAKE_CLAUDE
   chmod +x "$fallback_root/bin/codex" "$fallback_root/bin/claude"
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
+  # Read dynamically by functions from the sourced helper.
+  # shellcheck disable=SC2034
   REPO_ROOT="$fallback_root"
   provenance="$fallback_root/provenance"
   PATH="$fallback_root/bin:$PATH" \
@@ -737,7 +869,10 @@ NOTIFIER
   source "$HELPERS"
   export TRIBUNAL_ALERT_CAPTURE="$alert_root/messages"
   export TRIBUNAL_NOTIFIER="$alert_root/notifier"
+  # Read and mutated dynamically by functions from the sourced helper.
+  # shellcheck disable=SC2034
   TRIBUNAL_EXHAUSTED_ALERT_THRESHOLD=3
+  # shellcheck disable=SC2034
   TRIBUNAL_EXHAUSTED_STREAK=0
   tribunal_alert_worker_completion 2 article-a
   tribunal_alert_worker_completion 2 article-b
@@ -751,6 +886,7 @@ NOTIFIER
   tribunal_alert_worker_completion 2 article-g
   tribunal_alert_worker_completion 124 article-stall
 
+  # shellcheck disable=SC2034
   TRIBUNAL_LAST_ALERTED_CONTROLLER_MODE=""
   tribunal_alert_controller_mode_transition fallback 23
   tribunal_alert_controller_mode_transition fallback 23
@@ -819,7 +955,8 @@ printf '{}\n' > "$writer_progress"
 fixture_lock_dir="$ROOT_DIR/.score-loop/locks"
 mkdir -p "$fixture_lock_dir"
 chmod 700 "$fixture_lock_dir"
-exec 198>>"$fixture_lock_dir/tracked-gp-1-20260128-demo.lock"
+fixture_post="mp-31-20260204-rauchg-vercel-ai-support.mdx"
+exec 198>>"$fixture_lock_dir/tracked-$fixture_post.lock"
 flock -x 198
 PATH="$writer_bin:$PATH" \
 FAKE_JUDGE_COUNT="$TMP/judge-count" \
@@ -831,10 +968,10 @@ TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
-  gp-1-20260128-demo.mdx >"$TMP/writer.out" 2>&1 ||
+  "$fixture_post" >"$TMP/writer.out" 2>&1 ||
   fail "real fail→writer→pass tribunal fixture failed"
 flock -u 198
-[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-gp-1-20260128-demo.mdx.lock" ] ||
+[ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-$fixture_post.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
 [ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Codex writer"
 grep -q -- '--sandbox workspace-write' "$TMP/writer-calls" ||

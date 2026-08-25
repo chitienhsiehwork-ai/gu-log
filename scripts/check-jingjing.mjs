@@ -26,12 +26,17 @@
 // Usage:
 //   node scripts/check-jingjing.mjs <file.mdx>...
 //   node scripts/check-jingjing.mjs --baseline-ref=origin/main <file.mdx>...
+//   node scripts/check-jingjing.mjs --format=json <file.mdx>...
 //   node scripts/check-jingjing.mjs                  # scans all zh-tw posts
 //
 // Exit codes:
 //   0 — no violations (or no zh-tw files staged)
 //   1 — violations found; see stderr
+//   --format=json returns 0 for any successfully validated scan; callers read
+//   the violations array. Scan/policy/read failures still return non-zero.
 
+import crypto from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -47,6 +52,27 @@ const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
+const CHECKER_PATH = fileURLToPath(import.meta.url);
+const BRAND_TAXONOMY_CHECKER_PATH = path.join(REPO_ROOT, 'scripts', 'check-brand-taxonomy.mjs');
+const POLICY_INPUTS = [
+  CHECKER_PATH,
+  BRAND_TAXONOMY_CHECKER_PATH,
+  GLOSSARY_PATH,
+  TAXONOMY_POLICY_PATH,
+];
+const POLICY_INPUT_SNAPSHOTS = POLICY_INPUTS.map((input) => fs.readFileSync(input));
+const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
+const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
+const JSON_CONTRACT_VERSION = 'check-jingjing/v1';
+
+function gitFetchTimeoutMs() {
+  const raw = process.env.CHECK_JINGJING_FETCH_TIMEOUT_MS;
+  if (!raw || !/^[1-9]\d*$/.test(raw)) return DEFAULT_GIT_FETCH_TIMEOUT_MS;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed <= MAX_GIT_FETCH_TIMEOUT_MS
+    ? parsed
+    : DEFAULT_GIT_FETCH_TIMEOUT_MS;
+}
 
 // ── Hardcoded allowlist ────────────────────────────────────────────
 //
@@ -61,6 +87,10 @@ API SDK CLI PM CEO CFO CTO COO ML LLM UI UX UI/UX SaaS REST RAG MCP Embedding
 HTTP HTTPS URL URI HTML JS TS CSS DNS UDP TCP TLS SSL OAuth JWT UUID XML JSON YAML SQL OS IDE
 AI AGI ASI ML/AI GA RC RL DL NN CNN RNN LSTM GAN VAE
 GP MP SD Lv FAQ Q1 Q2 Q3 Q4 H1 H2
+# GenAI = 同 AI/AGI 那類的通用縮寫；deepfake 是已無短中譯的技術名詞（「深偽」在台灣
+# 尚未通用）；slop 是 AI 時代的專有講法，原文 item 22「screens fill with slop」直接引用
+# — GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單
+GenAI deepfake Deepfake slop
 PR CI CD DevOps PR/CI Q&A FAQ TODO DONE WIP
 EOL EOS DRM
 GraphQL Webhook
@@ -71,12 +101,18 @@ KPI OKR ROI SLA SLO MTTR
 # Phil Chen career-advice post (2026-07-03)
 xG
 N/A TBD TBA
+# 原文結尾逐字引用的兩個字 — GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單
+KEEP BUILDING
 
 # gu-log MDX components
 MoguNote ShroomDogNote PostImage Toggle TableOfContents ReadingProgress
 PrevNextNav
 # 站名本身。MoguNote 講「gu-log 的規則是⋯」時被判成晶晶體是誤判 — GP-262（2026-07-27）
 gu-log
+# Tribunal 四個 judge 的角色名，同 MoguNote 那類 gu-log 自家系統專名。MoguNote 提到
+# 「四個法官（Vibe / Fact Checker / Librarian / Fresh Eyes）」時被判成晶晶體是誤判
+# — GP-265（2026-07-29），Fresh Eyes judge 自己也標記為 misclassification
+Tribunal Vibe Fact Checker Librarian Fresh Eyes
 
 # AI labs / companies / orgs
 Anthropic OpenAI Google Meta Microsoft Apple Amazon AWS GCP Azure
@@ -95,6 +131,13 @@ LangChain LangGraph LlamaIndex Pinecone Weaviate Chroma Milvus
 # Letta = AI 公司（Letta Code / MemGPT）；Harbor = agent trajectory 框架。
 # 同 LangChain / Mistral 那一類的產品與組織名 — GP-261（2026-07-25）
 Letta Harbor
+# MCP 生態系 company / product / person names — GP MCP 2026-07-28 spec post
+Honeycomb Supabase Manufact mcp-use WAF EMA
+Inian Parameshwaran Parker David Soria Parra Nick
+# MCP 規格書 canonical feature/concept names — 讀者需要跟官方文件對齊
+session Session Streamable elicitation redirect
+Tasks Roots Sampling Logging
+Multi Round-Trip Dynamic Client Registration Metadata Documents
 # GP-262（2026-07-27）的筆記／閱讀工具與軟體名：Roam Research、Kortex（作者的舊產品）、
 # Eden（作者現在的產品）、MyMind、Kindle，以及 After Effects
 Roam Kortex Eden MyMind Kindle Effects
@@ -111,6 +154,9 @@ Tom's Hardware
 Substack Medium dev.to
 Twitter X x.com twitter.com fxtwitter
 Reddit StackOverflow Subreddit Reddit Answers
+# GP（2026-08-01）Greg Isenberg 清單引用到的公司／產品：Etsy（手作市集）、
+# Intercom／Zendesk（按解決工單計價）、@ideabrowser（原文自家的推廣連結）
+Etsy Intercom Zendesk ideabrowser
 
 # Frontier models and product names
 Symphony Fusion
@@ -129,6 +175,11 @@ Muse Spark Llama Maverick Sonnet Opus K2 K2.5 R1
 # Model tier names (Gemini Flash, DeepSeek V4 Flash, etc.)
 Flash
 Agent Swarm
+
+# Legacy tech / tools cited in source material
+valgrind dBase Clipper HyperCard WordPress
+# Source-cited proper nouns that do not need glossary entries
+Old El Paso Lobsters cmux
 
 # Programming languages / runtimes / tools
 Python JavaScript TypeScript Go Rust Zig C C++ Ruby Java Kotlin Swift Scala Elixir Erlang Haskell
@@ -185,6 +236,13 @@ Ryo Lu
 # Thomas Jefferson、Ronald Reagan、Montaigne、Rick Rubin、Seneca
 Norbert Wiener Naval Eriksen Austin Kleon
 Marcus Aurelius Twain H.P Lovecraft Jefferson Ronald Reagan Montaigne Rick Rubin Seneca
+# GP-265（2026-07-29）Adam Hunt 的 AI 看空長推，以及他引用的 Tomas Pueyo
+#（2025-11 那張「刺蝟球」AGI 能力圖）
+Adam Hunt Tomas Pueyo
+# GP（2026-08-01）Greg Isenberg 的 26 條創業機會清單，以及文中引用的經濟學家 Keynes
+Greg Isenberg Keynes
+# GP-272（2026-08-10）Senko Rašić 的「code was never the hard part」反駁文
+Senko Ra
 
 # Places
 Albuquerque Hong Kong San Francisco SF Silicon Valley
@@ -258,6 +316,14 @@ Instant instant
 Humanity's
 tokens
 app
+
+# Classic CS/engineering book titles (GP-272 and general reuse)
+Art Cracking Interview Mom Continuous Discovery Habits Obviously Awesome
+Design Everyday Don't Make Me Think Powers Working Backwards Topologies
+Soul New Machine Programming
+
+# Technical terms that lose meaning when translated (GP-272)
+monad affordance allowance bit-rot meat Meat proxy
 
 # Research / dataset / paper names that show up as multi-word proper nouns
 # (already covered by their constituent words in some cases; explicit listing
@@ -752,7 +818,7 @@ for (const line of ALLOWLIST_RAW.split('\n')) {
 
 const GLOSSARY_TERMS = new Set();
 try {
-  const glossary = JSON.parse(fs.readFileSync(GLOSSARY_PATH, 'utf8'));
+  const glossary = JSON.parse(POLICY_INPUT_SNAPSHOTS[2].toString('utf8'));
   for (const t of glossary) {
     if (t.term) {
       GLOSSARY_TERMS.add(t.term);
@@ -895,6 +961,7 @@ function checkText(raw, filePath = '') {
   const masked = maskContent(raw);
   const lines = raw.split('\n');
   const maskedLines = masked.split('\n');
+  let lineStartByte = 0;
 
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
@@ -908,11 +975,15 @@ function checkText(raw, filePath = '') {
         violations.push({
           line: i + 1,
           word,
+          startByte: lineStartByte + Buffer.byteLength(lines[i].slice(0, m.index ?? 0)),
+          endByte:
+            lineStartByte + Buffer.byteLength(lines[i].slice(0, (m.index ?? 0) + word.length)),
           context: comparisonContext.slice(0, 140),
           comparisonContext,
         });
       }
     }
+    lineStartByte += Buffer.byteLength(lines[i]) + (i < lines.length - 1 ? 1 : 0);
   }
 
   return { violations };
@@ -960,6 +1031,27 @@ function violationContext(v) {
   return (v.comparisonContext ?? v.context).replace(/\s+/g, ' ').trim();
 }
 
+// This digest binds machine-readable findings to every repository input that
+// can change the accepted-English boundary. A sealed GP manifest therefore
+// becomes stale when the checker, glossary, or taxonomy policy changes.
+function policySHA256() {
+  const hash = crypto.createHash('sha256');
+  hash.update(`${JSON_CONTRACT_VERSION}\0`);
+  for (const [index, input] of POLICY_INPUTS.entries()) {
+    hash.update(path.relative(REPO_ROOT, input));
+    hash.update('\0');
+    hash.update(POLICY_INPUT_SNAPSHOTS[index]);
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+function policyInputsUnchanged() {
+  return POLICY_INPUTS.every((input, index) =>
+    fs.readFileSync(input).equals(POLICY_INPUT_SNAPSHOTS[index])
+  );
+}
+
 function readBaselineFile(repoRelative, baselineRef) {
   return execFileSync('git', ['show', `${baselineRef}:${repoRelative}`], {
     cwd: REPO_ROOT,
@@ -968,13 +1060,19 @@ function readBaselineFile(repoRelative, baselineRef) {
   });
 }
 
+const baselineRefreshAttempts = new Set();
+
 function ensureRemoteBaselineRef(baselineRef) {
   const match = baselineRef.match(/^origin\/(.+)$/);
   if (!match) return;
+  if (baselineRefreshAttempts.has(baselineRef)) return;
+  baselineRefreshAttempts.add(baselineRef);
   const branch = match[1];
   execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'ignore', 'ignore'],
+    timeout: gitFetchTimeoutMs(),
+    killSignal: 'SIGKILL',
   });
 }
 
@@ -1121,7 +1219,7 @@ function filterBaselineViolations(violations, baseline) {
 function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
   if (violations.length === 0) return violations;
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
-  const activePolicy = policy ?? JSON.parse(fs.readFileSync(TAXONOMY_POLICY_PATH, 'utf8'));
+  const activePolicy = policy ?? JSON.parse(POLICY_INPUT_SNAPSHOTS[3].toString('utf8'));
   const findings = scanLegacyText(repoRelative, raw);
   const budgets = new Map();
 
@@ -1155,6 +1253,7 @@ export {
   filterBaselineViolations,
   filterTaxonomyExactResiduals,
   violationKey,
+  policySHA256,
 };
 
 // ── Main ───────────────────────────────────────────────────────────
@@ -1165,13 +1264,21 @@ if (!__isCli) {
 } else {
   const args = process.argv.slice(2).filter(Boolean);
   const baselineArg = args.find((arg) => arg.startsWith('--baseline-ref='));
+  const formatArg = args.find((arg) => arg.startsWith('--format='));
+  const outputFormat = formatArg?.slice('--format='.length) || 'text';
+  if (outputFormat !== 'text' && outputFormat !== 'json') {
+    console.error(`[check-jingjing] Unsupported format: ${outputFormat}`);
+    process.exit(2);
+  }
   const explicitBaselineRef = baselineArg?.slice('--baseline-ref='.length) || '';
   const ciBaselineRef =
     process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_BASE_REF
       ? `origin/${process.env.GITHUB_BASE_REF}`
       : '';
   const baselineRef = explicitBaselineRef || ciBaselineRef;
-  let files = args.filter((arg) => !arg.startsWith('--baseline-ref='));
+  let files = args.filter(
+    (arg) => !arg.startsWith('--baseline-ref=') && !arg.startsWith('--format=')
+  );
 
   if (files.length === 0) {
     // Scan all zh-tw posts
@@ -1188,6 +1295,7 @@ if (!__isCli) {
   let totalViolations = 0;
   const filesWithViolations = [];
   let baselineRefUnavailable = false;
+  const jsonFiles = [];
 
   for (const filePath of files) {
     const { violations, error, skipped } = checkFile(filePath);
@@ -1195,7 +1303,17 @@ if (!__isCli) {
       console.error(`[check-jingjing] ${filePath}: ${error}`);
       process.exit(2);
     }
-    if (skipped) continue;
+    if (skipped) {
+      if (outputFormat === 'json') {
+        jsonFiles.push({
+          path: path.relative(REPO_ROOT, filePath).split(path.sep).join('/'),
+          sha256: crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex'),
+          skipped: true,
+          violations: [],
+        });
+      }
+      continue;
+    }
     const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
     baselineRefUnavailable ||= refUnavailable;
     const raw = fs.readFileSync(filePath, 'utf8');
@@ -1204,10 +1322,41 @@ if (!__isCli) {
       raw,
       filterBaselineViolations(violations, baseline)
     );
+    if (outputFormat === 'json') {
+      jsonFiles.push({
+        path: path.relative(REPO_ROOT, filePath).split(path.sep).join('/'),
+        sha256: crypto.createHash('sha256').update(raw).digest('hex'),
+        skipped: false,
+        violations: newViolations.map((violation) => ({
+          word: violation.word,
+          line: violation.line,
+          start_byte: violation.startByte,
+          end_byte: violation.endByte,
+          context: violation.context,
+        })),
+      });
+    }
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });
     totalViolations += newViolations.length;
+  }
+
+  if (outputFormat === 'json') {
+    if (!policyInputsUnchanged()) {
+      console.error('[check-jingjing] Policy inputs changed during scan; retry required.');
+      process.exit(2);
+    }
+    process.stdout.write(
+      `${JSON.stringify({
+        version: JSON_CONTRACT_VERSION,
+        policy_sha256: policySHA256(),
+        baseline_ref: baselineRef,
+        baseline_ref_unavailable: baselineRefUnavailable,
+        files: jsonFiles,
+      })}\n`
+    );
+    process.exit(0);
   }
 
   if (totalViolations === 0) {

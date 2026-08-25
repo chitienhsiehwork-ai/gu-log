@@ -42,7 +42,7 @@ func (p *draftInspectingProvider) Run(ctx context.Context, prompt string, opts l
 // file. The FakeProvider is seeded with plausible responses for
 // eval/write/review/refine.
 func makeRunHarness(t *testing.T) (*State, string) {
-	return makeRunHarnessForPrefix(t, "GP")
+	return makeRunHarnessForPrefix(t, "MP")
 }
 
 func makeRunHarnessForPrefix(t *testing.T, prefix string) (*State, string) {
@@ -108,6 +108,20 @@ process.exit(0);
 	styleGuide := filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md")
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatal(err)
+	}
+	for name, body := range map[string]string{
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	} {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	// Empty validate-posts.mjs so deploy can skip it via SkipValidate.
@@ -182,6 +196,7 @@ translated body
 	}
 
 	s := NewState()
+	s.LegacyShadow = prefix == "GP"
 	s.Cfg = cfg
 	s.Log = logx.New()
 	s.Dispatcher = disp
@@ -189,7 +204,7 @@ translated body
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
 	s.Prefix = prefix
 	s.PromptTicketID = prefix + "-PENDING"
-	s.WorkDir = filepath.Join(tmp, "tmp", "gp-pending-run-test")
+	s.WorkDir = filepath.Join(tmp, "tmp", "pipeline-pending-run-test")
 	s.SkipBuild = true
 	s.SkipPush = true
 	s.SkipValidate = true
@@ -208,7 +223,84 @@ func runGitForTest(t *testing.T, repo string, args ...string) string {
 	return strings.TrimSpace(string(out))
 }
 
-func TestRun_HappyPath(t *testing.T) {
+func TestStageEditorialContext_CopiesCanonicalFiles(t *testing.T) {
+	tmp := t.TempDir()
+	workDir := filepath.Join(tmp, "work")
+	files := map[string]string{
+		"GU-LOG_WRITER_PROMPT.md":                  "# Writer guide\n",
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	}
+	for name, body := range files {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	s := NewState()
+	s.WorkDir = workDir
+	s.Cfg = &config.Config{
+		RepoRoot:     tmp,
+		WritingGuide: filepath.Join(tmp, "GU-LOG_WRITER_PROMPT.md"),
+	}
+	if err := s.stageEditorialContext(); err != nil {
+		t.Fatalf("stageEditorialContext: %v", err)
+	}
+
+	for name, want := range files {
+		got, err := os.ReadFile(filepath.Join(workDir, name))
+		if err != nil {
+			t.Errorf("staged %s missing: %v", name, err)
+			continue
+		}
+		if string(got) != want {
+			t.Errorf("staged %s = %q, want %q", name, got, want)
+		}
+	}
+}
+
+func TestStepsForStateKeepsGPAndMPRoutingDistinct(t *testing.T) {
+	stepNames := func(s *State) []string {
+		steps := stepsForState(s)
+		names := make([]string, 0, len(steps))
+		for _, step := range steps {
+			names = append(names, step.name)
+		}
+		return names
+	}
+
+	gp := strings.Join(stepNames(&State{Prefix: "GP"}), ",")
+	for _, want := range []string{"source-translate", "source-preservation", "enrich"} {
+		if !strings.Contains(gp, want) {
+			t.Errorf("GP route missing %s: %s", want, gp)
+		}
+	}
+	for _, forbidden := range []string{"write", "review", "refine"} {
+		if strings.Contains(gp, forbidden) {
+			t.Errorf("GP route unexpectedly contains %s: %s", forbidden, gp)
+		}
+	}
+
+	mp := strings.Join(stepNames(&State{Prefix: "MP"}), ",")
+	for _, want := range []string{"write", "review", "refine"} {
+		if !strings.Contains(mp, want) {
+			t.Errorf("MP route missing %s: %s", want, mp)
+		}
+	}
+	for _, forbidden := range []string{"source-translate", "source-preservation", "enrich"} {
+		if strings.Contains(mp, forbidden) {
+			t.Errorf("MP route unexpectedly contains %s: %s", forbidden, mp)
+		}
+	}
+}
+
+func TestRun_NonGPEditorialHappyPath(t *testing.T) {
 	s, _ := makeRunHarness(t)
 	_, _ = SetupWorkDir(s)
 
@@ -217,11 +309,11 @@ func TestRun_HappyPath(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if s.PromptTicketID != "GP-171" {
-		t.Errorf("ticketId = %q, want GP-171", s.PromptTicketID)
+	if s.PromptTicketID != "MP-1" {
+		t.Errorf("ticketId = %q, want MP-1", s.PromptTicketID)
 	}
-	if s.Filename == "" || !strings.HasPrefix(s.Filename, "gp-171-") {
-		t.Errorf("Filename = %q, want gp-171-…", s.Filename)
+	if s.Filename == "" || !strings.HasPrefix(s.Filename, "mp-1-") {
+		t.Errorf("Filename = %q, want mp-1-…", s.Filename)
 	}
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.Filename)); err != nil {
 		t.Errorf("deployed file missing: %v", err)
@@ -240,16 +332,42 @@ func TestRun_HappyPath(t *testing.T) {
 	} else if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, s.ActiveENFilename)); err != nil {
 		t.Errorf("en sidecar missing: %v", err)
 	}
+	deployed, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, s.Filename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(deployed, []byte("<MoguNote")) {
+		t.Fatal("synthetic complete MP fixture unexpectedly gained a required MoguNote")
+	}
+
+	calledPrompts := make([]string, 0)
+	for _, provider := range s.Dispatcher.Providers() {
+		if fake, ok := provider.(*llm.FakeProvider); ok {
+			for _, call := range fake.Called {
+				calledPrompts = append(calledPrompts, call.Prompt)
+			}
+		}
+	}
+	joinedPrompts := strings.Join(calledPrompts, "\n")
+	for _, want := range []string{
+		"Mogu owns the body voice",
+		"Do not score translation completeness",
+		"Do not add one merely because the article has none",
+	} {
+		if !strings.Contains(joinedPrompts, want) {
+			t.Errorf("MP end-to-end flow did not deliver contract %q", want)
+		}
+	}
 
 	// Summary output.
 	var buf bytes.Buffer
 	PrintSummary(&buf, s)
 	sum := buf.String()
-	for _, want := range []string{"Ticket no.", "GP-171" /* "171" appears in number row */, "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
+	for _, want := range []string{"Ticket no.", "MP-1", "Work dir", "fetch", "dedup-url", "eval", "write", "deploy"} {
 		_ = want
 	}
-	if !strings.Contains(sum, "171") {
-		t.Errorf("summary missing GP-171: %s", sum)
+	if !strings.Contains(sum, "Ticket no.  : 1") || !strings.Contains(sum, "mp-1-") {
+		t.Errorf("summary missing MP ticket identity: %s", sum)
 	}
 	if !strings.Contains(sum, "dedup-url") {
 		t.Errorf("summary missing dedup-url timing: %s", sum)
@@ -329,16 +447,16 @@ func TestRun_DryRunSkipsDeploy(t *testing.T) {
 	}
 }
 
-func TestRun_FromStepRalph(t *testing.T) {
+func TestRun_NonGPFromStepRalph(t *testing.T) {
 	// Resume from ralph — requires --file. Seed an existing post.
 	s, tmp := makeRunHarness(t)
 	s.FromStepInt = StepRalph
 
 	// Drop an existing file into posts dir.
-	existing := "gp-123-20260411-fake-resume.mdx"
+	existing := "mp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -392,7 +510,7 @@ body
 	}
 }
 
-func TestRun_FromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
+func TestRun_NonGPFromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		fromStep int
@@ -403,10 +521,10 @@ func TestRun_FromStepReviewOrRefinePublishesFinalArtifact(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s, tmp := makeRunHarness(t)
 			s.FromStepInt = tc.fromStep
-			existing := "gp-123-20260411-fake-resume.mdx"
+			existing := "mp-123-20260411-fake-resume.mdx"
 			existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -442,7 +560,7 @@ STALE POSTS BODY
 			refined := strings.Replace(existingBody, "STALE POSTS BODY", "FINAL AUTHORITATIVE BODY", 1)
 			translated := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 lang: "en"
 ---
 TRANSLATED FINAL BODY
@@ -472,7 +590,7 @@ TRANSLATED FINAL BODY
 				t.Fatal("provider was not shown the seeded draft-v1.mdx")
 			}
 			for i, call := range fake.Called {
-				if !strings.Contains(call.Prompt, "GP-123") {
+				if !strings.Contains(call.Prompt, "MP-123") {
 					t.Errorf("LLM call %d did not receive the existing ticket identity", i)
 				}
 				if strings.Contains(call.Prompt, "GP-PENDING") {
@@ -504,15 +622,15 @@ TRANSLATED FINAL BODY
 	}
 }
 
-func TestRun_FromStepTranslatePublishesExistingSidecarAndLeavesRepoClean(t *testing.T) {
+func TestRun_NonGPFromStepTranslatePublishesExistingSidecarAndLeavesRepoClean(t *testing.T) {
 	s, tmp := makeRunHarness(t)
 	s.FromStepInt = StepTranslate
 	s.WorkDir = filepath.Join(t.TempDir(), "translate-resume-work")
 
-	existing := "gp-123-20260411-fake-resume.mdx"
+	existing := "mp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -545,7 +663,7 @@ body
 	translateFake := llm.NewFakeClaude().WithResponses(llm.FakeResponse{
 		Output: `---
 title: "Resume Fake"
-ticketId: "GP-123"
+ticketId: "MP-123"
 lang: "en"
 ---
 translated
@@ -568,8 +686,14 @@ translated
 	if s.Filename != existing || s.ENFilename != wantEN {
 		t.Fatalf("published filenames = (%q, %q), want (%q, %q)", s.Filename, s.ENFilename, existing, wantEN)
 	}
-	if s.PromptTicketID != "GP-123" {
-		t.Fatalf("PromptTicketID = %q, want GP-123 from existing frontmatter", s.PromptTicketID)
+	if s.PromptTicketID != "MP-123" {
+		t.Fatalf("PromptTicketID = %q, want MP-123 from existing frontmatter", s.PromptTicketID)
+	}
+	if s.OriginalDate != "2026-04-11" {
+		t.Fatalf("OriginalDate = %q, want existing frontmatter date", s.OriginalDate)
+	}
+	if s.TranslatedDate != "2026-04-11" {
+		t.Fatalf("TranslatedDate = %q, want existing frontmatter date", s.TranslatedDate)
 	}
 	if _, err := os.Stat(filepath.Join(s.Cfg.PostsDir, wantEN)); err != nil {
 		t.Fatalf("translated sidecar missing: %v", err)
@@ -577,7 +701,7 @@ translated
 	if got := runGitForTest(t, tmp, "status", "--porcelain"); got != "" {
 		t.Fatalf("successful recovery left repo dirty:\n%s", got)
 	}
-	if got := runGitForTest(t, tmp, "log", "-1", "--format=%s"); got != "Update GP-123: Resume Fake" {
+	if got := runGitForTest(t, tmp, "log", "-1", "--format=%s"); got != "Update MP-123: Resume Fake" {
 		t.Fatalf("recovery commit subject = %q, want explicit existing-post update", got)
 	}
 	counterAfter, err := os.ReadFile(s.Cfg.CounterFile)

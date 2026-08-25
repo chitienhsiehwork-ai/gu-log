@@ -141,6 +141,9 @@ en body
 	if !strings.Contains(string(data), `lang: "en"`) {
 		t.Errorf("en sidecar missing lang: \"en\":\n%s", data)
 	}
+	if s.TranslatedDate != "2026-04-11" || !strings.Contains(string(data), `translatedDate: "2026-04-11"`) {
+		t.Errorf("existing translation date was not preserved:\n%s", data)
+	}
 }
 
 func TestTranslate_FromStepTranslateRequiresExistingFile(t *testing.T) {

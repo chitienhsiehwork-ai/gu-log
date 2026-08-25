@@ -1,0 +1,137 @@
+---
+ticketId: "GP-265"
+title: "刺蝟只長了一根刺：從看多翻成看空的四成信心"
+originalDate: "2026-07-28"
+translatedDate: "2026-07-29"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@RealAdamHunt on X"
+sourceUrl: "https://x.com/RealAdamHunt/status/2082034423344853168"
+lang: "zh-tw"
+summary: "Adam Hunt 從看多翻看空：最近幾代模型看起來只有程式和數學那根刺在長，語言和邏輯停滯、有時還退步。他只給自己四成信心，希望未來一兩年被證明是錯的。"
+tags: ["agi", "frontier-model", "llm", "benchmark", "ai"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-29"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-29"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-07-31"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-31"
+    model: "claude-opus-4-6"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## 從看多到看空
+
+最近幾代模型明明越來越會寫程式，寫出來的英文卻越來越難看。Adam Hunt 從看多翻成看空，就是從這個矛盾開始的——而且越翻越徹底。
+
+Hunt 認為，「模型只要一直訓練、一直加大規模，就會在一堆領域長出全新能力」這套論述是錯的（抱歉了 Google DeepMind 執行長 [Demis Hassabis](/posts/gp-256-20260715-demishassabis-agi-safety-window)）。不過他也說這些都還是初步想法——他希望未來一兩年內被證明是錯的，他寧可 AI 真的在進步。
+
+---
+
+## 刺蝟的針只往一個方向長
+
+2025 年 11 月，Tomas Pueyo 分享過一張後來被當成 AGI 論述代表圖的東西：把 AI 能力想像成一顆「刺蝟球」——每根刺代表一個能力維度（寫程式、數學、語言、邏輯、法律、醫療……），有幾根刺已經捅破人類水準，但大部分刺還短短的。
+
+當時的 AGI 樂觀論述是這樣的：隨著模型規模繼續往上堆，每根刺都往外推一點，直到整顆球的中心把人類能力整個涵蓋進去，少數幾根刺還會遠遠超出去。簡單說：通往 AGI 的路就是讓球均勻變大。
+
+但最近幾代模型看起來像是走了另一條路：**程式和數學那根刺長出去了，其他刺被留在原地——甚至是被那根刺的成長犧牲掉的。**
+
+<MoguNote>
+如果有人說「這隻刺蝟越來越強了」，但仔細一看，只有背上那根最長的刺從 10 公分長到 30 公分，肚子那邊的毛反而掉了幾撮——這算「更強」還是「更偏科」？ ┐(￣ヘ￣)┌ 大部分 [benchmark](/glossary#benchmark) 排行榜只量最長那根刺，所以數字會告訴大家「進步了」，但實際用起來的體感可能完全不是那回事。順帶一提，排行榜量到的東西有多不可靠，[MP-39](/posts/mp-39-20260207-anthropic-infra-noise) 已經拆得夠細了。
+</MoguNote>
+
+Hunt 舉的最明顯證據是語言能力。如果模型真的在獲得越來越通用的智慧，文字輸出應該會越來越流暢、越來越有結構。但跟 o3——OpenAI 2025 年初釋出的推理模型——比起來，最新一批模型的文字輸出明顯差了一截；一些簡單的邏輯題也沒有變好，有時候還更差。
+
+<MoguNote>
+模型的文字變難看了——這件事 gu-log 有第一手證據。每一篇文章都是被 code 練到發亮的模型寫的中文。結果就是四個法官（Vibe / Fact Checker / Librarian / Fresh Eyes）站在那邊，專門抓那些「每句都沒錯、但讀起來像規格書」的稿子。[SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) 講的就是這套系統怎麼長出來的。刺蝟球的比喻在 gu-log 是天天在體驗的東西：那根程式的刺越長，中文那根就越要有人盯著。
+</MoguNote>
+
+---
+
+## RL 只能練已經有答案的東西
+
+為什麼早期的 LLM 看起來什麼都會一點？
+
+不是因為它學到了通用智慧，而是因為人類寫下來的東西本來就什麼都有——歷史、科學、法律、八卦、食譜、哲學。在這堆語料上訓練出來的模型，自然會「看起來」什麼都懂一些。
+
+但語言背後真正的邏輯和事實，並沒有被有效地學進去，也沒有被 [RL](/glossary#rl) 有效地練進去——模型的能力到某個點就會停住，上不去了。這件事大概發生在 2024 年底，剛好就是「規模是不是撞牆了」這場大辯論爆發的時間點。
+
+Chain of thought 和搜尋功能是真正的突破，因為它們讓模型可以「邊想邊查」，把原本那層通用語料裡的智慧再多挖出一些。但 2024 年之後的進步，主要是這些技巧在原有的通用語料基礎上多推了一段。
+
+接下來 AI 公司算出了一件事：寫程式這條路走得通，而且付得起。程式碼幾乎是人類工作中被記錄得最完整的活動——輸入、輸出、測試、回饋，全部數位化，[benchmark](/glossary#benchmark) 和獎勵訊號都很好設計。所以資源就往這根刺灌，最新一批模型和 benchmark 都在衝刺程式能力，代價就是日常英文用得越來越差。
+
+<MoguNote>
+全人類職業裡訓練條件最完美的那份工作，就是第一個被自動化的——這不是巧合，是因果。測試有沒有過、compiler 會不會罵、CI 紅不紅，每一步都被 git 記錄下來。程式設計師花幾十年蓋的這整套東西，結果成了全世界最乾淨的訓練場。律師沒被先取代不是因為比較強，是因為推理過程不透明；醫師的資料不公開；作家的好壞根本沒標準答案。你的工作紀錄越完美，你在被自動化的隊伍裡就排越前面 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 四成信心和一個可驗證的預測
+
+這根刺的威力 Hunt 不否認——尤其資安攻防，他認為這批模型極度強大也可能極度危險。但接下來呢？Hunt 推測，也許會有人回到更早的模型版本，替醫療或法律換一套資料和獎勵訊號，從頭 [RL](/glossary#rl) 一輪，再試著把這些各自為政的模型串起來。但這有多吃資本、到底賺不賺得回來，是這條路走不走得下去的關鍵問題。
+
+Hunt 給這整套判斷打四成信心。觀察和解釋模型都對得上，但他沒有把潛在突破算進去——那正是他壓低信心的主因。
+
+他留了一個可驗證的時間表：如果他是對的，未來一兩年每次新模型發表，刺蝟球的形狀就會說話。而就算通用智慧還很遠，Hunt 認為好消息是：光靠專攻特定產業難題的模型，就足以撐起一整個新行業。
+
+<MoguNote>
+四成信心 (╯°□°)╯ 大部分人的 AI 觀點只有全押跟清倉兩種操作，Hunt 是有一套解釋、押四成、剩下留給自己看漏的東西。這種態度反而讓這篇值得認真讀。Anthropic CEO 自己都說快到指數成長盡頭了（[MP-78](/posts/mp-78-20260213-dwarkesh-dario-end-of-exponential)），[Karpathy](/glossary#andrej-karpathy) 的 2025 回顧也在講 RLVR（拿有明確答案的任務——程式、數學——做強化學習）怎麼把可驗證領域越練越利（[MP-4](/posts/mp-4-20260203-karpathy-2025-llm-review)）——答案大概不在任何一邊，而在刺蝟球的形狀裡。
+</MoguNote>
+
+---
+
+## 結語
+
+下次 [benchmark](/glossary#benchmark) 排行榜刷新紀錄，先看一眼那顆球——長出來的是新的刺，還是又是同一根？

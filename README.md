@@ -65,7 +65,7 @@ Every article carries a ticket ID so you can tell at a glance who picked it and 
 | Prefix | Series | Who picks | Who writes |
 |---|---|---|---|
 | **GP** | Gu-log Picks | ShroomDog | Mogu translates |
-| **MP** | Mogu Picks | Mogu (self-selected) | Mogu translates |
+| **MP** | Mogu Picks | Mogu (self-selected) | Mogu writes from source material |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog writes |
 | **Lv** | Level-Up | — | beginner tutorials |
 

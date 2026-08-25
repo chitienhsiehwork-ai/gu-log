@@ -31,7 +31,9 @@ const WJ = '⁠';
 // katakana (U+FF65–FF9F, e.g. ﾟ ﾉ ･ ｡) + a few Cyrillic/symbol eyes.
 // NOTE: do NOT add the backtick ` here — inline-code parentheticals like
 // （`Cmd+D`）are prose, not kaomoji. (´・ω・`) is still detected via ´ / ・ / ω.
-const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω·•‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
+// Middle-dot and bullet may appear inside a detected face, but are too common
+// in ordinary parenthetical prose to establish kaomoji identity by themselves.
+const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
 
 // Decoration / arm glyphs that flank the bracket group (leading or trailing),
 // e.g. ╰(°▽°)╯, ヽ(°〇°)ﾉ, ٩(◕‿◕｡)۶, (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧. Halfwidth katakana is
@@ -80,6 +82,20 @@ export function protectKaomoji(text) {
     if (!KAOMOJI_CHARS.test(match)) return match;
     return protect(match);
   });
+}
+
+/**
+ * Return the exact UTF-16 spans recognized by the canonical kaomoji detector.
+ * Content policy gates use this to mask brand kaomoji before scanning Unicode
+ * emoji; keeping the detector here prevents the two boundaries from drifting.
+ */
+export function findKaomojiSpans(text) {
+  const spans = [];
+  for (const match of text.matchAll(POTENTIAL_KAOMOJI)) {
+    if (!KAOMOJI_CHARS.test(match[0])) continue;
+    spans.push({ start: match.index, end: match.index + match[0].length, text: match[0] });
+  }
+  return spans;
 }
 
 // Code points whose Unicode line-break class permits a break with the glyph

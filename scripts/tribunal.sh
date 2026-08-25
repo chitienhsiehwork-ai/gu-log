@@ -60,6 +60,7 @@ fi
 ONLY_STAGE=""
 POST_FILE=""
 ALLOW_REWRITE=""
+ALLOW_REWRITE_EXPLICIT=0
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
 while [ "$#" -gt 0 ]; do
@@ -78,10 +79,12 @@ while [ "$#" -gt 0 ]; do
       ;;
     --allow-rewrite)
       ALLOW_REWRITE=1
+      ALLOW_REWRITE_EXPLICIT=1
       shift
       ;;
     --no-rewrite|--judge-only)
       ALLOW_REWRITE=0
+      ALLOW_REWRITE_EXPLICIT=1
       shift
       ;;
     --no-commit)
@@ -136,6 +139,13 @@ if [ -z "$ALLOW_REWRITE" ]; then
 fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
+if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
+  if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
+    echo "ERROR: GP source-preservation contract forbids --allow-rewrite" >&2
+    exit 1
+  fi
+  ALLOW_REWRITE=0
+fi
 POST_PATH="$ROOT_DIR/src/content/posts/$POST_FILE"
 
 if [ ! -f "$POST_PATH" ]; then
@@ -610,8 +620,8 @@ WRITER_TRANSACTION_EN_EXISTED=0
 WRITER_TRANSACTION_RECOVERY_PATH=""
 WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 
-# Run a Codex writer against private candidate files, never the canonical post
-# paths. The Codex subprocess gets a workspace-write sandbox rooted at its temp
+# Run the routed writer against private candidate files, never the canonical
+# post paths. The subprocess gets a workspace-write sandbox rooted at its temp
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
@@ -633,10 +643,13 @@ run_writer_candidate_transaction() {
   WRITER_TRANSACTION_RECOVERY_PATH=""
   WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 
-  if [ "$(tribunal_writer_mode)" != "codex" ]; then
-    tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex."
-    return 70
-  fi
+  case "$(tribunal_writer_mode)" in
+    codex|grok) ;;
+    *)
+      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex or grok."
+      return 70
+      ;;
+  esac
   if [ -f "$ROOT_DIR/src/content/posts/en-$post_file" ]; then
     WRITER_TRANSACTION_EN_EXISTED=1
   fi
@@ -687,10 +700,9 @@ run_writer_candidate_transaction() {
     sed -n 's/^runner_label=//p' "$actual_provider_file" | head -1
   )"
   rm -f "$actual_provider_file"
-  if [ "$actual_writer_provider" != "codex" ] ||
-     [ -z "$actual_writer_model" ] ||
-     [ -z "$actual_writer_runner" ]; then
-    tlog "  RUNNER ERROR: tribunal-writer did not record complete Codex provider/model provenance."
+  if ! tribunal_writer_provenance_complete \
+    "$actual_writer_provider" "$actual_writer_model" "$actual_writer_runner"; then
+    tlog "  RUNNER ERROR: tribunal-writer did not record complete provider/model provenance."
     discard_writer_rewrite_snapshot "$snapshot_token"
     rm -rf "$writer_work_dir"
     return 70
@@ -789,6 +801,10 @@ run_final_build_once() {
 repair_final_build_failure() {
   local post_file="$1" build_log="$2" repair_attempt="$3"
   local evidence writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
+  if [ "$ALLOW_REWRITE" != 1 ]; then
+    tlog "  Rewrite disabled; final build failure cannot invoke tribunal-writer."
+    return 1
+  fi
   FINAL_BUILD_REPAIR_QUOTA_REASON=""
   evidence="$(tail -80 "$build_log" 2>/dev/null || true)"
   if [ -f "src/content/posts/en-$post_file" ]; then
@@ -1308,6 +1324,9 @@ PROMPT
     actual_provider_file="$(mktemp)"
     quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
+    # Grok's minimal writer tool edits existing files; the trusted harness
+    # creates this placeholder before any untrusted article text reaches it.
+    printf '{}\n' > "$judge_score_in_work"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
     TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \
       TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \

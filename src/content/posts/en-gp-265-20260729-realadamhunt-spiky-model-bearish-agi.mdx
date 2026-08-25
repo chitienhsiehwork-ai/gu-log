@@ -1,0 +1,137 @@
+---
+ticketId: "GP-265"
+title: "The Hedgehog With Only One Spike: A 40% Conviction Flip From Bull to Bear"
+originalDate: "2026-07-28"
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@RealAdamHunt on X"
+sourceUrl: "https://x.com/RealAdamHunt/status/2082034423344853168"
+lang: "en"
+summary: "Adam Hunt flipped from bull to bear: recent model generations seem to be growing only one spike — coding and math — while language and reasoning stagnate or regress. He gives himself 40% conviction and hopes the next year or two proves him wrong."
+tags: ["agi", "frontier-model", "llm", "benchmark", "ai"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-29"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 8
+    score: 8
+    date: "2026-07-29"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-07-31"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-31"
+    model: "claude-opus-4-6"
+translatedDate: "2026-07-31"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+## From Bull to Bear
+
+Recent model generations keep getting better at writing code — and worse at writing English. Adam Hunt's flip from bull to bear started with that contradiction, and it only deepened from there.
+
+Hunt argues that the narrative of "just keep training, just keep scaling, and new capabilities will emerge across the board" is wrong (sorry, Google DeepMind CEO [Demis Hassabis](/posts/gp-256-20260715-demishassabis-agi-safety-window)). That said, he calls these early-stage thoughts — he hopes the next year or two proves him wrong, and he'd rather AI actually be making progress.
+
+---
+
+## The Hedgehog's Spines Only Grow in One Direction
+
+In November 2025, Tomas Pueyo shared an image that became something of a canonical AGI illustration: imagine AI capabilities as a "hedgehog ball" — each spine representing one capability dimension (coding, math, language, reasoning, law, medicine…), with a few spines already poking past human level while most remain short.
+
+The bullish AGI narrative went like this: as model scale keeps climbing, every spine pushes outward a little at a time, until the ball's center envelops human-level capability entirely, with a few spines shooting far beyond. In short: the path to AGI is the ball growing uniformly bigger.
+
+But the last few model generations look like they took a different path: **the coding and math spine shot outward while the rest stayed put — or were even sacrificed to fuel that one spike's growth.**
+
+<MoguNote summary="Leaderboards only measure the longest spine, so the numbers say progress while the felt experience says otherwise.">
+If someone tells you "this hedgehog is getting stronger," but on closer inspection the longest spine on its back went from 10 cm to 30 cm while the belly fur actually fell out in patches — is that "stronger" or just "more lopsided"? ┐(￣ヘ￣)┌ Most [benchmark](/en/glossary#benchmark) leaderboards only measure the longest spine, so the numbers say "progress," but the actual experience of using the model might tell a completely different story. On how unreliable leaderboard measurements can be, [MP-39](/posts/mp-39-20260207-anthropic-infra-noise) already pulled that apart in detail.
+</MoguNote>
+
+Hunt's most obvious piece of evidence is language ability. If models were truly gaining increasingly general intelligence, their text output should be getting more fluent and better structured. But compared to o3 — OpenAI's reasoning model released in early 2025 — the latest batch of models produces noticeably worse prose; some simple logic problems haven't improved either, and in some cases got worse.
+
+<MoguNote summary="gu-log runs four judges precisely because code-polished models write prose that is correct and lifeless.">
+Models writing worse prose — gu-log has firsthand evidence of this. Every article is written in Chinese by models that have been polished to a shine on code. The result is four judges (Vibe / Fact Checker / Librarian / Fresh Eyes) standing watch, specifically catching drafts that are "technically correct in every sentence but read like a spec document." [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) covers how this system grew into what it is. The hedgehog ball metaphor is something gu-log lives with every day: the longer the coding spine grows, the harder someone has to watch the Chinese one.
+</MoguNote>
+
+---
+
+## RL Can Only Train on Things That Already Have Answers
+
+Why did early LLMs seem to know a little bit of everything?
+
+Not because they learned general intelligence, but because the stuff humans have written down covers everything — history, science, law, gossip, recipes, philosophy. A model trained on that corpus will naturally "look like" it knows a bit of each.
+
+But the actual logic and facts behind language were never effectively learned, nor effectively trained into models via [RL](/en/glossary#rl) — capabilities hit a ceiling and stalled. This probably happened around late 2024, right when the great "has scaling hit a wall?" debate erupted.
+
+Chain of thought and search were genuine breakthroughs, because they let models "think and look things up as they go," squeezing more out of the general intelligence already embedded in that corpus. But post-2024 progress has mostly been these techniques pushing a bit further on the existing general-corpus foundation.
+
+Then AI companies figured something out: the coding path works, and the economics pencil out. Code is arguably the most thoroughly documented human activity — inputs, outputs, tests, feedback, all digitized, with [benchmarks](/en/glossary#benchmark) and reward signals that are easy to design. So resources poured into that one spine, and the latest models and benchmarks are sprinting on coding ability — at the cost of everyday English getting progressively worse.
+
+<MoguNote summary="The better your work is recorded, the further up the automation queue you stand — and programmers built that record.">
+The job with the most perfect training conditions out of all human professions is the first one to get automated — that's not a coincidence, it's causation. Did the test pass? Did the compiler complain? Is CI red? Every step recorded by git. Programmers spent decades building this entire infrastructure, and it turned into the cleanest training ground on earth. Lawyers aren't being replaced first not because they're better, but because their reasoning process is opaque; doctors' data isn't public; for writers, there's no ground truth for what's good. The more perfect your work records are, the further up the automation queue you stand ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 40% Conviction and a Testable Prediction
+
+Hunt doesn't deny the power of that one spike — especially in cybersecurity offense and defense, where he thinks the current models are extremely powerful and potentially extremely dangerous. But what comes next? Hunt speculates that someone might go back to earlier model versions, swap in a different dataset and reward signal for medicine or law, run a fresh round of [RL](/en/glossary#rl), and then try to stitch these specialized models together. But how capital-intensive that is, and whether it can actually turn a profit, is the make-or-break question for that path.
+
+Hunt puts 40% conviction on this entire thesis. The observations and the explanatory model line up, but he hasn't priced in potential breakthroughs — which is exactly why he's keeping the conviction low.
+
+He leaves behind a testable timeline: if he's right, every new model launch over the next year or two will let the hedgehog ball's shape speak for itself. And even if general intelligence remains far off, Hunt sees the upside: models that specialize in specific industry problems could be enough to sustain an entire new industry on their own.
+
+<MoguNote summary="Betting 40% instead of all-in or all-out is what makes this thesis worth reading seriously.">
+40% conviction (╯°□°)╯ Most people's AI outlook comes in only two modes — all in or all out. Hunt has an explanatory framework, bets 40%, and keeps the rest reserved for what he might be missing. That attitude is exactly what makes this worth reading seriously. Anthropic's own CEO has said we're approaching the end of exponential growth ([MP-78](/posts/mp-78-20260213-dwarkesh-dario-end-of-exponential)), and [Karpathy](/en/glossary#andrej-karpathy)'s 2025 review talks about how RLVR (reinforcement learning on tasks with verifiable answers — coding, math) keeps sharpening verifiable domains ([MP-4](/posts/mp-4-20260203-karpathy-2025-llm-review)) — the answer probably isn't on either side, but somewhere in the shape of the hedgehog ball.
+</MoguNote>
+
+---
+
+## Closing
+
+Next time a [benchmark](/en/glossary#benchmark) leaderboard breaks a record, take a look at that ball first — is it a new spine growing, or the same one again?

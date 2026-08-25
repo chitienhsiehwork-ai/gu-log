@@ -307,6 +307,25 @@ test('escapes literal backslashes together with Markdown inline punctuation', ()
   assert.ok(result.markdown.includes(String.raw`Path C:\\tmp and \*literal\*.`));
 });
 
+test('projects post link semantics without leaking the visual external marker', () => {
+  const raw = rawPost('\n[Example](https://example.com) and [About](/about).\n');
+  const html = pageHtml(`
+    <p>
+      <a href="https://example.com" data-link-kind="external">Example<span class="external-link-marker" aria-hidden="true">⁠↗</span></a>
+      and <a href="/about" data-link-kind="internal">About</a>.
+    </p>
+  `);
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: postJson(raw),
+    html,
+    sourceName: 'post-link-semantics',
+  });
+
+  assert.match(result.markdown, /\[Example\]\(https:\/\/example\.com\/\) and \[About\]/);
+  assert.doesNotMatch(result.markdown, /↗|data-link-kind|external-link-marker/);
+});
+
 test('projects every registered adapter and the exact artifact callout without hidden duplicates', () => {
   const raw = rawPost(`
 import MoguNote from '../../components/MoguNote.astro';
@@ -317,6 +336,7 @@ import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
 import AnalogyBox from '../../components/AnalogyBox.astro';
 import Mermaid from '../../components/Mermaid.astro';
 import PostImage from '../../components/PostImage.astro';
+import PostVideo from '../../components/PostVideo.astro';
 import DiffBlock from '../../components/DiffBlock.astro';
 import CodexLearningMap from '../../components/CodexLearningMap.astro';
 import fixtureImage from '../../assets/posts/fixture.png';
@@ -329,6 +349,7 @@ import fixtureImage from '../../assets/posts/fixture.png';
 <AnalogyBox title="Analogy">Analogy body</AnalogyBox>
 <Mermaid chart={\`graph TD\nA-->B\`} caption="Diagram" />
 <PostImage src={fixtureImage} alt="Fixture image" caption="Caption" />
+<PostVideo src="https://example.com/video.mp4" poster="https://example.com/poster.jpg" label="Fixture video" width={720} height={548} />
 <DiffBlock before="old" after="new" />
 <CodexLearningMap lang="en" />
 
@@ -386,12 +407,12 @@ import fixtureImage from '../../assets/posts/fixture.png';
       <div class="progress-percentage">50%</div>
     </div>
     <div class="levelup-quiz" data-quiz-id="quiz-all" data-markdown-adapter="level-up-quiz" data-answer="A">
-      <div class="quiz-header"><span class="quiz-icon">?</span><span class="quiz-label">Quiz</span></div>
+      <div class="quiz-header"><span class="quiz-label">Quiz</span></div>
       <p class="quiz-question">Question?</p>
       <div class="quiz-options"><button class="quiz-option" data-label="A" type="button"><span class="option-label">A</span><span class="option-text">Option</span></button></div>
       <div class="quiz-result" aria-live="polite">
-        <div class="result-correct" hidden><span class="result-icon">yes</span><strong>Correct</strong><p class="result-explanation">Because.</p></div>
-        <div class="result-wrong" hidden><span class="result-icon">no</span><strong>Wrong</strong><p class="result-answer">Answer: <strong>A</strong></p><p class="result-explanation">duplicate explanation</p></div>
+        <div class="result-correct" hidden><strong>Correct</strong><p class="result-explanation">Because.</p></div>
+        <div class="result-wrong" hidden><strong>Wrong</strong><p class="result-answer">Answer: <strong>A</strong></p><p class="result-explanation">duplicate explanation</p></div>
       </div>
     </div>
     <aside class="analogy-box" role="note" data-markdown-adapter="analogy-box">
@@ -401,7 +422,7 @@ import fixtureImage from '../../assets/posts/fixture.png';
     <div class="mermaid-wrapper" data-markdown-adapter="mermaid">
       <div class="mermaid-scroll"><div class="mermaid-source" style="display:none;" data-mermaid>graph TD\nA--&gt;B</div><div class="mermaid-render" data-loading-label="Loading diagram..."></div></div>
       <p class="mermaid-caption">Diagram</p>
-      <button class="mermaid-expand-btn" aria-label="Expand" title="Zoom"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg></button>
+      <button type="button" class="mermaid-expand-btn" aria-label="Expand" aria-haspopup="dialog" title="Zoom"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"></path></svg></button>
     </div>
     <div class="mermaid-overlay"><button class="mermaid-close-btn">hidden close</button></div>
     <figure class="post-image" data-post-image data-markdown-adapter="post-image">
@@ -417,6 +438,12 @@ import fixtureImage from '../../assets/posts/fixture.png';
           <p class="post-image-dialog-caption">Caption</p>
         </div>
       </div>
+    </figure>
+    <figure class="post-video" data-post-video data-markdown-adapter="post-video">
+      <video controls loop playsinline preload="none" poster="https://example.com/poster.jpg" width="720" height="548" aria-label="Fixture video">
+        <source src="https://example.com/video.mp4" type="video/mp4">
+        <a href="https://example.com/video.mp4">Open the original MP4 video</a>
+      </video>
     </figure>
     <div class="diff-block" data-markdown-adapter="diff-block">
       <div class="diff-panel diff-before"><div class="diff-header diff-header--before"><span class="diff-icon">x</span><span class="diff-label">Before</span></div><div class="diff-body">old</div></div>
@@ -456,6 +483,7 @@ import fixtureImage from '../../assets/posts/fixture.png';
     'Analogy body',
     '```mermaid',
     '![Fixture image](https://gu-log.vercel.app/_astro/fixture.hash.png)',
+    '[![Fixture video](https://example.com/poster.jpg)](https://example.com/video.mp4)',
     '**Before:** old',
     '**Learning map**',
     '[Artifact title](https://gu-log.vercel.app/artifacts/demo/)',

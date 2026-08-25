@@ -13,6 +13,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'url';
 import yaml from 'yaml';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
@@ -154,6 +155,15 @@ function getFrontmatterText(content) {
   return content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
 }
 
+function getFrontmatterBlock(content) {
+  return content.match(/^---\n[\s\S]*?\n---/)?.[0] ?? null;
+}
+
+function getFrontmatterFingerprint(content) {
+  const block = getFrontmatterBlock(content);
+  return block === null ? null : createHash('sha256').update(block).digest('hex');
+}
+
 function retiredTicketDiagnostic(value) {
   const match = value.match(RETIRED_TICKET_PATTERN);
   if (!match) return null;
@@ -277,10 +287,21 @@ function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
   let fm;
-  try {
-    fm = parseFrontmatter(content);
-  } catch (e) {
-    return { filename, errors: [e.message], warnings: [] };
+  if (
+    options.preloadedFrontmatter &&
+    options.preloadedFrontmatter.fingerprint === getFrontmatterFingerprint(content)
+  ) {
+    const { frontmatter, error } = options.preloadedFrontmatter;
+    if (error) {
+      return { filename, errors: [error.message], warnings: [] };
+    }
+    fm = frontmatter;
+  } else {
+    try {
+      fm = parseFrontmatter(content);
+    } catch (e) {
+      return { filename, errors: [e.message], warnings: [] };
+    }
   }
   const fmText = getFrontmatterText(content);
   const body = getContentBody(content);
@@ -461,7 +482,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
-  // Translations (GP/MP) render it as "translated by"; originals (SD/Lv) as
+  // GP translation renders it as "translated by"; MP/SD/Lv writing as
   // "written by". Either way, readers must see which model produced the post.
   if (!fm.translatedBy) {
     errors.push('Missing translatedBy (model signature) — every post needs model + harness');
@@ -892,18 +913,35 @@ function main() {
     return; // checkDuplicates() calls process.exit()
   }
 
+  const isFileListMode = args.length > 0;
+  // Full-repo validation already parses every frontmatter while building the
+  // cross-file ticket index. Reuse that parse result in validatePost instead
+  // of parsing the same YAML blocks twice. File-list mode keeps its
+  // smaller fresh-read path so pre-commit does not retain the whole corpus.
+  const preloadedFrontmatterByPath = isFileListMode ? null : new Map();
+
   // Load all posts for cross-file checks
   const allFiles = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
   const allPosts = allFiles.map((f) => {
-    const content = fs.readFileSync(path.join(POSTS_DIR, f), 'utf-8');
+    const filePath = path.join(POSTS_DIR, f);
+    const content = fs.readFileSync(filePath, 'utf-8');
     let fm;
+    let error = null;
     try {
       fm = parseFrontmatter(content);
-    } catch {
+    } catch (parseError) {
       // Invalid YAML is reported below when this same file goes through
       // validatePost's own gate; don't let one bad file crash the
       // cross-file preload for every other post.
       fm = null;
+      error = parseError;
+    }
+    if (preloadedFrontmatterByPath) {
+      preloadedFrontmatterByPath.set(path.resolve(filePath), {
+        frontmatter: fm,
+        error,
+        fingerprint: getFrontmatterFingerprint(content),
+      });
     }
     return { filename: f, ticketId: fm?.ticketId || '' };
   });
@@ -923,13 +961,13 @@ function main() {
     filesToValidate = allFiles.map((f) => path.join(POSTS_DIR, f));
   }
 
-  const isFileListMode = args.length > 0;
   let totalErrors = 0;
   let totalWarnings = 0;
 
   for (const filepath of filesToValidate) {
     const result = validatePost(filepath, allPosts, {
       enforceLongMoguNoteSummary: isFileListMode,
+      preloadedFrontmatter: preloadedFrontmatterByPath?.get(path.resolve(filepath)),
     });
 
     if (result.errors.length > 0 || result.warnings.length > 0) {
@@ -997,4 +1035,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main();
 }
 
-export { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES };
+export {
+  parseFrontmatter,
+  getBaseFilename,
+  getContentBody,
+  getFrontmatterBlock,
+  getFrontmatterFingerprint,
+  validatePost,
+  CJK_GRANDFATHERED_LINES,
+};

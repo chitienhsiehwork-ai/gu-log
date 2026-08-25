@@ -26,6 +26,14 @@ while IFS= read -r -d '' file; do
     STAGED_POST_CHANGES+=("$file")
 done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
+# ─── Step -4: Reader-visible emoji ratchet ────────────────────────
+# Fail closed before any generator mutates the index. CI invokes this exact
+# executable with the PR base SHA, so detector and exception semantics cannot
+# drift between local commits and pull requests.
+echo "🚫 Content emoji policy: checking staged reader-visible lines..."
+node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
+echo ""
+
 # ─── Step -3: Regenerate post manifests for staged content changes ──
 # `post-versions.json` is derived from git history. Pre-commit runs before the
 # new commit exists, so the generator includes staged post touches to write the
@@ -233,33 +241,13 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Normalize added/removed lines by stripping internal Markdown links; if the
-    # underlying text is identical, this is maintenance-only.
+    # Post links may update labels only when the staged target's canonical
+    # ticket, title, language, and filename prove the new identity. The shared
+    # validator also preserves glossary behavior and surrounding prose equality.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
-
-    git diff --cached --no-color -U0 -- "$file" | python3 -c '
-import re, sys
-lines = []
-for line in sys.stdin:
-    if not (line.startswith("+") or line.startswith("-")):
-        continue
-    if line.startswith("+++ ") or line.startswith("--- "):
-        continue
-    lines.append(line.rstrip("\n"))
-if not lines:
-    sys.exit(0)
-def norm(line):
-    text = line[1:]
-    text = re.sub(r"\[([^\]\n]+)\]\(/(?:en/)?glossary#[^)\n]+\)", r"\1", text)
-    text = re.sub(r"\[([^\]\n]+)\]\(/posts/[^)\n]+\)", r"\1", text)
-    text = re.sub(r"\[([^\]\n]+)\]\(/en/posts/[^)\n]+\)", r"\1", text)
-    return text.strip()
-removed = sorted(norm(line) for line in lines if line.startswith("-"))
-added = sorted(norm(line) for line in lines if line.startswith("+"))
-sys.exit(0 if removed == added else 1)
-'
+    node "$REPO_ROOT/scripts/check-staged-internal-post-links.mjs" "$file" >/dev/null 2>&1
 }
 
 is_existing_ticket_post_addition() {
@@ -298,6 +286,11 @@ is_canonical_taxonomy_only_diff() {
     node "$REPO_ROOT/scripts/check-brand-taxonomy.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
 }
 
+is_canonical_terminology_only_diff() {
+    local file="$1"
+    node "$REPO_ROOT/scripts/check-glossary-links.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
+}
+
 GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_MODIFIED[@]}")
 
 if [ "${#GATE_CANDIDATES[@]}" -eq 0 ]; then
@@ -310,6 +303,9 @@ else
         if [ ! -f "$FULL_PATH" ]; then continue; fi
 
         if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
+        if is_canonical_terminology_only_diff "$file"; then
             continue
         fi
 
@@ -371,7 +367,7 @@ fi
 echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
 echo ""
 
-# ─── Step 0.15: Pronoun clarity check (你/我 ban in zh-tw body) ───
+# ─── Step 0.15: Pronoun clarity check (non-GP 你/我 ambiguity guard) ───
 # Same metadata-only exemption as the score gate: housekeeping edits
 # (status/series/deprecation) don't change body text and shouldn't be
 # punished for pre-existing 你/我 in 4-month-old articles.
@@ -383,6 +379,9 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             */en-*) ;; # skip English
             *)
                 if is_canonical_taxonomy_only_diff "$file"; then
+                    continue
+                fi
+                if is_canonical_terminology_only_diff "$file"; then
                     continue
                 fi
                 # Backend-only frontmatter edits (translatedBy/model/harness,
@@ -408,11 +407,11 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
     done
 
     if [ "${#ZH_FILES[@]}" -gt 0 ]; then
-        echo "🔍 Pronoun clarity: checking zh-tw posts for 你/我 in body..."
+        echo "🔍 Pronoun clarity: checking non-GP zh-tw posts for ambiguous 你/我..."
         if ! node "$REPO_ROOT/scripts/check-pronoun-clarity.mjs" "${ZH_FILES[@]}"; then
             echo ""
             echo "❌ Pronoun clarity check FAILED."
-            echo "   你/我 found in article body (outside MoguNote/blockquote/code)."
+            echo "   Ambiguous 你/我 found in non-GP body (outside MoguNote/blockquote/code)."
             echo "   Use specific names (ShroomDog, Mogu, 讀者) or restructure sentences."
             exit 1
         fi
@@ -555,6 +554,9 @@ content_gate_mdx_files() {
     local file
     for file in "${STAGED_MDX[@]}"; do
         if is_canonical_taxonomy_only_diff "$file"; then
+            continue
+        fi
+        if is_canonical_terminology_only_diff "$file"; then
             continue
         fi
         # Backend-only frontmatter edits (model signature, scores) don't change

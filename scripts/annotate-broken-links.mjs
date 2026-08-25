@@ -12,8 +12,8 @@
  *   node scripts/annotate-broken-links.mjs --input path.json  # custom input
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { lstat, readFile, writeFile } from 'node:fs/promises';
+import { basename, join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -35,6 +35,53 @@ function parseArgs() {
 
 function getToday() {
   return new Date().toISOString().split('T')[0];
+}
+
+async function preflightBrokenLinks(brokenLinks) {
+  if (!Array.isArray(brokenLinks)) {
+    throw new Error('external.broken must be an array');
+  }
+
+  const byFile = new Map();
+  for (const [index, link] of brokenLinks.entries()) {
+    if (
+      !link ||
+      typeof link !== 'object' ||
+      typeof link.file !== 'string' ||
+      link.file !== basename(link.file) ||
+      !link.file.endsWith('.mdx') ||
+      typeof link.url !== 'string' ||
+      link.url.trim() === ''
+    ) {
+      throw new Error(`Invalid external.broken entry at index ${index}`);
+    }
+
+    const group = byFile.get(link.file) ?? {
+      file: link.file,
+      filePath: join(POSTS_DIR, link.file),
+      links: [],
+      missing: false,
+    };
+    group.links.push(link);
+    byFile.set(link.file, group);
+  }
+
+  for (const group of byFile.values()) {
+    try {
+      const stats = await lstat(group.filePath);
+      if (stats.isSymbolicLink() || !stats.isFile()) {
+        throw new Error(`Broken link target must be a regular non-symlink file: ${group.file}`);
+      }
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        group.missing = true;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return [...byFile.values()];
 }
 
 /**
@@ -129,28 +176,23 @@ async function main() {
   }
 
   const data = JSON.parse(await readFile(inputPath, 'utf-8'));
-  const brokenLinks = data.external?.broken || [];
+  const brokenLinks = data.external?.broken ?? [];
+  // Validate every report-controlled target before the first article or
+  // suggestions write so one bad late entry cannot leave a partial apply.
+  const fileGroups = await preflightBrokenLinks(brokenLinks);
 
-  if (brokenLinks.length === 0) {
+  if (fileGroups.length === 0) {
     console.log('✅ No broken external links to annotate!');
     process.exit(0);
   }
 
   console.log(`Found ${brokenLinks.length} broken external links to annotate.\n`);
 
-  // Group by file
-  const byFile = {};
-  for (const link of brokenLinks) {
-    if (!byFile[link.file]) byFile[link.file] = [];
-    byFile[link.file].push(link);
-  }
-
   const modifiedFiles = [];
   const suggestions = [];
 
-  for (const [file, links] of Object.entries(byFile)) {
-    const filePath = join(POSTS_DIR, file);
-    if (!existsSync(filePath)) {
+  for (const { file, filePath, links, missing } of fileGroups) {
+    if (missing) {
       console.log(`  ⚠️  File not found: ${file} (skipped)`);
       continue;
     }

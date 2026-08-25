@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,8 +42,9 @@ func newWriteCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "write",
-		Short: "Draft the zh-tw MDX article from a captured source",
-		Long: `write is Step 2 of the pipeline. It renders the write.tmpl prompt
+		Short: "Draft a non-GP zh-tw MDX article from a captured source",
+		Long: `write is the legacy generative drafting command for MP, SD, and Lv. GP
+must use the canonical run command and source-translate contract. It renders the write.tmpl prompt
 with the source-tweet.md contents and GU-LOG_WRITER_PROMPT.md embedded as
 template variables, then runs it through the LLM dispatcher. The prompt
 instructs the LLM to write draft-v1.mdx into the working directory.
@@ -72,7 +74,7 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&originalDate, "original-date", "", "YYYY-MM-DD of the source publication")
 	cmd.Flags().StringVar(&authorHandle, "author", "", "author handle WITHOUT @ prefix")
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP returns canonical run guidance")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
@@ -106,6 +108,9 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 	}
 	if err := counter.ValidateTicketIDForPrefix(opts.TicketID, opts.Prefix); err != nil {
 		return err
+	}
+	if opts.Prefix == "GP" {
+		return errors.New("write: GP uses the canonical source-translate pipeline; run `gp-pipeline run` instead")
 	}
 	absSource, err := filepath.Abs(opts.SourcePath)
 	if err != nil {

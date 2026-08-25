@@ -91,11 +91,6 @@ post_relpaths_for_article() {
   fi
 }
 
-current_publish_state() {
-  local article="$1"
-  jq -r --arg a "$article" '.entries[$a].publishState // "ready_for_batch"' "$PUBLISHER_STATE_FILE"
-}
-
 current_batch_id() {
   local article="$1"
   jq -r --arg a "$article" '.entries[$a].batchId // ""' "$PUBLISHER_STATE_FILE"
@@ -140,14 +135,44 @@ collect_articles_by_status() {
 }
 
 collect_publishable_passes() {
-  local article state
-  while IFS= read -r article; do
-    [ -n "$article" ] || continue
-    state="$(current_publish_state "$article")"
-    if [ "$state" = "ready_for_batch" ] && ! article_has_blocking_event "$article"; then
-      printf '%s\n' "$article"
-    fi
-  done < <(collect_articles_by_status "PASS")
+  local limit="${1:-}"
+  jq -nr \
+    --arg limit "$limit" \
+    --slurpfile progress "$PROGRESS_FILE" \
+    --slurpfile publisher "$PUBLISHER_STATE_FILE" \
+    --slurpfile triage "$TRIAGE_EVENTS_FILE" '
+      def candidates:
+        $progress[0]
+        | to_entries
+        | map(select((.value.status // "") == "PASS"))
+        | sort_by(.key)
+        | .[].key as $article
+        | select(
+            ($publisher[0].entries[$article].publishState // "ready_for_batch")
+            == "ready_for_batch"
+          )
+        | select(
+            ([
+              $triage[0].events[]?
+              | select(
+                  .article == $article
+                  and (
+                    (.state // "") == "open"
+                    or (.state // "") == "agent_review"
+                    or (.state // "") == "awaiting_human"
+                    or (.state // "") == "deferred"
+                  )
+                )
+            ] | length) == 0
+          )
+        | $article;
+
+      if $limit == "" then
+        candidates
+      else
+        limit(($limit | tonumber); candidates)
+      end
+    '
 }
 
 collect_state_articles() {
@@ -172,16 +197,6 @@ collect_blocking_event_articles() {
     | unique
     | .[]
   ' "$TRIAGE_EVENTS_FILE"
-}
-
-article_has_blocking_event() {
-  local article="$1"
-  jq -e --arg article "$article" '
-    any(
-      .events[]?;
-      .article == $article and ((.state // "") == "open" or (.state // "") == "agent_review" or (.state // "") == "awaiting_human" or (.state // "") == "deferred")
-    )
-  ' "$TRIAGE_EVENTS_FILE" >/dev/null 2>&1
 }
 
 event_id_for() {
@@ -541,10 +556,76 @@ reserve_batch_state() {
   mv "$tmp" "$PUBLISHER_STATE_FILE"
 }
 
+reconcile_already_on_main_state() {
+  local main_commit="$1"
+  shift
+  local selected_json updated_at state_dir state_name candidate
+
+  selected_json="$(printf '%s\n' "$@" | jq -R . | jq -s .)"
+  updated_at="$(TZ=Asia/Taipei date -Iseconds)"
+  state_dir="$(dirname "$PUBLISHER_STATE_FILE")"
+  state_name="$(basename "$PUBLISHER_STATE_FILE")"
+  if ! candidate="$(mktemp "$state_dir/$state_name.reconcile.XXXXXX")"; then
+    echo "ERROR: unable to create same-directory publisher ledger candidate" >&2
+    return 1
+  fi
+
+  if ! jq \
+    --arg mainCommit "$main_commit" \
+    --arg updatedAt "$updated_at" \
+    --argjson selected "$selected_json" '
+      reduce $selected[] as $article (.;
+        .entries[$article] = (
+          (.entries[$article] // {})
+          | .publishState = "published"
+          | .publicationMethod = "already_on_main"
+          | .mainCommit = $mainCommit
+          | .updatedAt = $updatedAt
+          | del(
+              .batchId,
+              .branch,
+              .branchName,
+              .prNumber,
+              .prUrl,
+              .mergeCommit,
+              .mergedAt,
+              .selectedAt,
+              .pushedAt,
+              .prCreatedAt,
+              .materializedCommit
+            )
+        )
+      )
+    ' "$PUBLISHER_STATE_FILE" > "$candidate"; then
+    rm -f "$candidate"
+    echo "ERROR: unable to write publisher ledger reconciliation candidate" >&2
+    return 1
+  fi
+
+  if ! validate_tribunal_runtime_json_file \
+    "$candidate" \
+    "publisher ledger reconciliation candidate" ||
+     ! jq -e '
+       type == "object"
+       and (.entries | type == "object")
+       and (.batches | type == "object")
+     ' "$candidate" >/dev/null 2>&1; then
+    rm -f "$candidate"
+    echo "ERROR: publisher ledger reconciliation candidate failed validation" >&2
+    return 1
+  fi
+
+  if ! mv "$candidate" "$PUBLISHER_STATE_FILE"; then
+    rm -f "$candidate"
+    echo "ERROR: unable to atomically replace publisher ledger" >&2
+    return 1
+  fi
+}
+
 apply_batch() {
   local article batch_id branch_name batch_dir
   refresh_conflict_events
-  mapfile -t selected < <(collect_publishable_passes | head -n "$MAX_BATCH")
+  mapfile -t selected < <(collect_publishable_passes "$MAX_BATCH")
   if [ "${#selected[@]}" -eq 0 ]; then
     tlog "No publishable PASS artifacts."
     return 0
@@ -596,9 +677,21 @@ apply_batch() {
 
   git -C "$batch_dir" add src/content/posts
   if git -C "$batch_dir" diff --cached --quiet; then
-    tlog "Selected artifacts produced no diff on origin/main; dropping empty batch."
-    git worktree remove "$batch_dir" --force
-    git branch -D "$branch_name" >/dev/null 2>&1 || true
+    local main_commit
+    main_commit="$(git -C "$batch_dir" rev-parse HEAD)"
+    if ! git worktree remove "$batch_dir" --force; then
+      tlog "Unable to remove no-diff publisher worktree; ledger remains retryable."
+      return 1
+    fi
+    if ! git branch -D "$branch_name" >/dev/null 2>&1; then
+      tlog "Unable to remove no-diff publisher branch; ledger remains retryable."
+      return 1
+    fi
+    if ! reconcile_already_on_main_state "$main_commit" "${validated[@]}"; then
+      tlog "Unable to reconcile already-on-main publisher ledger; entries remain retryable."
+      return 1
+    fi
+    tlog "Selected artifacts already match origin/main; reconciled ${#validated[@]} as published."
     return 0
   fi
   if [ "$SKIP_BUILD" != "1" ]; then

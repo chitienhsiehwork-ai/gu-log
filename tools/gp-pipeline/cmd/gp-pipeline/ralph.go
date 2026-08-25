@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -50,6 +51,10 @@ Ralph logs-and-continues on tribunal failure (bash behavior). Use
 
 func runRalph(ctx context.Context, state *rootState, filename, workDir string) error {
 	start := time.Now()
+	prefix, err := postPrefixFromFilename(filename)
+	if err != nil {
+		return err
+	}
 
 	if workDir == "" {
 		workDir = filepath.Join(state.cfg.RepoRoot, "tmp", fmt.Sprintf("gp-ralph-%d", time.Now().Unix()))
@@ -65,11 +70,12 @@ func runRalph(ctx context.Context, state *rootState, filename, workDir string) e
 	s.Log = state.log
 	s.WorkDir = workDir
 	s.ExistingFile = filename
+	s.Prefix = prefix
 
 	stepCtx, cancel := context.WithTimeout(ctx, 2*time.Hour)
 	defer cancel()
 
-	err := s.Ralph(stepCtx)
+	err = s.Ralph(stepCtx)
 
 	report := ralphReport{
 		Step:           "ralph",
@@ -86,6 +92,29 @@ func runRalph(ctx context.Context, state *rootState, filename, workDir string) e
 	report.OK = true
 	emitRalphReport(state, report)
 	return nil
+}
+
+func postPrefixFromFilename(filename string) (string, error) {
+	if filepath.Base(filename) != filename {
+		return "", fmt.Errorf("ralph: --file must be a basename")
+	}
+	stem := strings.TrimPrefix(strings.ToLower(filename), "en-")
+	series, _, ok := strings.Cut(stem, "-")
+	if !ok {
+		return "", fmt.Errorf("ralph: cannot infer series from filename %q", filename)
+	}
+	switch series {
+	case "gp":
+		return "GP", nil
+	case "mp":
+		return "MP", nil
+	case "sd":
+		return "SD", nil
+	case "lv":
+		return "Lv", nil
+	default:
+		return "", fmt.Errorf("ralph: unsupported post series %q", series)
+	}
 }
 
 func emitRalphReport(state *rootState, r ralphReport) {

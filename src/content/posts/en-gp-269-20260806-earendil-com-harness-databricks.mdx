@@ -1,0 +1,110 @@
+---
+ticketId: "GP-269"
+title: 'Same model, different harness: some tasks cost more than twice as much—Databricks opened the bill'
+originalDate: '2026-08-04'
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok Build CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Earendil"
+sourceUrl: 'https://earendil.com/posts/pi-autoresearch-and-databricks/'
+lang: 'en'
+summary: 'Databricks tested coding agents on day-to-day tasks from its multi-million-line codebase: same model, same reasoning strength, only the harness changed—and on some cases the per-task cost differed by more than 2× with quality held constant. Pi sent about one-third as much context per turn as the comparison baseline. Model and harness both have to count toward total engineering cost.'
+tags: ['ai-agents', 'agent-harness', 'pi', 'databricks', 'coding-agents']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 7
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 10
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-06"
+    model: "grok-4.5"
+translatedDate: "2026-08-06"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Same model, same reasoning strength—swap only the [Agent Harness](/en/glossary#agent-harness) that calls it—and on some cases the per-task cost more than doubles while quality stays put. Picture the same kitchen and the same cooks; only the plating workflow changes. Some people haul half the fridge to the table with every dish; others bring only what that dish actually needs. Of course the bill looks different. In a [controlled experiment from a cloud data-platform team](https://www.databricks.com/blog/benchmarking-coding-agents-databricks-multi-million-line-codebase), [Pi](/en/glossary#pi) sent about one-third as much [context](/en/glossary#context-window) per turn as the comparison baseline, and finished tasks in fewer turns; both show up alongside the lower per-task cost.
+
+These numbers split the coding-agent cost problem open. The model price list is just the unit rate. How much stale baggage the harness carries each turn, and how many loops it makes the model take, is what settles the final bill.
+
+<MoguNote summary="Vendor-reported result: discount the ranking, keep the controlled experiment.">
+The source is from Pi's vendor—discount the ranking and the marketing tone. Background reading if you want it: [Pi's minimal design](/posts/gp-45-20260210-mitsuhiko-pi-minimal-agent), [the harness is the product](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product), [context cost](/posts/mp-65-20260211-nicbstme-context-tax), [the Autoresearch loop](/posts/gp-113-20260314-manthanguptaa-karpathy-autoresearch), and [an e-commerce platform case](/posts/mp-163-20260315-simonw-simon-willison-tobi-autoresearch-pr-liquid-benchmark-53). This piece only covers the new controlled experiment. (¬‿¬)
+</MoguNote>
+
+## Why these numbers beat a leaderboard
+
+Public problem sets are like a school-wide exam: everyone has seen the questions, and a high score does not mean you can do the job at work. The research team did not grind that set again. They built tasks from real changes in their multi-million-line codebase—filtering out bot and fully auto-generated commits, keeping cases with reliable tests, then human-checking questions and answers. That looks more like the tickets engineers actually hit every day, and it cuts the risk that public answers leaked into training data.
+
+More important: control the variables. Once model and reasoning strength are fixed, the price gap is easier to pin on how the harness shapes the working set, resends context, and ends the task. The result does not mean one harness is always cheaper, and it does not mean native tooling is always worse. It only shows that "model name" is not a complete unit of cost—like staring at the electricity rate while ignoring how many hours the AC runs.
+
+## Where the cost leaks
+
+Pi defaults to four tools; system prompt plus tool definitions stay under 1,000 [tokens](/en/glossary#token). Extend when something is missing—no need to make every task read a full rulebook it will never use. Imagine you only need to tighten one screw, but someone carts over the entire hardware store "just in case." That is not caution; that is freight written into the quote. The smaller working sets and fewer turns observed in the study turn this design from a "minimalist preference" into a measurable cost gap.
+
+So price per million tokens alone does not stand in for engineering cost. Pass rate per task, total cost per task, context per turn, and total turns have to be compared together.
+
+## A thin harness can still grow heavy workflows
+
+The next doubt lands here: if the default is this thin, does capability get cut too? An [engineering write-up from an e-commerce platform](https://shopify.engineering/autoresearch) describes how they call Pi, via extension docs, to run Autoresearch: each round measure the baseline, propose a hypothesis, keep improvements, discard regressions, then keep experimenting. The chassis stays light; heavy workflow hangs off extensions instead of stuffing the whole process into the system prompt at boot.
+
+Cases include unit tests sped up 300×, React component mount ~20% faster, build times down across multiple projects, and pnpm performance gains. These are company cases, not a generalizable public benchmark. The narrow claim they support: a thin default and a heavy workflow are not in conflict—if the extension points are good enough to use.
+
+## Turn complexity into measurable cost
+
+Once model and reasoning strength are fixed, comparing harnesses on pass rate, total cost, context per turn, and total turns is what separates "looks stronger" from "costs more on the bill." Complexity can be added—but only after you can measure, on your own tasks, whether it is worth it.
+
+<MoguNote>
+Complexity is allowed—it just has to pay rent. Defaults that never prove their usefulness in numbers will show up on the bill.
+
+If you actually use this to pick tools: pull real tasks from your own merge history, score success with existing tests, then fix model and reasoning strength and compare harnesses. Other people's leaderboards are fine as a starting point—not as a purchase answer. (・ω・)
+</MoguNote>

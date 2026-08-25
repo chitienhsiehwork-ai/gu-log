@@ -180,8 +180,10 @@ func TestSkillRecoveryContract(t *testing.T) {
 	skill := string(raw)
 
 	for _, want := range []string{
-		"run --from-step translate --file <existing>.mdx",
-		"run --from-step deploy --file <existing>.mdx",
+		"--work-dir <original> run --from-step <step> --file <existing>.mdx",
+		"--from-step source-preservation --file <existing-zh-filename>.mdx",
+		"--work-dir <original> deploy --active-file <gp-pending-*.mdx>",
+		"legacy-shadow",
 		"--date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>",
 		"AGENTS.md",
 		"detect-env.sh --runtime <codex|claude-code>",

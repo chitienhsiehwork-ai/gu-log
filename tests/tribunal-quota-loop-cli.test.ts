@@ -29,13 +29,14 @@ function createFixture() {
   };
 }
 
-function runFixture(args: string[]) {
+function runFixture(args: string[], inheritedEnv: NodeJS.ProcessEnv = process.env) {
   const fixture = createFixture();
   const result = spawnSync('bash', [fixture.loop, ...args], {
     cwd: fixture.root,
     encoding: 'utf8',
     env: {
-      ...process.env,
+      ...inheritedEnv,
+      TRIBUNAL_DEPLOYED_MODE: '0',
       USAGE_MONITOR: path.join(fixture.root, 'missing-usage-monitor'),
     },
     killSignal: 'SIGKILL',
@@ -110,6 +111,16 @@ describe('Tribunal quota-loop CLI validation', () => {
     ['26', '26'],
   ])('accepts boundary values --workers %s --controller-once %s', (workers, activeWorkers) => {
     const { result } = runFixture(['--workers', workers, '--controller-once', activeWorkers]);
+
+    expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
+    expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+  });
+
+  it('isolates non-deployed CLI validation from ambient deployed mode', () => {
+    const { result } = runFixture(['--workers', '1', '--controller-once', '0'], {
+      ...process.env,
+      TRIBUNAL_DEPLOYED_MODE: '1',
+    });
 
     expect(result.error, `${result.stdout}\n${result.stderr}`).toBeUndefined();
     expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);

@@ -1,16 +1,15 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { buildPublicApiEndpoint, normalizePublicApiBaseUrl } from '../lib/public-api-url';
 import { getPublishedPosts } from '../utils/post-status';
 import { getPostReaderRevision } from '../utils/post-versions';
 
 const allPosts = getPublishedPosts(await getCollection('posts'), 'zh-tw');
 const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
-const parsedApiUrl = new URL(configuredApiUrl);
-if (parsedApiUrl.protocol !== 'https:' && parsedApiUrl.protocol !== 'http:') {
-  throw new Error('PUBLIC_API_URL must use http or https');
-}
-const apiUrl = parsedApiUrl.href.replace(/\/$/, '');
+const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
+const syncLoginUrl = new URL(buildPublicApiEndpoint(configuredApiUrl, '/auth/github'));
+syncLoginUrl.searchParams.set('reader_sync', '1');
 
 // Sort by date descending
 allPosts.sort((a, b) => {
@@ -45,7 +44,12 @@ const totalArticles = allPosts.length;
   <!-- Immediate auth check — redirect if not logged in -->
   <script is:inline>
     (function () {
-      const jwt = localStorage.getItem('gu-log-jwt');
+      let jwt = null;
+      try {
+        jwt = localStorage.getItem('gu-log-jwt');
+      } catch {
+        // Inaccessible auth storage is unauthenticated; fail closed instead of leaving a blank page.
+      }
       if (!jwt) {
         window.location.replace('/');
       } else {
@@ -114,13 +118,7 @@ const totalArticles = allPosts.length;
         <p class="sync-desc">
           已改用 gu-log 登入狀態同步閱讀紀錄，不需要手貼 GitHub private token。
         </p>
-        <a
-          id="sync-reauth-link"
-          class="sync-action-btn"
-          href={`${apiUrl}/auth/github?reader_sync=1`}
-        >
-          重新授權同步
-        </a>
+        <a id="sync-reauth-link" class="sync-action-btn" href={syncLoginUrl.href}> 重新授權同步 </a>
         <details class="legacy-sync-details">
           <summary>Legacy token fallback</summary>
           <p class="sync-pat-hint">只有 backend OAuth sync 暫時不可用時才用這條舊路。</p>
@@ -225,14 +223,7 @@ const totalArticles = allPosts.length;
 </BaseLayout>
 
 <script>
-  import {
-    isRead,
-    markAsRead,
-    markAsUnread,
-    getReadRecordMap,
-    exportJson,
-    importJson,
-  } from '../lib/reading-tracker';
+  import { setReadStates, getReadRecordMap, exportJson, importJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -263,8 +254,7 @@ const totalArticles = allPosts.length;
     return getReadRecordMap(currentRevisionMap());
   }
 
-  function updateStats() {
-    const readRecords = readRecordMap();
+  function updateStats(readRecords: ReturnType<typeof getReadRecordMap>) {
     const totalCurrentRead = Object.values(readRecords).filter(
       (record) => record.revisionState === 'current'
     ).length;
@@ -333,7 +323,7 @@ const totalArticles = allPosts.length;
             ? '已讀，但舊紀錄沒有版本資訊'
             : '';
     });
-    updateStats();
+    updateStats(records);
     applyFilter();
   }
 
@@ -368,11 +358,8 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const row = btn.closest<HTMLElement>('.article-row')!;
       const slug = row.dataset.slug!;
-      if (isRead(slug)) {
-        markAsUnread(slug);
-      } else {
-        markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-      }
+      const nowRead = setReadStates([[slug, undefined, row.dataset.currentRevision]]);
+      if (nowRead === null) return;
       updateAllRows();
     });
   });
@@ -395,16 +382,11 @@ const totalArticles = allPosts.length;
     btn.addEventListener('click', () => {
       const action = btn.dataset.bulkAction as 'read' | 'unread';
       const group = btn.dataset.group!;
-      document
-        .querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`)
-        .forEach((row) => {
-          const slug = row.dataset.slug!;
-          if (action === 'read') {
-            markAsRead(slug, 'manual_mark_read', row.dataset.currentRevision || null);
-          } else {
-            markAsUnread(slug);
-          }
-        });
+      const updates = Array.from(
+        document.querySelectorAll<HTMLElement>(`.article-row[data-group="${group}"]`),
+        (row) => [row.dataset.slug!, action === 'read', row.dataset.currentRevision] as const
+      );
+      if (setReadStates(updates) === null) return;
       updateAllRows();
     });
   });

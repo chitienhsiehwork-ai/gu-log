@@ -58,6 +58,8 @@ case "$*" in
     echo "     Active: inactive (dead)"
     ;;
   "--user show tribunal-loop -p Environment --value")
+    [ "${FAIL_LOOP_ENV_QUERY:-0}" != "1" ] || exit 1
+    [ "${EMPTY_LOOP_ENV_QUERY:-0}" != "1" ] || exit 0
     echo "QUOTA_FLOOR=12 GP_WRITER_MODE=subagent TRIBUNAL_STRICT_ROLE_PROVIDERS=0"
     ;;
   "--user is-enabled tribunal-loop")
@@ -216,6 +218,8 @@ run_snapshot() {
     JOURNALCTL_CALLS="$journalctl_calls" \
     GIT_CALLS="$git_calls" \
     FAIL_SUPERVISOR_GIT="${FAIL_SUPERVISOR_GIT:-0}" \
+    FAIL_LOOP_ENV_QUERY="${FAIL_LOOP_ENV_QUERY:-0}" \
+    EMPTY_LOOP_ENV_QUERY="${EMPTY_LOOP_ENV_QUERY:-0}" \
     EXPECTED_SUPERVISOR="$runtime_root" \
     EXPECTED_WORKTREE="$worker_root" \
     EXPECTED_USER_UNIT_DIR="$fake_home/.config/systemd/user" \
@@ -297,6 +301,26 @@ grep -q '^service_drop_ins=none$' <<<"$output" ||
 grep -q '^timer_drop_ins=none$' <<<"$output" ||
   fail "PASS audit timer drop-in state missing"
 pass "zero observation wins over an older positive count without journal fallback"
+
+output="$(EMPTY_LOOP_ENV_QUERY=1 run_snapshot)"
+grep -q '^configured_floor=10%$' <<<"$output" ||
+  fail "empty loop environment hid the deploy-env quota floor"
+grep -q '^writer_mode=none$' <<<"$output" ||
+  fail "empty loop environment hid the deploy-env writer mode"
+grep -q '^strict_role_providers=0$' <<<"$output" ||
+  fail "empty loop environment hid the deploy-env strict-role setting"
+pass "empty loop environment preserves deploy-env fallbacks"
+
+output="$(FAIL_LOOP_ENV_QUERY=1 run_snapshot)"
+grep -q '^configured_floor=unavailable$' <<<"$output" ||
+  fail "unreadable loop environment invented a configured quota floor"
+grep -q '^writer_mode=unavailable$' <<<"$output" ||
+  fail "unreadable loop environment invented an effective writer mode"
+grep -q '^strict_role_providers=unavailable$' <<<"$output" ||
+  fail "unreadable loop environment invented an effective strict-role setting"
+grep -q 'RUNTIME GIT OBSERVATION' <<<"$output" ||
+  fail "unreadable loop environment aborted later diagnostic sections"
+pass "unreadable loop environment degrades effective settings explicitly"
 
 printf '\n# stale fixture\n' >> "$fake_home/.config/systemd/user/tribunal-pass-audit.service"
 output="$(run_snapshot)"
@@ -563,6 +587,10 @@ for skill in \
   "$ROOT/.claude/skills/tribunal-monitor/SKILL.md"; do
   grep -q 'scripts/tribunal-monitor-snapshot.sh' "$skill" ||
     fail "$skill does not reference the shared snapshot entrypoint"
+  prerequisites="$(sed -n '/^## Prerequisites$/,/^## Procedure$/p' "$skill")"
+  if grep -Fq 'USAGE_MONITOR' <<<"$prerequisites"; then
+    fail "$skill still requires the retired off-repo quota monitor"
+  fi
   procedure="$(
     sed -n '/^## Procedure$/,/^## Interpreting results$/p' "$skill"
   )"
