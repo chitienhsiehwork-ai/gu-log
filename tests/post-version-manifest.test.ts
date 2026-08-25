@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const MANIFEST_PATH = path.join('src', 'data', 'post-versions.json');
@@ -11,6 +11,7 @@ const MANIFEST_MODES = [
   { label: 'generation mode', args: [] },
   { label: '--check', args: ['--check'] },
 ] as const;
+const makeTempDirectory = useTestTempDirectories();
 
 function run(command: string, args: string[], cwd: string): string {
   return execFileSync(command, args, { cwd, encoding: 'utf-8' });
@@ -25,7 +26,7 @@ function repoWithFullGitHistory(cwd: string): string {
   const origin = run('git', ['remote', 'get-url', 'origin'], cwd).trim();
   const headSha = run('git', ['rev-parse', 'HEAD'], cwd).trim();
 
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-full-'));
+  const tmp = makeTempDirectory('gu-log-version-full-');
   try {
     run('git', ['clone', '--no-local', '--no-checkout', cwd, tmp], cwd);
     run('git', ['remote', 'set-url', 'origin', origin], tmp);
@@ -48,7 +49,7 @@ function repoWithFullGitHistory(cwd: string): string {
 }
 
 function makeSyntheticRepo(postId = 'gp-999-regression', manifest = '{}\n'): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-manifest-'));
+  const tmp = makeTempDirectory('gu-log-version-manifest-');
   fs.mkdirSync(path.join(tmp, 'scripts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'content', 'posts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'data'), { recursive: true });
@@ -75,14 +76,14 @@ function makeSyntheticRepo(postId = 'gp-999-regression', manifest = '{}\n'): str
 
 function makeShallowClone(): string {
   const origin = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
-  const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-shallow-'));
+  const clone = makeTempDirectory('gu-log-version-shallow-');
   run('git', ['clone', '-q', '--depth', '1', `file://${origin}`, clone], origin);
   expect(run('git', ['rev-parse', '--is-shallow-repository'], clone).trim()).toBe('true');
   return clone;
 }
 
 function makeGitShim(mode: 'history-failure' | 'invalid-shallow-output' | 'probe-failure'): string {
-  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-git-shim-'));
+  const binDir = makeTempDirectory('gu-log-version-git-shim-');
   const realGit = run('sh', ['-c', 'command -v git'], REPO_ROOT).trim();
   const behavior = {
     'history-failure': 'for arg in "$@"; do if [ "$arg" = "log" ]; then exit 71; fi; done',
@@ -156,7 +157,7 @@ describe('post version manifest freshness', () => {
     const exactSha = run('git', ['rev-parse', 'HEAD'], origin).trim();
     const exactBranch = run('git', ['branch', '--show-current'], origin).trim();
 
-    const shallow = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-exact-shallow-'));
+    const shallow = makeTempDirectory('gu-log-version-exact-shallow-');
     run(
       'git',
       ['clone', '-q', '--depth', '1', '--branch', exactBranch, `file://${origin}`, shallow],
@@ -370,7 +371,7 @@ describe('post version manifest freshness', () => {
     run('git', ['add', 'src/content/posts/gp-1000-incoming.mdx'], repo);
     run('git', ['commit', '-qm', 'incoming post'], repo);
 
-    const linked = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-worktree-'));
+    const linked = makeTempDirectory('gu-log-version-worktree-');
     fs.rmSync(linked, { recursive: true, force: true });
     run('git', ['worktree', 'add', '-q', '-b', 'merge-test', linked, base], repo);
     fs.writeFileSync(
@@ -420,7 +421,7 @@ describe('post version manifest operational failures', () => {
 
     it(`fails when git is unavailable and preserves manifest bytes in ${label}`, () => {
       const repo = makeSyntheticRepo('gp-999-regression', SENTINEL_MANIFEST);
-      const emptyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-version-no-git-'));
+      const emptyPath = makeTempDirectory('gu-log-version-no-git-');
 
       const result = runManifest(repo, args, { ...process.env, PATH: emptyPath });
 

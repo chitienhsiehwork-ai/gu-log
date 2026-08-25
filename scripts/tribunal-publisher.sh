@@ -417,7 +417,7 @@ validate_candidate_batch() {
       args+=("en-$article")
     fi
   done
-  node "$ROOT_DIR/scripts/validate-posts.mjs" "${args[@]}" >/tmp/tribunal-publisher-validate.out 2>&1
+  node "$ROOT_DIR/scripts/validate-posts.mjs" "${args[@]}"
 }
 
 validate_candidate_article() {

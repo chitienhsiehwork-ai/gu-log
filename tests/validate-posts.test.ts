@@ -6,15 +6,16 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
 // only stays clean when destination paths are joined under a path returned
 // from os.mkdtempSync — string-concat to "/tmp/..." trips it because the
 // filename half is treated as a (test-controlled) tainted source.
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guvp-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('guvp-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // validate-posts.mjs is plain JS without .d.ts; widen to any.

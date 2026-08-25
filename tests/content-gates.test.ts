@@ -8,12 +8,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gucg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 import { formatModelName } from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
@@ -233,6 +234,28 @@ describe('check-jingjing.checkFile', () => {
     fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n用 API 跟 CLI 一起測試。\n`);
     const r = jj.checkFile(filepath);
     expect(r.violations).toEqual([]);
+  });
+
+  it('reports exact UTF-8 byte boundaries for deterministic correction', () => {
+    const filepath = tmpPath('jj-byte-boundary.mdx');
+    const raw = `---\nlang: zh-tw\n---\n系統的 traces 要逐筆檢查。\n`;
+    fs.writeFileSync(filepath, raw);
+    const [violation] = jj.checkFile(filepath).violations;
+    const start = Buffer.byteLength(raw.slice(0, raw.indexOf('traces')));
+    expect(violation).toMatchObject({
+      word: 'traces',
+      line: 4,
+      startByte: start,
+      endByte: start + Buffer.byteLength('traces'),
+    });
+    expect(Buffer.from(raw).subarray(violation.startByte, violation.endByte).toString()).toBe(
+      'traces'
+    );
+  });
+
+  it('binds the accepted-English policy inputs to a stable digest', () => {
+    expect(jj.policySHA256()).toMatch(/^[a-f0-9]{64}$/);
+    expect(jj.policySHA256()).toBe(jj.policySHA256());
   });
 });
 

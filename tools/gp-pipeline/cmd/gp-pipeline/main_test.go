@@ -91,6 +91,19 @@ if (document.startsWith('---\n')) {
 const sha256 = createHash('sha256').update(body, 'utf8').digest('hex');
 process.stdout.write(JSON.stringify({ version: 'gp-source-preservation/v1', body, sha256 }) + '\n');
 `)
+	mustWrite(t, filepath.Join(root, "scripts", "check-jingjing.mjs"), `
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+const inputPath = process.argv.at(-1);
+const input = readFileSync(inputPath);
+process.stdout.write(JSON.stringify({
+  version: 'check-jingjing/v1',
+  policy_sha256: createHash('sha256').update('fixture-policy').digest('hex'),
+  baseline_ref: '',
+  baseline_ref_unavailable: false,
+  files: [{ path: inputPath, sha256: createHash('sha256').update(input).digest('hex'), skipped: false, violations: [] }],
+}) + '\n');
+`)
 }
 
 func writeCompleteFakeGPRoles(t *testing.T, path string) {
@@ -127,8 +140,12 @@ func writeFreshGPPublishManifest(t *testing.T, root, workDir, sourcePath, bodyPa
 			},
 		}
 	}
+	jingjing, _, err := preservation.CheckJingjing(context.Background(), root, bodyPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	manifest := preservation.PublishManifest{
-		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), SourceSHA256: preservation.SHA256(source),
+		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), JingjingPolicySHA256: jingjing.PolicySHA256, SourceSHA256: preservation.SHA256(source),
 		BodyProjectionSHA256: projection.SHA256, Verdict: "PASS",
 		Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now,
 	}
@@ -208,6 +225,62 @@ func TestBuildRoot_PersistentFlags(t *testing.T) {
 	// fake-provider should be hidden
 	if !root.PersistentFlags().Lookup("fake-provider").Hidden {
 		t.Error("--fake-provider should be hidden from --help")
+	}
+}
+
+func TestFetchCommandUsesArticleExtractor(t *testing.T) {
+	resetGlobals()
+	t.Cleanup(resetGlobals)
+
+	repoRoot := makeFakeRepo(t)
+	mustWrite(t, filepath.Join(repoRoot, "scripts", "fetch-article.py"), "# extractor fixture\n")
+	t.Setenv("GU_LOG_DIR", repoRoot)
+
+	binDir := t.TempDir()
+	pythonPath := filepath.Join(binDir, "python3")
+	mustWrite(t, pythonPath, `#!/usr/bin/env bash
+cat <<'TEXT'
+Python Article
+Published: 2026-08-21
+This cleaned article came from the configured readability extractor.
+It has enough prose and lines to satisfy the source completeness validator.
+The standalone fetch command must pass the extractor path into the source package.
+Otherwise it silently falls back to a noisier curl capture of the whole page chrome.
+This final sentence keeps the fixture representative of a readable article body.
+TEXT
+`)
+	if err := os.Chmod(pythonPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	curlMarker := filepath.Join(t.TempDir(), "curl-called")
+	curlPath := filepath.Join(binDir, "curl")
+	mustWrite(t, curlPath, `#!/usr/bin/env bash
+touch "$FETCH_TEST_CURL_MARKER"
+exit 9
+`)
+	if err := os.Chmod(curlPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("FETCH_TEST_CURL_MARKER", curlMarker)
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	workDir := t.TempDir()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"--work-dir", workDir, "fetch", "https://example.com/article"})
+	if err := cmd.ExecuteContext(context.Background()); err != nil {
+		t.Fatalf("fetch command: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workDir, "source-tweet.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "Fetched via: fetch-article.py") {
+		t.Fatalf("standalone fetch did not use the configured article extractor:\n%s", data)
+	}
+	if _, err := os.Stat(curlMarker); !os.IsNotExist(err) {
+		t.Fatalf("standalone fetch unexpectedly invoked curl fallback: %v", err)
 	}
 }
 

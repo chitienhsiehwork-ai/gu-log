@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -184,55 +186,134 @@ func (s *State) PreserveGP(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := s.restoreOptionalCorrectorRun(); err != nil {
+		return fmt.Errorf("verify existing GP correction chain: %w", err)
+	}
+	attemptOffset, err := highestPreservationAttempt(s.WorkDir)
+	if err != nil {
+		return err
+	}
 	var finalGates []preservation.GateEnvelope
+	var finalJingjing preservation.JingjingArtifact
 	for attempt := 1; attempt <= maxGPCorrectionAttempts+1; attempt++ {
-		translation, err := os.ReadFile(translationPath)
+		artifactAttempt := attemptOffset + attempt
+		jingjing, translation, err := preservation.CheckJingjing(ctx, s.Cfg.RepoRoot, translationPath)
 		if err != nil {
-			return fmt.Errorf("read source translation: %w", err)
+			return err
+		}
+		if err := preservation.WriteJSON(filepath.Join(s.WorkDir, fmt.Sprintf("jingjing-gate-attempt-%d.json", artifactAttempt)), jingjing); err != nil {
+			return err
+		}
+		jingjingFindings, err := preservation.JingjingFindings(source, translation, jingjing)
+		if err != nil {
+			return err
 		}
 		projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, translationPath)
 		if err != nil {
 			return err
 		}
-		sourceGate, err := s.runSourceReviewer(ctx, source, translation, projection, attempt)
+		sourceGate, err := s.runSourceReviewer(ctx, source, translation, projection, artifactAttempt)
 		if err != nil {
 			return err
 		}
-		vibeGate, err := s.runVibeGate(ctx, source, translation, projection, attempt)
+		vibeGate, err := s.runVibeGate(ctx, source, translation, projection, artifactAttempt)
 		if err != nil {
 			return err
 		}
 		finalGates = []preservation.GateEnvelope{sourceGate, vibeGate}
 		deterministic := preservation.DeterministicSourceFindings(source, translation)
-		if err := preservation.WriteJSON(filepath.Join(s.WorkDir, fmt.Sprintf("deterministic-findings-attempt-%d.json", attempt)), deterministic); err != nil {
+		if err := preservation.WriteJSON(filepath.Join(s.WorkDir, fmt.Sprintf("deterministic-findings-attempt-%d.json", artifactAttempt)), deterministic); err != nil {
 			return err
 		}
-		if sourceGate.Verdict == "PASS" && vibeGate.Verdict == "PASS" && len(deterministic) == 0 {
+		if sourceGate.Verdict == "PASS" && vibeGate.Verdict == "PASS" && len(deterministic) == 0 && len(jingjingFindings) == 0 {
+			finalJingjing = jingjing
 			break
 		}
-		findings := append(append([]preservation.Finding(nil), sourceGate.Findings...), vibeGate.Findings...)
 		if attempt > maxGPCorrectionAttempts {
 			return errors.New("GP hard gates still FAIL after bounded correction attempts")
 		}
-		for _, finding := range findings {
-			if !finding.Approved {
-				return fmt.Errorf("GP finding %s requires manual correction", finding.ID)
-			}
+		if err := validateApprovedFindings(sourceGate.Findings, vibeGate.Findings); err != nil {
+			return err
 		}
+		findings := appendNonOverlappingFindings(jingjingFindings, sourceGate.Findings, vibeGate.Findings)
 		if len(findings) == 0 {
 			if len(deterministic) != 0 {
 				return fmt.Errorf("GP deterministic hard gate FAIL without an actionable reviewer finding: %s", strings.Join(deterministic, "; "))
 			}
 			return errors.New("GP hard gate FAIL without actionable bounded findings")
 		}
-		if err := s.runCorrector(ctx, source, translation, findings, attempt); err != nil {
+		if err := s.runCorrector(ctx, source, translation, findings, artifactAttempt); err != nil {
 			return err
 		}
 	}
-	if err := s.sealGPPublishManifest(ctx, source, translationPath, finalGates); err != nil {
+	if err := s.sealGPPublishManifest(ctx, source, translationPath, finalGates, finalJingjing); err != nil {
 		return err
 	}
 	return s.restoreOptionalCorrectorRun()
+}
+
+func highestPreservationAttempt(workDir string) (int, error) {
+	entries, err := os.ReadDir(workDir)
+	if err != nil {
+		return 0, err
+	}
+	highest := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".json") && !strings.HasSuffix(name, ".mdx") {
+			continue
+		}
+		stem := strings.TrimSuffix(strings.TrimSuffix(name, ".json"), ".mdx")
+		marker := strings.LastIndex(stem, "-attempt-")
+		if marker < 0 {
+			continue
+		}
+		attempt, parseErr := strconv.Atoi(stem[marker+len("-attempt-"):])
+		if parseErr != nil || attempt < 1 {
+			return 0, fmt.Errorf("invalid preservation attempt artifact %s", name)
+		}
+		if attempt > highest {
+			highest = attempt
+		}
+	}
+	return highest, nil
+}
+
+func validateApprovedFindings(groups ...[]preservation.Finding) error {
+	for _, group := range groups {
+		for _, finding := range group {
+			if !finding.Approved {
+				return fmt.Errorf("GP finding %s requires manual correction", finding.ID)
+			}
+		}
+	}
+	return nil
+}
+
+// Deterministic Jingjing boundaries take precedence over overlapping LLM
+// findings for one iteration. The semantic gates rerun after correction, so a
+// broader issue is deferred rather than waived while duplicate patches cannot
+// overlap or widen the canonical checker boundary.
+func appendNonOverlappingFindings(primary []preservation.Finding, groups ...[]preservation.Finding) []preservation.Finding {
+	out := append([]preservation.Finding(nil), primary...)
+	for _, group := range groups {
+		for _, candidate := range group {
+			overlaps := false
+			for _, accepted := range out {
+				if candidate.StartByte < accepted.EndByte && candidate.EndByte > accepted.StartByte {
+					overlaps = true
+					break
+				}
+			}
+			if !overlaps {
+				out = append(out, candidate)
+			}
+		}
+	}
+	return out
 }
 
 func (s *State) runSourceReviewer(ctx context.Context, source, translation []byte, projection preservation.Projection, attempt int) (preservation.GateEnvelope, error) {
@@ -354,9 +435,6 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 		return err
 	}
 	artifact.ResultTranslationSHA256 = preservation.SHA256(corrected)
-	if err := os.WriteFile(filepath.Join(s.WorkDir, "corrector-input.mdx"), translation, 0o644); err != nil {
-		return err
-	}
 	if err := os.WriteFile(filepath.Join(s.WorkDir, fmt.Sprintf("corrector-input-attempt-%d.mdx", attempt)), translation, 0o644); err != nil {
 		return err
 	}
@@ -374,18 +452,21 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 	return nil
 }
 
-func (s *State) sealGPPublishManifest(ctx context.Context, source []byte, translationPath string, gates []preservation.GateEnvelope) error {
+func (s *State) sealGPPublishManifest(ctx context.Context, source []byte, translationPath string, gates []preservation.GateEnvelope, jingjing preservation.JingjingArtifact) error {
 	projection, err := preservation.ProjectFile(ctx, s.Cfg.RepoRoot, translationPath)
 	if err != nil {
 		return err
 	}
-	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
+	if len(jingjing.Files) != 1 || len(jingjing.Files[0].Violations) != 0 {
+		return errors.New("cannot seal GP publish manifest without a clean Jingjing gate")
+	}
+	manifest := preservation.PublishManifest{Version: preservation.ContractVersion, ProfileSHA256: s.GPProfileSHA256, JingjingPolicySHA256: jingjing.PolicySHA256, SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256, Verdict: "PASS", Gates: gates, CompletedAt: time.Now().UTC()}
 	manifestPath := filepath.Join(s.WorkDir, "gp-publish-gate.json")
 	if err := preservation.WriteJSON(manifestPath, manifest); err != nil {
 		return err
 	}
 	s.GateManifestPath = manifestPath
-	return preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256)
+	return preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256, jingjing.PolicySHA256)
 }
 
 // Enrich is the independent GP Step 4. It may add projection-isolated
@@ -490,7 +571,14 @@ func (s *State) ValidateGPPublishManifest(ctx context.Context, bodyPath string) 
 	if err := preservation.DecodeStrict(data, &manifest); err != nil {
 		return err
 	}
-	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256); err != nil {
+	jingjing, _, err := preservation.CheckJingjing(ctx, s.Cfg.RepoRoot, bodyPath)
+	if err != nil {
+		return err
+	}
+	if len(jingjing.Files) != 1 || len(jingjing.Files[0].Violations) != 0 {
+		return errors.New("GP publish artifact fails the Jingjing hard gate")
+	}
+	if err := preservation.ValidateManifest(manifest, source, []byte(projection.Body), gpRequiredGates, s.GPProfileSHA256, jingjing.PolicySHA256); err != nil {
 		return err
 	}
 	for _, gate := range manifest.Gates {
@@ -565,9 +653,6 @@ func (s *State) restoreCommentaryRun() error {
 }
 
 func (s *State) restoreOptionalCorrectorRun() error {
-	if _, ok := s.RoleRuns["corrector"]; ok {
-		return nil
-	}
 	source, err := s.sourceBytes()
 	if err != nil {
 		return err
@@ -580,36 +665,71 @@ func (s *State) restoreOptionalCorrectorRun() error {
 	if err != nil {
 		return err
 	}
-	if preservation.SHA256(current) == preservation.SHA256(initial) {
-		return nil
-	}
-	artifactPath := filepath.Join(s.WorkDir, "corrector.json")
-	data, err := os.ReadFile(artifactPath)
+	paths, err := filepath.Glob(filepath.Join(s.WorkDir, "corrector-attempt-*.json"))
 	if err != nil {
-		return fmt.Errorf("corrected translation requires durable corrector.json: %w", err)
-	}
-	var artifact preservation.PatchArtifact
-	if err := preservation.DecodeStrict(data, &artifact); err != nil {
 		return err
 	}
-	if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.ResultTranslationSHA256 != preservation.SHA256(current) {
-		return errors.New("corrector recovery artifact is missing or stale")
+	type correctionStep struct {
+		attempt int
+		path    string
 	}
-	if err := preservation.ValidateProvenance(artifact.Provenance, "corrector"); err != nil {
-		return err
+	steps := make([]correctionStep, 0, len(paths))
+	for _, path := range paths {
+		base := filepath.Base(path)
+		raw := strings.TrimSuffix(strings.TrimPrefix(base, "corrector-attempt-"), ".json")
+		attempt, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || attempt < 1 {
+			return fmt.Errorf("invalid corrector attempt artifact %s", base)
+		}
+		steps = append(steps, correctionStep{attempt: attempt, path: path})
 	}
-	input, err := os.ReadFile(filepath.Join(s.WorkDir, "corrector-input.mdx"))
-	if err != nil {
-		return fmt.Errorf("corrector recovery requires durable corrector-input.mdx: %w", err)
+	sort.Slice(steps, func(i, j int) bool { return steps[i].attempt < steps[j].attempt })
+	if len(steps) == 0 {
+		if bytes.Equal(current, initial) {
+			return nil
+		}
+		return errors.New("corrected translation requires an append-only corrector attempt chain")
 	}
-	replayed, err := preservation.ApplyPatches(source, input, artifact)
-	if err != nil {
-		return fmt.Errorf("corrector recovery replay: %w", err)
+
+	replayed := append([]byte(nil), initial...)
+	var latest preservation.PatchArtifact
+	for _, step := range steps {
+		inputPath := filepath.Join(s.WorkDir, fmt.Sprintf("corrector-input-attempt-%d.mdx", step.attempt))
+		input, readErr := os.ReadFile(inputPath)
+		if readErr != nil {
+			return fmt.Errorf("corrector recovery requires %s: %w", filepath.Base(inputPath), readErr)
+		}
+		if !bytes.Equal(input, replayed) {
+			return fmt.Errorf("corrector attempt %d input does not continue the replay chain", step.attempt)
+		}
+		data, readErr := os.ReadFile(step.path)
+		if readErr != nil {
+			return readErr
+		}
+		var artifact preservation.PatchArtifact
+		if err := preservation.DecodeStrict(data, &artifact); err != nil {
+			return err
+		}
+		if artifact.Version != preservation.ContractVersion || artifact.SourceSHA256 != preservation.SHA256(source) || artifact.TranslationSHA256 != preservation.SHA256(input) {
+			return fmt.Errorf("corrector attempt %d artifact is missing or stale", step.attempt)
+		}
+		if err := preservation.ValidateProvenance(artifact.Provenance, "corrector"); err != nil {
+			return err
+		}
+		replayed, err = preservation.ApplyPatches(source, input, artifact)
+		if err != nil {
+			return fmt.Errorf("corrector attempt %d recovery replay: %w", step.attempt, err)
+		}
+		if artifact.ResultTranslationSHA256 != preservation.SHA256(replayed) {
+			return fmt.Errorf("corrector attempt %d result hash is stale", step.attempt)
+		}
+		latest = artifact
 	}
-	if string(replayed) != string(current) {
-		return errors.New("corrector recovery replay does not produce current translation")
+	if !bytes.Equal(replayed, current) {
+		return errors.New("corrector attempt chain does not produce current translation")
 	}
-	s.recordRecoveredRole("corrector", artifact.Provenance, artifactPath, "APPLIED")
+	latestPath := steps[len(steps)-1].path
+	s.recordRecoveredRole("corrector", latest.Provenance, latestPath, "APPLIED")
 	return nil
 }
 

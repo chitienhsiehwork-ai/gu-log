@@ -12,16 +12,17 @@ import { describe, expect, it } from 'vitest';
 import { execSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os from 'node:os';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const CANONICAL_TARGET_SLUG = 'mp-316-20260213-openclaw-setup-guide-audit';
 const CANONICAL_TARGET_TITLE = 'AI 指南沒有一半都在瞎掰，先翻車的是查核方法';
 const CANONICAL_TARGET_LABEL = `MP-316: ${CANONICAL_TARGET_TITLE}`;
 const CANONICAL_TARGET_URL = `/posts/${CANONICAL_TARGET_SLUG}/`;
+const makeTempDirectory = useTestTempDirectories();
 
 function makeFakeRepo(): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-'));
+  const tmp = makeTempDirectory('gu-log-hook-');
   execSync('git init -q', { cwd: tmp });
   execSync('git config user.email test@example.com && git config user.name Test', { cwd: tmp });
   // Symlink the real repo's hooks so we exercise the actual hooks.
@@ -42,7 +43,7 @@ function makeFakeRepo(): string {
 }
 
 function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-bin-'));
+  const bin = makeTempDirectory('gu-log-hook-bin-');
   for (const name of ['gitleaks', 'node', 'npx']) {
     const tool = path.join(bin, name);
     const body =
@@ -60,7 +61,7 @@ function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
 }
 
 function makeScoreGateProbeEnv(): NodeJS.ProcessEnv {
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-score-bin-'));
+  const bin = makeTempDirectory('gu-log-hook-score-bin-');
   for (const name of ['gitleaks', 'npx']) {
     const tool = path.join(bin, name);
     fs.writeFileSync(tool, '#!/bin/sh\nexit 0\n');
@@ -604,7 +605,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     // about to become remote content and must be inspected.
     const repo = makeFakeRepo();
 
-    const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-origin-'));
+    const originDir = makeTempDirectory('gu-log-hook-origin-');
     execSync(`git init -q --bare "${originDir}"`);
     execSync(`git remote add origin "${originDir}"`, { cwd: repo });
 
@@ -646,7 +647,7 @@ describe('pre-push: post version manifest freshness', () => {
     fs.writeFileSync(path.join(source, 'tracked.txt'), 'second commit\n');
     const headSha = commitAll(source, 'shallow source head');
 
-    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-shallow-'));
+    const clone = makeTempDirectory('gu-log-hook-shallow-');
     execSync(`git clone -q --depth 1 "file://${source}" "${clone}"`);
     expect(
       execSync('git rev-parse --is-shallow-repository', {
