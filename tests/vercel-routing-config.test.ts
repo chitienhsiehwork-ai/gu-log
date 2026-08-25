@@ -158,11 +158,10 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
       const redirect = bySource.get(source);
       expect(redirect, `missing exact optional-slash rule for ${path}`).toBeDefined();
 
-      const matcher = pathToRegexp(source, [], {
-        strict: true,
+      const matcher = pathToRegexp(source.replace(/\{\/\}\?$/, '{/}'), {
         sensitive: true,
-        delimiter: '/',
-      });
+        trailing: false,
+      }).regexp;
       expect(matcher.test(path)).toBe(true);
       expect(matcher.test(`${path}/`)).toBe(true);
       expect(matcher.test(`${path}//`)).toBe(false);
