@@ -20,6 +20,14 @@ quota_section=$(awk '
 ' "$BATCH_RUNNER")
 eval "$quota_section"
 
+# Load the selector without executing the batch runner's main program.
+selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Main/ { exit }
+  capture { print }
+' "$BATCH_RUNNER")
+eval "$selector_section"
+
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
 fake_monitor="$tmp_dir/usage-monitor.sh"
@@ -91,6 +99,8 @@ fail() {
 pass() {
   echo "ok $*"
 }
+
+declare -F get_unscored_articles >/dev/null || fail "batch selector section was not loaded"
 
 run_case() {
   local global_provider="$1"
@@ -198,3 +208,56 @@ ACTIVE_WRITER_MODE=unknown
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
 [ "$CASE_RC" -eq 2 ] || fail "unknown writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "unknown writer mode fails closed"
+
+selector_posts="$tmp_dir/posts"
+selector_progress="$tmp_dir/progress.json"
+mkdir -p "$selector_posts"
+
+write_selector_post() {
+  local file="$1"
+  local translated_date="$2"
+  local status="${3:-}"
+  {
+    printf '%s\n' '---'
+    printf 'title: %s\n' "$file"
+    printf 'translatedDate: %s\n' "$translated_date"
+    [ -n "$status" ] && printf 'status: %s\n' "$status"
+    printf '%s\n' '---' 'body'
+  } > "$selector_posts/$file"
+}
+
+write_selector_post pending.mdx 2026-01-08
+write_selector_post legacy-exhausted.mdx 2026-01-07
+write_selector_post current-exhausted.mdx 2026-01-06
+write_selector_post current-pass.mdx 2026-01-05
+write_selector_post deprecated-unquoted.mdx 2026-01-04 deprecated
+write_selector_post deprecated-single-quoted.mdx 2026-01-03 "'deprecated'"
+write_selector_post deprecated-double-quoted.mdx 2026-01-02 '"deprecated"'
+
+cat > "$selector_progress" <<'JSON'
+{
+  "legacy-exhausted.mdx": {
+    "tribunalVersion": 8,
+    "status": "EXHAUSTED"
+  },
+  "current-exhausted.mdx": {
+    "tribunalVersion": 9,
+    "status": "EXHAUSTED"
+  },
+  "current-pass.mdx": {
+    "tribunalVersion": 9,
+    "status": "PASS"
+  }
+}
+JSON
+
+POSTS_DIR="$selector_posts"
+PROGRESS_FILE="$selector_progress"
+ROOT_DIR="$tmp_dir"
+TRIBUNAL_VERSION=9
+
+selector_output=$(get_unscored_articles)
+expected_selector_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+[ "$selector_output" = "$expected_selector_output" ] ||
+  fail "selector included deprecated/current terminal entries: $selector_output"
+pass "selector excludes deprecated and current-version terminal entries"

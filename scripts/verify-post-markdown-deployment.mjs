@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 import { POST_JSON_V2_KEYS } from './lib/post-json-v2-contract.mjs';
 
+const SMOKE_FETCH_TIMEOUT_MS = 10_000;
 const MIGRATION_MANIFEST = JSON.parse(
   fs.readFileSync(new URL('../quality/brand-taxonomy-post-migration.json', import.meta.url), 'utf8')
 );
@@ -126,8 +127,12 @@ export function parseMarkdownFrontmatter(markdown) {
   return data;
 }
 
+export async function fetchWithDeadline(url, options = {}, timeoutMs = SMOKE_FETCH_TIMEOUT_MS) {
+  return fetch(url, { ...options, signal: globalThis.AbortSignal.timeout(timeoutMs) });
+}
+
 async function fetchChecked(url, options, expectedType) {
-  const response = await fetch(url, { redirect: 'follow', ...options });
+  const response = await fetchWithDeadline(url, { redirect: 'follow', ...options });
   assert(response.ok, `${url}: expected success, got ${response.status}`);
   assert(
     expectedType.test(contentType(response)),
@@ -288,7 +293,7 @@ async function verifyLegacyRedirect(baseUrl) {
   const prefix = fixture.lang === 'en' ? '/en/posts/' : '/posts/';
   const oldUrl = `${baseUrl}${prefix}${fixture.oldSlug}`;
   const expectedPath = `${prefix}${fixture.newSlug}`;
-  const response = await fetch(oldUrl, {
+  const response = await fetchWithDeadline(oldUrl, {
     redirect: 'manual',
     headers: { Accept: 'text/markdown' },
   });

@@ -138,10 +138,21 @@ type FakeSpec struct {
 	Provider  string         `json:"provider,omitempty"` // defaults to "fake-claude-opus"
 	Model     ModelID        `json:"model,omitempty"`    // defaults to ModelClaudeOpus
 	Responses []FakeResponse `json:"responses"`
+	Roles     map[string]struct {
+		Provider  string         `json:"provider,omitempty"`
+		Model     ModelID        `json:"model,omitempty"`
+		Responses []FakeResponse `json:"responses"`
+	} `json:"roles,omitempty"`
 }
 
 // LoadFakeFromJSON reads a FakeSpec from path and constructs a FakeProvider.
 func LoadFakeFromJSON(path string) (*FakeProvider, error) {
+	return LoadFakeForRole(path, "")
+}
+
+// LoadFakeForRole selects an isolated response queue when a fixture declares
+// role-specific providers. Legacy fixtures without roles keep their old shape.
+func LoadFakeForRole(path, role string) (*FakeProvider, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("load fake spec %s: %w", path, err)
@@ -149,6 +160,13 @@ func LoadFakeFromJSON(path string) (*FakeProvider, error) {
 	var spec FakeSpec
 	if err := json.Unmarshal(data, &spec); err != nil {
 		return nil, fmt.Errorf("parse fake spec %s: %w", path, err)
+	}
+	if role != "" && len(spec.Roles) > 0 {
+		roleSpec, ok := spec.Roles[role]
+		if !ok {
+			return nil, fmt.Errorf("fake spec %s missing role %s", path, role)
+		}
+		spec.Provider, spec.Model, spec.Responses = roleSpec.Provider, roleSpec.Model, roleSpec.Responses
 	}
 	fp := NewFakeClaude()
 	if spec.Provider != "" {

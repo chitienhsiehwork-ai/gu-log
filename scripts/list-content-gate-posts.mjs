@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
+import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 
@@ -85,12 +86,31 @@ function diffBodyLines(baseRef, baseFile, currentFile) {
     .filter((line) => !line.startsWith('+++ ') && !line.startsWith('--- '));
 }
 
+function splitFrontmatter(content) {
+  const frontmatter = content.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/);
+  if (!frontmatter) return null;
+  const raw = frontmatter[0];
+  const inner = raw.replace(/^---\r?\n/, '').replace(/\r?\n---(?:\r?\n|$)$/, '');
+  return { frontmatter: inner, body: content.slice(raw.length) };
+}
+
+function withoutGateExemptMetadata(frontmatter) {
+  return frontmatter.replace(
+    /^(?:status|deprecatedReason|deprecatedBy|series|name|order):[^\r\n]*(?:\r?\n|$)/gm,
+    ''
+  );
+}
+
 function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
   if (!existsAt(baseRef, baseFile)) return false;
-  const lines = diffBodyLines(baseRef, baseFile, currentFile);
-  if (lines.length === 0) return true;
-  return lines.every((line) =>
-    /^[+-]\s*(status|deprecatedReason|deprecatedBy|series|name|order):/.test(line)
+  const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+  const newContent = fs.readFileSync(currentFile, 'utf8');
+  const oldParts = splitFrontmatter(oldContent);
+  const newParts = splitFrontmatter(newContent);
+  if (!oldParts || !newParts || oldParts.body !== newParts.body) return false;
+  return (
+    withoutGateExemptMetadata(oldParts.frontmatter) ===
+    withoutGateExemptMetadata(newParts.frontmatter)
   );
 }
 
@@ -190,6 +210,12 @@ const files = parseNameStatus(changed)
   .filter(
     ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
   )
+  .filter(({ baseFile, currentFile }) => {
+    if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
+    const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+    const newContent = fs.readFileSync(currentFile, 'utf8');
+    return !isCanonicalTerminologyOnlyChange(oldContent, newContent);
+  })
   .filter(({ baseFile, currentFile }) => !isMetadataOnlyDiff(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isLinkOnlyDiff(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isExistingTicketAddition(baseRef, baseFile, currentFile))

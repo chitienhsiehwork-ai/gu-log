@@ -7,8 +7,10 @@
  * Stores the JWT in localStorage and redirects back to the original page.
  */
 import '../../styles/global.css';
+import { buildPublicApiEndpoint } from '../../lib/public-api-url';
 
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const loginUrl = buildPublicApiEndpoint(configuredApiUrl, '/auth/github');
 ---
 
 <html lang="en">
@@ -99,7 +101,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         <p id="error" class="error" hidden></p>
       </div>
       <div id="actions" class="actions" hidden>
-        <a href={`${apiUrl}/auth/github`}>Try GitHub login again</a>
+        <a href={loginUrl}>Try GitHub login again</a>
         <a href="/">Back to homepage</a>
       </div>
     </div>

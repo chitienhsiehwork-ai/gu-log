@@ -94,6 +94,7 @@ body
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{
 		RepoRoot:     tmp,
@@ -184,6 +185,7 @@ body
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{
 		RepoRoot:   tmp,
@@ -266,6 +268,7 @@ EXISTING FALLBACK BODY
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
 	s.WorkDir = workDir
@@ -329,6 +332,7 @@ ORIGINAL POSTS BODY
 			}
 
 			s := NewState()
+			s.LegacyShadow = true
 			s.Log = logx.New()
 			s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir}
 			s.WorkDir = workDir
@@ -381,6 +385,7 @@ body
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
 	s.WorkDir = workDir
@@ -422,6 +427,7 @@ exit 1
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir}
 
@@ -439,10 +445,10 @@ exit 1
 	}
 }
 
-// TestDeploy_DryRunWithFakeGitRepo exercises the deploy flow end-to-end
+// TestDeploy_NonGPPipelinePrimitiveWithFakeGitRepo exercises the deploy flow end-to-end
 // against a real temp git repo, with validate/build skipped and push
 // disabled (no remote). Uses a real counter file.
-func TestDeploy_DryRunWithFakeGitRepo(t *testing.T) {
+func TestDeploy_NonGPPipelinePrimitiveWithFakeGitRepo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("deploy end-to-end creates a git repo")
 	}
@@ -467,10 +473,10 @@ func TestDeploy_DryRunWithFakeGitRepo(t *testing.T) {
 	}
 
 	// Seed a pending file.
-	pendingName := "gp-pending-20260411-fake-title.mdx"
+	pendingName := "mp-pending-20260411-fake-title.mdx"
 	pendingBody := `---
 title: "Fake"
-ticketId: "GP-PENDING"
+ticketId: "MP-PENDING"
 ---
 body
 `
@@ -493,7 +499,7 @@ body
 	s.Log = logx.New()
 	s.Cfg = cfg
 	s.Counter = counter.New(counterFile, filepath.Join(tmp, ".counter.lock"))
-	s.Prefix = "GP"
+	s.Prefix = "MP"
 	s.ActiveFilename = pendingName
 	s.ActiveENFilename = ""
 	s.Title = "Fake"
@@ -507,11 +513,11 @@ body
 	if err := s.Deploy(context.Background()); err != nil {
 		t.Fatalf("Deploy: %v", err)
 	}
-	if s.TicketNumber != 171 {
-		t.Errorf("TicketNumber = %d, want 171", s.TicketNumber)
+	if s.TicketNumber != 1 {
+		t.Errorf("TicketNumber = %d, want 1", s.TicketNumber)
 	}
-	if s.PromptTicketID != "GP-171" {
-		t.Errorf("PromptTicketID = %q, want GP-171", s.PromptTicketID)
+	if s.PromptTicketID != "MP-1" {
+		t.Errorf("PromptTicketID = %q, want MP-1", s.PromptTicketID)
 	}
 	// Pending file should have been renamed.
 	if _, err := os.Stat(filepath.Join(postsDir, s.Filename)); err != nil {
@@ -519,7 +525,7 @@ body
 	}
 	// Its ticketId should be the allocated one.
 	data, _ := os.ReadFile(filepath.Join(postsDir, s.Filename))
-	if !strings.Contains(string(data), `ticketId: "GP-171"`) {
+	if !strings.Contains(string(data), `ticketId: "MP-1"`) {
 		t.Errorf("ticketId not replaced in %s:\n%s", s.Filename, data)
 	}
 }

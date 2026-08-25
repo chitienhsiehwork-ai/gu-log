@@ -12,6 +12,7 @@ const SHELL_TEST_DIR = path.join(ROOT, 'scripts', 'tests');
 const DEDICATED_CONTRACTS = [
   'test-session-start-context.sh',
   'test-tribunal-deploy-readiness.sh',
+  'test-tribunal-run-control-claims.sh',
   'test-tribunal-runner-error-guard.sh',
   'test-tribunal-safety-contract.sh',
 ] as const;
@@ -20,10 +21,12 @@ const PORTABLE_CONTRACTS = [
   'test-auto-merge-guard.sh',
   'test-check-links-error-handling.sh',
   'test-frontmatter-scores-v8.sh',
+  'test-gp-pipeline-wrapper.sh',
   'test-nightly-baseline-stage.sh',
   'test-quota-controller.sh',
   'test-setup-hooks-worktree.sh',
   'test-tribunal-batch-provider-quota.sh',
+  'test-tribunal-model-router.sh',
   'test-tribunal-quota-controller-codexbar.sh',
   'test-tribunal-monitor-snapshot.sh',
   'test-tribunal-pass-artifact-guards.sh',
@@ -33,6 +36,7 @@ const PORTABLE_CONTRACTS = [
   'test-tribunal-runtime-git-hygiene.sh',
   'test-tribunal-shell-quota-parser.sh',
   'test-tribunal-systemd-containment.sh',
+  'test-tribunal-vm-routing.sh',
   'test-tribunal-worker-sync-ref.sh',
   'test-writer-broker.sh',
 ] as const;

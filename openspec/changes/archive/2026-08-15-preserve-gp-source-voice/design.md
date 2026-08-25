@@ -1,0 +1,127 @@
+## Context
+
+現行 GP 流程把同一份 source 依序交給 writer、reviewer、refiner 與會觸發 rewrite 的 Tribunal。規格雖要求 source fidelity，執行 prompt 與 scoring 卻同時獎勵 hook、story-driven structure、persona、MoguNote density、narrative arc 與 callback。GP-273 顯示自然第一人稱翻譯會在這條路徑中被改成第三人稱品牌文章，而且 scorer 將變形判成高品質。
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- 讓 GP 正文成為原作者文章的自然繁中版本。
+- 將 AI 的 editorial authority 限制在翻譯、明確 slop removal、navigation enrichment 與 evidence-bounded correction。
+- 讓 fidelity、source voice 與自然中文成為不可由其他分數補償的 publish gates。
+- 保留 MoguNote、glossary 與 gu-log references，但不讓它們污染 source body。
+
+**Non-Goals:**
+
+- 不要求逐字翻譯或保留不自然英文句法。
+- 不禁止所有刪減；明確不承載 payload／voice 的 AI slop 仍可刪。
+- 不替 SD、Lv 或明確授權的 guided reading 設定同樣限制。
+- 本 change 不重寫 GP-273 的 production body；它只把原始版本收成 regression fixture，並實作新的 pipeline contract。
+
+## Decisions
+
+### 1. 以 source-preserving translation 取代 generative article writing
+
+GP 不再從 source「寫一篇文章」，而是產出 source-aligned translation。這直接移除 writer 自行尋找 angle、spine 與新敘事形狀的權限。
+
+替代方案是繼續擴充 writer prompt，新增「自然一點」「少一點比喻」。不採用，因為 prompt 同時要求忠實與 narrative transformation 時，模型仍會用表面規則換取 scorer 高分。
+
+### 2. 將正文與 enrichment 分成不同 artifact／stage
+
+建議流程：
+
+```text
+source capture
+      │
+      ▼
+source-preserving translation ──► fidelity + voice diff
+      │                                  │
+      │ PASS                             │ FAIL → stop
+      ▼                                  │
+navigation enrichment                    │
+(glossary / gu-log refs)                 │
+      │                                  │
+      ▼                                  │
+optional MoguNote ───────────────────────┘
+      │
+      ▼
+natural-language blind read
+      │
+      ├─ PASS → publish
+      └─ FAIL → bounded patch → recheck
+```
+
+正文翻譯完成後先凍結 source-aligned body。站內參照與 glossary link 只由 deterministic navigation enricher 加入；MoguNote 由獨立 commentary prompt 產生 insertion candidates，只有通過 schema 與 anchor 檢查後才套用。
+
+「移除 enrichment 後 body 不變」以 canonical body projection 判定：MDX parser 移除所有 MoguNote 節點、只剝除 allowlist 內的 glossary／站內連結 wrapper，保留並依序序列化 heading、paragraph、blockquote、list、code 與文字節點。補充前後的 canonical projection bytes 與 SHA-256 fingerprint 必須完全相同；未知 component、連結外新增文字或節點重排一律拒絕。
+
+### 3. Review 產生 patch contract，不產生 rewrite brief
+
+Review finding 必須是版本化 JSON，至少包含 `source_sha256`、`translation_sha256`、`issue_type`、`source_quote`、`start_byte`、`end_byte`、`old_text`、`old_text_sha256` 與 `suggested_replacement`。Boundary 必須落在單一句子或單一段落內；相鄰銜接需要另一筆 finding，不存在「必要相鄰銜接」的隱含擴張。
+
+Corrector 只能輸出同 schema 的 patch candidates。Deterministic applicator 驗證文件 hash、byte offsets、exact old text、old-text hash、單段落範圍與 patch 不重疊後才套用；stale anchor、overlap、越界、全文 MDX、frontmatter 或 boundary 外任何 byte 變動一律拒絕。無法局部修正的 finding 產生 `manual_required` verdict 並停止發布，不自動升級全文 rewrite。
+
+Translator 不得直接刪除 source。它必須先翻譯完整 source，另行輸出 slop deletion candidates；只有獨立 source reviewer 核准後，才以同一套 deterministic patch contract 刪除。
+
+### 4. 將自然中文從平均分數改為 hard gate
+
+自然中文 gate 由獨立 Vibe Scorer 的 cold-read prompt 負責，必須實際圈出不自然字詞並給出讀者能辨識的替代說法。Fresh Eyes 保留一般陌生讀者評審，但不得取代這個 GP hard gate。`銜尾蛇` 與 `演算法動態` 類案例作為 calibration：問題不是字典定義不存在，而是讀者必須停下來解碼，且有更自然的直接說法。
+
+Source Reviewer 負責 fidelity、voice、person、order 與 completeness。兩種 gate 都輸出同一個版本化 envelope：`gate`、`source_sha256`、`body_projection_sha256`、`verdict`、結構化 findings、provider、model、harness 與完成時間。只有 exact source/body hash 相符、provenance 完整且所有必要 gate 都是 `PASS` 才是有效 aggregate verdict；missing、invalid、stale、runner error 或 `manual_required` 都等同 FAIL。任何 correction 後兩種 gate 全部重跑，不沿用舊 verdict。
+
+為避免 reviewer 被 frontmatter、summary 或前一角色的 framing 污染，Source Reviewer 只取得完整 source 與 canonical body projection；Vibe Scorer 只取得 canonical body projection，完全不看 source。Vibe Scorer 的 `source_sha256` 只是 pipeline 提供的 opaque provenance ID，不代表它能看到原文。
+
+LLM 只負責指出在正文中唯一出現的 exact old text。UTF-8 byte offsets 與 old-text hash 由 runtime 依當前 translation bytes 計算；找不到、出現不只一次或落在 frontmatter 的 anchor 一律 fail closed。這保留原本 evidence-bounded patch contract，但把模型不可靠的 byte arithmetic 移出 prompt。
+
+已由真實回歸確認、會讓台灣讀者停下解碼的片語 MAY 進入小型 exact-match calibration corpus。這個 corpus 只負責讓已知 regression 不被 probabilistic gate 放過，不取代 cold read，也不得擴成一般 style blacklist。
+
+### 5. GP 排除 editorial rebuild
+
+`add-editorial-spine-rebuild` 的 `restructure`／`rebuild` 適用於 SD、Lv 與明確選擇 guided-reading／adaptation 的內容。本 change archive 後，穩定的 GP contract 是該舊 active change 後續 apply 的前置條件；它不得重新授權 GP rebuild。GP 若 source 本身無聊，忠實翻譯可以仍然無聊；選錯 source 是 eval 問題，不應靠翻譯階段偷換作者補救。
+
+### 6. Fail closed
+
+現行 `Ralph` 將 Tribunal error 視為 advisory 並繼續 deploy。GP source-preservation gates 必須改為 blocking。Deploy 自己再驗一次 gate manifest，不能只相信前一個 stage 回傳值；`--from-step`、`--file` 與 recovery 只能沿用 hash 仍相符的 verdict，否則必須重跑 gate。可恢復性由保留 workdir artifacts 與 `--from-step` 提供，不靠發布低品質文章。
+
+Manifest 除了 source/body hash，也綁定完整 executable role profile fingerprint；任一 role 的 model、provider、prompt contract 或 output contract 改變，舊 PASS 即失效。`--file` 只能指出 production copy，不能反推 frozen `source-translation.mdx`：若原 workdir artifact 不在，pipeline 必須停止，避免把已 enrichment 的正文當成未 enrichment 初稿再處理一次。
+
+### 7. Translator、corrector 與 vibe scorer 必須角色隔離
+
+三個會直接影響 GP 文字品質的角色 SHALL 使用不同 model ID、不同 prompt 與不同輸出 contract：
+
+- **Translator** 只輸出 source-aligned 繁中正文與可稽核的 slop deletion candidates，不負責 persona、narrative arc、MoguNote 或評分。
+- **Corrector** 只接收已核准 finding，輸出符合 schema 的 bounded patches；不得看到 vibe 分數，也不得重寫未在 boundary 內的段落。
+- **Vibe Scorer** 以冷讀者視角評自然度與可讀性，不取得 translator／corrector 的 reasoning、prompt 或中間結論，也不得提出全文 rewrite。
+
+實際 model ID 與 reasoning effort 的 SSOT SHALL 留在 pipeline config；選擇理由是 translator 偏自然翻譯、corrector 偏精確 patch、vibe scorer 提供獨立冷讀視角。初始值只寫入 config，不在文件複製。Reviewer 與 deterministic hard gates 仍是獨立角色，不得把 vibe scorer verdict 當作 source fidelity verdict。
+
+Config SHALL 有獨立的 translator、source reviewer、corrector、commentary 與 vibe scorer keys。每個 role 都要通過 profile validation、provider preflight 與 provenance validation；必要 role 不可用時不得 silent fallback。現有英文 sidecar 的 `translate` 保留名稱，新正文階段在 code／report 中稱為 `source-translate`，避免兩者混淆。State、run report 與 frontmatter pipeline provenance 都要記錄實際 role、model、provider、harness、artifact hash 與 verdict。
+
+非 `vm-codex` runtime 若沒有宣告符合上述 contract 的完整 profile，仍可 fetch／eval／dedup 或執行非 GP 工作，但 GP write、correction、gate 與 deploy 必須明確拒絕；不得維持 legacy GP publish behavior。
+
+Source Reviewer 與自然中文 gate 的責任衝突時，以責任邊界處理：Source Reviewer 只判語意、voice、人稱、順序與完整性，不得因英文表面字樣要求恢復不自然直譯；Vibe Scorer 不得在看不到 source 的情況下改寫核心命題、產品名或作者反覆使用的關鍵比喻。兩者都通過才可發布，任何一方拿不準就保留 finding 並 fail closed。
+
+## Risks / Trade-offs
+
+- **GP 可能不再每篇都有強烈 gu-log persona** → 這是刻意取捨；persona 應存在於 MoguNote，正文的主角是 source author。
+- **「obvious AI slop」仍有主觀性** → 要求逐項 source evidence，且刪除必須同時通過 payload 與 voice preservation；有疑義就保留。
+- **References 可能破壞原文節奏** → 只做包住既有文字的 inline link，不新增 prose；無自然落點時直接略過。
+- **既有 judge dimensions 可能持續獎勵改寫** → GP hard gates 優先於平均分，並以 GP-273 regression pair 校準。
+- **與既有 spine-rebuild change 衝突** → 在兩份 capability 與 routing 中明確標示 GP exclusion；實作前先解決 active change 的 scope drift。
+- **多 model routing 增加 provider failure surface** → 每個角色各自做 preflight 並保存 role-specific failure evidence；缺 provider、runner error 或 model provenance 不完整時 fail closed，不得偷偷 fallback 到另一個角色的 model。
+
+## Migration Plan
+
+1. 先建立 GP-273 regression fixture 與 current-behavior characterization tests。
+2. 將 GP writer 改成 translation stage，移除 angle／story-driven rewrite authority。
+3. 拆出 navigation enrichment 與 MoguNote stage。
+4. 將 review/refine 改成 bounded patch protocol。
+5. 接上 source voice、natural language 與 fail-closed publish gates。
+6. 以少量既有 GP shadow run，比較新舊輸出；只有新路徑通過 regression 與人工讀感才切換預設。
+7. rollback／比較只保留 canonical CLI 下的 non-deploy legacy shadow mode，不保留第二個 entrypoint，也不得恢復 best-effort production deploy。
+
+## Implementation Choices
+
+- MP 維持既有 faithful-translation contract；更嚴格的 source-spine executable contract 只套用 GP。MP 若要採用，另開 follow-up change。
+- Translator MAY 提出 AI slop deletion candidates，但初稿先保留完整 source；只有帶 source boundary 與理由、且通過獨立 reviewer 的 candidate 才能由 deterministic applicator 套用。有疑義一律保留。
+- MoguNote 是獨立、optional enrichment；只有 source 與 gu-log 確實有值得補充的觀點時才生成，不設數量目標。

@@ -12,6 +12,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
@@ -298,6 +299,122 @@ if ! grep -q 'runner_error propagated' "$ROOT_DIR/scripts/tribunal-quota-loop.sh
   fail "quota loop does not drain on tribunal runner_error"
 fi
 pass "quota loop drains instead of sweeping the queue after runner_error"
+
+eval "$(sed -n '/^wait_any_worker() {/,/^}/p' "$QUOTA_LOOP")"
+eval "$(sed -n '/^drain_and_exit() {/,/^}/p' "$QUOTA_LOOP")"
+declare -F wait_any_worker >/dev/null || fail "unable to extract wait_any_worker"
+declare -F drain_and_exit >/dev/null || fail "unable to extract drain_and_exit"
+
+run_completion_attribution_scenario() (
+  local scenario="$1"
+  local scenario_dir="$TMP/completion-attribution-$scenario"
+  local fixture_marker="$scenario_dir/a.claimed.123"
+  local worker_result_log="$scenario_dir/worker-a.log"
+  local tracking_file="$scenario_dir/a.tracking"
+  local events="$scenario_dir/events.log"
+  local expected_detail
+
+  mkdir -p "$scenario_dir"
+  : > "$events"
+  printf 'worker evidence must survive\n' > "$worker_result_log"
+  printf 'tracking evidence\n' > "$tracking_file"
+
+  declare -A WORKER_PID=()
+  declare -A WORKER_ARTICLE=()
+  declare -A WORKER_RESULT_LOG=()
+  declare -A WORKER_COMPLETION=()
+  declare -A WORKER_TRACKING=()
+  stop_requested=false
+  stop_source=""
+  fatal_worker_rc=0
+  fatal_worker_detail=""
+  WORKER_COMPLETION_DIR="$scenario_dir"
+  LOG_FILE="$events"
+
+  event() { printf '%s:%s\n' "$1" "${2:-}" >> "$events"; }
+  tribunal_wait_for_worker_completion() {
+    TRIBUNAL_WORKER_COMPLETION_KIND="marker"
+    TRIBUNAL_WORKER_COMPLETION_MARKER="$fixture_marker"
+  }
+  tribunal_collect_worker_completion() { return 1; }
+  tlog() { :; }
+  rc_write_state() { :; }
+  rc_release_claim() { event release "$1"; }
+  rc_exit_stopped() { event graceful; }
+  wait() {
+    event wait "$1"
+    return 0
+  }
+
+  case "$scenario" in
+    collect)
+      printf 'worker_id=a\nrc=bogus\n' > "$fixture_marker"
+      WORKER_PID[a]=4242
+      WORKER_ARTICLE[a]=gp-1-completion-integrity
+      WORKER_RESULT_LOG[a]="$worker_result_log"
+      WORKER_COMPLETION[a]="$scenario_dir/a.done"
+      WORKER_TRACKING[a]="$tracking_file"
+      expected_detail="worker_attribution_error worker=a pid=4242 article=gp-1-completion-integrity marker_rc=invalid claim_retained=true result_log=$worker_result_log"
+      ;;
+    unmatched)
+      printf 'worker_id=ghost\nrc=0\n' > "$fixture_marker"
+      expected_detail="worker_attribution_error worker=ghost marker_rc=0 marker=$fixture_marker"
+      ;;
+    *)
+      fail "unknown completion attribution scenario: $scenario"
+      ;;
+  esac
+
+  set +e
+  wait_any_worker
+  wait_rc=$?
+  set -e
+  [ "$wait_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch should return 70, got $wait_rc"
+  [ "$fatal_worker_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch did not set fatal_worker_rc=70"
+  [ "$fatal_worker_detail" = "$expected_detail" ] ||
+    fail "$scenario attribution mismatch lost fatal detail: $fatal_worker_detail"
+  [ "$stop_requested" = true ] ||
+    fail "$scenario attribution mismatch did not request drain"
+  [ -f "$fixture_marker" ] ||
+    fail "$scenario attribution mismatch deleted its marker before fatal drain"
+
+  if [ "$scenario" = collect ]; then
+    [ -f "$worker_result_log" ] ||
+      fail "collect attribution mismatch deleted the worker result log"
+    ! grep -q '^release:' "$events" ||
+      fail "collect attribution mismatch released an unverified claim"
+    grep -qx 'wait:4242' "$events" ||
+      fail "collect attribution mismatch did not reap the exact worker pid"
+    [ ! -e "$tracking_file" ] ||
+      fail "collect attribution mismatch retained stale active tracking"
+    if [ -n "${WORKER_PID[a]+present}" ] ||
+      [ -n "${WORKER_ARTICLE[a]+present}" ] ||
+      [ -n "${WORKER_RESULT_LOG[a]+present}" ] ||
+      [ -n "${WORKER_COMPLETION[a]+present}" ] ||
+      [ -n "${WORKER_TRACKING[a]+present}" ]; then
+      fail "collect attribution mismatch retained active worker bookkeeping"
+    fi
+  else
+    ! grep -q '^wait:' "$events" ||
+      fail "unmatched completion marker attempted to reap an unknown pid"
+  fi
+
+  set +e
+  (drain_and_exit)
+  drain_rc=$?
+  set -e
+  [ "$drain_rc" -eq 70 ] ||
+    fail "$scenario attribution mismatch drained with rc=$drain_rc instead of 70"
+  ! grep -q '^graceful:' "$events" ||
+    fail "$scenario attribution mismatch was rewritten as stopped_by_request"
+)
+
+run_completion_attribution_scenario collect
+pass "worker completion attribution failure retains evidence and exits 70"
+run_completion_attribution_scenario unmatched
+pass "unmatched completion markers remain fatal infrastructure errors"
 
 old_bin="$TMP/old-bin"
 mkdir -p "$old_bin"
@@ -1700,7 +1817,9 @@ pass "writer rollback no longer resets earlier persisted scores to Git HEAD"
 # not merely the snapshot primitive.
 final_gate_bin="$TMP/final-gate-bin"
 final_gate_version="$(node "$ROOT_DIR/scripts/tribunal-version.mjs" current)"
-final_gate_post="gp-1-20260128-demo.mdx"
+# Final-build repair exercises the generic rewrite machinery. GP now forbids
+# all Tribunal rewrites, so use an existing validator-clean bilingual SD pair.
+final_gate_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
 final_gate_zh="$ROOT_DIR/src/content/posts/$final_gate_post"
 final_gate_en="$ROOT_DIR/src/content/posts/en-$final_gate_post"
 final_gate_zh_pristine="$TMP/final-gate-zh-pristine"
@@ -1880,6 +1999,9 @@ if [ "${1:-}" = "--version" ]; then
   echo "codex-cli 0.128.0"
   exit 0
 fi
+if [ "${1:-}" = "login" ] && [ "${2:-}" = "status" ]; then
+  exit 0
+fi
 if [ "${1:-}" = "exec" ]; then
   argv=" $* "
   case "$argv" in
@@ -1960,6 +2082,44 @@ fi
 exit 1
 FINAL_GATE_CODEX
 
+cat > "$final_gate_bin/grok" <<'FINAL_GATE_GROK'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--help" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "models" ]; then
+  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
+  exit 0
+fi
+prompt="${!#}"
+candidate_zh="$(
+  printf '%s\n' "$prompt" |
+    sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
+    tail -1
+)"
+[ -f "$candidate_zh" ] || exit 72
+count=0
+[ ! -r "$FINAL_GATE_WRITER_COUNT" ] ||
+  count="$(cat "$FINAL_GATE_WRITER_COUNT")"
+count=$((count + 1))
+printf '%s\n' "$count" > "$FINAL_GATE_WRITER_COUNT"
+printf '\n<!-- final-gate-grok-writer-%s -->\n' "$count" >> "$candidate_zh"
+printf 'grok-ok\n'
+FINAL_GATE_GROK
+
+cat > "$final_gate_bin/systemd-run" <<'FINAL_GATE_SYSTEMD_RUN'
+#!/usr/bin/env bash
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = -- ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "$#" -gt 0 ] || exit 64
+exec "$@"
+FINAL_GATE_SYSTEMD_RUN
+
 cat > "$final_gate_bin/pnpm" <<'FINAL_GATE_PNPM'
 #!/usr/bin/env bash
 count=0
@@ -2001,7 +2161,8 @@ for arg in "$@"; do
 done
 exec "$FINAL_GATE_REAL_JQ" "$@"
 FINAL_GATE_JQ
-chmod +x "$final_gate_bin/codex" "$final_gate_bin/pnpm" "$final_gate_bin/jq"
+chmod +x "$final_gate_bin/codex" "$final_gate_bin/grok" \
+  "$final_gate_bin/systemd-run" "$final_gate_bin/pnpm" "$final_gate_bin/jq"
 
 write_final_gate_progress() {
   local progress_file="$1"
@@ -2076,6 +2237,7 @@ write_final_gate_progress() {
 
 run_final_gate_scenario() {
   local name="$1" behavior="$2"
+  local writer_mode="${3:-codex}" runtime_profile=legacy
   local scenario_dir="$TMP/final-gate-$name"
   local progress_file="$scenario_dir/progress.json"
   local coordinator_dir="$scenario_dir/coordinator"
@@ -2106,6 +2268,9 @@ run_final_gate_scenario() {
   printf '0\n' > "$scenario_dir/build-count"
 
   tribunal_args=(--no-commit "$final_gate_post")
+  if [ "$writer_mode" = grok ]; then
+    runtime_profile=vm-codex
+  fi
 
   set +e
   PATH="$final_gate_bin:$PATH" \
@@ -2114,8 +2279,9 @@ run_final_gate_scenario() {
   TRIBUNAL_ARTICLE_LOCK_DIR="$scenario_dir/article-locks" \
   TRIBUNAL_SHARED_LOCK_DIR="$scenario_dir/shared-locks" \
   TRIBUNAL_MAIN_REPO="$coordinator_dir" \
+  TRIBUNAL_RUNTIME_PROFILE="$runtime_profile" \
   TRIBUNAL_FORCE_PROVIDER=codex \
-  GP_WRITER_MODE=codex \
+  GP_WRITER_MODE="$writer_mode" \
   GP_CODEX_MODEL=gpt-test \
   TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
   FINAL_GATE_BEHAVIOR="$behavior" \
@@ -2204,6 +2370,18 @@ if find "$FINAL_GATE_LAST_DIR/tmp" -maxdepth 1 -name 'tribunal-rewrite.*' -print
   fail "successful final-build repair left its snapshot behind"
 fi
 pass "successful final-build repair retains writer changes and discards recovery state"
+
+run_final_gate_scenario grok-success success grok
+if [ "$FINAL_GATE_LAST_RC" -ne 0 ]; then
+  sed -n '1,200p' "$FINAL_GATE_LAST_DIR/out" >&2 || true
+  sed -n '1,200p' "$FINAL_GATE_LAST_DIR/err" >&2 || true
+  fail "successful Grok final-build repair must return rc=0"
+fi
+grep -Fq '<!-- final-gate-grok-writer-1 -->' "$final_gate_zh" ||
+  fail "successful Grok final-build repair discarded the writer change"
+[ "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$FINAL_GATE_LAST_PROGRESS")" = "PASS" ] ||
+  fail "successful Grok final-build repair did not persist PASS"
+pass "Grok final-build repair accepts complete provider provenance"
 
 run_final_gate_scenario success-background success-background
 [ "$FINAL_GATE_LAST_RC" -eq 0 ] ||

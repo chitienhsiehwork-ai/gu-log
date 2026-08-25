@@ -6,22 +6,30 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
 // only stays clean when destination paths are joined under a path returned
 // from os.mkdtempSync — string-concat to "/tmp/..." trips it because the
 // filename half is treated as a (test-controlled) tainted source.
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guvp-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('guvp-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const v = vModule as any;
-const { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES } =
-  v;
+const {
+  parseFrontmatter,
+  getBaseFilename,
+  getContentBody,
+  getFrontmatterBlock,
+  getFrontmatterFingerprint,
+  validatePost,
+  CJK_GRANDFATHERED_LINES,
+} = v;
 
 const KAOMOJI = '(◕‿◕)';
 
@@ -144,6 +152,13 @@ describe('getContentBody', () => {
   });
 });
 
+describe('getFrontmatterBlock', () => {
+  it('distinguishes a missing block from an empty block', () => {
+    expect(getFrontmatterBlock('body only')).toBeNull();
+    expect(getFrontmatterBlock('---\n\n---\nbody')).toBe('---\n\n---');
+  });
+});
+
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
     const filepath = tmpPath('gp-1-20260401-x.mdx');
@@ -188,6 +203,81 @@ describe('validatePost — invalid YAML (gu-log #546)', () => {
     const r = validatePost(filepath, []);
     expect(r.errors.length).toBeGreaterThan(0);
     expect(r.errors.some((e: string) => /Invalid YAML/.test(e))).toBe(true);
+  });
+
+  it('reparses when the current frontmatter differs from the preloaded block', () => {
+    const filepath = tmpPath('gp-3-20260401-preloaded.mdx');
+    const preloadedContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:')),
+      'ticketId: GP-3',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    const currentContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    fs.writeFileSync(filepath, currentContent);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: parseFrontmatter(preloadedContent),
+        error: null,
+        fingerprint: getFrontmatterFingerprint(preloadedContent),
+      },
+    });
+
+    expect(r.errors.some((error: string) => error.includes('Invalid YAML'))).toBe(true);
+  });
+
+  it('does not replay a preloaded invalid-YAML error after the block is fixed', () => {
+    const filepath = tmpPath('gp-3-20260401-cached-error.mdx');
+    const preloadedContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    const currentContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:')),
+      'ticketId: GP-3',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    fs.writeFileSync(filepath, currentContent);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: null,
+        error: new Error('Invalid YAML in frontmatter: cached sentinel'),
+        fingerprint: getFrontmatterFingerprint(preloadedContent),
+      },
+    });
+
+    expect(r.errors).not.toContain('Invalid YAML in frontmatter: cached sentinel');
+    expect(r.errors).toEqual([]);
+  });
+
+  it('replays a preloaded invalid-YAML diagnostic when the fingerprint matches', () => {
+    const filepath = tmpPath('gp-3-20260401-matching-error.mdx');
+    const content = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    fs.writeFileSync(filepath, content);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: null,
+        error: new Error('Invalid YAML in frontmatter: cached sentinel'),
+        fingerprint: getFrontmatterFingerprint(content),
+      },
+    });
+
+    expect(r.errors).toEqual(['Invalid YAML in frontmatter: cached sentinel']);
   });
 });
 

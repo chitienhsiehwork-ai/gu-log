@@ -1,0 +1,110 @@
+---
+ticketId: "GP-269"
+title: '同模型換 harness，部分任務成本相差超過兩倍——Databricks 把帳單攤開了'
+originalDate: '2026-08-04'
+translatedDate: '2026-08-06'
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok Build CLI"
+
+
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Earendil"
+sourceUrl: 'https://earendil.com/posts/pi-autoresearch-and-databricks/'
+lang: 'zh-tw'
+summary: 'Databricks 用自家數百萬行程式碼庫的日常任務測試 coding agent：同一模型、同一推理強度，只換 harness，部分案例的單題成本相差超過兩倍，品質維持不變；Pi 每輪送出的 context 約為比較對象的三分之一。模型與 harness 必須一起納入整體工程成本。'
+tags: ['ai-agents', 'agent-harness', 'pi', 'databricks', 'coding-agents']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 7
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 10
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-06"
+    model: "grok-4.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+同一顆模型、同一推理強度，只換呼叫它的 [Agent Harness](/glossary#agent-harness)，部分案例的單題成本就差了超過兩倍，品質卻維持不變。像同一間廚房、同一組廚師，只是出餐的裝盤流程不同，有人每道菜都把半個冰箱端上桌，有人只端這道菜真正會用到的料——帳單當然不一樣。[雲端資料平台團隊的控制實驗](https://www.databricks.com/blog/benchmarking-coding-agents-databricks-multi-million-line-codebase)裡，[Pi](/glossary#pi) 每輪送出的 [context](/glossary#context-window) 約為比較對象的三分之一，完成任務所需的輪次也更少；這兩項與較低的單題成本一起出現。
+
+這組數字把 coding agent 的成本問題拆開了。模型價目表只是單價；harness 每輪帶多少舊資料、讓模型繞幾次，才決定最後那張帳。
+
+<MoguNote>
+來源出自 Pi 開發商，排名與宣傳口吻要先打折。先備知識可跳讀：[Pi 的極簡設計](/posts/gp-45-20260210-mitsuhiko-pi-minimal-agent)、[harness 才是產品](/posts/gp-94-20260302-hxlfed14-agent-harness-real-product)、[context 成本](/posts/mp-65-20260211-nicbstme-context-tax)、[Autoresearch 迴圈](/posts/gp-113-20260314-manthanguptaa-karpathy-autoresearch)與[電商平台實例](/posts/mp-163-20260315-simonw-simon-willison-tobi-autoresearch-pr-liquid-benchmark-53)。本篇只處理新的控制實驗。(¬‿¬)
+</MoguNote>
+
+## 這組數字為什麼比排行榜有用
+
+公開題庫像學校統一考試：題目大家都看過，刷高分不一定代表上班會做事。研究團隊沒有再刷那套，而是從自家數百萬行程式碼庫的真實變更建立任務：排除機器人與全自動產生的提交、保留有可靠測試的案例，再由人工檢查題目和答案。這比較像工程師每天真的會碰到的工單，也降低公開答案混進訓練資料的干擾。
+
+更重要的是控制變因。模型與推理強度固定後，價差才比較能歸到 harness 如何整理工作集、重送 context 與結束任務。結果不代表某一套 harness 永遠較便宜，更不代表原生工具一定較差；它只證明「模型名稱」不是完整的成本單位——就像只看電費單價，卻不管冷氣一天開幾小時。
+
+## 成本從哪裡漏掉
+
+Pi 預設只有四個工具，系統提示詞加工具定義不到 1,000 [token](/glossary#token)。缺什麼再擴充，不必讓每個任務先讀一整套用不到的規則。想像現場只是要修一支螺絲，有人卻先把整間五金行搬過去「以防萬一」——那不是謹慎，是把運費寫進報價。研究裡觀察到的較小工作集與較少輪次，正好把這項設計從「偏好極簡」變成可量測的成本差。
+
+因此每百萬 token 的價格不能單獨代表工程成本；每題通過率、每題總成本、每輪 context 與總輪次必須一起比較。
+
+## 薄 harness 仍能長出重工作流
+
+下一個疑問會卡在這裡：預設這麼薄，能力會不會也被削掉？[電商平台的工程文章](https://shopify.engineering/autoresearch)寫了怎麼叫 Pi 依擴充文件做出 Autoresearch：每輪先量基準、提出假設、保留進步、丟掉退步，再繼續實驗。底盤保持輕，重工作流用擴充掛上去，而不是一開機就把整套流程塞進系統提示詞。
+
+案例包括單元測試快到 300 倍、React 元件掛載快 20%、多個專案建置時間下降，以及 pnpm 效能改善。這些是公司案例，不是可泛化的公開 benchmark；它們能支持的窄結論是：薄預設與重工作流並不衝突，前提是擴充點夠好用。
+
+## 把複雜度改成可量測的成本
+
+固定模型與推理強度之後，比較不同 harness 的通過率、總成本、每輪 context 與總輪次，才能把「看起來更強」和「帳單更貴」拆開看。複雜度可以加，但要先能在自己的任務上量出它值不值得。
+
+<MoguNote>
+複雜度不是不能加，只是要交租。沒有數字證明自己有用的預設，最後都會出現在帳單上。
+
+若真要拿來選工具：從自己的合併紀錄抽真實任務、用既有測試判定成功，再固定模型與推理強度比 harness。別人的排行榜可以當起點，別直接當採購答案。(・ω・)
+</MoguNote>

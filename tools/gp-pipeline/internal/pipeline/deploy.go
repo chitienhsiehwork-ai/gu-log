@@ -2,8 +2,12 @@ package pipeline
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/deploy"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
 )
 
 // Deploy is pipeline Step 5. It delegates the
@@ -15,6 +19,10 @@ import (
 // symmetry with other State methods). Existing-file recovery skips allocation
 // and rename, but still validates, builds, commits, and pushes owned changes.
 func (s *State) Deploy(ctx context.Context) error {
+	if s.LegacyShadow {
+		s.Log.Warn("--legacy-shadow is comparison-only; skipping deploy step")
+		return nil
+	}
 	if s.DryRun {
 		s.Log.Warn("--dry-run enabled; skipping deploy step")
 		return nil
@@ -25,6 +33,14 @@ func (s *State) Deploy(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 5: deploy")
+	if s.Prefix == "GP" && !s.LegacyShadow {
+		if s.ActiveFilename == "" {
+			return fmt.Errorf("deploy: GP active filename is empty")
+		}
+		if err := s.ValidateGPPublishManifest(ctx, filepath.Join(s.Cfg.PostsDir, s.ActiveFilename)); err != nil {
+			return fmt.Errorf("deploy: GP source-preservation gate rejected publication: %w", err)
+		}
+	}
 
 	if s.ExistingFile != "" {
 		if err := s.prepareExistingPost(); err != nil {
@@ -56,6 +72,10 @@ func (s *State) Deploy(ctx context.Context) error {
 		return nil
 	}
 
+	if err := s.hydrateTitleFromActiveFile(); err != nil {
+		return err
+	}
+
 	res, err := deploy.Run(ctx, deploy.Options{
 		Cfg:              s.Cfg,
 		Log:              s.Log,
@@ -82,6 +102,44 @@ func (s *State) Deploy(ctx context.Context) error {
 	s.ActiveFilename = res.Filename
 	s.ActiveENFilename = res.ENFilename
 	s.Log.OK("Step 5: deployed %s", res.PromptTicketID)
+	return nil
+}
+
+// hydrateTitleFromActiveFile fills s.Title from the pending article's own
+// frontmatter when nothing upstream set it.
+//
+// State.Title is documented as "extracted from the draft frontmatter by
+// Ralph", which holds for the full `run` pipeline. Standalone `deploy` starts
+// after ralph, so Title was always empty there and deploy.Run's
+// `Add <ticket>: <title>` template produced a commit subject that stopped at
+// the colon. The title is right there in the file being deployed; read it.
+//
+// A missing or unreadable title is not fatal here — validate-posts runs inside
+// deploy and owns that verdict. This only degrades to the previous behaviour.
+func (s *State) hydrateTitleFromActiveFile() error {
+	if s.Title != "" || s.ActiveFilename == "" {
+		return nil
+	}
+	path := filepath.Join(s.Cfg.PostsDir, s.ActiveFilename)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("deploy: read %s: %w", path, err)
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return fmt.Errorf("deploy: parse %s frontmatter: %w", path, err)
+	}
+	raw, ok := f.GetScalar("title")
+	if !ok {
+		s.Log.Warn("  %s has no frontmatter title; commit subject will omit it", s.ActiveFilename)
+		return nil
+	}
+	title, err := decodeYAMLScalar(raw)
+	if err != nil || title == "" {
+		s.Log.Warn("  %s has an unreadable frontmatter title %q; commit subject will omit it", s.ActiveFilename, raw)
+		return nil
+	}
+	s.Title = title
 	return nil
 }
 

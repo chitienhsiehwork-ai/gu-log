@@ -3,15 +3,19 @@ import * as fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { pathToRegexp } from 'path-to-regexp';
 import {
+  articleRedirectSource,
   assertRouteBudget,
   buildRedirectConfig,
   countPlatformRoutes,
   config,
+  deriveManifestCounts,
   LISTING_REDIRECT_COUNT,
   ROUTE_BUDGET,
   RedirectConfigError,
 } from '../vercel.mjs';
+import { materializeRedirectSources } from '../scripts/verify-brand-redirects.mjs';
 import {
   buildLegacySurfaces,
   isLegacyUrlPath,
@@ -29,6 +33,11 @@ function cloneManifest() {
   return JSON.parse(JSON.stringify(manifest));
 }
 
+function refreshManifestCounts(value: typeof manifest) {
+  value.counts = deriveManifestCounts(value.entries);
+  return value;
+}
+
 const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
   ['/shroomdog-picks', '/gu-log-picks'],
   ['/shroomdog-picks/:page(\\d+)', '/gu-log-picks/:page'],
@@ -38,6 +47,25 @@ const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
   ['/clawd-picks/:page(\\d+)', '/mogu-picks/:page'],
   ['/en/clawd-picks', '/en/mogu-picks'],
   ['/en/clawd-picks/:page(\\d+)', '/en/mogu-picks/:page'],
+];
+
+const EXPECTED_RECLASSIFIED_REDIRECTS: Array<[string, string]> = [
+  [
+    '/posts/sp-53-20260213-openclaw-setup-guide-review',
+    '/posts/mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/posts/gp-53-20260213-openclaw-setup-guide-review',
+    '/posts/mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/en/posts/en-sp-53-20260213-openclaw-setup-guide-review',
+    '/en/posts/en-mp-316-20260213-openclaw-setup-guide-audit',
+  ],
+  [
+    '/en/posts/en-gp-53-20260213-openclaw-setup-guide-review',
+    '/en/posts/en-mp-316-20260213-openclaw-setup-guide-audit',
+  ],
 ];
 
 describe('vercel.mjs Git deployment policy', () => {
@@ -56,6 +84,10 @@ describe('vercel.mjs Git deployment policy', () => {
 });
 
 describe('vercel.mjs redirect config — full manifest coverage', () => {
+  it('matches the declared summary to oldTicketId language groups', () => {
+    expect(deriveManifestCounts(manifest.entries)).toEqual(manifest.counts);
+  });
+
   it('produces exactly one redirect per manifest entry plus the 8 listing rules', () => {
     expect(manifest.entries.length).toBe(manifest.counts.files);
     expect(config.redirects.length).toBe(manifest.entries.length + LISTING_REDIRECT_COUNT);
@@ -80,12 +112,62 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('maps every manifest entry to its exact canonical source/destination with permanent:true', () => {
     const bySource = new Map(config.redirects.map((r) => [r.source, r]));
     for (const entry of manifest.entries) {
-      const source = articlePath(entry.lang, entry.oldSlug);
+      const source = articleRedirectSource(entry.lang, entry.oldSlug);
       const destination = articlePath(entry.lang, entry.newSlug);
       const redirect = bySource.get(source);
       expect(redirect, `missing redirect for ${source}`).toBeDefined();
       expect(redirect!.destination).toBe(destination);
       expect(redirect!.permanent).toBe(true);
+    }
+  });
+
+  it('fans the real SP-53 and GP-53 localized aliases directly into MP-316', () => {
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
+      const redirect = bySource.get(`${source}{/}?`);
+      expect(redirect, `missing reclassified redirect for ${source}`).toBeDefined();
+      expect(redirect!.destination).toBe(destination);
+      expect(redirect!.permanent).toBe(true);
+    }
+  });
+
+  it('preserves the real SP-162 content identity with its explicit SP-163 route identity', () => {
+    const anomaly = manifest.entries.find(
+      (entry: { oldRouteTicketId?: string }) => entry.oldRouteTicketId === 'SP-163'
+    );
+    expect(anomaly).toMatchObject({
+      lang: 'zh-tw',
+      oldTicketId: 'SP-162',
+      oldRouteTicketId: 'SP-163',
+      oldFilename: 'sp-163-20260405-meta-alchemist-claude-claude.mdx',
+      oldSlug: 'sp-163-20260405-meta-alchemist-claude-claude',
+      newTicketId: 'GP-162',
+    });
+
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    expect(
+      bySource.get('/posts/sp-163-20260405-meta-alchemist-claude-claude{/}?')?.destination
+    ).toBe('/posts/gp-162-20260405-meta-alchemist-claude-claude');
+  });
+
+  it('matches each exact article alias with or without one trailing slash only', () => {
+    const bySource = new Map(config.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const entry of manifest.entries) {
+      const path = articlePath(entry.lang, entry.oldSlug);
+      const source = articleRedirectSource(entry.lang, entry.oldSlug);
+      const redirect = bySource.get(source);
+      expect(redirect, `missing exact optional-slash rule for ${path}`).toBeDefined();
+
+      const matcher = pathToRegexp(source, [], {
+        strict: true,
+        sensitive: true,
+        delimiter: '/',
+      });
+      expect(matcher.test(path)).toBe(true);
+      expect(matcher.test(`${path}/`)).toBe(true);
+      expect(matcher.test(`${path}//`)).toBe(false);
+      expect(matcher.test(`${path}/extra`)).toBe(false);
+      expect(materializeRedirectSources(source)).toEqual([path, `${path}/`]);
     }
   });
 
@@ -104,8 +186,8 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     const sources = new Set(config.redirects.map((redirect) => redirect.source));
     for (const entry of mixedCaseEntries) {
       const evidenceStem = path.basename(entry.oldFilename, '.mdx');
-      const lowercaseRoute = articlePath(entry.lang, evidenceStem.toLowerCase());
-      const mixedCaseRoute = articlePath(entry.lang, evidenceStem);
+      const lowercaseRoute = articleRedirectSource(entry.lang, evidenceStem.toLowerCase());
+      const mixedCaseRoute = articleRedirectSource(entry.lang, evidenceStem);
       expect(sources.has(lowercaseRoute), `missing lowercase route ${lowercaseRoute}`).toBe(true);
       expect(sources.has(mixedCaseRoute), `unexpected mixed-case route ${mixedCaseRoute}`).toBe(
         false
@@ -141,23 +223,38 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     }
   });
 
-  it('has no duplicate sources, no duplicate destinations, and no self-loops', () => {
+  it('materializes finite listing rules but rejects unknown regex source shapes', () => {
+    const [listingSource] = EXPECTED_LISTING_REDIRECTS[0];
+    const [paginatedSource] = EXPECTED_LISTING_REDIRECTS[1];
+    expect(materializeRedirectSources(listingSource)).toEqual([listingSource]);
+    expect(materializeRedirectSources(paginatedSource)).toEqual([`${listingSource}/2`]);
+    expect(() => materializeRedirectSources('/posts/:slug(.*)')).toThrow(
+      /unsupported redirect source/
+    );
+    expect(() => materializeRedirectSources('/unknown-listing')).toThrow(
+      /unsupported redirect source/
+    );
+    expect(() => materializeRedirectSources('/evil/:page(\\d+)')).toThrow(
+      /unsupported redirect source/
+    );
+  });
+
+  it('has no duplicate sources or self-loops', () => {
     const sources = config.redirects.map((r) => r.source);
-    const destinations = config.redirects.map((r) => r.destination);
     expect(new Set(sources).size).toBe(sources.length);
-    expect(new Set(destinations).size).toBe(destinations.length);
     for (const redirect of config.redirects) {
       expect(redirect.source).not.toBe(redirect.destination);
     }
   });
 
-  it('blocks framing globally while preserving bounded Markdown Content-Type rules', () => {
+  it('blocks framing and MIME sniffing globally while preserving bounded Markdown Content-Type rules', () => {
     expect(config.headers).toEqual([
       {
         source: '/(.*)',
         headers: [
           { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
           { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
         ],
       },
       {
@@ -223,11 +320,14 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     expect(() => buildRedirectConfig(bad)).toThrow(/entries/);
   });
 
-  it('rejects counts inconsistent with the manifest', () => {
-    const bad = cloneManifest();
-    bad.counts = { ...bad.counts, files: bad.entries.length - 1 };
-    expect(() => buildRedirectConfig(bad)).toThrow(/counts\.files/);
-  });
+  it.each(['files', 'tickets', 'complete', 'incomplete'] as const)(
+    'rejects counts.%s inconsistent with the manifest',
+    (field) => {
+      const bad = cloneManifest();
+      bad.counts = { ...bad.counts, [field]: bad.counts[field] + 1 };
+      expect(() => buildRedirectConfig(bad)).toThrow(new RegExp(`counts\\.${field}`));
+    }
+  );
 
   it('rejects an unsupported language', () => {
     const bad = cloneManifest();
@@ -253,20 +353,84 @@ describe('buildRedirectConfig — fail-closed validation', () => {
 
   it('rejects a mixed-case legacy slug while preserving its evidence filename', () => {
     const bad = cloneManifest();
-    bad.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
-    bad.entries[0].oldSlug = 'Legacy-Mixed-Case';
+    const languagePrefix = bad.entries[0].lang === 'en' ? 'en-' : '';
+    const evidenceFilename = `${languagePrefix}${bad.entries[0].oldTicketId.toLowerCase()}-Legacy-Mixed-Case.mdx`;
+    bad.entries[0].oldFilename = evidenceFilename;
+    bad.entries[0].oldSlug = path.basename(evidenceFilename, '.mdx');
     expect(() => buildRedirectConfig(bad)).toThrow(/lowercase evidence filename stem/);
 
     const good = cloneManifest();
-    good.entries[0].oldFilename = 'Legacy-Mixed-Case.mdx';
-    good.entries[0].oldSlug = 'legacy-mixed-case';
+    good.entries[0].oldFilename = evidenceFilename;
+    good.entries[0].oldSlug = path.basename(evidenceFilename, '.mdx').toLowerCase();
     expect(() => buildRedirectConfig(good)).not.toThrow();
+  });
+
+  it('rejects a newTicketId whose prefix or number disagrees with newSlug/newFilename', () => {
+    const numberMismatch = cloneManifest();
+    const [series, number] = numberMismatch.entries[0].newTicketId.split('-');
+    numberMismatch.entries[0].newTicketId = `${series}-${Number(number) + 100_000}`;
+    expect(() => buildRedirectConfig(numberMismatch)).toThrow(/newFilename.*newTicketId/);
+
+    const seriesMismatch = cloneManifest();
+    seriesMismatch.entries[0].newTicketId = `${series === 'GP' ? 'MP' : 'GP'}-${number}`;
+    expect(() => buildRedirectConfig(seriesMismatch)).toThrow(/newFilename.*newTicketId/);
+  });
+
+  it('rejects an oldTicketId or lang that disagrees with oldSlug/oldFilename', () => {
+    const ticketMismatch = cloneManifest();
+    const numberedEntryIndex = ticketMismatch.entries.findIndex(
+      (entry: { oldTicketId: string; oldFilename: string; lang: string }) => {
+        const languagePrefix = entry.lang === 'en' ? 'en-' : '';
+        return entry.oldFilename
+          .toLowerCase()
+          .startsWith(`${languagePrefix}${entry.oldTicketId.toLowerCase()}-`);
+      }
+    );
+    const [series, number] = ticketMismatch.entries[numberedEntryIndex].oldTicketId.split('-');
+    ticketMismatch.entries[numberedEntryIndex].oldTicketId =
+      `${series}-${Number(number) + 100_000}`;
+    expect(() => buildRedirectConfig(ticketMismatch)).toThrow(/oldFilename.*oldTicketId/);
+
+    const languageMismatch = cloneManifest();
+    languageMismatch.entries[0].lang = languageMismatch.entries[0].lang === 'en' ? 'zh-tw' : 'en';
+    expect(() => buildRedirectConfig(languageMismatch)).toThrow(/oldFilename.*lang/);
+  });
+
+  it('validates an explicit oldRouteTicketId against the historical route filename', () => {
+    const anomalyIndex = manifest.entries.findIndex(
+      (entry: { oldRouteTicketId?: string }) => entry.oldRouteTicketId === 'SP-163'
+    );
+
+    const missingOverride = cloneManifest();
+    delete missingOverride.entries[anomalyIndex].oldRouteTicketId;
+    expect(() => buildRedirectConfig(missingOverride)).toThrow(/oldFilename.*oldTicketId/);
+
+    const sameTicket = cloneManifest();
+    sameTicket.entries[anomalyIndex].oldRouteTicketId =
+      sameTicket.entries[anomalyIndex].oldTicketId;
+    expect(() => buildRedirectConfig(sameTicket)).toThrow(/must differ from oldTicketId/);
+
+    const malformedOverride = cloneManifest();
+    malformedOverride.entries[anomalyIndex].oldRouteTicketId = 'not-a-ticket';
+    expect(() => buildRedirectConfig(malformedOverride)).toThrow(/supported series/);
+
+    const wrongNumber = cloneManifest();
+    wrongNumber.entries[anomalyIndex].oldRouteTicketId = 'SP-164';
+    expect(() => buildRedirectConfig(wrongNumber)).toThrow(/oldFilename.*oldRouteTicketId/);
+
+    const crossSeriesRoute = cloneManifest();
+    const alternateRouteStem = 'gp-163-20260405-meta-alchemist-claude-claude';
+    crossSeriesRoute.entries[anomalyIndex].oldRouteTicketId = 'GP-163';
+    crossSeriesRoute.entries[anomalyIndex].oldFilename = `${alternateRouteStem}.mdx`;
+    crossSeriesRoute.entries[anomalyIndex].oldSlug = alternateRouteStem;
+    expect(() => buildRedirectConfig(crossSeriesRoute)).not.toThrow();
   });
 
   it('rejects a self-loop entry', () => {
     const bad = cloneManifest();
-    bad.entries[0].newSlug = bad.entries[0].oldSlug;
-    bad.entries[0].newFilename = `${bad.entries[0].newSlug}.mdx`;
+    bad.entries[0].oldTicketId = bad.entries[0].newTicketId;
+    bad.entries[0].oldSlug = bad.entries[0].newSlug;
+    bad.entries[0].oldFilename = bad.entries[0].newFilename;
     expect(() => buildRedirectConfig(bad)).toThrow(/self-loop/);
   });
 
@@ -275,40 +439,46 @@ describe('buildRedirectConfig — fail-closed validation', () => {
     bad.entries[1] = {
       ...bad.entries[1],
       lang: bad.entries[0].lang,
+      oldTicketId: bad.entries[0].oldTicketId,
       oldSlug: bad.entries[0].oldSlug,
-      oldFilename: `${bad.entries[0].oldSlug}.mdx`,
+      oldFilename: bad.entries[0].oldFilename,
     };
     expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect source/);
   });
 
-  it('rejects a duplicate redirect destination across entries', () => {
-    const bad = cloneManifest();
-    bad.entries[1] = {
-      ...bad.entries[1],
-      lang: bad.entries[0].lang,
-      oldSlug: `${bad.entries[1].oldSlug}-x`,
-      oldFilename: `${bad.entries[1].oldSlug}-x.mdx`,
-      newSlug: bad.entries[0].newSlug,
-      newFilename: `${bad.entries[0].newSlug}.mdx`,
-    };
-    expect(() => buildRedirectConfig(bad)).toThrow(/duplicate redirect destination/);
+  it('allows the real historical aliases to share localized canonical destinations', () => {
+    const aliases = cloneManifest();
+    aliases.entries = aliases.entries.filter(
+      (entry: { oldTicketId: string }) =>
+        entry.oldTicketId === 'SP-53' || entry.oldTicketId === 'GP-53'
+    );
+    refreshManifestCounts(aliases);
+
+    const result = buildRedirectConfig(aliases);
+    const bySource = new Map(result.redirects.map((redirect) => [redirect.source, redirect]));
+    for (const [source, destination] of EXPECTED_RECLASSIFIED_REDIRECTS) {
+      expect(bySource.get(`${source}{/}?`)?.destination).toBe(destination);
+    }
   });
 
   it('fails closed when the route count is at/over the documented budget', () => {
     const bad = cloneManifest();
-    const template = bad.entries[0];
     const neededArticleCount = ROUTE_BUDGET - LISTING_REDIRECT_COUNT;
     const fillerCount = Math.max(0, neededArticleCount - bad.entries.length);
-    const filler = Array.from({ length: fillerCount }, (_, i) => ({
-      ...template,
-      lang: 'zh-tw',
-      oldSlug: `budget-filler-${i}`,
-      oldFilename: `budget-filler-${i}.mdx`,
-      newSlug: `budget-filler-new-${i}`,
-      newFilename: `budget-filler-new-${i}.mdx`,
-    }));
+    const filler = Array.from({ length: fillerCount }, (_, i) => {
+      const number = 100_000 + i;
+      return {
+        lang: 'zh-tw',
+        oldTicketId: `SP-${number}`,
+        newTicketId: `GP-${number}`,
+        oldSlug: `sp-${number}-budget-filler`,
+        oldFilename: `sp-${number}-budget-filler.mdx`,
+        newSlug: `gp-${number}-budget-filler-new`,
+        newFilename: `gp-${number}-budget-filler-new.mdx`,
+      };
+    });
     bad.entries = [...bad.entries, ...filler];
-    bad.counts = { ...bad.counts, files: bad.entries.length };
+    refreshManifestCounts(bad);
     expect(() => buildRedirectConfig(bad)).toThrow(/route budget/);
   });
 });

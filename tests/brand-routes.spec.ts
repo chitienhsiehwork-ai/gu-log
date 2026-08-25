@@ -175,6 +175,42 @@ test.describe('Mogu / GP / MP breaking route contract', () => {
     }
   });
 
+  test('GIVEN initial hydration WHEN page loads THEN theme storage is read once without a redundant write', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      let reads = 0;
+      let writes = 0;
+      const getItem = Storage.prototype.getItem;
+      const setItem = Storage.prototype.setItem;
+
+      Storage.prototype.getItem = function (this: Storage, key: string) {
+        if (this === window.localStorage && key === 'theme') reads += 1;
+        return getItem.call(this, key);
+      };
+      Storage.prototype.setItem = function (this: Storage, key: string, value: string) {
+        if (this === window.localStorage && key === 'theme') writes += 1;
+        return setItem.call(this, key, value);
+      };
+
+      Object.defineProperty(window, '__themeStorageIo', {
+        get: () => ({ reads, writes }),
+      });
+    });
+
+    await page.goto('/');
+
+    const storageIo = await page.evaluate(
+      () =>
+        (
+          window as Window & {
+            __themeStorageIo?: { reads: number; writes: number };
+          }
+        ).__themeStorageIo
+    );
+    expect(storageIo).toEqual({ reads: 1, writes: 0 });
+  });
+
   test('GIVEN keyboard focus on the theme toggle WHEN activated THEN focus stays and the action label updates', async ({
     page,
     browserName,

@@ -120,15 +120,9 @@ export function filterHistory<T extends { date: string }>(
  * Validate query parameters for history endpoints.
  * Returns an error message if invalid, null if valid.
  */
-export function validateHistoryParams(
-  from?: string,
-  limit?: string
-): string | null {
-  if (from !== undefined) {
-    const date = new Date(from);
-    if (isNaN(date.getTime())) {
-      return `Invalid 'from' date: ${from}. Expected ISO date format (e.g., 2026-02-01)`;
-    }
+export function validateHistoryParams(from?: string, limit?: string): string | null {
+  if (from !== undefined && !isIsoCalendarDay(from)) {
+    return `Invalid 'from' date: ${from}. Expected ISO date format (e.g., 2026-02-01)`;
   }
 
   if (limit !== undefined) {
@@ -157,6 +151,12 @@ export class MetricNotFoundError extends Error {
 
 function isNodeError(err: unknown): err is NodeJS.ErrnoException {
   return err instanceof Error && 'code' in err;
+}
+
+function isIsoCalendarDay(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 /**

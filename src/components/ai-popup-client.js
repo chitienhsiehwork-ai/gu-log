@@ -6,10 +6,10 @@
   const JWT_KEY = 'gu-log-jwt';
   const RETURN_KEY = 'gu-log-return-url';
 
-  const root = document.getElementById('ai-popup-root');
+  const root = document.querySelector('main > #ai-popup-root');
   if (!root) return;
 
-  const loginTarget = document.getElementById('ai-popup-login-target');
+  const loginTarget = root.querySelector('#ai-popup-login-target');
   const filePath = root.getAttribute('data-file-path') || '';
   const postTitle = root.getAttribute('data-post-title') || '';
   const apiUrl = root.getAttribute('data-api-url') || '';
@@ -156,23 +156,24 @@
 
     try {
       const parts = token.split('.');
-      if (parts.length < 2 || !parts[1]) return null;
+      if (parts.length !== 3 || parts.some((part) => !part)) return null;
       const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       const padded = normalized + '==='.slice((normalized.length + 3) % 4);
-      return JSON.parse(atob(padded));
+      const parsed = JSON.parse(atob(padded));
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+      if ('exp' in parsed && (typeof parsed.exp !== 'number' || !Number.isFinite(parsed.exp))) {
+        return null;
+      }
+      return parsed;
     } catch (_error) {
       return null;
     }
   }
 
-  function isTokenExpired() {
+  function hasUsableJwt() {
     const payload = decodeJwtPayload(getJwt());
-    if (!payload || typeof payload.exp !== 'number') return false;
-    return payload.exp <= Date.now() / 1000;
-  }
-
-  function isLoggedIn() {
-    return !!getJwt();
+    if (!payload) return false;
+    return typeof payload.exp !== 'number' || payload.exp > Date.now() / 1000;
   }
 
   function clearErrorDismissTimer() {
@@ -469,7 +470,7 @@
     currentState = 'buttons';
     updateDialogLabel(dialogLabel);
 
-    if (!isLoggedIn() || isTokenExpired()) {
+    if (!hasUsableJwt()) {
       popup.innerHTML =
         '<button class="ai-popup-btn ai-popup-btn--login" data-action="login">' +
         escapeHtml(t.login) +
@@ -849,7 +850,7 @@
 
   async function handleSubmitAsk() {
     if (currentState === 'loading') return;
-    if (isTokenExpired()) {
+    if (!hasUsableJwt()) {
       handleLogin();
       return;
     }
@@ -885,7 +886,7 @@
 
   async function handleSubmitEdit() {
     if (currentState === 'loading') return;
-    if (isTokenExpired()) {
+    if (!hasUsableJwt()) {
       handleLogin();
       return;
     }

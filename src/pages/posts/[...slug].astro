@@ -47,8 +47,13 @@ const ticketPrefix = ticketId?.split('-')[0] || '';
 const isMoguPicks = ticketId?.startsWith('MP-') ?? false;
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
-// SD/Lv are originals — the model signature is "written by", not "translated by".
+// MP/SD/Lv use writing provenance; only GP uses translation provenance.
 const isOriginalPost = isLevelUp || isShroomDogOriginal;
+const contentMode = isMoguPicks
+  ? 'source-grounded-writing'
+  : isOriginalPost
+    ? 'writing'
+    : 'translation';
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
 // Lv tutorials are originals, but when one is built on a real external source
 // (not a self-referential gu-log link) the source should still be credited + linked.
@@ -59,9 +64,11 @@ const showSourceCitation =
   (isLevelUp && hasExternalSource);
 const sourceCitationLabel = isLevelUp
   ? '參考來源'
-  : isShroomDogOriginal && isChatGptShareSource
-    ? '靈感來源'
-    : '原文出處';
+  : isMoguPicks
+    ? '來源材料'
+    : isShroomDogOriginal && isChatGptShareSource
+      ? '靈感來源'
+      : '原文出處';
 // Legacy Lv posts encoded the gu-log series name into `source`.
 // The Lv badge already carries that context, so credit only the real source.
 const sourceCitationText = post.data.source.replace(/^Level-Up 系列\s*[／/]\s*/, '');
@@ -119,7 +126,12 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       </div>
       {
         showSourceCitation && (
-          <a class="source-citation" href={post.data.sourceUrl} target="_blank" rel="noopener">
+          <a
+            class="source-citation"
+            href={post.data.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <span class="source-citation-icon" aria-hidden="true">
               <svg
                 viewBox="0 0 24 24"
@@ -252,7 +264,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
       translatedBy={post.data.translatedBy}
       scores={post.data.scores}
       authorshipNote={authorshipNote}
-      isOriginalPost={isOriginalPost}
+      contentMode={contentMode}
       postVersion={Number(postVersion)}
       historyHref={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
       lang="zh-tw"
@@ -280,6 +292,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   .post-meta-left {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.5rem;
   }
 
@@ -312,7 +325,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   }
 
   .meta-date {
-    /* removed margin, using gap instead */
+    white-space: nowrap;
   }
 
   .post-tags-section {

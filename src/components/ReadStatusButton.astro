@@ -9,6 +9,8 @@ interface Props {
   pathname: string;
 }
 
+import { normalizePublicApiBaseUrl } from '../lib/public-api-url';
+
 const {
   slug,
   lang = 'zh-tw',
@@ -19,7 +21,8 @@ const {
   pathname,
 } = Astro.props;
 
-const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const configuredApiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
+const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 ---
 
 <div
@@ -71,7 +74,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 </div>
 
 <script>
-  import { isRead, toggleRead, markAsRead, exportJson } from '../lib/reading-tracker';
+  import { isRead, setReadStates, exportJson } from '../lib/reading-tracker';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -133,7 +136,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   function initReadButtons() {
     // Only show when logged in
-    const jwt = localStorage.getItem('gu-log-jwt');
+    const jwt = getGuLogSessionToken();
     if (!jwt) return;
 
     document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((el) => {
@@ -141,7 +144,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
       const slug = el.dataset.slug || '';
       const btn = el.querySelector<HTMLButtonElement>('.read-status-btn');
-      const readerRevision = el.dataset.readerRevision || null;
+      const readerRevision = el.dataset.readerRevision;
       if (!btn) return;
 
       function updateUI(read: boolean) {
@@ -172,7 +175,8 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
       updateUI(isRead(slug));
 
       btn.addEventListener('click', () => {
-        const nowRead = toggleRead(slug, readerRevision);
+        const nowRead = setReadStates([[slug, undefined, readerRevision]]);
+        if (nowRead === null) return;
         if (nowRead) {
           recordManualMarkRead(getSnapshot(el));
         }
@@ -192,13 +196,13 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
 
   // Auto-mark as read when scrolled to near bottom
   function initScrollRead() {
-    const jwt = localStorage.getItem('gu-log-jwt');
+    const jwt = getGuLogSessionToken();
     if (!jwt) return;
 
     const el = document.querySelector<HTMLElement>('[data-read-button]');
     if (!el) return;
     const slug = el.dataset.slug || '';
-    const readerRevision = el.dataset.readerRevision || null;
+    const readerRevision = el.dataset.readerRevision;
     if (!slug || isRead(slug)) return;
 
     const postContent = document.querySelector('.post-content');
@@ -287,24 +291,27 @@ const apiUrl = import.meta.env.PUBLIC_API_URL || 'https://api.shroomdog.dev';
         if (entries[0].isIntersecting) {
           // Bottom of content visible — mark as read synchronously enough to avoid pagehide races.
           finished = true;
-          markAsRead(slug, 'active_scroll_end', readerRevision);
+          const readPersisted =
+            setReadStates([[slug, true, readerRevision, 'active_scroll_end']]) !== null;
           recordReadFinish(getSnapshot(el!), {
             method: 'active_scroll_end',
             activeReadMs: checkpointActiveRead(),
             maxScrollPercent: Math.max(maxScrollPercent, 100),
           });
-          markDirtyForSync();
-          scheduleDebouncedSync();
-          // Update button UI
-          document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
-            if (btn.dataset.slug === slug) {
-              btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
-              btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
-              btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
-              btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
-            }
-          });
+          if (readPersisted) {
+            markDirtyForSync();
+            scheduleDebouncedSync();
+            // Update button UI
+            document.querySelectorAll<HTMLElement>('[data-read-button]').forEach((btn) => {
+              if (btn.dataset.slug === slug) {
+                btn.querySelector<HTMLElement>('.rs-icon-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-icon-read')!.style.display = '';
+                btn.querySelector<HTMLElement>('.rs-label-unread')!.style.display = 'none';
+                btn.querySelector<HTMLElement>('.rs-label-read')!.style.display = '';
+                btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
+              }
+            });
+          }
           cleanupTracking();
         }
       },

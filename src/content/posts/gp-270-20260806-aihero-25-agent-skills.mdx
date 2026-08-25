@@ -1,0 +1,214 @@
+---
+ticketId: "GP-270"
+title: 'Matt Pocock 的 25 個 Agent Skills：先對齊，再寫 code'
+originalDate: '2026-04-30'
+translatedDate: '2026-08-06'
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok Build CLI"
+
+
+
+
+
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Luna"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Luna"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Grok 4.5"
+      harness: "Grok Build CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Luna"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Matt Pocock / AI Hero"
+sourceUrl: 'https://www.aihero.dev/skills'
+lang: 'zh-tw'
+summary: 'Matt Pocock 在 aihero.dev/skills 公開一套給真正工程師用的小型可組合 agent skills：18 個工程類、7 個生產力類，涵蓋對齊、規格、拆票、實作、回饋與維護。兩種安裝路線、由人或模型啟動的分層，以及為什麼它不做成吞掉控制權的大流程。'
+tags: ['ai-agents', 'developer-tools', 'claude-code', 'engineering']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 10
+    attribution: 9
+    score: 9
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-08-06"
+    model: "gpt-5.6-luna"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-08-06"
+    model: "grok-4.5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+開發真正的應用很難。有些方法把規格、拆票、實作到交付整段接管，本意是幫忙，卻也把控制權一起拿走；流程本身出 [bug](/glossary#bug) 時，使用者很難只換掉壞掉的那一段。
+
+解法是反方向：一堆**小、好改、可組合**的 [agent](/glossary#agent) [Skill](/glossary#skill)，給「真的在做工程」的人用，不是 [Vibe Coding](/glossary#vibe-coding) 玩具箱。入口在 [官方目錄](https://www.aihero.dev/skills)，原始檔在 [GitHub `mattpocock/skills`](https://github.com/mattpocock/skills)；整包採 **MIT** 授權。整包 **25** 個 skill：工程 **18**、生產力 **7**。任何模型都能使用，根子是幾十年工程經驗壓成可重複的步驟。
+
+每個 skill 都能依需要單獨使用或彼此組合；哪一段不好，就只改那一段。
+
+<MoguNote>
+「給真正工程師用，不是靠感覺寫程式」這句話很嗆，但刀口是對的：agent 加速寫 code 的同時，也會加速軟體腐壞。gu-log 自己也用 [tribunal](/posts/sd-10-20260322-ralph-loop-quality-system) 審流程、用操作手冊把教訓留下來；這套流程同樣靠小技能持續修，而不是一個誰都改不動的大黑箱。
+
+站內 [GP-118](/posts/gp-118-20260318-trq212-claude-code-skills-lessons) 已談過 Claude Code skill 的分類與踩坑，[GP-195](/posts/gp-195-20260507-yage-skill-plugin-evolution) 則對照 Skill 與 [Plugin](/glossary#plugin) 的分層。這篇真正的新東西，是 Matt 如何把 25 個 skill 排進日常工程。
+</MoguNote>
+
+## 兩種安裝路線：訂閱 vs 自己改
+
+進場只要約三十秒，但哲學不一樣，**二選一**——兩邊都裝會讓每個 skill 出現兩份。
+
+**路線一：[Claude Code](/glossary#claude-code) [plugin](/glossary#plugin)（訂閱、唯讀、會自動更新）**
+
+```bash
+claude plugins install mattpocock-skills
+```
+
+或在對話裡：
+
+```
+/plugin install mattpocock-skills
+```
+
+已在 Claude Code 官方市集，不用先加來源；上游發布更新就會跟著來。這是「訂閱整包」，不是自行分叉。
+
+**路線二：`npx skills`（可編輯、進 [repo](/glossary#repo)）**
+
+給 [Codex](/glossary#codex) 與其他 agent：
+
+```bash
+npx skills@latest add mattpocock/skills
+```
+
+安裝器可選 skill 與目標 agent。Matt 特別提醒：**一定要把 `setup-matt-pocock-skills` 勾進去**，否則後面一堆流程會缺起跑設定。原生 Codex plugin 還在規劃中。
+
+喜歡自己改的人，同一條指令也能裝到含 Claude Code 在內的任何 agent：檔案寫進 repo，屬於專案、可以改。背後不會偷偷更新；要跟上游最新版時再 `npx skills update`。
+
+裝完後，在 agent 裡**每個 repo 跑一次** `/setup-matt-pocock-skills`。它會問 issue 追蹤器（GitHub、[Linear](/glossary#linear)、或本機檔案）、分流標籤（`/triage` 靠標籤動）、以及產出文件要存哪。設完就能開工。
+
+<MoguNote>
+訂閱 = 省心、怕分叉後跟不上上游；自己改 = 控制權在手上、更新要自己拉。這跟「要不要分叉別人的 CLAUDE.md」是同一類抉擇。兩邊都裝會雙份 skill——不是「更完整」，是之後到底聽誰的會炸掉。
+</MoguNote>
+
+---
+
+## 為什麼要這套：四個 agent 常見翻車點
+
+這批 skill 不是為了炫技，是為了修 Claude Code、Codex 與其他 coding agent 上**反覆出現**的失敗模式。
+
+### 1. [Agent](/glossary#agent) 沒做出想要的東西
+
+最常見的軟體失敗是**對不齊**。以為對方懂了，看到成品才發現完全不是那回事。AI 時代一樣：人與 agent 之間有溝通落差。
+
+修法是一場**拷問式訪談**——逼 agent 先問清楚細節，再動手。
+
+- `/grill-me`：非 code 用途
+- `/grill-with-docs`：同族，但多一堆工程好料（見下）
+
+這兩個是整包最受歡迎的 skill。每次要改東西，都先用其中一個。
+
+### 2. Agent 話太多、術語亂飛
+
+專案一開始，工程師跟領域專家常講不同語言。Agent 被丟進專案後邊做邊猜行話，結果明明一個詞就夠，卻繞了二十圈。
+
+修法是**共享語言**：一份文件讓 agent 解碼專案黑話。`course-video-manager` 的 [`CONTEXT.md`](https://github.com/mattpocock/course-video-manager/blob/076a5a7a182db0fe1e62971dd7a68bcadf010f1c/CONTEXT.md) 對比很狠：
+
+- **之前**：「課程某章節裡的一課被做成『真的』（也就是在檔案系統裡有位置）時會出問題」
+- **之後**：「`materialization cascade` 出問題」——這是專案替「課程內容落到檔案系統時引發的連鎖反應」定下的短詞
+
+這種簡潔，一輪對話接一輪對話都在省 [token](/glossary#token)、省腦力。`/grill-with-docs` 就是：一面拷問，一面建領域模型、銳化術語，順便更新 `CONTEXT.md` 與 ADR（架構決策紀錄，用來寫下「為什麼選這條路」）。Matt 自己覺得，這可能是整包最酷的一招。
+
+共享語言還會外溢：變數、函式、檔名一致 → 程式庫更好導航 → agent 思考也少燒 token。
+
+### 3. 程式就是跑不起來
+
+對齊了，產出還是垃圾？該看**回饋迴路**。沒有靜態型別、瀏覽器、自動化測試，agent 等於盲飛。
+
+對測試，**紅—綠—重構**很關鍵：先寫會失敗的測試，再修到綠。`/tdd` 可插進任何專案，鼓勵這條迴路，並講清楚什麼是好測試、什麼是爛測試。除錯則有 `/diagnosing-bugs`：分階段、有門檻的診斷循環。
+
+### 4. 蓋出一坨泥巴球
+
+Agent 讓寫 code 變快，也讓**軟體熵**加速。多數 agent 蓋的應用複雜、難改。
+
+修法是每天都在乎 code 的設計。
+
+- `/to-spec` 寫規格前會先考「會動到哪些模組」
+- `/improve-codebase-architecture` 掃描程式庫，找「加深模組」的機會——意思是介面小、行為多、邊界乾淨——做成視覺 HTML 報告再拷問選項
+
+它是**勘察，不是救援**：老程式庫會找到真候選，但**不會幫人把泥巴球整坨拆開**。
+
+軟體工程基本功比以往更重要。這套 skill 是把基本功壓成可重複做法，幫工程師做出職涯中最好的幾批應用。
+
+<MoguNote>
+四個失敗模式剛好對上工作流：先拷問到對齊 → 建共享語言 → 補回饋迴路 → 做架構日常保養。不是「多裝幾個 [prompt](/glossary#prompt) 檔」，而是把熟悉的工程紀律塞進 agent 每天會按的按鈕。
+
+這招看起來很復古，但 agent 把軟體熵加速後，設計保養已經不是品味題，是止血題。Matt 的建議是每隔幾天跑一次 `/improve-codebase-architecture`；這是保養頻率，不是另一條硬規則。（⌐■_■）
+</MoguNote>
+
+---
+
+## 誰按按鈕，決定流程會不會失控
+
+目錄用「誰可以啟動」把技能切成兩層。**人啟動**的技能負責編排整段流程，只有人輸入指令才會動；**模型也可啟動**的技能則裝著可重用的工程紀律，agent 遇到合適任務時可以自己伸手。
+
+邊界很硬：人啟動的技能可以叫模型也可啟動的技能，卻不能再叫另一個人啟動的技能。否則兩套總指揮互相套娃，很快又長回這套設計想避開的「整包接管」。
+
+## 18 個工程 skill：主鏈以外還有哪些接縫
+
+四個翻車點已經蓋掉對齊、術語、測試、架構保養。剩下要補的，是「一項改動進來之後，票怎麼拆、誰開工、卡關怎麼旁路」。
+
+主鏈順序很短：`/setup-matt-pocock-skills`（每 repo 一次）→ 不清楚時 `/ask-matt` → 訪談收斂後才 `/to-spec` → `/to-tickets` 拆成可驗證、標好阻擋關係的票 → `/implement` 開工，在事先約好的模組切入口叫 `/tdd`，收尾再叫 `/code-review` 對 repo 規範與原始規格。人啟動的技能排流程；模型也可啟動的技能守每一步紀律。
+
+工作大到一輪對話裝不下，`/wayfinder` 把未知問題做成決策票地圖；`/triage` 持續整理待辦與外部 [PR](/glossary#pr)。卡關不必拆掉整套：`/prototype` 做用完即丟的原型，`/research` 查可信第一手來源，`/diagnosing-bugs` 縮範圍並補回歸測試；詞彙漂移用 `/domain-modeling`，模組邊界混濁用 `/codebase-design`。日常還有 `/resolving-merge-conflicts` 依兩邊原意解衝突，以及 `/wizard`——只處理 agent 做不了、必須由人操作的憑證、第三方控制台或一次性切換。
+
+<MoguNote>
+第一個最容易踩的坑，是把 `/grill-with-docs` 和 `/to-spec` 當同義詞。前者是「還沒想清楚，先被問到清楚」；後者是「已經講夠了，直接合成規格」。一個探索，一個收斂，順序反了就會得到一份很有格式、但沒想清楚的規格。
+</MoguNote>
+
+## 另外 7 個，處理的不是 code
+
+工程鏈外還有一組通用工具。`/grill-me` 把同一套拷問用在非 code 的計劃與設計，底層共用的 `/grilling` 也是多個工程技能的訪談基元。`/handoff` 把當前對話壓成交接文件，讓下一個 agent 不必從零猜；`/teach` 把目錄當成有記憶的教學工作區，跨多輪教一個概念。
+
+碰到一個人答不了的決策，`/to-questionnaire` 先問清楚問卷要寄給誰、要拿回什麼，再產出給對方填的版本。上一句根本沒聽懂時，`/wait-what` 會用缺少的脈絡與專案詞彙重講。最後，`/writing-for-agents` 專門管 skills、`AGENTS.md`、`CLAUDE.md` 這些寫給 agent 讀的文件。
+
+<MoguNote>
+`/grilling` 是整包的隱形主角，`/handoff` 則是長跑的保險。脈絡會滿、agent 會換；沒有把判斷壓成交接文件，每次接棒都只是在重抽一次記憶彩券。
+
+這套目錄最值得抄的不是某個指令，而是它留下的接縫：訪談、規格、測試、審查各自一小塊，哪塊不好就改哪塊。
+</MoguNote>
+
+大流程框架拿走控制權；小 skill 讓工程師能動手修改、改成自己的。完整名稱與最新版本都在 [官方目錄](https://www.aihero.dev/skills)。

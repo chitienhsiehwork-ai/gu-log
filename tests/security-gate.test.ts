@@ -8,13 +8,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import * as sgModule from '../scripts/security-gate.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gusg-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gusg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // security-gate.mjs is plain JS without .d.ts; widen to any.

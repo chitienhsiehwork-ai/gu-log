@@ -22,7 +22,7 @@ gu-log 的文章草稿有三種來源：
    - 適合改現有文章、寫需要複雜元件的文章
 3. **Mogu / MP pipeline 自動產**（VPS 上的 agent）
    - `tools/gp-pipeline/gp-pipeline`、`scripts/mogu-picks-prompt.md`、`scripts/mogu-picks-queue.yaml`
-   - Mogu 看 tweet → 翻譯 → 產 MDX → tribunal → push
+   - Mogu 消化來源 → 寫成自己的 MP → 產 MDX → tribunal → push
 
 **Mental model**：Obsidian 是「輸入端的 ergonomics 層」，不是新的 publishing platform。所有文章最終還是 Astro + Vercel render。這個設計讓 user 可以在 iPhone / Mac 之間隨時寫草稿，回到 Mac 再用 import script 一鍵轉成 repo 標準格式。
 
@@ -157,7 +157,7 @@ import 會自動做：
 
 - ✅ 產生 `src/content/posts/{series}-pending-{date}-{slug}.mdx`
 - ✅ 寫入 `ticketId: "{series}-PENDING"`，不 bump `scripts/article-counter.json`
-- ✅ 把草稿明確提供的 `model` + `harness` 寫進 `translatedBy`；SD/Lv 記為 `Author`，GP/MP 記為 `Translator`
+- ✅ 把草稿明確提供的 `model` + `harness` 寫進 `translatedBy`；GP 記為 `Translator`，MP/SD/Lv 記為 `Author`
 - ✅ Obsidian callout → `<MoguNote>` / `<ShroomDogNote>` 元件
 - ✅ Wikilink → `/posts/...` 連結
 - ✅ 自動加其餘 frontmatter 必填欄位（`lang` 等）

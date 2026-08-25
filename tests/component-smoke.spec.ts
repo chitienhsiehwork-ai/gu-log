@@ -270,6 +270,44 @@ test.describe('Component smoke — storage fallbacks', () => {
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
+  test('reading tracker redirects home when auth storage is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/reading-tracker');
+
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    await expect(page.locator('#tracker-wrap')).toHaveCount(0);
+  });
+
+  test('post read controls stay hidden without crashing when auth storage is unavailable', async ({
+    page,
+  }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader auth storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    await expect(page.locator('article').first()).toBeVisible();
+    await expect(page.locator('[data-read-button]')).toHaveCSS('display', 'none');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
   test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
     page,
   }) => {
@@ -519,6 +557,85 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     });
 
     expect(errors).toEqual([]);
+  });
+
+  test('binds Giscus message traffic to the current comments iframe', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    const status = page.locator('.giscus-status');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('留言載入中');
+
+    const result = await page.evaluate(async () => {
+      const container = document.querySelector('.giscus-container');
+      const status = container?.querySelector<HTMLElement>('.giscus-status');
+      if (!container || !status) throw new Error('Giscus fixture was not rendered');
+
+      const decoyFrame = document.createElement('iframe');
+      decoyFrame.className = 'giscus-frame';
+      decoyFrame.src = 'about:blank';
+      const decoyLoaded = new Promise<void>((resolve) => {
+        decoyFrame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.before(decoyFrame);
+
+      const frame = document.createElement('iframe');
+      frame.className = 'giscus-frame';
+      frame.src = 'about:blank';
+      const loaded = new Promise<void>((resolve) => {
+        frame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.appendChild(frame);
+      await Promise.all([decoyLoaded, loaded]);
+
+      let decoyMessageCount = 0;
+      let currentMessageCount = 0;
+      decoyFrame.contentWindow!.postMessage = () => {
+        decoyMessageCount += 1;
+      };
+      frame.contentWindow!.postMessage = () => {
+        currentMessageCount += 1;
+      };
+
+      status.hidden = false;
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: window,
+        })
+      );
+      const afterWrongSource = status.hidden;
+
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: frame.contentWindow,
+        })
+      );
+
+      return {
+        afterWrongSource,
+        afterCurrentSource: status.hidden,
+        decoyMessageCount,
+        currentMessageCount,
+      };
+    });
+
+    expect(result).toEqual({
+      afterWrongSource: false,
+      afterCurrentSource: true,
+      decoyMessageCount: 0,
+      currentMessageCount: 1,
+    });
+    await expect(status).toBeHidden();
   });
 
   test('read-status consumers ignore malformed global events', async ({ page }) => {

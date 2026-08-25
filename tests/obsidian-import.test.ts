@@ -21,13 +21,13 @@ function writeDraft(
     model,
     harness,
   }: {
-    series: 'SD' | 'GP';
+    series: 'SD' | 'GP' | 'MP';
     model?: string;
     harness?: string;
   }
 ): string {
   const source =
-    series === 'GP'
+    series === 'GP' || series === 'MP'
       ? ['source: "@example on X"', 'sourceUrl: "https://x.com/example/status/1"']
       : [];
   const provenance = [
@@ -110,6 +110,7 @@ describe('obsidian-import provenance', () => {
   it.each([
     { series: 'SD' as const, role: 'Author' },
     { series: 'GP' as const, role: 'Translator' },
+    { series: 'MP' as const, role: 'Author' },
   ])(
     'GIVEN explicit $series provenance WHEN dry-run imports THEN it preserves metadata with the $role role',
     ({ series, role }) => {

@@ -12,7 +12,8 @@ import (
 
 // Refine is pipeline Step 4. It renders the
 // refine.tmpl prompt and runs it with WorkDir set so the LLM can read
-// draft-v1.mdx + review.md from the same directory and write final.mdx.
+// draft-v1.mdx, review.md, and the staged canonical editorial inputs from
+// the same directory before writing final.mdx.
 //
 // When skipped via --from-step, final.mdx is populated by copying from
 // either the existing posts file (when --file is set) or draft-v1.mdx
@@ -27,8 +28,12 @@ func (s *State) Refine(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 4: refine")
+	if err := s.stageEditorialContext(); err != nil {
+		return fmt.Errorf("refine: %w", err)
+	}
 
 	prompt, err := prompts.Render("refine", prompts.RefineData{
+		Prefix:   s.Prefix,
 		TicketID: s.PromptTicketID,
 		Angle:    s.Angle,
 	})

@@ -7,8 +7,8 @@
     const codeBlocks = document.querySelectorAll('pre');
 
     codeBlocks.forEach((pre) => {
-      // Skip if button already exists
-      if (pre.querySelector('.copy-button')) return;
+      // Skip code blocks already wrapped by this initializer.
+      if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
 
       // Create wrapper
       const wrapper = document.createElement('div');
@@ -31,18 +31,24 @@
       `;
 
       // Add click handler
+      let copyResetTimer: ReturnType<typeof setTimeout> | undefined;
+
       button.addEventListener('click', async () => {
         const code = pre.querySelector('code')?.textContent || pre.textContent || '';
 
         try {
           await navigator.clipboard.writeText(code);
+          if (copyResetTimer !== undefined) {
+            clearTimeout(copyResetTimer);
+          }
           button.classList.add('copied');
           const textSpan = button.querySelector('.copy-text');
           if (textSpan) textSpan.textContent = 'Copied!';
 
-          setTimeout(() => {
+          copyResetTimer = setTimeout(() => {
             button.classList.remove('copied');
             if (textSpan) textSpan.textContent = 'Copy';
+            copyResetTimer = undefined;
           }, 2000);
         } catch (err) {
           console.error('Failed to copy:', err);
