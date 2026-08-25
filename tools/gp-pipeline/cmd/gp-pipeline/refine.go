@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -34,8 +36,9 @@ func newRefineCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "refine",
-		Short: "Apply review feedback to a draft and produce final.mdx",
-		Long: `refine is Step 4 of the pipeline. It reads draft-v1.mdx and review.md
+		Short: "Apply non-GP review feedback and produce final.mdx",
+		Long: `refine is the legacy full-draft correction command for non-GP series. GP
+uses bounded patches in the canonical run command. This command reads draft-v1.mdx and review.md
 from the work directory and asks the LLM to produce final.mdx with the
 review's issues fixed. The prompt does NOT embed the draft or review
 contents — the LLM reads them from --work-dir.`,
@@ -56,6 +59,9 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 	start := time.Now()
 	if err := counter.ValidateTicketID(ticketID); err != nil {
 		return err
+	}
+	if strings.HasPrefix(ticketID, "GP-") {
+		return errors.New("refine: GP corrections must be evidence-bounded patches in the canonical pipeline; standalone full-draft refine is forbidden")
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {

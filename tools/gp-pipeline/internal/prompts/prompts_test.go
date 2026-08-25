@@ -98,7 +98,7 @@ func TestRender_Write_WithAngleAndCustomSource(t *testing.T) {
 }
 
 func TestRender_Review(t *testing.T) {
-	out, err := Render("review", ReviewData{TicketID: "MP-278"})
+	out, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -108,8 +108,8 @@ func TestRender_Review(t *testing.T) {
 	if !strings.Contains(out, "MP-278") {
 		t.Errorf("missing ticket id in review prompt")
 	}
-	// All 12 checklist items must survive rendering.
-	for i := 1; i <= 12; i++ {
+	// All MP checklist items must survive rendering without inheriting GP-only items.
+	for i := 1; i <= 11; i++ {
 		needle := "\n" + itoa(i) + "."
 		if !strings.Contains(out, needle) {
 			t.Errorf("checklist item %d missing from review prompt", i)
@@ -118,7 +118,7 @@ func TestRender_Review(t *testing.T) {
 }
 
 func TestRender_Refine(t *testing.T) {
-	out, err := Render("refine", RefineData{TicketID: "GP-170"})
+	out, err := Render("refine", RefineData{Prefix: "GP", TicketID: "GP-170"})
 	if err != nil {
 		t.Fatalf("Render: %v", err)
 	}
@@ -139,6 +139,7 @@ func TestRender_Refine(t *testing.T) {
 
 func TestRender_Refine_WithAngle(t *testing.T) {
 	out, err := Render("refine", RefineData{
+		Prefix:   "GP",
 		TicketID: "GP-PENDING",
 		Angle:    "Focus on Task Flow while introducing the others.",
 	})
@@ -153,6 +154,133 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("missing %q in rendered refine prompt with angle:\n---\n%s\n---", want, out)
 		}
+	}
+}
+
+func TestRender_MPWriteContractAllowsCloseOrFarFormAndRequiresGrounding(t *testing.T) {
+	out, err := Render("write", WriteData{
+		Prefix:         "MP",
+		TicketID:       "MP-PENDING",
+		OriginalDate:   "2026-08-16",
+		TranslatedDate: "2026-08-16",
+		SourceField:    "Source Author",
+		TweetURL:       "https://example.com/source",
+		StyleGuide:     "GUIDE",
+		Source:         "SOURCE",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	for _, want := range []string{
+		"Mogu owns the body voice",
+		"minimum editorial distance",
+		"MAY preserve most source coverage and order",
+		"MAY also omit whole claims",
+		"does not inherit GP's promise",
+		"complete claim closure",
+		"correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
+		"must not attribute those additions to the source author",
+		"Do not transfer the source author's experiments, teams, or life events to Mogu",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences are valid",
+		"Do not fabricate plausible human work, travel, relationship, purchase",
+		"A complete MP needs no MoguNote",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("MP write prompt missing %q", want)
+		}
+	}
+	for _, forbidden := range []string{
+		"Cover ALL of it",
+		"Cover ALL tweets",
+		"Do not fabricate facts, quotes, numbers, causality, citations, or lived experience",
+	} {
+		if strings.Contains(out, forbidden) {
+			t.Errorf("MP write prompt still requires translation completeness via %q", forbidden)
+		}
+	}
+}
+
+func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.T) {
+	review, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
+	if err != nil {
+		t.Fatalf("Render review: %v", err)
+	}
+	refine, err := Render("refine", RefineData{Prefix: "MP", TicketID: "MP-278"})
+	if err != nil {
+		t.Fatalf("Render refine: %v", err)
+	}
+	for _, want := range []string{
+		"may preserve most source coverage/order in a close translation/rewrite",
+		"There is no minimum editorial distance",
+		"do not score closeness or distance itself",
+		"does not inherit GP fidelity promises",
+		"Mogu may synthesize, disagree, extend, or infer in the body",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
+		"do not require, add, or reward one by count",
+	} {
+		if !strings.Contains(review, want) {
+			t.Errorf("MP review prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{
+		"a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid",
+		"rewrite solely because the draft is too close to or too far from the source",
+		"speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
+		"transferred source-author experience",
+		"plausible fabricated human biography/testimony",
+		"editorial/tool interactions that actually happened",
+		"clearly fantastical persona experiences",
+		"Do not add one merely because the article has none",
+	} {
+		if !strings.Contains(refine, want) {
+			t.Errorf("MP refine prompt missing %q", want)
+		}
+	}
+	if strings.Contains(review, "Coverage Completeness") {
+		t.Fatal("MP review prompt still includes translation completeness")
+	}
+	for _, forbidden := range []string{
+		"no hallucinated claims beyond source context",
+		"every number in translation must trace back to source",
+		"source limitations, caveats, and conditions must be preserved",
+		"conclusion must not introduce claims beyond source material",
+		"all commentary goes through MoguNote",
+	} {
+		if strings.Contains(review, forbidden) {
+			t.Errorf("MP review prompt still includes GP-only rule %q", forbidden)
+		}
+	}
+}
+
+func TestRender_GPWriteContractKeepsTranslationCompleteness(t *testing.T) {
+	out, err := Render("write", WriteData{
+		Prefix:         "GP",
+		TicketID:       "GP-PENDING",
+		OriginalDate:   "2026-08-16",
+		TranslatedDate: "2026-08-16",
+		SourceField:    "Source Author",
+		TweetURL:       "https://example.com/source",
+		StyleGuide:     "GUIDE",
+		Source:         "SOURCE",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	for _, want := range []string{
+		"Cover ALL of it",
+		"Cover ALL tweets",
+		"Put Mogu/gu-log opinions",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("GP write prompt lost translation boundary %q", want)
+		}
+	}
+	if strings.Contains(out, "MAY omit whole claims") {
+		t.Fatal("GP write prompt inherited MP selection freedom")
 	}
 }
 
@@ -180,6 +308,87 @@ func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 	}
 	if strings.Contains(out, "structurally valid") {
 		t.Fatal("translate prompt still delegates ambiguous provenance structure to the model")
+	}
+}
+
+func TestRender_VibeGateIsSourceBlind(t *testing.T) {
+	out, err := Render("vibe-gate", PreservationGateData{
+		Version: "v1", SourceSHA256: "source-hash", TranslationSHA256: "translation-hash",
+		BodyProjectionSHA256: "projection-hash", Source: "SECRET_SOURCE_SENTENCE", Translation: "譯文內容",
+	})
+	if err != nil {
+		t.Fatalf("Render: %v", err)
+	}
+	if strings.Contains(out, "SECRET_SOURCE_SENTENCE") {
+		t.Fatal("cold-read vibe prompt leaked the source")
+	}
+	for _, want := range []string{"譯文內容", `"source_quote":""`, "忠實度與 source evidence 由另一位 reviewer 負責", "opaque provenance ID", "只會收到 canonical body", "拿不準就保留"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("vibe prompt missing %q", want)
+		}
+	}
+}
+
+func TestRender_SourceRolesKeepNaturalTranslationBoundary(t *testing.T) {
+	translator, err := Render("source-translate", SourceTranslateData{
+		Version: "v1", SourceSHA256: "hash", Source: "SOURCE",
+		CanonicalTerminology: `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"忠實不是逐字搬運", "productivity ouroboros", "演算法動態", "自然語言 prompt 與 thinking trace", "inline code、code fence 或 blockquote", "資料鍵與不可翻譯的值"} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{"只作裝飾", "改用自然台灣繁中", "GP automated lane", "不支援保留 Unicode emoji 原字形的例外", "一律不把 glyph 寫進", "Kaomoji"} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing emoji boundary %q", want)
+		}
+	}
+	for _, want := range []string{"runtime 提供的 canonical terminology", `"term":"Agent"`, `"forbiddenZhTw":["代理人"]`} {
+		if !strings.Contains(translator, want) {
+			t.Errorf("translator prompt missing terminology context %q", want)
+		}
+	}
+	reviewer, err := Render("source-review", PreservationGateData{Version: "v1", SourceSHA256: "source", TranslationSHA256: "translation", Source: "SOURCE", Translation: "BODY"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Fidelity 看語意，不看字面", "不得要求恢復 natural hard gate", "BODY", "SOURCE", "不要做 byte arithmetic"} {
+		if !strings.Contains(reviewer, want) {
+			t.Errorf("source reviewer prompt missing %q", want)
+		}
+	}
+	for _, want := range []string{"只作裝飾", "自然文字保留", "GP automated lane", "不支援 emoji 原字形例外", "不要要求或推定", "Kaomoji"} {
+		if !strings.Contains(reviewer, want) {
+			t.Errorf("source reviewer prompt missing emoji boundary %q", want)
+		}
+	}
+}
+
+func TestRender_EnglishSidecarDoesNotRestoreUnapprovedEmoji(t *testing.T) {
+	out, err := Render("translate", TranslateData{TicketID: "GP-7", Source: "body"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Do not restore any Unicode emoji glyph", "Omit decorative glyphs", "natural English", "automated GP sidecar lane", "no glyph-retention exception", "Kaomoji"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("English sidecar prompt missing emoji boundary %q", want)
+		}
+	}
+}
+
+func TestRender_CorrectorTreatsSuggestionAsDiagnostic(t *testing.T) {
+	out, err := Render("correct", CorrectData{Version: "v1", Source: "10x me", Translation: "讓我十倍成長", ApprovedFindingsJSON: "[]"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"suggested_replacement 只是指出問題方向", "不是必須照抄", "不改變語氣強弱", "不要加入 source 沒有的強化詞"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("corrector prompt missing %q", want)
+		}
 	}
 }
 

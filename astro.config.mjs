@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 import mdx from '@astrojs/mdx';
 import remarkKaomojiNowrap from './src/plugins/remark-kaomoji-nowrap.mjs';
+import rehypePostLinks from './src/plugins/rehype-post-links.mjs';
 
 // https://astro.build/config
 export default defineConfig({
@@ -10,6 +11,7 @@ export default defineConfig({
   integrations: [sitemap(), mdx()],
   markdown: {
     remarkPlugins: [remarkKaomojiNowrap],
+    rehypePlugins: [rehypePostLinks],
     shikiConfig: {
       themes: {
         light: 'solarized-light',

@@ -41,7 +41,14 @@ func (s *State) Fetch(ctx context.Context) error {
 	candidate := filepath.Join(s.WorkDir, "source-tweet.md")
 	if info, err := os.Stat(candidate); err == nil && info.Size() > 0 {
 		s.Log.Info("  source-tweet.md already present; keeping")
-		s.SourcePath = candidate
+		data, err := os.ReadFile(candidate)
+		if err != nil {
+			return fmt.Errorf("fetch: read existing capture: %w", err)
+		}
+		meta := source.ParseCaptureHeader(data)
+		meta.Path = candidate
+		meta.Bytes = len(data)
+		s.hydrateSourceMetadata(meta)
 		return nil
 	}
 
@@ -57,13 +64,23 @@ func (s *State) Fetch(ctx context.Context) error {
 		}
 		return NewStepError(code, fmt.Errorf("fetch: %w", err))
 	}
+	s.hydrateSourceMetadata(res)
+	s.Log.OK("Step 1: captured %d bytes from %s via %s", res.Bytes, res.Handle, res.FetchedVia)
+	return nil
+}
+
+func (s *State) hydrateSourceMetadata(res *source.FetchResult) {
 	s.SourcePath = res.Path
 	// The handle comes back as "@foo" from parseCaptureHeader; drop the @.
 	if len(res.Handle) > 1 && res.Handle[0] == '@' {
 		s.AuthorHandle = res.Handle[1:]
+	} else {
+		s.AuthorHandle = res.Handle
 	}
-	s.OriginalDate = res.Date
+	// Existing-post rewrites hydrate the durable publication date before a
+	// fresh fetch. Best-effort capture metadata must not overwrite it.
+	if s.OriginalDate == "" {
+		s.OriginalDate = res.Date
+	}
 	s.SourceIsX = res.IsX
-	s.Log.OK("Step 1: captured %d bytes from %s via %s", res.Bytes, res.Handle, res.FetchedVia)
-	return nil
 }

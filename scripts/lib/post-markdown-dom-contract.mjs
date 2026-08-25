@@ -410,17 +410,12 @@ const quizOption = node('button', ['quiz-option'], {
 
 const correctResult = node('div', ['result-correct'], {
   attributes: attrs({ hidden: true }),
-  children: [
-    child(node('span', ['result-icon'])),
-    child(plainStrong),
-    child(node('p', ['result-explanation'])),
-  ],
+  children: [child(plainStrong), child(node('p', ['result-explanation']))],
 });
 
 const wrongResult = node('div', ['result-wrong'], {
   attributes: attrs({ hidden: true }),
   children: [
-    child(node('span', ['result-icon'])),
     child(plainStrong),
     child(
       node('p', ['result-answer'], {
@@ -441,7 +436,7 @@ const quizRoot = node('div', ['levelup-quiz'], {
   children: [
     child(
       node('div', ['quiz-header'], {
-        children: [child(node('span', ['quiz-icon'])), child(node('span', ['quiz-label']))],
+        children: [child(node('span', ['quiz-label']))],
       })
     ),
     child(node('p', ['quiz-question'])),
@@ -494,7 +489,12 @@ const mermaidRoot = node('div', ['mermaid-wrapper'], {
     optional(node('p', ['mermaid-caption'])),
     child(
       node('button', ['mermaid-expand-btn'], {
-        attributes: attrs({ ariaLabel: NON_EMPTY, title: NON_EMPTY }),
+        attributes: attrs({
+          type: 'button',
+          ariaLabel: NON_EMPTY,
+          ariaHasPopup: 'dialog',
+          title: NON_EMPTY,
+        }),
         children: [
           child(
             node('svg', [], {
@@ -669,6 +669,42 @@ const postImageRoot = node('figure', ['post-image'], {
   },
 });
 
+const postVideoRoot = node('figure', ['post-video'], {
+  attributes: attrs({
+    dataPostVideo: '',
+    dataMarkdownAdapter: 'post-video',
+  }),
+  children: [
+    child(
+      node('video', [], {
+        attributes: attrs({
+          controls: true,
+          loop: true,
+          playsInline: true,
+          preload: 'none',
+          poster: NON_EMPTY,
+          width: NUMBER,
+          height: NUMBER,
+          ariaLabel: NON_EMPTY,
+        }),
+        children: [
+          child(
+            node('source', [], {
+              attributes: attrs({ src: NON_EMPTY, type: 'video/mp4' }),
+            })
+          ),
+          child(
+            node('a', [], {
+              attributes: attrs({ href: NON_EMPTY }),
+              text: 'any',
+            })
+          ),
+        ],
+      })
+    ),
+  ],
+});
+
 function diffPanel(kind) {
   return node('div', ['diff-panel', `diff-${kind}`], {
     children: [
@@ -738,6 +774,7 @@ const ADAPTER_CONTRACTS = Object.freeze({
   'analogy-box': analogyRoot,
   mermaid: mermaidRoot,
   'post-image': postImageRoot,
+  'post-video': postVideoRoot,
   'diff-block': diffRoot,
   'codex-learning-map': learningMapRoot,
 });

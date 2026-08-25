@@ -100,6 +100,12 @@ func TestHostname(t *testing.T) {
 	}
 }
 
+func TestParsePublishedDateRejectsImpossibleDates(t *testing.T) {
+	if got := parsePublishedDate("Published: 2026-99-99\n"); got != "" {
+		t.Fatalf("parsePublishedDate accepted impossible date %q", got)
+	}
+}
+
 func TestFetchGeneric_UsesCurlWhenFetchArticleScriptEmpty(t *testing.T) {
 	tmp := t.TempDir()
 	binDir := filepath.Join(tmp, "bin")
@@ -144,6 +150,7 @@ func TestFetchGeneric_UsesFetchArticleScriptWhenValid(t *testing.T) {
 	writeExecutable(t, filepath.Join(binDir, "python3"), `#!/usr/bin/env bash
 cat <<'TEXT'
 Python Article
+Published: 2026-08-16
 This cleaned article text came from the Python extractor and is already readable.
 It has enough paragraphs to satisfy the article validator without HTML cleanup.
 The exact body should be preserved because the extractor did the cleanup upstream.
@@ -177,6 +184,12 @@ exit 9
 	}
 	if !strings.Contains(got, "Python Article") {
 		t.Fatalf("capture missing python body:\n%s", got)
+	}
+	if res.Date != "2026-08-16" {
+		t.Fatalf("Date = %q, want source publication date", res.Date)
+	}
+	if !strings.HasPrefix(got, "@example.com — 2026-08-16\n") {
+		t.Fatalf("capture header did not use source publication date:\n%s", got)
 	}
 }
 

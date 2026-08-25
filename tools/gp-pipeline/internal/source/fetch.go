@@ -66,7 +66,7 @@ var nonCanonicalIPv4Re = regexp.MustCompile(
 // through FetchX (fxtwitter quality). Allowlisted YouTube hosts always go
 // through FetchYouTube and fail closed; they never fall back to generic HTML,
 // because the resulting page is only a JavaScript shell. Everything else goes
-// through FetchGeneric (curl + minimal HTML cleanup).
+// through FetchGeneric (readability extraction with curl cleanup fallback).
 func Fetch(ctx context.Context, url string, opts FetchOptions) (*FetchResult, error) {
 	if xURLRe.MatchString(url) {
 		return FetchX(ctx, url, opts)
@@ -113,18 +113,18 @@ func FetchX(ctx context.Context, url string, opts FetchOptions) (*FetchResult, e
 		return nil, fmt.Errorf("fetchx: writing capture to %s: %w", outPath, err)
 	}
 
-	parsed := parseCaptureHeader(res.Stdout)
+	parsed := ParseCaptureHeader(res.Stdout)
 	parsed.Path = outPath
 	parsed.Bytes = len(res.Stdout)
 	parsed.IsX = true
 	return parsed, nil
 }
 
-// FetchGeneric fetches an arbitrary http(s) URL via curl and writes the
-// result to WorkDir/source-tweet.md with a header compatible with the rest
-// of the pipeline. HTML pages pass through a minimal cleanup (drop script /
-// style / comments, decode entities, collapse whitespace) so the LLM gets
-// readable prose instead of a raw SSR dump.
+// FetchGeneric fetches an arbitrary http(s) URL and writes the result to
+// WorkDir/source-tweet.md with a header compatible with the rest of the
+// pipeline. It prefers the configured readability extractor; when that is
+// unavailable or invalid, curl HTML passes through minimal cleanup (drop
+// script / style / comments, decode entities, collapse whitespace).
 //
 // This is the default fallback when a URL doesn't match the X-specific
 // fetcher. Validation uses ValidateArticleCapture, the looser validator
@@ -150,6 +150,9 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 			if res, runErr := runner.Run(ctx, "python3", opts.FetchArticleScript, urlStr); runErr == nil {
 				body := strings.TrimSpace(string(res.Stdout))
 				if body != "" {
+					if publishedDate := parsePublishedDate(body); publishedDate != "" {
+						date = publishedDate
+					}
 					header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: fetch-article.py\n\n", host, date, urlStr)
 					payload := []byte(header + body + "\n")
 					if verr := ValidateArticleCapture(payload); verr == nil {
@@ -197,6 +200,19 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		Bytes:      len(payload),
 		IsX:        false,
 	}, nil
+}
+
+var publishedDateRe = regexp.MustCompile(`(?m)^Published:\s*(\d{4}-\d{2}-\d{2})\s*$`)
+
+func parsePublishedDate(capture string) string {
+	match := publishedDateRe.FindStringSubmatch(capture)
+	if len(match) == 2 {
+		if _, err := time.Parse("2006-01-02", match[1]); err != nil {
+			return ""
+		}
+		return match[1]
+	}
+	return ""
 }
 
 // validateSafeHTTPURL rejects non-http(s) schemes, malformed URLs, and
@@ -282,7 +298,7 @@ func hasHTMLMarkers(in []byte) bool {
 	return strings.Contains(s, "</") || strings.Contains(strings.ToLower(s), "<!doctype")
 }
 
-// parseCaptureHeader pulls @handle, date, and "Fetched via" out of the
+// ParseCaptureHeader pulls @handle, date, source type, and "Fetched via" out of the
 // first few lines of a fetch-x-article.sh capture.
 //
 // Expected first three lines:
@@ -293,12 +309,13 @@ func hasHTMLMarkers(in []byte) bool {
 //
 // Any missing field is left as empty string. We never fail here — the
 // validator already ran.
-func parseCaptureHeader(content []byte) *FetchResult {
+func ParseCaptureHeader(content []byte) *FetchResult {
 	out := &FetchResult{}
 	lines := strings.SplitN(string(content), "\n", 5)
 
 	handleDateRe := regexp.MustCompile(`^(@[A-Za-z0-9_]+)\s*[—\-]?\s*(\d{4}-\d{2}-\d{2})?`)
 	fetchedViaRe := regexp.MustCompile(`^Fetched via:\s*(\S+)`)
+	sourceURLRe := regexp.MustCompile(`^Source URL:\s*(\S+)`)
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
@@ -315,6 +332,9 @@ func parseCaptureHeader(content []byte) *FetchResult {
 		if m := fetchedViaRe.FindStringSubmatch(trimmed); m != nil && out.FetchedVia == "" {
 			out.FetchedVia = m[1]
 			continue
+		}
+		if m := sourceURLRe.FindStringSubmatch(trimmed); m != nil {
+			out.IsX = xURLRe.MatchString(m[1])
 		}
 	}
 	return out

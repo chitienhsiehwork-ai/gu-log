@@ -7,6 +7,12 @@ const zhTwItem = {
   title: '範例文章',
   lang: 'zh-tw',
 };
+const secondZhTwItem = {
+  slug: 'gp-2-second-example',
+  ticketId: 'GP-2',
+  title: '第二篇範例文章',
+  lang: 'zh-tw',
+};
 const enItem = {
   slug: 'en-gp-1-example',
   ticketId: 'GP-1',
@@ -119,6 +125,35 @@ describe('generated public artifact contracts', () => {
 
     expect(validateArtifactContracts(artifacts)).toContain(
       'search-index.json must contain at least one lang=en entry'
+    );
+  });
+
+  it('requires localized index membership to match the combined index', () => {
+    const artifacts = validArtifacts();
+    artifacts.searchIndexes = artifacts.searchIndexes.map((index) =>
+      index.name === 'search-index.json'
+        ? { ...index, content: JSON.stringify([zhTwItem, secondZhTwItem, enItem]) }
+        : index
+    );
+
+    expect(validateArtifactContracts(artifacts)).toContain(
+      'search-index.zh-tw.json membership must match search-index.json lang=zh-tw'
+    );
+  });
+
+  it('rejects duplicate language and slug identities', () => {
+    const artifacts = validArtifacts();
+    artifacts.searchIndexes = artifacts.searchIndexes.map((index) =>
+      index.name === 'search-index.json'
+        ? {
+            ...index,
+            content: JSON.stringify([zhTwItem, { ...zhTwItem, title: '重複的範例文章' }, enItem]),
+          }
+        : index
+    );
+
+    expect(validateArtifactContracts(artifacts)).toContain(
+      'search-index.json contains duplicate identity lang=zh-tw slug=gp-1-example'
     );
   });
 

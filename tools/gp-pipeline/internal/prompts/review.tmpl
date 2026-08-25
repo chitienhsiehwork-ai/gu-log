@@ -1,26 +1,38 @@
 Review draft-v1.mdx for {{.TicketID}}.
 
+Before reviewing, read the staged canonical inputs in the current directory:
+- `openspec/specs/editorial-charter/spec.md`
+- `CONTRIBUTING.md`
+- `GU-LOG_WRITER_PROMPT.md`
+- `docs/shroomdog-editorial-feedback.md`
+- `scripts/vibe-scoring-standard.md`
+
 Checklist:
-1. Fact-check: no hallucinated claims beyond source context.
+1. Fact-check: no fabricated or unsupported factual claims.
 2. Style alignment: matches GU-LOG_WRITER_PROMPT.md requirements.
 3. ShroomDog feedback alignment: apply relevant lessons from docs/shroomdog-editorial-feedback.md.
 4. Frontmatter accuracy: ticketId/source/sourceUrl/dates/tags format.
-5. MoguNote usage and kaomoji requirements.
+5. {{if eq .Prefix "MP"}}MoguNote is optional: review any notes that exist, but do not require, add, or reward one by count.{{else}}MoguNote usage and kaomoji requirements.{{end}}
 6. Clear actionable fixes.
-7. Certainty Preservation: source hedging language (seems, might, I think) must not be upgraded to definitive statements.
-8. Number Integrity: every number in translation must trace back to source. No invented statistics/revenue/percentages.
-9. Constraint Coverage: source limitations, caveats, and conditions must be preserved.
-10. Ending Fidelity: conclusion must not introduce claims beyond source material.
-11. Summary length: must be ≤300 characters.
+7. Summary length: must be ≤300 characters.
+{{if eq .Prefix "MP"}}8. Editorial Distance: MP may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit, reorder, and rebuild freely. There is no minimum editorial distance: do not score closeness or distance itself. Do not score translation completeness, require a recap, or force structural change merely to differ from GP. Close form remains Mogu-owned and does not inherit GP fidelity promises.
+9. Claim Closure: for every retained source-derived claim, preserve the correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level.
+10. Attribution and Grounding: distinguish source claims from Mogu's analysis; reject fabricated facts, quotes, numbers, causality, citations, transferred source-author experience, ShroomDog impersonation, and plausible fabricated human biography/testimony. Every retained source number must remain within its source conditions; new factual premises and numbers need traceable evidence.
+11. Mogu Voice: Mogu may synthesize, disagree, extend, or infer in the body. A conclusion may go beyond the source author's thesis when its premises are grounded and the conclusion is clearly Mogu's. Do not move Mogu's core analysis into MoguNote merely because it is editorial commentary. In MoguNote, allow first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences; do not treat those categories as fabricated human biography.
+{{else}}8. Certainty Preservation: source hedging language (seems, might, I think) must not be upgraded to definitive statements.
+9. Number Integrity: every number in translation must trace back to source. No invented statistics/revenue/percentages.
+10. Constraint Coverage: source limitations, caveats, and conditions must be preserved.
+11. Ending Fidelity: conclusion must not introduce claims beyond source material.
 12. Coverage Completeness: no key source claim/example/caveat is omitted.
 13. Attribution Preservation: speculative opinions remain explicitly attributed to source author.
 14. Terminology Checkpoint: flag awkward literal calques in zh-tw (e.g. research-paper Chinese). For canonical industry terms, recommend keeping the English term + glossary link; for ordinary words, recommend natural zh-tw. Treat unclear long-term vocabulary choices as terminology decisions, not mere wording nits.
 15. Source Boundary: GP body must not use「原作者說」「原文提到」「這篇文章在講」style source-meta scaffolding. The page already shows `原文出處：`; rewrite body claims directly and keep evidence boundaries smooth.
 16. Commentary Separation: Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary must live in `<MoguNote>`, not GP body prose.
+{{end}}
 
 Severity: label each issue Blocker/Major/Minor.
 Patch: each issue must include exact source quote + proposed replacement text.
 
 Output requirements:
 - Write the full review to review.md in the current directory.
-- Focus on actionable fixes. No need to write agent notes JSON — all commentary goes through MoguNote in the article itself.
+- Focus on actionable fixes. No need to write agent notes JSON. {{if eq .Prefix "MP"}}Keep Mogu's core analysis in the body; MoguNote remains an optional aside.{{else}}All gu-log commentary goes through MoguNote in the article itself.{{end}}

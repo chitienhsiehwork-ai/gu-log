@@ -1,4 +1,5 @@
 import { test, expect } from './fixtures';
+import type { Page } from '@playwright/test';
 
 /**
  * Search Edge Cases
@@ -8,6 +9,16 @@ import { test, expect } from './fixtures';
  */
 
 const BASE = '/';
+
+async function waitForSearchReady(page: Page) {
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-search-modal]')
+        .evaluate((searchModal) => searchModal.parentElement === document.body)
+    )
+    .toBe(true);
+}
 
 test.describe('Search - Keyboard Navigation', () => {
   test('GIVEN Cmd+K shortcut WHEN pressed THEN opens search modal', async ({ page }) => {
@@ -35,6 +46,44 @@ test.describe('Search - Keyboard Navigation', () => {
     await page.keyboard.press('Escape');
 
     await expect(modal).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  test('GIVEN the delayed focus is pending WHEN search closes THEN focus stays on the trigger', async ({
+    page,
+  }) => {
+    await page.goto(BASE);
+    await waitForSearchReady(page);
+    await page.evaluate(() => {
+      const originalSetTimeout = window.setTimeout;
+      const testWindow = window as typeof window & {
+        __releaseSearchFocusTimer?: () => void;
+      };
+      window.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
+        if (timeout === 50 && typeof handler === 'function') {
+          testWindow.__releaseSearchFocusTimer = () => handler(...args);
+          return 1;
+        }
+        return originalSetTimeout(handler, timeout, ...args);
+      }) as typeof window.setTimeout;
+    });
+
+    const trigger = page.locator('[data-search-trigger]');
+    const modal = page.locator('[data-search-modal]');
+    await trigger.click();
+    await expect(modal).toHaveAttribute('aria-hidden', 'false');
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveAttribute('aria-hidden', 'true');
+    await page.evaluate(() => {
+      const release = (
+        window as typeof window & {
+          __releaseSearchFocusTimer?: () => void;
+        }
+      ).__releaseSearchFocusTimer;
+      if (!release) throw new Error('search focus timer was not captured');
+      release();
+    });
+
+    await expect(trigger).toBeFocused();
   });
 
   test('GIVEN search results WHEN pressing ArrowDown THEN highlights next result', async ({
@@ -131,6 +180,191 @@ test.describe('Search - Edge Cases', () => {
     });
   }
 
+  test('GIVEN a controlled same-number fixture WHEN searching a bare number THEN the UI renders the exact ticket tier first', async ({
+    page,
+  }) => {
+    const shared = {
+      summary: 'Controlled browser fixture',
+      tags: [],
+      lang: 'zh-tw',
+      date: '2026-08-08',
+      source: 'Fixture',
+      sourceUrl: 'https://example.com/source',
+    };
+    const fixture = [
+      { ...shared, slug: 'mp-250', ticketId: 'MP-250', title: 'MP exact ticket' },
+      {
+        ...shared,
+        slug: 'title-only',
+        ticketId: 'GP-999',
+        title: '250 appears only in this title',
+      },
+      { ...shared, slug: 'gp-250', ticketId: 'GP-250', title: 'GP exact ticket' },
+    ];
+    await page.route('**/search-index.zh-tw.json', (route) =>
+      route.fulfill({ contentType: 'application/json', json: fixture })
+    );
+    await page.goto(BASE);
+    await page.click('[data-search-trigger]');
+    await page.locator('[data-search-input]').fill('250');
+
+    const resultTickets = page.locator('.search-result-ticket');
+    await expect(resultTickets).toHaveText(['GP-250', 'MP-250', 'GP-999']);
+    await expect(page.locator('.search-result-title')).toHaveText([
+      'GP exact ticket',
+      'MP exact ticket',
+      '250 appears only in this title',
+    ]);
+  });
+
+  test('GIVEN a pending index request WHEN the query is cleared before it fails THEN the empty search stays empty', async ({
+    page,
+  }) => {
+    let markIndexStarted!: () => void;
+    let releaseIndex!: () => void;
+    const indexStarted = new Promise<void>((resolve) => {
+      markIndexStarted = resolve;
+    });
+    const indexRelease = new Promise<void>((resolve) => {
+      releaseIndex = resolve;
+    });
+
+    await page.route('**/search-index.zh-tw.json', async (route) => {
+      markIndexStarted();
+      await indexRelease;
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: '{}',
+      });
+    });
+    await page.goto(BASE);
+    await waitForSearchReady(page);
+    await page.evaluate(() => {
+      const results = document.querySelector<HTMLElement>('[data-search-results]');
+      if (!results) throw new Error('search results container missing');
+      results.dataset.sawUnavailable = 'false';
+      new MutationObserver(() => {
+        const message = results.querySelector('.search-no-results')?.textContent;
+        if (message === '搜尋目前無法使用，請再試一次') {
+          results.dataset.sawUnavailable = 'true';
+        }
+      }).observe(results, { childList: true, subtree: true });
+    });
+
+    await page.click('[data-search-trigger]');
+    const input = page.locator('[data-search-input]');
+    await input.fill('Claude');
+    await indexStarted;
+    await input.fill('');
+
+    const failedResponse = page.waitForResponse(
+      (response) => response.url().endsWith('/search-index.zh-tw.json') && response.status() === 500
+    );
+    releaseIndex();
+    const response = await failedResponse;
+    await response.finished();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
+
+    await expect(input).toHaveValue('');
+    await expect(page.locator('[data-search-results]')).toHaveAttribute(
+      'data-saw-unavailable',
+      'false'
+    );
+    await expect(page.locator('[data-search-results]')).toBeEmpty();
+  });
+
+  test('GIVEN a pending index request WHEN search closes and reopens before it fails THEN the late failure does not replace fresh results', async ({
+    page,
+  }) => {
+    let markIndexStarted!: () => void;
+    let releaseIndex!: () => void;
+    let indexRequests = 0;
+    const indexStarted = new Promise<void>((resolve) => {
+      markIndexStarted = resolve;
+    });
+    const indexRelease = new Promise<void>((resolve) => {
+      releaseIndex = resolve;
+    });
+
+    await page.route('**/search-index.zh-tw.json', async (route) => {
+      indexRequests += 1;
+      if (indexRequests === 1) {
+        markIndexStarted();
+        await indexRelease;
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: '{}',
+        });
+        return;
+      }
+      await route.continue();
+    });
+    await page.goto(BASE);
+    await waitForSearchReady(page);
+    await page.evaluate(() => {
+      const results = document.querySelector<HTMLElement>('[data-search-results]');
+      if (!results) throw new Error('search results container missing');
+      results.dataset.sawUnavailable = 'false';
+      new MutationObserver(() => {
+        const message = results.querySelector('.search-no-results')?.textContent;
+        if (message === '搜尋目前無法使用，請再試一次') {
+          results.dataset.sawUnavailable = 'true';
+        }
+      }).observe(results, { childList: true, subtree: true });
+    });
+
+    await page.click('[data-search-trigger]');
+    await expect(page.locator('[data-search-modal]')).toHaveAttribute('aria-hidden', 'false');
+    await page.locator('[data-search-input]').fill('Claude');
+    await indexStarted;
+    await page.keyboard.press('Escape');
+    await expect(page.locator('[data-search-modal]')).toHaveAttribute('aria-hidden', 'true');
+
+    await page.click('[data-search-trigger]');
+    await expect(page.locator('[data-search-modal]')).toHaveAttribute('aria-hidden', 'false');
+    await expect(page.locator('[data-search-input]')).toHaveValue('');
+    await page.locator('[data-search-input]').fill('AI');
+    await expect.poll(() => indexRequests).toBe(2);
+    await expect(page.locator('.search-result-item').first()).toBeVisible();
+
+    const failedResponse = page.waitForResponse(
+      (response) => response.url().endsWith('/search-index.zh-tw.json') && response.status() === 500
+    );
+    releaseIndex();
+    const staleResponse = await failedResponse;
+    await staleResponse.finished();
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
+
+    await expect(page.locator('[data-search-results]')).toHaveAttribute(
+      'data-saw-unavailable',
+      'false'
+    );
+    await expect(page.locator('.search-no-results')).toHaveCount(0);
+    await expect(page.locator('.search-result-item').first()).toBeVisible();
+    await expect(page.locator('[data-search-input]')).toHaveValue('AI');
+
+    await page.locator('[data-search-input]').fill('AI ');
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+        })
+    );
+    expect(indexRequests).toBe(2);
+  });
+
   test('GIVEN empty search input WHEN no text entered THEN no results shown', async ({ page }) => {
     await page.goto(BASE);
     await page.click('[data-search-trigger]');
@@ -153,6 +387,58 @@ test.describe('Search - Edge Cases', () => {
 
     // Wait for debounce and search
     await expect(page.locator('.search-no-results')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('GIVEN rapid typing during the initial index fetch WHEN it resolves THEN runs one debounced search', async ({
+    page,
+  }) => {
+    let markIndexStarted!: () => void;
+    let releaseIndex!: () => void;
+    const indexStarted = new Promise<void>((resolve) => {
+      markIndexStarted = resolve;
+    });
+    const indexRelease = new Promise<void>((resolve) => {
+      releaseIndex = resolve;
+    });
+
+    await page.route('**/search-index.zh-tw.json', async (route) => {
+      markIndexStarted();
+      await indexRelease;
+      await route.continue();
+    });
+    await page.goto(BASE);
+    await page.click('[data-search-trigger]');
+    await page.waitForSelector('[data-search-modal][aria-hidden="false"]');
+
+    await page.evaluate(() => {
+      const results = document.querySelector<HTMLElement>('[data-search-results]');
+      if (!results) throw new Error('search results container missing');
+      results.dataset.resultRenderCount = '0';
+      new MutationObserver(() => {
+        if (!results.querySelector('.search-result-item')) return;
+        results.dataset.resultRenderCount = String(
+          Number(results.dataset.resultRenderCount ?? '0') + 1
+        );
+      }).observe(results, { childList: true });
+    });
+
+    const input = page.locator('[data-search-input]');
+    await input.fill('A');
+    await indexStarted;
+    await input.fill('AI');
+    await input.fill('AI ');
+    await input.fill('AI');
+
+    const indexResponse = page.waitForResponse('**/search-index.zh-tw.json');
+    releaseIndex();
+    await indexResponse;
+    await expect(page.locator('.search-result-item').first()).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await expect(page.locator('[data-search-results]')).toHaveAttribute(
+      'data-result-render-count',
+      '1'
+    );
   });
 
   test('GIVEN ticket ID search WHEN entering GP- THEN matches partial ticket IDs', async ({

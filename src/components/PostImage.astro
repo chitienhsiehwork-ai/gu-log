@@ -248,6 +248,10 @@ const closeLabel = isEnglish ? 'Close enlarged image' : '關閉放大圖片';
       opener.addEventListener('click', openDialog);
       closeButton.addEventListener('click', closeDialog);
       dialog.addEventListener('keydown', (event) => {
+        if (event.key === 'Tab') {
+          event.preventDefault();
+          closeButton.focus({ preventScroll: true });
+        }
         if (event.key === 'Escape') closeDialog();
       });
       dialog.addEventListener('click', (event) => {

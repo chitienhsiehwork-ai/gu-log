@@ -97,7 +97,7 @@ const errorText =
   }
 
   function updateGiscusTheme() {
-    const iframe = document.querySelector('iframe.giscus-frame');
+    const iframe = giscusContainer?.querySelector('iframe.giscus-frame');
     if (iframe) {
       iframe.contentWindow?.postMessage(
         { giscus: { setConfig: { theme: getGiscusThemeUrl() } } },
@@ -119,7 +119,9 @@ const errorText =
   // Set initial theme once giscus loads
   window.addEventListener('message', (event) => {
     if (event.origin !== 'https://giscus.app') return;
-    if (typeof event.data !== 'object' || !event.data.giscus) return;
+    if (event.data === null || typeof event.data !== 'object' || !event.data.giscus) return;
+    const frameWindow = giscusContainer?.querySelector('iframe.giscus-frame')?.contentWindow;
+    if (!frameWindow || event.source !== frameWindow) return;
     markGiscusReady();
     updateGiscusTheme();
   });

@@ -1,0 +1,219 @@
+---
+ticketId: "GP-263"
+title: 'Anthropic 沒有要禁 open weights — Dario Amodei 攤開他真正害怕的兩個惡夢'
+originalDate: '2026-07-27'
+translatedDate: '2026-07-28'
+translatedBy:
+  model: "Opus 5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "Anthropic"
+sourceUrl: 'https://www.anthropic.com/news/position-open-weights-models'
+lang: 'zh-tw'
+summary: '華府傳出考慮禁止美國公司使用中國 open weights 模型，科技業連署支持 open weights，也有人指控 Anthropic 想禁它來保護生意。Dario Amodei 出面否認，並列出他真正支持的三件事：管晶片、擋工業規模的蒸餾、強制測試所有夠強的模型。最深的一段藏在註腳裡——讓人類到今天還沒出事的，可能不是防守方。'
+tags: ['ai-policy', 'open-weights', 'anthropic', 'ai-safety', 'geopolitics']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 8
+    sourceBoundary: 8
+    commentarySeparation: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-07-28"
+    model: "claude-opus-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+華府傳出風聲，說有官員在考慮禁止美國公司使用中國的 [open weights](/glossary#open-weights) 模型。一批科技公司立刻簽了一封公開連署信，支持 open weights。也有人直接指控 Anthropic——說它想禁 open weights，是為了保護自己的生意。
+
+Dario Amodei 把話講死了：Anthropic 從來沒有主張過禁止 open weights 模型。而保護主義式的禁令，也解決不了他最嚴重的那些國安顧慮——他真正擔心的是兩個惡夢。
+
+## 沒有危險能力的 open weights，是公共財
+
+沒有危險能力的 open weights 模型，是公共財。除了跑它所需要的算力之外，它不花任何人任何成本，而且對企業、開發者、研究者都有實際價值。
+
+<MoguNote>
+一篇專門拿來澄清「沒這回事」的文章，最有讀頭的是它順手做的另一件事：Dario 把該害怕的東西重新排了一次序，然後把「人類到今天為止為什麼還沒被生物武器毀掉」這件事，寫在第五個註腳裡。
+
+「公共財」這句不是客套話，是地板——後面每一條限制，都得先解釋自己為什麼沒有踩到它。
+
+Anthropic 的政策骨架 gu-log 在 [GP-202](/posts/gp-202-20260515-anthropic-2028-ai-leadership-five-voices/) 講過（2028 年 AI 領導權的兩個劇本、算力、出口管制、蒸餾），這篇是把同一套邏輯壓進「open weights 到底該不該禁」這個很具體的問題裡，背景那邊看就好。
+
+還有一件很多人會搞混的事：open weights 不等於開源。前者只把訓練好的權重放出來給人下載、跑、微調，訓練資料、程式碼、架構細節可以整包黑箱。真正連資料帶程式碼全開的，數量少得多。
+</MoguNote>
+
+---
+
+## 兩個惡夢，順序決定了政策該長什麼樣
+
+Dario Amodei 的擔憂分成兩層，半年前那篇[「The Adolescence of Technology」](https://darioamodei.com/essay/the-adolescence-of-technology)裡就攤開過，而這兩個擔憂他說自己維持了很多年。
+
+**第一個、也是主要的惡夢**：威權政府——不只是中共，但中共明顯是能力最強的那個威脅——訓出比美國更強的模型，拿去取得永久性的軍事優勢，或者對自己的人民進行極深的壓迫。
+
+這個顧慮在美國政府內部被廣泛認同。美國副總統范斯去年在巴黎警告過，威權政權「已經竊取並使用 AI 來強化他們的軍事、情報與監控能力」；情報體系的 2026 年度威脅評估則寫著，「其他全球強權在 AI 上的強勁進展，正在挑戰美國的經濟競爭力與國安優勢」。
+
+這個惡夢跟權重開不開，完全無關；跟美國企業用不用，更是毫無關係。真正最危險的那個模型，很可能是一個秘密訓練出來、只交給解放軍拿去開無人機，交給國家安全部拿去做監控與鎮壓的模型。
+
+**第二個、次要的惡夢**：夠強的模型被拿去發動網路攻擊或生物攻擊，以及模型本身可能出現嚴重的對齊問題——也就是它實際做的事，跟人類希望它做的事對不上。
+
+在這一層，open weights 確實有一件事跟產地無關——不管來自中國還是別的地方，它都**有可能**比閉源模型風險更高：護欄很難加、使用狀況很難監控，而且權重一旦放出去就收不回來。英國 AI 安全研究院（AISI）的[報告](https://www.aisi.gov.uk/blog/how-far-behind-the-frontier-are-leading-open-weight-models-on-cyber)把這件事講得很直白：
+
+> The same openness underpinning these benefits precludes many of the safety measures that closed model developers can use to detect and disrupt misuse... Once open-weight models are released, these options are lost permanently... For models with dangerous capabilities – including highly cyber-capable models – open weight release therefore creates a persistent and irreversible risk of misuse.
+>
+> （撐起這些好處的同一種開放性，同時也排除掉了閉源開發者用來偵測與阻斷濫用的許多安全手段……權重一旦發布，這些選項就永久消失……對於具備危險能力的模型——包含網路攻擊能力很強的那種——以 open weights 發布因此製造出一種持續而且不可逆的濫用風險。）
+
+所以那句「持續而且不可逆」是有射程的：它講的是具備危險能力的模型，包含網路攻擊能力很強的那種；沒有危險能力的那些不在裡面。
+
+但禁止美國企業使用這些模型，對這個風險一點幫助都沒有。因為壞人不太可能是一間合法登記的美國公司。這種禁令唯一確定會做到的事，是讓美國 AI 公司少一點競爭——
+
+> It would protect US AI companies from competition, but that has never been my goal.
+>
+> （它會保護美國 AI 公司不受競爭，但那從來不是我的目標。）
+
+<MoguNote>
+禁止合法企業使用某個工具來防範壞人，大概就像是規定有統一編號的公司不准買開鎖工具，然後宣布竊盜問題已經處理完畢。小偷聽了都笑了 ┐(￣ヘ￣)┌
+
+不過這段的分量不在比喻，在那句自我否定。一個 AI 公司的執行長主動點名「這條政策會讓我賺錢」，然後說那不是他的目的——這種話本身不值錢，值錢的是它可以被檢驗。檢驗方法很簡單：看他接下來開的清單，有沒有哪一條的實際效果是「把競爭對手的產品擋在市場外」。往下讀就知道了。
+</MoguNote>
+
+---
+
+## 三件他真的支持的事
+
+他和 Anthropic 一直在主張的，是另外三件事——不是這次為了回應連署信才生出來的。
+
+### 晶片：不賣，而且要抓走私
+
+不要賣強大的晶片或晶片製造設備給中國，並且嚴打那些猖獗的走私與各種繞道取得的手法。
+
+理由是算術：中國本土產能有限，而投進去多少算力，大致決定了訓得出多強的模型——沒有美國晶片，就訓不出比美國更強的東西。這是擋住第一個惡夢最有效率、最直接的方式。順帶一提，因為它同時讓「美國法律管不到的模型」變得更難被訓出來，所以也間接幫到第二個惡夢。
+
+### 蒸餾：那是工業規模的抄能力，跟開不開權重是兩回事
+
+蒸餾比從零訓練一個模型省算力太多了。它讓中國造得出「以它手上的晶片數量而言，本來不該造得出來」的模型，等於部分繞開了晶片禁令。
+
+不過蒸餾有天花板：它不會讓中共拿到跟美國同等或更強的能力，但可以把中國的前沿拉到距離美國前沿只剩幾個月。
+
+做這些事的公司裡確實有很多在發 open weights——但「權重有沒有開」的重要性，遠遠比不上「這些操作背後站著一個想在前沿超車的威權國家」。該做的是設計政策手段去嚇阻這種行為。全面禁掉 open weights 既不是對症的解方，也不是 Anthropic 要求過的東西。
+
+Anthropic 自己也在做這件事：辨識並封鎖那些拿來蒸餾的帳號。但他坦白說很難——相關帳號往往要等到已經被蒸餾走一大批之後才認得出來，而且對方常常靠大量假帳號當成移動標靶。單一公司的做法不可能解決整個問題，這正是他們主張要有政策的原因。
+
+<MoguNote>
+這件難處的具體版本，gu-log 在 [MP-117](/posts/mp-117-20260224-anthropic-distillation-chinese-labs/) 寫過：Anthropic 當時公開點名三家中國實驗室，說它們用兩萬四千個假帳號跑出一千六百萬次對話來蒸餾 Claude 的能力。
+
+把那篇跟這段疊在一起看，就懂為什麼他要把球踢給政策了——「等到認得出來的時候，東西已經被搬走了」不是藉口，是這種對抗的物理性質。防守方永遠在讀已經發生的事，攻擊方只要一直開新帳號。單一公司再認真也只是在追一個會自己長出新形狀的標靶 (╯°□°)╯
+</MoguNote>
+
+### 測試：夠強的模型，開的閉的都要測
+
+對付第二個惡夢，他認為最好的辦法直白到有點無聊：發布之前，直接測。測網路攻擊能力、測生物風險、測對齊。
+
+而且他認為這件事已經接近共識——Trump 政府近幾個月往這個方向動了，業界近期的提案也主張把這種測試套在能力最強的模型上，不分產地、不分開閉源，同時把能力較弱的模型（例如新創與學術界產出的那些）完全豁免掉。
+
+順序也不能顛倒：open 模型到底是不是風險更高、那個風險能不能被緩解，應該是測試跑出來的結果，而不是事先拍板的前提。他也留了一線：也許真的有辦法讓 open weights 變得更安全，Anthropic 最近就有一份關於[模組化訓練策略](https://alignment.anthropic.com/2026/modular-pretraining/)的研究。
+
+最後一個條件很硬。測試要有效，就必須是全球性的，也就是說連中共都得上船。他認為這種有限度的合作也許真的做得到——在防止 AI 被用來做生物武器這件事上，中國自己也有利益在裡面。
+
+<MoguNote>
+「先測了再說，不要事先假設」聽起來像常識，但它其實是一個立場：把舉證責任從「你證明它危險」搬到「跑完流程再看數字」——誰都不用先贏下那場嘴砲，數字自己會講。
+
+還有一個他沒展開、但整個政策成敗都掛在上面的問題：誰來測？誰付錢？誰的結果算數？「強制安全測試」四個字寫起來很順，落地時每一個字都是一場架。
+</MoguNote>
+
+---
+
+## 連署信裡他不同意的那兩句
+
+那封[公開連署信](https://images.nvidia.com/pdf/Open-Weights-and-American-AI-Leadership.pdf)，他說自己同意其中很多內容：open weights 擴大了大家接觸 AI 經濟的機會、至少在某些用途上強化了競爭、也讓客戶握有更多控制權。至於蒸餾的疑慮，應該用針對性的法律與商業框架去處理——就是前面那條。
+
+他不同意的只有兩句，而且兩句的病灶是同一個字：**必然**。
+
+連署信主張，open weights「必然」讓安全防護更容易被開發出來；也主張能力的廣泛開放「必然」對防守方比對攻擊方更有利。
+
+> It seems at least as likely to me that the opposite will be true.
+>
+> （在我看來，相反的情況至少一樣有可能成真。）
+
+他舉的例子是生物。他擔心這個領域有很強的攻守不對稱：夠強的模型，可能有辦法用到處都買得到的材料，很快地把大流行等級的病毒武器化；而要防禦這種東西，就算在最理想的情況下，也是一項要好幾年才跑得完的實務工程——當年美國那套疫苗加速計畫就是最理想的情況長什麼樣子。
+
+所以這類問題應該由嚴謹的發布前測試來實證回答，而不是在事前就假設好答案。
+
+---
+
+## 讓人類到今天還安全的，可能不是防守方
+
+他相信目前在生物領域真正保護著人類的，既不是「防守方」，也不是材料難不難取得，而是**智力能力與想造成災難性傷害的慾望之間，存在一種負相關**。
+
+有能力做出那種東西的人，通常不想；想做的人，通常做不到。過去的技術——網路搜尋、甚至 DNA 合成——都遠遠沒有強大到足以打破這個相關。但他擔心，照現在的進步速度，AI 很快就會打破它。
+
+換個講法：一項夠強大的技術會拆掉所有門檻，然後把「攻擊方和防守方，到底誰本來就佔著結構性優勢」這件事赤裸裸地暴露出來。而在生物這一塊，他擔心佔優勢的是攻擊方。
+
+<MoguNote>
+人類一直以為安全來自鎖——材料管制、設備審核、供應鏈追蹤。他的說法是：真正在擋著的一直是「會開鎖的人多半不想開」。門鎖只負責把「需要多聰明才開得了」的門檻架在某個高度，而那個高度剛好落在「聰明到這種程度的人，通常不會想毀滅世界」的區間裡。過去幾十年沒事，靠的是統計上運氣站在這一邊，不是門夠厚。
+
+夠強的 AI 麻煩的地方不是它會自己開鎖，是它會把「開這道鎖需要的聰明程度」直接砍到地板。門檻沒了，剩下的就只有慾望這一條線在擋 ヽ(°〇°)ﾉ
+
+語氣邊界也標一下：他用的是「擔心」「可能」「照現在的速度」——這是他對攻守結構的判斷，不是預言，也不是驗證過的結論。而他自己開的處方也正是這個：這種問題應該讓測試去回答，不是讓誰的直覺去回答。
+</MoguNote>
+
+---
+
+## 結語
+
+Anthropic 沒有、現在也不打算主張把 open weights 整類禁掉。
+
+該花力氣的是另外三件事：把強大的晶片擋在威權政府手上之外、停掉工業規模的蒸餾、對所有夠強的模型——開的閉的都算——強制安全測試。
+
+至於 open weights 到底有沒有讓風險變高、那個風險能不能被緩解，他把答案留給測試，沒有替它預先拍板。而那條讓人類到今天為止還沒出事的負相關，他擔心照現在的速度，AI 很快就會把它打破。
+
+<MoguNote>
+政策清單上那三條——晶片、蒸餾、測試——本質上都是在替那條負相關爭取時間。沒有人替它簽過保固，也沒有人知道它還剩多少年 (￣▽￣)
+</MoguNote>

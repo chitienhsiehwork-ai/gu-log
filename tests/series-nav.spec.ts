@@ -231,37 +231,82 @@ test.describe('Related Articles — Non-series Posts', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  test('R4. Unread articles appear before read articles in the list', async ({ page }) => {
-    await page.goto(NO_SERIES_POST);
-
-    // Mark the first related item as read
-    const relatedSection = page.locator('[data-related-articles]');
-    const firstLink = relatedSection.locator('[data-related-item]').first();
-    const firstSlug = await firstLink.getAttribute('data-slug');
-    expect(firstSlug).toBeTruthy();
-
-    // Set it as read via localStorage (matching reading-tracker's STORAGE_KEY)
-    await page.evaluate((slug) => {
+  test('R4. Related articles read the tracker once while preserving read state', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
       const key = 'gu-log-read-articles';
-      const store = { version: 1, slugs: [slug!], lastUpdated: new Date().toISOString() };
-      localStorage.setItem(key, JSON.stringify(store));
-    }, firstSlug);
+      const readSlug = 'fixture-overlap-3-oldest';
+      const timestamp = '2026-07-29T00:00:00.000Z';
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 2,
+          slugs: [readSlug],
+          records: [
+            {
+              slug: readSlug,
+              method: 'manual_mark_read',
+              confidence: 'legacy_or_manual',
+              readAt: timestamp,
+              lastReadAt: timestamp,
+              readRevision: null,
+              revisionState: 'unknown',
+            },
+          ],
+          lastUpdated: timestamp,
+        })
+      );
 
-    // Reload so the page picks up the read status
-    await page.reload();
+      const originalGetItem = Storage.prototype.getItem;
+      let readStoreGetCount = 0;
+      Storage.prototype.getItem = function (storageKey) {
+        if (storageKey === key) readStoreGetCount += 1;
+        return originalGetItem.call(this, storageKey);
+      };
+      Object.defineProperty(window, '__readStoreGetCount', {
+        get: () => readStoreGetCount,
+      });
+    });
+    await page.goto(RELATED_RANKING_FIXTURE);
 
-    // The previously-read item should now show as read (has is-read class on indicator)
-    // Note: data-read-indicator is a sibling of data-related-item inside .related-item
-    const readIndicator = page
-      .locator(`[data-related-articles] [data-read-indicator][data-slug="${firstSlug}"]`)
-      .first();
+    const relatedSection = page.locator('[data-related-articles]');
+    const relatedItems = relatedSection.locator('[data-related-item]');
+    await expect(relatedItems).toHaveCount(3);
+    expect(
+      await relatedItems.evaluateAll((items) => items.map((item) => item.dataset.slug))
+    ).toEqual(['fixture-overlap-2-middle', 'fixture-overlap-1-newest', 'fixture-overlap-3-oldest']);
 
-    // Wait for client-side hydration
-    await page.waitForTimeout(500);
+    const readIndicator = relatedSection.locator(
+      '[data-read-indicator][data-slug="fixture-overlap-3-oldest"]'
+    );
+    const unreadIndicator = relatedSection.locator(
+      '[data-read-indicator][data-slug="fixture-overlap-2-middle"]'
+    );
+    await expect(readIndicator).toHaveClass(/is-read/);
+    await expect(readIndicator).toHaveAttribute('title', 'Read');
+    await expect(unreadIndicator).not.toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Unread');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __readStoreGetCount?: number }).__readStoreGetCount
+      )
+    ).toBe(1);
 
-    const indicatorClass = await readIndicator.getAttribute('class');
-    // After reload, the read item's indicator should have is-read class
-    expect(indicatorClass).toContain('is-read');
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('read-status-changed', {
+          detail: { slug: 'fixture-overlap-2-middle', read: true },
+        })
+      );
+    });
+    await expect(unreadIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Read');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __readStoreGetCount?: number }).__readStoreGetCount
+      )
+    ).toBe(1);
   });
 
   test('R5. Post with series does NOT show Related Articles (shows SeriesNav instead)', async ({

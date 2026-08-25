@@ -3,7 +3,7 @@ import { test, expect } from './fixtures';
 const FIXTURE = '/artifacts/zoomable-post-image-fixture/';
 
 test.describe('Zoomable post images', () => {
-  test('opens and closes an expanded image without losing the opener', async ({ page }) => {
+  test('contains keyboard focus and closes without losing the opener', async ({ page }) => {
     await page.goto(FIXTURE);
 
     const openers = page.locator('[data-post-image-open]');
@@ -24,6 +24,13 @@ test.describe('Zoomable post images', () => {
 
     const close = dialog.locator('[data-post-image-close]');
     await expect(close).toBeFocused();
+
+    await close.press('Tab');
+    await expect(close).toBeFocused();
+
+    await close.press('Shift+Tab');
+    await expect(close).toBeFocused();
+
     await close.press('Escape');
 
     await expect(dialog).toBeHidden();

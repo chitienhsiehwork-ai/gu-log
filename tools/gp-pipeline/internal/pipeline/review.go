@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
@@ -14,9 +15,15 @@ import (
 // review.tmpl prompt and runs it through the dispatcher with WorkDir set
 // so the LLM can read draft-v1.mdx by relative path and write review.md
 // to the same directory. The review prompt does NOT embed the draft text
-// or the style guide contents — the LLM is expected to read them from
-// disk in the work dir, matching bash semantics.
+// or canonical editorial inputs — Review stages them so the LLM can read all
+// of them from the provider-visible work directory.
 func (s *State) Review(ctx context.Context) error {
+	// Keep the full `run` path bounded just like the standalone `review`
+	// command. Without a step-local deadline, a wedged reviewer can consume
+	// the entire pipeline timeout and prevent recovery from later steps.
+	stepCtx, cancel := context.WithTimeout(ctx, 15*time.Minute)
+	defer cancel()
+
 	reviewPath := filepath.Join(s.WorkDir, "review.md")
 
 	if s.shouldSkipBelow(StepReview) {
@@ -25,8 +32,12 @@ func (s *State) Review(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 3: review")
+	if err := s.stageEditorialContext(); err != nil {
+		return fmt.Errorf("review: %w", err)
+	}
 
 	prompt, err := prompts.Render("review", prompts.ReviewData{
+		Prefix:   s.Prefix,
 		TicketID: s.PromptTicketID,
 	})
 	if err != nil {
@@ -37,7 +48,7 @@ func (s *State) Review(ctx context.Context) error {
 	if disp == nil {
 		return fmt.Errorf("review: judge dispatcher is nil")
 	}
-	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	res, err := disp.Run(stepCtx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("review: dispatcher failed: %w", err))
 	}

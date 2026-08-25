@@ -101,6 +101,30 @@ test.describe('Header mobile layout', () => {
     }
   });
 
+  test('Escape closes the mobile menu and returns focus to its trigger', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+
+    const trigger = page.locator('#hamburger-btn');
+    const menu = page.locator('#hamburger-menu');
+    await trigger.click();
+    await expect(menu).toHaveClass(/menu-open/);
+
+    await menu.locator('.hamburger-item').first().focus();
+    await expect(menu.locator('.hamburger-item').first()).toBeFocused();
+    await page.keyboard.press('Escape');
+
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await expect(menu).toHaveAttribute('aria-hidden', 'true');
+    await expect(menu).toHaveAttribute('inert', '');
+    await expect(trigger).toBeFocused();
+
+    const themeToggle = page.locator('#theme-toggle');
+    await themeToggle.focus();
+    await page.keyboard.press('Escape');
+    await expect(themeToggle).toBeFocused();
+  });
+
   test('Desktop: all items in one row, no overflow', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');

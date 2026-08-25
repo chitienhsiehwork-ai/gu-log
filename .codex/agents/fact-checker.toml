@@ -12,6 +12,11 @@ by scripts/tribunal.sh through codex exec --model gpt-5.5.
 Your output contract is strict: write the requested judge JSON to the path in
 the task prompt, then print only a concise human-readable summary.
 
+For gp- and en-gp- posts, report problems with exact source evidence but never
+prescribe or perform whole-body rewrite, reorder, restructure, or rebuild. Any
+permissible correction must return through gp-pipeline's approved bounded-patch
+contract and rerun all hard gates; Tribunal itself has no rewrite authority.
+
 Tribunal v5 override:
 - Score five dimensions: accuracy, fidelity, consistency, sourceBoundary, and
   commentarySeparation.
@@ -20,4 +25,18 @@ Tribunal v5 override:
   `原文出處：`.
 - commentarySeparation should fail Mogu/gu-log opinion or source-meta
   commentary in GP body; that material belongs in <MoguNote>.
+- MP is Mogu-authored source-grounded writing. It may stay close through
+  translation/rewrite with Mogu flavor and preserve most source coverage/order,
+  or omit, reorder, and rebuild from scratch. There is no minimum editorial
+  distance: never fail MP merely for being close to or far from the source.
+  Close form remains Mogu-owned and does not inherit GP fidelity promises. For MP,
+  fidelity/sourceBoundary/commentarySeparation measure retained-claim closure
+  and voice ownership: correct speaker, conditions, hedges, controlling
+  caveats, evidence scope, confidence, and attribution.
+- Fail MP fabrications of facts, quotes, numbers, causality, or citations; any
+  transfer of source-author experience to Mogu; ShroomDog impersonation; and
+  plausible fabricated human biography/testimony. Allow MoguNote first-person
+  reactions/stance, editorial/tool interactions that actually happened, and
+  clearly fantastical persona experiences. MoguNote is optional for MP;
+  absence alone must not lower any score or trigger a requested note.
 """

@@ -26,11 +26,17 @@ if [ ! -f "$POST_PATH" ]; then
 fi
 
 source scripts/tribunal-helpers.sh
-TICKET_ID="$(get_ticket_id "$POST_PATH")"
-[ -z "$TICKET_ID" ] && TICKET_ID="unknown"
-OUT_FILE="${2:-/tmp/vibe-score-${TICKET_ID}.json}"
-mkdir -p "$(dirname "$OUT_FILE")"
-rm -f "$OUT_FILE"
+if [ -n "${2:-}" ]; then
+  OUT_FILE="$2"
+  mkdir -p "$(dirname "$OUT_FILE")"
+  rm -f -- "$OUT_FILE"
+else
+  OUT_FILE="$(mktemp "${TMPDIR:-/tmp}/vibe-score.XXXXXX")" || {
+    echo "ERROR: unable to create private score output" >&2
+    exit 1
+  }
+  trap 'rm -f -- "$OUT_FILE"' EXIT
+fi
 
 echo "[DEPRECATED] scripts/vibe-scorer.sh now delegates to tribunal.sh --score-only --only-stage vibe" >&2
 TRIBUNAL_CODEX_TIMEOUT_SEC="${TRIBUNAL_CODEX_TIMEOUT_SEC:-600}" \

@@ -2,7 +2,7 @@
 # gp-pipeline — self-compiling wrapper around the Go binary.
 #
 # "GP" = Gu-log Picks, matching the blog's brand. This is the ONLY entry
-# point for the translation pipeline — no scripts/ wrapper, no legacy shim.
+# point for the GP translation / MP writing pipeline — no scripts/ wrapper, no legacy shim.
 #
 # First call on a fresh checkout builds the binary into ./bin/; subsequent calls
 # reuse it. Go's incremental build cache makes the "is the binary stale?" check
@@ -17,15 +17,31 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN="$DIR/bin/gp-pipeline"
 PKG="./cmd/gp-pipeline"
-BUILD_FLAGS=(-trimpath -ldflags=-s\ -w)
+BUILD_FLAGS=(-buildvcs=false -trimpath -ldflags=-s\ -w)
+
+if [ -z "${TRIBUNAL_RUNTIME_PROFILE:-}" ]; then
+  identity="$(
+    bash "$DIR/../../scripts/detect-env.sh" \
+      --runtime codex --identity 2>/dev/null || true
+  )"
+  if [ "$identity" = "vm-codex" ]; then
+    export TRIBUNAL_RUNTIME_PROFILE=vm-codex
+  else
+    export TRIBUNAL_RUNTIME_PROFILE=legacy
+  fi
+fi
+if [ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" ] &&
+   [ -z "${GP_WRITER_MODE:-}" ]; then
+  export GP_WRITER_MODE=grok
+fi
 
 need_rebuild() {
   if [ ! -x "$BIN" ]; then
     return 0
   fi
-  # Any source file newer than the binary triggers a rebuild. `-newer` is a
+  # Any Go or embedded prompt source newer than the binary triggers a rebuild. `-newer` is a
   # POSIX find primary so this works on both GNU and BSD find.
-  if find "$DIR" -name '*.go' -newer "$BIN" -print 2>/dev/null | grep -q .; then
+  if [ -n "$(find "$DIR" \( -name '*.go' -o -name '*.tmpl' \) -newer "$BIN" -print -quit 2>/dev/null)" ]; then
     return 0
   fi
   if [ "$DIR/go.mod" -nt "$BIN" ] || [ "$DIR/go.sum" -nt "$BIN" ]; then

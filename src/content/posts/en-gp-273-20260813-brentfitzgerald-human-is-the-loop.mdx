@@ -1,0 +1,135 @@
+---
+ticketId: "GP-273"
+title: 'Humans are the loop; agents only get tagged in now and then'
+originalDate: '2026-08-11'
+translatedBy:
+  model: "Grok 4.6"
+  harness: "Grok Build CLI"
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.6"
+      harness: "Grok Build CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.6"
+      harness: "Grok Build CLI"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'brentfitzgerald.com'
+sourceUrl: 'https://brentfitzgerald.com/posts/the-human-is-the-loop/'
+lang: 'en'
+summary: 'Brent Fitzgerald came back from a few weeks off AI and found a pile of half-finished agent tabs that felt more like guilt than output. What you actually have to protect is not "use more models," but being the loop yourself, and only tagging an agent in now and then.'
+tags: ['ai-agents', 'developer-tools', 'productivity']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 9
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-08-13"
+    model: "gpt-5.6-sol"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-08-13"
+    model: "grok-4.6"
+translatedDate: "2026-08-13"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Late-summer cold rivers, s'mores, and a nap after lunch. [The person who wrote this](https://brentfitzgerald.com/posts/the-human-is-the-loop/) put the laptop and phone down for weeks, which also meant putting AI on vacation. What stung on the way back was not "I missed that assistant." It was the opposite: a lot of everyday model use never needed to happen. Without the habit, his mind had not gone dull, and curiosity had not thinned out. It felt more like finally seeing that he had been swapping himself out on the sideline, and rarely standing back in the middle of the field.
+
+He opened the laptop again and walked into eleven `cmux` tabs, each still hanging several half-done, paused [agents](/en/glossary#agent). Work, personal stuff, and the messy middle that is neither. Claude chats were lit up with unread badges too: taxes, landscaping ideas, policy-doc review. Every tab had once looked like "this needs help." Every tab now also looked like a little stub of guilt: the thing never finished, and the time never got used with enough focus.
+
+<MoguNote>
+`cmux` is an interface for watching several coding agents run side by side. It sounds efficient. The actual picture is more like cloning the things you promised yourself into eleven copies, then leaving each one hanging in midair, staring at you. gu-log's own long-running flows grow this kind of unfinished list just as easily. The only difference is whether anyone will admit it: opening a new tab is closer to releasing pressure than to finishing work.
+</MoguNote>
+
+[SD-17](/en/posts/en-sd-17-20260402-is-it-worth-the-time/) asked whether automation is even worth it. [MP-85](/en/posts/en-mp-85-20260216-yegge-ai-vampire/) asked whether speed turns around and eats you. This piece fills in the scene: when pressure hits, people swap an agent onto the field and step out of the loop themselves.
+
+## Pressure finds a new outlet
+
+Pressure no longer forces him to triage. It feeds an unchecked belief: with AI, he should now be able to do more. The release valve changed too: another agent conversation, another terminal pane, another unasked-for fork, another markdown dump that will probably never be read.
+
+Half-baked ideas for tools and services piled up to an absurd degree; almost none of them were actually needed. The source was usually two things mixed together: unfinished workaholism, plus techno-optimist wishful thinking. The little things he built did run, and they did do their little jobs. They did not help anyone, did not make anyone happier, and did not buy more free time. Personal projects used to be rest, and learning for the fun of it. This new batch often skipped the learning and went straight for the result. The fun lives in the learning stretch.
+
+When he needed to write, he would dictate every thought first, then go back and forth with ChatGPT while driving or walking. On the surface it was "bouncing ideas with myself," and turning a commute into output. He never took those conversations into real work. What remained was a pile of rambling recordings and transcripts, sitting on OpenAI's servers.
+
+In theory he could go faster, and run many things in parallel. Looking back, nobody had been asking for those efficiency gains. The tools theoretically made you a faster builder, so the worst reflex showed up: using the tools to maximize using the tools. Nobody was doing the work on the field. Only tools were summoning the next tool.
+
+<MoguNote>
+Using an agent to write code is not the sin. Building another tool-that-uses-the-new-tool so you can prove you are using the new tool is what drains people. If this draft also spun up an agent to "optimize the writing workflow," that same substitution would already be starting again.
+</MoguNote>
+
+---
+
+## Where the habit grows
+
+Intuitively, agent use is probably not like an algorithmic feed wall, hooking you at the neurochemical layer so you cannot stop. That is the good news. It is only his hunch. Looking back at his own use, though, he could see the shadow of dependency and habituation. Once AI tools enter the work, the next seam you can stuff them into shows up fast. A large slice of the industry is also betting that the whole socioeconomic stack will end up massively dependent on large language models. His read is sharp: those valuations only make sense if society as a whole becomes unable to live without AI tech.
+
+So the plan going forward is simple: get clear first about when to use it and when to leave it out on purpose; and try to be honest with yourself about what each choice actually gains and loses.
+
+<MoguNote>
+"The valuation only works if people cannot live without it" lands hard, and it is not an academic argument. It is closer to restating product habit as a business model: the free thing is not the model; it is the user's own judgment muscle. The feed steals attention. Agents steal the little stretch of pain where you could have finished thinking it yourself.
+</MoguNote>
+
+---
+
+## The human is the loop
+
+Before writing this, he still dropped a [prompt](/en/glossary#prompt) into [Pi](/en/glossary#pi) for a work project that was just getting started: an agent tool that runs in the terminal and is built for coding tasks. Requirements, suggestions, the codebase, internal docs, data structures, conversation history — anything that would fit, he stuffed in. The setup step itself forces you to catch up first and think the current situation through. He asked it to come back with flagged issues and possible solutions; he kept the scope narrow, wrote down what he already thought and what he was still unsure about, and locked the output spec.
+
+The model will not hand over a perfect answer, and it will not turn anyone into a 10x engineer overnight. It is closer to pattern-matching and searching across a mess of systems and cloud software — the dirty work people are neither good at nor enjoy. It might surface a few gaps in how well you understand the current state, so the context you later bring into the project is a little better.
+
+More important: it frees this moment for the work only a person should do, like writing, like looking back at yourself. He is still cautiously optimistic about the tech: it might let people live richer, more willing-to-think lives. There is only one condition — use it on your own terms. Do not lock the human inside an agent loop. The human is the loop; agents only get tagged in now and then, and only after you have thought it through.
+
+> The human is the loop, and we tag the agent in occasionally, thoughtfully.
+
+<MoguNote>
+`tag the agent in` tastes more like wrestling or a relay: you stand in the middle of the field, and only tap a partner on the shoulder when you need them. You do not hand your body to autoplay for the whole match.
+</MoguNote>
+
+---
+
+## Closing
+
+Cold rivers, s'mores, and a few weeks without AI at least let him see one thing clearly: he did not miss the models. The loop only counts if the human is still on the field.
+
+## Further reading
+
+- [MP-7: Claude Code finally ships a non-engineer version! Cowork lets anyone use an AI agent for everyday work](/en/posts/en-mp-7-20260203-alexalbert-cowork/)
+- [GP-101: A training manual for AI agents? Hamel Husain ships an Evals skill pack so your agent can actually evaluate](/en/posts/en-gp-101-20260304-hamelhusain-ai-hamel-husain-evals-agent/)
+- [GP-111: Andrew Ng ships Context Hub: give coding agents up-to-date API docs](/en/posts/en-gp-111-20260311-andrewyng-context-hub-coding-agent-api/)
+
+
+<MoguNote>
+Next time you want to open another pane, ask first whether you are about to hand your body to autoplay again. The loop only counts if the human is still on the field. (⌐■_■)
+</MoguNote>

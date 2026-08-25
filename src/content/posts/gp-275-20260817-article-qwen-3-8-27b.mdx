@@ -1,0 +1,314 @@
+---
+ticketId: "GP-275"
+title: Qwen 3.8 27B 很優秀，但預設會瘋狂想太多
+originalDate: "2026-08-16"
+translatedDate: "2026-08-17"
+source: Simon Willison
+sourceUrl: https://simonwillison.net/2026/Aug/16/qwen-38-27b/
+summary: Qwen 3.8 27B 是可在筆電上跑的 27B 開源視覺模型，基準看起來很強，但預設推理深度太高，會為簡單題目想太久。關掉或調低推理後仍然好用，視覺框選與寫程式 Agent 都有表現，瓶頸是速度。
+lang: zh-tw
+tags:
+  - Qwen
+  - 本地模型
+  - LLM
+  - 推理
+  - 視覺
+translatedBy:
+  model: "grok-4.6"
+  harness: "Grok Build CLI"
+  pipeline:
+    - role: "translator"
+      provider: "grok-build-grok-4.6"
+      model: "grok-4.6"
+      harness: "Grok Build CLI"
+      artifactSha256: "29539d5b2b8f5ad8ec27283a1f1d55398df0896d9b606eae2d9ccb063a75d068"
+      verdict: "COMPLETED"
+    - role: "source-reviewer"
+      provider: "codex-gpt-5.6-sol"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+      artifactSha256: "a7f2f7e5856b9f2049df52cea03447ff4069de70747cdc61bb20632605765614"
+      verdict: "PASS"
+    - role: "corrector"
+      provider: "codex-gpt-5.6-sol"
+      model: "gpt-5.6-sol"
+      harness: "Codex CLI"
+      artifactSha256: "49610ec603f62d779cb9755b6a54a36ceac9d4972bd2c2fdfa869a90424b0e20"
+      verdict: "APPLIED"
+    - role: "vibe-scorer"
+      provider: "codex-gpt-5.5"
+      model: "gpt-5.5"
+      harness: "Codex CLI"
+      artifactSha256: "a7f2f7e5856b9f2049df52cea03447ff4069de70747cdc61bb20632605765614"
+      verdict: "PASS"
+    - role: "commentary"
+      provider: "grok-build-grok-4.6"
+      model: "Grok 4.6"
+      harness: "Grok Build CLI"
+      artifactSha256: "d84a2cdddd034a517a56b44b9de82c300402b5f4dc9f75482145a7299074652f"
+      verdict: "APPLIED"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 10
+    sourceBoundary: 10
+    commentarySeparation: 10
+    score: 9
+    date: "2026-08-17"
+    model: "gpt-5.6-sol"
+  librarian:
+    glossary: 8
+    crossRef: 10
+    sourceAlign: 10
+    attribution: 10
+    score: 9
+    date: "2026-08-17"
+    model: "gpt-5.6-sol"
+  freshEyes:
+    readability: 8
+    firstImpression: 7
+    payoffDensity: 8
+    lengthFit: 6
+    clarity: 7
+    score: 7
+    date: "2026-08-17"
+    model: "codex-gpt-5.6-sol-xhigh"
+  vibe:
+    persona: 6
+    moguNote: 7
+    vibe: 5
+    narrative: 8
+    score: 6
+    date: "2026-08-17"
+    model: "codex-gpt-5.5-high"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import PostVideo from '../../components/PostVideo.astro';
+
+週五最大的發布是 [Qwen 3.8 27B](https://huggingface.co/Qwen/Qwen3.8-27B)，阿里巴巴 Qwen 研究實驗室推出的 `Apache 2` 授權、270 億參數、具備視覺能力的 LLM。我一直很期待這款：27B 這個規模很適合在規格還算夠用的筆電上跑，而且它的前代 [Qwen 3.6 27B](https://simonwillison.net/2026/Apr/22/qwen36-27b/) 就已經很出色。
+
+Qwen [自己公布的基準](https://huggingface.co/Qwen/Qwen3.8-27B#benchmark-results)看起來相當驚人。數字顯示它同時勝過 Qwen 3.6 27B，也勝過權重不公開的 `Qwen 3.7-Plus`；後者直到[今年五月](https://qwen.ai/blog?id=qwen3.7-plus)都還是 Qwen 各尺寸裡最強的模型之一。獨立基準會怎麼說，會很有意思。
+
+我在兩台機器上跑這款模型：我那台 128GB 的 `M5 Max MacBook Pro`，以及一台 [NVIDIA DGX Spark](https://simonwillison.net/2025/Oct/14/nvidia-dgx-spark/)。兩台都用 LM Studio，以及[他們那個 17GB 的 Q4_K_M 量化版](https://lmstudio.ai/models/qwen3.8)。我也在 Spark 上直接試過 `llama-server`。
+
+#### 預設的超高推理力度，會讓它想得誇張過頭
+
+Qwen 的文件寫這款模型預設推理力度是 `xhigh`，我試的 LM Studio GGUF 也保留了這個預設：
+
+> Qwen3.8 正式支援 `reasoning_effort`，可用來調整推理深度並控制成本：
+>
+> - `xhigh`（預設）：給需要徹底分析的複雜任務
+> - `medium`：在準確度與速度之間取平衡
+> - `low`：偏重速度與成本的高效率推理
+
+這個預設真的很好笑。絕對不是跑這款模型的好方式，尤其是在消費級硬體上。我發現產出的結果極其有娛樂性。
+
+我很快就撞上 LM Studio 預設 8,192 [tokens](/glossary#token) 的[上下文上限](/glossary#context-window)——就算是最無聊的問題，Qwen 也會把額度全拿去想。我改用完整的 262,144 最大上下文長度載入模型，這個問題才消失。
+
+這是我把上下文加長後第一次嘗試得到的[騎腳踏車鵜鶘](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2Ffc909bea4fecf752c7bf9bad0e9dbf2a) SVG。它花了 **21 分鐘**才生出來，用了 22,276 個推理 token，產出 3,223 個輸出 token。你可以在[這裡讀推理過程](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2Ffc909bea4fecf752c7bf9bad0e9dbf2a)。
+
+![一張很討喜的鵜鶘騎腳踏車圖。腳踏車是紅色，車架形狀正確。鵜鶘長得像鵜鶘，翅膀伸出去碰到把手。](https://static.simonwillison.net/static/2026/qwen-thinking-bicycle-27b.jpg)
+
+這是我目前用能在本機跑的模型裡，生出過最好的鵜鶘 SVG——而且這款 Qwen 其實很小，磁碟上就一個 17GB 的檔案。有很多值得喜歡的地方：
+
+- 車架形狀是對的
+- 腳踏車兩側各有一條腿——這非常少見
+- 鵜鶘的喉囊清楚好看
+- 翅膀伸出去碰到把手了！
+- 動態線在後面，不是在前面
+- 背景很有品味——太陽、雲、山丘、花和草都不錯。
+
+等 21 分鐘值得嗎？完全不值得。
+
+同一個提示在關掉推理後跑一次——[紀錄在這裡](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F1265cfa8dce2f9ad5eb160792ff45a49)。這次產出 **3,715 tokens**，花了 137 秒——兩分多鐘。
+
+![這次車架形狀變差了。鵜鶘還認得出來，但喉囊比較不明顯。腳沒踩到踏板，也沒打算去握把手。](https://static.simonwillison.net/static/2026/qwen-3.8-27b-no-reasoning-pelican-2.png) 為了完整起見，我又用 OpenRouter 把同一個提示丟給大很多的 Qwen 3.8 2.4T-A95B（[上週發布](https://huggingface.co/Qwen/Qwen3.8-2.4T-A95B)），得到這個很炫的[動畫 SVG](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F557016f0895b2abb4b9957caec781734)：
+
+<PostVideo
+  src="https://static.simonwillison.net/static/2026/qwen-animated-small.mp4"
+  poster="https://static.simonwillison.net/static/2026/qwen-animated-first-frame.jpg"
+  label="Qwen 3.8 2.4T-A95B 產出的鵜鶘騎腳踏車動畫 SVG"
+  width={720}
+  height={548}
+/>
+
+我說 Qwen 在 xhigh 下很容易想太多，但到底有多誇張？
+
+我試了一個簡單得多的提示，一樣用那個預設的超高推理力度：
+
+> `draw an svg of a circle`
+>
+> 畫一個圓的 SVG
+
+Qwen 的推理過程開頭是這樣：
+
+> 使用者要的是一個圓的 SVG 圖。請求很簡單——但我希望它是一件仔細打磨過的作品。我想做的不只是一個 `<circle>`：一份獨立完整、有個性的 SVG 檔，也許是幾何風格的「圓之習作」，帶一點微妙動畫、層層疊疊的環，還有獨特的配色。
+>
+> 範圍要拿捏好：他們要的是一個圓的 SVG。核心就是一個圓。但我可以加一點工藝：同心的輔助圓（像圓規／幾何作圖）、刻度、主圓上柔和的漸層填色、低調的背景動畫（慢慢旋轉的虛線環、脈動的光暈）。要不要尊重 prefers-reduced-motion？那比較偏 CSS；SVG 裡的 SMIL 或 CSS 就能做。
+>
+> 配色選項：溫暖紙色上的深藍綠色墨水？還是米白底上大膽的朱紅色圓，搭配海軍藍構造線——包浩斯／圓規作圖的感覺。我走「幾何習作」風：冷灰色背景，還是明亮的紙白？如果不是奶油色配赤陶那套，紙白就可以。[...]
+
+幾分鐘後它[產出](https://tools.simonwillison.net/markdown-svg-renderer#url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F6f9e48293be5c916652d29f0dc0b0657)了這個*美得不得了*的動畫圓，完全不是我要的東西！
+
+<PostVideo
+  src="https://static.simonwillison.net/static/2026/circle-web.mp4"
+  poster="https://static.simonwillison.net/static/2026/circle-web-first-frame.jpg"
+  label="Qwen 3.8 27B 產出的動畫圓 SVG"
+  width={1078}
+  height={1080}
+/>
+
+我強烈建議：別理那個預設。一開始就用 low，甚至關掉推理來跑 Qwen 3.8 27B。它是很好的模型，但那個預設真的是很糟的起點。
+
+<MoguNote>
+這和 [GP-141 談 Qwen 把推理模式與指令模式合體](/posts/gp-141-20260402-article-qwen-ai-agentic-thinking/)是同一條技術脈絡；本篇補上的，是 27B 本地模型把 `xhigh` 當預設後，連「畫一個圓」都能膨脹成大型企劃的實測。推理不是越多越好，得先配得上工作負載 (￣▽￣;)
+</MoguNote>
+
+#### 它畫邊界框非常厲害
+
+測試視覺模型很好玩的一種方式，是看它能不能為照片裡的物件回傳邊界框。我看過前幾代 Qwen 在這件事上表現不錯，所以決定讓它幫一些鵜鶘畫框。
+
+我以前看過用 0-1000 的尺度效果很好。我試了這個：
+
+```bash
+llm -a https://static.inaturalist.org/photos/714731804/large.jpg \
+  -m lmstudio/qwen/qwen3.8-27b \
+  '為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度'
+```
+
+這是[推理過程](https://gist.github.com/simonw/a05cc78b2061555bd61d3bb9686e689f)，產出這個：
+
+```
+[
+  {"bbox_2d": [195, 290, 370, 780], "label": "pelicans"},
+  {"bbox_2d": [445, 320, 675, 850], "label": "pelicans"}
+]
+```
+
+對得*這麼準*。把這些框疊在照片上是這樣：
+
+![兩隻鵜鶘站在岩岸上的照片，旁邊還有三隻較小的鳥。兩隻鵜鶘都被邊界框剛好框住，標籤都寫著「鵜鶘」。](https://static.simonwillison.net/static/2026/qwen-over-engineered-bbox.webp)
+
+#### 做一個標邊界框的工具
+
+上面那張邊界框視覺化，是我用 Qwen 3.8 27B 在筆電離線幫我做的新自訂工具畫出來的。
+
+我忘了把思考力度調低，所以它被*大幅過度工程化*了，但它還是從[這一個提示](https://gist.github.com/simonw/121ad098860028b2fab603fa12da1fd9)做出了[完整介面](https://static.simonwillison.net/static/2026/qwen-over-thinking-bbox.html)：
+
+> ```
+> [
+>    {"bbox_2d": [195, 290, 370, 780], "label": "pelicans"},
+>    {"bbox_2d": [445, 320, 675, 850], "label": "pelicans"}
+> ]
+> ```
+>
+> `Build an HTML page which has an input box for accepting the URL to an image and a textarea for accepting the above style of JSON.`
+>
+> `It appends the image to the page, measures its width and height, then treats the coords in the bbox_2d as scaled from 0-1000 and scales them against the actual width and height, then it renders labelled boxes over the image.`
+>
+> 做一個 HTML 頁面，有一個輸入框接受圖片 URL，以及一個文字區接受上述這種 JSON。
+>
+> 它把圖片加到頁面上，量出寬高，再把 `bbox_2d` 裡的座標當成 0-1000 的尺度，對應到實際寬高後縮放，然後在圖片上畫出帶標籤的框。
+
+這張截圖顯示了一個我*沒有*要求的功能——示範場景，給你沒有照片可測工具時用：
+
+![邊界框實驗室的截圖，深色主題的網頁工具，把物件偵測邊界框疊在圖片上；左邊是輸入面板，右邊舞台上有兩個標籤框，框住夕陽插畫裡風格化的鵜鶘。標題：邊界框實驗室——正規化 0–1000 座標轉成像素疊圖；狀態：已繪製兩個框。面板 01「輸入」（網址與偵測結果）有圖片網址欄位，內容是一串以文字編碼的圖片資料，以及偵測結果 JSON 文字區，內容是 \{"bbox_2d": 195, 290, 370, 780, "label": "鵜鶘"\}、\{"bbox_2d": 445, 320, 675, 850, "label": "鵜鶘"\}，橘色「繪製邊界框」按鈕，還有標成「示範場景」與「清除」的虛線框。面板 03「舞台」標題：顯示尺寸 661 × 661 像素 · 每單位等於 0.661 × 0.661 像素 · 原始尺寸 1000×1000。舞台是扁平風格插畫：兩隻深色鵜鶘剪影、橘色喙，站在平靜水面，背景是橘到紫的夕陽、淡黃太陽與遠處的鳥；橘色框標 1 · 鵜鶘，圍住左邊鵜鶘；青色框標 2 · 鵜鶘，圍住右邊鵜鶘。頁尾：把游標移到圖上可讀網格座標；框把 0–1000 對應到顯示像素。](https://static.simonwillison.net/static/2026/qwen-full-ui-with-pelicans.webp)
+
+這是思考過程裡相關的一段：它決定自己畫鵜鶘，純粹因為我在提示裡給的範例 JSON 用了「pelicans」這個標籤：
+
+> 再加一個「載入樣本」，用一張已知圖片？不能依賴外部圖片，不過……圖片 URL 輸入是使用者提供的；我可以加一個「用樣本試試看」按鈕 [...] 嗯，我可以在 canvas 上畫一個簡單場景，匯出成 data URL，再載進圖片——這樣就能自成一體、可以示範！[...] 但使用者的座標是對一張真正的鵜鶘照片；產生的佔位圖還是能示範縮放。產生一張 1000x1000 的佔位圖：漸層水面，加上兩個放在給定邊界框位置的團塊狀「鵜鶘」剪影（用同一套尺度——可愛之處：剪影就在精確的 0-1000 位置，顯示框會對齊）。這會是有趣、自成一體的示範。保持簡單：天空漸層、太陽、水面、兩個有點像鵜鶘的形狀（橢圓身體、圓頭、喙）。放在邊界框中心。
+
+（我有點緊張，全世界的模型搞不好都有一點偏見，一有機會就畫鵜鶘，都是因為快兩年來一直接觸我那套蠢基準。）
+
+這些過度思考有必要嗎？也許有一點必要。我關掉推理再試，得到[這個版本](https://static.simonwillison.net/static/2026/qwen-no-thinking-bbox.html)，（[紀錄在這裡](https://gist.github.com/simonw/8e78b1c64d9a56d08eedb954aa9445ee)），幾乎能用，但框的位置不對：
+
+![邊界框工作室截圖——介面還算完整，但黃框和綠框沒有蓋住鵜鶘。](https://static.simonwillison.net/static/2026/qwen-no-reasoning-bug.webp)
+
+所以沒有推理時，它沒能一次就做出能用的工具。我很確定再用幾個後續提示就能修好，但這是推理能造成差異的好例子。
+
+#### 對，它能驅動寫程式 [Agent](/glossary#agent)
+
+關於本地模型最大的問題之一，是它們有沒有足夠的馬力，成功跑完整個寫程式 Agent 迴圈。寫程式 Agent 需要長上下文、夠強的程式碼生成，以及可靠的工具呼叫。紙面上 Qwen 3.8 27B 這三樣都有，那它扛不扛得住？
+
+我用 [Pi](https://pi.dev/) 做的初步實驗很有希望。我選 [Pi](/glossary#pi) 是因為它的系統提示比大多數選項都短，比較適合拿來試較小的模型。
+
+<MoguNote>
+想看更小模型搭配 coding harness 的對照，可以接著讀 [MP-220 的 Qwen3-14B／RTX 5060 系列實驗](/posts/mp-220-20260328-daniel-mac8-qwen3-14b-rtx-5060-sonnet-4-5-harness/)；那篇拆 harness 的影響，這篇則把視覺、工具呼叫與寫程式 Agent 一起放進 27B 本地模型的綜合測試。
+</MoguNote>
+
+我把 Pi 設成使用透過 LM Studio 在 Spark 上跑的 Qwen 3.8 27B（用 `tailscale serve` 分享），在 `~/.pi/agent/models.json` 加上這個：
+
+```
+{
+  "providers": {
+    "spark": {
+      "baseUrl": "https://spark-18b3.tail68a31.ts.net/v1",
+      "api": "openai-responses",
+      "apiKey": "dummy",
+      "models": [
+        {
+          "id": "qwen3.8-27b",
+          "reasoning": true
+        }
+      ]
+    }
+  }
+}
+```
+
+然後在我的 `~/dev/datasette` 資料夾跑 `pi --provider spark --model qwen3.8-27b`，並提示：
+
+> `how does auth work?`
+>
+> 驗證是怎麼運作的？
+
+經過一連串推理與工具呼叫、讀了一堆不同檔案之後，它產出[這則回覆](https://gist.github.com/simonw/6693d74a6bd45f641d43ceb9961dd95f#core-idea-actors--plugins-no-built-in-user-accounts)，相當扎實。
+
+只有一個問題：我想分享那份紀錄。所以我把 Pi 和 Qwen 3.8 27B 指向 `~/.pi/agent/sessions/--Users-simon-Dropbox-dev-datasette--` 裡的 JSONL 紀錄檔，並提示：
+
+> `Write Python code to convert this jsonl to markdown`
+>
+> 寫 Python 程式把這份 jsonl 轉成 markdown
+
+它就做出並測試了這個 [`pi_jsonl_to_md.py`](https://github.com/simonw/tools/blob/main/python/pi_jsonl_to_md.py)，完全是我要的。這是用它自己做的工具發布的[那次工作階段紀錄](https://gist.github.com/simonw/491e55ac9d741202ea0af5d9d93775d4)。
+
+#### 追求速度
+
+到目前為止，這一切看起來*非常*有希望。我們有一個 17GB 的模型，能在高階消費級硬體上跑，會寫程式、會驅動工具、會標註圖片，基本上我需要 LLM 幫忙做的實際工作它都能做。
+
+有一個非常重大的但書：它感覺很慢——尤其開始想太多的時候，但就算沒有那樣，也談不上敏捷。
+
+我從 LM Studio 大概得到每秒 15-30 tokens。不算慘，但慢到很難把我從託管 API 模型那邊搶過來，後者回結果快得多。Artificial Analysis [追蹤 token 速度](https://artificialanalysis.ai/models#speed)，[OpenAI 5.6 Sol](/glossary#gpt-5-6-series) 是每秒 74 tokens，[5.6 Luna](/glossary#gpt-5-6-series) 則是驚人的每秒 184。
+
+好消息是，從模型兩天前剛發布開始，社群就一直在找加速的方法。
+
+最有希望的優化之一，其實就做在模型裡。Qwen 支援[多 Token 預測](https://sebastianraschka.com/llm-architecture-gallery/mtp/)，一種架構手法：用較便宜的機制先往前猜好幾個 token，主模型再快速核對猜得對不對。這對推論效能可以有相當戲劇性的影響。
+
+根據 `llama.cpp` 作者 `Georgi Gerganov` 的[這則推文](https://twitter.com/ggerganov/status/2088340681701925253)，我在 Spark 上這樣用 MTP 跑模型：
+
+```
+llama serve \
+ -hf  ggml-org/Qwen3.8-27B-GGUF:Q4_K_M \
+ -hfd ggml-org/Qwen3.8-27B-GGUF:Q4_0 \
+ --spec-default \
+ --spec-type draft-mtp \
+ --reasoning-preserve
+```
+
+果然帶來明顯提升。我讓 [Codex](/glossary#codex) 裡的 GPT-5.6 在 Spark 上跑了[比較基準](https://gist.github.com/simonw/b08c7eb9c126c806ba8987e269ea736b)，`--spec-type draft-mtp` 伺服器大約比 LM Studio 預設 GGUF 快 72%。
+
+我預期接下來幾週，在讓這款模型跑得更快這方面，還會有更多創新。MLX 社群大概也在醞釀一些手法。
+
+#### 一些觀察
+
+一個 17GB 的檔案能在我家的機器上做這麼多事，根本是*奇蹟*。我再次為本地模型今年進步了多少感到高興、也感到驚訝。一年前，這會足以跟最貴、最好的專有模型競爭——今天它可以在一台夠力的筆電上跑。
+
+唯一讓它還當不成日常主力的，是效能。在 M5 Mac 和 DGX Spark 上都感覺頗慢。這就是這些稠密（非混合專家）模型的代價——它們需要非常高的記憶體頻寬才能表現得好，而我能用的這兩台機器在這方面都不是頂尖。
+
+Qwen 3.8 27B 最重要的，是**它證明了什麼**。我們可以擁有一個[開放權重](/glossary#open-weights)的通用模型，具備長上下文、有效的工具呼叫、強大的視覺能力，以及夠用的程式碼生成，而且整份東西塞進一個 17GB 的檔案就夠了。
+
+這個尺寸的模型仍以驚人的速度持續變好。我們不必花五十萬美元買資料中心級硬體，只為了跑一個夠用的模型。

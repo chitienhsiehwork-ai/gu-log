@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const makeTempDirectory = useTestTempDirectories();
 
 function run(command: string, args: string[], cwd: string): string {
   return execFileSync(command, args, { cwd, encoding: 'utf-8' });
@@ -37,13 +38,14 @@ function lifecycleScriptRefs(command: string): string[] {
  * is symlinked so `import yaml from 'yaml'` resolves.
  */
 function makeSyntheticPrebuildDir(options: { copyScripts: string[] }): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prebuild-'));
+  const tmp = makeTempDirectory('gu-log-prebuild-');
   fs.mkdirSync(path.join(tmp, 'scripts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'content', 'posts'), { recursive: true });
   fs.mkdirSync(path.join(tmp, 'src', 'data'), { recursive: true });
   fs.symlinkSync(path.join(REPO_ROOT, 'node_modules'), path.join(tmp, 'node_modules'), 'dir');
 
   for (const scriptRef of options.copyScripts) {
+    fs.mkdirSync(path.dirname(path.join(tmp, scriptRef)), { recursive: true });
     fs.copyFileSync(path.join(REPO_ROOT, scriptRef), path.join(tmp, scriptRef));
   }
 
@@ -222,7 +224,10 @@ describe('CI wiring for reader revision manifest freshness', () => {
 describe('reader revision manifest --check', () => {
   it('exits non-zero on a stale manifest and zero on a fresh one', () => {
     const tmp = makeSyntheticPrebuildDir({
-      copyScripts: ['scripts/build-reader-revision-manifest.mjs'],
+      copyScripts: [
+        'scripts/build-reader-revision-manifest.mjs',
+        'scripts/lib/reader-revision-core.mjs',
+      ],
     });
     const script = ['scripts/build-reader-revision-manifest.mjs'];
 
@@ -241,6 +246,44 @@ describe('reader revision manifest --check', () => {
     const stale = spawnSync('node', [...script, '--check'], { cwd: tmp, encoding: 'utf-8' });
     expect(stale.status).not.toBe(0);
     expect(stale.stderr + stale.stdout).toContain('post-reader-revisions.json is stale');
+  });
+
+  it('atomically replaces the manifest after a successful generation', () => {
+    const tmp = makeSyntheticPrebuildDir({
+      copyScripts: [
+        'scripts/build-reader-revision-manifest.mjs',
+        'scripts/lib/reader-revision-core.mjs',
+      ],
+    });
+    const manifestPath = path.join(tmp, 'src', 'data', 'post-reader-revisions.json');
+    const originalManifestPath = path.join(tmp, 'original-post-reader-revisions.json');
+    const sentinel = '{\n  "sentinel": "old manifest"\n}\n';
+    fs.writeFileSync(manifestPath, sentinel);
+    fs.linkSync(manifestPath, originalManifestPath);
+
+    const result = spawnSync('node', ['scripts/build-reader-revision-manifest.mjs'], {
+      cwd: tmp,
+      encoding: 'utf-8',
+    });
+
+    expect(result.status, result.stderr).toBe(0);
+    const originalManifestFd = fs.openSync(originalManifestPath, 'r');
+    const manifestFd = fs.openSync(manifestPath, 'r');
+    try {
+      expect(fs.fstatSync(manifestFd).ino).not.toBe(fs.fstatSync(originalManifestFd).ino);
+      expect(fs.readFileSync(originalManifestFd, 'utf-8')).toBe(sentinel);
+      expect(JSON.parse(fs.readFileSync(manifestFd, 'utf-8'))).toEqual({
+        'gp-999-regression': expect.stringMatching(/^[a-f0-9]{16}$/),
+      });
+    } finally {
+      fs.closeSync(originalManifestFd);
+      fs.closeSync(manifestFd);
+    }
+    expect(
+      fs
+        .readdirSync(path.dirname(manifestPath))
+        .filter((file) => file.startsWith('.post-reader-revisions.json.') && file.endsWith('.tmp'))
+    ).toEqual([]);
   });
 });
 
@@ -290,7 +333,7 @@ describe('prebuild handles post versions manifest failures and shallow clones', 
     run('git', ['add', 'scripts', 'src'], origin);
     run('git', ['commit', '-qm', 'seed shallow prebuild'], origin);
 
-    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prebuild-shallow-'));
+    const clone = makeTempDirectory('gu-log-prebuild-shallow-');
     run('git', ['clone', '-q', '--depth', '1', `file://${origin}`, clone], origin);
     expect(run('git', ['rev-parse', '--is-shallow-repository'], clone).trim()).toBe('true');
 

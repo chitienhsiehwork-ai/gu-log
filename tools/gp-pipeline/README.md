@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log GP／MP 文章流程的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
+gu-log GP 翻譯／MP source-grounded writing 流程的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
 
 ```bash
 tools/gp-pipeline/gp-pipeline --help
@@ -10,8 +10,8 @@ tools/gp-pipeline/gp-pipeline --help
 
 | Series | 品牌 | Ticket | Filename slug |
 |---|---|---|---|
-| GP | Gu-log Picks | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
-| MP | Mogu Picks | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
+| GP | Gu-log Picks（忠實翻譯） | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
+| MP | Mogu Picks（Mogu 依來源寫作） | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
 | SD | 原創文章 | `SD-N`／`SD-PENDING` | `sd-`／`sd-pending-` |
 | Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-` |
 
@@ -22,6 +22,19 @@ tools/gp-pipeline/gp-pipeline --help
 Pipeline 包含 source validation、LLM routing、dedup、可恢復 state、counter locking 與 deploy transaction。Go 實作把這些契約放進可單元測試的 package，並讓所有入口共用同一份行為。
 
 wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bin/gp-pipeline`，然後 `exec`。repo 不追蹤平台特定 binary。
+
+## VM model routing
+
+`scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
+才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
+維持原本 provider chain。VM profile 會先確認 Codex 與官方 Grok Build CLI
+都相容且已登入，缺任一個就 fail closed。
+
+所有常換的 model、effort、quota threshold 與 unknown policy 都只定義在
+`config/llm-pipeline.json`；README 不複製易過期的數值。Router 依該檔選擇
+reviewer、writer 與 Vibe Scorer，而且不會在低額度時靜默改用其他 writer。
+CodexBar 尚未提供可靠 Grok Build quota 前，自動 Grok probe 保持關閉，
+不猜百分比。
 
 ## Quick start
 
@@ -44,6 +57,8 @@ tools/gp-pipeline/gp-pipeline doctor
 # Counter read-only
 tools/gp-pipeline/gp-pipeline counter next --prefix GP
 ```
+
+MP 沿用現有非 GP 的 `write → review → refine → Tribunal rewrite` 路徑。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 不取得 GP fidelity 承諾；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 

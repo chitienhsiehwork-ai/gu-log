@@ -34,3 +34,18 @@ func TestHarnessNameWholeNumberReleases(t *testing.T) {
 		}
 	}
 }
+
+func TestGrokVersionedProvenance(t *testing.T) {
+	cases := map[ModelID]string{
+		"grok-4.5":  "Grok 4.5",
+		ModelGrok46: "Grok 4.6",
+	}
+	for id, want := range cases {
+		if got := DisplayName(id); got != want {
+			t.Errorf("DisplayName(%q) = %q, want %q", id, got, want)
+		}
+		if got := HarnessName(id); got != "Grok Build CLI" {
+			t.Errorf("HarnessName(%q) = %q, want Grok Build CLI", id, got)
+		}
+	}
+}

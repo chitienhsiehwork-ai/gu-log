@@ -84,6 +84,10 @@ grep -q '^env: agent_id=CCC machine_id=cloud runtime=claude-code environment=clo
 grep -q '^You are Cloud Codex/Claude Code (CCC)\.$' <<<"$ccc_context_from_detector"
 grep -q 'FULL PLAYBOOK: playbooks/CCC-playbook.md' <<<"$ccc_context_from_detector"
 
+ccc_identity_from_codex_shaped_wrapper="$(CLAUDE_CODE_REMOTE=true \
+  ./scripts/detect-env.sh --runtime codex --identity)"
+[[ "$ccc_identity_from_codex_shaped_wrapper" == "CCC" ]]
+
 mac_cdx_context="$(env -u CODEX_SHELL \
   -u CODEX_INTERNAL_ORIGINATOR_OVERRIDE \
   -u __CFBundleIdentifier \
@@ -97,6 +101,27 @@ grep -q 'FULL PLAYBOOK: playbooks/local-agent-playbook.md' <<<"$mac_cdx_context"
 mac_cdx_identity="$(GU_LOG_MACHINE_ID=m1 \
   ./scripts/detect-env.sh --runtime codex --identity)"
 [[ "$mac_cdx_identity" == "m1-cdx" ]]
+
+vm_detect_bin="$TMP_DIR/vm-detect-bin"
+mkdir -p "$vm_detect_bin"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exit 0' \
+  >"$vm_detect_bin/systemd-detect-virt"
+chmod +x "$vm_detect_bin/systemd-detect-virt"
+vm_cdx_context="$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --context)"
+grep -q '^env: agent_id=vm-codex machine_id=vm runtime=codex environment=local ' \
+  <<<"$vm_cdx_context"
+[[ "$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --identity)" == "vm-codex" ]]
+
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  'exit 1' \
+  >"$vm_detect_bin/systemd-detect-virt"
+[[ "$(PATH="$vm_detect_bin:$PATH" \
+  ./scripts/detect-env.sh --runtime codex --identity)" == "local-cdx" ]]
 
 forced_claude_identity="$(CODEX_SHELL=1 GU_LOG_MACHINE_ID=m1 \
   ./scripts/detect-env.sh --runtime claude-code --identity)"

@@ -139,6 +139,59 @@ func TestNormalizeRalphFrontmatter_HonoursMixedRoleStamp(t *testing.T) {
 	}
 }
 
+func TestExistingRalphPipelineStamp_PreservesRunScopedProviders(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "post.mdx")
+	raw := `---
+title: "T"
+translatedBy:
+  model: "Grok 4.5"
+  harness: "Grok CLI"
+  pipeline:
+    - role: "Written"
+      model: "Grok 4.5"
+      harness: "Grok CLI"
+    - role: "Reviewed"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI"
+    - role: "Refined"
+      model: "Grok 4.5"
+      harness: "Grok CLI"
+    - role: "Scored"
+      model: "GPT-5.6-Sol"
+      harness: "Codex CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Grok 4.5"
+      harness: "Grok CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "GPT-5.6-Sol"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+---
+body
+`
+	if err := os.WriteFile(path, []byte(raw), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := existingRalphPipelineStamp(path)
+	if !ok {
+		t.Fatal("expected the canonical existing pipeline to be reusable")
+	}
+	want := PipelineStamp{
+		WriteModel:    "Grok 4.5",
+		WriteHarness:  "Grok CLI",
+		ReviewModel:   "GPT-5.6-Sol",
+		ReviewHarness: "Codex CLI",
+		RefineModel:   "Grok 4.5",
+		RefineHarness: "Grok CLI",
+		JudgeModel:    "GPT-5.6-Sol",
+		JudgeHarness:  "Codex CLI",
+	}
+	if got != want {
+		t.Fatalf("existingRalphPipelineStamp = %#v, want %#v", got, want)
+	}
+}
+
 func TestNormalizeRalphFrontmatter_MissingFile(t *testing.T) {
 	if err := normalizeRalphFrontmatter("/tmp/missing-xyz-123.mdx", PipelineStamp{}); err == nil {
 		t.Fatal("expected error for missing file")

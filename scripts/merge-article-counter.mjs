@@ -96,6 +96,13 @@ export function mergeArticleCounter(base, ours, theirs) {
     const oursEntry = ours[prefix];
     const theirsEntry = theirs[prefix];
 
+    if (oursEntry.next < baseEntry.next) {
+      fail(`ours: ${prefix}.next decreased below base (${oursEntry.next} < ${baseEntry.next})`);
+    }
+    if (theirsEntry.next < baseEntry.next) {
+      fail(`theirs: ${prefix}.next decreased below base (${theirsEntry.next} < ${baseEntry.next})`);
+    }
+
     const entry = {};
     const fields = new Set([
       ...Object.keys(baseEntry ?? {}),
