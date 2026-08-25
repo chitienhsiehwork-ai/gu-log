@@ -41,24 +41,28 @@ const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 // the Tribunal-aware conditional rule below instead.
 const PAIRED_PREFIXES = ['MP', 'SD', 'Lv'];
 
+function parseFrontmatter(content) {
+  const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1];
+  if (!frontmatter) return {};
+  try {
+    return yaml.parse(frontmatter) ?? {};
+  } catch {
+    return {};
+  }
+}
+
 function parseTicketId(content) {
-  const m = content.match(/ticketId:\s*["']?([A-Za-z]+-[A-Za-z0-9]+)["']?/);
-  return m ? m[1] : null;
+  const ticketId = parseFrontmatter(content).ticketId;
+  return typeof ticketId === 'string' ? ticketId : null;
 }
 
 function parseStatus(content) {
-  const m = content.match(/status:\s*["']?([a-z]+)["']?/);
-  return m ? m[1] : 'published';
+  const status = parseFrontmatter(content).status;
+  return typeof status === 'string' ? status : 'published';
 }
 
 function parseScores(content) {
-  const frontmatter = content.match(/^---\n([\s\S]*?)\n---/)?.[1];
-  if (!frontmatter) return undefined;
-  try {
-    return yaml.parse(frontmatter)?.scores;
-  } catch {
-    return undefined;
-  }
+  return parseFrontmatter(content).scores;
 }
 
 function attachGpTribunalResults(byBase) {
