@@ -26,6 +26,47 @@ function postBody(ticketId: string, marker: string): string {
 }
 
 describe('translation-pair PR scope', () => {
+  it('reports a published English-only paired-series post as missing zh-tw', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      const file = 'en-gp-987654-en-only-probe.mdx';
+      fs.writeFileSync(path.join(postsDir, file), postBody('GP-987654', 'english-only'));
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([
+        {
+          ticketId: 'GP-987654',
+          file,
+          missingLang: 'zh-tw',
+        },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not let body text retire an English-only post with no frontmatter status', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      const file = 'en-gp-987655-body-status-probe.mdx';
+      fs.writeFileSync(
+        path.join(postsDir, file),
+        '---\nticketId: GP-987655\n---\n\nThe migration note says status: retired, but this post is published.\n'
+      );
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([
+        {
+          ticketId: 'GP-987655',
+          file,
+          missingLang: 'zh-tw',
+        },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
   it('requires a sidecar for GP PASS or incomplete evidence but allows explicit FAIL', () => {
     const posts = new Map([
       [

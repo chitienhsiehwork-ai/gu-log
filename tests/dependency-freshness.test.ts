@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const SCANNER_PATH = path.join(REPO_ROOT, 'scripts', 'dependency-freshness.mjs');
+const makeTempDirectory = useTestTempDirectories();
 
 type Scenario =
   | 'success'
@@ -27,7 +28,7 @@ function makeHarness(
   preserveArtifacts = false,
   rulesContents: string | null = JSON.stringify(VALID_RULES)
 ) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-dependency-freshness-'));
+  const root = makeTempDirectory('gu-log-dependency-freshness-');
   const scriptsDir = path.join(root, 'scripts');
   const qualityDir = path.join(root, 'quality');
   const binDir = path.join(root, 'bin');

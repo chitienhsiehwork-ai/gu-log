@@ -1,18 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as checkerModule from '../scripts/check-glossary-links.mjs';
 import * as fixerModule from '../scripts/apply-glossary-links.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const checker = checkerModule as any;
 const fixer = fixerModule as any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gugl-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gugl-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 const CHECKER_CLI = fileURLToPath(new URL('../scripts/check-glossary-links.mjs', import.meta.url));
 
