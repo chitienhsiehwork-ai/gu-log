@@ -45,7 +45,7 @@ type ClaudeProvider struct {
 // build when the alias moves on.
 const (
 	ClaudeOpusAlias  = "opus"
-	ClaudeOpusPinned = "claude-opus-5"
+	ClaudeOpusPinned = "claude-opus-4-6"
 )
 
 // NewClaudeOpus returns a ClaudeProvider wired to the floating Opus alias. Use

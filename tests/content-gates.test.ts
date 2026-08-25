@@ -8,11 +8,13 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gucg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 import { formatModelName } from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
@@ -233,6 +235,28 @@ describe('check-jingjing.checkFile', () => {
     const r = jj.checkFile(filepath);
     expect(r.violations).toEqual([]);
   });
+
+  it('reports exact UTF-8 byte boundaries for deterministic correction', () => {
+    const filepath = tmpPath('jj-byte-boundary.mdx');
+    const raw = `---\nlang: zh-tw\n---\n系統的 traces 要逐筆檢查。\n`;
+    fs.writeFileSync(filepath, raw);
+    const [violation] = jj.checkFile(filepath).violations;
+    const start = Buffer.byteLength(raw.slice(0, raw.indexOf('traces')));
+    expect(violation).toMatchObject({
+      word: 'traces',
+      line: 4,
+      startByte: start,
+      endByte: start + Buffer.byteLength('traces'),
+    });
+    expect(Buffer.from(raw).subarray(violation.startByte, violation.endByte).toString()).toBe(
+      'traces'
+    );
+  });
+
+  it('binds the accepted-English policy inputs to a stable digest', () => {
+    expect(jj.policySHA256()).toMatch(/^[a-f0-9]{64}$/);
+    expect(jj.policySHA256()).toBe(jj.policySHA256());
+  });
 });
 
 describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
@@ -301,6 +325,53 @@ describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
     expect(stderr).not.toMatch(/historical grandfathered violations are ignored/);
   });
 
+  it('bounds and deduplicates a stalled remote baseline refresh before a full scan', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const firstFile = tmpPath('jj-stalled-baseline-fetch-first.mdx');
+    const secondFile = tmpPath('jj-stalled-baseline-fetch-second.mdx');
+    const fakeBin = tmpPath('jj-stalled-baseline-bin');
+    const fetchMarker = tmpPath('jj-stalled-baseline-fetch.marker');
+    fs.mkdirSync(fakeBin, { recursive: true });
+    const fakeGit = path.join(fakeBin, 'git');
+    fs.writeFileSync(
+      fakeGit,
+      `#!/usr/bin/env bash
+if [ "$1" = "fetch" ]; then
+  printf 'fetch\\n' >> "$FETCH_MARKER"
+  exec sleep 2
+fi
+exit 1
+`
+    );
+    fs.chmodSync(fakeGit, 0o755);
+    for (const filepath of [firstFile, secondFile]) {
+      fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
+    }
+
+    const result = spawnSync(
+      process.execPath,
+      [CLI, '--baseline-ref=origin/main', firstFile, secondFile],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CHECK_JINGJING_FETCH_TIMEOUT_MS: '50',
+          FETCH_MARKER: fetchMarker,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+        },
+        timeout: 1_000,
+        killSignal: 'SIGKILL',
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.status).toBe(1);
+    expect(fs.readFileSync(fetchMarker, 'utf8').trim().split('\n')).toEqual(['fetch']);
+    expect(result.stderr).toMatch(/baseline ref .* could not be resolved/);
+    expect(result.stderr).toMatch(/all detected violations are reported, including historical/);
+  });
+
   it('does not call a new file a baseline-ref fallback', () => {
     const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
     const filepath = tmpPath('jj-new-at-baseline.mdx');
@@ -362,6 +433,21 @@ describe('check-pronoun-clarity', () => {
     const v = pron.findViolations(filepath);
     expect(v.length).toBe(1);
     expect(v[0].chars).toContain('你');
+  });
+
+  it('preserves first-person pronouns in GP source-author body prose', () => {
+    const filepath = tmpPath('gp-pronoun.mdx');
+    fs.writeFileSync(
+      filepath,
+      `---\nticketId: 'GP-PENDING'\nlang: zh-tw\n---\n我離開社群媒體一陣子，回來後才看清自己的習慣。\n`
+    );
+    expect(pron.findViolations(filepath)).toEqual([]);
+  });
+
+  it('does not infer GP from a misleading filename without GP frontmatter', () => {
+    const filepath = tmpPath('gp-misleading-name.mdx');
+    fs.writeFileSync(filepath, `---\nticketId: 'MP-PENDING'\nlang: zh-tw\n---\n我來說明。\n`);
+    expect(pron.findViolations(filepath)).toHaveLength(1);
   });
 
   it('does NOT flag 你/我 inside MoguNote', () => {

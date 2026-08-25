@@ -1,7 +1,7 @@
 BIN         := bin/gp-pipeline
 GO          ?= go
 PKG         := ./cmd/gp-pipeline
-BUILD_FLAGS := -trimpath -ldflags="-s -w"
+BUILD_FLAGS := -buildvcs=false -trimpath -ldflags="-s -w"
 
 .PHONY: all build test vet fmt clean run doctor fetch
 

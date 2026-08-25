@@ -180,6 +180,43 @@ test.describe('Search - Edge Cases', () => {
     });
   }
 
+  test('GIVEN a controlled same-number fixture WHEN searching a bare number THEN the UI renders the exact ticket tier first', async ({
+    page,
+  }) => {
+    const shared = {
+      summary: 'Controlled browser fixture',
+      tags: [],
+      lang: 'zh-tw',
+      date: '2026-08-08',
+      source: 'Fixture',
+      sourceUrl: 'https://example.com/source',
+    };
+    const fixture = [
+      { ...shared, slug: 'mp-250', ticketId: 'MP-250', title: 'MP exact ticket' },
+      {
+        ...shared,
+        slug: 'title-only',
+        ticketId: 'GP-999',
+        title: '250 appears only in this title',
+      },
+      { ...shared, slug: 'gp-250', ticketId: 'GP-250', title: 'GP exact ticket' },
+    ];
+    await page.route('**/search-index.zh-tw.json', (route) =>
+      route.fulfill({ contentType: 'application/json', json: fixture })
+    );
+    await page.goto(BASE);
+    await page.click('[data-search-trigger]');
+    await page.locator('[data-search-input]').fill('250');
+
+    const resultTickets = page.locator('.search-result-ticket');
+    await expect(resultTickets).toHaveText(['GP-250', 'MP-250', 'GP-999']);
+    await expect(page.locator('.search-result-title')).toHaveText([
+      'GP exact ticket',
+      'MP exact ticket',
+      '250 appears only in this title',
+    ]);
+  });
+
   test('GIVEN a pending index request WHEN the query is cleared before it fails THEN the empty search stays empty', async ({
     page,
   }) => {

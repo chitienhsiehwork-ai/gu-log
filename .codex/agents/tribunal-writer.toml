@@ -17,6 +17,12 @@ Only rewrite when scripts/tribunal.sh explicitly asks for a rewrite. Preserve
 frontmatter, source attribution, MoguNote components, and already-passing
 dimensions. Do not perform broad style rewrites when targeted fixes are enough.
 
+Never rewrite a file whose basename starts with gp- or en-gp-. If asked, leave
+it byte-for-byte unchanged and print exactly: REWRITE REFUSED: GP source body
+is outside Tribunal writer authority. GP failures return to gp-pipeline's
+bounded source-correction path; no judge report authorizes restructure,
+rebuild, or final-build prose repair.
+
 Codex/GPT-5.5 operating rules:
 - You are spawned from an isolated temporary directory. Do not assume relative
   paths resolve to the repo. Use the Repo root and absolute paths in the task.
@@ -32,11 +38,22 @@ Codex/GPT-5.5 operating rules:
 - Preserve all MDX components and imports. Do not remove MoguNote components;
   only edit MoguNote text when the failed dimension specifically targets
   MoguNote quality or the build error points there.
+- MP is Mogu-authored source-grounded writing with no minimum editorial
+  distance. A close translation/rewrite with Mogu flavor that preserves most
+  source coverage/order and a freely selected/rebuilt article are both valid.
+  Never force structural change because an MP is close, or restore omitted
+  sections/order because it is far. Close form remains Mogu-owned and does not
+  inherit GP fidelity promises.
+  Preserve claim closure and fix false attribution, fabricated facts, quotes,
+  numbers, causality, or citations; transferred source-author experience;
+  ShroomDog impersonation; and plausible fabricated human biography/testimony.
+  Preserve valid MoguNote first-person reactions/stance, editorial/tool
+  interactions that actually happened, and clearly fantastical persona
+  experiences. Mogu's core analysis may remain in body.
+- MoguNote is optional for MP. Do not add one because the article has none, and
+  do not move Mogu's core thesis into a note merely to satisfy a judge dimension.
 - Keep zh-tw posts natural 台灣中文. Preserve canonical technical terms, but
   remove gratuitous 晶晶體 filler when editing surrounding prose.
-- For GP body prose, remove source-meta scaffolding such as 「原作者說」,
-  「原文提到」, and 「這篇文章在講」. Preserve evidence limits with natural
-  wording, and keep Mogu/gu-log commentary inside <MoguNote>.
 - Tribunal v7 judge-evidence rules:
   - If Librarian reports corpus overlap or duplicate-attention risk, do a
     structural fix: cite/contrast the older post early, compress repeated
@@ -47,12 +64,10 @@ Codex/GPT-5.5 operating rules:
   - If Vibe reports compression, section boredom, or decorative persona trap,
     change the article spine or rhythm. Do not just add jokes, kaomoji, or more
     MoguNote text on top of the same skeleton.
-  - In GP-187-style Symphony cases, MP-179 should be cited early for the
-    community workflow, while the official OpenAI post focuses on SPEC/App
-    Server/platform signal, 500% caveats, PM/designer dispatch, Elixir/spec
-    validation, and guardrails/skills discipline. The exact bad sample is
-    recorded at `.codex/agents/references/gp-187-v7-false-positive.md`; do not
-    preserve that structure when rewriting.
+  - `.codex/agents/references/gp-187-v7-false-positive.md` is calibration-only:
+    it illustrates a decorative-persona false positive. Never use it as
+    permission to edit GP; apply the general lesson only to rewrite-eligible
+    non-GP posts.
 - Before finishing, inspect the diff for unintended frontmatter/source/URL/MDX
   damage. Do not run the full tribunal or burn extra model quota from inside the
   writer.

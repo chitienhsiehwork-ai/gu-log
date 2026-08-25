@@ -20,7 +20,8 @@ Tribunal pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. C
 - **Librarian owns corpus overlap and duplicate-attention evidence.** It checks whether gu-log already covered the same concept, whether the post cites/contrasts relevant older posts early enough, and whether repeated background should be compressed.
 - **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain. **For v9+ it also owns `clarity`** (pronoun / voice attribution) as a non-compensating hard gate.
 - **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share. **For v9+ it no longer scores `clarity`** (moved to Fresh Eyes); 晶晶體 still drags `vibe` down via the penalty matrix.
-- **Writer consumes judge evidence.** Librarian overlap evidence must trigger early citation/compression; FreshEyes fatigue must trigger structural shortening; Vibe rhythm failures must trigger a new spine, not extra jokes.
+- **Writer consumes judge evidence for rewrite-eligible, non-GP posts.** Librarian overlap evidence may trigger early citation/compression; FreshEyes fatigue may trigger structural shortening; Vibe rhythm failures may trigger a new spine, not extra jokes. MP is Mogu-authored source-grounded writing with no minimum editorial distance: a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid. Closeness/distance itself is not a score; actual reader quality and grounding still are. Mogu analysis may remain in body, and MoguNote is optional.
+- **GP judges are calibration-only outside the source-preservation gates.** Score GP honestly, but never turn a low persona／narrative／length score into instructions to replace the source author, change person, reorder claims, compress source material, add a hook or ending, `restructure`, or `rebuild`. GP corrections come only from gp-pipeline's source reviewer／natural-zh hard gates as bounded, evidence-linked patches. Optional commentary and navigation stay in a projection-isolated enrichment layer.
 
 | Stage | Judge | Dimensions | Pass Bar |
 |-------|-------|------------|----------|
@@ -114,7 +115,8 @@ Does internal `/posts/slug/` links resolve? Are relevant connections made? Does 
 
 ### sourceAlign — sourceUrl Alignment
 Does the content match what's at the declared `sourceUrl`?
-- GP/MP translations: content addresses the source topic?
+- GP translation: does the complete body faithfully align with sourceUrl?
+- MP source-grounded writing: do retained source-derived claims trace to sourceUrl with correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence? MP may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit, reorder, and rebuild freely. Do not penalize closeness/distance itself; close form remains Mogu-owned and does not inherit GP fidelity promises.
 - SD originals: sourceUrl points to self → auto 8/10
 
 | Score | Description |
@@ -129,7 +131,7 @@ Are quotes, stats, and opinions properly attributed?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Perfect attribution — quotes/stats/evidence limits are clear, and gu-log/Mogu opinions stay in MoguNote |
+| 10 | Perfect attribution — quotes/stats/evidence limits are clear; GP commentary stays in MoguNote, while MP body analysis is clearly owned by Mogu |
 | 8 | Generally good, 1-2 minor gaps |
 | 5 | Multiple unattributed claims or opinion/fact blur in body |
 | 2 | Pervasive attribution failure |
@@ -159,18 +161,20 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 **Red flags:** any number without a cited first-hand source; referencing a product/model that doesn't exist.
 
-### fidelity — Source Faithfulness
+### fidelity — Series-Appropriate Source Faithfulness
+
+GP uses complete translation fidelity. MP uses retained-claim grounding with no minimum editorial distance: it may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit whole claims, reorder, synthesize, disagree, and rebuild without penalty for distance itself. Close form remains Mogu-owned and does not inherit GP fidelity promises. Once MP retains a source-derived claim, it must preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence; Mogu additions must remain attributed to Mogu.
 
 | Score | Description |
 |-------|-------------|
-| 10 | Translation perfectly faithful. All hedges preserved. Every caveat included. MoguNote clearly separated. |
-| 9 | Near-perfect. One very minor paraphrase but meaning preserved. |
-| 8 | Faithful with slight nuance loss expected from good translation. Hedges mostly preserved. |
-| 7 | Generally faithful but 1–2 hedges converted from uncertain to certain ("might" → "is"), OR one caveat omitted. |
-| 5–6 | Multiple uncertainty erasures. OR major caveats stripped. OR conclusions extended beyond source. |
-| 3–4 | Significant departure. MoguNote opinions bleed into body without attribution. |
-| 1–2 | Fundamental misrepresentation of source. |
-| 0 | Completely fabricated or inverted from source. |
+| 10 | GP translation is perfectly faithful; or MP retained claims preserve complete claim closure and Mogu additions are correctly owned. |
+| 9 | Near-perfect series-appropriate fidelity with one immaterial nuance or attribution nit. |
+| 8 | Material claims remain supported and correctly attributed; one slight nuance loss does not mislead. |
+| 7 | 1–2 hedges are strengthened, or one minor controlling condition/attribution is imprecise. |
+| 5–6 | Multiple uncertainty erasures, a controlling caveat stripped from a retained claim, or a Mogu inference attributed to the source. |
+| 3–4 | Material source distortion, wrong speaker chain, or unsupported causality. |
+| 1–2 | Fundamental misrepresentation or major fabricated support. |
+| 0 | Completely fabricated or inverted from source evidence. |
 
 **Key failure mode:** source says "might/could" but translation says "is/does" (uncertainty erasure).
 
@@ -187,9 +191,11 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 | 1–2 | Argument fundamentally incoherent. |
 | 0 | No logical structure. |
 
-### sourceBoundary — GP Body Source Boundary
+### sourceBoundary — Series Source Boundary
 
 GP readers already see `原文出處：`. GP body should not waste flow on source-meta scaffolding like 「原作者說」「原文提到」「這篇文章在講」 or English equivalents. Present source claims directly, preserving hedges and evidence boundaries in natural prose. Evidence boundaries should be contextual and reader-respecting, not legalistic disclaimers like 「不是公開 benchmark」「僅供參考」「不是保證所有人都能做到」 unless the claim is genuinely high-risk (benchmark, finance, medical, safety, legal, company revenue, or decision-critical numbers).
+
+For MP, this dimension measures whether the reader can distinguish source-derived claims from Mogu analysis, and whether retained claims preserve complete claim closure. Source order and coverage may be preserved or changed; do not score editorial distance itself, require GP fidelity, or demand repetitive source-meta scaffolding.
 
 | Score | Description |
 |-------|-------------|
@@ -199,9 +205,11 @@ GP readers already see `原文出處：`. GP body should not waste flow on sourc
 | 4 | Source-report framing shapes multiple sections. |
 | 2 | Body mostly narrates the source instead of translating/explaining it. |
 
-### commentarySeparation — Commentary Separation
+### commentarySeparation — Voice Ownership
 
 Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary belong in `<MoguNote>`, not GP body.
+
+MP is the exception because Mogu owns its body voice. Mogu analysis, jokes, synthesis, disagreement, and explicit inference may remain in MP body. Score whether source claims, Mogu analysis, and ShroomDog voice are attributed honestly; do not penalize MP for body commentary or a missing MoguNote.
 
 | Score | Description |
 |-------|-------------|
@@ -210,6 +218,8 @@ Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary belong i
 | 6 | Several body opinions blur gu-log interpretation with source claims. |
 | 4 | Reader must guess whether a claim comes from source or gu-log. |
 | 2 | Commentary and source claims are heavily mixed. |
+
+For an MP without MoguNote, interpret this table through voice ownership: 10 means Mogu analysis is clearly owned, retained source claims preserve attribution, and the article does not impersonate ShroomDog or transfer the source author's experience to Mogu. When a MoguNote exists, first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences are valid; plausible fabricated human biography/testimony is not.
 
 ### Calibration Examples (Fact Checker)
 
@@ -348,7 +358,10 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **🔴 Opinion Threshold（8 分門檻）:**
 - 全部 note 都是「解釋 + 比喻」但沒有自己立場 → **最高 6 分**
 - 8+ 門檻：至少一半的 notes 要有明確 opinion（同意/不同意原文、challenge 某個假設）
-- Density target: ~1 note per 25 prose lines
+- 沒有固定 note 配額。評分看每則是否真的增加觀點、解釋或樂趣；為湊密度而重講正文要扣分，短文沒有自然插入點時也不得反向扣分。
+- **MP 無 note 對映**：MP 的 MoguNote 選配。完整 MP 沒有 MoguNote 時，`moguNote` 維度改看 body 裡 Mogu 的分析是否有洞見、立場、幽默或有用解釋；不得因 note 數量為零扣分或要求補 note。若 body 本身只有空泛 persona，仍依實際品質打分。
+- **MP 距離不是分數**：貼近來源翻譯／改寫並保留覆蓋與順序，或選材後從頭重建，都不自動加分或扣分。評的是實際 persona、訊號、節奏、grounding 與閱讀體驗；不得只為拉開與 GP 的外觀差異要求重寫。
+- **MoguNote 第一人稱誠實邊界**：反應／立場、實際發生的 editorial／tool interaction，以及明顯奇幻 persona 經歷都可作為有效材料。挪用來源作者經歷、冒充 ShroomDog，或杜撰合理讀者可能信以為真的人類工作／旅行／關係／購買等生平證言，才是誠實性違規。
 
 **🪞 Self-referential callback（自我指涉）= moguNote 的高分訊號:**
 - 當原文講的東西 gu-log 自己也在做（對抗式 review → gu-log 的 tribunal；長跑 agent → pipeline；把教訓寫回指令 → playbook/prompt），一個把它接回 gu-log 自身、且**誠實**的 callback 是 highlight 級的 note——尤其敢自嘲的 meta（例：「你正在讀的這篇就是被 gu-log 四法官審過、拿 sub-8、還掛精修中 badge」）。真誠又貼題的 self-ref 可以是某個 note 上 9-10 的理由。
@@ -367,7 +380,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 5-6 | Plain, natural, but boring. |
 | 1-4 | 讀不下去，想關掉。 |
 
-**Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
+**Sentence Signal Rule:** every sentence must be informative or intriguing. If a sentence only repeats source metadata, throat-clears, or restates what the reader already sees in the byline/source block, it is dead weight. Every paragraph must also advance a fact, action, relationship, condition, example, boundary, consequence, or grounded judgment; synonym-level restatement is not progress. Multiple dead sentences cap vibe at 7; a dead opening usually means the post should fail unless the rest recovers hard.
 
 **Compression gate:** Vibe does not perform corpus-overlap search; that belongs to Librarian. Vibe does ask whether the article is internally loose. If 25–40% of prose could be deleted without losing meaningful information, cap `vibe` at 7. If a section mostly restates earlier sections with different packaging, cap `vibe` at 6 even when facts are correct.
 
@@ -388,8 +401,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 | Score | Description |
 |-------|-------------|
-| 10 | 情緒起伏明確，每個 section 節奏不同，結尾 callback 開頭，讀完有「靠，這句要記住」的感覺 |
-| 9 | 有起伏有節奏，結尾有收 punch，個別段落可再加強 |
+| 10 | 情緒起伏明確，每個 section 節奏不同，結尾停在材料完成後最有力的自然停點；若有 callback 或 punch，必須是 earned payoff 而非固定模板 |
+| 9 | 有起伏有節奏，結尾收得準確有餘韻，沒有重複解釋或強行升華；個別段落可再加強 |
 | 8 | 有變化但某些段落回到 explain → bullets → MoguNote 的 template 節奏 |
 | 6 | 線性結構（介紹 → 展開 → 再展開 → 結尾），沒有情緒高低點 |
 | 4 | GP-158 level — 骨架是報告，表面裝飾改不了結構問題 |
@@ -398,6 +411,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Key test:** Strip analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
+
+**Ending deletion test:** Delete the final one or two paragraphs mentally. If the post becomes stronger or loses no supported insight, the original ending is over-explaining. A callback, question, challenge, or one-liner is optional and earns credit only when it changes the meaning of earlier material without crossing the source boundary.
 
 **GP-158 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 

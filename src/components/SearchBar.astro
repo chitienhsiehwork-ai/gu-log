@@ -110,9 +110,9 @@ const t = i18n[lang];
 </div>
 
 <script>
-  import Fuse from 'fuse.js';
-  import type { FuseResultMatch, FuseResult } from 'fuse.js';
+  import type { default as Fuse, FuseResultMatch } from 'fuse.js';
   import { fuseOptions, type SearchEntry } from '../config/fuse-options';
+  import { rankSearchResults } from '../lib/search-ranking';
 
   // Read config from data attributes (avoids define:vars which blocks module imports)
   const modal = document.querySelector('[data-search-modal]') as HTMLElement | null;
@@ -137,6 +137,8 @@ const t = i18n[lang];
   let selectedIndex = -1;
   let previouslyFocused: HTMLElement | null = null;
   let searchSession = 0;
+  let previousBodyOverflow = '';
+  const inertedBySearch = new Set<Element>();
 
   // Teleport modal to body level so inert can be applied to all other body children
   if (modal) document.body.appendChild(modal);
@@ -144,12 +146,15 @@ const t = i18n[lang];
   // Fetch locale-specific index on first keystroke (lazy)
   async function loadSearchIndex(session: number) {
     try {
-      const res = await fetch(`/search-index.${currentLang}.json`);
+      const [{ default: FuseConstructor }, res] = await Promise.all([
+        import('fuse.js/basic'),
+        fetch(`/search-index.${currentLang}.json`),
+      ]);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const posts: SearchEntry[] = await res.json();
       if (session !== searchSession) return;
       searchIndex = posts;
-      fuse = new Fuse(searchIndex, fuseOptions);
+      fuse = new FuseConstructor(searchIndex, fuseOptions);
     } catch (e) {
       if (session !== searchSession) return;
       console.error('Failed to load search index:', e);
@@ -183,10 +188,13 @@ const t = i18n[lang];
     const session = searchSession;
     previouslyFocused = document.activeElement as HTMLElement | null;
     modal?.setAttribute('aria-hidden', 'false');
+    previousBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     // Set inert on all body children except the modal overlay
     Array.from(document.body.children).forEach((el) => {
-      if (el !== modal) (el as HTMLElement).setAttribute('inert', '');
+      if (el === modal || el.hasAttribute('inert')) return;
+      el.setAttribute('inert', '');
+      inertedBySearch.add(el);
     });
     setTimeout(() => {
       if (session === searchSession && isModalOpen()) input?.focus();
@@ -201,11 +209,12 @@ const t = i18n[lang];
     }
     if (!searchIndex) loadPromise = null;
     modal?.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    // Remove inert from all body children
-    Array.from(document.body.children).forEach((el) => {
-      (el as HTMLElement).removeAttribute('inert');
+    document.body.style.overflow = previousBodyOverflow;
+    // Only remove inert that this search session owns.
+    inertedBySearch.forEach((el) => {
+      el.removeAttribute('inert');
     });
+    inertedBySearch.clear();
     if (input) input.value = '';
     if (results) results.innerHTML = '';
     selectedIndex = -1;
@@ -218,6 +227,12 @@ const t = i18n[lang];
     } else {
       openSearch();
     }
+  }
+
+  function restorePreviousFocus() {
+    const focusTarget =
+      previouslyFocused && previouslyFocused !== document.body ? previouslyFocused : trigger;
+    focusTarget?.focus();
   }
 
   // Escape HTML to prevent XSS
@@ -271,20 +286,13 @@ const t = i18n[lang];
     }
     if (!searchIndex) return;
 
-    let allMatches: FuseResult<SearchEntry>[];
-
-    // Special-case: ticket ID prefix search (SD, GP, MP, Lv) — exact prefix match
-    const isTicketPrefix = /^(sd|gp|mp|lv)[-\s]?\d*/i.test(trimmed);
-    if (isTicketPrefix) {
-      const lower = trimmed.toLowerCase();
-      const ticketMatches = searchIndex
-        .filter((p) => p.ticketId && p.ticketId.toLowerCase().startsWith(lower))
-        .map((item) => ({ item, matches: [] as FuseResultMatch[], refIndex: 0, score: 0 }));
-
-      allMatches = ticketMatches.length > 0 ? ticketMatches : (fuse?.search(trimmed) ?? []);
-    } else {
-      allMatches = fuse?.search(trimmed) ?? [];
-    }
+    const ranked = rankSearchResults({
+      query: trimmed,
+      searchIndex,
+      fuzzyResults: fuse?.search(trimmed) ?? [],
+      maxResults,
+    });
+    const allMatches = ranked.results;
 
     if (allMatches.length === 0) {
       results.innerHTML = `<div class="search-no-results">${noResultsText}</div>`;
@@ -294,8 +302,8 @@ const t = i18n[lang];
 
     // Cap the rendered list (panel scrolls); surface the full count above so
     // broad terms that match more than maxResults don't silently hide posts.
-    const total = allMatches.length;
-    const matches = allMatches.slice(0, maxResults);
+    const total = ranked.total;
+    const matches = allMatches;
     const countTpl = total > matches.length ? countCappedTpl : countAllTpl;
     const countText = countTpl
       .replace('{total}', String(total))
@@ -360,7 +368,7 @@ const t = i18n[lang];
   modal?.addEventListener('click', (e) => {
     if (e.target === modal) {
       closeSearch();
-      (previouslyFocused || trigger)?.focus();
+      restorePreviousFocus();
     }
   });
 
@@ -427,7 +435,7 @@ const t = i18n[lang];
     if (e.key === 'Escape') {
       e.preventDefault();
       closeSearch();
-      (previouslyFocused || trigger)?.focus();
+      restorePreviousFocus();
       return;
     }
 

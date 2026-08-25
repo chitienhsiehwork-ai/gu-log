@@ -34,34 +34,74 @@ const labels = {
 const t = labels[lang];
 const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 
-// Compute tag-overlap score for all other posts in same lang
-const scored = allPosts
-  .filter((p) => p.id !== currentSlug && !p.data.series)
-  .map((p) => {
-    const overlap = (p.data.tags ?? []).filter((tag) => currentTags.includes(tag)).length;
-    return { post: p, overlap };
-  })
-  .filter((s) => s.overlap > 0)
-  .sort((a, b) => {
-    if (b.overlap !== a.overlap) return b.overlap - a.overlap;
-    // Tiebreak: newest first
-    return (
-      new Date(b.post.data.originalDate).getTime() - new Date(a.post.data.originalDate).getTime()
-    );
-  })
-  .slice(0, 3);
+interface ScoredPost {
+  post: Post;
+  overlap: number;
+}
 
-// If no tag overlap, fallback to 3 most recent posts
-const related =
-  scored.length > 0
-    ? scored.map((s) => s.post)
-    : allPosts
-        .filter((p) => p.id !== currentSlug && !p.data.series)
-        .sort(
-          (a, b) =>
-            new Date(b.data.originalDate).getTime() - new Date(a.data.originalDate).getTime()
-        )
-        .slice(0, 3);
+function compareScoredPosts(a: ScoredPost, b: ScoredPost): number {
+  if (b.overlap !== a.overlap) return b.overlap - a.overlap;
+
+  // Tiebreak: newest first
+  return (
+    new Date(b.post.data.originalDate).getTime() - new Date(a.post.data.originalDate).getTime()
+  );
+}
+
+function insertTopThree(top: ScoredPost[], candidate: ScoredPost): void {
+  const worst = top[2];
+  if (worst && compareScoredPosts(candidate, worst) >= 0) return;
+
+  const insertionIndex = top.findIndex((existing) => compareScoredPosts(candidate, existing) < 0);
+  if (insertionIndex === -1) {
+    top.push(candidate);
+  } else {
+    top.splice(insertionIndex, 0, candidate);
+  }
+
+  if (top.length > 3) top.pop();
+}
+
+// Keep only the best three candidates while scanning. Until the first positive
+// overlap appears, the same bounded list doubles as the newest-post fallback.
+let foundOverlap = false;
+let requiresStableSortFallback = false;
+let selected: ScoredPost[] = [];
+
+for (const post of allPosts) {
+  if (post.id === currentSlug || post.data.series) continue;
+
+  if (Number.isNaN(new Date(post.data.originalDate).getTime())) {
+    requiresStableSortFallback = true;
+    break;
+  }
+
+  const overlap = (post.data.tags ?? []).filter((tag) => currentTags.includes(tag)).length;
+  if (overlap > 0) {
+    if (!foundOverlap) {
+      foundOverlap = true;
+      selected = [];
+    }
+    insertTopThree(selected, { post, overlap });
+  } else if (!foundOverlap) {
+    insertTopThree(selected, { post, overlap });
+  }
+}
+
+// Invalid dates made the legacy comparator non-transitive. Preserve Array#sort's
+// exact stable behavior for that rare input instead of approximating it.
+if (requiresStableSortFallback) {
+  const eligible = allPosts
+    .filter((post) => post.id !== currentSlug && !post.data.series)
+    .map((post) => ({
+      post,
+      overlap: (post.data.tags ?? []).filter((tag) => currentTags.includes(tag)).length,
+    }));
+  const overlapping = eligible.filter(({ overlap }) => overlap > 0);
+  selected = (overlapping.length > 0 ? overlapping : eligible).sort(compareScoredPosts).slice(0, 3);
+}
+
+const related = selected.map(({ post }) => post);
 ---
 
 {
@@ -101,7 +141,7 @@ const related =
 }
 
 <script>
-  import { isRead } from '../lib/reading-tracker';
+  import { getReadSlugs } from '../lib/reading-tracker';
 
   function initRelatedArticles() {
     const section = document.querySelector<HTMLElement>('[data-related-articles]');
@@ -111,12 +151,13 @@ const related =
     if (!list) return;
 
     const items = Array.from(list.querySelectorAll<HTMLElement>('li.related-card'));
+    const readSlugs = new Set(getReadSlugs());
 
     // Update read indicators
     items.forEach((li) => {
       const indicator = li.querySelector<HTMLElement>('[data-read-indicator]');
       const slug = li.dataset.slug ?? '';
-      const read = isRead(slug);
+      const read = readSlugs.has(slug);
       if (indicator) {
         indicator.classList.toggle('is-read', read);
         indicator.title = read ? 'Read' : 'Unread';
@@ -132,13 +173,26 @@ const related =
 
     // Listen for external read-status changes (from ReadStatusButton)
     window.addEventListener('read-status-changed', (e: Event) => {
-      const detail = (e as CustomEvent<{ slug: string; read: boolean }>).detail;
-      const indicator = section.querySelector<HTMLElement>(
-        `[data-read-indicator][data-slug="${detail.slug}"]`
-      );
+      const detail = (e as CustomEvent<unknown>).detail;
+      if (typeof detail !== 'object' || detail === null) {
+        return;
+      }
+      let slug: unknown;
+      let read: unknown;
+      try {
+        slug = Reflect.get(detail, 'slug');
+        read = Reflect.get(detail, 'read');
+      } catch {
+        return;
+      }
+      if (typeof slug !== 'string' || typeof read !== 'boolean') return;
+
+      const indicator = Array.from(
+        section.querySelectorAll<HTMLElement>('[data-read-indicator][data-slug]')
+      ).find((candidate) => candidate.dataset.slug === slug);
       if (indicator) {
-        indicator.classList.toggle('is-read', detail.read);
-        indicator.title = detail.read ? 'Read' : 'Unread';
+        indicator.classList.toggle('is-read', read);
+        indicator.title = read ? 'Read' : 'Unread';
       }
     });
   }

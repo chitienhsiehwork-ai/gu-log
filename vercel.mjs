@@ -29,6 +29,13 @@ const MANIFEST_PATH = path.join(ROOT, 'quality/brand-taxonomy-post-migration.jso
 export const ROUTE_BUDGET = 2048;
 
 const SUPPORTED_LANGS = new Set(['zh-tw', 'en']);
+const HISTORICAL_TICKET_SERIES = new Set(['SP', 'CP', 'GP', 'MP']);
+const CANONICAL_TICKET_SERIES = new Set(['GP', 'MP']);
+const LEGACY_FILENAME_PREFIXES = new Map([
+  ['SP', ['shroom-picks-', 'shroomdog-picks-']],
+  ['CP', ['clawd-picks-']],
+]);
+const TICKET_ID = /^([A-Z]+)-([1-9]\d*)$/;
 const SAFE_SLUG = /^[A-Za-z0-9][A-Za-z0-9-]*$/;
 const SECURITY_HEADERS = Object.freeze([
   {
@@ -36,6 +43,7 @@ const SECURITY_HEADERS = Object.freeze([
     headers: [
       { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
       { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
     ],
   },
 ]);
@@ -101,10 +109,26 @@ function articlePath(lang, slug) {
   return lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`;
 }
 
-/** Accumulates redirects while failing closed on self-loops and collisions. */
+/**
+ * One exact Vercel path pattern covers the two pathname forms Vercel serves
+ * for an existing article when trailingSlash is unset. Slugs are validated
+ * before interpolation so pattern metacharacters cannot enter the source.
+ */
+export function articleRedirectSource(lang, slug) {
+  if (!SUPPORTED_LANGS.has(lang)) {
+    throw new RedirectConfigError(`unsupported article redirect language: ${JSON.stringify(lang)}`);
+  }
+  assertSafeSlug('article redirect slug', slug);
+  return `${articlePath(lang, slug)}{/}?`;
+}
+
+/**
+ * Accumulates redirects while failing closed on self-loops and source
+ * collisions. Multiple historical aliases may intentionally converge on the
+ * same canonical article.
+ */
 function createRedirectRegistry() {
   const seenSources = new Set();
-  const seenDestinations = new Set();
   const redirects = [];
   return {
     add(source, destination) {
@@ -114,11 +138,7 @@ function createRedirectRegistry() {
       if (seenSources.has(source)) {
         throw new RedirectConfigError(`duplicate redirect source: ${source}`);
       }
-      if (seenDestinations.has(destination)) {
-        throw new RedirectConfigError(`duplicate redirect destination: ${destination}`);
-      }
       seenSources.add(source);
-      seenDestinations.add(destination);
       redirects.push({ source, destination, permanent: true });
     },
     redirects,
@@ -149,6 +169,84 @@ function assertSlugMatchesFilename(label, filenameLabel, filename, slugLabel, sl
   }
 }
 
+function parseTicketId(label, value, allowedSeries) {
+  if (typeof value !== 'string') {
+    throw new RedirectConfigError(`${label} must be a string`);
+  }
+  const match = TICKET_ID.exec(value);
+  if (!match || !allowedSeries.has(match[1])) {
+    throw new RedirectConfigError(`${label} must use a supported series and positive number`);
+  }
+  return { series: match[1], number: match[2] };
+}
+
+function assertTicketMatchesFilename(
+  label,
+  ticketLabel,
+  ticketId,
+  filenameLabel,
+  filename,
+  lang,
+  allowedSeries,
+  allowLegacyBrandPrefix = false
+) {
+  const { series, number } = parseTicketId(`${label}.${ticketLabel}`, ticketId, allowedSeries);
+  const languagePrefix = lang === 'en' ? 'en-' : '';
+  const normalizedFilename = filename.toLowerCase();
+  if (!normalizedFilename.startsWith(languagePrefix)) {
+    throw new RedirectConfigError(`${label}.${filenameLabel} must match ${ticketLabel} lang`);
+  }
+  const localizedFilename = normalizedFilename.slice(languagePrefix.length);
+  if (localizedFilename.startsWith(`${series.toLowerCase()}-${number}-`)) {
+    return;
+  }
+  if (
+    allowLegacyBrandPrefix &&
+    (LEGACY_FILENAME_PREFIXES.get(series) ?? []).some((prefix) =>
+      localizedFilename.startsWith(prefix)
+    )
+  ) {
+    return;
+  }
+  throw new RedirectConfigError(
+    `${label}.${filenameLabel} must match ${ticketLabel} prefix/number and lang`
+  );
+}
+
+export function deriveManifestCounts(entries) {
+  const languagesByTicket = new Map();
+  for (const entry of entries) {
+    const languages = languagesByTicket.get(entry.oldTicketId) ?? new Set();
+    languages.add(entry.lang);
+    languagesByTicket.set(entry.oldTicketId, languages);
+  }
+
+  let complete = 0;
+  for (const languages of languagesByTicket.values()) {
+    if ([...SUPPORTED_LANGS].every((lang) => languages.has(lang))) complete += 1;
+  }
+
+  return {
+    files: entries.length,
+    tickets: languagesByTicket.size,
+    complete,
+    incomplete: languagesByTicket.size - complete,
+  };
+}
+
+function assertManifestCounts(declaredCounts, derivedCounts) {
+  if (!declaredCounts || typeof declaredCounts !== 'object') {
+    throw new RedirectConfigError('manifest.counts must be an object');
+  }
+  for (const field of ['files', 'tickets', 'complete', 'incomplete']) {
+    if (declaredCounts[field] !== derivedCounts[field]) {
+      throw new RedirectConfigError(
+        `manifest.counts.${field} (${declaredCounts[field]}) does not match derived ${field} (${derivedCounts[field]})`
+      );
+    }
+  }
+}
+
 /**
  * Builds the Vercel redirects array from a parsed migration manifest.
  * Pure function (no filesystem access) so tests can exercise fail-closed
@@ -164,12 +262,6 @@ export function buildRedirectConfig(manifest) {
   const entries = manifest.entries;
   if (!Array.isArray(entries) || entries.length === 0) {
     throw new RedirectConfigError('manifest.entries must be a non-empty array');
-  }
-  const declaredCount = manifest.counts?.files;
-  if (declaredCount !== entries.length) {
-    throw new RedirectConfigError(
-      `manifest.counts.files (${declaredCount}) does not match entries.length (${entries.length})`
-    );
   }
 
   const registry = createRedirectRegistry();
@@ -200,8 +292,49 @@ export function buildRedirectConfig(manifest) {
       entry.newSlug,
       'content'
     );
-    registry.add(articlePath(entry.lang, entry.oldSlug), articlePath(entry.lang, entry.newSlug));
+    parseTicketId(`${label}.oldTicketId`, entry.oldTicketId, HISTORICAL_TICKET_SERIES);
+    let routeTicketLabel = 'oldTicketId';
+    let routeTicketId = entry.oldTicketId;
+    let allowLegacyBrandPrefix = true;
+    if (entry.oldRouteTicketId !== undefined) {
+      parseTicketId(`${label}.oldRouteTicketId`, entry.oldRouteTicketId, HISTORICAL_TICKET_SERIES);
+      if (entry.oldRouteTicketId === entry.oldTicketId) {
+        throw new RedirectConfigError(
+          `${label}.oldRouteTicketId must differ from oldTicketId when present`
+        );
+      }
+      routeTicketLabel = 'oldRouteTicketId';
+      routeTicketId = entry.oldRouteTicketId;
+      allowLegacyBrandPrefix = false;
+    }
+    assertTicketMatchesFilename(
+      label,
+      routeTicketLabel,
+      routeTicketId,
+      'oldFilename',
+      entry.oldFilename,
+      entry.lang,
+      HISTORICAL_TICKET_SERIES,
+      allowLegacyBrandPrefix
+    );
+    assertTicketMatchesFilename(
+      label,
+      'newTicketId',
+      entry.newTicketId,
+      'newFilename',
+      entry.newFilename,
+      entry.lang,
+      CANONICAL_TICKET_SERIES
+    );
+    const oldPath = articlePath(entry.lang, entry.oldSlug);
+    const newPath = articlePath(entry.lang, entry.newSlug);
+    if (oldPath === newPath) {
+      throw new RedirectConfigError(`redirect self-loop: ${oldPath}`);
+    }
+    registry.add(articleRedirectSource(entry.lang, entry.oldSlug), newPath);
   });
+
+  assertManifestCounts(manifest.counts, deriveManifestCounts(entries));
 
   for (const { oldBase, newBase } of LISTING_SERIES) {
     for (const prefix of LANG_PREFIXES) {

@@ -18,26 +18,50 @@ import { resolve, relative } from 'path';
 
 // ── WCAG math ───────────────────────────────────────────────────────
 
-function hexToRgb(hex) {
-  hex = hex.replace('#', '');
-  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  return [
-    parseInt(hex.slice(0, 2), 16) / 255,
-    parseInt(hex.slice(2, 4), 16) / 255,
-    parseInt(hex.slice(4, 6), 16) / 255,
-  ];
+function hexToRgba(hex) {
+  const decodedHex = `#${hex
+    .slice(1)
+    .replace(
+      /\\([0-9a-fA-F]{1,6})(?:[ \t])?|\\([^\r\n\f0-9a-fA-F])/g,
+      (_match, codePoint, escapedCharacter) =>
+        codePoint ? String.fromCodePoint(parseInt(codePoint, 16)) : escapedCharacter
+    )}`;
+  if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(decodedHex)) {
+    throw new Error(`unsupported hex color ${hex}`);
+  }
+
+  let value = decodedHex.slice(1);
+  if (value.length === 3 || value.length === 4) {
+    value = [...value].map((digit) => digit + digit).join('');
+  }
+
+  return {
+    rgb: [
+      parseInt(value.slice(0, 2), 16) / 255,
+      parseInt(value.slice(2, 4), 16) / 255,
+      parseInt(value.slice(4, 6), 16) / 255,
+    ],
+    alpha: value.length === 8 ? parseInt(value.slice(6, 8), 16) / 255 : 1,
+  };
 }
 
-function relativeLuminance(hex) {
-  const [r, g, b] = hexToRgb(hex).map((c) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-  );
+function relativeLuminance(rgb) {
+  const [r, g, b] = rgb.map((c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 function contrastRatio(fg, bg) {
-  const l1 = relativeLuminance(fg);
-  const l2 = relativeLuminance(bg);
+  const foreground = hexToRgba(fg);
+  const background = hexToRgba(bg);
+  if (background.alpha !== 1) {
+    throw new Error(`background ${bg} must be opaque because its underlay is unknown`);
+  }
+
+  const compositedForeground = foreground.rgb.map(
+    (channel, index) => channel * foreground.alpha + background.rgb[index] * (1 - foreground.alpha)
+  );
+  const l1 = relativeLuminance(compositedForeground);
+  const l2 = relativeLuminance(background.rgb);
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
@@ -128,6 +152,40 @@ const MANIFEST = [
     file: 'src/components/TableOfContents.astro',
     name: 'light-active-toc-on-surface',
   },
+  ...['dark', 'light'].flatMap((theme) => [
+    {
+      fgVar: '--color-post-link-internal',
+      bgVar: '--color-bg',
+      theme,
+      context: `${theme} internal post link on --color-bg`,
+      file: 'src/styles/global.css',
+      name: `${theme}-post-link-internal-on-bg`,
+    },
+    {
+      fgVar: '--color-post-link-external',
+      bgVar: '--color-bg',
+      theme,
+      context: `${theme} external post link on --color-bg`,
+      file: 'src/styles/global.css',
+      name: `${theme}-post-link-external-on-bg`,
+    },
+    {
+      fgVar: '--color-post-link-internal-surface',
+      bgVar: '--color-surface',
+      theme,
+      context: `${theme} internal post link on --color-surface`,
+      file: 'src/styles/global.css',
+      name: `${theme}-post-link-internal-on-surface`,
+    },
+    {
+      fgVar: '--color-post-link-external-surface',
+      bgVar: '--color-surface',
+      theme,
+      context: `${theme} external post link on --color-surface`,
+      file: 'src/styles/global.css',
+      name: `${theme}-post-link-external-on-surface`,
+    },
+  ]),
   {
     fgVar: '--color-accent',
     bgVar: '--color-surface',
@@ -154,13 +212,25 @@ const NAMED_PAIR_MINIMUMS = {
   'dark-active-toc-on-surface': 5.5,
   'light-active-toc-on-surface': 5.5,
   'light-mogu-prefix-on-surface': 5.5,
+  'dark-post-link-internal-on-bg': 5,
+  'dark-post-link-external-on-bg': 5,
+  'dark-post-link-internal-on-surface': 5,
+  'dark-post-link-external-on-surface': 5,
+  'light-post-link-internal-on-bg': 5,
+  'light-post-link-external-on-bg': 5,
+  'light-post-link-internal-on-surface': 5,
+  'light-post-link-external-on-surface': 5,
   'dark-toc-focus-on-surface': 3,
   'light-toc-focus-on-surface': 3,
 };
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
 
-const COLOR_ON_BG_RE = /color:\s*(#[0-9a-fA-F]{3,8});\s*\/\*.*?on\s+(#[0-9a-fA-F]{3,8})/g;
+const HEX_COLOR_PATTERN = String.raw`#(?:[A-Za-z0-9_-]|\\(?:[0-9a-fA-F]{1,6}[ \t]?|[^\r\n\f0-9a-fA-F]))+`;
+const COLOR_ON_BG_RE = new RegExp(
+  `color:\\s*(${HEX_COLOR_PATTERN});\\s*\\/\\*.*?on\\s+(${HEX_COLOR_PATTERN})`,
+  'g'
+);
 
 function scanFile(filePath) {
   const pairs = [];
@@ -267,12 +337,22 @@ let checked = 0;
 for (const pair of allPairs) {
   checked++;
   const minimum = (pair.name && NAMED_PAIR_MINIMUMS[pair.name]) || THRESHOLD;
-  const ratio = contrastRatio(pair.fg, pair.bg);
-  const pass = ratio >= minimum;
   const relFile = relative(repoRoot, pair.file);
   const loc = pair.line ? `${relFile}:${pair.line}` : relFile;
+  let ratio;
 
-  if (!pass) {
+  try {
+    ratio = contrastRatio(pair.fg, pair.bg);
+  } catch (error) {
+    failures++;
+    console.error(`❌ FAIL  ${pair.fg} on ${pair.bg} → ${error.message}  ${loc}`);
+    if (pair.context) {
+      console.error(`         ${pair.context}`);
+    }
+    continue;
+  }
+
+  if (ratio < minimum) {
     failures++;
     console.error(
       `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${minimum}:1)  ${loc}`

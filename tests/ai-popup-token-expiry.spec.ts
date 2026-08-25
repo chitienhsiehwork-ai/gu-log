@@ -3,6 +3,16 @@ import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-p
 
 const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
 
+const malformedTokens = [
+  'not-a-jwt',
+  `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(
+    JSON.stringify([])
+  ).toString('base64url')}.fake-signature`,
+  `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(
+    JSON.stringify({ email: 'test@example.com', exp: 'tomorrow' })
+  ).toString('base64url')}.fake-signature`,
+];
+
 async function setupLoggedIn(
   page: import('@playwright/test').Page,
   mode: 'valid' | 'expired' = 'valid'
@@ -35,6 +45,21 @@ test.describe('AI Popup - Token Expiry', () => {
     await expect(popup.locator('[data-action="login"]')).toBeVisible();
     await expect(popup.locator('[data-action="ask"]')).not.toBeVisible();
     await expect(popup.locator('[data-action="edit"]')).not.toBeVisible();
+  });
+
+  test('GIVEN malformed JWT variants WHEN text selected THEN fails closed to Login', async ({
+    page,
+  }) => {
+    for (const token of malformedTokens) {
+      await page.goto(TEST_POST);
+      await page.evaluate((value) => localStorage.setItem('gu-log-jwt', value), token);
+      await page.reload();
+
+      const popup = await selectAndShowPopup(page);
+      await expect(popup.locator('[data-action="login"]')).toBeVisible();
+      await expect(popup.locator('[data-action="ask"]')).not.toBeVisible();
+      await expect(popup.locator('[data-action="edit"]')).not.toBeVisible();
+    }
   });
 
   test('GIVEN expired JWT WHEN somehow reaching edit submit THEN redirects to login', async ({

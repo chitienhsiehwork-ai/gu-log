@@ -135,7 +135,11 @@ const t = i18n[lang];
     if (!container) return;
 
     const title = container.getAttribute('data-title') || document.title;
-    const url = window.location.href;
+    const canonicalHref = document.querySelector<HTMLLinkElement>('link[rel~="canonical"]')?.href;
+    const shareUrl = new URL(canonicalHref ?? window.location.href);
+    shareUrl.search = '';
+    shareUrl.hash = '';
+    const url = shareUrl.href;
     const copyText = container.getAttribute('data-copy-text') || 'Copy link';
     const copiedText = container.getAttribute('data-copied-text') || 'Copied!';
 
@@ -203,26 +207,40 @@ const t = i18n[lang];
     // Copy link button
     const copyBtn = container.querySelector('.share-copy') as HTMLButtonElement;
     if (copyBtn) {
+      let copyResetTimer: ReturnType<typeof setTimeout> | undefined;
+
       copyBtn.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(url);
           record('copy_link', 'completed');
           const span = copyBtn.querySelector('.copy-text');
           if (span) {
+            if (copyResetTimer !== undefined) {
+              clearTimeout(copyResetTimer);
+            }
             span.textContent = copiedText;
-            setTimeout(() => {
+            copyResetTimer = setTimeout(() => {
               span.textContent = copyText;
+              copyResetTimer = undefined;
             }, 2000);
           }
         } catch (_e) {
           // Fallback
           const input = document.createElement('input');
-          input.value = url;
-          document.body.appendChild(input);
-          input.select();
-          document.execCommand('copy');
-          document.body.removeChild(input);
-          record('copy_link', 'attempted');
+          let fallbackCopied = false;
+
+          try {
+            input.value = url;
+            document.body.appendChild(input);
+            input.select();
+            fallbackCopied = document.execCommand('copy');
+          } catch {
+            fallbackCopied = false;
+          } finally {
+            input.remove();
+          }
+
+          record('copy_link', fallbackCopied ? 'attempted' : 'failed');
         }
       });
     }

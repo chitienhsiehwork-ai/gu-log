@@ -25,14 +25,21 @@ var pendingArticlePattern = regexp.MustCompile(`^(?:en-)?(?:gp|mp|sd|lv)-pending
 var tribunalStageOrder = []string{"factChecker", "librarian", "freshEyes", "vibe"}
 
 var artifactFiles = map[string]string{
-	"source":         "source-tweet.md",
-	"evalPrimary":    "eval-codex-primary.json",
-	"evalSecondary":  "eval-codex.json",
-	"draft":          "draft-v1.mdx",
-	"review":         "review.md",
-	"final":          "final.mdx",
-	"tribunalStdout": "tribunal-stdout.txt",
-	"status":         StatusFileName,
+	"source":                  "source-tweet.md",
+	"evalPrimary":             "eval-codex-primary.json",
+	"evalSecondary":           "eval-codex.json",
+	"draft":                   "draft-v1.mdx",
+	"sourceTranslation":       "source-translation.mdx",
+	"sourceTranslateArtifact": "source-translate.json",
+	"review":                  "review.md",
+	"sourceReview":            "source-review.json",
+	"vibeGate":                "vibe-gate.json",
+	"corrector":               "corrector.json",
+	"commentary":              "commentary-candidates.json",
+	"gpPublishGate":           "gp-publish-gate.json",
+	"final":                   "final.mdx",
+	"tribunalStdout":          "tribunal-stdout.txt",
+	"status":                  StatusFileName,
 }
 
 type Artifact struct {

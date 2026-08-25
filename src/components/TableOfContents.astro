@@ -9,6 +9,8 @@
  * - Only shows if 2+ headings exist
  */
 
+import tocRuntimeUrl from './table-of-contents-client.js?url&no-inline';
+
 interface Heading {
   depth: number;
   slug: string;
@@ -47,11 +49,16 @@ const t = labels[lang];
       {/* Mobile Toggle Version */}
       <div class="toc-mobile">
         <div class="toc-toggle-container" data-open="false">
-          <button class="toc-toggle-header" aria-expanded="false">
+          <button
+            class="toc-toggle-header"
+            type="button"
+            aria-expanded="false"
+            aria-controls="toc-mobile-content"
+          >
             <span class="toc-toggle-icon" />
             <span class="toc-toggle-title">{t.title}</span>
           </button>
-          <div class="toc-toggle-wrapper">
+          <div id="toc-mobile-content" class="toc-toggle-wrapper" inert>
             <div class="toc-toggle-inner">
               <nav class="toc-content">
                 {tocHeadings.map((heading) => (
@@ -90,181 +97,7 @@ const t = labels[lang];
   )
 }
 
-<script>
-  let cleanupScrollHighlight: (() => void) | undefined;
-
-  function initTableOfContents() {
-    const tocContainer = document.querySelector('.toc-container');
-    if (!tocContainer) return;
-
-    // Get all heading IDs from TOC links
-    const tocLinks = Array.from(document.querySelectorAll('.toc-link'));
-    const headingIds = tocLinks.map((link) => link.getAttribute('data-heading-id')).filter(Boolean);
-    const headings = headingIds
-      .map((id) => document.getElementById(id!))
-      .filter(Boolean) as HTMLElement[];
-
-    if (headings.length === 0) return;
-
-    // Set up scroll highlighting
-    cleanupScrollHighlight?.();
-    cleanupScrollHighlight = setupScrollHighlight(tocContainer, headings);
-
-    // Set up smooth scrolling
-    setupSmoothScroll();
-
-    // Note: Mobile toggle is handled by Toggle component's event delegation
-  }
-
-  function setupScrollHighlight(tocContainer: Element, headings: HTMLElement[]) {
-    const desktopToc = tocContainer.querySelector('.toc-desktop') as HTMLElement | null;
-    const postHeader = document.querySelector('.post-header') as HTMLElement | null;
-    let animationFrameId = 0;
-
-    function setDesktopTocVisibility(visible: boolean) {
-      if (!desktopToc) return;
-
-      desktopToc.dataset.visible = visible.toString();
-      desktopToc.setAttribute('aria-hidden', (!visible).toString());
-      desktopToc.toggleAttribute('inert', !visible);
-    }
-
-    function updateViewportState() {
-      if (desktopToc && postHeader) {
-        const desktopTocStyle = getComputedStyle(desktopToc);
-        const tocTop = Number.parseFloat(desktopTocStyle.top);
-        const headerHasPassedToc = postHeader.getBoundingClientRect().bottom <= tocTop;
-        setDesktopTocVisibility(desktopTocStyle.display !== 'none' && headerHasPassedToc);
-      } else {
-        setDesktopTocVisibility(false);
-      }
-
-      const scrollPos = window.scrollY + 100;
-
-      let currentHeading = headings[0];
-      for (const heading of headings) {
-        const offsetTop = heading.getBoundingClientRect().top + window.scrollY;
-        if (offsetTop <= scrollPos) {
-          currentHeading = heading;
-        } else {
-          break;
-        }
-      }
-
-      document.querySelectorAll('.toc-link').forEach((link) => {
-        link.classList.remove('active');
-      });
-
-      if (currentHeading?.id) {
-        document.querySelectorAll(`[data-heading-id="${currentHeading.id}"]`).forEach((link) => {
-          link.classList.add('active');
-        });
-      }
-
-      animationFrameId = 0;
-    }
-
-    function scheduleViewportUpdate() {
-      if (animationFrameId !== 0) return;
-      animationFrameId = requestAnimationFrame(updateViewportState);
-    }
-
-    window.addEventListener('scroll', scheduleViewportUpdate, { passive: true });
-    window.addEventListener('pageshow', scheduleViewportUpdate);
-    window.addEventListener('hashchange', scheduleViewportUpdate);
-    window.addEventListener('resize', scheduleViewportUpdate);
-
-    const headerResizeObserver = new ResizeObserver(scheduleViewportUpdate);
-    if (postHeader) {
-      headerResizeObserver.observe(postHeader);
-    }
-
-    scheduleViewportUpdate();
-
-    return () => {
-      window.removeEventListener('scroll', scheduleViewportUpdate);
-      window.removeEventListener('pageshow', scheduleViewportUpdate);
-      window.removeEventListener('hashchange', scheduleViewportUpdate);
-      window.removeEventListener('resize', scheduleViewportUpdate);
-      headerResizeObserver.disconnect();
-      if (animationFrameId !== 0) {
-        cancelAnimationFrame(animationFrameId);
-      }
-    };
-  }
-
-  function setupSmoothScroll() {
-    const SCROLL_OFFSET = 80; // px offset from top to account for reading progress bar etc.
-    const TOC_COLLAPSE_DURATION = 400; // ms — CSS transition is 300ms cubic-bezier + 100ms buffer
-
-    document.querySelectorAll('.toc-link').forEach((link) => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const href = (e.currentTarget as HTMLElement)?.getAttribute('href');
-        if (!href) return;
-
-        const targetId = href.replace('#', '');
-        const target = document.getElementById(targetId);
-
-        if (target) {
-          // CRITICAL: Close mobile TOC FIRST, then scroll AFTER collapse animation.
-          // Bug: if we calculate scroll position while TOC is open (~683px tall),
-          // then TOC collapses and page shrinks, the scroll target is off by the TOC height.
-          const mobileContainer = document.querySelector('.toc-mobile .toc-toggle-container');
-          const isMobileOpen =
-            window.innerWidth < 1280 && mobileContainer?.getAttribute('data-open') === 'true';
-
-          if (isMobileOpen) {
-            // Close TOC first
-            mobileContainer!.setAttribute('data-open', 'false');
-            mobileContainer!
-              .querySelector('.toc-toggle-header')
-              ?.setAttribute('aria-expanded', 'false');
-
-            // Wait for collapse animation to finish, THEN calculate position and scroll.
-            // Use 'instant' on mobile: smooth scroll on very long pages often undershoots
-            // because the browser caps the animation duration, leaving you 1-2 screens off.
-            setTimeout(() => {
-              const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
-              window.scrollTo({ top: targetTop, behavior: 'instant' });
-            }, TOC_COLLAPSE_DURATION);
-          } else {
-            // Desktop or TOC already closed — smooth scroll is fine here
-            const targetTop = target.getBoundingClientRect().top + window.scrollY - SCROLL_OFFSET;
-            window.scrollTo({ top: targetTop, behavior: 'smooth' });
-          }
-
-          history.pushState(null, '', href);
-        }
-      });
-    });
-  }
-
-  function setupMobileToggle() {
-    // Handle TOC mobile toggle click with dedicated class names (avoid Toggle component conflict)
-    const tocMobile = document.querySelector('.toc-mobile');
-    if (!tocMobile) return;
-
-    const toggleHeader = tocMobile.querySelector('.toc-toggle-header');
-    const container = tocMobile.querySelector('.toc-toggle-container');
-
-    if (!toggleHeader || !container) return;
-
-    toggleHeader.addEventListener('click', () => {
-      const isOpen = container.getAttribute('data-open') === 'true';
-      container.setAttribute('data-open', (!isOpen).toString());
-      toggleHeader.setAttribute('aria-expanded', (!isOpen).toString());
-    });
-  }
-
-  // Initialize
-  initTableOfContents();
-  setupMobileToggle();
-  document.addEventListener('astro:page-load', () => {
-    initTableOfContents();
-    setupMobileToggle();
-  });
-</script>
+<script is:inline type="module" src={tocRuntimeUrl}></script>
 
 <style>
   .toc-container {
@@ -351,6 +184,12 @@ const t = labels[lang];
     margin-inline-start: 0.75rem;
     padding: 0.35rem 0.75rem 0.7rem;
     border-inline-start: 0 solid var(--color-toc-rail);
+  }
+
+  .toc-mobile .toc-link {
+    display: flex;
+    align-items: center;
+    min-block-size: 44px;
   }
 
   .toc-mobile .toc-toggle-container[data-open='true'] .toc-content {

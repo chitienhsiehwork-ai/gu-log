@@ -23,9 +23,11 @@ You have ZERO context from the parent conversation. No bias.
 Read the post file provided in the task prompt. Pay attention to:
 - `sourceUrl` in frontmatter — this is where the original content came from
 - `source` — who wrote the original (e.g., "ShroomDog Original" or a Twitter handle)
-- `ticketId` prefix: GP/MP = translation, SD = original, Lv = tutorial
+- `ticketId` prefix: GP = source-author-voice faithful translation, MP = Mogu-authored source-grounded writing, SD = original, Lv = tutorial
 
-For GP/MP posts, if possible, fetch the `sourceUrl` to compare against the translation.
+For GP/MP posts, if possible, fetch the `sourceUrl`. Compare GP against the complete translation contract; compare MP only for retained-claim grounding, attribution, and invented material — not completeness or source order.
+
+For GP, report factual/fidelity/source-boundary problems with exact source evidence, but do not prescribe or perform a whole-body rewrite, reorder, restructure, or rebuild. Any permissible GP correction must return through gp-pipeline's approved bounded-patch contract and rerun all hard gates; Tribunal itself has no rewrite authority.
 
 ## Tribunal v5 Source Boundary Rule
 
@@ -39,6 +41,8 @@ For GP posts, the reader already sees `原文出處：` on the page and understa
 The body should present the source claim directly, preserving hedges and evidence limits without constantly narrating that it came from the source. If a source limitation must be surfaced, use smooth evidence-boundary prose such as「這組數字應視為案例自述，不是公開 benchmark」instead of「原作者說這是...」.
 
 Mogu/gu-log commentary, opinions, interpretation, jokes, or source-meta discussion belongs in `<MoguNote>`, not in GP body prose.
+
+For MP posts, Mogu owns the body voice. Mogu may stay close to the source through translation/rewrite with flavor, preserve most coverage and order, or select, omit, reorder, synthesize, disagree, infer, and rebuild from scratch. There is no minimum editorial distance: do not fail MP merely for being close to or far from the source. Close form remains Mogu-owned and does not inherit GP's complete-coverage, source-order, or source-author voice fidelity promise. Instead, verify every retained source-derived claim keeps its correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Fail false attribution or fabricated facts, quotes, numbers, causality, or citations. Fail any transfer of the source author's experience to Mogu, ShroomDog impersonation, or plausible fabricated human biography/testimony. MoguNote may honestly use first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences. MoguNote is optional for MP; absence alone must not lower any score or trigger a requested note.
 
 ## Five Verification Dimensions (each 0-10)
 
@@ -68,18 +72,20 @@ Are technical claims correct?
 
 ### 2. fidelity — Source Faithfulness
 
-For GP/MP: does the post faithfully represent the source? Hedges preserved? Caveats included?
+Apply `fidelity` by series:
+- **GP:** does the complete translation faithfully represent the source, including order, hedges, caveats, and voice ownership?
+- **MP:** do retained source-derived claims preserve claim closure and correct attribution? MP may stay close to source coverage/order or omit whole claims and rebuild; editorial distance itself is neutral.
 
 | Score | Description |
 |-------|-------------|
-| 10 | Translation perfectly faithful. All hedges preserved (might/could/seems → 可能/或許/似乎). Every caveat included. No added claims. MoguNote clearly separated. |
-| 9 | Near-perfect faithfulness. One very minor paraphrase but meaning preserved. Hedges maintained. |
-| 8 | Faithful with slight nuance loss expected from good translation. Hedges mostly preserved. | 
-| 7 | Generally faithful but 1–2 hedges converted from uncertain to certain ("might" → "is"), OR one minor caveat omitted. |
-| 5–6 | Multiple instances of uncertainty erasure. OR major caveats stripped. OR conclusions extended beyond what source supports. |
-| 3–4 | Significant departure from source interpretation. MoguNote opinions bleed into body without attribution. |
-| 1–2 | Fundamental misrepresentation of source material. Inverts source's conclusions. |
-| 0 | Completely fabricated or inverted from source. |
+| 10 | GP translation is perfectly faithful; or MP retained claims all preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence while Mogu additions are correctly owned. |
+| 9 | Near-perfect series-appropriate fidelity with one immaterial paraphrase or attribution nit. |
+| 8 | All material claims remain supported and correctly attributed; one slight nuance loss does not mislead. |
+| 7 | 1–2 hedges are strengthened, or one minor controlling condition/attribution is imprecise. |
+| 5–6 | Multiple uncertainty erasures, a controlling caveat stripped from a retained claim, or a Mogu inference attributed to the source. |
+| 3–4 | Material source claims are distorted, speaker chain is wrong, or unsupported causality is added. |
+| 1–2 | Fundamental misrepresentation or major fabricated support. |
+| 0 | Completely fabricated or inverted from source evidence. |
 
 **Key failure mode:** Source says "might/could" but translation says "is/does" (uncertainty erasure).
 
@@ -89,44 +95,44 @@ Does the argument flow logically? Conclusions supported by evidence?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Argument flows perfectly. Every conclusion supported by evidence. MoguNote opinions clearly marked as speculation/opinion. Zero internal contradictions. |
+| 10 | Argument flows perfectly. Every conclusion is supported by evidence or clearly owned inference. Zero internal contradictions. |
 | 9 | Excellent logic. Minor gap in one reasoning step but overall coherent. |
-| 8 | Good logical flow. MoguNotes mostly mark opinion vs. fact clearly. Occasional leap is minor. |
+| 8 | Good logical flow. Facts, source claims, and editorial inference are distinguishable. Occasional leap is minor. |
 | 7 | Generally consistent. Has 1 logical leap or mild contradiction that careful readers would notice. |
-| 5–6 | Noticeable logical gaps. MoguNotes blur fact/speculation without marking. |
+| 5–6 | Noticeable logical gaps. Fact and speculation blur without evidence or ownership. |
 | 3–4 | Multiple logical inconsistencies. Argument structure breaks down in 1+ sections. |
 | 1–2 | Argument is fundamentally incoherent. Reader cannot follow the logical chain. |
 | 0 | No logical structure. |
 
-### 4. sourceBoundary — GP Body Source Boundary
+### 4. sourceBoundary — Series Source Boundary
 
-Does the GP body avoid source-metadata/meta-framing while preserving source fidelity?
-
-| Score | Description |
-|-------|-------------|
-| 10 | GP body never uses 「原作者說 / 原文提到 / 這篇文章在講」 style framing; source claims flow naturally with hedges and evidence limits preserved. |
-| 9 | One minor source-meta phrase, but it does not interrupt reading flow. |
-| 8 | Mostly clean; 1–2 small meta-framing slips that are easy to fix. |
-| 7 | Several body sentences still use source-report framing as paragraph transitions. |
-| 5–6 | Frequent 「原作者說」 style scaffolding; the post reads like a source report instead of gu-log prose. |
-| 3–4 | Body repeatedly narrates the source instead of translating/explaining it. |
-| 1–2 | Source metadata dominates body structure. |
-| 0 | Body is mostly a report about the source, not a readable GP post. |
-
-### 5. commentarySeparation — Commentary Separation
-
-Are gu-log/Mogu opinions, interpretation, and source-meta commentary kept out of GP body and placed in `<MoguNote>`?
+For GP, does the body avoid source-metadata/meta-framing while preserving source fidelity? For MP, can the reader tell source-derived claims from Mogu's analysis, with claim closure intact?
 
 | Score | Description |
 |-------|-------------|
-| 10 | Body contains source-derived facts/claims only; Mogu/gu-log stance and source-meta commentary live in MoguNote. |
-| 9 | One minor interpretive aside in body, but it does not alter source meaning. |
-| 8 | Mostly separated; 1–2 body sentences should move into MoguNote. |
-| 7 | Several body opinions blur gu-log interpretation with source claims. |
-| 5–6 | Body frequently adds Mogu/gu-log stance or source-meta commentary outside MoguNote. |
-| 3–4 | Reader cannot reliably tell source claim from gu-log interpretation. |
-| 1–2 | Commentary and source claims are heavily mixed. |
-| 0 | No meaningful separation between source and commentary. |
+| 10 | GP source claims flow naturally with fidelity intact; or MP clearly distinguishes source claims from Mogu analysis and preserves complete claim closure. |
+| 9 | One minor source-meta or ownership phrase, but no claim is misleading. |
+| 8 | Mostly clean; 1–2 small boundary slips are easy to fix without changing meaning. |
+| 7 | Repeated GP source-report framing, or an MP passage leaves source-versus-Mogu ownership mildly ambiguous. |
+| 5–6 | GP is shaped as a source report, or MP repeatedly blurs attribution/controlling caveats. |
+| 3–4 | Reader cannot reliably identify who owns material claims. |
+| 1–2 | Source and editorial claims are pervasively conflated. |
+| 0 | No meaningful, truthful source boundary. |
+
+### 5. commentarySeparation — Voice Ownership
+
+For GP, are Mogu opinions kept out of body and placed in `<MoguNote>`? For MP, is Mogu allowed to own body analysis without impersonating the source author or ShroomDog? MP MoguNote is optional.
+
+| Score | Description |
+|-------|-------------|
+| 10 | GP commentary lives in MoguNote; or MP body clearly owns Mogu analysis, preserves attribution, and does not impersonate ShroomDog/source. |
+| 9 | One minor ownership ambiguity that does not alter meaning. |
+| 8 | Voice ownership is reliable with 1–2 easy-to-fix ambiguities. |
+| 7 | Several sentences mildly blur source, Mogu, or ShroomDog ownership. |
+| 5–6 | Material opinions or experiences are repeatedly assigned to the wrong voice. |
+| 3–4 | Reader cannot reliably tell source claim from Mogu interpretation. |
+| 1–2 | Voice ownership is heavily conflated. |
+| 0 | The article fabricates or impersonates its core speaker. |
 
 ## Calibration Examples
 
@@ -151,7 +157,10 @@ Are gu-log/Mogu opinions, interpretation, and source-meta commentary kept out of
 ## What is NOT a factual error
 - Style choices (kaomoji, humor, analogies)
 - Translation paraphrasing that preserves meaning
-- Opinions clearly marked as MoguNote opinions
+- GP opinions clearly marked as MoguNote opinions; MP analysis clearly owned by Mogu in body or optional note
+- MP close translation/rewrite, omission, reordering, or a Mogu-authored thesis when retained claims remain grounded
+- MoguNote first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences
+- A complete MP with no MoguNote
 - Rounding numbers if ballpark is correct
 
 ## Scoring

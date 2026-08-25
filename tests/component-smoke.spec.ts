@@ -105,6 +105,88 @@ test.describe('Component smoke — listing pages', () => {
 });
 
 test.describe('Component smoke — storage fallbacks', () => {
+  for (const route of ['/glossary', '/en/glossary']) {
+    test(`${route} does not claim copy success when Clipboard rejects`, async ({ page }) => {
+      const errs = attachConsoleErrorWatcher(page);
+      await page.addInitScript(() => {
+        let writeCalls = 0;
+        Object.defineProperty(window, '__clipboardWriteCalls', {
+          get: () => writeCalls,
+        });
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: {
+            writeText: () => {
+              writeCalls += 1;
+              return Promise.reject(new DOMException('clipboard denied', 'NotAllowedError'));
+            },
+          },
+        });
+      });
+
+      await page.goto(route);
+
+      const link = page.locator('.term-link').first();
+      await link.click();
+      await page.waitForTimeout(100);
+
+      await expect(page).toHaveURL(/#.+$/);
+      await expect(link).not.toHaveClass(/copied/);
+      expect(
+        await page.evaluate(
+          () => (window as Window & { __clipboardWriteCalls?: number }).__clipboardWriteCalls
+        )
+      ).toBe(1);
+      expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+    });
+  }
+
+  test('glossary ignores stale Clipboard success after a newer rejection', async ({ page }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      let writeCalls = 0;
+      let resolveFirstWrite: (() => void) | undefined;
+      const firstWrite = new Promise<void>((resolve) => {
+        resolveFirstWrite = resolve;
+      });
+
+      Object.defineProperty(window, '__resolveFirstClipboardWrite', {
+        value: () => resolveFirstWrite?.(),
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => {
+            writeCalls += 1;
+            return writeCalls === 1
+              ? firstWrite
+              : Promise.reject(new DOMException('clipboard denied', 'NotAllowedError'));
+          },
+        },
+      });
+    });
+
+    await page.goto('/glossary');
+
+    const link = page.locator('.term-link').first();
+    await link.click();
+    await link.click();
+    await page.waitForTimeout(100);
+    await expect(link).not.toHaveClass(/copied/);
+
+    await page.evaluate(() => {
+      (
+        window as Window & {
+          __resolveFirstClipboardWrite?: () => void;
+        }
+      ).__resolveFirstClipboardWrite?.();
+    });
+    await page.waitForTimeout(100);
+
+    await expect(link).not.toHaveClass(/copied/);
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
   test('theme toggle remains usable when theme storage is unavailable', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
     await page.addInitScript(() => {
@@ -186,6 +268,106 @@ test.describe('Component smoke — storage fallbacks', () => {
     });
     await expect.poll(() => trackerNav.evaluate((element) => element.style.display)).toBe('none');
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
+  test('reading tracker redirects home when auth storage is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/reading-tracker');
+
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    await expect(page.locator('#tracker-wrap')).toHaveCount(0);
+  });
+
+  test('post read controls stay hidden without crashing when auth storage is unavailable', async ({
+    page,
+  }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader auth storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    await expect(page.locator('article').first()).toBeVisible();
+    await expect(page.locator('[data-read-button]')).toHaveCSS('display', 'none');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
+  test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
+    page,
+  }) => {
+    const readSlug = 'gp-143-20260402-ecc-autonomous-loops';
+    const unreadSlug = 'gp-146-20260402-ecc-hook-architecture';
+
+    await page.addInitScript((preloadedSlug) => {
+      localStorage.removeItem('gu-log-jwt');
+      localStorage.setItem(
+        'gu-log-read-articles',
+        JSON.stringify({
+          version: 1,
+          slugs: [preloadedSlug],
+          lastUpdated: '2026-07-29T00:00:00.000Z',
+        })
+      );
+
+      const originalGetItem = Storage.prototype.getItem;
+      let readStoreGets = 0;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-read-articles') {
+          readStoreGets += 1;
+        }
+        return originalGetItem.call(this, key);
+      };
+      Object.defineProperty(window, '__seriesNavReadStoreGets', {
+        get: () => readStoreGets,
+      });
+    }, readSlug);
+
+    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+
+    const readIndicator = page.locator(
+      `[data-series-nav] [data-read-indicator][data-slug="${readSlug}"]`
+    );
+    const unreadIndicator = page.locator(
+      `[data-series-nav] [data-read-indicator][data-slug="${unreadSlug}"]`
+    );
+
+    await expect(readIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).not.toHaveClass(/is-read/);
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __seriesNavReadStoreGets?: number }).__seriesNavReadStoreGets
+      )
+    ).toBe(1);
+
+    await page.evaluate((slug) => {
+      window.dispatchEvent(
+        new CustomEvent('read-status-changed', { detail: { slug, read: true } })
+      );
+    }, unreadSlug);
+
+    await expect(unreadIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Read');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __seriesNavReadStoreGets?: number }).__seriesNavReadStoreGets
+      )
+    ).toBe(1);
   });
 });
 
@@ -345,6 +527,163 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     await expect(status).toContainText('留言目前無法載入');
   });
 
+  test('ignores null message payloads from the Giscus origin', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    const errors = await page.evaluate(async () => {
+      const capturedErrors: string[] = [];
+      const captureError = (event: ErrorEvent) => {
+        capturedErrors.push(event.error?.message ?? event.message);
+        event.preventDefault();
+      };
+
+      window.addEventListener('error', captureError);
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: null,
+        })
+      );
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+      window.removeEventListener('error', captureError);
+
+      return capturedErrors;
+    });
+
+    expect(errors).toEqual([]);
+  });
+
+  test('binds Giscus message traffic to the current comments iframe', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+
+    const status = page.locator('.giscus-status');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('留言載入中');
+
+    const result = await page.evaluate(async () => {
+      const container = document.querySelector('.giscus-container');
+      const status = container?.querySelector<HTMLElement>('.giscus-status');
+      if (!container || !status) throw new Error('Giscus fixture was not rendered');
+
+      const decoyFrame = document.createElement('iframe');
+      decoyFrame.className = 'giscus-frame';
+      decoyFrame.src = 'about:blank';
+      const decoyLoaded = new Promise<void>((resolve) => {
+        decoyFrame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.before(decoyFrame);
+
+      const frame = document.createElement('iframe');
+      frame.className = 'giscus-frame';
+      frame.src = 'about:blank';
+      const loaded = new Promise<void>((resolve) => {
+        frame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.appendChild(frame);
+      await Promise.all([decoyLoaded, loaded]);
+
+      let decoyMessageCount = 0;
+      let currentMessageCount = 0;
+      decoyFrame.contentWindow!.postMessage = () => {
+        decoyMessageCount += 1;
+      };
+      frame.contentWindow!.postMessage = () => {
+        currentMessageCount += 1;
+      };
+
+      status.hidden = false;
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: window,
+        })
+      );
+      const afterWrongSource = status.hidden;
+
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: frame.contentWindow,
+        })
+      );
+
+      return {
+        afterWrongSource,
+        afterCurrentSource: status.hidden,
+        decoyMessageCount,
+        currentMessageCount,
+      };
+    });
+
+    expect(result).toEqual({
+      afterWrongSource: false,
+      afterCurrentSource: true,
+      decoyMessageCount: 0,
+      currentMessageCount: 1,
+    });
+    await expect(status).toBeHidden();
+  });
+
+  test('read-status consumers ignore malformed global events', async ({ page }) => {
+    const errorsByRoute: Record<string, string[]> = {};
+
+    for (const [route, consumer] of [
+      ['/posts/gp-100-20260304-berryxia-ai-ai-prompt', '[data-related-articles]'],
+      ['/posts/gp-144-20260402-ecc-instinct-system', '[data-series-nav]'],
+    ] as const) {
+      await page.goto(route);
+      await expect(page.locator(consumer)).toBeVisible();
+
+      const errors = await page.evaluate(async () => {
+        const capturedErrors: string[] = [];
+        const captureError = (event: ErrorEvent) => {
+          capturedErrors.push(event.error?.message ?? event.message);
+          event.preventDefault();
+        };
+
+        window.addEventListener('error', captureError);
+        window.dispatchEvent(new Event('read-status-changed'));
+        window.dispatchEvent(
+          new CustomEvent('read-status-changed', {
+            detail: { slug: 'bad"]', read: true },
+          })
+        );
+        const hostileDetail = { read: true };
+        Object.defineProperty(hostileDetail, 'slug', {
+          get() {
+            throw new Error('read-status slug denied');
+          },
+        });
+        window.dispatchEvent(new CustomEvent('read-status-changed', { detail: hostileDetail }));
+        await new Promise((resolve) => window.setTimeout(resolve, 0));
+        window.removeEventListener('error', captureError);
+
+        return capturedErrors;
+      });
+
+      errorsByRoute[route] = errors;
+    }
+
+    expect(errorsByRoute).toEqual({
+      '/posts/gp-100-20260304-berryxia-ai-ai-prompt': [],
+      '/posts/gp-144-20260402-ecc-instinct-system': [],
+    });
+  });
+
   for (const theme of ['dark', 'light'] as const) {
     test(`${theme} editorial navigation text meets WCAG AA without side-tab cards`, async ({
       page,
@@ -478,6 +817,98 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 });
 
 test.describe('Component smoke — Mermaid error handling', () => {
+  test('renders CDN import failures instead of leaving an unhandled loading state', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    let interceptedRequests = 0;
+    let rejectMermaidImport = false;
+
+    await page.route('**/mermaid@11.16.0/dist/mermaid.esm.min.mjs*', async (route) => {
+      if (rejectMermaidImport) {
+        interceptedRequests += 1;
+        await route.abort('failed');
+        return;
+      }
+
+      await route.fulfill({
+        contentType: 'application/javascript',
+        headers: { 'access-control-allow-origin': '*' },
+        body: `
+            export default {
+              initialize() {},
+              async render() {
+                return { svg: '<svg viewBox="0 0 1 1"></svg>' };
+              },
+            };
+          `,
+      });
+    });
+
+    await page.goto('/en/posts/en-levelup-20260608-12-llm-internals/', {
+      waitUntil: 'load',
+    });
+    const warmTargets = page.locator('.mermaid-render');
+    const warmTargetCount = await warmTargets.count();
+    expect(warmTargetCount).toBeGreaterThan(0);
+    await expect(warmTargets.locator('svg')).toHaveCount(warmTargetCount);
+
+    await page.addInitScript(() => {
+      const errorTargets = new WeakSet<Element>();
+      let errorTargetCount = 0;
+      const recordErrorTargets = () => {
+        for (const target of document.querySelectorAll('.mermaid-render')) {
+          if (
+            !errorTargets.has(target) &&
+            target.querySelector('pre')?.textContent?.startsWith('Mermaid error:')
+          ) {
+            errorTargets.add(target);
+            errorTargetCount += 1;
+          }
+        }
+      };
+
+      new MutationObserver(recordErrorTargets).observe(document, {
+        childList: true,
+        subtree: true,
+      });
+      Object.defineProperty(window, '__mermaidErrorTargetCount', {
+        get: () => errorTargetCount,
+      });
+    });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    rejectMermaidImport = true;
+    await page.reload({
+      waitUntil: 'load',
+    });
+    await expect.poll(() => interceptedRequests).toBeGreaterThan(0);
+
+    const renderTargets = page.locator('.mermaid-render');
+    const renderTargetCount = await renderTargets.count();
+    expect(renderTargetCount).toBeGreaterThan(0);
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as Window & {
+                __mermaidErrorTargetCount?: number;
+              }
+            ).__mermaidErrorTargetCount
+        )
+      )
+      .toBe(renderTargetCount);
+    await expect
+      .poll(() =>
+        renderTargets.evaluateAll((targets) =>
+          targets.every((target) => Boolean(target.querySelector('pre, svg')))
+        )
+      )
+      .toBe(true);
+    expect(pageErrors).toEqual([]);
+  });
+
   test('renders thrown Mermaid messages as text instead of markup', async ({ page }) => {
     const payload = '<img data-mermaid-error-probe src="data:,">';
 

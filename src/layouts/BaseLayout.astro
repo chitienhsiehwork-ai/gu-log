@@ -4,6 +4,7 @@ import LanguageToggle from '../components/LanguageToggle.astro';
 import SearchBar from '../components/SearchBar.astro';
 import CodeCopyButton from '../components/CodeCopyButton.astro';
 import ReadingProgress from '../components/ReadingProgress.astro';
+import { buildCanonicalUrl } from './canonical-url';
 
 interface Props {
   title: string;
@@ -17,7 +18,7 @@ interface Props {
 const { title, description, lang = 'zh-tw', image, noindex = false, markdownUrl } = Astro.props;
 
 const currentPath = Astro.url.pathname;
-const canonicalURL = new URL(currentPath, Astro.site).href;
+const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
 const ogImage = image ? new URL(image, Astro.site).href : new URL('/og-image.png', Astro.site).href;
 
 // i18n content
@@ -130,9 +131,11 @@ const finalDescription = description || t.defaultDescription;
     <!-- Show reading tracker nav icon only when logged in -->
     <script is:inline>
       (function () {
-        function showTrackerNav() {
+        let currentAuthenticated = false;
+        function setTrackerNav(authenticated) {
+          currentAuthenticated = authenticated;
           const el = document.getElementById('nav-reading-tracker');
-          if (el) el.style.display = '';
+          if (el) el.style.display = authenticated ? '' : 'none';
         }
         let hasSession = false;
         try {
@@ -141,13 +144,20 @@ const finalDescription = description || t.defaultDescription;
           // Storage can be unavailable; keep the authenticated nav fail closed.
         }
         if (hasSession) {
+          currentAuthenticated = true;
           // Inline to avoid FOUC — runs before body renders
-          document.addEventListener('DOMContentLoaded', showTrackerNav);
+          document.addEventListener('DOMContentLoaded', function () {
+            setTrackerNav(currentAuthenticated);
+          });
         }
         window.addEventListener('storage', function (e) {
           if (e.key === 'gu-log-jwt') {
-            const navEl = document.getElementById('nav-reading-tracker');
-            if (navEl) navEl.style.display = e.newValue ? '' : 'none';
+            setTrackerNav(Boolean(e.newValue));
+          }
+        });
+        window.addEventListener('gu-log-auth-changed', function (e) {
+          if (e instanceof CustomEvent && typeof e.detail?.authenticated === 'boolean') {
+            setTrackerNav(e.detail.authenticated);
           }
         });
       })();
@@ -183,12 +193,16 @@ const finalDescription = description || t.defaultDescription;
         color: var(--color-text);
         text-decoration: none;
         white-space: nowrap;
-        flex-shrink: 0;
+        flex-shrink: 1;
+        min-width: 40px;
         min-height: 44px;
+        overflow: hidden;
       }
 
       .site-title-text {
         white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       @media (max-width: 389px) {
@@ -590,7 +604,10 @@ const finalDescription = description || t.defaultDescription;
 
       // Close on Escape
       document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeMenu();
+        if (e.key === 'Escape' && btn?.getAttribute('aria-expanded') === 'true') {
+          closeMenu();
+          btn.focus({ preventScroll: true });
+        }
       });
 
       // Close when a menu item is clicked (nav to new page)

@@ -1,6 +1,6 @@
 ---
 name: x-source-fetch
-description: Fetch the full focal body of an X / Twitter post or X Article for GP/MP translation before gp-pipeline runs, with best-effort self-thread reconstruction. Fail loudly when the focal source is incomplete instead of writing from a preview snippet.
+description: Fetch the full focal body of an X / Twitter post or X Article for GP translation or MP source-grounded writing before gp-pipeline runs, with best-effort self-thread reconstruction. Fail loudly when the focal source is incomplete instead of writing from a preview snippet.
 ---
 
 # x-source-fetch
@@ -115,7 +115,7 @@ single-tweet capture, so it can never regress a fetch that previously worked.
 
 ## Quick sanity checks after fetching
 
-Before piping the output into a translation prompt, verify:
+Before piping the output into a GP translation or MP writing prompt, verify:
 
 ```bash
 OUT=$(bash scripts/fetch-x-article.sh "$URL")
@@ -142,4 +142,4 @@ Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fi
 
 1. Retry later (transient fxtwitter outage is possible)
 2. Ask the user to paste the body directly
-3. Skip this GP / drop from queue
+3. Skip this GP or MP / drop from queue

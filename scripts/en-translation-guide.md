@@ -18,7 +18,8 @@ gu-log is a Traditional Chinese (zh-tw) tech blog focused on AI and developer to
 
 ## 3. Brand Identity & Formatting
 - **Kaomoji:** Preserve kaomoji exactly as in the source. Do not alter, move, or remove them.
-- **Code & URLs:** Keep all code blocks, inline code, and URLs unchanged.
+- **No Unapproved Emoji:** Automated GP English translation never restores a Unicode emoji glyph. Omit decorative source emoji; if a glyph carries meaning that the prose does not otherwise express, preserve that meaning in natural English. This automated lane does not support glyph-retention exceptions; the top-level editorial allowlist is a narrow `MAY` capability, not a promise that every pipeline implements it. Kaomoji are unaffected.
+- **Code & URLs:** Keep code blocks, inline code, and URLs unchanged except where the reader-visible emoji policy requires removing an unapproved decorative glyph or expressing its necessary meaning in text.
 - **Intro Hooks:** Preserve the original hook style.
 - **No Tables:** Never use Markdown tables; convert to bullets/text.
 
@@ -67,6 +68,7 @@ These are mandatory:
 ## 8. Final Translation Checklist
 - [ ] Tone and energy match the source.
 - [ ] Kaomoji are preserved exactly as in source.
+- [ ] Decorative emoji are omitted, meaningful emoji are expressed in natural text, and the automated translation has restored no glyph.
 - [ ] Technical terms and product names are accurate and consistent.
 - [ ] Frontmatter changes are limited to `lang`, `title`, `summary`,
       `translatedDate`, `translatedBy.model`, `translatedBy.harness`, and filename

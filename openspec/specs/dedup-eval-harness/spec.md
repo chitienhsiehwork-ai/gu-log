@@ -116,9 +116,9 @@ Fixture 一旦 commit 進 git，SHALL NOT 被自動化工具修改。允許的�
 
 ### Requirement: Bootstrap 初始批次
 
-> **非規範性歷史註記：** 以下 bootstrap 門檻與表格記錄本 change archive 時的歷史狀態；其中 `待定` / `outstanding` 不代表目前 `main` 的 fixture 現況。
-
 本 change archive 前，`tribunal/fixtures/` 下 SHALL 至少存在以下 4 筆 fixture 之 3 筆（第 4 筆為 outstanding item，可在 Level D 執行階段補齊或延至 Level E 前補齊）：
+
+> **非規範性歷史註記：** 以下 bootstrap 門檻與表格記錄本 change archive 時的歷史狀態；其中 `待定` / `outstanding` 不代表目前 `main` 的 fixture 現況。
 
 | 分類                 | 檔名                     | 來源                                                                   |
 | -------------------- | ------------------------ | ---------------------------------------------------------------------- |

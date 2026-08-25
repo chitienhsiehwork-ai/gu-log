@@ -33,6 +33,20 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	if err := os.WriteFile(styleGuide, []byte("# Style\nLHY tone.\n"), 0o644); err != nil {
 		t.Fatalf("write style guide: %v", err)
 	}
+	for name, body := range map[string]string{
+		"CONTRIBUTING.md":                          "# Contributing\n",
+		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
+		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
+		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+	} {
+		path := filepath.Join(tmp, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatalf("mkdir editorial context: %v", err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatalf("write editorial context: %v", err)
+		}
+	}
 
 	fake := llm.NewFakeClaude()
 	disp, err := llm.NewDispatcher(logx.New(), fake)
@@ -41,6 +55,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	}
 
 	s := NewState()
+	s.LegacyShadow = true
 	s.WorkDir = workDir
 	s.SourcePath = sourcePath
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
@@ -85,6 +100,47 @@ func TestEval_GoGo(t *testing.T) {
 		if _, err := os.Stat(filepath.Join(workDir, f)); err != nil {
 			t.Errorf("%s missing: %v", f, err)
 		}
+	}
+}
+
+func TestFetch_ExistingCaptureHydratesMetadata(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	s.OriginalDate = ""
+	capture := "@Khazix0918 — 2026-08-05\nSource URL: https://x.com/khazix0918/status/2084919577562255639\nFetched via: fxtwitter\n\n=== MAIN TWEET ===\nEnough existing source material to resume without a network fetch.\n"
+	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.SourcePath != filepath.Join(workDir, "source-tweet.md") {
+		t.Errorf("SourcePath = %q", s.SourcePath)
+	}
+	if s.AuthorHandle != "Khazix0918" {
+		t.Errorf("AuthorHandle = %q, want Khazix0918", s.AuthorHandle)
+	}
+	if s.OriginalDate != "2026-08-05" {
+		t.Errorf("OriginalDate = %q, want 2026-08-05", s.OriginalDate)
+	}
+	if !s.SourceIsX {
+		t.Errorf("SourceIsX = false, want true")
+	}
+}
+
+func TestFetch_ExistingCapturePreservesHydratedOriginalDate(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	s.OriginalDate = "2026-08-11"
+	capture := "@brentfitzgerald.com — 2026-08-15\nSource URL: https://example.com/post\nFetched via: fetch-article.py\n\nCaptured article body.\n"
+	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.OriginalDate != "2026-08-11" {
+		t.Errorf("OriginalDate = %q, want durable existing-post date", s.OriginalDate)
 	}
 }
 
