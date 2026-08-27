@@ -157,6 +157,32 @@ describe('posts schema — ticketId taxonomy', () => {
   });
 });
 
+describe('posts schema — unlisted visibility metadata', () => {
+  it('defaults a missing unlisted field to false', async () => {
+    const schema = await loadPostsSchema();
+    const result = schema.safeParse({ ...BASE, ticketId: 'GP-1' });
+
+    expect(result.success, issueMessages(result)).toBe(true);
+    expect(result.data?.unlisted).toBe(false);
+  });
+
+  it('accepts and preserves unlisted: true', async () => {
+    const schema = await loadPostsSchema();
+    const result = schema.safeParse({ ...BASE, ticketId: 'GP-1', unlisted: true });
+
+    expect(result.success, issueMessages(result)).toBe(true);
+    expect(result.data?.unlisted).toBe(true);
+  });
+
+  it('rejects a non-boolean unlisted value', async () => {
+    const schema = await loadPostsSchema();
+    const result = schema.safeParse({ ...BASE, ticketId: 'GP-1', unlisted: 'yes' });
+
+    expect(result.success).toBe(false);
+    expect(issueMessages(result)).toContain('unlisted');
+  });
+});
+
 describe('posts schema — retired clawdNote key is rejected, not stripped', () => {
   it('rejects scores.vibe.clawdNote with a moguNote diagnostic', async () => {
     const schema = await loadPostsSchema();

@@ -1,0 +1,203 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'posts'>[];
+  locale: 'zh-tw' | 'en';
+}
+
+const { posts, locale } = Astro.props;
+const copy =
+  locale === 'en'
+    ? {
+        promise:
+          'Articles ShroomDog has read and ranked because he liked them or found them useful.',
+        firstPick: '01 · Top Pick',
+      }
+    : {
+        promise: 'ShroomDog 本人讀過、排過，喜歡或有用的精選文章',
+        firstPick: '01 · 首選',
+      };
+const featuredPost = posts[0];
+const secondaryPosts = posts.slice(1);
+const postBasePath = locale === 'en' ? '/en/posts' : '/posts';
+const titleId = `shroomdog-choice-title-${locale}`;
+const descriptionId = `shroomdog-choice-description-${locale}`;
+---
+
+{
+  featuredPost && (
+    <section class="shroomdog-choice" aria-labelledby={titleId} aria-describedby={descriptionId}>
+      <header class="choice-header">
+        <h2 id={titleId}>ShroomDog’s Choice</h2>
+        <p id={descriptionId}>{copy.promise}</p>
+      </header>
+
+      <article class="choice-feature">
+        <p class="choice-rank">{copy.firstPick}</p>
+        <h3>
+          <a class="choice-link" href={`${postBasePath}/${featuredPost.id}`}>
+            {featuredPost.data.title}
+          </a>
+        </h3>
+        <p class="choice-summary">{featuredPost.data.summary}</p>
+      </article>
+
+      {secondaryPosts.length > 0 && (
+        <ol class="choice-secondary" start="2">
+          {secondaryPosts.map((post, index) => (
+            <li class="choice-secondary-item">
+              <span class="choice-rank" aria-hidden="true">
+                {String(index + 2).padStart(2, '0')}
+              </span>
+              <h3>
+                <a class="choice-link" href={`${postBasePath}/${post.id}`}>
+                  {post.data.title}
+                </a>
+              </h3>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  )
+}
+
+<style>
+  .shroomdog-choice {
+    margin: 1rem 0 1.75rem;
+    padding: clamp(1.1rem, 4vw, 1.4rem) clamp(1rem, 4.5vw, 1.5rem);
+    border: 1px solid var(--color-border);
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--color-surface) 38%, var(--color-bg));
+  }
+
+  :global([data-theme='light']) .shroomdog-choice {
+    border-color: color-mix(in srgb, var(--color-text) 22%, transparent);
+    background: #fff;
+    box-shadow:
+      0 1px 2px color-mix(in srgb, var(--color-text) 6%, transparent),
+      0 10px 30px color-mix(in srgb, var(--color-text) 4%, transparent);
+  }
+
+  .choice-header h2 {
+    margin: 0;
+    color: var(--color-text);
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    letter-spacing: -0.025em;
+  }
+
+  .choice-header p {
+    margin: 0.3rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+
+  .choice-feature {
+    margin-top: 1rem;
+    padding: 1rem 0 1.1rem;
+    border-top: 1px solid var(--color-divider);
+  }
+
+  .choice-rank {
+    display: block;
+    margin: 0 0 0.35rem;
+    color: var(--color-mogu-orange);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .choice-feature h3,
+  .choice-secondary h3 {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .choice-feature h3 {
+    font-size: clamp(1.05rem, 4vw, 1.2rem);
+    line-height: 1.45;
+  }
+
+  .choice-summary {
+    margin: 0.55rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.84rem;
+    line-height: 1.7;
+  }
+
+  .choice-link {
+    color: var(--color-text);
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.2em;
+    transition:
+      color 150ms ease,
+      text-decoration-color 150ms ease;
+  }
+
+  .choice-link:hover {
+    color: var(--color-accent);
+    text-decoration-color: currentColor;
+  }
+
+  .choice-link:focus-visible {
+    border-radius: 2px;
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+    text-decoration-color: currentColor;
+  }
+
+  .choice-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-divider);
+    list-style: none;
+  }
+
+  .choice-secondary-item {
+    min-width: 0;
+    padding: 0.9rem 1rem 0.15rem 0;
+  }
+
+  .choice-secondary-item + .choice-secondary-item {
+    padding-right: 0;
+    padding-left: 1rem;
+    border-left: 1px solid var(--color-divider);
+  }
+
+  .choice-secondary h3 {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 520px) {
+    .shroomdog-choice {
+      margin-top: 0.85rem;
+    }
+
+    .choice-secondary {
+      grid-template-columns: 1fr;
+    }
+
+    .choice-secondary-item {
+      padding: 0.85rem 0;
+    }
+
+    .choice-secondary-item + .choice-secondary-item {
+      padding-left: 0;
+      border-top: 1px solid var(--color-divider);
+      border-left: 0;
+    }
+
+    .choice-secondary-item:last-child {
+      padding-bottom: 0.1rem;
+    }
+  }
+</style>

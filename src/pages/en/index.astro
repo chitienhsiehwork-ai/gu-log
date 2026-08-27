@@ -4,11 +4,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Toggle from '../../components/Toggle.astro';
 import TicketBadge from '../../components/TicketBadge.astro';
 import PostStatusLabel from '../../components/PostStatusLabel.astro';
+import ShroomDogChoice from '../../components/ShroomDogChoice.astro';
 import { getIndexPosts, getPostStatus, type PostStatus } from '../../utils/post-status';
+import { resolveShroomDogChoicePosts } from '../../utils/shroomdog-choice';
 
 const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
 const allPosts = getIndexPosts(allPostsFull, 'en');
+const shroomDogChoicePosts = resolveShroomDogChoicePosts(allPostsFull, 'en');
 
 // Helper: extract number from ticketId (e.g., "MP-11" → 11)
 const getTicketNumber = (ticketId: string | undefined) => {
@@ -35,6 +38,8 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
+  <ShroomDogChoice posts={shroomDogChoicePosts} locale="en" />
+
   {/* GP: Gu-log Picks — most frequently updated */}
   {
     gpPosts.length > 0 && (

@@ -148,6 +148,7 @@ const postsCollection = defineCollection({
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
       status: z.enum(['published', 'deprecated', 'retired']).default('published'),
+      unlisted: z.boolean().optional().default(false),
       deprecatedBy: canonicalTicketId.optional(),
       deprecatedReason: z.string().optional(),
       retiredReason: z.string().optional(),
