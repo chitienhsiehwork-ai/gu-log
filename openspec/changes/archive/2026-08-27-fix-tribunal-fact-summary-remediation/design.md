@@ -68,8 +68,8 @@ FactChecker rewrite prompt 與 writer role contract 改成：frontmatter 預設�
 1. 先加入 snapshot、shell transaction 與 end-to-end retry 的 failing tests。
 2. 實作 paired-summary policy，更新 writer contract／runbook，跑 Tribunal safety suites 與 repo gates。
 3. 封存 change、讓 CI 全綠後 merge。
-4. 在已停止的 Tribunal runtime 保存 SD-31 WIP，從新 `origin/main` 更新隔離 runtime branch，再套回 WIP；跑 doctor 後以正常 service 機制重播 SD-31。
-5. 以新 log 證明 writer candidate 被接受、第二輪 FactChecker 看到新摘要，並確認 publisher／production gates 仍照常。
+4. Merge 後把已停止的 Tribunal runtime 更新到包含本 change 的 `origin/main`，先保留並比較任何無關的 runtime WIP，再跑 doctor 與正常 service canary。
+5. SD-31 已由獨立內容 PR 修正並發布，runtime rollout 不重播過時 WIP；改以新文章的正常評審 log、fresh quota 與 production-safe service state 驗證部署合約，並確認 publisher／production gates 仍照常。
 
 回復採 revert 該 commit／PR；runtime 回到 preserve-all policy 後會再次封閉拒絕摘要變更，不需要 journal migration。若部署 smoke 發現未知狀態，保持 service 停止並保留 WIP／journal 證據，不熱修 production runtime。
 

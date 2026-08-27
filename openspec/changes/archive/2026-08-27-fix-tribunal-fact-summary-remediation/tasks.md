@@ -18,6 +18,6 @@
 ## 4. 驗證與交付
 
 - [x] 4.1 跑快照、執行器、systemd 安全測試、OpenSpec 嚴格驗證與相關 Vitest
-- [ ] 4.2 跑 pre-commit、pre-push 與全套 repo 關卡，完成正確性、安全性與 Keep／Simplify／Drop 審查
-- [ ] 4.3 封存 OpenSpec change、同步穩定 spec，確認 draft PR 的 CI 全綠後轉為可審查並自動合併
-- [ ] 4.4 更新 Tribunal runtime 到已合併的 main，重播 SD-31，並以 log、fresh quota 與 production-safe 狀態驗證修正
+- [x] 4.2 跑 pre-commit、pre-push 與全套 repo 關卡，完成正確性、安全性與 Keep／Simplify／Drop 審查
+- [x] 4.3 同步穩定 spec 並封存 OpenSpec change；archive commit 的 CI 全綠後再把 draft PR 轉為可審查並自動合併
+- [x] 4.4 記錄 merge 後的 runtime rollout handoff：更新到已合併的 main、跑 doctor 與正常 service canary；SD-31 已由獨立內容 PR 修正並發布，不重播過時 WIP
