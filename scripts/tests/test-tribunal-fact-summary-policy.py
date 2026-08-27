@@ -73,7 +73,9 @@ class SummaryPolicyFixture(unittest.TestCase):
 
     def capture(self, token: str, policy: str = PAIRED_SUMMARY) -> str:
         captured = SNAPSHOT.capture_candidate(
-            str(self.candidate), token, frontmatter_policy=policy
+            str(self.candidate),
+            token,
+            frontmatter_policy=policy,
         )
         self.tokens.append(captured)
         return captured
@@ -156,6 +158,23 @@ class SummaryShapeTests(SummaryPolicyFixture):
                     b"candidate zh",
                 ),
             ),
+            (
+                "double quote Unicode scalar boundaries and controls",
+                post(
+                    [
+                        b'title: "Exact bytes"',
+                        b'summary: "old \\uD7FF \\uE000 \\U0010FFFF \\0 \\x1F"',
+                    ],
+                    b"baseline zh",
+                ),
+                post(
+                    [
+                        b'title: "Exact bytes"',
+                        b'summary: "new \\uD7FF \\uE000 \\U0010FFFF \\0 \\x1F"',
+                    ],
+                    b"candidate zh",
+                ),
+            ),
         ]
         for label, baseline, candidate in cases:
             with self.subTest(label=label):
@@ -172,6 +191,31 @@ class SummaryShapeTests(SummaryPolicyFixture):
                 for child in self.candidate.iterdir():
                     child.unlink()
                 self.en_path.unlink()
+                self.zh_path.unlink()
+
+    def test_rejects_non_scalar_double_quote_escapes_without_changing_canonical(
+        self,
+    ) -> None:
+        cases = {
+            "above Unicode maximum": b'summary: "bad \\U00110000"',
+            "short high surrogate": b'summary: "bad \\uD800"',
+            "short low surrogate": b'summary: "bad \\uDFFF"',
+            "long high surrogate": b'summary: "bad \\U0000D800"',
+            "long low surrogate": b'summary: "bad \\U0000DFFF"',
+        }
+        for label, candidate_summary in cases.items():
+            with self.subTest(label=label):
+                baseline = post([b'summary: "old"'], b"baseline")
+                token = self.prepare(baseline)
+                (self.candidate / "pair.mdx").write_bytes(
+                    post([candidate_summary], b"candidate")
+                )
+                with self.assertRaisesRegex(
+                    SNAPSHOT.SnapshotError, "invalid Unicode scalar escape"
+                ):
+                    self.capture(token)
+                self.assertEqual(self.zh_path.read_bytes(), baseline)
+                (self.candidate / "pair.mdx").unlink()
                 self.zh_path.unlink()
 
     def test_rejects_unsupported_summary_shapes_with_distinct_diagnostic(self) -> None:

@@ -410,6 +410,12 @@ def _double_quoted_payload_end(line: bytes, start: int, label: str) -> int:
         digits = line[index + 2 : index + 2 + width]
         if len(digits) != width or re.fullmatch(br"[0-9A-Fa-f]+", digits) is None:
             raise _unsupported_summary_shape(label, "invalid double-quote escape")
+        if escape in {ord("u"), ord("U")}:
+            codepoint = int(digits, 16)
+            if codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
+                raise _unsupported_summary_shape(
+                    label, "invalid Unicode scalar escape"
+                )
         index += 2 + width
     raise _unsupported_summary_shape(label, "unterminated double quote")
 
