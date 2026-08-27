@@ -4,7 +4,7 @@
 
 部署版非互動式 24/7 執行環境（systemd unit／wrapper）SHALL 設定 `GP_WRITER_MODE=codex`，並 SHALL 在派送文章前驗證 Codex 寫手能完成有界的寫入 canary。Canary SHALL 從 `.codex/agents/tribunal-writer.toml` 解析 `tribunal-writer` model，並 SHALL 重用正式寫手專用的 `workspace-write` 沙箱、tmp 排除、無網路邊界、approval policy 與逾時行為。部署版服務與 wrapper SHALL NOT 讀取、匯出或驗證 Claude token 或憑證。Library 預設 MAY 維持 `none`，非部署版互動式編排 MAY 保留 `subagent` 或舊版 `cli` 相容性，但正式 daemon SHALL NOT 以只評分、未消費 broker 或 Claude CLI 寫手模式執行。
 
-部署版 writer 的 frontmatter 權限 SHALL 由 parent runner 依 stage 決定，而非由 writer 自行宣告。只有 FactChecker 失敗後的 bounded rewrite MAY 成對替換既有 zh-tw／English 單行 quoted `summary` 字串純量，並 SHALL 在下一輪 FactChecker 重新驗證；其他 judge rewrite 與 final-build repair SHALL 維持整份 writer frontmatter 不可變。允許的 summary 替換之外，欄位、位置、quote style、行尾與所有 frontmatter bytes SHALL 維持不變。English sidecar 存在時，單邊 summary 變更 SHALL 封閉失敗。Candidate capture、validation、apply、rollback 與 recovery SHALL 維持同一個明示 policy 與既有雙語 crash-atomic 邊界。
+部署版 writer 的 frontmatter 權限 SHALL 由 parent runner 依 stage 決定，而非由 writer 自行宣告。只有 FactChecker 失敗後的 bounded rewrite MAY 成對替換既有 zh-tw／English 單行 quoted `summary` 字串純量，並 SHALL 在下一輪 FactChecker 重新驗證；沒有 English sidecar 時 MAY 修正單語摘要。其他 judge rewrite 與 final-build repair SHALL 維持整份 writer frontmatter 不可變。允許的 summary 替換之外，欄位、位置、quote style、行尾與所有 frontmatter bytes SHALL 維持不變。English sidecar 存在時，單邊 summary 變更 SHALL 封閉失敗。Candidate capture、validation、apply 與 CAS rollback SHALL 維持同一個明示 policy；crash recovery SHALL 保持 policy-neutral，依 journal 保存的完整 bytes／identity 維持既有雙語 crash-atomic 邊界。
 
 #### Scenario: 未過關文章由 Codex 改寫而非跳過
 
@@ -57,15 +57,28 @@
 - **THEN** candidate capture SHALL 封閉失敗並保留 canonical pair
 - **AND** runner SHALL NOT 把該候選視為成功改寫
 
+#### Scenario: 沒有 English sidecar 的 FactChecker 摘要修正
+
+- **WHEN** FactChecker rewrite 處理沒有 English sidecar 的文章，並只替換既有 zh-tw 單行 quoted `summary` 值
+- **THEN** candidate capture MAY 接受該單語摘要候選
+- **AND** runner SHALL NOT 為了滿足 paired policy 建立新的 English sidecar
+- **AND** 候選仍 SHALL 經過 validation、CAS apply 與下一輪 FactChecker 重評
+
 #### Scenario: 非 FactChecker 路徑嘗試改動摘要
 
 - **WHEN** Librarian、FreshEyes、Vibe 或 final-build repair 的 writer candidate 改動任一 `summary`
 - **THEN** candidate capture SHALL 依 preserve-all policy 封閉失敗
 - **AND** SHALL NOT 因 writer prompt 或 article prose 升級 frontmatter 權限
 
-#### Scenario: 摘要候選需要 rollback 或 crash recovery
+#### Scenario: 摘要候選需要 CAS rollback
 
-- **WHEN** 合法 paired-summary candidate 套用後 validation 失敗、canonical path 發生 race，或行程在雙語 exchange 中途終止
-- **THEN** rollback／recovery SHALL 使用與 capture／apply 相同的 transaction policy 與完整 baseline／candidate bytes
+- **WHEN** 合法 paired-summary candidate 套用後 validation 失敗或 canonical path 發生 race
+- **THEN** CAS rollback SHALL 使用與 capture／apply 相同的 transaction policy
+- **AND** SHALL NOT 覆寫平行人工編輯
+
+#### Scenario: 摘要候選在雙語 exchange 中途死亡
+
+- **WHEN** 行程在合法 paired-summary candidate 的雙語 exchange 中途終止
+- **THEN** policy-neutral crash recovery SHALL 只依 journal 的完整 baseline／candidate bytes 與 identity 判斷
 - **AND** 最終 SHALL 收斂成完整 baseline pair 或完整 candidate pair
-- **AND** SHALL NOT 產生單語新摘要、覆寫平行人工編輯或丟棄未知 journal 證據
+- **AND** SHALL NOT 產生單語新摘要或丟棄未知 journal 證據
