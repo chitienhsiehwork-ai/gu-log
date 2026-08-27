@@ -765,6 +765,34 @@ const learningMapRoot = node('section', ['codex-learning-map'], {
   ],
 });
 
+const articleTakeawaysRoot = node('aside', ['article-takeaways'], {
+  attributes: attrs({
+    ariaLabelledBy: NON_EMPTY,
+    dataArticleTakeaways: '',
+    dataMarkdownAdapter: 'article-takeaways',
+  }),
+  children: [
+    child(node('div', ['article-takeaways__header'], { opaque: true })),
+    child(node('p', ['article-takeaways__intro'], { text: 'any' })),
+    child(node('ul', [], { opaque: true })),
+    optional(node('p', ['article-takeaways__footer'], { text: 'any' })),
+  ],
+});
+
+const articleDisclosureRoot = node('details', ['article-disclosure'], {
+  attributes: attrs(
+    {
+      dataArticleDisclosure: '',
+      dataMarkdownAdapter: 'article-disclosure',
+    },
+    { open: true }
+  ),
+  children: [
+    child(node('summary', [], { opaque: true })),
+    child(node('div', ['article-disclosure__content'], { opaque: true })),
+  ],
+});
+
 const ADAPTER_CONTRACTS = Object.freeze({
   'mogu-note': moguRoot,
   'shroomdog-note': shroomdogRoot,
@@ -777,6 +805,8 @@ const ADAPTER_CONTRACTS = Object.freeze({
   'post-video': postVideoRoot,
   'diff-block': diffRoot,
   'codex-learning-map': learningMapRoot,
+  'article-takeaways': articleTakeawaysRoot,
+  'article-disclosure': articleDisclosureRoot,
 });
 
 /**

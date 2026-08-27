@@ -339,6 +339,8 @@ import PostImage from '../../components/PostImage.astro';
 import PostVideo from '../../components/PostVideo.astro';
 import DiffBlock from '../../components/DiffBlock.astro';
 import CodexLearningMap from '../../components/CodexLearningMap.astro';
+import ArticleTakeaways from '../../components/ArticleTakeaways.astro';
+import ArticleDisclosure from '../../components/ArticleDisclosure.astro';
 import fixtureImage from '../../assets/posts/fixture.png';
 
 <MoguNote>Mogu body</MoguNote>
@@ -352,6 +354,8 @@ import fixtureImage from '../../assets/posts/fixture.png';
 <PostVideo src="https://example.com/video.mp4" poster="https://example.com/poster.jpg" label="Fixture video" width={720} height={548} />
 <DiffBlock before="old" after="new" />
 <CodexLearningMap lang="en" />
+<ArticleTakeaways title="What you get" intro="A short guide." items={["One", "Two"]} footer="No code needed." />
+<ArticleDisclosure summary="Read the story" description="What went wrong">Disclosure body</ArticleDisclosure>
 
 <a class="artifact-callout" href="/artifacts/demo/">
   <span class="artifact-callout__icon-wrap">
@@ -459,6 +463,16 @@ import fixtureImage from '../../assets/posts/fixture.png';
         <li><div class="step-label">Step 5</div><p>Try it</p><span>Output</span></li>
       </ol>
     </section>
+    <aside class="article-takeaways" aria-labelledby="takeaways-title" data-article-takeaways data-markdown-adapter="article-takeaways">
+      <div class="article-takeaways__header"><svg aria-hidden="true"></svg><h2 id="takeaways-title">What you get</h2></div>
+      <p class="article-takeaways__intro">A short guide.</p>
+      <ul><li>One</li><li>Two</li></ul>
+      <p class="article-takeaways__footer">No code needed.</p>
+    </aside>
+    <details class="article-disclosure" data-article-disclosure data-markdown-adapter="article-disclosure">
+      <summary><span class="article-disclosure__labels"><span class="article-disclosure__title">Read the story</span><span class="article-disclosure__description">What went wrong</span></span><svg aria-hidden="true"></svg></summary>
+      <div class="article-disclosure__content"><p>Disclosure body</p></div>
+    </details>
     <a class="artifact-callout" href="/artifacts/demo/">
       <span class="artifact-callout__label">demo</span>
       <strong>Artifact title</strong>
@@ -486,6 +500,9 @@ import fixtureImage from '../../assets/posts/fixture.png';
     '[![Fixture video](https://example.com/poster.jpg)](https://example.com/video.mp4)',
     '**Before:** old',
     '**Learning map**',
+    '**What you get**',
+    '**Read the story** — What went wrong',
+    'Disclosure body',
     '[Artifact title](https://gu-log.vercel.app/artifacts/demo/)',
   ]) {
     assert.ok(markdown.includes(expected), `missing projection: ${expected}`);

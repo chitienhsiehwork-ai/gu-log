@@ -22,6 +22,8 @@ export const COMPONENT_ADAPTERS = Object.freeze({
   PostVideo: 'post-video',
   DiffBlock: 'diff-block',
   CodexLearningMap: 'codex-learning-map',
+  ArticleTakeaways: 'article-takeaways',
+  ArticleDisclosure: 'article-disclosure',
 });
 
 const COMPONENT_PROP_CONTRACTS = Object.freeze({
@@ -100,6 +102,16 @@ const COMPONENT_PROP_CONTRACTS = Object.freeze({
     props: { lang: 'string' },
     required: [],
     children: 'forbidden',
+  },
+  ArticleTakeaways: {
+    props: { title: 'string', intro: 'string', items: 'array', footer: 'string' },
+    required: ['title', 'intro', 'items'],
+    children: 'forbidden',
+  },
+  ArticleDisclosure: {
+    props: { summary: 'string', description: 'string', open: 'boolean' },
+    required: ['summary'],
+    children: 'required',
   },
 });
 
@@ -736,6 +748,66 @@ function projectToggle(node, context) {
   )}\n\n`;
 }
 
+function projectArticleTakeaways(node, context) {
+  const title = requiredElement(
+    node,
+    (candidate) => candidate.tagName === 'h2' && visibleText(candidate).length > 0,
+    'Article takeaways title',
+    context
+  );
+  const intro = requiredElement(
+    node,
+    (candidate) => hasClass(candidate, 'article-takeaways__intro'),
+    'Article takeaways intro',
+    context
+  );
+  const list = requiredElement(
+    node,
+    (candidate) => candidate.tagName === 'ul',
+    'Article takeaways list',
+    context
+  );
+  const footers = findElements(node, (candidate) =>
+    hasClass(candidate, 'article-takeaways__footer')
+  );
+  if (footers.length > 1)
+    fail(context.sourceName, 'Article takeaways footer appears more than once');
+  const body = [
+    `**${escapeInline(visibleText(title))}**`,
+    escapeInline(visibleText(intro)),
+    compactBlocks(projectChildren(list, context)),
+    footers[0] ? escapeInline(visibleText(footers[0])) : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  return `${markdownBlockquote(body)}\n\n`;
+}
+
+function projectArticleDisclosure(node, context) {
+  const title = requiredElement(
+    node,
+    (candidate) => hasClass(candidate, 'article-disclosure__title'),
+    'Article disclosure title',
+    context
+  );
+  const descriptions = findElements(node, (candidate) =>
+    hasClass(candidate, 'article-disclosure__description')
+  );
+  if (descriptions.length > 1) {
+    fail(context.sourceName, 'Article disclosure description appears more than once');
+  }
+  const content = requiredElement(
+    node,
+    (candidate) => hasClass(candidate, 'article-disclosure__content'),
+    'Article disclosure content',
+    context
+  );
+  const heading = descriptions[0]
+    ? `**${escapeInline(visibleText(title))}** — ${escapeInline(visibleText(descriptions[0]))}`
+    : `**${escapeInline(visibleText(title))}**`;
+  return `${heading}\n\n${compactBlocks(projectChildren(content, context))}\n\n`;
+}
+
 function projectProgress(node, context) {
   const level = requiredElement(
     node,
@@ -1014,6 +1086,8 @@ const RENDERED_ADAPTERS = Object.freeze({
   'post-video': projectPostVideo,
   'diff-block': projectDiff,
   'codex-learning-map': projectLearningMap,
+  'article-takeaways': projectArticleTakeaways,
+  'article-disclosure': projectArticleDisclosure,
 });
 
 function projectList(node, context, ordered) {
