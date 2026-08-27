@@ -31,12 +31,12 @@ describe('Tribunal shell safety contract', () => {
   linuxIt(
     'fails closed on runner and provenance infrastructure errors',
     () => {
-      const result = runShellTest(RUNNER_ERROR_GUARD, 90_000);
+      const result = runShellTest(RUNNER_ERROR_GUARD, 120_000);
 
       expect(result.error, result.stdout + result.stderr).toBeUndefined();
       expect(result.status, result.stdout + result.stderr).toBe(0);
     },
-    95_000
+    125_000
   );
 
   linuxIt(

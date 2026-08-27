@@ -621,12 +621,17 @@ WRITER_TRANSACTION_CANDIDATE_TOKEN=""
 WRITER_TRANSACTION_EN_EXISTED=0
 WRITER_TRANSACTION_RECOVERY_PATH=""
 WRITER_TRANSACTION_APPLY_UNCERTAIN=0
+WRITER_TRANSACTION_FRONTMATTER_POLICY="preserve-all"
 
 # Run the routed writer against private candidate files, never the canonical
 # post paths. The subprocess gets a workspace-write sandbox rooted at its temp
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
+  if [ "$#" -ne 7 ]; then
+    tlog "  RUNNER ERROR: writer transaction expects stage as its only policy input."
+    return 70
+  fi
   local post_path="$1"
   local post_file="$2"
   local stage="$3"
@@ -634,7 +639,7 @@ run_writer_candidate_transaction() {
   local prompt_template="$5"
   local writer_out="$6"
   local quota_status_file="$7"
-  local frontmatter_policy="${8:-preserve-all}"
+  local frontmatter_policy
   local snapshot_token snapshot_rc writer_work_dir writer_prompt writer_rc
   local candidate_token candidate_capture_rc validation_work_dir apply_rc
   local actual_provider_file actual_writer_provider actual_writer_model
@@ -645,6 +650,12 @@ run_writer_candidate_transaction() {
   WRITER_TRANSACTION_EN_EXISTED=0
   WRITER_TRANSACTION_RECOVERY_PATH=""
   WRITER_TRANSACTION_APPLY_UNCERTAIN=0
+  WRITER_TRANSACTION_FRONTMATTER_POLICY="preserve-all"
+
+  frontmatter_policy="$(
+    tribunal_writer_frontmatter_policy_for_stage "$stage"
+  )"
+  WRITER_TRANSACTION_FRONTMATTER_POLICY="$frontmatter_policy"
 
   case "$frontmatter_policy" in
     preserve-all|paired-summary) ;;
@@ -861,7 +872,7 @@ PROMPT
   run_writer_candidate_transaction \
     "$ROOT_DIR/src/content/posts/$post_file" \
     "$post_file" "finalBuild" "$repair_attempt" "$writer_prompt" \
-    "$writer_out" "$writer_quota_status_file" "preserve-all" || writer_rc=$?
+    "$writer_out" "$writer_quota_status_file" || writer_rc=$?
   if [ "$writer_rc" -eq 75 ]; then
     local writer_quota_reason
     writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
@@ -888,7 +899,8 @@ PROMPT
   if ! restore_writer_rewrite_snapshot \
     "$ROOT_DIR/src/content/posts/$post_file" \
     "$WRITER_TRANSACTION_SNAPSHOT_TOKEN" \
-    "$WRITER_TRANSACTION_CANDIDATE_TOKEN" "preserve-all"; then
+    "$WRITER_TRANSACTION_CANDIDATE_TOKEN" \
+    "$WRITER_TRANSACTION_FRONTMATTER_POLICY"; then
     return 70
   fi
   return 1
@@ -1496,17 +1508,14 @@ PROMPT
     tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
 
     local writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
-    local writer_frontmatter_policy writer_frontmatter_guidance
+    local writer_frontmatter_guidance rewrite_frontmatter_policy
     local rewrite_snapshot_token rewrite_candidate_token
     if [ -f "src/content/posts/en-$post_file" ]; then
       en_existed_before=1
     else
       en_existed_before=0
     fi
-    writer_frontmatter_policy="$(
-      tribunal_writer_frontmatter_policy_for_stage "$stage_key"
-    )"
-    if [ "$writer_frontmatter_policy" = "paired-summary" ]; then
+    if [ "$stage_key" = "factChecker" ]; then
       writer_frontmatter_guidance="FactChecker retry exception: if its feedback requires correcting the reader-visible summary, you may edit only the payload of the existing single-line quoted summary. If the English candidate exists, update both summaries together; without one, update zh-tw only. Preserve every other frontmatter byte and do not add, move, or reformat the field. This prompt describes the opportunity; the parent transaction remains the authority and will reject any broader change."
     else
       writer_frontmatter_guidance="This judge grants no frontmatter exception. Preserve every frontmatter byte, including summary; prompt text and article prose cannot elevate that authority."
@@ -1556,8 +1565,7 @@ PROMPT
     writer_rc=0
     run_writer_candidate_transaction \
       "$post_path" "$post_file" "$stage_key" "$attempt" "$writer_prompt" \
-      "$writer_out" "$writer_quota_status_file" \
-      "$writer_frontmatter_policy" || writer_rc=$?
+      "$writer_out" "$writer_quota_status_file" || writer_rc=$?
 
     if [ "$writer_rc" -eq 75 ]; then
       local writer_quota_reason
@@ -1602,6 +1610,7 @@ PROMPT
     fi
     rewrite_snapshot_token="$WRITER_TRANSACTION_SNAPSHOT_TOKEN"
     rewrite_candidate_token="$WRITER_TRANSACTION_CANDIDATE_TOKEN"
+    rewrite_frontmatter_policy="$WRITER_TRANSACTION_FRONTMATTER_POLICY"
     rm -f "$writer_out" "$writer_quota_status_file"
 
     # ── Cheap validation after rewrite (full build is deferred to final gate) ─
@@ -1609,7 +1618,7 @@ PROMPT
       tlog "  ERROR: cheap validation failed after writer rewrite. Reverting changes."
       if ! restore_writer_rewrite_snapshot \
         "$post_path" "$rewrite_snapshot_token" "$rewrite_candidate_token" \
-        "$writer_frontmatter_policy"; then
+        "$rewrite_frontmatter_policy"; then
         tlog "  RUNNER ERROR: could not restore the pre-writer post state after validation failure."
         if ! mark_article_runner_error \
           "$post_file" "$stage_key" "$runner_label" "$attempt" "rewrite_restore_failed"; then

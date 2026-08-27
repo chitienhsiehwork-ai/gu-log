@@ -12,11 +12,11 @@
 
 ## Writer candidate 的 frontmatter 邊界
 
-隔離寫手交易預設保護整份 frontmatter。唯一例外是 FactChecker 失敗後的 bounded rewrite：若評審指出讀者可見摘要的事實錯誤，寫手可替換既有 top-level、單一實體行、帶引號的 `summary` payload。English sidecar 存在時，中英文摘要必須一起變更或一起不變；沒有 sidecar 時可只修正 zh-tw，交易不會替文章建立英文檔。其他 judge 與 final-build repair 沒有這項權限。
+隔離寫手交易的 frontmatter 權限只由 parent runner 的 stage 決定，寫手、文章內容或 prompt 都不能自行升級。預設保護整份 frontmatter；只有 FactChecker retry 可由 parent transaction 套用 bounded summary policy，其他 judge 與 final-build repair 一律 preserve-all。實際允許的 byte shape 以 `scripts/tribunal-post-pair-snapshot.py`、`scripts/score-helpers.sh` 與 `scripts/tribunal.sh` 為 executable SSOT，正式情境以 `openspec/specs/tribunal-24-7-operations/spec.md` 為準；runbook 不另抄一份 allowlist。
 
-這個例外不會放寬其餘交易邊界。欄位位置、key、quote style、行尾、行內註解與其他 frontmatter bytes 都必須維持原樣；duplicate key、block／multiline scalar、tag、anchor、alias 與 plain scalar 都不支援。候選仍先通過 post／YAML validation，再由雙語 CAS 套用；套用後必須讓下一輪 FactChecker 重新評分，摘要變更本身不代表 PASS。Capture、apply 與 validation-failure rollback 由 parent 明示傳遞同一個 stage policy；restart recovery 只依 journal 內的完整 bytes 與 inode identity 收斂，不解析摘要，也不需要知道是哪個 judge。
+候選仍先通過 post／YAML validation，再由雙語 CAS 套用；English sidecar 存在時，兩邊要原子成功或一起維持原狀。套用後必須讓下一輪 FactChecker 重新評分，摘要變更本身不代表 PASS。Transaction 會從 stage 衍生唯一 policy，並讓 capture、apply 與 validation-failure rollback 共用；restart recovery 只依 journal 內的完整 bytes 與 inode identity 收斂，不解析摘要，也不需要知道是哪個 judge。
 
-若 log 顯示 `unsupported … summary shape`，代表候選碰到不在封閉 allowlist 內的 YAML 形狀，不是一般 validator 警告。Canonical pair 會保持不變；先保留 log／journal 證據，透過正常 feature branch／PR 把既有摘要整理成受支援的單行 quoted scalar，再從原 stage 重跑。不要在 live runtime 手改 frontmatter，也不要靠改 prompt、重送相同候選或切換 writer 來升級權限。實際 policy 名稱與 CLI 參數以 snapshot helper 與 shell caller 為準，本節不複製 executable 值。
+若 log 顯示 `unsupported … summary shape`，代表候選不符合 executable policy，不是一般 validator 警告。Canonical pair 會保持不變；先保留 log／journal 證據，透過正常 feature branch／PR 把 canonical summary 收斂成 helper 接受的表示法，再從原 stage 重跑。不要在 live runtime 手改 frontmatter，也不要靠改 prompt、重送相同候選或切換 writer 來升級權限。
 
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract

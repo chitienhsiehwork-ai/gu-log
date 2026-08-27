@@ -155,6 +155,22 @@ class SummaryShapeTests(SummaryPolicyFixture):
                 [b'summary: "old"', b'summary: "shadow"'],
                 [b'summary: "new"', b'summary: "shadow"'],
             ),
+            "double-quoted duplicate key": (
+                [b'summary: "old"', b'"summary": "shadow"'],
+                [b'summary: "new"', b'"summary": "shadow"'],
+            ),
+            "single-quoted duplicate key": (
+                [b'summary: "old"', b"'summary': \"shadow\""],
+                [b'summary: "new"', b"'summary': \"shadow\""],
+            ),
+            "explicit duplicate key": (
+                [b'summary: "old"', b'? summary', b': "shadow"'],
+                [b'summary: "new"', b'? summary', b': "shadow"'],
+            ),
+            "explicit quoted duplicate key": (
+                [b'summary: "old"', b'? "summary"', b': "shadow"'],
+                [b'summary: "new"', b'? "summary"', b': "shadow"'],
+            ),
             "block scalar": (
                 [b"summary: |", b"  old"],
                 [b"summary: |", b"  new"],
@@ -188,7 +204,8 @@ class SummaryShapeTests(SummaryPolicyFixture):
         }
         for label, (baseline_lines, candidate_lines) in cases.items():
             with self.subTest(label=label):
-                token = self.prepare(post(baseline_lines, b"baseline"))
+                baseline = post(baseline_lines, b"baseline")
+                token = self.prepare(baseline)
                 (self.candidate / "pair.mdx").write_bytes(
                     post(candidate_lines, b"candidate")
                 )
@@ -196,6 +213,7 @@ class SummaryShapeTests(SummaryPolicyFixture):
                     SNAPSHOT.SnapshotError, "unsupported zh-tw summary shape"
                 ):
                     self.capture(token)
+                self.assertEqual(self.zh_path.read_bytes(), baseline)
                 (self.candidate / "pair.mdx").unlink()
                 self.zh_path.unlink()
 
