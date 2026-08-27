@@ -34,6 +34,12 @@ MAX_JOURNAL_PAYLOAD_BYTES = 8 * 1024 * 1024
 MAX_JOURNAL_FILE_BYTES = 32 * 1024 * 1024
 MAX_RECOVERY_SCAN_ENTRIES = 16 * 1024
 RENAME_EXCHANGE = 2
+FRONTMATTER_POLICY_PRESERVE_ALL = "preserve-all"
+FRONTMATTER_POLICY_PAIRED_SUMMARY = "paired-summary"
+FRONTMATTER_POLICIES = (
+    FRONTMATTER_POLICY_PRESERVE_ALL,
+    FRONTMATTER_POLICY_PAIRED_SUMMARY,
+)
 
 
 class SnapshotError(RuntimeError):
@@ -69,6 +75,14 @@ class ApplyJournal:
     parent_identity: tuple[int, int]
     zh_name: str
     members: tuple[JournalMember, ...]
+
+
+@dataclass(frozen=True)
+class SummaryScalar:
+    line_index: int
+    quote: int
+    payload_start: int
+    payload_end: int
 
 
 def _open_dir_nofollow(path: str) -> int:
@@ -360,6 +374,145 @@ def _frontmatter_bytes(payload: bytes, label: str) -> bytes:
     if match is None:
         raise SnapshotError(f"{label} has invalid or missing frontmatter")
     return match.group(0)
+
+
+def _unsupported_summary_shape(label: str, detail: str) -> SnapshotError:
+    for state in ("baseline", "candidate"):
+        suffix = f" {state}"
+        if label.endswith(suffix):
+            language = label[: -len(suffix)]
+            return SnapshotError(
+                f"unsupported {language} summary shape ({state}): {detail}"
+            )
+    return SnapshotError(f"unsupported {label} summary shape: {detail}")
+
+
+def _double_quoted_payload_end(line: bytes, start: int, label: str) -> int:
+    simple_escapes = b'0abtnvfre "/\\N_LP'
+    index = start
+    while index < len(line):
+        value = line[index]
+        if value == ord('"'):
+            return index
+        if value != ord("\\"):
+            index += 1
+            continue
+        if index + 1 >= len(line):
+            raise _unsupported_summary_shape(label, "unterminated double quote")
+        escape = line[index + 1]
+        if escape in simple_escapes:
+            index += 2
+            continue
+        widths = {ord("x"): 2, ord("u"): 4, ord("U"): 8}
+        width = widths.get(escape)
+        if width is None:
+            raise _unsupported_summary_shape(label, "invalid double-quote escape")
+        digits = line[index + 2 : index + 2 + width]
+        if len(digits) != width or re.fullmatch(br"[0-9A-Fa-f]+", digits) is None:
+            raise _unsupported_summary_shape(label, "invalid double-quote escape")
+        index += 2 + width
+    raise _unsupported_summary_shape(label, "unterminated double quote")
+
+
+def _single_quoted_payload_end(line: bytes, start: int, label: str) -> int:
+    index = start
+    while index < len(line):
+        if line[index] != ord("'"):
+            index += 1
+            continue
+        if index + 1 < len(line) and line[index + 1] == ord("'"):
+            index += 2
+            continue
+        return index
+    raise _unsupported_summary_shape(label, "unterminated single quote")
+
+
+def _summary_scalar(frontmatter: bytes, label: str) -> SummaryScalar:
+    lines = frontmatter.splitlines(keepends=True)
+    matches: list[tuple[int, int, bytes]] = []
+    offset = 0
+    for line_index, line in enumerate(lines):
+        match = re.match(br"summary[ \t]*:[ \t]*", line)
+        if match is not None:
+            matches.append((line_index, offset + match.end(), line))
+        offset += len(line)
+    if len(matches) != 1:
+        raise _unsupported_summary_shape(
+            label, "expected exactly one top-level summary key"
+        )
+
+    line_index, value_start, line = matches[0]
+    line_offset = sum(len(value) for value in lines[:line_index])
+    local_value_start = value_start - line_offset
+    if local_value_start >= len(line) or line[local_value_start] not in {
+        ord('"'),
+        ord("'"),
+    }:
+        raise _unsupported_summary_shape(
+            label, "value must be a quoted scalar on one physical line"
+        )
+    quote = line[local_value_start]
+    payload_start = local_value_start + 1
+    if quote == ord('"'):
+        payload_end = _double_quoted_payload_end(line, payload_start, label)
+    else:
+        payload_end = _single_quoted_payload_end(line, payload_start, label)
+
+    suffix = line[payload_end + 1 :]
+    if re.fullmatch(br"[ \t]*(?:#[^\r\n]*)?(?:\r\n|\n)", suffix) is None:
+        raise _unsupported_summary_shape(
+            label, "quoted scalar has unsupported trailing syntax"
+        )
+    return SummaryScalar(
+        line_index=line_index,
+        quote=quote,
+        payload_start=line_offset + payload_start,
+        payload_end=line_offset + payload_end,
+    )
+
+
+def _summary_payload_changed(
+    baseline: bytes, candidate: bytes, label: str
+) -> bool:
+    if baseline == candidate:
+        return False
+    baseline_scalar = _summary_scalar(baseline, f"{label} baseline")
+    candidate_scalar = _summary_scalar(candidate, f"{label} candidate")
+    if baseline_scalar.line_index != candidate_scalar.line_index:
+        raise _unsupported_summary_shape(label, "summary position changed")
+    if baseline_scalar.quote != candidate_scalar.quote:
+        raise _unsupported_summary_shape(label, "summary quote style changed")
+
+    candidate_with_baseline_payload = (
+        candidate[: candidate_scalar.payload_start]
+        + baseline[baseline_scalar.payload_start : baseline_scalar.payload_end]
+        + candidate[candidate_scalar.payload_end :]
+    )
+    if candidate_with_baseline_payload != baseline:
+        raise SnapshotError(
+            f"writer changed protected {label} frontmatter outside summary payload"
+        )
+    return (
+        baseline[baseline_scalar.payload_start : baseline_scalar.payload_end]
+        != candidate[candidate_scalar.payload_start : candidate_scalar.payload_end]
+    )
+
+
+def _frontmatter_change_allowed(
+    baseline_payload: bytes,
+    candidate_payload: bytes,
+    label: str,
+    frontmatter_policy: str,
+) -> bool:
+    baseline = _frontmatter_bytes(baseline_payload, f"{label} baseline")
+    candidate = _frontmatter_bytes(candidate_payload, f"{label} candidate")
+    if frontmatter_policy == FRONTMATTER_POLICY_PRESERVE_ALL:
+        if candidate != baseline:
+            raise SnapshotError(f"writer changed protected {label} frontmatter")
+        return False
+    if frontmatter_policy == FRONTMATTER_POLICY_PAIRED_SUMMARY:
+        return _summary_payload_changed(baseline, candidate, label)
+    raise SnapshotError(f"unsupported frontmatter policy: {frontmatter_policy}")
 
 
 def _encode_token(
@@ -1144,7 +1297,9 @@ def materialize_candidate(candidate_dir: str, token: str) -> None:
 
 
 def _capture_candidate_payload(
-    candidate_dir: str, baseline_token: SnapshotToken
+    candidate_dir: str,
+    baseline_token: SnapshotToken,
+    frontmatter_policy: str = FRONTMATTER_POLICY_PRESERVE_ALL,
 ) -> tuple[bytes, bytes | None]:
     meta = _parse_meta(baseline_token.meta_bytes)
     canonical_candidate, _ = _canonical_directory(candidate_dir)
@@ -1175,26 +1330,43 @@ def _capture_candidate_payload(
                 require_single_link=True,
                 max_bytes=MAX_CANDIDATE_FILE_BYTES,
             )
-        if _frontmatter_bytes(candidate_zh, "zh-tw candidate") != _frontmatter_bytes(
-            baseline_token.zh_bytes, "zh-tw baseline"
-        ):
-            raise SnapshotError("writer changed protected zh-tw frontmatter")
+        zh_summary_changed = _frontmatter_change_allowed(
+            baseline_token.zh_bytes,
+            candidate_zh,
+            "zh-tw",
+            frontmatter_policy,
+        )
+        en_summary_changed = False
         if meta["en_present"]:
             if candidate_en is None or baseline_token.en_bytes is None:
                 raise SnapshotError("internal English candidate state mismatch")
-            if _frontmatter_bytes(
-                candidate_en, "English candidate"
-            ) != _frontmatter_bytes(baseline_token.en_bytes, "English baseline"):
-                raise SnapshotError("writer changed protected English frontmatter")
+            en_summary_changed = _frontmatter_change_allowed(
+                baseline_token.en_bytes,
+                candidate_en,
+                "English",
+                frontmatter_policy,
+            )
+            if (
+                frontmatter_policy == FRONTMATTER_POLICY_PAIRED_SUMMARY
+                and zh_summary_changed != en_summary_changed
+            ):
+                raise SnapshotError(
+                    "paired-summary policy requires both zh-tw and English "
+                    "summaries to change, or neither"
+                )
         return candidate_zh, candidate_en
     finally:
         os.close(candidate_fd)
 
 
-def capture_candidate(candidate_dir: str, token: str) -> str:
+def capture_candidate(
+    candidate_dir: str,
+    token: str,
+    frontmatter_policy: str = FRONTMATTER_POLICY_PRESERVE_ALL,
+) -> str:
     baseline_token = _parse_token(token)
     candidate_zh, candidate_en = _capture_candidate_payload(
-        candidate_dir, baseline_token
+        candidate_dir, baseline_token, frontmatter_policy
     )
     digest = _payload_digest(
         baseline_token.meta_bytes, candidate_zh, candidate_en
@@ -1208,7 +1380,12 @@ def capture_candidate(candidate_dir: str, token: str) -> str:
     )
 
 
-def apply_candidate(zh_path: str, candidate_dir: str, token: str) -> None:
+def apply_candidate(
+    zh_path: str,
+    candidate_dir: str,
+    token: str,
+    frontmatter_policy: str = FRONTMATTER_POLICY_PRESERVE_ALL,
+) -> None:
     parsed_token = _parse_token(token)
     meta = _parse_meta(parsed_token.meta_bytes)
     target = Path(zh_path)
@@ -1218,7 +1395,7 @@ def apply_candidate(zh_path: str, candidate_dir: str, token: str) -> None:
         raise SnapshotError("snapshot token belongs to a different target file")
 
     candidate_zh, candidate_en = _capture_candidate_payload(
-        candidate_dir, parsed_token
+        candidate_dir, parsed_token, frontmatter_policy
     )
 
     canonical_parent, _ = _canonical_directory(str(target.parent))
@@ -1689,10 +1866,20 @@ def _parser() -> argparse.ArgumentParser:
     materialize.add_argument("token")
 
     capture = subparsers.add_parser("capture-candidate")
+    capture.add_argument(
+        "--frontmatter-policy",
+        choices=FRONTMATTER_POLICIES,
+        default=FRONTMATTER_POLICY_PRESERVE_ALL,
+    )
     capture.add_argument("candidate_dir")
     capture.add_argument("token")
 
     apply = subparsers.add_parser("apply-candidate")
+    apply.add_argument(
+        "--frontmatter-policy",
+        choices=FRONTMATTER_POLICIES,
+        default=FRONTMATTER_POLICY_PRESERVE_ALL,
+    )
     apply.add_argument("zh_path")
     apply.add_argument("candidate_dir")
     apply.add_argument("token")
@@ -1727,9 +1914,20 @@ def main() -> int:
         elif args.command == "materialize-candidate":
             materialize_candidate(args.candidate_dir, token)
         elif args.command == "capture-candidate":
-            print(capture_candidate(args.candidate_dir, token))
+            print(
+                capture_candidate(
+                    args.candidate_dir,
+                    token,
+                    frontmatter_policy=args.frontmatter_policy,
+                )
+            )
         elif args.command == "apply-candidate":
-            apply_candidate(args.zh_path, args.candidate_dir, token)
+            apply_candidate(
+                args.zh_path,
+                args.candidate_dir,
+                token,
+                frontmatter_policy=args.frontmatter_policy,
+            )
         elif args.command == "persist-recovery":
             print(persist_recovery(args.recovery_dir, token))
         else:

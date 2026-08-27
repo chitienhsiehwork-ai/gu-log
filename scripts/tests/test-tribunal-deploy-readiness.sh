@@ -12,7 +12,20 @@ fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-deploy-readiness.XXXXXX")"
-trap 'rm -rf "$TMP"' EXIT
+fixture_zh_backup=""
+fixture_en_backup=""
+fixture_zh_path=""
+fixture_en_path=""
+cleanup() {
+  if [ -n "$fixture_zh_backup" ] && [ -f "$fixture_zh_backup" ]; then
+    cp -p "$fixture_zh_backup" "$fixture_zh_path" 2>/dev/null || true
+  fi
+  if [ -n "$fixture_en_backup" ] && [ -f "$fixture_en_backup" ]; then
+    cp -p "$fixture_en_backup" "$fixture_en_path" 2>/dev/null || true
+  fi
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
 export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
 export TRIBUNAL_ARTICLE_LOCK_DIR="$TMP/article-locks"
 mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
@@ -905,9 +918,8 @@ NOTIFIER
 ) || fail "alert dedupe/count/transition behavior is incorrect"
 pass "stall/EXHAUSTED/fallback/floor alerts execute with correct dedupe and counts"
 
-# A real tribunal fail→rewrite→pass cycle must reach the isolated Codex writer.
-# The fake writer is a no-op; the existing valid fixture post passes cheap
-# validation, then the second fake judge result passes.
+# A real tribunal fail→rewrite→pass cycle must let FactChecker repair the
+# bilingual summary pair, then re-score the newly applied canonical bytes.
 writer_bin="$TMP/writer-bin"
 mkdir -p "$writer_bin"
 cat > "$writer_bin/codex" <<'FAKE_JUDGE'
@@ -929,6 +941,34 @@ if [ "${1:-}" = "exec" ]; then
       *) exit 72 ;;
     esac
     printf '%s\n' "$*" >> "$FAKE_WRITER_CALLS"
+    candidate_zh="$(
+      printf '%s\n' "$prompt" |
+        sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
+        tail -1
+    )"
+    candidate_en="$(
+      printf '%s\n' "$prompt" |
+        sed -n '/^## Writable English candidate, if present$/{n;p;}' |
+        tail -1
+    )"
+    python3 - \
+      "$candidate_zh" "$candidate_en" \
+      "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_EXPECTED_EN_SUMMARY" <<'PY'
+import pathlib
+import re
+import sys
+
+for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4])):
+    path = pathlib.Path(path_text)
+    if not path.is_file():
+        continue
+    payload = path.read_bytes()
+    replacement = summary.encode("utf-8")
+    updated, count = re.subn(br"(?m)^summary: [^\r\n]+$", replacement, payload, count=1)
+    if count != 1:
+        raise SystemExit(73)
+    path.write_bytes(updated)
+PY
     exit 0
   fi
   count=0
@@ -939,8 +979,14 @@ if [ "${1:-}" = "exec" ]; then
     accuracy=4
     verdict=FAIL
   else
-    accuracy=9
-    verdict=PASS
+    if grep -Fqx "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_POST_PATH" &&
+       grep -Fqx "$FAKE_EXPECTED_EN_SUMMARY" "$FAKE_EN_POST_PATH"; then
+      accuracy=9
+      verdict=PASS
+    else
+      accuracy=4
+      verdict=FAIL
+    fi
   fi
   cat > "$score_path" <<JSON
 {"judge":"factCheck","dimensions":{"accuracy":$accuracy,"fidelity":9,"consistency":9,"sourceBoundary":9,"commentarySeparation":9},"score":9,"verdict":"$verdict","reasons":{"accuracy":"fixture"}}
@@ -955,12 +1001,24 @@ printf '{}\n' > "$writer_progress"
 fixture_lock_dir="$ROOT_DIR/.score-loop/locks"
 mkdir -p "$fixture_lock_dir"
 chmod 700 "$fixture_lock_dir"
-fixture_post="mp-31-20260204-rauchg-vercel-ai-support.mdx"
+fixture_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
+fixture_zh_path="$ROOT_DIR/src/content/posts/$fixture_post"
+fixture_en_path="$ROOT_DIR/src/content/posts/en-$fixture_post"
+fixture_zh_backup="$TMP/fixture-zh-backup"
+fixture_en_backup="$TMP/fixture-en-backup"
+cp -p "$fixture_zh_path" "$fixture_zh_backup"
+cp -p "$fixture_en_path" "$fixture_en_backup"
+expected_zh_summary='summary: "FactChecker 修正後的摘要會同步更新中英文版本，並在下一輪重新驗證事實正確性"'
+expected_en_summary='summary: "FactChecker updates both language summaries together and verifies the corrected claim in the next scoring round"'
 exec 198>>"$fixture_lock_dir/tracked-$fixture_post.lock"
 flock -x 198
 PATH="$writer_bin:$PATH" \
 FAKE_JUDGE_COUNT="$TMP/judge-count" \
 FAKE_WRITER_CALLS="$TMP/writer-calls" \
+FAKE_EXPECTED_ZH_SUMMARY="$expected_zh_summary" \
+FAKE_EXPECTED_EN_SUMMARY="$expected_en_summary" \
+FAKE_POST_PATH="$fixture_zh_path" \
+FAKE_EN_POST_PATH="$fixture_en_path" \
 GP_WRITER_MODE=codex \
 TRIBUNAL_NO_COMMIT=1 \
 TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$writer_progress" \
@@ -968,8 +1026,10 @@ TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=10 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
-  "$fixture_post" >"$TMP/writer.out" 2>&1 ||
-  fail "real fail→writer→pass tribunal fixture failed"
+  "$fixture_post" >"$TMP/writer.out" 2>&1 || {
+    sed -n '1,240p' "$TMP/writer.out" >&2 || true
+    fail "real fail→writer→pass tribunal fixture failed"
+  }
 flock -u 198
 [ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-$fixture_post.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
@@ -978,4 +1038,12 @@ grep -q -- '--sandbox workspace-write' "$TMP/writer-calls" ||
   fail "Codex writer call did not use its isolated workspace sandbox"
 [ "$(cat "$TMP/judge-count")" = "2" ] ||
   fail "tribunal did not re-score after writer execution"
-pass "failing article reaches isolated Codex writer and is re-scored to PASS"
+grep -Fqx "$expected_zh_summary" "$fixture_zh_path" ||
+  fail "FactChecker rewrite did not apply the zh-tw summary"
+grep -Fqx "$expected_en_summary" "$fixture_en_path" ||
+  fail "FactChecker rewrite did not apply the English summary"
+cp -p "$fixture_zh_backup" "$fixture_zh_path"
+cp -p "$fixture_en_backup" "$fixture_en_path"
+fixture_zh_backup=""
+fixture_en_backup=""
+pass "FactChecker applies a paired summary and the next judge reads it before PASS"

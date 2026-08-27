@@ -10,6 +10,14 @@
 
 若 GP hard gate 未通過、provider／runner 發生錯誤、缺少有效 verdict，或 source/body hash 已 stale，pipeline 必須停在 deploy 前。修復方式是回到原 workdir 的安全 recovery point 重跑相同角色，不是把 GP 送進通用 writer。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
+## Writer candidate 的 frontmatter 邊界
+
+隔離寫手交易預設保護整份 frontmatter。唯一例外是 FactChecker 失敗後的 bounded rewrite：若評審指出讀者可見摘要的事實錯誤，寫手可替換既有 top-level、單一實體行、帶引號的 `summary` payload。English sidecar 存在時，中英文摘要必須一起變更或一起不變；沒有 sidecar 時可只修正 zh-tw，交易不會替文章建立英文檔。其他 judge 與 final-build repair 沒有這項權限。
+
+這個例外不會放寬其餘交易邊界。欄位位置、key、quote style、行尾、行內註解與其他 frontmatter bytes 都必須維持原樣；duplicate key、block／multiline scalar、tag、anchor、alias 與 plain scalar 都不支援。候選仍先通過 post／YAML validation，再由雙語 CAS 套用；套用後必須讓下一輪 FactChecker 重新評分，摘要變更本身不代表 PASS。Capture、apply 與 validation-failure rollback 由 parent 明示傳遞同一個 stage policy；restart recovery 只依 journal 內的完整 bytes 與 inode identity 收斂，不解析摘要，也不需要知道是哪個 judge。
+
+若 log 顯示 `unsupported … summary shape`，代表候選碰到不在封閉 allowlist 內的 YAML 形狀，不是一般 validator 警告。Canonical pair 會保持不變；先保留 log／journal 證據，透過正常 feature branch／PR 把既有摘要整理成受支援的單行 quoted scalar，再從原 stage 重跑。不要在 live runtime 手改 frontmatter，也不要靠改 prompt、重送相同候選或切換 writer 來升級權限。實際 policy 名稱與 CLI 參數以 snapshot helper 與 shell caller 為準，本節不複製 executable 值。
+
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
 - `openspec/changes/archive/2026-04-23-tribunal-safe-parallelism/` — Phase 2, 2-worker pool
@@ -376,7 +384,7 @@ Log interpretation:
 - `Acquired build lock after Ns`: worker now owns the exclusive lock; only now does the 900s build timeout start.
 - `Final build failed rc=124`: build execution timed out (`timeout --kill-after=15s 900 ...`), treated as operational/resource, no writer repair.
 - `Final build failed rc=137` or log evidence like `heap out of memory`, `FATAL ERROR`, `SIGKILL`, `oom-kill`: likely resource/OOM, no writer repair.
-- 非 GP build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger up to 2 bounded writer repair attempts. GP 不進 final-build writer repair；build failure 直接保留為阻擋證據，修好 deterministic 問題後從原 workdir 重跑。PASS is never written unless a subsequent final build succeeds.
+- 非 GP build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger bounded writer repair。這條 repair 只能修改 body，不能改 `summary` 或任何 frontmatter；GP 不進 final-build writer repair。Build failure 直接保留為阻擋證據，修好 deterministic 問題後從原 workdir 重跑。PASS is never written unless a subsequent final build succeeds.
 
 ## Auto scale-down / up (memory throttle)
 
@@ -560,6 +568,7 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
 | Workers dispatched but log stays quiet for >1min | Worker sleeping inside `wait_for_*` (quota/quiet-hours left over from old code) | `sync` workers + restart |
 | Service inactive, `rc_exit_stopped` in log, flag still present | Someone touched the flag manually; supervisor cleared it on exit | `systemctl --user start tribunal-loop` |
 | Same article claimed by a dead pid, new workers blocked | Worker crashed without releasing claim | `scripts/tribunal-worker-bootstrap.sh status` to confirm workers are alive; supervisor runs `rc_gc_stale_claims` at startup; to force now: `rm -rf .score-loop/claims/<slug>.claim` |
+| Writer candidate reports `unsupported … summary shape` | FactChecker tried to change a duplicate、multiline、tagged、anchored、plain or otherwise non-allowlisted `summary` | 保留證據；走正常 branch／PR 將 canonical summary 收斂成既有單行 quoted scalar，再從原 stage 重跑。不要手改 live runtime 或放寬 prompt。 |
 | `Git drift: state=behind` or `state=diverged` in supervisor log | origin/main advanced while runtime kept local progress / content edits | Expected in fetch-only mode. Runtime keeps processing its current snapshot; use publisher or an explicit operator sync instead of rebasing the daemon worktree. |
 | New code on main isn't reaching running workers | Worker worktrees are stale (see "Worker worktree gotcha" above) | `scripts/tribunal-worker-bootstrap.sh sync` — or restart (supervisor auto-syncs) |
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |
