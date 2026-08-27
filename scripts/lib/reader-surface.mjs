@@ -663,6 +663,8 @@ function stripHtmlCommentsPreservingLines(value) {
 export const TRUSTED_CONTENT_COMPONENT_IMPORTS = Object.freeze(
   [
     ['../../components/AnalogyBox.astro', 'AnalogyBox'],
+    ['../../components/ArticleDisclosure.astro', 'ArticleDisclosure'],
+    ['../../components/ArticleTakeaways.astro', 'ArticleTakeaways'],
     ['../../components/CodexLearningMap.astro', 'CodexLearningMap'],
     ['../../components/DiffBlock.astro', 'DiffBlock'],
     ['../../components/LevelUpProgress.astro', 'LevelUpProgress'],
