@@ -6,7 +6,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
-TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 
 fail() { echo "x $*" >&2; exit 1; }
 pass() { echo "ok $*"; }
@@ -905,14 +904,16 @@ NOTIFIER
 ) || fail "alert dedupe/count/transition behavior is incorrect"
 pass "stall/EXHAUSTED/fallback/floor alerts execute with correct dedupe and counts"
 
-# A real tribunal fail→rewrite→pass cycle must reach the isolated Codex writer.
-# The fake writer is a no-op; the existing valid fixture post passes cheap
-# validation, then the second fake judge result passes.
+# A real tribunal fail→rewrite→pass cycle must let FactChecker repair the
+# bilingual summary pair, then re-score the newly applied canonical bytes.
 writer_bin="$TMP/writer-bin"
 mkdir -p "$writer_bin"
 cat > "$writer_bin/codex" <<'FAKE_JUDGE'
 #!/usr/bin/env bash
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "login" ] && [ "${2:-}" = "status" ]; then
   exit 0
 fi
 if [ "${1:-}" = "--version" ]; then
@@ -929,6 +930,34 @@ if [ "${1:-}" = "exec" ]; then
       *) exit 72 ;;
     esac
     printf '%s\n' "$*" >> "$FAKE_WRITER_CALLS"
+    candidate_zh="$(
+      printf '%s\n' "$prompt" |
+        sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
+        tail -1
+    )"
+    candidate_en="$(
+      printf '%s\n' "$prompt" |
+        sed -n '/^## Writable English candidate, if present$/{n;p;}' |
+        tail -1
+    )"
+    python3 - \
+      "$candidate_zh" "$candidate_en" \
+      "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_EXPECTED_EN_SUMMARY" <<'PY'
+import pathlib
+import re
+import sys
+
+for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4])):
+    path = pathlib.Path(path_text)
+    if not path.is_file():
+        continue
+    payload = path.read_bytes()
+    replacement = summary.encode("utf-8")
+    updated, count = re.subn(br"(?m)^summary: [^\r\n]+$", replacement, payload, count=1)
+    if count != 1:
+        raise SystemExit(73)
+    path.write_bytes(updated)
+PY
     exit 0
   fi
   count=0
@@ -939,8 +968,14 @@ if [ "${1:-}" = "exec" ]; then
     accuracy=4
     verdict=FAIL
   else
-    accuracy=9
-    verdict=PASS
+    if grep -Fqx "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_POST_PATH" &&
+       grep -Fqx "$FAKE_EXPECTED_EN_SUMMARY" "$FAKE_EN_POST_PATH"; then
+      accuracy=9
+      verdict=PASS
+    else
+      accuracy=4
+      verdict=FAIL
+    fi
   fi
   cat > "$score_path" <<JSON
 {"judge":"factCheck","dimensions":{"accuracy":$accuracy,"fidelity":9,"consistency":9,"sourceBoundary":9,"commentarySeparation":9},"score":9,"verdict":"$verdict","reasons":{"accuracy":"fixture"}}
@@ -949,33 +984,178 @@ JSON
 fi
 exit 1
 FAKE_JUDGE
-chmod +x "$writer_bin/codex"
+cat > "$writer_bin/grok" <<'FAKE_GROK'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--help" ]; then
+  exit 0
+fi
+if [ "${1:-}" = "models" ]; then
+  printf '%s\n' '* grok-4.6'
+  exit 0
+fi
+prompt="${!#}"
+printf 'call\n' >> "$FAKE_WRITER_CALLS"
+printf '%s\n' "$@" > "$FAKE_WRITER_ARGS"
+candidate_zh="$(
+  printf '%s\n' "$prompt" |
+    sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
+    tail -1
+)"
+candidate_en="$(
+  printf '%s\n' "$prompt" |
+    sed -n '/^## Writable English candidate, if present$/{n;p;}' |
+    tail -1
+)"
+python3 - \
+  "$candidate_zh" "$candidate_en" \
+  "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_EXPECTED_EN_SUMMARY" <<'PY'
+import pathlib
+import re
+import sys
+
+for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4])):
+    path = pathlib.Path(path_text)
+    if not path.is_file():
+        continue
+    payload = path.read_bytes()
+    replacement = summary.encode("utf-8")
+    updated, count = re.subn(br"(?m)^summary: [^\r\n]+$", replacement, payload, count=1)
+    if count != 1:
+        raise SystemExit(73)
+    path.write_bytes(updated.replace(b"baseline body", b"candidate body", 1))
+PY
+FAKE_GROK
+cat > "$writer_bin/node" <<'FAKE_NODE'
+#!/usr/bin/env bash
+case "${1:-}" in
+  */validate-posts.mjs|scripts/validate-posts.mjs)
+    if [ "${FAKE_VALIDATE_CANONICAL_FAIL:-0}" = 1 ]; then
+      for argument in "$@"; do
+        case "$argument" in
+          src/content/posts/*) exit 1 ;;
+        esac
+      done
+    fi
+    exit 0
+    ;;
+esac
+exec "$REAL_NODE" "$@"
+FAKE_NODE
+cp "$preflight_root/bin/systemd-run" "$writer_bin/systemd-run"
+chmod +x "$writer_bin/codex" "$writer_bin/grok" "$writer_bin/node" \
+  "$writer_bin/systemd-run"
+
+# Run the real stage loop from a disposable repository. A killed test process
+# can leave only its private temp tree behind; no tracked article is ever used
+# as a mutable fixture or restored by a trap.
+writer_root="$TMP/writer-root"
+mkdir -p "$writer_root/.codex" "$writer_root/.claude" \
+  "$writer_root/config" "$writer_root/src/content/posts"
+cp -a "$ROOT_DIR/scripts" "$writer_root/"
+cp -a "$ROOT_DIR/.codex/agents" "$writer_root/.codex/"
+cp -a "$ROOT_DIR/.claude/agents" "$writer_root/.claude/"
+cp "$ROOT_DIR/config/llm-pipeline.json" "$writer_root/config/"
+cp "$ROOT_DIR/GU-LOG_WRITER_PROMPT.md" "$ROOT_DIR/CONTRIBUTING.md" \
+  "$writer_root/"
 writer_progress="$TMP/writer-progress.json"
 printf '{}\n' > "$writer_progress"
-fixture_lock_dir="$ROOT_DIR/.score-loop/locks"
-mkdir -p "$fixture_lock_dir"
-chmod 700 "$fixture_lock_dir"
-fixture_post="mp-31-20260204-rauchg-vercel-ai-support.mdx"
-exec 198>>"$fixture_lock_dir/tracked-$fixture_post.lock"
-flock -x 198
-PATH="$writer_bin:$PATH" \
-FAKE_JUDGE_COUNT="$TMP/judge-count" \
-FAKE_WRITER_CALLS="$TMP/writer-calls" \
-GP_WRITER_MODE=codex \
-TRIBUNAL_NO_COMMIT=1 \
-TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$writer_progress" \
-TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
-TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=10 \
-TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
-bash "$TRIBUNAL" --score-only --only-stage factChecker --allow-rewrite \
-  "$fixture_post" >"$TMP/writer.out" 2>&1 ||
-  fail "real fail→writer→pass tribunal fixture failed"
-flock -u 198
+fixture_post="sd-999-20260827-summary-policy-fixture.mdx"
+fixture_zh_path="$writer_root/src/content/posts/$fixture_post"
+fixture_en_path="$writer_root/src/content/posts/en-$fixture_post"
+cat > "$fixture_zh_path" <<'FIXTURE_ZH'
+---
+title: "Summary policy fixture"
+summary: "old zh"
+---
+baseline body zh
+FIXTURE_ZH
+cat > "$fixture_en_path" <<'FIXTURE_EN'
+---
+title: "Summary policy fixture EN"
+summary: "old en"
+---
+baseline body en
+FIXTURE_EN
+fixture_zh_baseline="$TMP/fixture-zh-baseline"
+fixture_en_baseline="$TMP/fixture-en-baseline"
+cp -p "$fixture_zh_path" "$fixture_zh_baseline"
+cp -p "$fixture_en_path" "$fixture_en_baseline"
+(
+  cd "$writer_root"
+  git init -q
+  git add -- .
+)
+expected_zh_summary='summary: "FactChecker 修正後的摘要會同步更新中英文版本，並在下一輪重新驗證事實正確性"'
+expected_en_summary='summary: "FactChecker updates both language summaries together and verifies the corrected claim in the next scoring round"'
+real_node="$(command -v node)"
+
+run_factchecker_fixture() {
+  local output="$1"
+  (
+    cd "$writer_root"
+    PATH="$writer_bin:$PATH" \
+    REAL_NODE="$real_node" \
+    FAKE_JUDGE_COUNT="$TMP/judge-count" \
+    FAKE_WRITER_CALLS="$TMP/writer-calls" \
+    FAKE_WRITER_ARGS="$TMP/writer-args" \
+    FAKE_EXPECTED_ZH_SUMMARY="$expected_zh_summary" \
+    FAKE_EXPECTED_EN_SUMMARY="$expected_en_summary" \
+    FAKE_POST_PATH="$fixture_zh_path" \
+    FAKE_EN_POST_PATH="$fixture_en_path" \
+    GP_WRITER_MODE=grok \
+    TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+    TRIBUNAL_MODEL_CONFIG="$writer_root/config/llm-pipeline.json" \
+    TRIBUNAL_NO_COMMIT=1 \
+    TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$writer_progress" \
+    TRIBUNAL_CODEX_TIMEOUT_SEC=10 \
+    TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=10 \
+    TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+    bash "$writer_root/scripts/tribunal.sh" \
+      --score-only --only-stage factChecker --allow-rewrite "$fixture_post"
+  ) >"$output" 2>&1
+}
+
+run_factchecker_fixture "$TMP/writer.out" || {
+    sed -n '1,240p' "$TMP/writer.out" >&2 || true
+    fail "real fail→writer→pass tribunal fixture failed"
+  }
 [ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-$fixture_post.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
-[ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Codex writer"
-grep -q -- '--sandbox workspace-write' "$TMP/writer-calls" ||
-  fail "Codex writer call did not use its isolated workspace sandbox"
+[ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Grok writer"
+if ! awk '
+  previous == "--sandbox" && $0 == "workspace" { found = 1 }
+  { previous = $0 }
+  END { exit !found }
+' "$TMP/writer-args"; then
+  fail "Grok writer call did not use its isolated workspace sandbox"
+fi
 [ "$(cat "$TMP/judge-count")" = "2" ] ||
   fail "tribunal did not re-score after writer execution"
-pass "failing article reaches isolated Codex writer and is re-scored to PASS"
+grep -Fqx "$expected_zh_summary" "$fixture_zh_path" ||
+  fail "FactChecker rewrite did not apply the zh-tw summary"
+grep -Fqx "$expected_en_summary" "$fixture_en_path" ||
+  fail "FactChecker rewrite did not apply the English summary"
+pass "FactChecker applies a paired summary and the next judge reads it before PASS"
+
+# Drive the actual run_stage validation-failure branch. The candidate validator
+# passes, the post-apply canonical validator fails, and rollback must therefore
+# use the policy derived inside the transaction from factChecker.
+cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+cp -p "$fixture_en_baseline" "$fixture_en_path"
+printf '{}\n' > "$writer_progress"
+rm -f "$TMP/judge-count" "$TMP/writer-calls" "$TMP/writer-args"
+set +e
+FAKE_VALIDATE_CANONICAL_FAIL=1 run_factchecker_fixture "$TMP/writer-rollback.out"
+rollback_rc=$?
+set -e
+[ "$rollback_rc" -ne 0 ] ||
+  fail "validation-failure fixture unexpectedly passed"
+cmp -s "$fixture_zh_baseline" "$fixture_zh_path" ||
+  fail "run_stage rollback did not restore the zh-tw baseline"
+cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
+  fail "run_stage rollback did not restore the English baseline"
+[ "$(cat "$TMP/judge-count")" = "2" ] ||
+  fail "rollback fixture did not continue to its bounded second score"
+[ "$(wc -l < "$TMP/writer-calls" | tr -d ' ')" = "1" ] ||
+  fail "rollback fixture invoked the writer outside the bounded first attempt"
+pass "run_stage carries its FactChecker policy through validation-failure rollback"
