@@ -50,7 +50,7 @@ describe('Tribunal shell safety contract', () => {
     25_000
   );
 
-  it('passes deployment readiness after the tracked-fixture runner releases its lock', () => {
+  it('passes deployment readiness with the hermetic writer runner', () => {
     const result = runShellTest(DEPLOY_READINESS, 30_000);
 
     expect(result.error, result.stdout + result.stderr).toBeUndefined();

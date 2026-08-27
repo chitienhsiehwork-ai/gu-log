@@ -7,12 +7,12 @@
 ## 2. 限定評審階段的摘要交易
 
 - [x] 2.1 在快照工具實作封閉失敗的成對單行摘要比較，並讓捕獲與套用指令明確接受權限策略
-- [x] 2.2 在 shell 工具與寫手交易明確傳遞同一策略，包含驗證失敗後的反向原子交換
+- [x] 2.2 讓寫手交易只從 stage 推導一次策略，並供捕獲、套用與驗證失敗後的反向原子交換共用；caller 不接受另一個策略參數
 - [x] 2.3 只在 `factChecker` 重試啟用成對摘要策略；所有其他呼叫點預設保護全部 frontmatter
 
 ## 3. 合約收斂
 
-- [x] 3.1 更新 Codex／舊版 tribunal-writer 規則與 FactChecker 改寫 prompt，說明摘要例外只屬於 FactChecker 重試，不能由 prompt 升級權限
+- [x] 3.1 更新 provider-neutral tribunal-writer 規則與 FactChecker 改寫 prompt，說明摘要例外只屬於 FactChecker 重試，不能由 prompt 或 provider 升級權限
 - [x] 3.2 更新 Tribunal runbook 的寫手候選安全邊界、單語規則與不支援摘要形狀的診斷方式，不複製程式擁有的參數值
 
 ## 4. 驗證與交付

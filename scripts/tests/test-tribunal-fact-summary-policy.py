@@ -131,6 +131,31 @@ class SummaryShapeTests(SummaryPolicyFixture):
                     b"\r\n",
                 ),
             ),
+            (
+                "plain top-level keys with nested values",
+                post(
+                    [
+                        b'# retained comment',
+                        b'title: "Exact bytes"',
+                        b"scores:",
+                        b"  factCheck:",
+                        b"    accuracy: 9",
+                        b'summary: "old"',
+                    ],
+                    b"baseline zh",
+                ),
+                post(
+                    [
+                        b'# retained comment',
+                        b'title: "Exact bytes"',
+                        b"scores:",
+                        b"  factCheck:",
+                        b"    accuracy: 9",
+                        b'summary: "new"',
+                    ],
+                    b"candidate zh",
+                ),
+            ),
         ]
         for label, baseline, candidate in cases:
             with self.subTest(label=label):
@@ -171,6 +196,26 @@ class SummaryShapeTests(SummaryPolicyFixture):
                 [b'summary: "old"', b'? "summary"', b': "shadow"'],
                 [b'summary: "new"', b'? "summary"', b': "shadow"'],
             ),
+            "escaped quoted duplicate key": (
+                [b'summary: "old"', b'"summ\\u0061ry": "shadow"'],
+                [b'summary: "new"', b'"summ\\u0061ry": "shadow"'],
+            ),
+            "tagged duplicate key": (
+                [b'summary: "old"', b'!!str summary: "shadow"'],
+                [b'summary: "new"', b'!!str summary: "shadow"'],
+            ),
+            "anchored duplicate key": (
+                [b'summary: "old"', b'&k summary: "shadow"'],
+                [b'summary: "new"', b'&k summary: "shadow"'],
+            ),
+            "explicit tagged duplicate key": (
+                [b'summary: "old"', b'? !!str summary', b': "shadow"'],
+                [b'summary: "new"', b'? !!str summary', b': "shadow"'],
+            ),
+            "explicit anchored duplicate key": (
+                [b'summary: "old"', b'? &k summary', b': "shadow"'],
+                [b'summary: "new"', b'? &k summary', b': "shadow"'],
+            ),
             "block scalar": (
                 [b"summary: |", b"  old"],
                 [b"summary: |", b"  new"],
@@ -209,6 +254,32 @@ class SummaryShapeTests(SummaryPolicyFixture):
                 (self.candidate / "pair.mdx").write_bytes(
                     post(candidate_lines, b"candidate")
                 )
+                with self.assertRaisesRegex(
+                    SNAPSHOT.SnapshotError, "unsupported zh-tw summary shape"
+                ):
+                    self.capture(token)
+                self.assertEqual(self.zh_path.read_bytes(), baseline)
+                (self.candidate / "pair.mdx").unlink()
+                self.zh_path.unlink()
+
+    def test_rejects_non_plain_top_level_keys_even_when_not_summary(self) -> None:
+        cases = {
+            "escaped quoted key": [b'"t\\u0069tle": "Protected"'],
+            "tagged key": [b'!!str title: "Protected"'],
+            "anchored key": [b'&k title: "Protected"'],
+            "explicit tagged key": [b'? !!str title', b': "Protected"'],
+            "explicit anchored key": [b'? &k title', b': "Protected"'],
+        }
+        for label, exotic_lines in cases.items():
+            with self.subTest(label=label):
+                baseline = post(
+                    [*exotic_lines, b'summary: "old"'], b"baseline"
+                )
+                candidate = post(
+                    [*exotic_lines, b'summary: "new"'], b"candidate"
+                )
+                token = self.prepare(baseline)
+                (self.candidate / "pair.mdx").write_bytes(candidate)
                 with self.assertRaisesRegex(
                     SNAPSHOT.SnapshotError, "unsupported zh-tw summary shape"
                 ):

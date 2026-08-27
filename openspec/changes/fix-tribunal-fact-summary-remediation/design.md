@@ -25,7 +25,7 @@ SD-31 的摘要把 824／10,700（約 7.7%）寫成兩成。FactChecker 正確�
 
 ### 1. 權限屬於 FactChecker retry，不屬於 writer 身份
 
-`run_writer_candidate_transaction` 接受 parent 決定的 frontmatter policy。只有正常 judge loop 的 `factChecker` stage 傳入 paired-summary policy；其他 stage 與 final-build repair 傳入 preserve-all policy。Writer process 無法從 prompt、文章內容或環境自行升級權限。`factCheck` 仍只是既有 frontmatter score key，不用於 stage routing。
+`run_writer_candidate_transaction` 只接受 stage 作為權限輸入，並在交易內部由 stage 推導 frontmatter policy；caller 沒有另一個 policy 參數可傳。正常 judge loop 的 `factChecker` stage 會推導出 paired-summary，其他 stage 與 final-build repair 則推導出 preserve-all。Writer process 無法從 prompt、文章內容、provider 或環境自行升級權限。`factCheck` 仍只是既有 frontmatter score key，不用於 stage routing。
 
 FactChecker attempt 1 後的 writer 最多產生候選；attempt 2 必須重新讀 canonical 候選並依既有 pass bar 判斷。摘要變好不會直接獲得 PASS，且後續其他 judge writer 不能再改掉已通過 fact check 的摘要。
 
@@ -35,7 +35,7 @@ FactChecker attempt 1 後的 writer 最多產生候選；attempt 2 必須重新�
 
 候選驗證器在 zh-tw 與 EN frontmatter 中各找出恰好一個 top-level `summary`。只有 baseline 已使用單一實體行的單引號或雙引號字串、candidate 保持相同 key、縮排、quote style、行尾與位置時，才允許 quote 內的 payload 不同。所有其他 frontmatter bytes 仍逐位元相同。
 
-Duplicate key、block scalar、跨實體行 quoted scalar、tag／anchor、plain scalar、欄位新增／刪除／搬移、quote style 變更或 malformed escape 都拒絕。捕獲後仍先在 parent-materialized candidate 上跑既有真 YAML／post validator，通過後才允許 CAS 套用。
+為了避免重造不完整的 YAML key 等價 parser，只要 frontmatter 要變更，驗證器會先把可處理範圍限縮成「頂層 key 全部使用簡單 plain mapping syntax」；任何 quoted、escaped、tagged、anchored、explicit 或其他非 plain 頂層 key 都封閉拒絕，即使它不是 `summary`。進入這個保守子集後，duplicate key、block scalar、跨實體行 quoted scalar、tag／anchor、plain scalar、欄位新增／刪除／搬移、quote style 變更或 malformed escape 仍一律拒絕。捕獲後仍先在 parent-materialized candidate 上跑既有真 YAML／post validator，通過後才允許 CAS 套用。
 
 替代方案是用 YAML parser 解析整份 frontmatter後比較 object。它會把排序、quote、comment、duplicate-key 與 scalar type 等位元差異正規化掉，擴大目前的安全邊界，因此不採用。
 
@@ -45,9 +45,9 @@ EN sidecar 存在時，paired-summary policy 只接受「兩邊都沒改」或�
 
 替代方案是只允許 zh-tw。那能讓 FactChecker 通過，卻會確定製造讀者可見的 bilingual drift，因此不採用。
 
-### 4. Capture、apply 與 CAS rollback 使用同一個顯式 policy
+### 4. Transaction 從 stage 推導一次 policy，供 capture、apply 與 CAS rollback 共用
 
-Shell helper 把 policy 同時傳給 candidate capture 與 apply。若 rewrite 後 cheap validation 失敗，CAS rollback 也以同一 policy 反向交換，否則 candidate summary 與 baseline summary 的預期差異會讓安全 rollback 自己拒絕。Policy 不藏在 ambient env；transaction state 明確保存，錯誤路徑缺值時預設 preserve-all。
+Transaction 從 stage 推導 policy 後明確保存在 parent-controlled transaction state，candidate capture、apply 與 cheap validation 失敗後的 CAS rollback 都使用這一份值；caller 不傳 policy override。否則 candidate summary 與 baseline summary 的預期差異會讓安全 rollback 自己拒絕。Policy 不藏在 ambient env；錯誤路徑在推導前維持 preserve-all。
 
 既有 journal 記錄完整 baseline／candidate bytes，不需變更格式。Crash recovery 保持 policy-neutral：它只依完整 payload 與 inode identity 收斂成 baseline 或 candidate，不解析、不保存 summary policy。
 
@@ -58,9 +58,9 @@ FactChecker rewrite prompt 與 writer role contract 改成：frontmatter 預設�
 ## Risks / Trade-offs
 
 - [風險] Writer 可能把摘要改得更會賣但不正確 → 只有 FactChecker retry 有權，下一輪必須重評；其他 stage 與 final-build repair 保持不可改。
-- [風險] 行導向 parser 漏過 YAML edge case → 只接受既有 quoted single-line 形狀、其餘 bytes 完全相同，並在 apply 前跑既有真 YAML validator；不支援的語法封閉失敗。
+- [風險] 行導向 parser 漏過 YAML key 等價寫法 → 不解析等價寫法；摘要變更前先要求所有頂層 key 使用簡單 plain syntax，再檢查既有 quoted single-line summary，其餘 bytes 完全相同，並在 apply 前跑既有真 YAML validator。
 - [風險] EN 摘要雖一起改但翻譯不等義 → 保留既有 writer bilingual contract；本 change 只保證原子 pair，不宣稱 deterministic 語意驗證。
-- [風險] Rollback 因 policy 遺失而卡住 → transaction state 與 helper API 顯式傳遞同一 policy，回歸測試覆蓋反向 CAS；crash recovery 另以既有完整 bytes／identity 回歸證明 policy-neutral 收斂。
+- [風險] Rollback 因 policy 遺失而卡住 → transaction 從 stage 推導一次並保存同一 policy，回歸測試走實際 runner 的反向 CAS；crash recovery 另以既有完整 bytes／identity 回歸證明 policy-neutral 收斂。
 - [取捨] 不新增 judge-signed structured patch → 少一層 schema／hash／dispatcher coupling；安全性來自 stage-scoped allowlist、full re-score 與既有 CAS，而不是自然語言授權。
 
 ## Migration Plan

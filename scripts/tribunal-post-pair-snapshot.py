@@ -427,31 +427,38 @@ def _single_quoted_payload_end(line: bytes, start: int, label: str) -> int:
     raise _unsupported_summary_shape(label, "unterminated single quote")
 
 
+def _require_plain_top_level_mapping_keys(
+    frontmatter: bytes, label: str
+) -> None:
+    for line in frontmatter.splitlines(keepends=True):
+        content = line.rstrip(b"\r\n")
+        if content in {b"", b"---"} or content.startswith(b"#"):
+            continue
+        if line.startswith((b" ", b"\t")):
+            # Nested mappings, sequences, block scalars, and their comments do
+            # not declare a top-level key.
+            continue
+        if re.match(br"[A-Za-z_][A-Za-z0-9_-]*[ \t]*:", line) is not None:
+            continue
+        raise _unsupported_summary_shape(
+            label, "non-plain top-level mapping key syntax is not supported"
+        )
+
+
 def _summary_scalar(frontmatter: bytes, label: str) -> SummaryScalar:
+    # Do not attempt to enumerate YAML spellings that might normalize to the
+    # protected key. The summary exception operates only on a conservative
+    # frontmatter subset whose complete top-level key grammar is plain ASCII.
+    _require_plain_top_level_mapping_keys(frontmatter, label)
     lines = frontmatter.splitlines(keepends=True)
     matches: list[tuple[int, int, bytes]] = []
-    semantic_key_count = 0
     offset = 0
     for line_index, line in enumerate(lines):
         match = re.match(br"summary[ \t]*:[ \t]*", line)
         if match is not None:
             matches.append((line_index, offset + match.end(), line))
-            semantic_key_count += 1
-        elif re.match(br"(?:'summary'|\"summary\")[ \t]*:", line) is not None:
-            # YAML quoted keys are semantically identical to the plain key.
-            # They are not an admitted writable shape, but they must count so
-            # a quoted duplicate cannot hide behind one supported declaration.
-            semantic_key_count += 1
-        elif re.match(
-            br"\?[ \t]+(?:summary|'summary'|\"summary\")(?:[ \t]*(?:#[^\r\n]*)?)?(?:\r\n|\n|\Z)",
-            line,
-        ) is not None:
-            # An explicit YAML key uses a following `:` line for its value.
-            # Count the key marker itself; parsing that value is intentionally
-            # unnecessary because explicit keys are never an allowed shape.
-            semantic_key_count += 1
         offset += len(line)
-    if semantic_key_count != 1 or len(matches) != 1:
+    if len(matches) != 1:
         raise _unsupported_summary_shape(
             label, "expected exactly one top-level summary key"
         )
