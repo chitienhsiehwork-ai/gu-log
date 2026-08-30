@@ -1,0 +1,108 @@
+---
+import { ChevronDown } from '@lucide/astro';
+
+interface Props {
+  summary: string;
+  description?: string;
+  open?: boolean;
+}
+
+const { summary, description, open = false } = Astro.props;
+---
+
+<details
+  class="article-disclosure"
+  open={open}
+  data-article-disclosure
+  data-markdown-adapter="article-disclosure"
+>
+  <summary>
+    <span class="article-disclosure__labels">
+      <span class="article-disclosure__title">{summary}</span>
+      {description && <span class="article-disclosure__description">{description}</span>}
+    </span>
+    <ChevronDown class="article-disclosure__icon" aria-hidden="true" size={22} stroke-width={2} />
+  </summary>
+  <div class="article-disclosure__content">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .article-disclosure {
+    border-bottom: 1px solid var(--color-divider);
+    border-top: 1px solid var(--color-divider);
+    margin: 1rem 0;
+  }
+
+  .article-disclosure + .article-disclosure {
+    border-top: 0;
+    margin-top: -1rem;
+  }
+
+  .article-disclosure summary {
+    align-items: center;
+    cursor: pointer;
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    list-style: none;
+    min-height: 56px;
+    padding: 0.75rem 0.35rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .article-disclosure summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .article-disclosure summary:hover .article-disclosure__title {
+    color: var(--color-accent);
+  }
+
+  .article-disclosure summary:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  .article-disclosure__labels {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .article-disclosure__title {
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.45;
+    transition: color 180ms ease;
+  }
+
+  .article-disclosure__description {
+    color: var(--color-text-muted);
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .article-disclosure__icon {
+    color: var(--color-accent);
+    flex: 0 0 auto;
+    transition: transform 180ms ease;
+  }
+
+  .article-disclosure[open] .article-disclosure__icon {
+    transform: rotate(180deg);
+  }
+
+  .article-disclosure__content {
+    padding: 0.25rem 0.35rem 1.1rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .article-disclosure__icon,
+    .article-disclosure__title {
+      transition: none;
+    }
+  }
+</style>

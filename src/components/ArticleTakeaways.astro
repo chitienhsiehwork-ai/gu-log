@@ -1,0 +1,95 @@
+---
+import { Lightbulb } from '@lucide/astro';
+
+interface Props {
+  title: string;
+  intro: string;
+  items: string[];
+  footer?: string;
+}
+
+const { title, intro, items, footer } = Astro.props;
+const titleId = `article-takeaways-${title.replace(/\s+/g, '-').toLowerCase()}`;
+---
+
+<aside
+  class="article-takeaways"
+  aria-labelledby={titleId}
+  data-article-takeaways
+  data-markdown-adapter="article-takeaways"
+>
+  <div class="article-takeaways__header">
+    <Lightbulb class="article-takeaways__icon" aria-hidden="true" size={28} stroke-width={1.9} />
+    <h2 id={titleId}>{title}</h2>
+  </div>
+
+  <p class="article-takeaways__intro">{intro}</p>
+
+  <ul>
+    {items.map((item) => <li>{item}</li>)}
+  </ul>
+
+  {footer && <p class="article-takeaways__footer">{footer}</p>}
+</aside>
+
+<style>
+  .article-takeaways {
+    background: var(--color-reading-callout-bg);
+    border: 1px solid var(--color-reading-callout-border);
+    border-left: 5px solid var(--color-reading-callout-accent);
+    border-radius: 8px;
+    color: var(--color-text);
+    margin: 0 0 2rem;
+    padding: 1.25rem 1.35rem 1.2rem;
+  }
+
+  .article-takeaways__header {
+    align-items: center;
+    color: var(--color-reading-callout-accent);
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .article-takeaways__icon {
+    flex: 0 0 auto;
+  }
+
+  .article-takeaways h2 {
+    color: var(--color-text);
+    font-size: 1.1rem;
+    line-height: 1.35;
+    margin: 0;
+  }
+
+  .article-takeaways__intro,
+  .article-takeaways__footer {
+    margin: 0;
+  }
+
+  .article-takeaways ul {
+    margin: 0.9rem 0 0.85rem;
+    padding-left: 1.35rem;
+  }
+
+  .article-takeaways li {
+    margin: 0.4rem 0;
+    padding-left: 0.15rem;
+  }
+
+  .article-takeaways__footer {
+    color: var(--color-text-muted);
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 480px) {
+    .article-takeaways {
+      padding: 1.1rem 1rem 1.05rem;
+    }
+
+    .article-takeaways__header {
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+  }
+</style>

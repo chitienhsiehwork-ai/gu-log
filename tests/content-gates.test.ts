@@ -114,6 +114,22 @@ describe('check-jingjing.maskContent', () => {
     const masked = jj.maskContent('---\ntitle: Hello\n---\nbody');
     expect(masked).not.toMatch(/title: Hello/);
   });
+
+  it('preserves line positions while masking multiline MDX tags', () => {
+    const source =
+      '<ArticleDisclosure\n  summary="Details"\n  description="More"\n>\n正文\n</ArticleDisclosure>';
+    const masked = jj.maskContent(source);
+
+    expect(masked).toHaveLength(source.length);
+    expect(masked.split('\n')).toHaveLength(source.split('\n').length);
+    expect(masked.split('\n')[4]).toBe('正文');
+    expect(masked).not.toMatch(/ArticleDisclosure|Details|More/);
+
+    const { violations } = jj.checkText(`${source}\n這個 approach。`, 'fixture.mdx');
+    expect(violations).toEqual([
+      expect.objectContaining({ word: 'approach', line: 7, context: '這個 approach。' }),
+    ]);
+  });
 });
 
 describe('check-jingjing.filterBaselineViolations', () => {

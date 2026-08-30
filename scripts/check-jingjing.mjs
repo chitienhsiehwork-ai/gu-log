@@ -914,7 +914,7 @@ function maskContent(text) {
   // 5. Mask import lines and HTML/MDX tags themselves (but NOT their inner text)
   text = text.replace(/^import .*$/gm, (m) => ' '.repeat(m.length));
   // Mask HTML/MDX opening/closing tags (e.g. <MoguNote>, </MoguNote>) but leave inner content
-  text = text.replace(/<\/?[A-Za-z][^>]*>/g, (m) => ' '.repeat(m.length));
+  text = text.replace(/<\/?[A-Za-z][^>]*>/g, (m) => m.replace(/[^\n]/g, ' '));
 
   // 5b. Mask cross-link list items (the auto-generated 延伸閱讀 / Related list).
   // A bullet whose entire content is a single markdown link quotes ANOTHER
