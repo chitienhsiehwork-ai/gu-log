@@ -24,7 +24,7 @@ canonical `gp-pipeline fetch` 直接呼叫 source router，可處理 X、YouTube
 
 ### 1. 來源擷取是 FactChecker 的前置條件
 
-僅在 GP／MP 的 FactChecker 實際需要執行時準備 packet，放在 judge retry loop 前。其他 stages 不 fetch；SD／Lv 繼續正常評分，但不被當成缺 focal source 的翻譯。GP／MP 缺少或不合法的 sourceUrl 是 source-capture error，不得默認成 self-source。
+僅在 GP／MP 的 FactChecker 實際需要執行時準備 packet，放在 judge retry loop 前。系列判定讀取 frontmatter 的 `ticketId`，不依檔名、來源網址或 prompt 猜測；未知或不合法的系列資料依既有 validator fail closed，不默認為可跳過 preflight。其他 stages 不 fetch；SD／Lv 繼續正常評分，但不被當成缺 focal source 的翻譯。GP／MP 缺少或不合法的 sourceUrl 是 source-capture error，不得默認成 self-source。
 
 runner 的 source helper 重用 canonical source router 與 validator。X 必須保留完整 Article／self-thread，不接受 focal-only override；一般頁面必須通過 extraction、paywall／shell 與大小檢查；YouTube 沿用既有單影片、完整逐字稿契約，不能 fallback 成一般 HTML。
 
@@ -47,6 +47,8 @@ runner 的 source helper 重用 canonical source router 與 validator。X 必須
 
 YouTube wrapper 用 `YoutubeDL.build_request_director()` 限定唯一 handler，不能只是提升優先序而保留 unsafe fallback；也在 `urlopen()` 交給 base class 前拒絕原始 URL userinfo，避免被 base 正規化成 Authorization header 後失去拒絕依據。不要把全部 redirect 證據寄望於外層 `urlopen()`：redirect 發生在 handler 內。這些接點依 [yt-dlp YoutubeDL 原始碼](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py) 與 [networking RequestHandler contract](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/networking/common.py)；支援版本、依賴與 adapter regression 由可執行設定鎖定，不依 CLI 的不存在 flag。只允許既有單影片來源，不啟用 arbitrary extractor、playlist、cookies、plugins 或影片下載。
 
+Python 安裝沿用 `scripts/requirements-fetch-article.txt` 這個 CI 已讀取的依賴入口，加入精確版本的官方 `yt-dlp` package，不依宿主偶然存在的 CLI binary。採用已發布的穩定版並驗證上述接點；缺 module／不支援 API 時在擷取前回報 dependency error，不能自動更新或切換 handler。CI 必須安裝這份 requirements，執行真實 pinned module 的離線 networking handler smoke；fake CLI 測試不能代替 module 相容性證據。
+
 Transport 以 injectable resolver／dialer 測試公開連線、DNS rebinding、IPv4／IPv6 reserved、超時與 byte 上限；client helper 以無網路 response fixtures 測試合法 redirect、userinfo、非 HTTP(S)、過多 hops、credential header 移除。每條 adapter 另測「必須使用受限 helper／handler、無直接 fallback」，避免只測 generic 就推論 X／YouTube 安全。Wire-byte 上限不能取代解碼／packet 大小上限，兩者各自測試。
 
 ### 3. Manifest 是 harness 的觀察，source 是不受信任資料
@@ -61,7 +63,7 @@ packet 使用新的 0700 private directory；資料檔與 manifest 為 regular f
 | X | API payload 的 focal status ID、author、Article／thread 身分及完整串文驗證結果 | status ID 必須等於 requested ID，continuation 符合既有 self-thread 規則；來源自行宣稱的 URL 不足以放行 |
 | YouTube | 既有 metadata 的 video ID | 必須等於 requested video ID，字幕仍經既有完整性檢查；未觀察到 final URL 就不填 |
 
-Python／shell adapter 透過 parent 指定的 private sidecar 回傳這些欄位，stdout 繼續是完整來源資料。parent 驗證 sidecar schema 與來源型別，缺少必須欄位就拒絕；不能以 requested ID 的拷貝冒充 observed ID。
+Python／shell adapter 透過 parent 指定的 private sidecar 回傳這些欄位，stdout 繼續是完整來源資料。sidecar 使用同目錄暫存 regular file 寫完後原子 rename，parent 只接受完成的檔案；資料版號、來源型別、擷取路徑與型別專屬 identity 為 required。X 的 identity 至少含 API 回傳的 `focalStatusId`、`author`、Article 身分（若有）及依順序排列的 `continuationIds`；串文 validator 使用這些 IDs／author 關聯驗證完整性，不在 render 成 markdown 時丟棄。Generic 的 `finalUrl` 由共用 client 回傳；YouTube 的 `videoId` 由既有 Go metadata parser 驗證後寫入共用觀察結構。parent 驗證 sidecar schema 與來源型別，缺少必須欄位就拒絕；不能以 requested ID 的拷貝冒充 observed ID。
 
 packet manifest 的可執行 schema 是欄位 SSOT：包含 `schemaVersion`、`sourceKind`、`requestedUrl`、`observedIdentity`、`fetchedVia`、`capturedAt`、`validation`，以及 `content` 的相對檔名、正整數 bytes 與 SHA-256。`validation` 記錄實際來源 validator 及成功結果，不接受空值、任意字串「complete」或 caller 自報成功。`content` 只能指向 packet 內指定的 leaf regular file；manifest 本身也不得是 symlink。manifest 與資料完成驗證後設為唯讀，未完成擷取的目錄不得當成可重播 packet。
 
@@ -73,7 +75,7 @@ trusted prompt 指定 manifest 與全文資料路徑，要求讀完整來源、�
 
 Codex 與 Claude 的 judge workdir 都透過 trusted prompt 的絕對路徑讀取同一 private packet；packet 不放進 judge 可寫 cwd，也不列入 writer 的 writable candidate。既有 Codex boundary 只允許隔離 cwd 可寫、禁用 `/tmp` 額外可寫例外；不得為了 packet 放寬它。Claude 路徑同樣不交給 writer 來源寫入能力。兩個 runtime 的無網路 fixture 必須實際開檔讀全文，不能只檢查 prompt 出現了路徑。
 
-每次 judge 啟動前驗證 manifest、路徑、bytes／hash，judge 結束後在解析／採信 score 前再驗一次；後者失敗時丟棄輸出，不寫 authoritative PASS／NEEDS_REVIEW。保留全檔可讀性，不能靠在 prompt 裡塞一段 preview 假裝已交付。分數 ledger 僅記 `sourceSha256` 與 packet schema 版本供比對，不把 source 正文或 URL 診斷寫入公開 progress。
+每次 judge 啟動前驗證 manifest、路徑、bytes／hash，judge 結束後在解析／採信 score 前再驗一次；後者失敗時丟棄輸出，不寫 authoritative PASS／NEEDS_REVIEW。保留全檔可讀性，不能靠在 prompt 裡塞一段 preview 假裝已交付。兩次檢查均成功後，parent 在 FactChecker 的 stage progress record 寫入 `sourceEvidence: { schemaVersion, sourceSha256 }`；值只取自本次已驗證 manifest，不能由 judge JSON 自報。不新增 frontmatter 欄位，不把來源正文／URL／private 路徑寫進公開 progress。Operational error 不能附上看似已認證的 score evidence，重設 stage 時一併清除 stale binding。回歸測試直接讀 ledger，驗證有效 score 綁定正確 hash，tampered packet 不產生 PASS／NEEDS_REVIEW evidence。
 
 ### 5. 一次 capture 與顯式 replay，不建立自動 source cache
 
