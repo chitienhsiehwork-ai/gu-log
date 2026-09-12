@@ -101,7 +101,7 @@ packet 邊界集中轉換 adapter error：公開診斷只含固定 reason、來�
 
 ## Migration Plan
 
-1. #1098 先合併，本 branch 再接上新 main，避免兩條 runner 修改競爭。
+1. 可先平行實作不碰 runner 的 source transport／adapter；#1098 合併後本 branch 接上新 main，才開始 runner 接線，避免兩條狀態機修改競爭。
 2. source transport／packet 與 runner 分工實作，完成無網路、無模型的 unit／shell regressions。
 3. 完成 correctness/safety 與 Keep/Simplify/Drop reviews、完整 gates、OpenSpec sync/archive、PR CI 與 merge。
 4. service 保持既有 operator stop；以 fixture 驗證 runtime 能建立與讀取 packet，不動 production article、不自動啟動 daemon。
