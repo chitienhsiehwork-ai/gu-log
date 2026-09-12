@@ -11,6 +11,7 @@ HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 GROK_BRIDGE="$ROOT_DIR/scripts/tribunal-grok-provider.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
+BATCH="$ROOT_DIR/scripts/tribunal-batch-runner.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
 SLICE="$ROOT_DIR/scripts/tribunal-runtime.slice"
 OBSOLETE_CRON="$ROOT_DIR/scripts/cc-cron-tribunal.sh"
@@ -90,6 +91,20 @@ if ! grep -q 'Invalid/missing .* score JSON schema' "$TRIBUNAL"; then
   fail "invalid judge JSON schema does not fail loudly"
 fi
 pass "invalid judge JSON fails loudly"
+
+quota_completion_case="$(sed -n '/case "\$rc" in/,/esac/p' "$LOOP")"
+batch_completion_case="$(sed -n '/case "\$rc" in/,/esac/p' "$BATCH")"
+if ! grep -q '3).*NEEDS_REVIEW' <<<"$(tr '\n' ' ' <<<"$quota_completion_case")"; then
+  fail "quota supervisor does not classify rc=3 as NEEDS_REVIEW"
+fi
+if ! grep -q '3)' <<<"$batch_completion_case" ||
+   ! grep -q 'NEEDS_REVIEW (authoritative content outcome)' <<<"$batch_completion_case"; then
+  fail "bounded batch does not classify rc=3 as NEEDS_REVIEW"
+fi
+if grep -F '3)' <<<"$quota_completion_case" | grep -q 'draining'; then
+  fail "quota supervisor drains on authoritative NEEDS_REVIEW"
+fi
+pass "both supervisors classify rc=3 distinctly and continue safe work"
 
 if ! grep -q 'TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC:-900' "$HELPERS"; then
   fail "Codex idle watchdog default is not 15 minutes"

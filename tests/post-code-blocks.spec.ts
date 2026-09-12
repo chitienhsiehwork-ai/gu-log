@@ -2,6 +2,30 @@ import { test, expect } from './fixtures';
 
 const TEST_URL = '/posts/gp-275-20260817-article-qwen-3-8-27b/';
 
+function parseRgb(color: string): [number, number, number] {
+  const match = color.match(
+    /^rgba?\(\s*([\d.]+)[, ]+\s*([\d.]+)[, ]+\s*([\d.]+)(?:[, /]+\s*[\d.]+)?\s*\)$/
+  );
+  if (!match) throw new Error(`Expected an rgb/rgba color, received ${color}`);
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function relativeLuminance(color: string): number {
+  return parseRgb(color).reduce((sum, channel, index) => {
+    const linear =
+      channel / 255 <= 0.03928 ? channel / 255 / 12.92 : ((channel / 255 + 0.055) / 1.055) ** 2.4;
+    return sum + linear * [0.2126, 0.7152, 0.0722][index];
+  }, 0);
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const foregroundLuminance = relativeLuminance(foreground);
+  const backgroundLuminance = relativeLuminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 test.describe('Article code block reading contract', () => {
   test('GIVEN a long CLI command WHEN it renders THEN every line is numbered and wraps without horizontal scrolling', async ({
     page,
@@ -103,6 +127,54 @@ test.describe('Article code block reading contract', () => {
 
       expect(colors.lineNumberToken).not.toBe('');
       expect(colors.lineNumberColor).not.toBe(colors.codeColor);
+    }
+  });
+
+  test('GIVEN quoted plaintext code WHEN either theme renders THEN token text passes AA on its own surface', async ({
+    page,
+  }) => {
+    const response = await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    expect(response?.status()).toBe(200);
+
+    const quotedPlaintext = page.locator(
+      '.post-content blockquote .code-block-wrapper > pre.astro-code[data-language="plaintext"]'
+    );
+    await expect(quotedPlaintext).toHaveCount(1);
+
+    for (const theme of ['dark', 'light'] as const) {
+      await page.evaluate((activeTheme) => {
+        if (activeTheme === 'light') {
+          document.documentElement.dataset.theme = 'light';
+        } else {
+          delete document.documentElement.dataset.theme;
+        }
+      }, theme);
+
+      const readings = await quotedPlaintext.evaluateAll((pres) =>
+        pres.map((pre) => {
+          const tokens = Array.from(pre.querySelectorAll('code > .line > span'));
+          if (tokens.length === 0) throw new Error('Expected plaintext code tokens');
+
+          const preStyle = getComputedStyle(pre);
+          return {
+            background: preStyle.backgroundColor,
+            preColor: preStyle.color,
+            tokenColors: Array.from(new Set(tokens.map((token) => getComputedStyle(token).color))),
+            tokenText: tokens.map((token) => token.textContent ?? ''),
+          };
+        })
+      );
+
+      for (const reading of readings) {
+        // Plaintext has no syntax palette: every visible token must inherit the
+        // pre's foreground, so the assertion measures what readers actually see.
+        expect(reading.tokenColors, `${theme} token ownership`).toEqual([reading.preColor]);
+        const ratio = contrastRatio(reading.preColor, reading.background);
+        expect(
+          ratio,
+          `${theme} plaintext code contrast (${reading.preColor} on ${reading.background}; ${reading.tokenText.join('')})`
+        ).toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 });

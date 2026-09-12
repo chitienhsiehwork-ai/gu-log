@@ -1,24 +1,20 @@
 {
   "version": 1,
-  "updatedAt": "2026-08-13T00:00:00Z",
+  "updatedAt": "2026-09-12T00:00:00Z",
   "entries": [
-    {
-      "id": "1120654",
-      "name": "tmp",
-      "reason": "LHCI 的間接 dev dependency；不進 production bundle，等待上游相容更新。",
-      "expiresAt": "2026-09-05"
-    },
-    {
-      "id": "1130734",
-      "name": "brace-expansion",
-      "reason": "LHCI 的 legacy 1.x 間接 dev dependency（chrome-launcher → rimraf → glob → minimatch）；5.x 路徑已升到 patched 版本，不進 production bundle，等待 LHCI 上游相容更新。取代舊 advisory 1124334。",
-      "expiresAt": "2026-09-05"
-    },
     {
       "id": "1139346",
       "name": "extract-zip",
-      "reason": "LHCI 的間接 dev dependency（lighthouse → puppeteer-core → @puppeteer/browsers）；advisory 尚無 patched version，不進 production bundle，等待上游修正。",
-      "expiresAt": "2026-09-05"
+      "scope": "dev",
+      "reason": "GHSA-jmr9-qjv8-65gv 尚無修補版。僅 LHCI 的間接 dev dependency；目前 nightly 只用 pinned setup-chrome 與 static dist，沒有 puppeteerScript 或 browser install，因此不會呼叫此解壓路徑。若新增 archive 輸入／Puppeteer 安裝路徑須移除此豁免並重審。owner: gu-log Tribunal reliability；到期前追蹤 LHCI／Puppeteer 相容升級，未修補不得續用過期豁免。",
+      "expiresAt": "2026-09-26"
+    },
+    {
+      "id": "1193685",
+      "name": "extract-zip",
+      "scope": "dev",
+      "reason": "GHSA-7pqw-9j4j-h8q3 尚無修補版。僅 LHCI 的間接 dev dependency；目前 nightly 在 main 上以 contents:read 執行 static dist 稽核，Chrome 由 pinned setup-chrome 取得，無 vulnerable extract-zip 呼叫。若新增 archive 輸入／Puppeteer 安裝路徑須移除此豁免並重審。owner: gu-log Tribunal reliability；等待相容上游移除 extract-zip，非漏洞已修復。",
+      "expiresAt": "2026-09-26"
     }
   ]
 }

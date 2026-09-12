@@ -78,6 +78,11 @@ if ! cd "$GU_LOG_DIR"; then
   exit 78
 fi
 
+current_tribunal_version="$(node scripts/tribunal-version.mjs current 2>/dev/null || true)"
+if ! [[ "$current_tribunal_version" =~ ^[1-9][0-9]*$ ]]; then
+  current_tribunal_version=""
+fi
+
 generated_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
 unit_environment_value() {
@@ -463,8 +468,31 @@ else
 fi
 echo
 
-echo "══════ RECENT FINISHED ATTEMPTS (runtime ledger, max 15) ══════"
 progress_file=".score-loop/state/tribunal-progress.json"
+echo "══════ NEEDS_REVIEW (current Tribunal version) ══════"
+if ! command -v jq >/dev/null 2>&1; then
+  echo "status=unavailable reason=jq_missing"
+elif [ -z "$current_tribunal_version" ]; then
+  echo "status=unavailable reason=tribunal_version_unreadable"
+elif [ ! -r "$progress_file" ]; then
+  echo "status=unavailable reason=runtime_ledger_missing"
+elif ! jq empty "$progress_file" >/dev/null 2>&1; then
+  echo "status=unavailable reason=runtime_ledger_invalid"
+else
+  needs_review_count="$(
+    jq --argjson version "$current_tribunal_version" '[
+      to_entries[]
+      | select(
+          (.value.status // "") == "NEEDS_REVIEW"
+          and ((.value.tribunalVersion // 0) >= $version)
+        )
+    ] | length' "$progress_file"
+  )"
+  echo "status=observed count=$needs_review_count tribunal_version=$current_tribunal_version"
+fi
+echo
+
+echo "══════ RECENT FINISHED ATTEMPTS (runtime ledger, max 15) ══════"
 if ! command -v jq >/dev/null 2>&1; then
   echo "(unavailable: jq is not installed; cannot validate runtime ledger)"
 elif [ ! -r "$progress_file" ]; then
@@ -491,6 +519,7 @@ else
           article: .key,
           status: .value.status,
           failedStage: (.value.failedStage // null),
+          terminalReason: (.value.terminalReason // null),
           finishedAt: .value.finishedAt
         }
     ' "$progress_file" 2>/dev/null

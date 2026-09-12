@@ -1,0 +1,25 @@
+## 1. 可採取行動的狀態機
+
+- [x] 1.1 在 legacy runner 加入共用的 reader revision 比較 helper、評審前與終態前的漂移檢查，以及原子的 `mark_article_needs_review` transition。
+- [x] 1.2 只有具權威性、符合 schema 的 GP source-preservation no-rewrite FAIL 才回傳 exit code `3`；`--score-only` 維持 rc `1`，其他操作性失敗語意不變。
+- [x] 1.3 runner 初始化時略過 reader revision 未變的現行版 `NEEDS_REVIEW`；reader-visible revision 或 Tribunal version 改變後安全重設。
+
+## 2. 重新入列與下游使用者
+
+- [x] 2.1 新增具鎖定與保留稽核紀錄的 `scripts/tribunal-requeue.sh`，讓 operator 能明確把相同 revision 重新入列。
+- [x] 2.2 更新 quota loop 與 bounded batch 的 selector／exit 統計，依 revision 略過 `NEEDS_REVIEW`，同時繼續其他安全工作。
+- [x] 2.3 在發布器狀態與 monitor snapshot 分開呈現 `NEEDS_REVIEW`，且發布器只選現行 Tribunal version 的 article-level PASS。
+
+## 3. 回歸測試
+
+- [x] 3.1 新增 deterministic shell 測試，涵蓋首次 GP FAIL、不增加 attempt、未變 input 略過、reader-visible 修改、明確重新入列、version 重設、執行中漂移、hash 失敗與雙 worker 安全性。
+- [x] 3.2 新增回歸測試，證明 score-only GP、malformed output、quota、runner error、non-GP judge-only 與 non-GP bounded rewrite 都不會取得具權威性的終態原因。
+- [x] 3.3 新增發布器、scheduler 與 monitor 回歸測試，證明舊 PASS evidence 無法發布現行 `NEEDS_REVIEW` 文章，且舊 Tribunal version 的 PASS 不符合資格。
+- [x] 3.4 在 repo 的 shell contract ownership 測試登記新測試，並執行聚焦的 Vitest、shell 與 OpenSpec 驗證。
+
+## 4. 審查與交付
+
+- [x] 4.1 完成獨立 correctness/safety 與 Keep/Simplify/Drop reviews，並修正所有 blocking finding。
+- [x] 4.2 跑完本機必要 hook／gate，驗證預覽環境或提供純工具變更的等價測試證據，完成 OpenSpec 同步／封存。
+
+封存後由 controller 接續推送、轉 ready、GitHub 審查、CI、合併與正式環境冒煙測試；同時唯讀核對 live runtime，保留 operator stop 與自身 quota gate。這些交付責任不可用封存核取方塊宣稱已完成。未獲 runtime 變更授權時，只在隔離 fixture 驗證新 checkout，不自行同步或啟動 service。

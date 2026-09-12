@@ -14,6 +14,11 @@ pass() { echo "ok $*"; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+version_fixture="$TMP/tribunal-version.mjs"
+cat > "$version_fixture" <<'VERSION'
+#!/usr/bin/env node
+process.stdout.write('8\n');
+VERSION
 
 origin="$TMP/origin.git"
 seed="$TMP/seed"
@@ -117,6 +122,7 @@ git -C "$runtime" config user.name "Runtime"
 mkdir -p "$runtime/scripts"
 cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$runtime/scripts/tribunal-publisher.sh"
 cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$runtime/scripts/tribunal-helpers.sh"
+cp "$version_fixture" "$runtime/scripts/tribunal-version.mjs"
 chmod +x "$runtime/scripts/tribunal-publisher.sh"
 cat > "$runtime/scripts/test-validate-hook.sh" <<'HOOK'
 #!/usr/bin/env bash
@@ -139,6 +145,7 @@ setup_reconciliation_runtime() {
   mkdir -p "$target/scripts" "$target/.score-loop/state"
   cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$target/scripts/tribunal-publisher.sh"
   cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$target/scripts/tribunal-helpers.sh"
+  cp "$version_fixture" "$target/scripts/tribunal-version.mjs"
   chmod +x "$target/scripts/tribunal-publisher.sh"
   cat > "$target/scripts/test-validate-hook.sh" <<'HOOK'
 #!/usr/bin/env bash
@@ -157,18 +164,34 @@ HOOK
 cat > "$runtime/.score-loop/state/tribunal-progress.json" <<'JSON'
 {
   "gp-1-test.mdx": { "status": "PASS", "tribunalVersion": 8 },
-  "gp-2-test.mdx": { "status": "FAILED", "tribunalVersion": 8 }
+  "gp-2-test.mdx": { "status": "FAILED", "tribunalVersion": 8 },
+  "gp-stale-pass.mdx": { "status": "PASS", "tribunalVersion": 7 },
+  "gp-needs-review.mdx": {
+    "status": "NEEDS_REVIEW",
+    "tribunalVersion": 8,
+    "failedStage": "factChecker",
+    "terminalReason": "gp_source_preservation_no_rewrite",
+    "stages": {"factChecker": {"status": "pass", "score": {"score": 9}}}
+  }
 }
 JSON
 
 out="$(cd "$runtime" && TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 bash scripts/tribunal-publisher.sh --dry-run --max 10)"
 grep -q 'publishable PASS: 1' <<<"$out" || fail "dry-run should report one publishable PASS"
 grep -q 'FAILED metadata: 1' <<<"$out" || fail "dry-run should report one FAILED article"
+grep -q 'NEEDS_REVIEW metadata: 1' <<<"$out" || fail "dry-run should report current NEEDS_REVIEW separately"
+grep -q 'review gp-needs-review.mdx' <<<"$out" || fail "status should identify the NEEDS_REVIEW article"
+if grep -q 'ready  gp-stale-pass.mdx' <<<"$out"; then
+  fail "publisher selected a stale-version article-level PASS"
+fi
+if grep -q 'ready  gp-needs-review.mdx' <<<"$out"; then
+  fail "publisher selected stale stage PASS evidence over article NEEDS_REVIEW"
+fi
 jq -e '. == {"schemaVersion": 1, "entries": {}, "batches": {}}' "$runtime/.score-loop/state/tribunal-publisher.json" >/dev/null \
   || fail "missing publisher state should initialize with the default shape"
 jq -e '. == {"schemaVersion": 1, "events": {}}' "$runtime/.score-loop/state/tribunal-triage-events.json" >/dev/null \
   || fail "missing triage state should initialize with the default shape"
-pass "dry-run reports counts and initializes missing runtime ledgers"
+pass "dry-run gates current-version article PASS and reports NEEDS_REVIEW distinctly"
 
 already_on_main_runtime="$TMP/already-on-main-runtime"
 setup_reconciliation_runtime "$already_on_main_runtime"
@@ -551,6 +574,7 @@ setup_batch_validation_runtime() {
   mkdir -p "$target/scripts" "$target/.score-loop/state"
   cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$target/scripts/tribunal-publisher.sh"
   cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$target/scripts/tribunal-helpers.sh"
+  cp "$version_fixture" "$target/scripts/tribunal-version.mjs"
   chmod +x "$target/scripts/tribunal-publisher.sh"
   cat > "$target/.score-loop/state/tribunal-progress.json" <<'JSON'
 {
@@ -669,6 +693,7 @@ git -C "$fetch_runtime" config user.name "Runtime"
 mkdir -p "$fetch_runtime/scripts" "$fetch_runtime/.score-loop/state"
 cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$fetch_runtime/scripts/tribunal-publisher.sh"
 cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$fetch_runtime/scripts/tribunal-helpers.sh"
+cp "$version_fixture" "$fetch_runtime/scripts/tribunal-version.mjs"
 chmod +x "$fetch_runtime/scripts/tribunal-publisher.sh"
 cat > "$fetch_runtime/scripts/test-validate-hook.sh" <<'HOOK'
 #!/usr/bin/env bash
@@ -724,6 +749,7 @@ git -C "$auth_runtime" config user.name "Runtime"
 mkdir -p "$auth_runtime/scripts" "$auth_runtime/.score-loop/state"
 cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$auth_runtime/scripts/tribunal-publisher.sh"
 cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$auth_runtime/scripts/tribunal-helpers.sh"
+cp "$version_fixture" "$auth_runtime/scripts/tribunal-version.mjs"
 chmod +x "$auth_runtime/scripts/tribunal-publisher.sh"
 cat > "$auth_runtime/scripts/test-validate-hook.sh" <<'HOOK'
 #!/usr/bin/env bash
@@ -1039,6 +1065,7 @@ setup_dependency_runtime() {
   mkdir -p "$target/scripts" "$target/.score-loop/state"
   cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$target/scripts/tribunal-publisher.sh"
   cp "$ROOT_DIR/scripts/tribunal-helpers.sh" "$target/scripts/tribunal-helpers.sh"
+  cp "$version_fixture" "$target/scripts/tribunal-version.mjs"
   chmod +x "$target/scripts/tribunal-publisher.sh"
   cat > "$target/scripts/test-validate-hook.sh" <<'HOOK'
 #!/usr/bin/env bash

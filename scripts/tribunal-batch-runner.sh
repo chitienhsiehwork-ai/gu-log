@@ -263,12 +263,25 @@ get_unscored_articles() {
 
     # Skip terminal statuses only for the current Tribunal version. Older
     # terminal entries must be reprocessed across the version boundary.
-    local status
+    local status stored_revision revision_rc
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
+    fi
+    if [ "$status" = "NEEDS_REVIEW" ]; then
+      stored_revision=$(jq -r --arg a "$article" '.[$a].readerRevision // ""' "$PROGRESS_FILE")
+      revision_rc=0
+      tribunal_compare_reader_revision "$stored_revision" "$full_path" || revision_rc=$?
+      case "$revision_rc" in
+        0) continue ;;
+        1) ;;
+        *)
+          tlog "  WARN: cannot verify reader revision for NEEDS_REVIEW $article; skipping fail closed." >&2
+          continue
+          ;;
+      esac
     fi
 
     echo "$article"
@@ -316,9 +329,11 @@ PROCESSED=0
 PASSED=0
 FAILED=0
 SKIPPED=0
+NEEDS_REVIEW=0
 
 # Exit-code convention (tribunal.sh):
-#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running)
+#   0=passed  1=failed  2=EXHAUSTED  3=NEEDS_REVIEW
+#   75=skipped(already_running)
 #   77=stopped_by_request
 for article in "${ARTICLES[@]}"; do
   if [ "$PROCESSED" -ge "$MAX_ARTICLES" ]; then
@@ -355,6 +370,10 @@ for article in "${ARTICLES[@]}"; do
       PASSED=$((PASSED + 1))
       tlog "  ✓ $article — ALL STAGES PASSED"
       ;;
+    3)
+      NEEDS_REVIEW=$((NEEDS_REVIEW + 1))
+      tlog "  ◇ $article — NEEDS_REVIEW (authoritative content outcome)"
+      ;;
     75)
       SKIPPED=$((SKIPPED + 1))
       tlog "  ○ $article — skipped (already running elsewhere)"
@@ -377,6 +396,7 @@ tlog ""
 tlog "=== Tribunal Batch Runner finished (bounded completion) ==="
 tlog "  Processed: $PROCESSED / $TOTAL"
 tlog "  Passed:  $PASSED"
+tlog "  Needs review: $NEEDS_REVIEW"
 tlog "  Skipped: $SKIPPED"
 tlog "  Failed:  $FAILED"
 tlog "  Remaining: $((TOTAL - PROCESSED))"

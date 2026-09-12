@@ -5,7 +5,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SOURCE_ROOT="$ROOT_DIR"
 BATCH_RUNNER="$ROOT_DIR/scripts/tribunal-batch-runner.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 
 # shellcheck source=scripts/tribunal-helpers.sh
@@ -27,6 +29,15 @@ selector_section=$(awk '
   capture { print }
 ' "$BATCH_RUNNER")
 eval "$selector_section"
+
+# Load the continuous scheduler selector under a distinct name so both
+# canonical dispatch paths must agree on revision-bound NEEDS_REVIEW.
+quota_selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Dry Run/ { exit }
+  capture { print }
+' "$QUOTA_LOOP" | sed 's/get_unscored_articles()/get_quota_unscored_articles()/')
+eval "$quota_selector_section"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -227,6 +238,8 @@ write_selector_post() {
 }
 
 write_selector_post pending.mdx 2026-01-08
+write_selector_post needs-review-same.mdx 2026-01-09
+write_selector_post needs-review-changed.mdx 2026-01-10
 write_selector_post legacy-exhausted.mdx 2026-01-07
 write_selector_post current-exhausted.mdx 2026-01-06
 write_selector_post current-pass.mdx 2026-01-05
@@ -234,8 +247,19 @@ write_selector_post deprecated-unquoted.mdx 2026-01-04 deprecated
 write_selector_post deprecated-single-quoted.mdx 2026-01-03 "'deprecated'"
 write_selector_post deprecated-double-quoted.mdx 2026-01-02 '"deprecated"'
 
-cat > "$selector_progress" <<'JSON'
+same_revision="$(tribunal_reader_revision_for_file "$selector_posts/needs-review-same.mdx")"
+cat > "$selector_progress" <<JSON
 {
+  "needs-review-same.mdx": {
+    "tribunalVersion": 9,
+    "status": "NEEDS_REVIEW",
+    "readerRevision": "$same_revision"
+  },
+  "needs-review-changed.mdx": {
+    "tribunalVersion": 9,
+    "status": "NEEDS_REVIEW",
+    "readerRevision": "0000000000000000"
+  },
   "legacy-exhausted.mdx": {
     "tribunalVersion": 8,
     "status": "EXHAUSTED"
@@ -257,7 +281,176 @@ ROOT_DIR="$tmp_dir"
 TRIBUNAL_VERSION=9
 
 selector_output=$(get_unscored_articles)
-expected_selector_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+quota_selector_output=$(get_quota_unscored_articles)
+expected_selector_output=$(printf '%s\n' needs-review-changed.mdx pending.mdx legacy-exhausted.mdx)
 [ "$selector_output" = "$expected_selector_output" ] ||
   fail "selector included deprecated/current terminal entries: $selector_output"
-pass "selector excludes deprecated and current-version terminal entries"
+[ "$quota_selector_output" = "$expected_selector_output" ] ||
+  fail "quota selector disagreed with bounded selector: $quota_selector_output"
+pass "both schedulers skip same-revision NEEDS_REVIEW and reopen changed content"
+
+TRIBUNAL_READER_REVISION_HELPER="$tmp_dir/missing-reader-helper.mjs"
+hash_failure_output=$(get_unscored_articles 2>/dev/null)
+quota_hash_failure_output=$(get_quota_unscored_articles 2>/dev/null)
+expected_hash_failure_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+[ "$hash_failure_output" = "$expected_hash_failure_output" ] ||
+  fail "bounded selector did not fail closed on reader hash failure: $hash_failure_output"
+[ "$quota_hash_failure_output" = "$expected_hash_failure_output" ] ||
+  fail "quota selector did not fail closed on reader hash failure: $quota_hash_failure_output"
+unset TRIBUNAL_READER_REVISION_HELPER
+pass "both schedulers fail closed when NEEDS_REVIEW revision cannot be verified"
+
+# Exercise the bounded supervisor's real dispatch/completion loop with a
+# hermetic worker. Static selectors above prove the labels; this fixture proves
+# rc=3 does not stop, drain, or count as generic failure.
+supervisor_root="$tmp_dir/supervisor-runtime"
+supervisor_bin="$tmp_dir/supervisor-bin"
+supervisor_calls="$tmp_dir/supervisor-worker-calls"
+supervisor_quota_calls="$tmp_dir/supervisor-quota-calls"
+supervisor_model_calls="$tmp_dir/supervisor-model-calls"
+mkdir -p "$supervisor_root/src/content/posts" "$supervisor_root/.score-loop/state" \
+  "$supervisor_bin"
+cp -a "$SOURCE_ROOT/scripts" "$supervisor_root/"
+ln -s "$SOURCE_ROOT/node_modules" "$supervisor_root/node_modules"
+
+write_supervisor_post() {
+  local file="$1" date_value="$2"
+  cat > "$supervisor_root/src/content/posts/$file" <<EOF
+---
+ticketId: "GP-SUPERVISOR-$file"
+title: "Supervisor deterministic fixture"
+originalDate: $date_value
+translatedDate: $date_value
+source: "Fixture"
+sourceUrl: "https://example.invalid/fixture"
+summary: "Reader-visible supervisor fixture."
+lang: zh-tw
+tags: ["fixture"]
+---
+
+This hermetic supervisor fixture never reaches a model or network provider.
+EOF
+}
+
+first_supervisor_article="gp-supervisor-rc3-first-$$.mdx"
+second_supervisor_article="gp-supervisor-rc3-second-$$.mdx"
+write_supervisor_post "$first_supervisor_article" 2026-09-12
+write_supervisor_post "$second_supervisor_article" 2026-09-11
+
+cat > "$supervisor_root/scripts/tribunal.sh" <<'FAKE_SUPERVISOR_WORKER'
+#!/usr/bin/env bash
+set -euo pipefail
+
+article="${1:?article is required}"
+root="${PWD:?worker must inherit the runtime root as PWD}"
+progress="$root/.score-loop/state/tribunal-progress.json"
+calls="${TRIBUNAL_SUPERVISOR_CALLS:?call marker is required}"
+printf '%s\n' "$article" >> "$calls"
+
+revision="$(node "$root/scripts/reader-revision-of-stdin.mjs" < "$root/src/content/posts/$article")"
+version="$(node "$root/scripts/tribunal-version.mjs" current)"
+case "$article" in
+  gp-supervisor-rc3-first-*.mdx)
+    jq --arg article "$article" --arg revision "$revision" --argjson version "$version" \
+      '.[$article] = {
+        status: "NEEDS_REVIEW",
+        failedStage: "factChecker",
+        terminalReason: "gp_source_preservation_no_rewrite",
+        readerRevision: $revision,
+        tribunalVersion: $version,
+        topLevelAttempts: 0
+      }' "$progress" > "$progress.tmp"
+    mv "$progress.tmp" "$progress"
+    exit 3
+    ;;
+  gp-supervisor-rc3-second-*.mdx)
+    jq --arg article "$article" --arg revision "$revision" --argjson version "$version" \
+      '.[$article] = {
+        status: "PASS",
+        readerRevision: $revision,
+        tribunalVersion: $version,
+        topLevelAttempts: 1
+      }' "$progress" > "$progress.tmp"
+    mv "$progress.tmp" "$progress"
+    exit 0
+    ;;
+  *)
+    printf 'unexpected article: %s\n' "$article" >&2
+    exit 97
+    ;;
+esac
+FAKE_SUPERVISOR_WORKER
+chmod +x "$supervisor_root/scripts/tribunal.sh"
+
+cat > "$supervisor_bin/claude" <<'FAKE_SUPERVISOR_MODEL'
+#!/usr/bin/env bash
+: "${TRIBUNAL_SUPERVISOR_MODEL_CALLS:?model call marker is required}"
+printf '%s\n' "$*" >> "$TRIBUNAL_SUPERVISOR_MODEL_CALLS"
+exit 99
+FAKE_SUPERVISOR_MODEL
+chmod +x "$supervisor_bin/claude"
+
+cat > "$supervisor_bin/usage-monitor.sh" <<'FAKE_SUPERVISOR_QUOTA'
+#!/usr/bin/env bash
+set -euo pipefail
+: "${TRIBUNAL_SUPERVISOR_QUOTA_CALLS:?quota call marker is required}"
+printf '1\n' >> "$TRIBUNAL_SUPERVISOR_QUOTA_CALLS"
+printf '%s\n' '[{"provider":"claude","status":"ok","five_hr_remaining_pct":90,"weekly_remaining_pct":90}]'
+FAKE_SUPERVISOR_QUOTA
+chmod +x "$supervisor_bin/usage-monitor.sh"
+
+# The runner has a ten-second inter-article cooldown. Replace only sleep in
+# this disposable PATH prefix so the regression stays deterministic and fast.
+cat > "$supervisor_bin/sleep" <<'FAKE_SUPERVISOR_SLEEP'
+#!/usr/bin/env bash
+exit 0
+FAKE_SUPERVISOR_SLEEP
+chmod +x "$supervisor_bin/sleep"
+
+git -C "$supervisor_root" init -q
+
+supervisor_output="$tmp_dir/supervisor.out"
+set +e
+PATH="$supervisor_bin:$PATH" \
+  HOME="$tmp_dir/home-supervisor" \
+  TRIBUNAL_FORCE_PROVIDER=claude \
+  GP_WRITER_MODE=none \
+  QUOTA_FLOOR_PCT=3 \
+  USAGE_MONITOR="$supervisor_bin/usage-monitor.sh" \
+  TRIBUNAL_SUPERVISOR_CALLS="$supervisor_calls" \
+  TRIBUNAL_SUPERVISOR_QUOTA_CALLS="$supervisor_quota_calls" \
+  TRIBUNAL_SUPERVISOR_MODEL_CALLS="$supervisor_model_calls" \
+  bash "$supervisor_root/scripts/tribunal-batch-runner.sh" --max 2 \
+  > "$supervisor_output" 2>&1
+supervisor_rc=$?
+set -e
+
+[ "$supervisor_rc" -eq 0 ] || {
+  sed -n '1,240p' "$supervisor_output" >&2
+  find "$supervisor_root/.score-loop/logs" -type f -maxdepth 2 -print -exec sed -n '1,120p' {} \; >&2
+  fail "bounded supervisor fixture exited rc=$supervisor_rc"
+}
+expected_supervisor_calls=$(printf '%s\n%s' \
+  "$first_supervisor_article" "$second_supervisor_article")
+[ "$(cat "$supervisor_calls")" = "$expected_supervisor_calls" ] || {
+  cat "$supervisor_calls" >&2
+  fail "rc=3 stopped or reordered the bounded supervisor dispatch"
+}
+grep -Fq 'Needs review: 1' "$supervisor_output" || {
+  sed -n '1,240p' "$supervisor_output" >&2
+  find "$supervisor_root/.score-loop/logs" -type f -maxdepth 2 -print -exec sed -n '1,120p' {} \; >&2
+  fail "bounded supervisor did not record one NEEDS_REVIEW outcome"
+}
+grep -Fq 'Passed:  1' "$supervisor_output" ||
+  fail "bounded supervisor did not continue to and pass the second article"
+grep -Fq 'Failed:  0' "$supervisor_output" ||
+  fail "bounded supervisor counted rc=3 as generic failure"
+[ "$(wc -l < "$supervisor_quota_calls" | tr -d ' ')" -ge 2 ] ||
+  fail "bounded supervisor did not perform a fresh quota gate for both articles"
+[ ! -s "$supervisor_model_calls" ] ||
+  fail "hermetic supervisor fixture invoked a model provider"
+jq -e --arg a "$first_supervisor_article" --arg b "$second_supervisor_article" \
+  '.[$a].status == "NEEDS_REVIEW" and .[$b].status == "PASS"' \
+  "$supervisor_root/.score-loop/state/tribunal-progress.json" >/dev/null ||
+  fail "worker outcome ledger did not preserve NEEDS_REVIEW then PASS"
+pass "bounded supervisor consumes rc=3, continues to the next article, and avoids model/quota drain"

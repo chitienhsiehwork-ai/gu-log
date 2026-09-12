@@ -37,6 +37,7 @@ cp \
   "$ROOT/scripts/tribunal-pass-audit.service" \
   "$ROOT/scripts/tribunal-pass-audit.timer" \
   "$runtime_root/scripts/"
+cp "$ROOT/scripts/tribunal-version.mjs" "$runtime_root/scripts/tribunal-version.mjs"
 cp \
   "$ROOT/scripts/tribunal-pass-audit.service" \
   "$ROOT/scripts/tribunal-pass-audit.timer" \
@@ -204,6 +205,13 @@ cat > "$runtime_root/.score-loop/state/tribunal-progress.json" <<'JSON'
     "status": "PASS",
     "finishedAt": "2026-07-26T02:00:00Z"
   },
+  "review.mdx": {
+    "status": "NEEDS_REVIEW",
+    "tribunalVersion": 9,
+    "failedStage": "factChecker",
+    "terminalReason": "gp_source_preservation_no_rewrite",
+    "finishedAt": "2026-07-26T04:00:00Z"
+  },
   "pending.mdx": {
     "status": "PENDING",
     "startedAt": "2026-07-26T03:00:00Z"
@@ -257,6 +265,10 @@ after="$(
 [ "$before" = "$after" ] || fail "snapshot mutated runtime files"
 grep -q 'status=observed semantics=last_observed count=0 ' <<<"$output" ||
   fail "12 → No unscored did not resolve to zero"
+grep -q 'status=observed count=1 tribunal_version=9' <<<"$output" ||
+  fail "current-version NEEDS_REVIEW count missing"
+grep -q '"article":"review.mdx","status":"NEEDS_REVIEW","failedStage":"factChecker","terminalReason":"gp_source_preservation_no_rewrite"' <<<"$output" ||
+  fail "NEEDS_REVIEW terminal reason missing from recent attempts"
 grep -q '"article":"new.mdx","status":"PASS","failedStage":null' <<<"$output" ||
   fail "newest finished attempt missing"
 grep -q '"article":"old.mdx","status":"FAILED","failedStage":"vibe"' <<<"$output" ||
