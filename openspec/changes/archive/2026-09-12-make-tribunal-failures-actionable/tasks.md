@@ -19,5 +19,7 @@
 
 ## 4. 審查與交付
 
-- [ ] 4.1 完成獨立 correctness/safety 與 Keep/Simplify/Drop reviews，並修正所有 blocking finding。
-- [ ] 4.2 跑完所有必要 hook／gate、封存 OpenSpec change、推送 feature branch、通過 PR CI、合併，最後在不繞過 service gate 的前提下驗證安全的 runtime checkout。
+- [x] 4.1 完成獨立 correctness/safety 與 Keep/Simplify/Drop reviews，並修正所有 blocking finding。
+- [x] 4.2 跑完本機必要 hook／gate，驗證預覽環境或提供純工具變更的等價測試證據，完成 OpenSpec 同步／封存。
+
+封存後由 controller 接續推送、轉 ready、GitHub 審查、CI、合併與正式環境冒煙測試；同時唯讀核對 live runtime，保留 operator stop 與自身 quota gate。這些交付責任不可用封存核取方塊宣稱已完成。未獲 runtime 變更授權時，只在隔離 fixture 驗證新 checkout，不自行同步或啟動 service。

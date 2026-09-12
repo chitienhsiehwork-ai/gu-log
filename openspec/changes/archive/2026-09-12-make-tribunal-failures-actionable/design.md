@@ -83,7 +83,7 @@ exit code `3` 表示 authoritative `NEEDS_REVIEW`：不是 PASS、不是 runtime
 ## Risks / Trade-offs
 
 - **[同內容重新抽樣可能得到不同 judge verdict]** → 不自動重抽；operator 若有新證據或 calibration 理由，可用明確 requeue，留下 audit count。
-- **[16-byte 顯示用 reader revision 理論上可能碰撞]** → 既有 manifest 已以同一 truncated SHA-256 作 reader identity；此處重用同一 SSOT，且 key 同時綁定 version/stage。若未來 SSOT 加長，runtime 會自然沿用。
+- **[截短的 reader revision 理論上可能碰撞]** → 長度與 canonicalization 沿用既有 reader-revision helper SSOT，且 key 同時綁定 version/stage，不另建一套 hash 定義。若未來 SSOT 加長，runtime 會自然沿用。
 - **[selector hash helper 失敗造成案件暫停]** → fail closed 並警告；operator 可修環境後 requeue，不以模型呼叫掩蓋 deterministic tooling failure。
 - **[judge 執行中內容被其他 actor 修改]** → terminal transition 前 compare pre-judge/current revision；不一致時不寫 `NEEDS_REVIEW`，以 operational error 收斂。
 - **[新狀態成為安靜黑洞]** → publisher status、monitor snapshot 與 worker logs 必須呈現 `NEEDS_REVIEW` count、article 與 reason。
@@ -92,7 +92,7 @@ exit code `3` 表示 authoritative `NEEDS_REVIEW`：不是 PASS、不是 runtime
 ## Migration Plan
 
 1. 先合併 spec、state transition、selectors、requeue command、observability 與 regressions。
-2. 在 service 維持停止時，把 runtime checkout fast-forward 到含此變更的 main，執行 deterministic test suite 與 monitor smoke。
+2. 在隔離 checkout 執行 deterministic test suite 與 monitor smoke；live runtime 只讀核對。只有另有明確 runtime 變更授權且符合自身 gate 時才同步 checkout，不因 repo 合併就推論可修改 service。
 3. 以測試 progress ledger 對一篇 fixture 驗證 `FAIL → NEEDS_REVIEW → same-revision skip → explicit requeue`，以及 in-flight revision drift／hash failure 不呼叫或不終止錯誤內容；不得使用 production article 或模型 quota。
 4. 只有既有 runbook 的 service gate 全部通過且沒有 operator stop boundary，才可依正常機制恢復；否則保留停止狀態。
 
