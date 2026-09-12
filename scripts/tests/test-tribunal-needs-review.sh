@@ -9,8 +9,11 @@ pass() { echo "ok $*"; }
 
 tmp_dir="$(mktemp -d)"
 runtime_root="$tmp_dir/runtime"
-mkdir -p "$runtime_root/.codex" "$runtime_root/src/content/posts"
+mkdir -p "$runtime_root/.codex" "$runtime_root/src/content/posts" \
+  "$runtime_root/src/utils" "$runtime_root/src/lib"
 cp -a "$SOURCE_ROOT/scripts" "$runtime_root/"
+cp "$SOURCE_ROOT/src/utils/tribunal-scores.ts" "$runtime_root/src/utils/"
+cp -a "$SOURCE_ROOT/src/lib/tribunal-v2" "$runtime_root/src/lib/"
 cp -a "$SOURCE_ROOT/.codex/agents" "$runtime_root/.codex/"
 cp -a "$SOURCE_ROOT/config" "$runtime_root/"
 cp "$SOURCE_ROOT/package.json" "$SOURCE_ROOT/GU-LOG_WRITER_PROMPT.md" \
@@ -47,11 +50,49 @@ source: "Fixture"
 sourceUrl: "https://example.com/source"
 summary: "Reader-visible summary."
 lang: zh-tw
+translatedBy:
+  model: "Opus 4.6"
+  harness: "Tribunal Fixture"
+tags: ["fixture"]
 scores:
   tribunalVersion: 1
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    date: "2026-08-31"
+    model: "gpt-5.5"
+    score: 9
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 9
+    attribution: 9
+    date: "2026-08-31"
+    model: "gpt-5.5"
+    score: 9
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 9
+    lengthFit: 9
+    clarity: 9
+    date: "2026-08-31"
+    model: "gpt-5.5"
+    score: 9
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 9
+    narrative: 9
+    date: "2026-08-31"
+    model: "gpt-5.5"
+    score: 9
 ---
 
-This reader-visible fixture body is long enough for deterministic Tribunal testing. It intentionally receives a valid FactChecker failure from a local fake judge and never reaches a real model provider.
+This reader-visible fixture body is long enough for deterministic Tribunal testing. It intentionally receives a valid FactChecker failure from a local fake judge and never reaches a real model provider (◍•ᴗ•◍)
 EOF
 }
 
@@ -560,3 +601,346 @@ jq -e --arg a "$requeue_race_article" '
   and .[$a].stages.factChecker.status == "fail"
 ' "$requeue_race_progress" >/dev/null || fail "post-race runner retained stale PASS stages"
 pass "hash-to-lock requeue race cannot preserve stale PASS stages"
+
+# A non-GP bounded writer rewrite at a later stage must invalidate earlier
+# reader-visible PASS evidence. The deterministic writer changes the body only
+# once, then the runner must rejudge FactChecker before it can finish the
+# article; otherwise a mixed-revision PASS would be publishable.
+rewrite_article="mp-999990-later-writer-$$.mdx"
+rewrite_path="$ROOT_DIR/src/content/posts/$rewrite_article"
+write_fixture "$rewrite_path" "MP-999990"
+rewrite_bin="$tmp_dir/rewrite-bin"
+rewrite_calls="$tmp_dir/rewrite-judge-calls"
+rewrite_writer_calls="$tmp_dir/rewrite-writer-calls"
+mkdir -p "$rewrite_bin"
+: > "$rewrite_calls"
+: > "$rewrite_writer_calls"
+cat > "$rewrite_bin/codex" <<'FAKE_REWRITE_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  echo "fake codex exec help"
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
+if [ "${1:-}" != "exec" ]; then
+  exit 1
+fi
+
+prompt="${!#}"
+if printf '%s\n' "$prompt" | grep -Fq '## Writable zh-tw candidate'; then
+  candidate_zh="$(printf '%s\n' "$prompt" | sed -n '/^## Writable zh-tw candidate$/{n;p;}' | tail -1)"
+  [ -f "$candidate_zh" ] || exit 72
+  count="$(wc -l < "${RW_WRITER_CALLS:?}" | tr -d ' ')"
+  printf 'writer\n' >> "$RW_WRITER_CALLS"
+  if [ "$count" -eq 0 ]; then
+    printf '\nA deterministic authorized writer correction.\n' >> "$candidate_zh"
+  fi
+  mkdir -p "${RW_DEBUG_DIR:?}"
+  cp "$candidate_zh" "$RW_DEBUG_DIR/$(basename "$candidate_zh")"
+  exit 0
+fi
+
+score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
+[ -n "$score_path" ] || exit 72
+call="$(wc -l < "${RW_JUDGE_CALLS:?}" | tr -d ' ')"
+call=$((call + 1))
+printf '%s\n' "$call" >> "$RW_JUDGE_CALLS"
+if [ "$call" -eq 2 ]; then
+  cat > "$score_path" <<'JSON'
+{
+  "judge": "librarian",
+  "dimensions": {
+    "glossary": 2, "crossRef": 2, "sourceAlign": 2, "attribution": 2
+  },
+  "score": 2,
+  "verdict": "FAIL",
+  "reasons": {"fixture": "deterministic later-stage rewrite"}
+}
+JSON
+else
+  if printf '%s\n' "$prompt" | grep -Fq '### 晶晶體 checker'; then
+    cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-vibe-pass",
+  "dimensions": {
+    "persona": 9, "moguNote": 9, "vibe": 9, "narrative": 9
+  },
+  "score": 9,
+  "verdict": "PASS",
+  "reasons": {}
+}
+JSON
+  elif printf '%s\n' "$prompt" | grep -Fq '## Deterministic evidence packet'; then
+    cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-librarian-pass",
+  "dimensions": {
+    "glossary": 9, "crossRef": 9, "sourceAlign": 9, "attribution": 9
+  },
+  "score": 9,
+  "verdict": "PASS",
+  "reasons": {}
+}
+JSON
+  elif [ "$call" -eq 1 ] || [ "$call" -eq 4 ]; then
+      cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-fact-checker-pass",
+  "dimensions": {
+    "accuracy": 9, "fidelity": 9, "consistency": 9, "sourceBoundary": 9,
+    "commentarySeparation": 9
+  },
+  "score": 9,
+  "verdict": "PASS",
+  "reasons": {}
+}
+JSON
+  else
+      cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-fresh-eyes-pass",
+  "dimensions": {
+    "readability": 9, "firstImpression": 9, "payoffDensity": 9,
+    "lengthFit": 9, "clarity": 9
+  },
+  "score": 9,
+  "verdict": "PASS",
+  "reasons": {}
+}
+JSON
+  fi
+fi
+exit 0
+FAKE_REWRITE_CODEX
+cat > "$rewrite_bin/pnpm" <<'FAKE_REWRITE_PNPM'
+#!/usr/bin/env bash
+if [ "${1:-}" = "run" ] && [ "${2:-}" = "build" ]; then
+  exit 0
+fi
+exec /usr/bin/env pnpm "$@"
+FAKE_REWRITE_PNPM
+chmod +x "$rewrite_bin/codex" "$rewrite_bin/pnpm"
+
+rewrite_progress="$tmp_dir/rewrite-progress.json"
+rewrite_candidate_debug="$tmp_dir/rewrite-candidate-debug"
+printf '{}\n' > "$rewrite_progress"
+rewrite_run_rc=0
+PATH="$rewrite_bin:$PATH" \
+HOME="$tmp_dir/home" \
+PROGRESS_FILE="$rewrite_progress" \
+RC_PROGRESS_LOCK="$progress_lock" \
+TRIBUNAL_ARTICLE_LOCK_DIR="$tmp_dir/article-locks" \
+TRIBUNAL_FORCE_PROVIDER=codex \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+GP_WRITER_MODE=codex \
+GP_CODEX_MODEL=gpt-test \
+RW_JUDGE_CALLS="$rewrite_calls" \
+RW_WRITER_CALLS="$rewrite_writer_calls" \
+RW_DEBUG_DIR="$rewrite_candidate_debug" \
+bash "$TRIBUNAL" --allow-rewrite --no-commit "$rewrite_article" \
+  > "$tmp_dir/later-writer.out" 2>&1 || rewrite_run_rc=$?
+[ "$rewrite_run_rc" -eq 0 ] || {
+  sed -n '1,220p' "$tmp_dir/later-writer.out" >&2 || true
+  fail "later-stage writer regression should finish with rc=0, got $rewrite_run_rc"
+}
+[ "$(wc -l < "$rewrite_writer_calls" | tr -d ' ')" -eq 1 ] ||
+  fail "later-stage fixture should invoke exactly one bounded writer"
+[ "$(wc -l < "$rewrite_calls" | tr -d ' ')" -eq 6 ] ||
+  fail "later-stage rewrite should run six judges including a restarted FactChecker (got $(wc -l < "$rewrite_calls" | tr -d ' ')); output: $(tail -80 "$tmp_dir/later-writer.out" | tr '\n' ' '); candidate: $(node "$SOURCE_ROOT/scripts/validate-posts.mjs" "$rewrite_candidate_debug"/*.mdx 2>&1 | tr '\n' ' '); runtime-log: $(for f in "$runtime_root"/.score-loop/logs/*; do [ -f "$f" ] || continue; tail -40 "$f"; done 2>/dev/null | tr '\n' ' ')"
+new_rewrite_revision="$(node "$reader_helper" < "$rewrite_path")"
+jq -e --arg a "$rewrite_article" --arg r "$new_rewrite_revision" --argjson v "$current_version" '
+  .[$a].status == "PASS"
+  and .[$a].tribunalVersion == $v
+  and ([.[$a].stages[] | .status] | all(. == "pass"))
+  and ([.[$a].stages[] | .readerRevision] | all(. == $r))
+' "$rewrite_progress" >/dev/null ||
+  fail "later-stage rewrite left mixed-revision PASS evidence"
+pass "authorized later-stage writer rewrite rejudges earlier stages on the new reader epoch"
+
+# A writer transaction may also be a validated no-op. It must not fabricate a
+# reader epoch and trigger a second full Tribunal wave after the current stage
+# eventually passes.
+noop_article="mp-999988-noop-writer-$$.mdx"
+noop_path="$ROOT_DIR/src/content/posts/$noop_article"
+write_fixture "$noop_path" "MP-999988"
+noop_bin="$tmp_dir/noop-bin"
+noop_calls="$tmp_dir/noop-judge-calls"
+noop_writer_calls="$tmp_dir/noop-writer-calls"
+mkdir -p "$noop_bin"
+: > "$noop_calls"
+: > "$noop_writer_calls"
+cat > "$noop_bin/codex" <<'FAKE_NOOP_CODEX'
+#!/usr/bin/env bash
+if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
+  echo "fake codex exec help"
+  exit 0
+fi
+if [ "${1:-}" = "--version" ]; then
+  echo "codex-cli 0.128.0"
+  exit 0
+fi
+if [ "${1:-}" != "exec" ]; then
+  exit 1
+fi
+
+prompt="${!#}"
+if printf '%s\n' "$prompt" | grep -Fq '## Writable zh-tw candidate'; then
+  printf 'writer\n' >> "${NOOP_WRITER_CALLS:?}"
+  # Deliberately leave the candidate byte-for-byte unchanged.
+  exit 0
+fi
+
+score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
+[ -n "$score_path" ] || exit 72
+call="$(wc -l < "${NOOP_JUDGE_CALLS:?}" | tr -d ' ')"
+call=$((call + 1))
+printf '%s\n' "$call" >> "$NOOP_JUDGE_CALLS"
+if [ "$call" -eq 2 ]; then
+  cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-librarian-noop-fail",
+  "dimensions": {
+    "glossary": 2, "crossRef": 2, "sourceAlign": 2, "attribution": 2
+  },
+  "score": 2,
+  "verdict": "FAIL",
+  "reasons": {"fixture": "deterministic no-op writer"}
+}
+JSON
+else
+  cat > "$score_path" <<'JSON'
+{
+  "judge": "deterministic-noop-pass",
+  "dimensions": {
+    "accuracy": 9, "fidelity": 9, "consistency": 9, "sourceBoundary": 9,
+    "commentarySeparation": 9, "glossary": 9, "crossRef": 9,
+    "sourceAlign": 9, "attribution": 9, "readability": 9,
+    "firstImpression": 9, "payoffDensity": 9, "lengthFit": 9,
+    "clarity": 9, "persona": 9, "moguNote": 9, "vibe": 9,
+    "narrative": 9
+  },
+  "score": 9,
+  "verdict": "PASS",
+  "reasons": {}
+}
+JSON
+fi
+exit 0
+FAKE_NOOP_CODEX
+chmod +x "$noop_bin/codex"
+cp "$rewrite_bin/pnpm" "$noop_bin/pnpm"
+chmod +x "$noop_bin/pnpm"
+noop_progress="$tmp_dir/noop-progress.json"
+printf '{}\n' > "$noop_progress"
+noop_run_rc=0
+PATH="$noop_bin:$PATH" \
+HOME="$tmp_dir/home" \
+PROGRESS_FILE="$noop_progress" \
+RC_PROGRESS_LOCK="$progress_lock" \
+TRIBUNAL_ARTICLE_LOCK_DIR="$tmp_dir/article-locks" \
+TRIBUNAL_FORCE_PROVIDER=codex \
+TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
+TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
+GP_WRITER_MODE=codex \
+GP_CODEX_MODEL=gpt-test \
+NOOP_JUDGE_CALLS="$noop_calls" \
+NOOP_WRITER_CALLS="$noop_writer_calls" \
+bash "$TRIBUNAL" --allow-rewrite --no-commit "$noop_article" \
+  > "$tmp_dir/noop-writer.out" 2>&1 || noop_run_rc=$?
+[ "$noop_run_rc" -eq 0 ] || {
+  sed -n '1,220p' "$tmp_dir/noop-writer.out" >&2 || true
+  fail "no-op writer regression should finish with rc=0, got $noop_run_rc"
+}
+[ "$(wc -l < "$noop_writer_calls" | tr -d ' ')" -eq 1 ] ||
+  fail "no-op writer fixture should invoke exactly one bounded writer"
+[ "$(wc -l < "$noop_calls" | tr -d ' ')" -eq 5 ] ||
+  fail "no-op writer should not trigger a second Tribunal wave (got $(wc -l < "$noop_calls" | tr -d ' '))"
+noop_revision="$(node "$reader_helper" < "$noop_path")"
+jq -e --arg a "$noop_article" --arg r "$noop_revision" --argjson v "$current_version" '
+  .[$a].status == "PASS"
+  and .[$a].tribunalVersion == $v
+  and ([.[$a].stages[] | .status] | all(. == "pass"))
+  and ([.[$a].stages[] | .readerRevision] | all(. == $r))
+' "$noop_progress" >/dev/null ||
+  fail "no-op writer changed epoch or left an incomplete terminal PASS"
+pass "validated no-op writer does not manufacture a reader epoch or restart the Tribunal"
+
+# Operational stage checkpoints are resumable evidence too. A quota/error
+# interruption for a later stage must not look like a revision drift merely
+# because its checkpoint has no score; the prior FactChecker PASS should be
+# reused on the same article bytes.
+operational_article="gp-999989-operational-resume-$$.mdx"
+operational_path="$ROOT_DIR/src/content/posts/$operational_article"
+write_fixture "$operational_path" "GP-999989"
+operational_progress="$tmp_dir/operational-resume-progress.json"
+operational_revision="$(node "$reader_helper" < "$operational_path")"
+jq -n \
+  --arg a "$operational_article" \
+  --arg r "$operational_revision" \
+  --argjson v "$current_version" \
+  '{
+    ($a): {
+      article: $a,
+      status: "RUNNER_ERROR",
+      failedStage: "freshEyes",
+      tribunalVersion: $v,
+      topLevelAttempts: 0,
+      stages: {
+        factChecker: {
+          status: "pass",
+          readerRevision: $r,
+          tribunalVersion: $v,
+          score: {
+            score: 9,
+            dimensions: {
+              accuracy: 9,
+              fidelity: 9,
+              consistency: 9,
+              sourceBoundary: 9,
+              commentarySeparation: 9
+            }
+          }
+        },
+        librarian: {
+          status: "quota_suspended",
+          readerRevision: $r,
+          tribunalVersion: $v,
+          score: null
+        },
+        freshEyes: {
+          status: "runner_error",
+          readerRevision: $r,
+          tribunalVersion: $v,
+          score: null
+        },
+        vibe: {
+          status: "runner_error",
+          readerRevision: $r,
+          tribunalVersion: $v,
+          score: null
+        }
+      }
+    }
+  }' > "$operational_progress"
+operational_calls_before="$(call_count)"
+run_tribunal "$operational_progress" pass "$tmp_dir/operational-resume.out" \
+  --no-commit "$operational_article"
+[ "$RUN_RC" -eq 0 ] || fail "same-input quota/error resume should finish with rc=0, got $RUN_RC"
+[ "$(( $(call_count) - operational_calls_before ))" -eq 3 ] ||
+  fail "same-input quota/error resume should reuse FactChecker PASS and call only later stages"
+jq -e --arg a "$operational_article" --arg r "$operational_revision" --argjson v "$current_version" '
+  .[$a].status == "PASS"
+  and .[$a].topLevelAttempts == 0
+  and .[$a].tribunalVersion == $v
+  and .[$a].stages.factChecker.status == "pass"
+  and .[$a].stages.factChecker.readerRevision == $r
+  and ([.[$a].stages[] | .readerRevision] | all(. == $r))
+' "$operational_progress" >/dev/null ||
+  fail "same-input quota/error resume discarded prior FactChecker PASS evidence"
+pass "quota/error stage checkpoints preserve same-input PASS evidence on resume"

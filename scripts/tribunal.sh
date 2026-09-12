@@ -285,8 +285,11 @@ ensure_progress_file() {
 get_stage_status() {
   local article="$1"
   local stage="$2"
-  jq -r --arg a "$article" --arg s "$stage" --argjson v "$TRIBUNAL_VERSION" \
-    'if ((.[$a].stages[$s].tribunalVersion // 0) >= $v) then (.[$a].stages[$s].status // "pending") else "pending" end' "$PROGRESS_FILE"
+  jq -r --arg a "$article" --arg s "$stage" --arg r "$READER_REVISION_SNAPSHOT" --argjson v "$TRIBUNAL_VERSION" \
+    'if ((.[$a].stages[$s].tribunalVersion // 0) >= $v and (.[$a].stages[$s].readerRevision // "") == $r)
+     then (.[$a].stages[$s].status // "pending")
+     else "pending"
+     end' "$PROGRESS_FILE"
 }
 
 write_stage_progress() {
@@ -341,6 +344,38 @@ reset_article_for_revision_drift_locked() {
   }
   tlog "Progress reset for $article: reader-visible revision drifted during this Tribunal attempt."
   return 0
+}
+
+# A validated writer rewrite is an authorized reader-visible epoch change. The
+# current stage will be rejudged in its caller, but every earlier stage PASS
+# was earned against the previous bytes and must not survive the epoch change.
+# Clear the stage ledger atomically before the current stage writes its new
+# in-progress/PASS record; the outer loop then restarts from FactChecker.
+reset_stages_after_authorized_rewrite() {
+  local article="$1" current_revision="$2" stage="$3"
+  (
+    flock -x 9 || exit 70
+    local tmp
+    tmp="$(mktemp "$(dirname "$PROGRESS_FILE")/.tribunal-progress.XXXXXX")" || exit 70
+    if ! jq --arg a "$article" \
+      --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+      '.[$a].status = "PENDING"
+       | .[$a].stages = {}
+       | .[$a].tribunalVersion = $tribunalVersion
+       | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason,
+             .[$a].readerRevision, .[$a].requeueReaderRevision,
+             .[$a].requeueTribunalVersion, .[$a].requeueReason,
+             .[$a].requeuedAt)' \
+      "$PROGRESS_FILE" > "$tmp"; then
+      rm -f "$tmp"
+      exit 70
+    fi
+    mv "$tmp" "$PROGRESS_FILE" || {
+      rm -f "$tmp"
+      exit 70
+    }
+    tlog "Progress reset after authorized writer rewrite at $stage for $article (reader revision $current_revision)."
+  ) 9>>"$RC_PROGRESS_LOCK"
 }
 
 # Returns 0 when this attempt still observes its initial revision, 71 after a
@@ -542,6 +577,7 @@ mark_article_needs_review() {
 
 mark_article_runner_error() {
   local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  local reader_revision="${READER_REVISION_SNAPSHOT:-}"
   (
     flock -x 9
     local tmp
@@ -550,6 +586,7 @@ mark_article_runner_error() {
        --arg s "$failed_stage" \
        --arg model "$model" \
        --arg reason "$reason" \
+       --arg readerRevision "$reader_revision" \
        --argjson attempts "$attempts" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
@@ -564,6 +601,7 @@ mark_article_runner_error() {
             model: $model,
             attempts: $attempts,
             tribunalVersion: $tribunalVersion,
+            readerRevision: $readerRevision,
             error: $reason
           }' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
@@ -599,6 +637,7 @@ ensure_article_runner_error_checkpoint() {
 
 mark_article_quota_suspended() {
   local article="$1" failed_stage="$2" model="$3" attempts="$4" reason="$5"
+  local reader_revision="${READER_REVISION_SNAPSHOT:-}"
   (
     flock -x 9
     local tmp
@@ -607,6 +646,7 @@ mark_article_quota_suspended() {
        --arg s "$failed_stage" \
        --arg model "$model" \
        --arg reason "$reason" \
+       --arg readerRevision "$reader_revision" \
        --argjson attempts "$attempts" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
@@ -621,6 +661,7 @@ mark_article_quota_suspended() {
             model: $model,
             attempts: $attempts,
             tribunalVersion: $tribunalVersion,
+            readerRevision: $readerRevision,
             error: $reason
           }' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
@@ -1235,6 +1276,15 @@ stage_pass_artifacts_present() {
     return 0
   fi
 
+  # A PASS score is resumable only inside the current reader-visible epoch.
+  # This matters after an authorized non-GP writer rewrite: the writer may
+  # have changed bytes while leaving old frontmatter score metadata behind.
+  if ! jq -e --arg a "$post_file" --arg s "$stage_key" \
+    --arg r "$READER_REVISION_SNAPSHOT" \
+    '.[$a].stages[$s].readerRevision == $r' "$PROGRESS_FILE" >/dev/null; then
+    return 1
+  fi
+
   local expected_score
   expected_score="$(
     jq -c --arg a "$post_file" --arg s "$stage_key" \
@@ -1438,6 +1488,8 @@ run_stage() {
   score_tmp="$(mktemp "${TMPDIR:-/tmp}/tribunal-${stage_key}.XXXXXX")"
 
   local attempt=0
+  local stage_rewrite_occurred=0
+  local writer_pre_revision post_rewrite_revision
   while [ "$attempt" -lt "$max_loops" ]; do
     attempt=$((attempt + 1))
     tlog "  $label attempt $attempt/$max_loops..."
@@ -1681,6 +1733,12 @@ PROMPT
         return 70
       fi
       rm -f "$score_tmp"
+      if [ "$stage_rewrite_occurred" -eq 1 ] && [ -z "$ONLY_STAGE" ]; then
+        # The current stage PASS is valid for the new epoch, but earlier stage
+        # PASS records were cleared at rewrite time. Let the outer controller
+        # restart from FactChecker before claiming a complete article PASS.
+        return 72
+      fi
       return 0
     fi
 
@@ -1772,6 +1830,7 @@ PROMPT
 
     writer_out="$(mktemp)"
     writer_quota_status_file="$(mktemp)"
+    writer_pre_revision="$READER_REVISION_SNAPSHOT"
     writer_rc=0
     run_writer_candidate_transaction \
       "$post_path" "$post_file" "$stage_key" "$attempt" "$writer_prompt" \
@@ -1839,12 +1898,10 @@ PROMPT
       fi
     else
       discard_writer_rewrite_snapshot "$rewrite_snapshot_token"
-      # This is the one intentional reader-visible mutation inside an attempt:
-      # the isolated writer transaction has just passed validation and its
-      # candidate apply is the authorized remediation for this same stage.
-      # Advance the attempt epoch before its re-judge; unrelated edits still
-      # fail the compare-and-reset checks above and can never inherit stages.
-      if ! READER_REVISION_SNAPSHOT="$(tribunal_reader_revision_for_file "$post_path")"; then
+      # The isolated writer transaction just passed validation. Compare the
+      # post-apply reader revision to the pre-writer epoch; only a genuine
+      # reader-visible change creates a new epoch before the stage re-judge.
+      if ! post_rewrite_revision="$(tribunal_reader_revision_for_file "$post_path")"; then
         tlog "  RUNNER ERROR: cannot compute reader revision after validated writer rewrite."
         if ! mark_article_runner_error \
           "$post_file" "$stage_key" "$runner_label" "$attempt" "post_rewrite_reader_revision_unavailable"; then
@@ -1853,7 +1910,28 @@ PROMPT
         rm -f "$score_tmp"
         return 70
       fi
-      tlog "  Advanced Tribunal attempt reader revision after validated writer rewrite."
+      if [ "$post_rewrite_revision" = "$writer_pre_revision" ]; then
+        # A successful isolated transaction may intentionally leave the
+        # candidate byte-for-byte unchanged (for example, when the writer
+        # agrees there is no safe bounded correction). Do not manufacture a
+        # new reader epoch or restart earlier judges for a no-op candidate.
+        tlog "  Validated writer candidate made no reader-visible changes; retaining the current Tribunal epoch."
+      else
+        READER_REVISION_SNAPSHOT="$post_rewrite_revision"
+        if ! reset_stages_after_authorized_rewrite \
+          "$post_file" "$READER_REVISION_SNAPSHOT" "$stage_key"; then
+          tlog "  RUNNER ERROR: could not clear earlier-stage evidence after authorized writer rewrite."
+          if ! mark_article_runner_error \
+            "$post_file" "$stage_key" "$runner_label" "$attempt" \
+            "authorized_rewrite_progress_reset_failed"; then
+            tlog "  ERROR: failed to persist RUNNER_ERROR after rewrite progress reset failure."
+          fi
+          rm -f "$score_tmp"
+          return 70
+        fi
+        stage_rewrite_occurred=1
+        tlog "  Advanced Tribunal attempt reader revision after validated writer rewrite."
+      fi
     fi
 
     # Loop: re-score on next iteration
@@ -2052,47 +2130,67 @@ declare -a STAGES=(
   "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:vibe"
 )
 
-for stage_def in "${STAGES[@]}"; do
-  IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
+authorized_rewrite_restarts=0
+while :; do
+  restart_from_first_stage=0
+  for stage_def in "${STAGES[@]}"; do
+    IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
 
-  if [ -n "$ONLY_STAGE" ] && [ "$stage_key" != "$ONLY_STAGE" ]; then
-    tlog "  Skipping stage '$label' due to --only-stage=$ONLY_STAGE."
+    if [ -n "$ONLY_STAGE" ] && [ "$stage_key" != "$ONLY_STAGE" ]; then
+      tlog "  Skipping stage '$label' due to --only-stage=$ONLY_STAGE."
+      continue
+    fi
+
+    stage_rc=0
+    run_stage \
+      "$stage_key" "$agent_name" "$validate_name" "$label" \
+      "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
+    if [ "$stage_rc" -eq 72 ]; then
+      authorized_rewrite_restarts=$((authorized_rewrite_restarts + 1))
+      if [ "$authorized_rewrite_restarts" -gt "$MAX_TOP_ATTEMPTS" ]; then
+        tlog "=== FAILED: authorized writer rewrites exceeded restart cap $MAX_TOP_ATTEMPTS ==="
+        mark_article_failed "$POST_FILE" "$stage_key"
+        commit_progress "tribunal(${POST_FILE%.mdx}): FAILED after authorized rewrite restart cap"
+        exit 1
+      fi
+      tlog "=== RESTART: authorized writer rewrite requires rejudging from FactChecker (restart $authorized_rewrite_restarts/$MAX_TOP_ATTEMPTS) ==="
+      restart_from_first_stage=1
+      break
+    elif [ "$stage_rc" -eq 71 ]; then
+      tlog "=== RUNNER ERROR: reader-visible revision reset progress at stage: $label ==="
+      exit 70
+    elif [ "$stage_rc" -eq 75 ]; then
+      tlog "=== QUOTA SUSPENDED at stage: $label ==="
+      commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
+      exit 75
+    elif [ "$stage_rc" -eq 3 ]; then
+      tlog "=== NEEDS REVIEW at stage: $label ==="
+      if ! mark_article_needs_review \
+        "$POST_FILE" "$stage_key" "$READER_REVISION_SNAPSHOT"; then
+        tlog "=== RUNNER ERROR: could not bind NEEDS_REVIEW to the pre-judge reader revision ==="
+        exit 70
+      fi
+      commit_progress "tribunal(${POST_FILE%.mdx}): NEEDS_REVIEW at $label stage"
+      exit 3
+    elif [ "$stage_rc" -eq 70 ]; then
+      tlog "=== RUNNER ERROR at stage: $label ==="
+      if ! ensure_article_runner_error_checkpoint \
+        "$POST_FILE" "$stage_key" "tribunal-runner" 0 "stage_runner_error"; then
+        tlog "  ERROR: stage RUNNER_ERROR has no verified durable ledger checkpoint."
+      fi
+      exit 70
+    elif [ "$stage_rc" -ne 0 ]; then
+      tlog "=== FAILED at stage: $label ==="
+      mark_article_failed "$POST_FILE" "$stage_key"
+      commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"
+      exit 1
+    fi
+  done
+
+  if [ "$restart_from_first_stage" -eq 1 ]; then
     continue
   fi
-
-  stage_rc=0
-  run_stage \
-    "$stage_key" "$agent_name" "$validate_name" "$label" \
-    "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
-  if [ "$stage_rc" -eq 71 ]; then
-    tlog "=== RUNNER ERROR: reader-visible revision drift reset progress at stage: $label ==="
-    exit 70
-  elif [ "$stage_rc" -eq 75 ]; then
-    tlog "=== QUOTA SUSPENDED at stage: $label ==="
-    commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
-    exit 75
-  elif [ "$stage_rc" -eq 3 ]; then
-    tlog "=== NEEDS REVIEW at stage: $label ==="
-    if ! mark_article_needs_review \
-      "$POST_FILE" "$stage_key" "$READER_REVISION_SNAPSHOT"; then
-      tlog "=== RUNNER ERROR: could not bind NEEDS_REVIEW to the pre-judge reader revision ==="
-      exit 70
-    fi
-    commit_progress "tribunal(${POST_FILE%.mdx}): NEEDS_REVIEW at $label stage"
-    exit 3
-  elif [ "$stage_rc" -eq 70 ]; then
-    tlog "=== RUNNER ERROR at stage: $label ==="
-    if ! ensure_article_runner_error_checkpoint \
-      "$POST_FILE" "$stage_key" "tribunal-runner" 0 "stage_runner_error"; then
-      tlog "  ERROR: stage RUNNER_ERROR has no verified durable ledger checkpoint."
-    fi
-    exit 70
-  elif [ "$stage_rc" -ne 0 ]; then
-    tlog "=== FAILED at stage: $label ==="
-    mark_article_failed "$POST_FILE" "$stage_key"
-    commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"
-    exit 1
-  fi
+  break
 done
 
 if [ -n "$ONLY_STAGE" ]; then
