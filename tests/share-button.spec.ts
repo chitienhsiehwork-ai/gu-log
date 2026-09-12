@@ -26,8 +26,10 @@ test.describe('ShareButton fallback', () => {
     await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think?token=private#access-token');
 
     const expected = await page.locator('link[rel~="canonical"]').getAttribute('href');
-    expect(expected).toBe(
-      'https://gu-log.vercel.app/posts/gp-24-20260204-claude-is-a-space-to-think'
+    // Static directory output adds a trailing slash; dev preserves the
+    // requested pathname. Both must use the public origin and drop secrets.
+    expect(expected).toMatch(
+      /^https:\/\/gu-log\.vercel\.app\/posts\/gp-24-20260204-claude-is-a-space-to-think\/?$/
     );
 
     await page.locator('.share-native').click();
