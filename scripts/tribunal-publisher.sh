@@ -11,6 +11,12 @@ cd "$ROOT_DIR"
 
 source "$SCRIPT_DIR/tribunal-helpers.sh"
 
+if ! TRIBUNAL_VERSION="$(node "$SCRIPT_DIR/tribunal-version.mjs" current 2>/dev/null)" ||
+   ! [[ "$TRIBUNAL_VERSION" =~ ^[1-9][0-9]*$ ]]; then
+  echo "ERROR: cannot resolve the current Tribunal version" >&2
+  exit 78
+fi
+
 PROGRESS_FILE="${PROGRESS_FILE:-$(tribunal_progress_file_default "$ROOT_DIR")}"
 PUBLISHER_STATE_FILE="${PUBLISHER_STATE_FILE:-$(tribunal_publisher_state_file "$ROOT_DIR")}"
 TRIAGE_EVENTS_FILE="${TRIAGE_EVENTS_FILE:-$(tribunal_triage_events_file "$ROOT_DIR")}"
@@ -134,17 +140,34 @@ collect_articles_by_status() {
   ' "$PROGRESS_FILE"
 }
 
+collect_current_articles_by_status() {
+  local status="$1"
+  jq -r --arg s "$status" --argjson version "$TRIBUNAL_VERSION" '
+    to_entries
+    | map(select(
+        (.value.status // "") == $s
+        and ((.value.tribunalVersion // 0) >= $version)
+      ))
+    | sort_by(.key)
+    | .[].key
+  ' "$PROGRESS_FILE"
+}
+
 collect_publishable_passes() {
   local limit="${1:-}"
   jq -nr \
     --arg limit "$limit" \
+    --argjson tribunalVersion "$TRIBUNAL_VERSION" \
     --slurpfile progress "$PROGRESS_FILE" \
     --slurpfile publisher "$PUBLISHER_STATE_FILE" \
     --slurpfile triage "$TRIAGE_EVENTS_FILE" '
       def candidates:
         $progress[0]
         | to_entries
-        | map(select((.value.status // "") == "PASS"))
+        | map(select(
+            (.value.status // "") == "PASS"
+            and ((.value.tribunalVersion // 0) >= $tribunalVersion)
+          ))
         | sort_by(.key)
         | .[].key as $article
         | select(
@@ -501,8 +524,9 @@ remove_reused_dependency_link() {
 
 render_report() {
   refresh_conflict_events
-  local publishable failed exhausted runner_error batched published conflicted validation_blocked
+  local publishable needs_review failed exhausted runner_error batched published conflicted validation_blocked
   mapfile -t publishable < <(collect_publishable_passes)
+  mapfile -t needs_review < <(collect_current_articles_by_status "NEEDS_REVIEW")
   mapfile -t failed < <(collect_articles_by_status "FAILED")
   mapfile -t exhausted < <(collect_articles_by_status "EXHAUSTED")
   mapfile -t runner_error < <(collect_articles_by_status "RUNNER_ERROR")
@@ -514,6 +538,10 @@ render_report() {
   tlog "publishable PASS: ${#publishable[@]}"
   for article in "${publishable[@]:0:$MAX_BATCH}"; do
     tlog "  ready  $article"
+  done
+  tlog "NEEDS_REVIEW metadata: ${#needs_review[@]}"
+  for article in "${needs_review[@]:0:$MAX_BATCH}"; do
+    tlog "  review $article"
   done
   tlog "conflicted: ${#conflicted[@]}"
   tlog "validation_blocked: ${#validation_blocked[@]}"

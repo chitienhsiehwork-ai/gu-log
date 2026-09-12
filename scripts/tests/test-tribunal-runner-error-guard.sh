@@ -1814,20 +1814,40 @@ pass "writer rollback no longer resets earlier persisted scores to Git HEAD"
 
 # Exercise the real final-build orchestration with skipped, already-passed
 # judges and bounded fake build/writer commands. This verifies lifecycle order,
-# not merely the snapshot primitive.
+# not merely the snapshot primitive. Keep this fixture in a disposable runtime
+# root: Vitest can forcibly terminate a timed-out shell child, in which case an
+# EXIT cleanup trap cannot safely restore a tracked production post.
 final_gate_bin="$TMP/final-gate-bin"
 final_gate_version="$(node "$ROOT_DIR/scripts/tribunal-version.mjs" current)"
 # Final-build repair exercises the generic rewrite machinery. GP now forbids
 # all Tribunal rewrites, so use an existing validator-clean bilingual SD pair.
 final_gate_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
-final_gate_zh="$ROOT_DIR/src/content/posts/$final_gate_post"
-final_gate_en="$ROOT_DIR/src/content/posts/en-$final_gate_post"
+final_gate_root="$TMP/final-gate-runtime"
+final_gate_scripts="$final_gate_root/scripts"
+final_gate_zh="$final_gate_root/src/content/posts/$final_gate_post"
+final_gate_en="$final_gate_root/src/content/posts/en-$final_gate_post"
 final_gate_zh_pristine="$TMP/final-gate-zh-pristine"
 final_gate_en_pristine="$TMP/final-gate-en-pristine"
 final_gate_zh_baseline="$TMP/final-gate-zh-baseline"
 final_gate_en_baseline="$TMP/final-gate-en-baseline"
 final_gate_real_jq="$(command -v jq)"
-mkdir -p "$final_gate_bin"
+mkdir -p "$final_gate_bin" "$final_gate_root/src/content/posts" \
+  "$final_gate_root/.codex" "$final_gate_root/config"
+cp -a "$ROOT_DIR/scripts/." "$final_gate_scripts/"
+cp -a "$ROOT_DIR/.codex/agents" "$final_gate_root/.codex/agents"
+cp -a "$ROOT_DIR/src/." "$final_gate_root/src/"
+cp -p "$ROOT_DIR/package.json" "$ROOT_DIR/GU-LOG_WRITER_PROMPT.md" \
+  "$ROOT_DIR/CONTRIBUTING.md" "$final_gate_root/"
+cp -p "$ROOT_DIR/config/llm-pipeline.json" "$final_gate_root/config/"
+ln -s "$ROOT_DIR/node_modules" "$final_gate_root/node_modules"
+cp -p "$ROOT_DIR/src/content/posts/$final_gate_post" "$final_gate_zh"
+cp -p "$ROOT_DIR/src/content/posts/en-$final_gate_post" "$final_gate_en"
+git -C "$final_gate_root" init -q
+git -C "$final_gate_root" config user.name "Tribunal Fixture"
+git -C "$final_gate_root" config user.email "tribunal-fixture@example.com"
+git -C "$final_gate_root" add "src/content/posts/$final_gate_post" "src/content/posts/en-$final_gate_post"
+git -C "$final_gate_root" commit -qm "test: final gate fixture"
+FINAL_GATE_TRIBUNAL="$final_gate_scripts/tribunal.sh"
 cp -p "$final_gate_zh" "$final_gate_zh_pristine"
 cp -p "$final_gate_en" "$final_gate_en_pristine"
 cp -p "$final_gate_zh_pristine" "$final_gate_zh_baseline"
@@ -1846,17 +1866,9 @@ seed_final_gate_scores() {
 }
 seed_final_gate_scores "$final_gate_zh_baseline"
 seed_final_gate_scores "$final_gate_en_baseline"
-
-cleanup_final_gate_fixture() {
-  cp -p "$final_gate_zh_pristine" "$final_gate_zh" 2>/dev/null || true
-  if [ -d "$final_gate_en" ]; then
-    rm -f "$final_gate_en/$(basename "$final_gate_en_baseline")" 2>/dev/null || true
-    rmdir "$final_gate_en" 2>/dev/null || true
-  fi
-  cp -p "$final_gate_en_pristine" "$final_gate_en" 2>/dev/null || true
-  rm -rf "$TMP"
-}
-trap cleanup_final_gate_fixture EXIT
+final_gate_reader_revision="$(
+  node "$ROOT_DIR/scripts/reader-revision-of-stdin.mjs" < "$final_gate_zh_baseline"
+)"
 
 resume_artifact_bin="$TMP/resume-artifact-bin"
 resume_artifact_progress="$TMP/resume-artifact-progress.json"
@@ -1938,12 +1950,15 @@ TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
 RESUME_ARTIFACT_CALLS="$resume_artifact_calls" \
-bash "$TRIBUNAL" --only-stage factChecker --no-commit "$final_gate_post" \
+bash "$FINAL_GATE_TRIBUNAL" --only-stage factChecker --no-commit "$final_gate_post" \
   >"$TMP/resume-artifact.out" 2>"$TMP/resume-artifact.err"
 resume_artifact_rc=$?
 set -e
-[ "$resume_artifact_rc" -eq 0 ] ||
+if [ "$resume_artifact_rc" -ne 0 ]; then
+  sed -n '1,160p' "$TMP/resume-artifact.out" >&2 || true
+  sed -n '1,160p' "$TMP/resume-artifact.err" >&2 || true
   fail "missing frontmatter artifact resume must rerun successfully"
+fi
 [ "$(grep -c '^judge-ran$' "$resume_artifact_calls")" = "1" ] ||
   fail "PASS ledger without frontmatter artifact skipped the judge"
 node "$ROOT_DIR/scripts/frontmatter-scores.mjs" \
@@ -1970,7 +1985,7 @@ TRIBUNAL_FORCE_PROVIDER=codex \
 GP_CODEX_MODEL=gpt-test \
 TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
 RESUME_ARTIFACT_CALLS="$resume_artifact_calls" \
-bash "$TRIBUNAL" --only-stage factChecker --no-commit "$final_gate_post" \
+bash "$FINAL_GATE_TRIBUNAL" --only-stage factChecker --no-commit "$final_gate_post" \
   >"$TMP/resume-missing-en.out" 2>"$TMP/resume-missing-en.err"
 resume_missing_en_rc=$?
 set -e
@@ -2168,17 +2183,20 @@ write_final_gate_progress() {
   local progress_file="$1"
   jq -n \
     --arg article "$final_gate_post" \
+    --arg readerRevision "$final_gate_reader_revision" \
     --argjson version "$final_gate_version" \
     '{
       ($article): {
         article: $article,
         status: "PENDING",
         tribunalVersion: $version,
+        readerRevision: $readerRevision,
         topLevelAttempts: 0,
         stages: {
           factChecker: {
             status: "pass",
             tribunalVersion: $version,
+            readerRevision: $readerRevision,
             score: {
               dimensions: {
                 accuracy: 9,
@@ -2193,6 +2211,7 @@ write_final_gate_progress() {
           librarian: {
             status: "pass",
             tribunalVersion: $version,
+            readerRevision: $readerRevision,
             score: {
               dimensions: {
                 glossary: 9,
@@ -2206,6 +2225,7 @@ write_final_gate_progress() {
           freshEyes: {
             status: "pass",
             tribunalVersion: $version,
+            readerRevision: $readerRevision,
             score: {
               dimensions: {
                 readability: 9,
@@ -2220,6 +2240,7 @@ write_final_gate_progress() {
           vibe: {
             status: "pass",
             tribunalVersion: $version,
+            readerRevision: $readerRevision,
             score: {
               dimensions: {
                 persona: 9,
@@ -2292,7 +2313,7 @@ run_final_gate_scenario() {
   FINAL_GATE_BUILD_COUNT="$scenario_dir/build-count" \
   FINAL_GATE_WRITER_COUNT="$scenario_dir/writer-count" \
   FINAL_GATE_REAL_JQ="$final_gate_real_jq" \
-  bash "$TRIBUNAL" "${tribunal_args[@]}" \
+  bash "$FINAL_GATE_TRIBUNAL" "${tribunal_args[@]}" \
     >"$scenario_dir/out" 2>"$scenario_dir/err"
   FINAL_GATE_LAST_RC=$?
   set -e
@@ -2321,6 +2342,7 @@ run_final_gate_scenario exhausted exhausted
 if [ "$(cat "$FINAL_GATE_LAST_DIR/writer-count")" != "2" ]; then
   sed -n '1,200p' "$FINAL_GATE_LAST_DIR/out" >&2 || true
   sed -n '1,200p' "$FINAL_GATE_LAST_DIR/err" >&2 || true
+  tail -n 200 "$final_gate_root"/.score-loop/logs/* >&2 || true
   fail "final-build repair did not stop after two writer attempts"
 fi
 [ "$(cat "$FINAL_GATE_LAST_DIR/build-count")" = "3" ] ||
@@ -2359,40 +2381,65 @@ fi
 pass "later writer infrastructure failures restore the outer pre-repair baseline"
 
 run_final_gate_scenario success success
-[ "$FINAL_GATE_LAST_RC" -eq 0 ] ||
-  fail "successful final-build repair must return rc=0"
+[ "$FINAL_GATE_LAST_RC" -eq 70 ] ||
+  fail "reader-visible final-build repair must return rc=70 for a full re-evaluation"
 grep -Fq '<!-- final-gate-writer-1 -->' "$final_gate_zh" ||
-  fail "successful final-build repair discarded the writer change"
-[ "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$FINAL_GATE_LAST_PROGRESS")" = "PASS" ] ||
-  fail "successful final-build repair did not persist PASS"
+  fail "reader-visible final-build repair discarded the writer change"
+jq -e --arg a "$final_gate_post" '
+  .[$a].status == "PENDING"
+  and .[$a].stages == {}
+  and (.[$a].finishedAt // "") == ""
+' "$FINAL_GATE_LAST_PROGRESS" >/dev/null ||
+  fail "reader-visible final-build repair did not reset stale PASS evidence"
 if find "$FINAL_GATE_LAST_DIR/tmp" -maxdepth 1 -name 'tribunal-rewrite.*' -print -quit |
   grep -q .; then
-  fail "successful final-build repair left its snapshot behind"
+  fail "reader-visible final-build repair left its snapshot behind"
 fi
-pass "successful final-build repair retains writer changes and discards recovery state"
+pass "reader-visible final-build repair keeps writer bytes but resets terminal PASS for full re-evaluation"
 
 run_final_gate_scenario grok-success success grok
-if [ "$FINAL_GATE_LAST_RC" -ne 0 ]; then
+if [ "$FINAL_GATE_LAST_RC" -ne 70 ]; then
   sed -n '1,200p' "$FINAL_GATE_LAST_DIR/out" >&2 || true
   sed -n '1,200p' "$FINAL_GATE_LAST_DIR/err" >&2 || true
-  fail "successful Grok final-build repair must return rc=0"
+  fail "reader-visible Grok final-build repair must return rc=70 for a full re-evaluation"
 fi
 grep -Fq '<!-- final-gate-grok-writer-1 -->' "$final_gate_zh" ||
-  fail "successful Grok final-build repair discarded the writer change"
-[ "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$FINAL_GATE_LAST_PROGRESS")" = "PASS" ] ||
-  fail "successful Grok final-build repair did not persist PASS"
-pass "Grok final-build repair accepts complete provider provenance"
+  fail "reader-visible Grok final-build repair discarded the writer change"
+grep -Fq "Actual writer provider: grok (runtime model 'grok-4.6', runner 'grok-build-grok-4.6-low')" \
+  "$FINAL_GATE_LAST_DIR/out" ||
+  fail "reader-visible Grok final-build repair lost complete provider provenance"
+jq -e --arg a "$final_gate_post" '
+  .[$a].status == "PENDING"
+  and .[$a].stages == {}
+  and (.[$a].finishedAt // "") == ""
+' "$FINAL_GATE_LAST_PROGRESS" >/dev/null ||
+  fail "reader-visible Grok final-build repair did not reset stale PASS evidence"
+if find "$FINAL_GATE_LAST_DIR/tmp" -maxdepth 1 -name 'tribunal-rewrite.*' -print -quit |
+  grep -q .; then
+  fail "reader-visible Grok final-build repair left its snapshot behind"
+fi
+pass "Grok final-build repair keeps bytes, provenance, and a full-re-evaluation reset"
 
 run_final_gate_scenario success-background success-background
-[ "$FINAL_GATE_LAST_RC" -eq 0 ] ||
-  fail "writer with a leftover background descendant must still complete safely"
+[ "$FINAL_GATE_LAST_RC" -eq 70 ] ||
+  fail "reader-visible writer repair with a background descendant must reset for full re-evaluation"
 sleep 1.2
 grep -Fq '<!-- final-gate-writer-1 -->' "$final_gate_zh" ||
   fail "writer descendant cleanup discarded the synchronous writer change"
 if grep -Fq '<!-- escaped-background-writer -->' "$final_gate_zh"; then
   fail "writer background descendant survived process-group quiescence"
 fi
-pass "setsid-escaped writer descendants remain confined to disposable candidates"
+jq -e --arg a "$final_gate_post" '
+  .[$a].status == "PENDING"
+  and .[$a].stages == {}
+  and (.[$a].finishedAt // "") == ""
+' "$FINAL_GATE_LAST_PROGRESS" >/dev/null ||
+  fail "background-writer final-build repair did not reset stale PASS evidence"
+if find "$FINAL_GATE_LAST_DIR/tmp" -maxdepth 1 -name 'tribunal-rewrite.*' -print -quit |
+  grep -q .; then
+  fail "background-writer final-build repair left its snapshot behind"
+fi
+pass "background writer keeps its synchronous change but cannot preserve stale terminal PASS"
 
 run_final_gate_scenario quota quota
 [ "$FINAL_GATE_LAST_RC" -eq 75 ] ||
@@ -2554,7 +2601,7 @@ run_stage_quota_scenario() {
   STAGE_QUOTA_POST_PATH="$final_gate_zh" \
   STAGE_QUOTA_BASELINE="$final_gate_zh_baseline" \
   STAGE_QUOTA_REAL_JQ="$stage_quota_real_jq" \
-  bash "$TRIBUNAL" --only-stage factChecker --allow-rewrite --no-commit \
+  bash "$FINAL_GATE_TRIBUNAL" --only-stage factChecker --allow-rewrite --no-commit \
     "$final_gate_post" >"$scenario_dir/out" 2>"$scenario_dir/err"
   STAGE_QUOTA_LAST_RC=$?
   set -e

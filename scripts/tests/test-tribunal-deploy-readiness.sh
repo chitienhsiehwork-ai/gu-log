@@ -1055,6 +1055,7 @@ cp -a "$ROOT_DIR/scripts" "$writer_root/"
 cp -a "$ROOT_DIR/.codex/agents" "$writer_root/.codex/"
 cp -a "$ROOT_DIR/.claude/agents" "$writer_root/.claude/"
 cp "$ROOT_DIR/config/llm-pipeline.json" "$writer_root/config/"
+ln -s "$ROOT_DIR/node_modules" "$writer_root/node_modules"
 cp "$ROOT_DIR/GU-LOG_WRITER_PROMPT.md" "$ROOT_DIR/CONTRIBUTING.md" \
   "$writer_root/"
 writer_progress="$TMP/writer-progress.json"

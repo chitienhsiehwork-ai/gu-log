@@ -63,6 +63,7 @@ ALLOW_REWRITE=""
 ALLOW_REWRITE_EXPLICIT=0
 WRITE_FRONTMATTER=1
 SCORE_ONLY=0
+GP_SOURCE_PRESERVATION_NO_REWRITE=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --only-stage)
@@ -145,6 +146,7 @@ if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
     exit 1
   fi
   ALLOW_REWRITE=0
+  GP_SOURCE_PRESERVATION_NO_REWRITE=1
 fi
 POST_PATH="$ROOT_DIR/src/content/posts/$POST_FILE"
 
@@ -299,8 +301,9 @@ write_stage_progress() {
        --arg model "$model" \
        --argjson attempts "$attempts" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+       --arg readerRevision "$READER_REVISION_SNAPSHOT" \
        --argjson score "$score_json" \
-       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion}' \
+       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion, readerRevision: $readerRevision}' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -310,8 +313,55 @@ write_stage_progress() {
 # where quota-loop kept re-picking a FAILED article until it happened to pass.
 MAX_TOP_ATTEMPTS=5
 
+# The reader-visible revision is an epoch for an entire Tribunal attempt, not
+# just its first judge. A body change while a worker is alive invalidates every
+# score produced under the old epoch. Reset under the progress lock so a later
+# worker cannot resume a mix of old and new stages.
+reset_article_for_revision_drift_locked() {
+  local article="$1" current_revision="$2" tmp
+  tmp="$(mktemp "$(dirname "$PROGRESS_FILE")/.tribunal-progress.XXXXXX")" || return 70
+  if ! jq --arg a "$article" \
+    --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+    --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+    '.[$a].status = "PENDING"
+     | .[$a].stages = {}
+     | .[$a].topLevelAttempts = 0
+     | .[$a].startedAt = $ts
+     | .[$a].tribunalVersion = $tribunalVersion
+     | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason, .[$a].readerRevision,
+           .[$a].requeueReaderRevision, .[$a].requeueTribunalVersion,
+           .[$a].requeueReason, .[$a].requeuedAt)' \
+    "$PROGRESS_FILE" > "$tmp"; then
+    rm -f "$tmp"
+    return 70
+  fi
+  mv "$tmp" "$PROGRESS_FILE" || {
+    rm -f "$tmp"
+    return 70
+  }
+  tlog "Progress reset for $article: reader-visible revision drifted during this Tribunal attempt."
+  return 0
+}
+
+# Returns 0 when this attempt still observes its initial revision, 71 after a
+# durable PENDING reset caused by drift, and 70 when the revision cannot be
+# trusted. Call immediately before a judge and before terminal PASS.
+ensure_attempt_revision_current() {
+  local article="$1" expected_revision="$2" revision_rc=0
+  (
+    flock -x 9 || exit 70
+    local current_revision
+    current_revision="$(tribunal_reader_revision_for_file "$POST_PATH")" || exit 70
+    if [ "$current_revision" != "$expected_revision" ]; then
+      reset_article_for_revision_drift_locked "$article" "$current_revision" || exit 70
+      exit 71
+    fi
+  ) 9>>"$RC_PROGRESS_LOCK" || revision_rc=$?
+  return "$revision_rc"
+}
+
 init_article_progress() {
-  local article="$1"
+  local article="$1" reader_revision="$2"
   local article_progress_result="continue"
   # Entire init + attempts increment + cap check runs under a single
   # flock so two workers can't both see attempts=N and both bump to N+1.
@@ -336,39 +386,83 @@ init_article_progress() {
         jq --arg a "$article" \
            --argjson tribunalVersion "$TRIBUNAL_VERSION" \
            --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-           '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage)' \
+           '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason, .[$a].readerRevision)' \
            "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
         tlog "Progress reset for $article: tribunalVersion $existing_version → $TRIBUNAL_VERSION"
+      elif [ "$SCORE_ONLY" -eq 0 ]; then
+        local existing_status existing_reader_revision requeue_reader_revision requeue_tribunal_version stage_revision_mismatch
+        existing_status=$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE")
+        stage_revision_mismatch="$(jq -r --arg a "$article" --arg r "$reader_revision" --argjson v "$TRIBUNAL_VERSION" '
+          any(.[$a].stages[]?;
+            ((.tribunalVersion // 0) >= $v) and ((.readerRevision // "") != $r)
+          )
+        ' "$PROGRESS_FILE")"
+        requeue_reader_revision=$(jq -r --arg a "$article" '.[$a].requeueReaderRevision // ""' "$PROGRESS_FILE")
+        requeue_tribunal_version=$(jq -r --arg a "$article" '.[$a].requeueTribunalVersion // 0' "$PROGRESS_FILE")
+        if [ "$existing_status" = "PENDING" ] &&
+           { [ "$requeue_reader_revision" != "" ] || [ "$requeue_tribunal_version" != "0" ]; } &&
+           { [ "$requeue_reader_revision" != "$reader_revision" ] || [ "$requeue_tribunal_version" != "$TRIBUNAL_VERSION" ]; }; then
+          jq --arg a "$article" \
+             --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+             --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+             '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason, .[$a].readerRevision, .[$a].requeueReaderRevision, .[$a].requeueTribunalVersion, .[$a].requeueReason, .[$a].requeuedAt)' \
+             "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+          tlog "Progress reset for $article: preserved requeue stages belong to a different reader revision or Tribunal epoch."
+        elif [ "$stage_revision_mismatch" = "true" ]; then
+          jq --arg a "$article" \
+             --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+             --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+             '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason, .[$a].readerRevision, .[$a].requeueReaderRevision, .[$a].requeueTribunalVersion, .[$a].requeueReason, .[$a].requeuedAt)' \
+             "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+          tlog "Progress reset for $article: a resumable stage belongs to a different reader revision."
+        elif [ "$existing_status" = "NEEDS_REVIEW" ]; then
+          existing_reader_revision=$(jq -r --arg a "$article" '.[$a].readerRevision // ""' "$PROGRESS_FILE")
+          if [ "$existing_reader_revision" = "$reader_revision" ]; then
+            article_progress_result="needs_review"
+          else
+            jq --arg a "$article" \
+               --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+               --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+               '.[$a].status = "PENDING" | .[$a].stages = {} | .[$a].topLevelAttempts = 0 | .[$a].startedAt = $ts | .[$a].tribunalVersion = $tribunalVersion | del(.[$a].finishedAt, .[$a].failedStage, .[$a].terminalReason, .[$a].readerRevision)' \
+               "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+            tlog "Progress reset for $article: reader-visible revision changed."
+          fi
+        fi
       fi
       tlog "Resuming existing progress for $article"
     fi
 
-    # topLevelAttempts counts terminal content failures, not process starts.
-    # A worker killed mid-stage leaves status in-progress/no-score; restarting
-    # that article must not burn an attempt or eventually poison it as
-    # EXHAUSTED.
-    local attempts article_status
-    attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
-    article_status=$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE")
-    if ! [[ "$attempts" =~ ^[0-9]+$ ]]; then attempts=0; fi
+    if [ "$article_progress_result" = "needs_review" ]; then
+      tlog "Skipping $article: current Tribunal version and reader revision already NEEDS_REVIEW."
+    else
 
-    if [ "$article_status" != "FAILED" ] && [ "$attempts" -gt 0 ]; then
-      jq --arg a "$article" '.[$a].topLevelAttempts = 0' \
-         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-      attempts=0
-      tlog "Reset non-terminal topLevelAttempts for $article after interrupted/non-content run."
-    fi
+      # topLevelAttempts counts terminal content failures, not process starts.
+      # A worker killed mid-stage leaves status in-progress/no-score; restarting
+      # that article must not burn an attempt or eventually poison it as
+      # EXHAUSTED.
+      local attempts article_status
+      attempts=$(jq -r --arg a "$article" '.[$a].topLevelAttempts // 0' "$PROGRESS_FILE")
+      article_status=$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE")
+      if ! [[ "$attempts" =~ ^[0-9]+$ ]]; then attempts=0; fi
 
-    tlog "Top-level attempt $((attempts + 1))/$MAX_TOP_ATTEMPTS for $article"
+      if [ "$article_status" != "FAILED" ] && [ "$attempts" -gt 0 ]; then
+        jq --arg a "$article" '.[$a].topLevelAttempts = 0' \
+           "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+        attempts=0
+        tlog "Reset non-terminal topLevelAttempts for $article after interrupted/non-content run."
+      fi
 
-    if [ "$article_status" = "FAILED" ] && [ "$attempts" -ge "$MAX_TOP_ATTEMPTS" ]; then
-      tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
-      jq --arg a "$article" \
-         --argjson tribunalVersion "$TRIBUNAL_VERSION" \
-         --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
-         '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
-         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-      article_progress_result="exhausted"
+      tlog "Top-level attempt $((attempts + 1))/$MAX_TOP_ATTEMPTS for $article"
+
+      if [ "$article_status" = "FAILED" ] && [ "$attempts" -ge "$MAX_TOP_ATTEMPTS" ]; then
+        tlog "ERROR: $article exceeded MAX_TOP_ATTEMPTS=$MAX_TOP_ATTEMPTS. Marking EXHAUSTED."
+        jq --arg a "$article" \
+           --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+           --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+           '.[$a].status = "EXHAUSTED" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
+           "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+        article_progress_result="exhausted"
+      fi
     fi
   } 9>>"$RC_PROGRESS_LOCK"
 
@@ -377,6 +471,9 @@ init_article_progress() {
   if [ "$article_progress_result" = "exhausted" ]; then
     commit_progress "tribunal(${article%.mdx}): EXHAUSTED after $MAX_TOP_ATTEMPTS top-level attempts"
     exit 2
+  fi
+  if [ "$article_progress_result" = "needs_review" ]; then
+    exit 3
   fi
 }
 
@@ -396,6 +493,50 @@ mark_article_failed() {
         | .[$a].finishedAt = $ts
         | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+  ) 9>>"$RC_PROGRESS_LOCK"
+}
+
+mark_article_needs_review() {
+  local article="$1" failed_stage="$2" pre_judge_revision="$3"
+  (
+    flock -x 9
+    local current_revision tmp
+    current_revision="$(tribunal_reader_revision_for_file "$POST_PATH")" || exit 70
+    if [ "$current_revision" != "$pre_judge_revision" ]; then
+      tlog "  RUNNER ERROR: reader-visible revision drifted during judge execution ($pre_judge_revision → $current_revision)."
+      exit 70
+    fi
+    if ! jq -e \
+      --arg a "$article" \
+      --arg s "$failed_stage" \
+      --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+      '.[$a].tribunalVersion == $tribunalVersion and .[$a].stages[$s].status == "fail"' \
+      "$PROGRESS_FILE" >/dev/null; then
+      tlog "  RUNNER ERROR: NEEDS_REVIEW compare-and-set precondition failed for $article/$failed_stage."
+      exit 70
+    fi
+    tmp="$(mktemp "$(dirname "$PROGRESS_FILE")/.tribunal-progress.XXXXXX")" || exit 70
+    if ! jq --arg a "$article" \
+      --arg s "$failed_stage" \
+      --arg reason "gp_source_preservation_no_rewrite" \
+      --arg readerRevision "$pre_judge_revision" \
+      --argjson tribunalVersion "$TRIBUNAL_VERSION" \
+      --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
+      '.[$a].status = "NEEDS_REVIEW"
+       | .[$a].failedStage = $s
+       | .[$a].terminalReason = $reason
+       | .[$a].readerRevision = $readerRevision
+       | .[$a].finishedAt = $ts
+       | .[$a].tribunalVersion = $tribunalVersion
+       | .[$a].topLevelAttempts = (.[$a].topLevelAttempts // 0)' \
+      "$PROGRESS_FILE" > "$tmp"; then
+      rm -f "$tmp"
+      exit 70
+    fi
+    mv "$tmp" "$PROGRESS_FILE" || {
+      rm -f "$tmp"
+      exit 70
+    }
   ) 9>>"$RC_PROGRESS_LOCK"
 }
 
@@ -504,17 +645,23 @@ quota_status_summary() {
 }
 
 mark_article_passed() {
-  local article="$1"
+  local article="$1" expected_revision="$2" pass_rc=0
   (
     flock -x 9
-    local tmp
+    local current_revision tmp
+    current_revision="$(tribunal_reader_revision_for_file "$POST_PATH")" || exit 70
+    if [ "$current_revision" != "$expected_revision" ]; then
+      reset_article_for_revision_drift_locked "$article" "$current_revision" || exit 70
+      exit 71
+    fi
     tmp="$(mktemp)"
     jq --arg a "$article" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
        '.[$a].status = "PASS" | .[$a].finishedAt = $ts | .[$a].tribunalVersion = $tribunalVersion' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
-  ) 9>>"$RC_PROGRESS_LOCK"
+  ) 9>>"$RC_PROGRESS_LOCK" || pass_rc=$?
+  return "$pass_rc"
 }
 
 # ─── Cheap Validation + Final Build Gate ─────────────────────────────────────
@@ -909,6 +1056,23 @@ PROMPT
 run_final_build_gate() {
   local post_file="$1"
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
+
+  # A crash-resumable PASS is valid only within the reader revision that
+  # produced it. Check before even considering a skip, then again immediately
+  # before each actual judge invocation below.
+  local revision_rc=0
+  ensure_attempt_revision_current "$post_file" "$READER_REVISION_SNAPSHOT" || revision_rc=$?
+  case "$revision_rc" in
+    0) ;;
+    71)
+      tlog "  RUNNER ERROR: reader-visible revision drifted before the final build gate; reset to PENDING without running the build."
+      return 71
+      ;;
+    *)
+      tlog "  RUNNER ERROR: cannot verify reader-visible revision before the final build gate."
+      return 70
+      ;;
+  esac
   local max_repairs=2
   local repair_attempt=0
   local build_log build_rc classification
@@ -1203,6 +1367,12 @@ run_stage() {
   local max_loops="$5"    # 2 or 3
   local post_file="$6"
   local fm_judge_key="${7:-}" # frontmatter scores key: librarian, factCheck, freshEyes, vibe
+  local authoritative_needs_review=0
+
+  if [ "$GP_SOURCE_PRESERVATION_NO_REWRITE" -eq 1 ] &&
+     [ "$SCORE_ONLY" -eq 0 ] && [ "$ALLOW_REWRITE" -ne 1 ]; then
+    authoritative_needs_review=1
+  fi
 
   local post_path="$ROOT_DIR/src/content/posts/$post_file"
 
@@ -1272,6 +1442,22 @@ run_stage() {
     attempt=$((attempt + 1))
     tlog "  $label attempt $attempt/$max_loops..."
     : > "$score_tmp"
+
+    revision_rc=0
+    ensure_attempt_revision_current "$post_file" "$READER_REVISION_SNAPSHOT" || revision_rc=$?
+    case "$revision_rc" in
+      0) ;;
+      71)
+        tlog "  RUNNER ERROR: reader-visible revision drifted before judge invocation; reset to PENDING without invoking a judge."
+        rm -f "$score_tmp"
+        return 71
+        ;;
+      *)
+        tlog "  RUNNER ERROR: cannot verify reader-visible revision before judge invocation."
+        rm -f "$score_tmp"
+        return 70
+        ;;
+    esac
 
     write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$runner_label" "$attempt"
 
@@ -1415,6 +1601,24 @@ PROMPT
     fi
     rm -f "$judge_out" "$actual_provider_file" "$quota_status_file"
 
+    # A judge can run for a long time. Do not persist a score (or write its
+    # frontmatter badge) when the canonical article changed while it ran.
+    revision_rc=0
+    ensure_attempt_revision_current "$post_file" "$READER_REVISION_SNAPSHOT" || revision_rc=$?
+    case "$revision_rc" in
+      0) ;;
+      71)
+        tlog "  RUNNER ERROR: reader-visible revision drifted during judge execution; reset to PENDING without persisting the stale score."
+        rm -f "$score_tmp"
+        return 71
+        ;;
+      *)
+        tlog "  RUNNER ERROR: cannot verify reader-visible revision after judge execution."
+        rm -f "$score_tmp"
+        return 70
+        ;;
+    esac
+
     # ── Validate score JSON ───────────────────────────────────────────────────
     if ! validate_judge_score_json "$validate_name" "$score_tmp" "$TRIBUNAL_VERSION"; then
       tlog "  ERROR: Invalid/missing $label score JSON schema on attempt $attempt; treating as runner infrastructure failure."
@@ -1494,6 +1698,9 @@ PROMPT
       tlog "  Max loops ($max_loops) exhausted for $label. FAIL."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
       rm -f "$score_tmp"
+      if [ "$authoritative_needs_review" -eq 1 ]; then
+        return 3
+      fi
       return 1
     fi
 
@@ -1501,6 +1708,9 @@ PROMPT
       tlog "  Rewrite disabled for this run (judge-only/--only-stage default). FAIL without invoking tribunal-writer."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
       rm -f "$score_tmp"
+      if [ "$authoritative_needs_review" -eq 1 ]; then
+        return 3
+      fi
       return 1
     fi
 
@@ -1629,6 +1839,21 @@ PROMPT
       fi
     else
       discard_writer_rewrite_snapshot "$rewrite_snapshot_token"
+      # This is the one intentional reader-visible mutation inside an attempt:
+      # the isolated writer transaction has just passed validation and its
+      # candidate apply is the authorized remediation for this same stage.
+      # Advance the attempt epoch before its re-judge; unrelated edits still
+      # fail the compare-and-reset checks above and can never inherit stages.
+      if ! READER_REVISION_SNAPSHOT="$(tribunal_reader_revision_for_file "$post_path")"; then
+        tlog "  RUNNER ERROR: cannot compute reader revision after validated writer rewrite."
+        if ! mark_article_runner_error \
+          "$post_file" "$stage_key" "$runner_label" "$attempt" "post_rewrite_reader_revision_unavailable"; then
+          tlog "  ERROR: failed to persist RUNNER_ERROR after post-rewrite revision failure."
+        fi
+        rm -f "$score_tmp"
+        return 70
+      fi
+      tlog "  Advanced Tribunal attempt reader revision after validated writer rewrite."
     fi
 
     # Loop: re-score on next iteration
@@ -1803,8 +2028,12 @@ if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
 fi
 
 ensure_score_dirs
+if ! READER_REVISION_SNAPSHOT="$(tribunal_reader_revision_for_file "$POST_PATH")"; then
+  tlog "RUNNER ERROR: cannot compute the pre-judge reader revision for $POST_FILE; refusing to call a judge or alter progress evidence."
+  exit 70
+fi
 ensure_progress_file
-init_article_progress "$POST_FILE"
+init_article_progress "$POST_FILE" "$READER_REVISION_SNAPSHOT"
 
 tlog "=== tribunal.sh: $POST_FILE ==="
 if [ "$TRIBUNAL_PROVIDER" != "codex" ]; then
@@ -1835,10 +2064,22 @@ for stage_def in "${STAGES[@]}"; do
   run_stage \
     "$stage_key" "$agent_name" "$validate_name" "$label" \
     "$max_loops" "$POST_FILE" "$fm_judge_key" || stage_rc=$?
-  if [ "$stage_rc" -eq 75 ]; then
+  if [ "$stage_rc" -eq 71 ]; then
+    tlog "=== RUNNER ERROR: reader-visible revision drift reset progress at stage: $label ==="
+    exit 70
+  elif [ "$stage_rc" -eq 75 ]; then
     tlog "=== QUOTA SUSPENDED at stage: $label ==="
     commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
     exit 75
+  elif [ "$stage_rc" -eq 3 ]; then
+    tlog "=== NEEDS REVIEW at stage: $label ==="
+    if ! mark_article_needs_review \
+      "$POST_FILE" "$stage_key" "$READER_REVISION_SNAPSHOT"; then
+      tlog "=== RUNNER ERROR: could not bind NEEDS_REVIEW to the pre-judge reader revision ==="
+      exit 70
+    fi
+    commit_progress "tribunal(${POST_FILE%.mdx}): NEEDS_REVIEW at $label stage"
+    exit 3
   elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
     if ! ensure_article_runner_error_checkpoint \
@@ -1864,7 +2105,13 @@ fi
 tlog "=== ALL 4 STAGES PASSED: $POST_FILE ==="
 final_build_rc=0
 run_final_build_gate "$POST_FILE" || final_build_rc=$?
-if [ "$final_build_rc" -eq 70 ]; then
+if [ "$final_build_rc" -eq 71 ]; then
+  # run_final_build_gate already reset this article atomically under the
+  # progress lock. This is a recoverable revision drift, not a content failure
+  # or runner checkpoint; keep PENDING/stages={} for a complete next attempt.
+  tlog "=== RUNNER ERROR: reader-visible revision drift reset progress before final build gate ==="
+  exit 70
+elif [ "$final_build_rc" -eq 70 ]; then
   tlog "=== RUNNER ERROR at final build gate: $POST_FILE ==="
   if ! ensure_article_runner_error_checkpoint \
     "$POST_FILE" "finalBuild" "tribunal-writer" \
@@ -1885,6 +2132,14 @@ if [ "$final_build_rc" -ne 0 ]; then
   exit 1
 fi
 
-mark_article_passed "$POST_FILE"
+pass_rc=0
+mark_article_passed "$POST_FILE" "$READER_REVISION_SNAPSHOT" || pass_rc=$?
+if [ "$pass_rc" -eq 71 ]; then
+  tlog "=== RUNNER ERROR: reader-visible revision drift reset progress before terminal PASS ==="
+  exit 70
+elif [ "$pass_rc" -ne 0 ]; then
+  tlog "=== RUNNER ERROR: cannot verify reader-visible revision before terminal PASS ==="
+  exit 70
+fi
 commit_progress "tribunal(${POST_FILE%.mdx}): all 4 stages PASS + final build"
 tlog "Done. Log: $LOG_FILE"

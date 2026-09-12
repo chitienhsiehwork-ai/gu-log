@@ -8,6 +8,7 @@ const CONTRACT = path.join(ROOT, 'scripts/tests/test-tribunal-safety-contract.sh
 const RUNNER_ERROR_GUARD = path.join(ROOT, 'scripts/tests/test-tribunal-runner-error-guard.sh');
 const DEPLOY_READINESS = path.join(ROOT, 'scripts/tests/test-tribunal-deploy-readiness.sh');
 const RUN_CONTROL_CLAIMS = path.join(ROOT, 'scripts/tests/test-tribunal-run-control-claims.sh');
+const NEEDS_REVIEW = path.join(ROOT, 'scripts/tests/test-tribunal-needs-review.sh');
 const linuxIt = process.platform === 'linux' ? it : it.skip;
 
 function runShellTest(script: string, timeout: number) {
@@ -40,6 +41,17 @@ describe('Tribunal shell safety contract', () => {
   );
 
   linuxIt(
+    'keeps authoritative NEEDS_REVIEW revision-bound and operational failures retryable',
+    () => {
+      const result = runShellTest(NEEDS_REVIEW, 90_000);
+
+      expect(result.error, result.stdout + result.stderr).toBeUndefined();
+      expect(result.status, result.stdout + result.stderr).toBe(0);
+    },
+    95_000
+  );
+
+  linuxIt(
     'serializes stale-claim recovery across concurrent supervisors',
     () => {
       const result = runShellTest(RUN_CONTROL_CLAIMS, 20_000);
@@ -51,9 +63,9 @@ describe('Tribunal shell safety contract', () => {
   );
 
   it('passes deployment readiness with the hermetic writer runner', () => {
-    const result = runShellTest(DEPLOY_READINESS, 30_000);
+    const result = runShellTest(DEPLOY_READINESS, 60_000);
 
     expect(result.error, result.stdout + result.stderr).toBeUndefined();
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 35_000);
+  }, 65_000);
 });

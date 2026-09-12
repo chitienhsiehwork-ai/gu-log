@@ -1072,6 +1072,7 @@ wait_any_worker() {
     0)  tlog "  [worker-$finished_id] $article_slug — PASSED" ;;
     2)  tlog "  [worker-$finished_id] $article_slug — EXHAUSTED"
         ;;
+    3)  tlog "  [worker-$finished_id] $article_slug — NEEDS_REVIEW (manual-review terminal outcome)" ;;
     124) tlog "  [worker-$finished_id] $article_slug — stalled (rc=124); draining."
          stop_requested=true
          stop_source="${stop_source:-worker-stall}"
@@ -1133,7 +1134,7 @@ get_unscored_articles() {
     done | sort -r | cut -d'|' -f2-
   )
 
-  local article full_path status
+  local article full_path status stored_revision revision_rc
   for article in $all_zh_articles; do
     full_path="$POSTS_DIR/$article"
     # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
@@ -1159,6 +1160,19 @@ get_unscored_articles() {
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
+    fi
+    if [ "$status" = "NEEDS_REVIEW" ]; then
+      stored_revision=$(jq -r --arg a "$article" '.[$a].readerRevision // ""' "$PROGRESS_FILE")
+      revision_rc=0
+      tribunal_compare_reader_revision "$stored_revision" "$full_path" || revision_rc=$?
+      case "$revision_rc" in
+        0) continue ;;
+        1) ;;
+        *)
+          tlog "  WARN: cannot verify reader revision for NEEDS_REVIEW $article; skipping fail closed." >&2
+          continue
+          ;;
+      esac
     fi
     echo "$article"
   done

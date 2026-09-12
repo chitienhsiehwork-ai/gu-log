@@ -6,6 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BATCH_RUNNER="$ROOT_DIR/scripts/tribunal-batch-runner.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 
 # shellcheck source=scripts/tribunal-helpers.sh
@@ -27,6 +28,15 @@ selector_section=$(awk '
   capture { print }
 ' "$BATCH_RUNNER")
 eval "$selector_section"
+
+# Load the continuous scheduler selector under a distinct name so both
+# canonical dispatch paths must agree on revision-bound NEEDS_REVIEW.
+quota_selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Dry Run/ { exit }
+  capture { print }
+' "$QUOTA_LOOP" | sed 's/get_unscored_articles()/get_quota_unscored_articles()/')
+eval "$quota_selector_section"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -227,6 +237,8 @@ write_selector_post() {
 }
 
 write_selector_post pending.mdx 2026-01-08
+write_selector_post needs-review-same.mdx 2026-01-09
+write_selector_post needs-review-changed.mdx 2026-01-10
 write_selector_post legacy-exhausted.mdx 2026-01-07
 write_selector_post current-exhausted.mdx 2026-01-06
 write_selector_post current-pass.mdx 2026-01-05
@@ -234,8 +246,19 @@ write_selector_post deprecated-unquoted.mdx 2026-01-04 deprecated
 write_selector_post deprecated-single-quoted.mdx 2026-01-03 "'deprecated'"
 write_selector_post deprecated-double-quoted.mdx 2026-01-02 '"deprecated"'
 
-cat > "$selector_progress" <<'JSON'
+same_revision="$(tribunal_reader_revision_for_file "$selector_posts/needs-review-same.mdx")"
+cat > "$selector_progress" <<JSON
 {
+  "needs-review-same.mdx": {
+    "tribunalVersion": 9,
+    "status": "NEEDS_REVIEW",
+    "readerRevision": "$same_revision"
+  },
+  "needs-review-changed.mdx": {
+    "tribunalVersion": 9,
+    "status": "NEEDS_REVIEW",
+    "readerRevision": "0000000000000000"
+  },
   "legacy-exhausted.mdx": {
     "tribunalVersion": 8,
     "status": "EXHAUSTED"
@@ -257,7 +280,21 @@ ROOT_DIR="$tmp_dir"
 TRIBUNAL_VERSION=9
 
 selector_output=$(get_unscored_articles)
-expected_selector_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+quota_selector_output=$(get_quota_unscored_articles)
+expected_selector_output=$(printf '%s\n' needs-review-changed.mdx pending.mdx legacy-exhausted.mdx)
 [ "$selector_output" = "$expected_selector_output" ] ||
   fail "selector included deprecated/current terminal entries: $selector_output"
-pass "selector excludes deprecated and current-version terminal entries"
+[ "$quota_selector_output" = "$expected_selector_output" ] ||
+  fail "quota selector disagreed with bounded selector: $quota_selector_output"
+pass "both schedulers skip same-revision NEEDS_REVIEW and reopen changed content"
+
+TRIBUNAL_READER_REVISION_HELPER="$tmp_dir/missing-reader-helper.mjs"
+hash_failure_output=$(get_unscored_articles 2>/dev/null)
+quota_hash_failure_output=$(get_quota_unscored_articles 2>/dev/null)
+expected_hash_failure_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+[ "$hash_failure_output" = "$expected_hash_failure_output" ] ||
+  fail "bounded selector did not fail closed on reader hash failure: $hash_failure_output"
+[ "$quota_hash_failure_output" = "$expected_hash_failure_output" ] ||
+  fail "quota selector did not fail closed on reader hash failure: $quota_hash_failure_output"
+unset TRIBUNAL_READER_REVISION_HELPER
+pass "both schedulers fail closed when NEEDS_REVIEW revision cannot be verified"

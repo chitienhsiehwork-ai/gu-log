@@ -267,6 +267,48 @@ tribunal_progress_file_default() {
   printf '%s/.score-loop/state/tribunal-progress.json\n' "$root"
 }
 
+# Compute the canonical reader-visible revision for one post. The helper is
+# shared by the manual runner and both schedulers so score/provenance metadata
+# cannot accidentally reopen a terminal content decision. Exit 70 is reserved
+# for deterministic tooling/input failures; callers must fail closed.
+tribunal_reader_revision_for_file() {
+  local post_path="$1"
+  local revision_helper="${TRIBUNAL_READER_REVISION_HELPER:-$TRIBUNAL_HELPERS_DIR/reader-revision-of-stdin.mjs}"
+  local revision
+
+  if [ -L "$post_path" ] || [ ! -f "$post_path" ] || [ ! -r "$post_path" ]; then
+    printf 'reader revision input is not a readable regular file: %s\n' "$post_path" >&2
+    return 70
+  fi
+  if [ -L "$revision_helper" ] || [ ! -f "$revision_helper" ] || [ ! -r "$revision_helper" ]; then
+    printf 'reader revision helper is not a readable regular file: %s\n' "$revision_helper" >&2
+    return 70
+  fi
+  if ! revision="$(node "$revision_helper" < "$post_path")"; then
+    printf 'reader revision helper failed for: %s\n' "$post_path" >&2
+    return 70
+  fi
+  if ! [[ "$revision" =~ ^[0-9a-f]{16}$ ]]; then
+    printf 'reader revision helper returned an invalid revision for: %s\n' "$post_path" >&2
+    return 70
+  fi
+  printf '%s\n' "$revision"
+}
+
+# Return 0 when the stored revision still matches the current reader-visible
+# post, 1 when content changed, and 70 when comparison is not trustworthy.
+tribunal_compare_reader_revision() {
+  local expected_revision="$1" post_path="$2"
+  local current_revision
+
+  if ! [[ "$expected_revision" =~ ^[0-9a-f]{16}$ ]]; then
+    printf 'stored reader revision is missing or invalid for: %s\n' "$post_path" >&2
+    return 70
+  fi
+  current_revision="$(tribunal_reader_revision_for_file "$post_path")" || return 70
+  [ "$current_revision" = "$expected_revision" ]
+}
+
 tribunal_legacy_progress_file() {
   local root="${1:-${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}}"
   printf '%s/scores/tribunal-progress.json\n' "$root"
