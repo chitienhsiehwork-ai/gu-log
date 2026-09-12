@@ -30,17 +30,40 @@ runner 的 source helper 重用 canonical source router 與 validator。X 必須
 
 ### 2. 安全 transport 與 extraction 分工
 
-補安全邊界應落在既有 source adapter 的網路層，不在 judge prompt 或另一套臨時 curl wrapper 重做抓文邏輯。所有來源輸入只接受不含 userinfo 的公開 HTTP(S) 位置；拒絕 credential-bearing URL，不把 query 參數當作可任意輸出的診斷資料。
+補安全邊界落在既有 adapter 的 I/O 接點，不在 judge prompt 重做擷取。採兩層、單次 invocation 的實作，沒有常駐 proxy、TLS 攔截或新的 crawler：
 
-自動擷取會在連線與每次 redirect 前核對目的地，拒絕 loopback、private、link-local、unspecified／保留位址與不支援協定。DNS 檢查須綁定實際連線位址，不能先查一次再讓另一個 client 重新解析；也不能在安全路徑失敗後 fallback 到無檢查的 curl／urllib。限制 redirect 次數、總時間與讀取 bytes。沿用成熟 HTTP client 的 TLS／hostname 驗證，不自行略過憑證檢查。
+1. Go `internal/source` 的 scoped transport 在 loopback 暫存 port 接受 HTTP／CONNECT，僅活到這次 `Fetch` context 結束。每次 outbound connection 先驗證 HTTP(S) host／port，解析公開 IP，再由同一個 dialer 連到已驗證 IP；拒絕 loopback、private、link-local、unspecified、multicast、保留位址與模糊 IP 表示。不得讓下游重新解析，也不採 ambient proxy。以整次 deadline、連線上限與實際轉送 bytes 限制資源，超限時關閉連線並取消 capture。
+2. Python 共用 bounded HTTP helper 透過上述明確 proxy 送出 request，關閉自動 redirect。每跳自行 resolve `Location`，驗證 scheme、host 與無 userinfo，檢查 hop 上限，跨 origin 不轉送 Authorization／來源專用 headers；保持 TLS 憑證／hostname 驗證。以讀取上限檢查實際回應與解碼後 bytes，超限失敗而非截斷。Proxy 不解密 HTTPS，因此不宣稱自己看過 Location／final URL；redirect 與來源身分由 client／adapter 提供。
 
-一般頁面的文字 extraction 可以重用現有 extractor，僅把已安全取得的 bytes 交給它。固定 provider 的 X／YouTube adapter 應保持既有識別與來源型別邊界，不沿來源內文任意追連結。
+所有 parent 啟動的 adapter 都必須取得本次 transport，清除 ambient proxy／no_proxy 及 cookie／netrc 類隱式登入來源；缺少 transport、helper 或指定 handler 就 fail closed，不能改走直接網路。`internal/runner.RunWithOptions` 已有顯式 env 接點，沿用它傳入本次 scoped 設定，不新增另一套 subprocess runner。
+
+| 現有網路路徑 | 接上安全邊界的方法 |
+|---|---|
+| `fetch-article.py` | 以共用 HTTP helper 取 bytes／final URL，再交現有 readability／BeautifulSoup 抽取；不讓 extractor 自行下載 |
+| Generic Go 的 curl 備援 | 備援只保留文字抽取策略，仍使用同一 helper 取得 bytes；移除無防護的 `curl -L` 網路備援 |
+| `fetch-x-article.sh` 的 fxtwitter／vxtwitter | 呼叫同一 Python helper 的 raw JSON 入口，保留既有 render／validator；所有 HTTP 路徑受同一 envelope 約束 |
+| X guest 與 `fetch-x-thread.py` 的 urllib | 換成同一 helper；固定 provider API／bundle 與既有 continuation 路徑照常，不從來源內文任意追連結 |
+| YouTube metadata／字幕 | 以薄 Python wrapper embed yt-dlp，保留既有 Go metadata／字幕選擇與 validator，網路只註冊使用此 helper 的 HTTP(S) `RequestHandler` |
+
+YouTube wrapper 用 `YoutubeDL.build_request_director()` 限定唯一 handler，不能只是提升優先序而保留 unsafe fallback；也在 `urlopen()` 交給 base class 前拒絕原始 URL userinfo，避免被 base 正規化成 Authorization header 後失去拒絕依據。不要把全部 redirect 證據寄望於外層 `urlopen()`：redirect 發生在 handler 內。這些接點依 [yt-dlp YoutubeDL 原始碼](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py) 與 [networking RequestHandler contract](https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/networking/common.py)；支援版本、依賴與 adapter regression 由可執行設定鎖定，不依 CLI 的不存在 flag。只允許既有單影片來源，不啟用 arbitrary extractor、playlist、cookies、plugins 或影片下載。
+
+Transport 以 injectable resolver／dialer 測試公開連線、DNS rebinding、IPv4／IPv6 reserved、超時與 byte 上限；client helper 以無網路 response fixtures 測試合法 redirect、userinfo、非 HTTP(S)、過多 hops、credential header 移除。每條 adapter 另測「必須使用受限 helper／handler、無直接 fallback」，避免只測 generic 就推論 X／YouTube 安全。Wire-byte 上限不能取代解碼／packet 大小上限，兩者各自測試。
 
 ### 3. Manifest 是 harness 的觀察，source 是不受信任資料
 
 packet 使用新的 0700 private directory；資料檔與 manifest 為 regular files，不接受 symlink 或 workdir 外的 path。資料寫完才發布 manifest，manifest 記錄 schema、requested/canonical source identity、觀察到的 final URL／provider identity、fetch route、capture time、validation 結果、bytes、SHA-256 與相對資料路徑。
 
-來源 header 可以作一致性檢查，但不能取代 adapter 的 observed identity。X 以 status／thread 身分核對，YouTube 以 video ID 核對；一般頁面記錄經安全 redirect 取得的 final URL。資訊未觀察到就明確標未知，不虛構 metadata。
+來源 header 可以作一致性檢查，但不能取代 adapter 的 observed identity。`internal/source.FetchResult` 新增型別化的來源觀察，standalone fetch 的 JSON report 直接傳遞同一結構，不從輸出 markdown 反推：
+
+| Adapter | 可信程式觀察的來源身分 | 驗證條件 |
+|---|---|---|
+| 一般文章 | HTTP client 實際取得的 `finalUrl` | requested URL 與經驗證的 redirect chain 相符；不能以 HTML canonical 標籤取代 |
+| X | API payload 的 focal status ID、author、Article／thread 身分及完整串文驗證結果 | status ID 必須等於 requested ID，continuation 符合既有 self-thread 規則；來源自行宣稱的 URL 不足以放行 |
+| YouTube | 既有 metadata 的 video ID | 必須等於 requested video ID，字幕仍經既有完整性檢查；未觀察到 final URL 就不填 |
+
+Python／shell adapter 透過 parent 指定的 private sidecar 回傳這些欄位，stdout 繼續是完整來源資料。parent 驗證 sidecar schema 與來源型別，缺少必須欄位就拒絕；不能以 requested ID 的拷貝冒充 observed ID。
+
+packet manifest 的可執行 schema 是欄位 SSOT：包含 `schemaVersion`、`sourceKind`、`requestedUrl`、`observedIdentity`、`fetchedVia`、`capturedAt`、`validation`，以及 `content` 的相對檔名、正整數 bytes 與 SHA-256。`validation` 記錄實際來源 validator 及成功結果，不接受空值、任意字串「complete」或 caller 自報成功。`content` 只能指向 packet 內指定的 leaf regular file；manifest 本身也不得是 symlink。manifest 與資料完成驗證後設為唯讀，未完成擷取的目錄不得當成可重播 packet。
 
 完整性表示已通過 source-type-specific extraction／validation，不宣稱能數學證明網站沒有隱藏內容。已知 teaser、incomplete marker、缺失 thread 段落、付費牆或截斷全部拒絕；不能用摘要補足，也不能靜默刪除尾端以符合 packet 上限。
 
@@ -48,7 +71,9 @@ packet 使用新的 0700 private directory；資料檔與 manifest 為 regular f
 
 trusted prompt 指定 manifest 與全文資料路徑，要求讀完整來源、核對 evidence，再依既有 rubric 評分。明示來源文字與其連結、假 system 標記、shell 範例都只是 untrusted evidence，不能更改 rubric、輸出路徑、工具權限或要求執行命令。
 
-Codex 與 Claude 的 workdir 都必須看得到 packet，來源檔不得列入 writer 的 writable candidate。judge 前與 judge 後重新驗證 bytes／hash；integrity failure 不採信 score，不寫 authoritative PASS／NEEDS_REVIEW。保留全檔可讀性，不能靠在 prompt 裡塞一段 preview 假裝已交付。
+Codex 與 Claude 的 judge workdir 都透過 trusted prompt 的絕對路徑讀取同一 private packet；packet 不放進 judge 可寫 cwd，也不列入 writer 的 writable candidate。既有 Codex boundary 只允許隔離 cwd 可寫、禁用 `/tmp` 額外可寫例外；不得為了 packet 放寬它。Claude 路徑同樣不交給 writer 來源寫入能力。兩個 runtime 的無網路 fixture 必須實際開檔讀全文，不能只檢查 prompt 出現了路徑。
+
+每次 judge 啟動前驗證 manifest、路徑、bytes／hash，judge 結束後在解析／採信 score 前再驗一次；後者失敗時丟棄輸出，不寫 authoritative PASS／NEEDS_REVIEW。保留全檔可讀性，不能靠在 prompt 裡塞一段 preview 假裝已交付。分數 ledger 僅記 `sourceSha256` 與 packet schema 版本供比對，不把 source 正文或 URL 診斷寫入公開 progress。
 
 ### 5. 一次 capture 與顯式 replay，不建立自動 source cache
 
@@ -56,11 +81,13 @@ Codex 與 Claude 的 workdir 都必須看得到 packet，來源檔不得列入 w
 
 packet 不宣稱是文章最初寫作當時的歷史原文，只記錄本次 observation。既有同 revision stage PASS 的 resume 契約不以網路 refetch 推翻；只有 FactChecker 實際重新執行時才建立或驗證它使用的 packet。stage evidence 記錄所用 source hash，使新 score 可以追到具體 bytes，不改 reader revision SSOT。
 
-packet 是本次工作所擁有的 evidence artifact，不建跨文章共享 lookup／過期機制；跟隨既有 worker artifact 生命週期，不寫入 repository、公開 log 或 production site。
+packet 是 invocation 所擁有的 evidence artifact。建立於 repo 外的 private temporary root，成功驗證的 packet 保留到該工作收尾，checkpoint 只在本機記錄明確路徑供 operator replay／整理；失敗的 partial capture 由 helper 清除。它不跟每次 judge cwd 一起刪除，也不建跨文章 lookup、過期排程或 cache。顯式 replay 指定 manifest 的入口若遇缺檔或驗證失敗，必須以 operational error 結束，不能靜默改走 live fetch。packet 不寫入 repository、公開 log 或 production site。
 
 ### 6. 擷取失敗保留可恢復性
 
 preflight 失敗時記錄穩定、已去敏的 source-capture reason，以既有 RUNNER_ERROR／rc70 結束；尚未呼叫 judge 的 stage attempts 為零，top-level content attempts 不增加。不把 unavailable 分成新的內容型 NEEDS_REVIEW reason，也不自行加排程器或無界 retry。來源完整後由正常 operational recovery 或明確 operator requeue 接續。
+
+packet 邊界集中轉換 adapter error：公開診斷只含固定 reason、來源型別及必要的已驗證 hostname，不透傳 subprocess stderr、provider response 或完整 URL。userinfo、query、fragment、來源正文與 private 檔案路徑不得進入公開 log／PR。測試以含秘密樣式值的 URL、redirect、adapter error 與偽造 source header 驗證去敏；該測試使用虛構值，不碰真實憑證。
 
 ## Risks / Trade-offs
 
