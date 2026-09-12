@@ -1083,6 +1083,12 @@ function loadAllowlist(path) {
     if (!reason) {
       throw new Error(`Allowlist entry #${idx + 1} is missing reason`);
     }
+    if (
+      entry.scope !== undefined &&
+      !['runtime', 'dev', 'mixed', 'unknown'].includes(entry.scope)
+    ) {
+      throw new Error(`Allowlist entry #${idx + 1} has invalid scope`);
+    }
     if (!expiresAt) {
       throw new Error(`Allowlist entry #${idx + 1} is missing expiresAt`);
     }
@@ -1105,6 +1111,10 @@ function loadAllowlist(path) {
 }
 
 function entryMatchesVulnerability(entry, vulnerability) {
+  // A risk accepted for one dependency scope must not silently follow the
+  // package into production when its dependency roots change.
+  if (entry.scope !== undefined && entry.scope !== vulnerability.scope) return false;
+
   const ids = new Set(vulnerability.ids || []);
   if (vulnerability.id) ids.add(vulnerability.id);
 

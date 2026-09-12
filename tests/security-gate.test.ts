@@ -1122,6 +1122,38 @@ describe('mergeProductionScope', () => {
 });
 
 describe('loadAllowlist', () => {
+  it.each([null, '', 'production', ['dev'], 1])('rejects invalid scope %j', (scope) => {
+    const f = tmpPath('allowlist-invalid-scope.json');
+    fs.writeFileSync(
+      f,
+      JSON.stringify([{ id: '1', reason: 'scoped exception', expiresAt: '2099-01-01', scope }])
+    );
+    expect(() => loadAllowlist(f)).toThrow(/invalid scope/);
+  });
+
+  it('keeps a scoped exception restricted after loading', () => {
+    const f = tmpPath('allowlist-scoped.json');
+    fs.writeFileSync(
+      f,
+      JSON.stringify([{ id: '1', reason: 'dev only', expiresAt: '2026-09-26', scope: 'dev' }])
+    );
+    const allowlist = loadAllowlist(f);
+    const now = Date.parse('2026-09-12T00:00:00Z');
+    for (const scope of ['dev', 'runtime', 'mixed', 'unknown', undefined]) {
+      const finding = { id: '1', ids: ['1'], name: 'foo', severity: 'high', scope };
+      const result = evaluateFindings([finding], allowlist, now);
+      expect(result.allowed).toHaveLength(scope === 'dev' ? 1 : 0);
+      expect(result.blockedNew).toHaveLength(scope === 'dev' ? 0 : 1);
+    }
+    const expired = evaluateFindings(
+      [{ id: '1', ids: ['1'], name: 'foo', severity: 'high', scope: 'dev' }],
+      allowlist,
+      Date.parse('2026-09-27T00:00:00Z')
+    );
+    expect(expired.allowed).toHaveLength(0);
+    expect(expired.blockedExpired).toHaveLength(1);
+  });
+
   it('loads array form', () => {
     const f = tmpPath('allowlist-array.json');
     fs.writeFileSync(
