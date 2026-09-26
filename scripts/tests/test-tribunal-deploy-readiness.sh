@@ -1285,3 +1285,27 @@ grep -q 'GP_WRITER_MODE=subagent is retired' "$TMP/writer-mode.out" ||
 [ ! -e "$TMP/judge-count" ] ||
   fail "rewrite with a non-Claude writer mode spent a judge call first"
 pass "a rewrite-capable run without the Claude writer fails before the first judge"
+
+# The score-only `none` mode passes the same check: the judge still runs and
+# the failed stage skips the rewrite without calling the writer.
+cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+cp -p "$fixture_en_baseline" "$fixture_en_path"
+printf '{}\n' > "$writer_progress"
+rm -f "$TMP/judge-count" "$TMP/writer-calls"
+set +e
+FIXTURE_WRITER_MODE=none run_factchecker_fixture "$TMP/writer-none.out"
+none_rc=$?
+set -e
+[ "$none_rc" -eq 1 ] || {
+  sed -n '1,80p' "$TMP/writer-none.out" >&2 || true
+  fail "rewrite-capable run with GP_WRITER_MODE=none exited $none_rc, want a judged FAIL (1)"
+}
+[ "$(cat "$TMP/judge-count" 2>/dev/null)" = "1" ] ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none did not reach the judge"
+[ ! -e "$TMP/writer-calls" ] ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none called the writer"
+grep -q 'Rewrite skipped (GP_WRITER_MODE=none)' "$TMP/writer-none.out" ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none did not say the rewrite was skipped"
+cmp -s "$fixture_zh_baseline" "$fixture_zh_path" ||
+  fail "score-only run changed the canonical post"
+pass "a rewrite-capable run in score-only none mode is let through, judged and never rewritten"
