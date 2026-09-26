@@ -28,6 +28,8 @@ const SourceTranslationJSONSchema = `{"type":"object","properties":{"version":{"
 
 const GateEnvelopeJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"gate":{"type":"string"},"source_sha256":{"type":"string"},"body_projection_sha256":{"type":"string"},"verdict":{"type":"string","enum":["PASS","FAIL"]},"findings":{"type":"array","items":{"type":"object"}}},"required":["version","gate","source_sha256","body_projection_sha256","verdict","findings"],"additionalProperties":false}`
 
+const BoundedPatchJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"source_sha256":{"type":"string"},"translation_sha256":{"type":"string"},"patches":{"type":"array","items":{"type":"object"}}},"required":["version","source_sha256","translation_sha256","patches"],"additionalProperties":false}`
+
 const CommentaryArtifactJSONSchema = `{"type":"object","properties":{"version":{"type":"string"},"source_sha256":{"type":"string"},"translation_sha256":{"type":"string"},"candidates":{"type":"array","items":{"type":"object"}}},"required":["version","source_sha256","translation_sha256","candidates"],"additionalProperties":false}`
 
 var allowedIssueTypes = map[string]bool{

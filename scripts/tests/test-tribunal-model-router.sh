@@ -3,21 +3,37 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ROUTER="$ROOT_DIR/scripts/tribunal-model-router.sh"
+CONFIG="$ROOT_DIR/config/llm-pipeline.json"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 BIN_DIR="$TMP_DIR/bin"
 mkdir -p "$BIN_DIR"
 
+fail() { echo "x $*" >&2; exit 1; }
+
 cat > "$BIN_DIR/codex" <<'SCRIPT'
 #!/usr/bin/env bash
 exit 0
 SCRIPT
-cat > "$BIN_DIR/grok" <<'SCRIPT'
+# The Claude login check runs in a clean environment, so this stub keeps its
+# controls and captures in files: calls, the environment it saw, and whether
+# it reports a login.
+CLAUDE_CALLS="$TMP_DIR/claude-calls"
+CLAUDE_AUTH_ENV="$TMP_DIR/claude-auth.env"
+CLAUDE_LOGGED_OUT="$TMP_DIR/claude-logged-out"
+cat > "$BIN_DIR/claude" <<SCRIPT
 #!/usr/bin/env bash
-if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  - grok-4.5\n'
+printf '%s\n' "\$*" >> "$CLAUDE_CALLS"
+if [ "\${1:-}" = auth ] && [ "\${2:-}" = status ]; then
+  /usr/bin/env > "$CLAUDE_AUTH_ENV"
+  if [ -e "$CLAUDE_LOGGED_OUT" ]; then
+    printf '{"loggedIn":false}\n'
+  else
+    printf '{"loggedIn":true}\n'
+  fi
+  exit 0
 fi
-exit 0
+exit 1
 SCRIPT
 cat > "$BIN_DIR/codexbar" <<'SCRIPT'
 #!/usr/bin/env bash
@@ -27,19 +43,24 @@ cat > "$BIN_DIR/usage-monitor" <<'SCRIPT'
 #!/usr/bin/env bash
 printf '[{"provider":"openai","status":"ok","session_remaining_pct":101,"weekly_remaining_pct":101}]\n'
 SCRIPT
-chmod +x "$BIN_DIR/codex" "$BIN_DIR/grok" "$BIN_DIR/codexbar" \
+chmod +x "$BIN_DIR/codex" "$BIN_DIR/claude" "$BIN_DIR/codexbar" \
   "$BIN_DIR/usage-monitor"
-export PATH="$BIN_DIR:$PATH"
+export PATH="$BIN_DIR:/usr/bin:/bin"
+export REPO_ROOT=""
+
+writer_pin="$(bash -c '
+  source "$1/scripts/tribunal-helpers.sh"
+  tribunal_claude_agent_model tribunal-writer
+' _ "$ROOT_DIR")"
+[ -n "$writer_pin" ] || fail "cannot read the Claude model pin from tribunal-writer frontmatter"
 
 assert_route() {
-  local payload="$1" model="$2" effort="$3" tier="$4" action="${5:-run}"
-  jq -e --arg model "$model" --arg effort "$effort" --arg tier "$tier" \
-    --arg action "$action" '
+  local payload="$1" model="$2" effort="$3" tier="$4"
+  jq -e --arg model "$model" --arg effort "$effort" --arg tier "$tier" '
     .runtimeProfile == "vm-codex"
     and .model == $model
     and .reasoningEffort == $effort
     and .quotaTier == $tier
-    and .quotaAction == $action
   ' <<<"$payload" >/dev/null
 }
 
@@ -53,44 +74,16 @@ assert_route "$({
 })" gpt-5.6-luna max lowQuota
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=20 bash "$ROUTER" writer --json
-})" grok-4.6 low normal
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" vibeScorer --json
 })" gpt-5.5 high normal
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=20 bash "$ROUTER" translator --json
-})" grok-4.6 low normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" sourceReviewer --json
 })" gpt-5.6-sol xhigh normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" corrector --json
-})" gpt-5.6-sol xhigh normal
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=20 bash "$ROUTER" commentary --json
-})" grok-4.6 low normal
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=19 bash "$ROUTER" writer --json
-})" grok-4.6 low lowQuota reserve
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=9.99 bash "$ROUTER" writer --json
-})" grok-4.6 low criticalQuota pause
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=101 bash "$ROUTER" reviewer --json
 })" gpt-5.6-luna max lowQuota
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_GROK_REMAINING_PCT=101 bash "$ROUTER" writer --json
-})" grok-4.6 low normal
 assert_route "$({
   env -u TRIBUNAL_REVIEWER_REMAINING_PCT \
     TRIBUNAL_RUNTIME_PROFILE=vm-codex \
@@ -103,6 +96,62 @@ assert_route "$({
     bash "$ROUTER" reviewer --json
 })" gpt-5.6-luna max lowQuota
 
+# Preflight providers come from each step's provider; config keeps no second
+# provider list.
+if jq -e '[.profiles[] | has("requiredProviders")] | any' "$CONFIG" >/dev/null; then
+  fail "config must not declare requiredProviders; each step's provider decides the preflight"
+fi
+
+# Every article-writing role uses the Claude model pin from the tribunal-writer
+# frontmatter; config never carries a copy of it.
+for role in writer tribunal-writer refiner translator corrector commentary; do
+  payload="$(TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" "$role" --json)"
+  jq -e '.provider == "claude"' <<<"$payload" >/dev/null ||
+    fail "$role must route to Claude: $payload"
+  assert_route "$payload" "$writer_pin" "" normal ||
+    fail "$role must use the Claude model pin without an effort: $payload"
+done
+for role in writer translator corrector commentary; do
+  if jq -e --arg role "$role" \
+    '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
+    "$CONFIG" >/dev/null; then
+    fail "config must not copy the Claude model pin into $role"
+  fi
+done
+
+# The login check sees only the CLI's own login state: it runs in the same
+# clean environment as every VM Claude call.
+leaked="ANTHROPIC_API_KEY CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR GU_LOG_FIXTURE_UNRELATED"
+(
+  for variable in $leaked; do
+    export "$variable=fixture-secret"
+  done
+  TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" writer --json >/dev/null
+)
+for variable in $leaked; do
+  if grep -q "^$variable=" "$CLAUDE_AUTH_ENV"; then
+    fail "Claude login check saw $variable"
+  fi
+done
+
+# Judge routes never run the Claude CLI; a logged-out Claude blocks only the
+# article-writing roles.
+rm -f "$CLAUDE_CALLS"
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json >/dev/null
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" vibeScorer --json >/dev/null
+[ ! -e "$CLAUDE_CALLS" ] || fail "judge routing invoked the Claude CLI"
+: > "$CLAUDE_LOGGED_OUT"
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json >/dev/null ||
+  fail "a logged-out Claude CLI must not block judge routing"
+if TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  bash "$ROUTER" writer --json >/dev/null 2>&1; then
+  fail "writer routing must fail when the Claude CLI is logged out"
+fi
+rm -f "$CLAUDE_LOGGED_OUT"
+
 legacy="$(TRIBUNAL_RUNTIME_PROFILE=legacy PATH=/usr/bin:/bin \
   bash "$ROUTER" reviewer --json)"
 jq -e '
@@ -110,18 +159,18 @@ jq -e '
   and .provider == ""
   and .model == ""
   and .quotaTier == "legacy"
-  and .quotaAction == "run"
 ' <<<"$legacy" >/dev/null
 
 CODEX_ONLY="$TMP_DIR/codex-only"
 mkdir -p "$CODEX_ONLY"
 cp "$BIN_DIR/codex" "$CODEX_ONLY/codex"
 if PATH="$CODEX_ONLY:/usr/bin:/bin" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json \
-  >/dev/null 2>&1; then
-  echo "vm-codex profile should fail when Grok is unavailable" >&2
-  exit 1
+  bash "$ROUTER" translator --json >/dev/null 2>&1; then
+  fail "article-writing routes must fail when the Claude CLI is unavailable"
 fi
+PATH="$CODEX_ONLY:/usr/bin:/bin" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json >/dev/null ||
+  fail "judge routing must not require the Claude CLI"
 
 cat > "$BIN_DIR/codex" <<'SCRIPT'
 #!/usr/bin/env bash
@@ -133,35 +182,72 @@ SCRIPT
 chmod +x "$BIN_DIR/codex"
 if TRIBUNAL_RUNTIME_PROFILE=vm-codex TRIBUNAL_REVIEWER_REMAINING_PCT=50 \
   bash "$ROUTER" reviewer --json >/dev/null 2>&1; then
-  echo "vm-codex profile should fail when Codex is logged out" >&2
-  exit 1
+  fail "vm-codex judge routing should fail when Codex is logged out"
 fi
-
-# Sourced callers resolve multiple roles in one shell; a Grok reserve action
-# must never leak into the following Codex vibe route.
 cat > "$BIN_DIR/codex" <<'SCRIPT'
 #!/usr/bin/env bash
 exit 0
 SCRIPT
 chmod +x "$BIN_DIR/codex"
+
+# Config guards: an article-writing role on another provider, a judge on the
+# Claude model and a copied Claude pin fail closed before any dispatch.
+assert_config_rejected() {
+  local label="$1" filter="$2" role="$3" expected="$4"
+  local fixture="$TMP_DIR/config-$label.json"
+  jq "$filter" "$CONFIG" > "$fixture"
+  if TRIBUNAL_MODEL_CONFIG="$fixture" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+    TRIBUNAL_REVIEWER_REMAINING_PCT=50 \
+    bash "$ROUTER" "$role" --json >"$TMP_DIR/$label.out" 2>&1; then
+    fail "router accepted config drift: $label"
+  fi
+  grep -q -- "$expected" "$TMP_DIR/$label.out" ||
+    fail "config drift $label lacked diagnostic '$expected': $(cat "$TMP_DIR/$label.out")"
+}
+assert_config_rejected codex-writer \
+  '.profiles["vm-codex"].writer = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh"}' \
+  writer 'must use the Claude model'
+assert_config_rejected codex-corrector \
+  '.profiles["vm-codex"].corrector = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}' \
+  corrector 'must use the Claude model'
+assert_config_rejected claude-judge \
+  '.profiles["vm-codex"].vibeScorer = {"provider":"claude","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}' \
+  vibeScorer 'only article-writing steps use the Claude model'
+assert_config_rejected copied-pin \
+  '.profiles["vm-codex"].translator.model = "claude-opus-copy"' \
+  translator 'remove model/reasoningEffort'
+
+# A Claude model pin the router cannot resolve blocks article writing before
+# any dispatch.
+broken_pin_root="$TMP_DIR/broken-pin"
+mkdir -p "$broken_pin_root/.claude/agents"
+printf '%s\n' '---' 'name: tribunal-writer' 'model: null' '---' \
+  > "$broken_pin_root/.claude/agents/tribunal-writer.md"
+if REPO_ROOT="$broken_pin_root" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  bash "$ROUTER" writer --json >"$TMP_DIR/broken-pin.out" 2>&1; then
+  fail "writer routing accepted an unresolvable Claude model pin"
+fi
+grep -q 'requires a valid Claude model pin' "$TMP_DIR/broken-pin.out" ||
+  fail "unresolvable Claude model pin lacked a diagnostic: $(cat "$TMP_DIR/broken-pin.out")"
+
+# Sourced callers resolve several roles in one shell; a Claude writer route
+# must not leak its empty effort into the following Codex vibe route.
 source "$ROUTER"
 TRIBUNAL_RUNTIME_PROFILE=vm-codex
-TRIBUNAL_GROK_REMAINING_PCT=19
 TRIBUNAL_REVIEWER_REMAINING_PCT=50
-export TRIBUNAL_RUNTIME_PROFILE TRIBUNAL_GROK_REMAINING_PCT \
-  TRIBUNAL_REVIEWER_REMAINING_PCT
+export TRIBUNAL_RUNTIME_PROFILE TRIBUNAL_REVIEWER_REMAINING_PCT
 model_router_resolve writer
-[ "$MODEL_ROUTER_QUOTA_ACTION" = reserve ]
+[ "$MODEL_ROUTER_PROVIDER" = claude ] || fail "sourced writer route is not Claude"
 model_router_resolve vibeScorer
-[ "$MODEL_ROUTER_QUOTA_ACTION" = run ]
+[ "$MODEL_ROUTER_PROVIDER" = codex ] || fail "sourced vibe route is not Codex"
+[ "$MODEL_ROUTER_REASONING" = high ] || fail "sourced vibe route lost its effort"
 
 if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
   REPO_ROOT="$ROOT_DIR" bash -c '
     source "$1/scripts/tribunal-helpers.sh"
     tribunal_judge_provider fact-checker
   ' _ "$ROOT_DIR" >/dev/null 2>&1; then
-  echo "invalid runtime profile must not fall through to legacy Codex" >&2
-  exit 1
+  fail "invalid runtime profile must not fall through to legacy Codex"
 fi
 
 isolated_helpers="$TMP_DIR/isolated-tribunal-helpers.sh"
@@ -170,8 +256,7 @@ if TRIBUNAL_RUNTIME_PROFILE=bogus bash -c '
   source "$1"
   model_router_profile
 ' _ "$isolated_helpers" >/dev/null 2>&1; then
-  echo "isolated helper must reject an unknown explicit runtime profile" >&2
-  exit 1
+  fail "isolated helper must reject an unknown explicit runtime profile"
 fi
 [ "$(TRIBUNAL_RUNTIME_PROFILE=legacy bash -c '
   source "$1"
@@ -181,8 +266,7 @@ if TRIBUNAL_RUNTIME_PROFILE=vm-codex bash -c '
   source "$1"
   model_router_profile
 ' _ "$isolated_helpers" >/dev/null 2>&1; then
-  echo "isolated helper must reject vm-codex without its model router" >&2
-  exit 1
+  fail "isolated helper must reject vm-codex without its model router"
 fi
 
 # A sourced router is a function library and must not mutate a legacy caller's
@@ -195,4 +279,4 @@ bash -c '
   [ "$before" = "$after" ]
 ' _ "$ROUTER"
 
-echo "ok vm-codex routing, compatibility gate, thresholds, and legacy isolation"
+echo "ok vm-codex routing: Claude article-writing pin, Codex judges, per-provider preflight, config guards, legacy isolation"

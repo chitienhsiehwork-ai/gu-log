@@ -53,13 +53,14 @@ type capabilityCheck struct {
 // requiredBinaries and optionalBinaries are the executable contract for the
 // canonical Go pipeline, split by whether a missing entry is fatal.
 //
-// codex is optional rather than required because the pipeline falls back to
-// `claude` when no codex binary is on PATH (the CCC / Claude Code on the web
-// sandbox). A box with codex absent but claude present is still healthy, so a
-// missing codex must never flip overall health to failed — see ProbeChain.
+// codex is optional rather than required because judges fall back to `claude`
+// when no codex binary is on PATH (the CCC / Claude Code on the web sandbox).
+// claude is optional outside a runtime profile because fetch/eval/dedup run
+// without it; writing steps fail with an actionable error when it is missing,
+// and a runtime profile makes its providers required.
 var (
 	requiredBinaries = []string{"git", "bash", "node", "python3", "curl", "pnpm"}
-	optionalBinaries = []string{"codex", "jq", "make", "yt-dlp"}
+	optionalBinaries = []string{"codex", "claude", "jq", "make", "yt-dlp"}
 )
 
 func newDoctorCmd(state *rootState) *cobra.Command {
@@ -73,8 +74,8 @@ func newDoctorCmd(state *rootState) *cobra.Command {
 It checks:
 
   - The Go version (must be >= 1.24 for this binary to build and run).
-  - Every external binary the pipeline shells out to (codex, node, python3,
-    git, bash, curl, jq, make, pnpm).
+  - Every external binary the pipeline shells out to (codex, claude, node,
+    python3, git, bash, curl, jq, make, pnpm).
   - The optional YouTube candidate capability (requires yt-dlp). Missing
     yt-dlp is reported but does not make unrelated pipeline health fail.
   - Every repo-relative file the pipeline depends on (fetch-x-article.sh,

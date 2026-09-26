@@ -414,7 +414,7 @@ func (s *State) runCorrector(ctx context.Context, source, translation []byte, fi
 	if s.CorrectorDispatcher == nil {
 		return errors.New("corrector dispatcher is nil")
 	}
-	result, err := s.CorrectorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
+	result, err := s.CorrectorDispatcher.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir, JSONSchema: preservation.BoundedPatchJSONSchema})
 	if err != nil {
 		s.RecordRoleFailure("corrector", err)
 		return fmt.Errorf("corrector runner: %w", err)

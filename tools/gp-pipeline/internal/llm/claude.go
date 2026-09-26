@@ -3,29 +3,45 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>`. It is the preferred
-// local writer when Claude Code is available and an explicit judge fallback;
-// Mogu VM runs fall back to Codex when the Claude CLI is absent.
+// ClaudeProvider shells out to `claude -p --model <model>`; it is the only
+// article-writing provider (openspec claude-prose-writing-runtime) and an
+// explicit judge fallback.
 //
-//   - Non-root (VPS Mogu, dev laptops) → bypassPermissions: the broadest
-//     setting and the one the bash pipeline historically used.
-//   - Root (CCC sandboxes / Claude Code on the web) → acceptEdits: claude
-//     refuses bypassPermissions and --dangerously-skip-permissions under
-//     root for security reasons, but acceptEdits is allowed and auto-
-//     approves file writes/edits. Without this the eval/write/review/
-//     refine steps silently fail because the LLM's Write tool gets denied
-//     and it returns a "please approve the permission" message instead of
-//     the JSON/MDX the parser expects.
+// Permission modes:
+//
+//   - Contained (runtime-profile routes such as the Tribunal VM) → never
+//     bypassPermissions. Only the built-in tools listed in Tools exist for the
+//     session (none when empty), read-only tools are pre-approved everywhere,
+//     and edits are auto-accepted only inside the working directory, so a
+//     prompt-injected source cannot run commands or write outside the step's
+//     work dir. The session loads no user/project/local settings (permission
+//     rules, hooks, env) and no MCP servers from the host.
+//   - Non-root legacy callers (dev laptops) → bypassPermissions: the setting
+//     the bash pipeline historically used.
+//   - Root legacy callers (CCC sandboxes / Claude Code on the web) →
+//     acceptEdits: claude refuses bypassPermissions and
+//     --dangerously-skip-permissions under root, but acceptEdits is allowed and
+//     auto-approves file writes/edits. Without this the write/refine steps
+//     silently fail because the LLM's Write tool gets denied and it returns a
+//     "please approve the permission" message instead of the MDX the parser
+//     expects.
 type ClaudeProvider struct {
-	// ModelFlag is the value passed to --model. Opus intentionally uses the
-	// "opus" alias so the Mac writer follows Anthropic's current Opus line.
-	ModelFlag   string
+	// ModelFlag is the value passed to --model. Article-writing steps use the
+	// pinned Claude model; judge fallbacks use the floating "opus" alias.
+	ModelFlag string
+	// Contained selects the least-privilege invocation described above.
+	Contained bool
+	// Tools lists the built-in tools a Contained session may use. An empty
+	// list disables every tool (JSON-only roles).
+	Tools       []string
 	actualModel ModelID
 }
 
@@ -40,9 +56,9 @@ type ClaudeProvider struct {
 // persona. Keep this in sync with the PIN comments in
 // .claude/agents/tribunal-writer.md and .claude/agents/vibe-opus-scorer.md.
 //
-// The pin currently names the same build the alias resolves to; that is a
-// coincidence of timing, not a reason to collapse the two. The pin holds this
-// build when the alias moves on.
+// The pin and the alias are independent on purpose: the pin holds this build
+// when the alias moves on. TestClaudeWriterPinMatchesTribunalWriterFrontmatter
+// fails when this constant and the tribunal-writer frontmatter disagree.
 const (
 	ClaudeOpusAlias  = "opus"
 	ClaudeOpusPinned = "claude-opus-4-6"
@@ -136,46 +152,134 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 		"--model", c.modelFlag(),
 		"--output-format", "json",
 	}
-	if os.Geteuid() != 0 {
-		args = append(args, "--permission-mode", "bypassPermissions")
-	} else {
-		// Root (CCC): bypassPermissions is rejected, so fall back to
-		// acceptEdits. acceptEdits only auto-approves *edits*, so any stage
-		// that Reads a file would hit a permission prompt and hang forever on
-		// the non-interactive stdin. Pre-approve the read/search/compute/write
-		// tools a stage can use via --allowed-tools — the explicit, narrower
-		// equivalent of the non-root bypassPermissions "never prompt" behavior.
-		// Prompt goes on stdin (below), so this trailing variadic flag has no
-		// positional to swallow.
-		args = append(args,
-			"--permission-mode", "acceptEdits",
-			"--allowed-tools", "Read,Grep,Glob,Bash,Write,Edit,MultiEdit",
-		)
+	if opts.JSONSchema != "" {
+		args = append(args, "--json-schema", opts.JSONSchema)
 	}
-	res, err := runner.RunWithOptions(ctx, runner.Options{
+	// The permission flags end with variadic tool lists. The prompt goes on
+	// stdin, so no trailing positional exists for them to swallow.
+	args = append(args, c.permissionArgs()...)
+	runOpts := runner.Options{
 		Name:    "claude",
 		Args:    args,
 		Stdin:   []byte(prompt),
 		WorkDir: opts.WorkDir,
-	})
+	}
+	if c.Contained {
+		runOpts.CleanEnv = true
+		runOpts.Env = claudeContainedEnv()
+	}
+	res, err := runner.RunWithOptions(ctx, runOpts)
 	if err != nil {
+		// With --output-format json the CLI reports model, login and usage-limit
+		// failures on stdout rather than stderr. Carry that message so quota
+		// classification and operators see the real cause.
+		if res != nil {
+			if parsed, ok := parseClaudeJSON(strings.TrimSpace(string(res.Stdout))); ok {
+				if detail := parsed.errorDetail(); detail != "" {
+					return "", fmt.Errorf("%w: %s", err, detail)
+				}
+			}
+		}
 		return "", err
 	}
 	out := strings.TrimRight(string(res.Stdout), "\n")
-	if parsed, ok := parseClaudeJSON(out); ok {
-		// Prefer the top-level "model" field, but current Claude Code JSON
-		// omits it and only reports the concrete build under modelUsage keys
-		// (e.g. {"claude-opus-4-5": {...}}). Reading modelUsage is what lets a
-		// pinned write report its real version instead of falling back to the
-		// generic family → "Opus 4.8" stamp.
-		if parsed.Model != "" {
-			c.actualModel = ModelID(parsed.Model)
-		} else if m := primaryModelUsage(parsed.ModelUsage); m != "" {
-			c.actualModel = ModelID(m)
+	parsed, ok := parseClaudeJSON(out)
+	if !ok {
+		if opts.JSONSchema != "" {
+			return "", errors.New("claude structured output: CLI did not return a JSON result")
 		}
-		return strings.TrimRight(parsed.Result, "\n"), nil
+		return out, nil
 	}
-	return out, nil
+	// Prefer the top-level "model" field, but current Claude Code JSON omits it
+	// and only reports the concrete build under modelUsage keys (e.g.
+	// {"claude-opus-4-5": {...}}). Reading modelUsage is what lets a pinned
+	// write report its real version instead of falling back to the generic
+	// family → "Opus 4.8" stamp.
+	if parsed.Model != "" {
+		c.actualModel = ModelID(parsed.Model)
+	} else if m := primaryModelUsage(parsed.ModelUsage); m != "" {
+		c.actualModel = ModelID(m)
+	}
+	// A result flagged is_error is a failure even with exit code 0, an empty
+	// result or details only in errors[]; its text must never become an
+	// article or artifact.
+	if parsed.IsError {
+		detail := parsed.errorDetail()
+		if detail == "" {
+			detail = "no error detail (subtype=" + parsed.Subtype + ")"
+		}
+		return "", fmt.Errorf("claude reported an error: %s", detail)
+	}
+	if opts.JSONSchema != "" {
+		structured := strings.TrimSpace(string(parsed.StructuredOutput))
+		if structured == "" || structured == "null" {
+			return "", errors.New("claude structured output: result has no structured_output")
+		}
+		return structured, nil
+	}
+	return strings.TrimRight(parsed.Result, "\n"), nil
+}
+
+// permissionArgs returns the non-interactive permission contract for this
+// invocation; see the ClaudeProvider doc comment for the three modes.
+func (c *ClaudeProvider) permissionArgs() []string {
+	if c.Contained {
+		// The variadic --tools/--allowed-tools lists stay last.
+		args := []string{
+			"--setting-sources", "",
+			"--strict-mcp-config",
+			"--permission-mode", "acceptEdits",
+			"--tools", strings.Join(c.Tools, ","),
+		}
+		if reads := claudeReadOnlyTools(c.Tools); len(reads) > 0 {
+			args = append(args, "--allowed-tools", strings.Join(reads, ","))
+		}
+		return args
+	}
+	if os.Geteuid() != 0 {
+		return []string{"--permission-mode", "bypassPermissions"}
+	}
+	// Root (CCC): bypassPermissions is rejected, so fall back to acceptEdits.
+	// acceptEdits only auto-approves *edits*, so any stage that Reads a file
+	// would hit a permission prompt and hang forever on the non-interactive
+	// stdin. Pre-approve the read/search/compute/write tools a stage can use via
+	// --allowed-tools — the explicit, narrower equivalent of the non-root
+	// bypassPermissions "never prompt" behavior.
+	return []string{
+		"--permission-mode", "acceptEdits",
+		"--allowed-tools", "Read,Grep,Glob,Bash,Write,Edit,MultiEdit",
+	}
+}
+
+// claudeContainedEnv is the whole environment of a contained (runtime-profile)
+// Claude call: an empty start with only what the CLI needs to find itself and
+// its `claude auth login` state, so no API key, billing endpoint, token or other
+// provider's key from the host can reach it. The installed CLI runs and reports
+// its login with HOME and PATH alone; CLAUDE_CONFIG_DIR moves that state when
+// set, and TZ keeps its reset times in the caller's zone. The Tribunal's
+// tribunal_claude_clean_env builds the same environment.
+func claudeContainedEnv() []string {
+	var env []string
+	for _, key := range []string{"HOME", "PATH", "CLAUDE_CONFIG_DIR", "TZ"} {
+		if value := os.Getenv(key); value != "" {
+			env = append(env, key+"="+value)
+		}
+	}
+	return env
+}
+
+// claudeReadOnlyTools keeps the tools that only read. Pre-approving them lets a
+// contained writer consult repo reference docs outside its work dir, while
+// edits stay limited to the working directory through acceptEdits.
+func claudeReadOnlyTools(tools []string) []string {
+	var reads []string
+	for _, tool := range tools {
+		switch tool {
+		case "Read", "Grep", "Glob":
+			reads = append(reads, tool)
+		}
+	}
+	return reads
 }
 
 // primaryModelUsage picks the concrete model that did the work from a Claude
@@ -202,9 +306,33 @@ func (c *ClaudeProvider) modelFlag() string {
 }
 
 type claudeJSONOutput struct {
-	Result     string                     `json:"result"`
-	Model      string                     `json:"model"`
-	ModelUsage map[string]modelUsageEntry `json:"modelUsage"`
+	Type             string                     `json:"type"`
+	Subtype          string                     `json:"subtype"`
+	Result           string                     `json:"result"`
+	Errors           []json.RawMessage          `json:"errors"`
+	Model            string                     `json:"model"`
+	ModelUsage       map[string]modelUsageEntry `json:"modelUsage"`
+	IsError          bool                       `json:"is_error"`
+	StructuredOutput json.RawMessage            `json:"structured_output"`
+}
+
+// errorDetail joins the result text with every errors[] entry. Error results
+// such as error_during_execution carry their cause only in errors[].
+func (o claudeJSONOutput) errorDetail() string {
+	var parts []string
+	if result := strings.TrimSpace(o.Result); result != "" {
+		parts = append(parts, result)
+	}
+	for _, raw := range o.Errors {
+		var text string
+		if err := json.Unmarshal(raw, &text); err != nil {
+			text = string(raw)
+		}
+		if text = strings.TrimSpace(text); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 type modelUsageEntry struct {
@@ -216,5 +344,5 @@ func parseClaudeJSON(out string) (claudeJSONOutput, bool) {
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		return parsed, false
 	}
-	return parsed, parsed.Result != "" || parsed.Model != "" || len(parsed.ModelUsage) > 0
+	return parsed, parsed.Type == "result" || parsed.Result != "" || parsed.Model != "" || len(parsed.ModelUsage) > 0
 }

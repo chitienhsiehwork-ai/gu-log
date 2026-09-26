@@ -48,6 +48,13 @@ func IsQuotaError(provider string, err error) bool {
 	if err == nil {
 		return false
 	}
+	if isClaudeProviderName(provider) {
+		switch ClassifyClaudeFailure(err.Error()) {
+		case ClaudeFailureQuota, ClaudeFailureTransient:
+			return true
+		}
+		return false
+	}
 	text := strings.ToLower(provider + " " + err.Error())
 	patterns := []string{
 		"usage limit",
@@ -71,6 +78,9 @@ func IsQuotaError(provider string, err error) bool {
 }
 
 func DecideQuotaAction(provider string, err error, policy QuotaPolicy, previousWaits int) QuotaAction {
+	if isClaudeProviderName(provider) {
+		return decideClaudeQuotaAction(provider, err, policy, previousWaits, time.Now())
+	}
 	now := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), durationFromEnv("GP_CODEXBAR_TIMEOUT", 20*time.Second))
 	defer cancel()
@@ -96,6 +106,37 @@ func DecideQuotaAction(provider string, err error, policy QuotaPolicy, previousW
 			action.Wait = true
 			action.WaitDuration = wait
 			return action
+		}
+	}
+	return action
+}
+
+// decideClaudeQuotaAction waits only for the reset time Claude itself reported
+// (or a conservative default when the message has none), and only briefly for
+// a temporary error such as an overload or a timeout. It never reads Codex
+// quota data: CodexBar knows nothing about the Claude account.
+func decideClaudeQuotaAction(provider string, err error, policy QuotaPolicy, previousWaits int, now time.Time) QuotaAction {
+	action := QuotaAction{Provider: provider, Tier: QuotaTierUnknown, Err: err}
+	wait := durationFromEnv("GP_CLAUDE_QUOTA_DEFAULT_WAIT", time.Hour)
+	if ClassifyClaudeFailure(err.Error()) == ClaudeFailureTransient {
+		wait = durationFromEnv("GP_CLAUDE_TRANSIENT_WAIT", 15*time.Minute)
+		action.Reason = "Claude reported a temporary error; short wait " + wait.String()
+	} else if reset, ok := ClaudeResetTime(err.Error(), now); ok {
+		action.ResetAt = reset
+		action.Reason = "Claude reported the reset time " + reset.Format(time.RFC3339)
+		wait = reset.Sub(now)
+	} else {
+		action.Reason = "Claude reported no reset time; conservative wait " + wait.String()
+	}
+	wait += policy.WaitBuffer
+	if wait < policy.WaitBuffer {
+		wait = policy.WaitBuffer
+	}
+	if wait <= policy.MaxWait && previousWaits < policy.MaxWaits {
+		action.Wait = true
+		action.WaitDuration = wait
+		if action.ResetAt.IsZero() {
+			action.ResetAt = now.Add(wait)
 		}
 	}
 	return action

@@ -195,6 +195,8 @@ deployed_runtime_preflight() {
   fi
   write_writer_preflight_state "passed" "$detail" || true
   tlog "Writer preflight passed: $detail"
+  # The canary just reached Claude, so an old quota pause is over.
+  rm -f "$(tribunal_claude_pause_file)"
 }
 
 # ─── Graceful stop control ───────────────────────────────────────────────────
@@ -1077,7 +1079,21 @@ wait_any_worker() {
          stop_source="${stop_source:-worker-stall}"
          rc_write_state "draining" "worker_stall article=$article_slug"
          ;;
-    75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
+    75) # tribunal.sh exits 75 for both a held article lock and a quota
+        # suspension; the ledger tells them apart.
+        if [ "$(jq -r --arg a "$article_slug.mdx" '.[$a].status // ""' "$PROGRESS_FILE" 2>/dev/null || true)" = QUOTA_SUSPENDED ]; then
+          tlog "  [worker-$finished_id] $article_slug — QUOTA_SUSPENDED (rc=75); not a failure, retried after the quota recovers"
+        else
+          tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)"
+        fi
+        ;;
+    78) tlog "  [worker-$finished_id] $article_slug — needs operator action (rc=78; see the worker log above: run \`claude auth login\` as ${USER:-$(id -un)}, or fix the Claude plan, admin settings or model pin); draining and claiming no new articles."
+        stop_requested=true
+        stop_source="${stop_source:-worker-config-error}"
+        fatal_worker_rc=78
+        fatal_worker_detail="worker_needs_operator_action article=$article_slug rc=78"
+        rc_write_state "draining" "$fatal_worker_detail"
+        ;;
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
         stop_requested=true
         stop_source="${stop_source:-propagated-from-worker}"
@@ -1279,6 +1295,24 @@ while true; do
     else
       tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$WORKERS"
     fi
+  fi
+
+  # ── Claude writer pause ───────────────────────────────────────────────────
+  # A writer that hit the Claude quota recorded when it resets, or a short
+  # pause after a temporary Claude error. Hold new dispatch until then instead
+  # of judging more articles into the same error; the controller below only
+  # sees Codex quota.
+  if CLAUDE_PAUSE_LEFT="$(tribunal_claude_pause_remaining)"; then
+    if (( IN_FLIGHT > 0 )); then
+      tlog "Claude writer pause active (${CLAUDE_PAUSE_LEFT}s left); waiting for in-flight workers."
+      wait_any_worker
+      continue
+    fi
+    CLAUDE_PAUSE_WAIT=$(( CLAUDE_PAUSE_LEFT < 1800 ? CLAUDE_PAUSE_LEFT : 1800 ))
+    tlog "Claude writer pause: holding dispatch for ${CLAUDE_PAUSE_LEFT}s; re-checking in ${CLAUDE_PAUSE_WAIT}s (interruptible)."
+    rc_write_state "stopped_by_quota" "claude_writer_quota remaining=${CLAUDE_PAUSE_LEFT}s"
+    rc_interruptible_sleep "$CLAUDE_PAUSE_WAIT" || true
+    continue
   fi
 
   # ── Check quota ────────────────────────────────────────────────────────────

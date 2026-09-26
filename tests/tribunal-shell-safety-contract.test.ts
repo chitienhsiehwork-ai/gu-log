@@ -51,9 +51,9 @@ describe('Tribunal shell safety contract', () => {
   );
 
   it('passes deployment readiness with the hermetic writer runner', () => {
-    const result = runShellTest(DEPLOY_READINESS, 30_000);
+    const result = runShellTest(DEPLOY_READINESS, 60_000);
 
     expect(result.error, result.stdout + result.stderr).toBeUndefined();
     expect(result.status, result.stdout + result.stderr).toBe(0);
-  }, 35_000);
+  }, 65_000);
 });

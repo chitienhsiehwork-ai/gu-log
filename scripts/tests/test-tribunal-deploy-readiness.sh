@@ -18,10 +18,11 @@ mkdir -p "$TRIBUNAL_SHARED_LOCK_DIR"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$HELPERS"
 
-# A deployed loop must fail its Codex write canary before any article claim.
-# The fake Codex exits successfully but deliberately omits the canary file.
+# A deployed loop must fail its Claude write canary before any article claim.
+# The fake Claude exits successfully but deliberately omits the canary file.
 preflight_root="$TMP/preflight-root"
 mkdir -p "$preflight_root/scripts" "$preflight_root/.codex/agents" \
+  "$preflight_root/.claude/agents" \
   "$preflight_root/bin" "$preflight_root/src/content/posts"
 cp "$ROOT_DIR/scripts/tribunal-quota-loop.sh" \
    "$ROOT_DIR/scripts/tribunal-helpers.sh" \
@@ -30,17 +31,22 @@ cp "$ROOT_DIR/scripts/tribunal-quota-loop.sh" \
    "$ROOT_DIR/scripts/tribunal-run-control.sh" \
    "$ROOT_DIR/scripts/tribunal-version.mjs" \
    "$preflight_root/scripts/"
-printf 'model = "gpt-writer-fixture"\n' \
-  > "$preflight_root/.codex/agents/tribunal-writer.toml"
+printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
+  > "$preflight_root/.claude/agents/tribunal-writer.md"
 for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
   printf 'model = "gpt-%s-fixture"\n' "$role" \
     > "$preflight_root/.codex/agents/$role.toml"
 done
-cat > "$preflight_root/bin/codex" <<'NO_CANARY_CODEX'
+cat > "$preflight_root/bin/codex" <<'JUDGE_CODEX'
 #!/usr/bin/env bash
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
 exit 0
-NO_CANARY_CODEX
+JUDGE_CODEX
+cat > "$preflight_root/bin/claude" <<'NO_CANARY_CLAUDE'
+#!/usr/bin/env bash
+cat >/dev/null
+exit 0
+NO_CANARY_CLAUDE
 cat > "$preflight_root/bin/systemctl" <<'FAKE_SYSTEMCTL'
 #!/usr/bin/env bash
 case "$*" in
@@ -80,8 +86,8 @@ done
 [ "$#" -gt 0 ] || exit 64
 exec "$@"
 FAKE_SYSTEMD_RUN
-chmod +x "$preflight_root/bin/codex" "$preflight_root/bin/systemctl" \
-  "$preflight_root/bin/systemd-run"
+chmod +x "$preflight_root/bin/codex" "$preflight_root/bin/claude" \
+  "$preflight_root/bin/systemctl" "$preflight_root/bin/systemd-run"
 cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
   "$preflight_root/tribunal-runtime.slice"
 export FAKE_SYSTEMD_FRAGMENT_PATH="$preflight_root/tribunal-runtime.slice"
@@ -89,7 +95,7 @@ set +e
 PATH="$preflight_root/bin:$PATH" \
 TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_STRICT_ROLE_PROVIDERS=0 \
-GP_WRITER_MODE=codex \
+GP_WRITER_MODE=claude \
 bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
   >"$TMP/non-strict-preflight.out" 2>&1
 non_strict_preflight_rc=$?
@@ -107,7 +113,7 @@ set +e
 PATH="$preflight_root/bin:$PATH" \
 TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-GP_WRITER_MODE=codex \
+GP_WRITER_MODE=claude \
 bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
   >"$TMP/recovery-preflight.out" 2>&1
 recovery_preflight_rc=$?
@@ -124,7 +130,7 @@ set +e
 PATH="$preflight_root/bin:$PATH" \
 TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-GP_WRITER_MODE=codex \
+GP_WRITER_MODE=claude \
 FAKE_SYSTEMD_LOAD_STATE=not-found \
 bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
   >"$TMP/systemd-preflight.out" 2>&1
@@ -178,7 +184,7 @@ set +e
 PATH="$preflight_root/bin:$PATH" \
 TRIBUNAL_DEPLOYED_MODE=1 \
 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-GP_WRITER_MODE=codex \
+GP_WRITER_MODE=claude \
 TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
 FAKE_SYSTEMD_RUN_CAPTURE="$TMP/preflight-systemd-run.argv" \
 bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
@@ -186,7 +192,7 @@ bash "$preflight_root/scripts/tribunal-quota-loop.sh" --workers 1 \
 preflight_rc=$?
 set -e
 [ "$preflight_rc" -eq 78 ] ||
-  fail "deployed loop with failed Codex write canary should exit 78 before dispatch, got $preflight_rc"
+  fail "deployed loop with failed Claude write canary should exit 78 before dispatch, got $preflight_rc"
 if [ -d "$preflight_root/.score-loop/claims" ] &&
    find "$preflight_root/.score-loop/claims" -mindepth 1 -print -quit | grep -q .; then
   fail "deployed preflight failure claimed an article"
@@ -208,16 +214,30 @@ for expected_arg in \
   '--property=CPUQuota=200%' \
   '--property=TasksMax=256'; do
   grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
-    fail "deployed Codex transient service omitted: $expected_arg"
+    fail "deployed writer transient service (Claude model) omitted: $expected_arg"
 done
 if grep -Fxq -- '--property=PartOf=tribunal-loop.service' \
   "$TMP/preflight-systemd-run.argv"; then
-  fail "transient Codex service stop propagation would break article-boundary drain"
+  fail "transient writer service stop propagation would break article-boundary drain"
 fi
 grep -Eq '^--unit=gu-log-tribunal-codex-' \
   "$TMP/preflight-systemd-run.argv" ||
-  fail "deployed Codex transient service did not use a parent-generated unit"
-pass "deployed Codex canary uses bounded transient-service cgroup containment"
+  fail "deployed writer transient service (Claude model) did not use a parent-generated unit"
+if grep -q -- '^--property=UnsetEnvironment=' "$TMP/preflight-systemd-run.argv"; then
+  fail "deployed writer service (Claude model) relies on an unset list instead of a clean environment"
+fi
+awk 'p2 == "--" && p1 ~ /\/env$/ && $0 == "-i" { ok = 1 } { p2 = p1; p1 = $0 } END { exit !ok }' \
+  "$TMP/preflight-systemd-run.argv" ||
+  fail "deployed writer service (Claude model) does not start Claude from a clean environment"
+for expected_arg in -p --setting-sources --strict-mcp-config --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do
+  grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
+    fail "deployed writer canary (Claude model) omitted contained flag: $expected_arg"
+done
+if grep -Eq -- '^(--add-dir|--dangerously-skip-permissions|bypassPermissions)$' \
+  "$TMP/preflight-systemd-run.argv"; then
+  fail "deployed writer canary (Claude model) widened its permissions"
+fi
+pass "deployed Claude write canary uses bounded transient-service cgroup containment"
 
 # A stale compatibility flag must not route a strict/deployed Codex quota
 # failure through Claude. The normal Codex quota handler owns suspend/retry.
@@ -315,27 +335,30 @@ pass "deployed idle watchdog cancels by systemd unit identity, never PGID"
 (
   # shellcheck source=scripts/tribunal-helpers.sh
   source "$HELPERS"
-  unit='GP_WRITER_MODE=codex QUOTA_FLOOR=23 TRIBUNAL_STRICT_ROLE_PROVIDERS=1'
-  [ "$(tribunal_effective_runtime_value "$unit" GP_WRITER_MODE none)" = "codex" ]
+  unit='GP_WRITER_MODE=claude QUOTA_FLOOR=23 TRIBUNAL_STRICT_ROLE_PROVIDERS=1'
+  [ "$(tribunal_effective_runtime_value "$unit" GP_WRITER_MODE none)" = "claude" ]
   [ "$(tribunal_effective_runtime_value "$unit" QUOTA_FLOOR 10)" = "23" ]
   [ "$(tribunal_effective_runtime_value "$unit" TRIBUNAL_STRICT_ROLE_PROVIDERS 0)" = "1" ]
 ) || fail "effective unit environment did not override tribunal.env fallbacks"
 pass "monitor helper reports effective unit writer/floor/strict-role values"
 
 # Routine doctor reads the current service PID's successful startup state and
-# must not spend another Codex call. The explicit live probe is the only path
-# that reruns the bounded write canary.
+# must not spend another writer call. The explicit live probe is the only path
+# that reruns the bounded Claude write canary.
 (
   doctor_home="$TMP/doctor-home"
   doctor_root="$TMP/doctor-root"
   doctor_bin="$TMP/doctor-bin"
+  # The user manager's PATH, which the daemon's service (and so the live
+  # probe) uses; the operator shell's PATH must not decide which claude runs.
+  doctor_manager_bin="$TMP/doctor-manager-bin"
   doctor_unit_dir="$doctor_home/.config/systemd/user"
   doctor_service="$doctor_unit_dir/tribunal-loop.service"
   doctor_same_bytes="$doctor_root/same-bytes-tribunal-loop.service"
   doctor_snapshot_state="$doctor_root/service-snapshot-count"
   mkdir -p "$doctor_home" "$doctor_root/.score-loop/state" \
     "$doctor_root/.codex/agents" "$doctor_root/scripts" "$doctor_bin" \
-    "$doctor_unit_dir"
+    "$doctor_manager_bin" "$doctor_unit_dir"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
     "$doctor_root/scripts/tribunal-runtime.slice"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
@@ -344,8 +367,6 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
     "$doctor_service"
   cp "$ROOT_DIR/scripts/tribunal-loop.service" \
     "$doctor_same_bytes"
-  printf 'model = "gpt-writer-fixture"\n' \
-    > "$doctor_root/.codex/agents/tribunal-writer.toml"
   for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
     printf 'model = "gpt-%s-fixture"\n' "$role" \
       > "$doctor_root/.codex/agents/$role.toml"
@@ -354,7 +375,13 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
 #!/usr/bin/env bash
 case "$*" in
   *is-enabled*) printf 'enabled\n' ;;
-  *'Environment --value'*) printf 'GP_WRITER_MODE=codex TRIBUNAL_STRICT_ROLE_PROVIDERS=1\n' ;;
+  *'Environment --value'*) printf 'TRIBUNAL_DEPLOYED_MODE=1 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 GP_WRITER_MODE=claude TZ=Asia/Taipei\n' ;;
+  *show-environment*)
+    printf 'HOME=%s\n' "$HOME"
+    printf 'PATH=%s\n' "${DOCTOR_MANAGER_PATH:-/usr/bin:/bin}"
+    ;;
+  *'EnvironmentFiles --value'*)
+    printf '%s (ignore_errors=no)\n' "$HOME/.config/gu-log/tribunal.env" ;;
   *'MainPID --value'*) printf '4242\n' ;;
   *'tribunal-runtime.slice -p LoadState --value'*) printf 'loaded\n' ;;
   *'tribunal-runtime.slice -p ActiveState --value'*) printf 'active\n' ;;
@@ -409,24 +436,51 @@ LOGINCTL
   cat > "$doctor_bin/codex" <<'CODEX'
 #!/usr/bin/env bash
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
-: > "$FAKE_DOCTOR_CODEX_CALLED"
-prompt="${!#}"
-path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
-token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
-[ -n "$path" ] && [ -n "$token" ] || exit 2
-printf '%s\n' "$token" > "$path"
-printf 'OK\n'
+exit 0
 CODEX
-  chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/codex"
+  # The stubs carry their marker paths: the probe's Claude call starts from a
+  # clean environment.
+  cat > "$doctor_manager_bin/claude" <<CLAUDE
+#!/usr/bin/env bash
+: > "$TMP/doctor-claude-called"
+/usr/bin/env > "$TMP/doctor-claude.env"
+prompt="\$(cat)"
+path="\$(printf '%s\n' "\$prompt" | sed -n 's/^Canary path: //p')"
+token="\$(printf '%s\n' "\$prompt" | sed -n 's/^Canary token: //p')"
+[ -n "\$path" ] && [ -n "\$token" ] || exit 2
+printf '%s\n' "\$token" > "\$path"
+printf 'OK\n'
+CLAUDE
+  # A claude that only the operator shell would find: the probe must not use it.
+  cat > "$doctor_bin/claude" <<CLAUDE
+#!/usr/bin/env bash
+: > "$TMP/doctor-shell-claude-called"
+exit 99
+CLAUDE
+  cat > "$doctor_manager_bin/systemd-run" <<SYSTEMD_RUN
+#!/usr/bin/env bash
+printf '%s\n' "\$@" > "$TMP/doctor-systemd-run.args"
+while [ "\$#" -gt 0 ]; do
+  if [ "\$1" = -- ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "\$#" -gt 0 ] || exit 64
+exec "\$@"
+SYSTEMD_RUN
+  chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/codex" \
+    "$doctor_bin/claude" "$doctor_manager_bin/claude" \
+    "$doctor_manager_bin/systemd-run"
   cat > "$doctor_root/.score-loop/state/writer-preflight.json" <<'STATE'
-{"status":"passed","mode":"codex","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
+{"status":"passed","mode":"claude","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
 STATE
   rm -f "$doctor_snapshot_state"
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
   DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
-  FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
       >"$TMP/doctor-state.out"
   grep -q 'writer_preflight=passed source=state pid=4242' "$TMP/doctor-state.out"
@@ -435,7 +489,7 @@ STATE
   grep -q 'systemd_service_contract=passed unit=tribunal-loop.service' \
     "$TMP/doctor-state.out" ||
     fail "doctor did not attest the tracked tribunal-loop.service"
-  [ ! -e "$TMP/doctor-codex-called" ]
+  [ ! -e "$TMP/doctor-claude-called" ]
 
   assert_doctor_service_contract_rejects() {
     local label="$1" fragment="$2" need_reload="$3" drop_ins="$4"
@@ -454,8 +508,7 @@ STATE
     DOCTOR_SERVICE_FRAGMENT_AFTER="$fragment_after" \
     DOCTOR_SERVICE_MISSING_PROPERTY="$missing_property" \
     DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
-    FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
-      bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
+        bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
         >"$output" 2>&1
     rc=$?
     set -e
@@ -516,30 +569,48 @@ STATE
     '' '' 'reason=snapshot-changed' "$doctor_same_bytes"
 
   rm -f "$doctor_snapshot_state"
+  # The daemon's settings come from tribunal.env, not from the operator shell.
+  mkdir -p "$doctor_home/.config/gu-log"
+  {
+    printf "GU_LOG_DIR='%s'\n" "$doctor_root"
+    printf "CLAUDE_CONFIG_DIR='%s'\n" "$doctor_home/claude-from-env-file"
+  } > "$doctor_home/.config/gu-log/tribunal.env"
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
+  CLAUDE_CONFIG_DIR="$doctor_home/claude-from-shell" \
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
   DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
-  FAKE_DOCTOR_CODEX_CALLED="$TMP/doctor-codex-called" \
+  DOCTOR_MANAGER_PATH="$doctor_manager_bin:/usr/local/bin:/usr/bin:/bin" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
       >"$TMP/doctor-live.out"
-  grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out"
-  [ -e "$TMP/doctor-codex-called" ]
+  # A subshell tested with || does not stop at a failed command, so every
+  # check below exits on its own.
+  grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out" || exit 1
+  [ -e "$TMP/doctor-claude-called" ] || exit 1
+  # Same executor and environment as the daemon: the deployed transient
+  # service, the claude on the user manager's PATH, and tribunal.env's
+  # settings rather than the operator shell's.
+  [ ! -e "$TMP/doctor-shell-claude-called" ] || exit 1
+  grep -Fxq -- '--slice=tribunal-runtime.slice' "$TMP/doctor-systemd-run.args" || exit 1
+  awk 'p2 == "--" && p1 ~ /\/env$/ && $0 == "-i" { ok = 1 } { p2 = p1; p1 = $0 } END { exit !ok }' \
+    "$TMP/doctor-systemd-run.args" || exit 1
+  grep -Fxq -- '--setenv=TZ=Asia/Taipei' "$TMP/doctor-systemd-run.args" || exit 1
+  grep -Fxq -- "CLAUDE_CONFIG_DIR=$doctor_home/claude-from-env-file" \
+    "$TMP/doctor-claude.env" || exit 1
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
-pass "doctor reuses current PID state; only explicit live probe invokes the Codex write canary"
+pass "doctor reuses current PID state; only the explicit live probe runs the Claude write canary, through the daemon's executor and environment"
 
-# Legacy compatibility judge and writer share tribunal_claude_exec. From an isolated workdir, both
-# must grant exactly REPO_ROOT through --add-dir and use the same noninteractive
-# narrow permission contract under root and non-root. --allowed-tools stays last,
-# prompts stay on stdin, and invalid roots fail before Claude.
+# The CCC compatibility judge runs through tribunal_claude_exec. From an isolated
+# workdir it must grant exactly REPO_ROOT through --add-dir and use the same
+# noninteractive narrow permission contract under root and non-root.
+# --allowed-tools stays last, prompts stay on stdin, and invalid roots fail
+# before Claude.
 (
   access_root="$TMP/claude-repo-access"
   mkdir -p "$access_root/.claude/agents" "$access_root/work" "$access_root/bin"
   printf '%s\n' '---' 'model: claude-fact-fixture' '---' \
     > "$access_root/.claude/agents/fact-checker.md"
-  printf '%s\n' '---' 'model: claude-writer-fixture' '---' \
-    > "$access_root/.claude/agents/tribunal-writer.md"
   cat > "$access_root/bin/claude" <<'FAKE_CLAUDE'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$FAKE_CLAUDE_CAPTURE"
@@ -551,15 +622,11 @@ FAKE_CLAUDE
   FAKE_CLAUDE_CAPTURE="$access_root/judge.args" \
   TRIBUNAL_CODEX_TIMEOUT_SEC=2 \
     tribunal_claude_exec "$access_root/work" fact-checker "judge access fixture"
-  PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root" \
-  FAKE_CLAUDE_CAPTURE="$access_root/writer.args" \
-  GP_WRITER_MODE=cli TRIBUNAL_CODEX_TIMEOUT_SEC=2 \
-    tribunal_writer_exec "$access_root/work" tribunal-writer "writer access fixture"
 
   if sed -n '/^tribunal_claude_exec()/,/^}/p' "$HELPERS" | grep -q 'id -u'; then
     exit 1
   fi
-  for capture in "$access_root/judge.args" "$access_root/writer.args"; do
+  for capture in "$access_root/judge.args"; do
     [ "$(grep -cx -- '--add-dir' "$capture")" = "1" ]
     awk -v repo="$access_root" '
       previous == "--add-dir" && $0 == repo { found = 1 }
@@ -579,7 +646,6 @@ FAKE_CLAUDE
     grep -q '^## User task$' "${capture}.stdin"
   done
   grep -q 'judge access fixture' "$access_root/judge.args.stdin"
-  grep -q 'writer access fixture' "$access_root/writer.args.stdin"
 
   rm -f "$access_root/judge.args"
   if PATH="$access_root/bin:$PATH" REPO_ROOT="$access_root/missing" \
@@ -590,8 +656,8 @@ FAKE_CLAUDE
   fi
   [ ! -e "$access_root/judge.args" ]
   grep -q 'REPO_ROOT is not a directory' "$access_root/missing.out"
-) || fail "Claude judge/writer repo grant or noninteractive permission contract is unsafe"
-pass "Claude judge and writer use exact repo access and narrow noninteractive permissions"
+) || fail "Claude judge repo grant or noninteractive permission contract is unsafe"
+pass "Claude judge uses exact repo access and narrow noninteractive permissions"
 
 # Watchdog cancellation uses a parent-created process group. A descendant that
 # ignores TERM must still die when the parent-held process group receives KILL.
@@ -761,10 +827,10 @@ pass "strict Vibe routing uses its Codex TOML model without Claude"
 # executor or the provider/model/runner provenance recorded for that run.
 (
   descriptor_root="$TMP/immutable-descriptor"
-  mkdir -p "$descriptor_root/.codex/agents" "$descriptor_root/bin" \
-    "$descriptor_root/work"
-  printf 'model = "gpt-writer-original"\n' \
-    > "$descriptor_root/.codex/agents/tribunal-writer.toml"
+  mkdir -p "$descriptor_root/.codex/agents" "$descriptor_root/.claude/agents" \
+    "$descriptor_root/bin" "$descriptor_root/work"
+  printf '%s\n' '---' 'model: claude-writer-original' '---' \
+    > "$descriptor_root/.claude/agents/tribunal-writer.md"
   printf 'model = "gpt-judge-original"\n' \
     > "$descriptor_root/.codex/agents/fact-checker.toml"
   cat > "$descriptor_root/bin/codex" <<'FAKE_CODEX'
@@ -777,22 +843,21 @@ FAKE_CODEX
   REPO_ROOT="$descriptor_root"
 
   tribunal_writer_exec_raw() {
-    printf '%s\n' "${GP_CODEX_MODEL:-}" > "$descriptor_root/writer-model"
-    printf 'model = "gpt-writer-mutated"\n' \
-      > "$descriptor_root/.codex/agents/tribunal-writer.toml"
+    printf '%s\n' "${TRIBUNAL_CLAUDE_WRITER_MODEL:-}" > "$descriptor_root/writer-model"
+    printf '%s\n' '---' 'model: claude-writer-mutated' '---' \
+      > "$descriptor_root/.claude/agents/tribunal-writer.md"
     return 0
   }
   PATH="$descriptor_root/bin:$PATH" \
-  GP_WRITER_MODE=codex \
-  TRIBUNAL_CODEX_REASONING=xhigh \
+  GP_WRITER_MODE=claude \
   TRIBUNAL_ACTUAL_PROVIDER_FILE="$descriptor_root/writer-provenance" \
     tribunal_writer_exec "$descriptor_root/work" tribunal-writer \
       "fixture writer prompt"
-  grep -qx 'gpt-writer-original' "$descriptor_root/writer-model"
-  grep -qx 'provider=codex' "$descriptor_root/writer-provenance"
-  grep -qx 'model_id=gpt-writer-original' \
+  grep -qx 'claude-writer-original' "$descriptor_root/writer-model"
+  grep -qx 'provider=claude' "$descriptor_root/writer-provenance"
+  grep -qx 'model_id=claude-writer-original' \
     "$descriptor_root/writer-provenance"
-  grep -qx 'runner_label=codex-gpt-writer-original-xhigh' \
+  grep -qx 'runner_label=claude-writer-original' \
     "$descriptor_root/writer-provenance"
 
   tribunal_llm_exec() {
@@ -815,7 +880,7 @@ FAKE_CODEX
     "$descriptor_root/judge-provenance"
   grep -qx 'runner_label=codex-gpt-judge-original-xhigh' \
     "$descriptor_root/judge-provenance"
-) || fail "judge/writer execution descriptor drifted after role TOML mutation"
+) || fail "judge/writer execution descriptor drifted after role config mutation"
 pass "judge/writer model and provenance share one immutable execution descriptor"
 
 # In CCC-compatible mode, Codex absence must execute the Claude judge and stamp
@@ -924,41 +989,8 @@ if [ "${1:-}" = "exec" ]; then
   prompt="${!#}"
   score_path="$(printf '%s\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
   if [ -z "$score_path" ]; then
-    argv=" $* "
-    case "$argv" in
-      *" --sandbox workspace-write "*) ;;
-      *) exit 72 ;;
-    esac
-    printf '%s\n' "$*" >> "$FAKE_WRITER_CALLS"
-    candidate_zh="$(
-      printf '%s\n' "$prompt" |
-        sed -n '/^## Writable zh-tw candidate$/{n;p;}' |
-        tail -1
-    )"
-    candidate_en="$(
-      printf '%s\n' "$prompt" |
-        sed -n '/^## Writable English candidate, if present$/{n;p;}' |
-        tail -1
-    )"
-    python3 - \
-      "$candidate_zh" "$candidate_en" \
-      "$FAKE_EXPECTED_ZH_SUMMARY" "$FAKE_EXPECTED_EN_SUMMARY" <<'PY'
-import pathlib
-import re
-import sys
-
-for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4])):
-    path = pathlib.Path(path_text)
-    if not path.is_file():
-        continue
-    payload = path.read_bytes()
-    replacement = summary.encode("utf-8")
-    updated, count = re.subn(br"(?m)^summary: [^\r\n]+$", replacement, payload, count=1)
-    if count != 1:
-        raise SystemExit(73)
-    path.write_bytes(updated)
-PY
-    exit 0
+    # Codex only judges; a writer call reaching it is a routing regression.
+    exit 72
   fi
   count=0
   [ ! -r "$FAKE_JUDGE_COUNT" ] || count="$(cat "$FAKE_JUDGE_COUNT")"
@@ -984,17 +1016,21 @@ JSON
 fi
 exit 1
 FAKE_JUDGE
-cat > "$writer_bin/grok" <<'FAKE_GROK'
+cat > "$writer_bin/claude" <<'FAKE_CLAUDE'
 #!/usr/bin/env bash
-if [ "${1:-}" = "--help" ]; then
+if [ "${1:-}" = "auth" ] && [ "${2:-}" = "status" ]; then
+  printf '{"loggedIn":true}\n'
   exit 0
 fi
-if [ "${1:-}" = "models" ]; then
-  printf '%s\n' '* grok-4.6'
-  exit 0
-fi
-prompt="${!#}"
+prompt="$(cat)"
 printf 'call\n' >> "$FAKE_WRITER_CALLS"
+# Real messages of the installed Claude CLI for each failure class.
+case "${FAKE_WRITER_FAILURE:-}" in
+  quota) printf "You've hit your session limit · resets 5pm (UTC)\n"; exit 1 ;;
+  transient) printf 'API Error: Repeated 529 Overloaded errors. The API is at capacity — this is usually temporary. Try again in a moment.\n'; exit 1 ;;
+  login) printf 'Not logged in · Please run /login\n'; exit 1 ;;
+  config) printf "Your seat type doesn't include usage credits\n"; exit 1 ;;
+esac
 printf '%s\n' "$@" > "$FAKE_WRITER_ARGS"
 candidate_zh="$(
   printf '%s\n' "$prompt" |
@@ -1024,7 +1060,8 @@ for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4]
         raise SystemExit(73)
     path.write_bytes(updated.replace(b"baseline body", b"candidate body", 1))
 PY
-FAKE_GROK
+printf 'REWRITE COMPLETE\n'
+FAKE_CLAUDE
 cat > "$writer_bin/node" <<'FAKE_NODE'
 #!/usr/bin/env bash
 case "${1:-}" in
@@ -1042,7 +1079,7 @@ esac
 exec "$REAL_NODE" "$@"
 FAKE_NODE
 cp "$preflight_root/bin/systemd-run" "$writer_bin/systemd-run"
-chmod +x "$writer_bin/codex" "$writer_bin/grok" "$writer_bin/node" \
+chmod +x "$writer_bin/codex" "$writer_bin/claude" "$writer_bin/node" \
   "$writer_bin/systemd-run"
 
 # Run the real stage loop from a disposable repository. A killed test process
@@ -1102,7 +1139,7 @@ run_factchecker_fixture() {
     FAKE_EXPECTED_EN_SUMMARY="$expected_en_summary" \
     FAKE_POST_PATH="$fixture_zh_path" \
     FAKE_EN_POST_PATH="$fixture_en_path" \
-    GP_WRITER_MODE=grok \
+    GP_WRITER_MODE="${FIXTURE_WRITER_MODE:-claude}" \
     TRIBUNAL_RUNTIME_PROFILE=vm-codex \
     TRIBUNAL_MODEL_CONFIG="$writer_root/config/llm-pipeline.json" \
     TRIBUNAL_NO_COMMIT=1 \
@@ -1121,13 +1158,15 @@ run_factchecker_fixture "$TMP/writer.out" || {
   }
 [ -e "$TRIBUNAL_ARTICLE_LOCK_DIR/tribunal-$fixture_post.lock" ] ||
   fail "tribunal did not honor the isolated article lock directory"
-[ -s "$TMP/writer-calls" ] || fail "failing article never reached fake Grok writer"
+[ -s "$TMP/writer-calls" ] || fail "failing article never reached the fake Claude-model writer"
 if ! awk '
-  previous == "--sandbox" && $0 == "workspace" { found = 1 }
+  previous == "--permission-mode" && $0 == "acceptEdits" { mode = 1 }
+  previous == "--tools" && $0 == "Read,Grep,Glob,Edit,Write" { tools = 1 }
+  $0 == "--add-dir" || $0 == "bypassPermissions" { widened = 1 }
   { previous = $0 }
-  END { exit !found }
+  END { exit !(mode && tools && !widened) }
 ' "$TMP/writer-args"; then
-  fail "Grok writer call did not use its isolated workspace sandbox"
+  fail "writer call (Claude model) did not use its contained file-tool session"
 fi
 [ "$(cat "$TMP/judge-count")" = "2" ] ||
   fail "tribunal did not re-score after writer execution"
@@ -1159,3 +1198,114 @@ cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
 [ "$(wc -l < "$TMP/writer-calls" | tr -d ' ')" = "1" ] ||
   fail "rollback fixture invoked the writer outside the bounded first attempt"
 pass "run_stage carries its FactChecker policy through validation-failure rollback"
+
+# A Claude quota, temporary, login or account failure during a rewrite leaves
+# the post untouched, is not re-judged, and is neither recorded as a failure
+# nor counted. Quota and temporary errors pause dispatch; login and account
+# errors need a person.
+claude_pause_file="$writer_root/.score-loop/state/claude-writer-pause.json"
+for failure in quota transient login config; do
+  cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+  cp -p "$fixture_en_baseline" "$fixture_en_path"
+  printf '{}\n' > "$writer_progress"
+  rm -f "$TMP/judge-count" "$TMP/writer-calls" "$TMP/writer-args" "$claude_pause_file"
+  set +e
+  FAKE_WRITER_FAILURE="$failure" run_factchecker_fixture "$TMP/writer-$failure.out"
+  failure_rc=$?
+  set -e
+  case "$failure" in
+    quota|transient) want_rc=75 ;;
+    login|config) want_rc=78 ;;
+  esac
+  [ "$failure_rc" -eq "$want_rc" ] || {
+    sed -n '1,120p' "$TMP/writer-$failure.out" >&2 || true
+    fail "Claude $failure during a rewrite exited $failure_rc, want $want_rc"
+  }
+  [ "$(cat "$TMP/judge-count")" = "1" ] ||
+    fail "Claude $failure during a rewrite re-judged the unchanged article"
+  [ "$(wc -l < "$TMP/writer-calls" | tr -d ' ')" = "1" ] ||
+    fail "Claude $failure during a rewrite retried the writer"
+  cmp -s "$fixture_zh_baseline" "$fixture_zh_path" &&
+    cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
+    fail "Claude $failure during a rewrite changed the canonical post pair"
+  article_status="$(jq -r --arg a "$fixture_post" '.[$a].status // ""' "$writer_progress")"
+  article_attempts="$(jq -r --arg a "$fixture_post" '.[$a].topLevelAttempts // 0' "$writer_progress")"
+  [ "$article_attempts" = "0" ] ||
+    fail "Claude $failure during a rewrite was counted as an attempt"
+  case "$failure" in
+    quota|transient)
+      [ "$article_status" = QUOTA_SUSPENDED ] ||
+        fail "Claude $failure during a rewrite recorded status '$article_status'"
+      [ -f "$claude_pause_file" ] ||
+        fail "Claude $failure during a rewrite did not pause daemon dispatch"
+      pause_left=$(( $(jq -r '.until' "$claude_pause_file") - $(date +%s) ))
+      if [ "$failure" = transient ]; then
+        [ "$pause_left" -gt 900 ] && [ "$pause_left" -le 1020 ] ||
+          fail "Claude temporary error paused dispatch for ${pause_left}s, want the short 15m default plus buffer"
+      else
+        [ "$pause_left" -gt 1020 ] ||
+          fail "Claude quota paused dispatch for only ${pause_left}s"
+      fi
+      ;;
+    login|config)
+      case "$article_status" in
+        FAILED|EXHAUSTED|QUOTA_SUSPENDED|RUNNER_ERROR)
+          fail "Claude $failure failure during a rewrite recorded status '$article_status'"
+          ;;
+      esac
+      [ ! -e "$claude_pause_file" ] ||
+        fail "Claude $failure failure during a rewrite wrote a quota pause"
+      if [ "$failure" = login ]; then
+        grep -q 'claude auth login' "$TMP/writer-$failure.out" ||
+          fail "Claude login failure during a rewrite gave no actionable message"
+      else
+        grep -q 'must fix the plan, the admin settings or the model pin' "$TMP/writer-$failure.out" || {
+          sed -n '1,80p' "$TMP/writer-$failure.out" >&2 || true
+          fail "Claude account failure during a rewrite gave no actionable message"
+        }
+      fi
+      ;;
+  esac
+done
+pass "Claude quota, temporary, login and account failures during a rewrite restore, pause or stop, and never re-judge or count"
+
+# A run that may rewrite with a non-Claude writer mode fails before any judge.
+cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+cp -p "$fixture_en_baseline" "$fixture_en_path"
+printf '{}\n' > "$writer_progress"
+rm -f "$TMP/judge-count" "$TMP/writer-calls"
+set +e
+FIXTURE_WRITER_MODE=subagent run_factchecker_fixture "$TMP/writer-mode.out"
+mode_rc=$?
+set -e
+[ "$mode_rc" -eq 78 ] ||
+  fail "rewrite with GP_WRITER_MODE=subagent exited $mode_rc, want 78 before any judge"
+grep -q 'GP_WRITER_MODE=subagent is retired' "$TMP/writer-mode.out" ||
+  fail "rewrite with the retired subagent writer mode did not say it is retired"
+[ ! -e "$TMP/judge-count" ] ||
+  fail "rewrite with a non-Claude writer mode spent a judge call first"
+pass "a rewrite-capable run without the Claude writer fails before the first judge"
+
+# The score-only `none` mode passes the same check: the judge still runs and
+# the failed stage skips the rewrite without calling the writer.
+cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+cp -p "$fixture_en_baseline" "$fixture_en_path"
+printf '{}\n' > "$writer_progress"
+rm -f "$TMP/judge-count" "$TMP/writer-calls"
+set +e
+FIXTURE_WRITER_MODE=none run_factchecker_fixture "$TMP/writer-none.out"
+none_rc=$?
+set -e
+[ "$none_rc" -eq 1 ] || {
+  sed -n '1,80p' "$TMP/writer-none.out" >&2 || true
+  fail "rewrite-capable run with GP_WRITER_MODE=none exited $none_rc, want a judged FAIL (1)"
+}
+[ "$(cat "$TMP/judge-count" 2>/dev/null)" = "1" ] ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none did not reach the judge"
+[ ! -e "$TMP/writer-calls" ] ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none called the writer"
+grep -q 'Rewrite skipped (GP_WRITER_MODE=none)' "$TMP/writer-none.out" ||
+  fail "rewrite-capable run with GP_WRITER_MODE=none did not say the rewrite was skipped"
+cmp -s "$fixture_zh_baseline" "$fixture_zh_path" ||
+  fail "score-only run changed the canonical post"
+pass "a rewrite-capable run in score-only none mode is let through, judged and never rewritten"

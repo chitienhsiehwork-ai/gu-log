@@ -32,7 +32,9 @@ if [ -z "${TRIBUNAL_RUNTIME_PROFILE:-}" ]; then
 fi
 if [ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" ] &&
    [ -z "${GP_WRITER_MODE:-}" ]; then
-  export GP_WRITER_MODE=grok
+  # Tribunal rewrites triggered by `run` must use the Claude model; see
+  # openspec claude-prose-writing-runtime.
+  export GP_WRITER_MODE=claude
 fi
 
 need_rebuild() {

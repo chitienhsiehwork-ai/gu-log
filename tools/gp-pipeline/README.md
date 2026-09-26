@@ -23,18 +23,18 @@ Pipeline 包含 source validation、LLM routing、dedup、可恢復 state、coun
 
 wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bin/gp-pipeline`，然後 `exec`。repo 不追蹤平台特定 binary。
 
-## VM model routing
+## Model routing
+
+文章寫作一律使用 Claude 模型，只評分的步驟維持原本的模型；規則見 openspec
+`claude-prose-writing-runtime`，Claude 模型 pin 在
+`.claude/agents/tribunal-writer.md` 的 `model:`。VM 上跑 gp-pipeline 的帳號要
+自己登入 Claude CLI，見 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉。
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本 provider chain。VM profile 會先確認 Codex 與官方 Grok Build CLI
-都相容且已登入，缺任一個就 fail closed。
-
-所有常換的 model、effort、quota threshold 與 unknown policy 都只定義在
-`config/llm-pipeline.json`；README 不複製易過期的數值。Router 依該檔選擇
-reviewer、writer 與 Vibe Scorer，而且不會在低額度時靜默改用其他 writer。
-CodexBar 尚未提供可靠 Grok Build quota 前，自動 Grok probe 保持關閉，
-不猜百分比。
+維持原本的評審 provider chain。VM profile 各步驟的供應端，以及評審的 model、
+effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.json`，
+由 `scripts/tribunal-model-router.sh` 解析；README 不複製易過期的數值。
 
 ## Quick start
 

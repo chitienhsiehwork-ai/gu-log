@@ -31,7 +31,6 @@ type ResolvedRuntime struct {
 	ReasoningEffort  string `json:"reasoningEffort"`
 	QuotaTier        string `json:"quotaTier"`
 	RemainingPercent string `json:"remainingPercent"`
-	QuotaAction      string `json:"quotaAction"`
 }
 
 // ResolveRuntime delegates to the Bash router so gp-pipeline and Tribunal use
@@ -45,7 +44,6 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 				RuntimeProfile: "legacy",
 				Role:           string(role),
 				QuotaTier:      "legacy",
-				QuotaAction:    "run",
 			}, nil
 		}
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: %w", role, err)
@@ -70,10 +68,19 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 	if runtime.RuntimeProfile != "legacy" && (runtime.Provider == "" || runtime.Model == "") {
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: provider/model missing", role)
 	}
-	if runtime.QuotaAction == "" {
-		runtime.QuotaAction = "run"
-	}
 	return runtime, nil
+}
+
+// claudeRuntimeTools is the least-privilege tool set of a Claude route. The
+// router only routes article-writing steps to Claude (the single list lives in
+// scripts/tribunal-model-router.sh). The writer drafts files inside its own
+// work dir; every other step returns structured output and gets no tools at
+// all, so an injected source cannot touch the work dir's evidence files.
+func claudeRuntimeTools(role RuntimeRole) []string {
+	if role == RuntimeWriter {
+		return []string{"Read", "Grep", "Glob", "Edit", "Write"}
+	}
+	return []string{}
 }
 
 // ProvidersForRuntime returns a VM-specific provider only when vm-codex is
@@ -88,23 +95,25 @@ func ProvidersForRuntime(
 	if runtime.RuntimeProfile == "legacy" {
 		return nil, false, nil
 	}
-	if runtime.QuotaAction == "pause" || runtime.QuotaAction == "defer" {
-		return nil, true, fmt.Errorf(
-			"%s runtime held by Grok quota policy: action=%s remaining=%s%%",
-			role, runtime.QuotaAction, runtime.RemainingPercent,
-		)
-	}
 	switch runtime.Provider {
+	case "claude":
+		// The router reads the pin from .claude/agents/tribunal-writer.md; the
+		// Go side pins ClaudeOpusPinned. Refuse to pick one when they disagree.
+		if runtime.Model != ClaudeOpusPinned {
+			return nil, true, fmt.Errorf(
+				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline pins %q; update both pins together",
+				runtime.Model, ClaudeOpusPinned,
+			)
+		}
+		return []Provider{&ClaudeProvider{
+			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: claudeRuntimeTools(role),
+		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{
 			ModelName:       runtime.Model,
 			ReasoningEffort: runtime.ReasoningEffort,
 			Sandbox:         "read-only",
 		}}, true, nil
-	case "grok":
-		return []Provider{
-			NewGrok(repoRoot, runtime.Model, runtime.ReasoningEffort),
-		}, true, nil
 	default:
 		return nil, false, fmt.Errorf(
 			"unsupported provider %q for runtime role %s", runtime.Provider, role,

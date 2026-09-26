@@ -26,10 +26,12 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
 
 GP 的 production model routing 由 `config/llm-pipeline.json` 控制；runtime 必須
 具備完整、互不混用的 translator、source reviewer、corrector、commentary 與
-natural-zh vibe scorer profile，且所有 provider preflight 都通過才可開始。
+natural-zh vibe scorer profile，且所有 provider preflight 都通過才可開始。寫作
+步驟一律使用 Claude 模型，規則見 openspec `claude-prose-writing-runtime`。
 未設定完整 profile 的 runtime 可以做 fetch／eval／dedup 或處理非 GP，但不得
 fallback 到 legacy GP flow 發布。model、effort 或 quota threshold 升級時只改
-config 與 contract tests，不在 skill 複製快照。
+config（Claude 模型改 `.claude/agents/tribunal-writer.md` 的 pin）與 contract
+tests，不在 skill 複製快照。
 
 Mogu Picks：
 

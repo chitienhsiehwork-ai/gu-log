@@ -164,6 +164,20 @@ tlog() {
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
+# Only the Claude model rewrites articles (openspec claude-prose-writing-runtime).
+# A run that may rewrite with any other writer mode would fail at its first
+# rewrite after judges already spent quota, so fail before the first judge.
+# `none` keeps its explicit score-only meaning.
+if [ "$ALLOW_REWRITE" = 1 ]; then
+  case "$(tribunal_writer_mode)" in
+    claude|none) ;;
+    *)
+      tlog "ERROR: rewrite is allowed, but $(tribunal_writer_mode_problem "$(tribunal_writer_mode)"). Rerun with --no-rewrite for a score-only run. No judge ran (rc=78)."
+      exit 78
+      ;;
+  esac
+fi
+
 # ─── Lock ─────────────────────────────────────────────────────────────────────
 # Exit code 75 = skipped (another instance is already running this article).
 # Callers (batch-runner, quota-loop, Phase 2 supervisor) must treat this as
@@ -623,22 +637,21 @@ WRITER_TRANSACTION_RECOVERY_PATH=""
 WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 WRITER_TRANSACTION_FRONTMATTER_POLICY="preserve-all"
 
-# Run the routed writer against private candidate files, never the canonical
-# post paths. The subprocess gets a workspace-write sandbox rooted at its temp
+# Run the tribunal-writer (Claude model) against private candidate files, never the canonical
+# post paths. The contained Claude session can edit only inside its temp
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
-  if [ "$#" -ne 7 ]; then
+  if [ "$#" -ne 6 ]; then
     tlog "  RUNNER ERROR: writer transaction expects stage as its only policy input."
     return 70
   fi
   local post_path="$1"
   local post_file="$2"
   local stage="$3"
-  local attempt="$4"
-  local prompt_template="$5"
-  local writer_out="$6"
-  local quota_status_file="$7"
+  local prompt_template="$4"
+  local writer_out="$5"
+  local quota_status_file="$6"
   local frontmatter_policy
   local snapshot_token snapshot_rc writer_work_dir writer_prompt writer_rc
   local candidate_token candidate_capture_rc validation_work_dir apply_rc
@@ -661,13 +674,6 @@ run_writer_candidate_transaction() {
     preserve-all|paired-summary) ;;
     *)
       tlog "  RUNNER ERROR: unsupported writer frontmatter policy: $frontmatter_policy"
-      return 70
-      ;;
-  esac
-  case "$(tribunal_writer_mode)" in
-    codex|grok) ;;
-    *)
-      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex or grok."
       return 70
       ;;
   esac
@@ -698,9 +704,6 @@ run_writer_candidate_transaction() {
   writer_rc=0
   TRIBUNAL_QUOTA_STATUS_FILE="$quota_status_file" \
     TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \
-    TRIBUNAL_WRITER_POST_FILE="$post_file" \
-    TRIBUNAL_WRITER_STAGE="$stage" \
-    TRIBUNAL_WRITER_ATTEMPT="$attempt" \
     tribunal_writer_exec \
       "$writer_work_dir" "tribunal-writer" "$writer_prompt" \
       >>"$writer_out" 2>&1 || writer_rc=$?
@@ -871,7 +874,7 @@ PROMPT
   writer_rc=0
   run_writer_candidate_transaction \
     "$ROOT_DIR/src/content/posts/$post_file" \
-    "$post_file" "finalBuild" "$repair_attempt" "$writer_prompt" \
+    "$post_file" "finalBuild" "$writer_prompt" \
     "$writer_out" "$writer_quota_status_file" || writer_rc=$?
   if [ "$writer_rc" -eq 75 ]; then
     local writer_quota_reason
@@ -885,9 +888,9 @@ PROMPT
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
     rm -f "$writer_out" "$writer_quota_status_file"
-    if [ "$writer_rc" -eq 70 ]; then
-      return 70
-    fi
+    case "$writer_rc" in
+      70|78) return "$writer_rc" ;;
+    esac
     return 1
   fi
   rm -f "$writer_out" "$writer_quota_status_file"
@@ -1012,6 +1015,20 @@ run_final_build_gate() {
       fi
       rm -f "$build_log"
       return 75
+    fi
+    if [ "$repair_rc" -eq 78 ]; then
+      # Claude needs a person (login, account or model pin): restore the
+      # pre-repair pair, record nothing.
+      if ! restore_writer_rewrite_snapshot \
+        "$post_path" "$repair_snapshot_token" "$repair_current_token" \
+        "preserve-all"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
+      rm -f "$build_log"
+      return 78
     fi
     if [ "$repair_rc" -eq 70 ]; then
       FINAL_BUILD_RUNNER_ERROR_REASON="writer_candidate_transaction_failed"
@@ -1354,8 +1371,8 @@ PROMPT
     actual_provider_file="$(mktemp)"
     quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
-    # Grok's minimal writer tool edits existing files; the trusted harness
-    # creates this placeholder before any untrusted article text reaches it.
+    # The trusted harness creates this placeholder before any untrusted
+    # article text reaches the judge.
     printf '{}\n' > "$judge_score_in_work"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
     TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \
@@ -1560,54 +1577,80 @@ PROMPT
       return 1
     fi
 
-    writer_out="$(mktemp)"
-    writer_quota_status_file="$(mktemp)"
-    writer_rc=0
-    run_writer_candidate_transaction \
-      "$post_path" "$post_file" "$stage_key" "$attempt" "$writer_prompt" \
-      "$writer_out" "$writer_quota_status_file" || writer_rc=$?
+    # A writer that produced no candidate retries here, under the same verdict.
+    while :; do
+      writer_out="$(mktemp)"
+      writer_quota_status_file="$(mktemp)"
+      writer_rc=0
+      run_writer_candidate_transaction \
+        "$post_path" "$post_file" "$stage_key" "$writer_prompt" \
+        "$writer_out" "$writer_quota_status_file" || writer_rc=$?
 
-    if [ "$writer_rc" -eq 75 ]; then
-      local writer_quota_reason
-      writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
-      tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
-      if ! mark_article_quota_suspended \
-        "$post_file" "$stage_key" "$runner_label" "$attempt" \
-        "writer: $writer_quota_reason"; then
-        tlog "  RUNNER ERROR: failed to persist writer quota suspension after leaving canonical posts unchanged."
+      if [ "$writer_rc" -eq 75 ]; then
+        local writer_quota_reason
+        writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+        tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
+        if ! mark_article_quota_suspended \
+          "$post_file" "$stage_key" "$runner_label" "$attempt" \
+          "writer: $writer_quota_reason"; then
+          tlog "  RUNNER ERROR: failed to persist writer quota suspension after leaving canonical posts unchanged."
+          if ! mark_article_runner_error \
+            "$post_file" "$stage_key" "$runner_label" "$attempt" \
+            "quota_suspension_persistence_failed"; then
+            tlog "  ERROR: failed to persist RUNNER_ERROR after writer quota ledger failure."
+          fi
+          rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+          return 70
+        fi
+        rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+        return 75
+      fi
+
+      if [ "$writer_rc" -eq 78 ]; then
+        # Claude needs a person (login, account settings or the model pin): the
+        # candidate was discarded, the canonical post is untouched, and this
+        # attempt is neither re-judged, counted nor recorded as a failure. The
+        # daemon drains and stops claiming articles.
+        tlog "  CLAUDE NEEDS A PERSON during tribunal-writer rewrite (see the writer error below: \`claude auth login\`, or fix the Claude plan, admin settings or model pin). The post is unchanged and this attempt is not counted."
+        tail -5 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+        rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+        return 78
+      fi
+
+      if [ "$writer_rc" -eq 70 ]; then
+        tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
+        tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
         if ! mark_article_runner_error \
           "$post_file" "$stage_key" "$runner_label" "$attempt" \
-          "quota_suspension_persistence_failed"; then
-          tlog "  ERROR: failed to persist RUNNER_ERROR after writer quota ledger failure."
+          "writer_candidate_transaction_failed"; then
+          tlog "  ERROR: failed to persist RUNNER_ERROR after candidate transaction failure."
         fi
         rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
         return 70
       fi
-      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
-      return 75
-    fi
 
-    if [ "$writer_rc" -eq 70 ]; then
-      tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
-      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-      if ! mark_article_runner_error \
-        "$post_file" "$stage_key" "$runner_label" "$attempt" \
-        "writer_candidate_transaction_failed"; then
-        tlog "  ERROR: failed to persist RUNNER_ERROR after candidate transaction failure."
+      if [ "$writer_rc" -ne 0 ]; then
+        tlog "  WARN: tribunal-writer exited with code $writer_rc"
+        # Surface the writer's own output so a non-quota failure (e.g. a permission
+        # rejection, a CLI error) is diagnosable instead of silently discarded.
+        # Mirrors the final-build repair path's dump.
+        tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+        rm -f "$writer_out" "$writer_quota_status_file"
+        # No candidate reached the post, so the judge's FAIL still describes it:
+        # count the attempt, but never spend another judge call on the same text.
+        attempt=$((attempt + 1))
+        if [ "$attempt" -ge "$max_loops" ]; then
+          tlog "  $label attempt $attempt/$max_loops: the post is unchanged, so its FAIL stands. Max loops ($max_loops) exhausted without re-judging. FAIL."
+          write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+          rm -f "$score_tmp"
+          return 1
+        fi
+        tlog "  $label attempt $attempt/$max_loops: the post is unchanged, so its FAIL stands; retrying the rewrite without re-judging."
+        write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$runner_label" "$attempt"
+        continue
       fi
-      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
-      return 70
-    fi
-
-    if [ "$writer_rc" -ne 0 ]; then
-      tlog "  WARN: tribunal-writer exited with code $writer_rc"
-      # Surface the writer's own output so a non-quota failure (e.g. a permission
-      # rejection, a CLI error) is diagnosable instead of silently discarded.
-      # Mirrors the final-build repair path's dump.
-      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-      rm -f "$writer_out" "$writer_quota_status_file"
-      continue
-    fi
+      break
+    done
     rewrite_snapshot_token="$WRITER_TRANSACTION_SNAPSHOT_TOKEN"
     rewrite_candidate_token="$WRITER_TRANSACTION_CANDIDATE_TOKEN"
     rewrite_frontmatter_policy="$WRITER_TRANSACTION_FRONTMATTER_POLICY"
@@ -1839,6 +1882,9 @@ for stage_def in "${STAGES[@]}"; do
     tlog "=== QUOTA SUSPENDED at stage: $label ==="
     commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
     exit 75
+  elif [ "$stage_rc" -eq 78 ]; then
+    tlog "=== CLAUDE NEEDS A PERSON at stage: $label (not a failure; rc=78) ==="
+    exit 78
   elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
     if ! ensure_article_runner_error_checkpoint \
@@ -1877,6 +1923,9 @@ elif [ "$final_build_rc" -eq 75 ]; then
   tlog "=== QUOTA SUSPENDED at final build gate: $POST_FILE ==="
   commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
   exit 75
+elif [ "$final_build_rc" -eq 78 ]; then
+  tlog "=== CLAUDE NEEDS A PERSON at final build gate (not a failure; rc=78): $POST_FILE ==="
+  exit 78
 fi
 if [ "$final_build_rc" -ne 0 ]; then
   tlog "=== FAILED at final build gate: $POST_FILE ==="

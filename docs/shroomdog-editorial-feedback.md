@@ -14,6 +14,15 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
 
+## 2026-09-26 — Mogu 撰寫與改寫文章一律使用 Claude 模型
+
+### Feedback: 只有 Claude 寫得出 gu-log 等級的繁中；角色是 Mogu，Claude 是模型
+
+- ShroomDog feedback：「目前前沿模型裡，只有 Claude 寫得出 gu-log 等級的繁體中文。」所以 Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。接著修正用詞：`寫文章的角色全換成 Claude -> ai model to be specific, the role in gu-log should be Mogu`。
+- 情境：盤點 code 後發現，VM runtime profile 讓 Grok 模型翻 GP 正文、產生 MoguNote／commentary 候選與英文 sidecar，讓 Codex 模型直接改 GP 字句（corrector）；Tribunal 背景改寫與 final-build 修復用哪個模型由 `GP_WRITER_MODE=grok|codex` 決定；本機寫作 chain 找不到 `claude` 時還會默默退回 Codex。第一版 OpenSpec 提案又把決定寫成「文章寫作角色一律改用 Claude」，把模型講成了角色。
+- 修法：OpenSpec change `claude-only-prose-writing` 把決定寫成規範「Mogu 撰寫與改寫文章 SHALL 一律使用 Claude 模型」，並讓 router、gp-pipeline 與 Tribunal 的寫作步驟只接受 Claude，模型一律從 `tribunal-writer` frontmatter／`ClaudeOpusPinned` 讀，不在 config 另存一份；四位評審、eval、source reviewer、natural-zh gate 只打分不改字，維持原本路由。已經寫進 commit 的「角色」說法，用新的 commit 更正，不改寫歷史。
+- Reusable lesson：角色（Mogu）和模型（Claude）是兩件事。作者身份、署名與 voice 屬於 Mogu；Claude 是 Mogu 背後用的 AI 模型，是可以換的實作細節。寫 spec、文件、commit 時要說「Mogu 用 Claude 模型寫」，不要寫「Claude 擔任 writer」「寫作角色改用 Claude」。判斷哪些步驟要守這條時看它會不會改讀者看得到的字：corrector、MoguNote 候選、英文 sidecar、final-build 修復都算寫作。寫作模型是產品決定，fallback 或設定預設值都不能偷偷換掉它；Claude 不能用時要明確失敗，不要改用別的模型硬寫。
+
 ## 2026-08-16 — GP-274：讀者可見內容預設不用 emoji
 
 ### Feedback: 文章不要用未經逐次授權的表情圖示

@@ -15,6 +15,7 @@ func TestProviderStructuredOutputSchemasAreValidJSON(t *testing.T) {
 		"source translation": SourceTranslationJSONSchema,
 		"gate envelope":      GateEnvelopeJSONSchema,
 		"commentary":         CommentaryArtifactJSONSchema,
+		"bounded patch":      BoundedPatchJSONSchema,
 	} {
 		t.Run(name, func(t *testing.T) {
 			if !json.Valid([]byte(schema)) {

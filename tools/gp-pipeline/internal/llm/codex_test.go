@@ -124,34 +124,45 @@ func TestDefaultJudgeAndProbeChainsAreCodexGPT55(t *testing.T) {
 	}
 }
 
-func TestCodexOnlyRunScopedOverrideUsesRequestedModel(t *testing.T) {
+func TestCodexRunScopedOverrideAppliesOnlyToJudges(t *testing.T) {
 	t.Setenv("GP_CODEX_MODEL", "gpt-5.6-sol")
-	t.Setenv("GP_WRITER_PROVIDER", "codex")
+
+	chain := DefaultJudgeChain()
+	if len(chain) != 1 {
+		t.Fatalf("judge chain length = %d, want 1", len(chain))
+	}
+	if got := chain[0].Model(); got != ModelGPT56Sol {
+		t.Fatalf("judge model = %q, want %q", got, ModelGPT56Sol)
+	}
+	if got := DisplayName(chain[0].Model()); got != "GPT-5.6-Sol" {
+		t.Fatalf("judge display name = %q, want GPT-5.6-Sol", got)
+	}
+	if got := HarnessName(chain[0].Model()); got != "Codex CLI" {
+		t.Fatalf("judge harness = %q, want Codex CLI", got)
+	}
 
 	writerChain, err := WritingChain()
 	if err != nil {
 		t.Fatalf("WritingChain: %v", err)
 	}
-	for name, chain := range map[string][]Provider{
-		"writer": writerChain,
-		"judge":  DefaultJudgeChain(),
-	} {
-		if len(chain) != 1 {
-			t.Fatalf("%s chain length = %d, want 1", name, len(chain))
-		}
-		if got := chain[0].Model(); got != ModelGPT56Sol {
-			t.Fatalf("%s model = %q, want %q", name, got, ModelGPT56Sol)
-		}
-		if got := DisplayName(chain[0].Model()); got != "GPT-5.6-Sol" {
-			t.Fatalf("%s display name = %q, want GPT-5.6-Sol", name, got)
-		}
-		if got := HarnessName(chain[0].Model()); got != "Codex CLI" {
-			t.Fatalf("%s harness = %q, want Codex CLI", name, got)
-		}
+	if got := writerChain[0].Model(); got != ModelID(ClaudeOpusPinned) {
+		t.Fatalf("writer model = %q, want pinned Claude %q despite GP_CODEX_MODEL", got, ClaudeOpusPinned)
 	}
 }
 
-func TestExplicitClaudeWriterProviderDoesNotFallBackToCodexWhenUnavailable(t *testing.T) {
+func TestWritingChainRejectsRetiredCodexWriter(t *testing.T) {
+	t.Setenv("GP_WRITER_PROVIDER", "codex")
+
+	chain, err := WritingChain()
+	if err == nil {
+		t.Fatalf("WritingChain = %#v, want the retired Codex writer to be rejected", chain)
+	}
+	if !strings.Contains(err.Error(), "retired") || !strings.Contains(err.Error(), "Claude") {
+		t.Fatalf("WritingChain error = %q, want an actionable Claude-only message", err)
+	}
+}
+
+func TestWritingChainNeverFallsBackToCodexWhenClaudeIsUnavailable(t *testing.T) {
 	binDir := t.TempDir()
 	codexPath := filepath.Join(binDir, "codex")
 	if err := os.WriteFile(codexPath, []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
@@ -186,8 +197,11 @@ func TestExplicitClaudeWriterProviderDoesNotFallBackToCodexWhenUnavailable(t *te
 	if len(autoChain) != 1 {
 		t.Fatalf("unset writer chain length = %d, want 1", len(autoChain))
 	}
-	if _, ok := autoChain[0].(*CodexProvider); !ok {
-		t.Fatalf("unset writer provider type = %T, want available Codex fallback", autoChain[0])
+	if _, ok := autoChain[0].(*ClaudeProvider); !ok {
+		t.Fatalf("unset writer provider type = %T, want the Claude model even when only Codex is installed", autoChain[0])
+	}
+	if autoChain[0].Available() {
+		t.Fatal("Claude should be unavailable in the isolated PATH")
 	}
 }
 
@@ -201,7 +215,7 @@ func TestWritingChainRejectsUnknownExplicitProvider(t *testing.T) {
 	if !strings.Contains(err.Error(), `GP_WRITER_PROVIDER="cluade"`) {
 		t.Fatalf("WritingChain error = %q, want the invalid value", err)
 	}
-	if !strings.Contains(err.Error(), `valid values are "claude", "codex", or unset`) {
+	if !strings.Contains(err.Error(), `the only valid value is "claude" (or unset)`) {
 		t.Fatalf("WritingChain error = %q, want actionable valid values", err)
 	}
 }

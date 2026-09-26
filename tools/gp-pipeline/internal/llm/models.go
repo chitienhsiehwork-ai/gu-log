@@ -1,7 +1,6 @@
 // Package llm is the dispatcher layer around the external language model
-// CLIs the pipeline can call. Writing prefers the pinned Claude writer when
-// available and otherwise uses Codex; judges default to Codex with an explicit
-// Claude fallback policy. Gemini is available only for experiments.
+// CLIs the pipeline can call; which provider runs which step is defined in
+// defaults.go and routing.go (openspec claude-prose-writing-runtime).
 //
 // Design notes:
 //
@@ -9,9 +8,7 @@
 //     no API client, no auth plumbing, no HTTP. The surrounding CLIs
 //     (installed by the user) handle their own authentication, and we
 //     inherit whatever credentials they already have.
-//   - A Dispatcher composes a fallback chain. The default chain is Codex
-//     GPT-5.5 primary, matching the current local Codex actor workflow where Codex CLI
-//     is the maintained local LLM harness.
+//   - A Dispatcher composes a fallback chain; defaults.go defines the chains.
 //   - Canary probes (gp-pipeline doctor --probe-llm) send a single short
 //     prompt through each provider independently, reporting which ones
 //     respond non-interactively. This is the load-bearing early warning
@@ -34,8 +31,6 @@ const (
 	ModelGPT55        ModelID = "gpt-5.5"
 	ModelGPT56Sol     ModelID = "gpt-5.6-sol"
 	ModelGPT56Luna    ModelID = "gpt-5.6-luna"
-	ModelGrok46       ModelID = "grok-4.6"
-	ModelGrok45       ModelID = "grok-4.5"
 	ModelGPT54        ModelID = "gpt-5.4"
 	ModelGPT53Codex   ModelID = "gpt-5.3-codex"
 	ModelClaudeSonnet ModelID = "claude-sonnet"
@@ -49,7 +44,6 @@ const (
 // through to DisplayName's default branch (raw id into provenance) and to
 // HarnessName's "Unknown Harness" — both silent breakages.
 var claudeFamilyRe = regexp.MustCompile(`claude-(opus|sonnet|haiku)-([0-9]+)(?:-([0-9]+))?`)
-var grokFamilyRe = regexp.MustCompile(`^grok-([0-9]+)\.([0-9]+)$`)
 
 // DisplayName returns the human-readable model name the validator expects
 // in translatedBy.model. Unknown IDs pass through unchanged so the caller
@@ -67,9 +61,6 @@ func DisplayName(m ModelID) string {
 			return family + " " + match[2]
 		}
 		return family + " " + match[2] + "." + match[3]
-	}
-	if match := grokFamilyRe.FindStringSubmatch(normalized); match != nil {
-		return "Grok " + match[1] + "." + match[2]
 	}
 	// Never display the floating `opus` alias verbatim. If a path ever stamps
 	// the bare alias (e.g. runtime JSON reporting "opus" instead of a concrete
@@ -109,9 +100,6 @@ func DisplayName(m ModelID) string {
 func HarnessName(m ModelID) string {
 	if claudeFamilyRe.MatchString(string(m)) {
 		return "Claude Code CLI"
-	}
-	if grokFamilyRe.MatchString(string(m)) {
-		return "Grok Build CLI"
 	}
 	switch m {
 	case ModelClaudeOpus, ModelClaudeSonnet, ModelClaudeHaiku:

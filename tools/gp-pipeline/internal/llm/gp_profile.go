@@ -77,7 +77,6 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 		return nil, fmt.Errorf("runtime profile %q is not configured", profileName)
 	}
 	profile := GPProfile{}
-	seenModels := map[string]RuntimeRole{}
 	seenPrompts := map[string]RuntimeRole{}
 	for _, role := range RequiredGPRoles {
 		payload, ok := roles[string(role)]
@@ -88,7 +87,21 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 		if err := json.Unmarshal(payload, &cfg); err != nil {
 			return nil, fmt.Errorf("parse GP role %s: %w", role, err)
 		}
-		if (cfg.Provider != "codex" && cfg.Provider != "grok") || cfg.Model == "" || cfg.ReasoningEffort == "" || cfg.PromptContract == "" || cfg.OutputContract == "" {
+		// Which steps may use Claude is enforced by the model router when each
+		// role's dispatcher is built; here only the executed model matters.
+		switch {
+		case cfg.Provider == "claude":
+			// Bind the fingerprint to the pin actually executed, so a pin
+			// change invalidates earlier publish manifests.
+			cfg.Model, cfg.ReasoningEffort = ClaudeOpusPinned, ""
+		case cfg.Provider != "codex" || cfg.Model == "" || cfg.ReasoningEffort == "":
+			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
+		case cfg.Model == ClaudeOpusPinned:
+			// A gate that judges the Claude-written text must not run on
+			// the writing model.
+			return nil, fmt.Errorf("GP gate role %s shares the Claude writing model %q", role, cfg.Model)
+		}
+		if cfg.PromptContract == "" || cfg.OutputContract == "" {
 			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
 		}
 		expected := executableGPRoleContracts[role]
@@ -99,12 +112,6 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 			return nil, fmt.Errorf("GP roles %s and %s share prompt contract %q", other, role, cfg.PromptContract)
 		}
 		seenPrompts[cfg.PromptContract] = role
-		if role == RuntimeTranslator || role == RuntimeCorrector || role == RuntimeVibeScorer {
-			if other, exists := seenModels[cfg.Model]; exists {
-				return nil, fmt.Errorf("GP text roles %s and %s share model %q", other, role, cfg.Model)
-			}
-			seenModels[cfg.Model] = role
-		}
 		profile[role] = cfg
 	}
 	return profile, nil

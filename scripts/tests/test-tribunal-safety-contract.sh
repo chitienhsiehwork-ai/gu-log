@@ -8,7 +8,6 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
-GROK_BRIDGE="$ROOT_DIR/scripts/tribunal-grok-provider.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
@@ -169,9 +168,18 @@ if ! grep -q 'tribunal_codex_agent_model()' "$HELPERS" ||
    ! grep -q 'tribunal_codex_toml_model()' "$HELPERS"; then
   fail "Codex provider path lacks strict per-role TOML model resolution"
 fi
-missing_models=$(grep -L '^model = "[A-Za-z0-9][A-Za-z0-9._:-]*"$' "$CODEX_AGENTS_DIR"/*.toml || true)
+# Judges bind a Codex model per role. The writer contract binds none: Mogu
+# writes and rewrites articles only with the Claude model.
+missing_models=$(grep -L '^model = "[A-Za-z0-9][A-Za-z0-9._:-]*"$' "$CODEX_AGENTS_DIR"/*.toml |
+  grep -v '/tribunal-writer\.toml$' || true)
 if [ -n "$missing_models" ]; then
-  fail "One or more Codex tribunal agent specs lack a top-level model: $missing_models"
+  fail "One or more Codex tribunal judge specs lack a top-level model: $missing_models"
+fi
+if grep -Eq '^model(_reasoning_effort)?[[:space:]]*=' "$CODEX_WRITER"; then
+  fail "Codex tribunal-writer contract binds a Codex model; article rewrites use only the Claude model"
+fi
+if ! grep -q 'only with the Claude model' "$CODEX_WRITER"; then
+  fail "Codex tribunal-writer contract does not state that rewrites use only the Claude model"
 fi
 pass "Tribunal model selection: per-role TOML + explicit run-scoped override"
 
@@ -373,12 +381,17 @@ pass "strict routing keeps all four judges on role-pinned Codex; compatibility f
 
 if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
    ! grep -q '^Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex$' "$SERVICE" ||
-   ! grep -q '^Environment=GP_WRITER_MODE=grok$' "$SERVICE" ||
+   ! grep -q '^Environment=GP_WRITER_MODE=claude$' "$SERVICE" ||
    ! grep -q '^Slice=tribunal-runtime.slice$' "$SERVICE" ||
    ! grep -q '^export TRIBUNAL_RUNTIME_PROFILE="${TRIBUNAL_RUNTIME_PROFILE:-legacy}"$' "$WRAPPER" ||
-   ! grep -q '^export GP_WRITER_MODE="${GP_WRITER_MODE:-codex}"$' "$WRAPPER" ||
+   ! grep -q '^export GP_WRITER_MODE="${GP_WRITER_MODE:-claude}"$' "$WRAPPER" ||
    ! grep -q '^if \[ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" \]; then$' "$WRAPPER"; then
-  fail "service must select VM/Grok while the generic wrapper preserves legacy defaults and guards host identity"
+  fail "service must select the VM profile and the Claude-model writer while the generic wrapper guards host identity"
+fi
+restart_sec="$(sed -n 's/^RestartSec=\([0-9][0-9]*\)$/\1/p' "$SERVICE")"
+if ! grep -q '^Restart=on-failure$' "$SERVICE" ||
+   ! [ "${restart_sec:-0}" -ge 600 ] 2>/dev/null; then
+  fail "a failed writer preflight must back off at least 10 minutes between restarts (RestartSec=${restart_sec:-unset})"
 fi
 if ! grep -q '^MemoryMax=4G$' "$SLICE" ||
    ! grep -q '^CPUQuota=200%$' "$SLICE" ||
@@ -420,86 +433,93 @@ fi
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-writer-preflight.XXXXXX")"
   trap 'rm -rf "$fixture_root"' EXIT
-  mkdir -p "$fixture_root/.codex/agents" "$fixture_root/bin"
-  printf 'model = "gpt-writer-fixture"\n' \
-    > "$fixture_root/.codex/agents/tribunal-writer.toml"
-  cat > "$fixture_root/bin/codex" <<'FAKE_CODEX'
+  mkdir -p "$fixture_root/.claude/agents" "$fixture_root/bin"
+  printf '%s\n' '---' 'name: tribunal-writer' 'model: claude-writer-fixture' '---' \
+    > "$fixture_root/.claude/agents/tribunal-writer.md"
+  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
 #!/usr/bin/env bash
-if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
-prompt="${!#}"
-for ((i = 1; i < $#; i++)); do
-  printf '%s\n' "${!i}"
-done > "$FAKE_CODEX_ARGS"
+printf '%s\n' "$@" > "$FAKE_CLAUDE_ARGS"
+prompt="$(cat)"
 path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
 token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
 [ -n "$path" ] && [ -n "$token" ] || exit 2
 printf '%s\n' "$token" > "$path"
 printf 'OK\n'
-FAKE_CODEX
-  chmod +x "$fixture_root/bin/codex"
+FAKE_CLAUDE
+  chmod +x "$fixture_root/bin/claude"
   # shellcheck disable=SC1090
   source "$HELPERS"
   REPO_ROOT="$fixture_root"
   args="$fixture_root/args"
-  if GP_WRITER_MODE=none tribunal_writer_preflight >/dev/null 2>&1; then
-    echo "x writer preflight accepted none mode" >&2
-    exit 1
-  fi
-  if GP_WRITER_MODE=subagent tribunal_writer_preflight >/dev/null 2>&1; then
-    echo "x writer preflight accepted unconsumed subagent mode" >&2
-    exit 1
-  fi
-  if GP_WRITER_MODE=cli tribunal_writer_preflight >/dev/null 2>&1; then
-    echo "x writer preflight accepted compatibility-only cli mode" >&2
-    exit 1
-  fi
-  PATH="$fixture_root/bin:$PATH" FAKE_CODEX_ARGS="$args" GP_WRITER_MODE=codex \
+  for mode in none subagent cli codex grok; do
+    if PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE="$mode" \
+      tribunal_writer_preflight >"$fixture_root/$mode.out" 2>&1; then
+      echo "x writer preflight accepted non-Claude-model writer mode $mode" >&2
+      exit 1
+    fi
+    [ ! -e "$args" ] || {
+      echo "x writer preflight invoked Claude for rejected mode $mode" >&2
+      exit 1
+    }
+  done
+  for mode in subagent cli codex grok; do
+    grep -q "GP_WRITER_MODE=$mode is retired" "$fixture_root/$mode.out"
+  done
+  PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE=claude \
     TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 tribunal_writer_preflight >/dev/null
   cat > "$fixture_root/expected.args" <<'EXPECTED_ARGS'
-exec
+-p
 --model
-gpt-writer-fixture
--c
-model_reasoning_effort="medium"
--c
-approval_policy="never"
--c
-sandbox_workspace_write.writable_roots=[]
--c
-sandbox_workspace_write.exclude_slash_tmp=true
--c
-sandbox_workspace_write.exclude_tmpdir_env_var=true
--c
-sandbox_workspace_write.network_access=false
--c
-shell_environment_policy.inherit="core"
--c
-web_search="disabled"
---sandbox
-workspace-write
---ignore-user-config
---ignore-rules
---ephemeral
---strict-config
---skip-git-repo-check
---
+claude-writer-fixture
+--setting-sources
+
+--strict-mcp-config
+--permission-mode
+acceptEdits
+--tools
+Read,Grep,Glob,Edit,Write
+--allowed-tools
+Read,Grep,Glob
 EXPECTED_ARGS
   cmp -s "$fixture_root/expected.args" "$args" || {
     diff -u "$fixture_root/expected.args" "$args" >&2 || true
     exit 1
   }
-) || fail "bounded Codex write-canary preflight behavioral check failed"
-pass "deployed runtime selects the VM profile while legacy Codex preflight stays compatible"
+) || fail "bounded Claude write-canary preflight behavioral check failed"
+pass "deployed runtime selects the VM profile and a contained Claude write canary; retired writer modes fail before any model call"
 
-if ! grep -Fq 'codex|grok) ;;' "$TRIBUNAL" ||
-   grep -Fq 'complete Codex provider/model provenance' "$TRIBUNAL"; then
-  fail "isolated writer transaction does not accept complete Grok provenance"
-fi
-if ! grep -Fq 'tribunal_grok_prompt_exec' "$GROK_BRIDGE" ||
-   ! grep -Fq 'model_router_assert_profile_compatible' "$GROK_BRIDGE"; then
-  fail "Go Grok bridge bypasses the shared VM compatibility/containment executor"
-fi
-pass "Grok writer transactions and Go calls share provider-neutral provenance + containment"
+# Only the Claude model rewrites: the executor every writer transaction calls
+# refuses any other writer mode before a model is invoked.
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-writer-modes.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/bin" "$fixture_root/work"
+  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
+#!/usr/bin/env bash
+: > "$FAKE_CLAUDE_CALLED"
+exit 0
+FAKE_CLAUDE
+  chmod +x "$fixture_root/bin/claude"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  for mode in none subagent cli codex grok bogus; do
+    if PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_CALLED="$fixture_root/called" \
+      GP_WRITER_MODE="$mode" \
+      tribunal_writer_exec "$fixture_root/work" tribunal-writer 'rewrite' \
+      >"$fixture_root/$mode.out" 2>&1; then
+      echo "x writer executor accepted GP_WRITER_MODE=$mode" >&2
+      exit 1
+    fi
+    [ ! -e "$fixture_root/called" ] || {
+      echo "x writer executor invoked Claude for GP_WRITER_MODE=$mode" >&2
+      exit 1
+    }
+  done
+  grep -q 'rewrite skipped' "$fixture_root/none.out"
+  grep -q 'GP_WRITER_MODE=codex is retired' "$fixture_root/codex.out"
+  grep -q "unsupported GP_WRITER_MODE='bogus'" "$fixture_root/bogus.out"
+) || fail "writer executor must refuse every writer mode except claude"
+pass "writer transactions run only with the Claude model"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"
@@ -533,34 +553,35 @@ NOTIFIER
 pass "notifier receives one unchanged argv without shell evaluation"
 
 if ! grep -q 'temporary directory' "$CODEX_WRITER" || ! grep -q 'surgical editor' "$CODEX_WRITER"; then
-  fail "Codex tribunal writer prompt lacks GPT-5.5 temp-dir/surgical-edit guardrails"
+  fail "provider-neutral tribunal writer contract lacks temp-dir/surgical-edit guardrails"
 fi
 if ! grep -q 'Do not run the full tribunal' "$CODEX_WRITER"; then
-  fail "Codex tribunal writer prompt does not prohibit nested tribunal/quota-burning calls"
+  fail "provider-neutral tribunal writer contract does not prohibit nested tribunal/quota-burning calls"
 fi
 if ! grep -q 'The Repo root is read-only reference material' "$TRIBUNAL" ||
    ! grep -q 'TRIBUNAL_CANDIDATE_ZH_PATH' "$TRIBUNAL"; then
   fail "Tribunal writer task prompt does not confine edits to candidate paths"
 fi
-if ! grep -q 'tribunal_codex_writer_exec' "$HELPERS" ||
-   ! grep -q 'tribunal_codex_writer_prompt_exec' "$HELPERS" ||
-   ! grep -q -- '--sandbox workspace-write' "$HELPERS" ||
-   ! grep -q 'sandbox_workspace_write.exclude_slash_tmp=true' "$HELPERS"; then
-  fail "Tribunal Codex writer lacks its dedicated fail-closed sandbox"
+if grep -q 'tribunal_codex_writer_exec\|tribunal_codex_writer_prompt_exec\|tribunal_grok_writer_preflight' "$HELPERS"; then
+  fail "retired Codex/Grok writer executors returned to the Tribunal helpers"
 fi
-writer_exec_body="$(sed -n '/^tribunal_codex_writer_exec()/,/^}/p' "$HELPERS")"
-writer_prompt_body="$(sed -n '/^tribunal_codex_writer_prompt_exec()/,/^}/p' "$HELPERS")"
+writer_exec_body="$(sed -n '/^tribunal_claude_writer_exec()/,/^}/p' "$HELPERS")"
+writer_prompt_body="$(sed -n '/^tribunal_claude_writer_prompt_exec()/,/^}/p' "$HELPERS")"
 writer_preflight_body="$(sed -n '/^tribunal_writer_preflight()/,/^)/p' "$HELPERS")"
-if ! grep -q 'tribunal_codex_writer_prompt_exec' <<<"$writer_exec_body" ||
-   ! grep -q 'tribunal_codex_workspace_prompt_exec' <<<"$writer_prompt_body" ||
-   ! grep -q 'tribunal_codex_writer_prompt_exec' <<<"$writer_preflight_body" ||
+transient_service_body="$(sed -n '/^tribunal_exec_transient_service()/,/^}/p' "$HELPERS")"
+if ! grep -q 'tribunal_claude_writer_prompt_exec' <<<"$writer_exec_body" ||
+   ! grep -q 'tribunal_claude_writer_prompt_exec' <<<"$writer_preflight_body" ||
+   ! grep -q 'tribunal_exec_transient_service claude' <<<"$writer_prompt_body" ||
+   ! grep -Fq -- '--slice=tribunal-runtime.slice' <<<"$transient_service_body" ||
+   ! grep -Fq -- '--property=KillMode=control-group' <<<"$transient_service_body" ||
+   grep -Fq -- '--add-dir' <<<"$writer_prompt_body" ||
    [ "$(grep -c -- '--sandbox workspace-write' <<<"$judge_sandbox_body")" -ne 1 ]; then
-  fail "formal writer and deployed canary do not share one exact sandbox executor"
+  fail "formal writer and deployed canary do not share one contained Claude executor"
 fi
 if grep -q 'WRITING_GUIDELINES.md' "$TRIBUNAL" "$CODEX_WRITER"; then
   fail "Tribunal writer prompt references removed WRITING_GUIDELINES.md"
 fi
-pass "Codex tribunal writer prompt is tuned for GPT-5.5 isolated execution"
+pass "Tribunal writer contract keeps isolated-directory and surgical-edit guardrails on one contained Claude executor"
 
 if ! grep -q 'tribunal-assert-pass-artifacts.sh' "$TRIBUNAL"; then
   fail "PASS artifact guard is not wired into commit_progress"

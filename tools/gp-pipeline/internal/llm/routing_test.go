@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -21,28 +22,54 @@ func TestProvidersForRuntimeKeepsLegacyInactive(t *testing.T) {
 	}
 }
 
-func TestProvidersForRuntimeResolvesVMCodexRoles(t *testing.T) {
+// installRuntimeFakes puts fake codex and claude CLIs first on PATH so the
+// real router's provider preflight runs without real credentials.
+func installRuntimeFakes(t *testing.T, claudeLoggedIn bool) {
+	t.Helper()
 	binDir := t.TempDir()
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
-	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
-if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
+	loggedIn := "false"
+	if claudeLoggedIn {
+		loggedIn = "true"
+	}
+	writeExecutable(t, filepath.Join(binDir, "claude"), `#!/bin/sh
+if [ "${1:-}" = auth ] && [ "${2:-}" = status ]; then
+  printf '{"loggedIn":`+loggedIn+`}\n'
+  exit 0
 fi
-exit 0
+exit 1
 `)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("TRIBUNAL_RUNTIME_PROFILE", "vm-codex")
 	t.Setenv("TRIBUNAL_REVIEWER_REMAINING_PCT", "50")
+	t.Setenv("REPO_ROOT", "")
+}
 
+func TestProvidersForRuntimeResolvesVMRoles(t *testing.T) {
+	installRuntimeFakes(t, true)
 	repoRoot := repoRootForRoutingTest(t)
-	writers, active, err := ProvidersForRuntime(
-		context.Background(), repoRoot, RuntimeWriter,
-	)
-	if err != nil {
-		t.Fatalf("writer route: %v", err)
-	}
-	if !active || len(writers) != 1 || writers[0].Name() != "grok-build-grok-4.6" {
-		t.Fatalf("writer route = (%v, %v), want Grok active", writers, active)
+
+	fileTools := []string{"Read", "Grep", "Glob", "Edit", "Write"}
+	for role, wantTools := range map[RuntimeRole][]string{
+		RuntimeWriter:     fileTools,
+		RuntimeTranslator: {},
+		RuntimeCorrector:  {},
+		RuntimeCommentary: {},
+	} {
+		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
+		if err != nil || !active || len(providers) != 1 {
+			t.Fatalf("%s route = (%v, %v, %v), want one active Claude provider", role, providers, active, err)
+		}
+		claude, ok := providers[0].(*ClaudeProvider)
+		if !ok {
+			t.Fatalf("%s provider = %T, want *ClaudeProvider", role, providers[0])
+		}
+		if claude.ModelFlag != ClaudeOpusPinned || !claude.Contained {
+			t.Fatalf("%s provider = %+v, want the contained Claude model pin %q", role, claude, ClaudeOpusPinned)
+		}
+		if !reflect.DeepEqual(claude.Tools, wantTools) {
+			t.Fatalf("%s tools = %#v, want %#v", role, claude.Tools, wantTools)
+		}
 	}
 
 	reviewers, active, err := ProvidersForRuntime(
@@ -63,10 +90,7 @@ exit 0
 	}
 
 	for role, want := range map[RuntimeRole]string{
-		RuntimeTranslator:     "grok-build-grok-4.6",
 		RuntimeSourceReviewer: "codex-gpt-5.6-sol",
-		RuntimeCorrector:      "codex-gpt-5.6-sol",
-		RuntimeCommentary:     "grok-build-grok-4.6",
 		RuntimeVibeScorer:     "codex-gpt-5.5",
 	} {
 		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
@@ -76,24 +100,38 @@ exit 0
 	}
 }
 
-func TestProvidersForRuntimeHonorsGrokQuotaActions(t *testing.T) {
-	binDir := t.TempDir()
-	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
-	writeExecutable(t, filepath.Join(binDir, "grok"), `#!/bin/sh
-if [ "${1:-}" = models ]; then
-  printf 'Default model: grok-4.6\nAvailable models:\n  * grok-4.6 (default)\n  * grok-4.5\n'
-fi
-exit 0
-`)
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("TRIBUNAL_RUNTIME_PROFILE", "vm-codex")
-	t.Setenv("TRIBUNAL_GROK_REMAINING_PCT", "9")
+// TestProvidersForRuntimeJudgesDoNotNeedClaude keeps the judge path free of
+// Claude: a logged-out Claude CLI blocks only the article-writing routes.
+func TestProvidersForRuntimeJudgesDoNotNeedClaude(t *testing.T) {
+	installRuntimeFakes(t, false)
+	repoRoot := repoRootForRoutingTest(t)
+	if _, _, err := ProvidersForRuntime(context.Background(), repoRoot, RuntimeReviewer); err != nil {
+		t.Fatalf("reviewer route with logged-out Claude: %v", err)
+	}
+	_, _, err := ProvidersForRuntime(context.Background(), repoRoot, RuntimeWriter)
+	if err == nil || !strings.Contains(err.Error(), "claude") {
+		t.Fatalf("writer route with logged-out Claude = %v, want a Claude preflight failure", err)
+	}
+}
 
-	_, active, err := ProvidersForRuntime(
-		context.Background(), repoRootForRoutingTest(t), RuntimeWriter,
-	)
-	if err == nil || !active || !strings.Contains(err.Error(), "action=pause") {
-		t.Fatalf("writer low-quota route = (active=%v, err=%v), want pause", active, err)
+// fakeRouterRoot returns a repo root whose router prints a fixed resolution,
+// so the Go-side guards can be exercised independently of the shell router.
+func fakeRouterRoot(t *testing.T, resolution string) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "scripts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeExecutable(t, filepath.Join(root, "scripts", "tribunal-model-router.sh"),
+		"#!/usr/bin/env bash\nprintf '%s\\n' '"+resolution+"'\n")
+	return root
+}
+
+func TestProvidersForRuntimeRejectsClaudePinDrift(t *testing.T) {
+	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"claude","model":"claude-opus-drifted","reasoningEffort":"","quotaTier":"normal","remainingPercent":"unknown"}`)
+	_, _, err := ProvidersForRuntime(context.Background(), root, RuntimeWriter)
+	if err == nil || !strings.Contains(err.Error(), "pin drift") {
+		t.Fatalf("drifted pin route error = %v, want a pin drift rejection", err)
 	}
 }
 
