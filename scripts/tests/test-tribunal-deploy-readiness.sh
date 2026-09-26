@@ -1204,3 +1204,17 @@ for failure in quota login; do
 done
 pass "Claude quota and login failures during a rewrite restore, pause, and never re-judge or count"
 
+# A run that may rewrite with a non-Claude writer mode fails before any judge.
+cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+cp -p "$fixture_en_baseline" "$fixture_en_path"
+printf '{}\n' > "$writer_progress"
+rm -f "$TMP/judge-count" "$TMP/writer-calls"
+set +e
+FIXTURE_WRITER_MODE=subagent run_factchecker_fixture "$TMP/writer-mode.out"
+mode_rc=$?
+set -e
+[ "$mode_rc" -eq 78 ] ||
+  fail "rewrite with GP_WRITER_MODE=subagent exited $mode_rc, want 78 before any judge"
+[ ! -e "$TMP/judge-count" ] ||
+  fail "rewrite with a non-Claude writer mode spent a judge call first"
+pass "a rewrite-capable run without the Claude writer fails before the first judge"

@@ -164,6 +164,20 @@ tlog() {
   echo "$msg" | tee -a "$LOG_FILE"
 }
 
+# Only the Claude model rewrites articles (openspec claude-prose-writing-runtime).
+# A run that may rewrite with any other writer mode would fail at its first
+# rewrite after judges already spent quota, so fail before the first judge.
+# `none` keeps its explicit score-only meaning.
+if [ "$ALLOW_REWRITE" = 1 ]; then
+  case "$(tribunal_writer_mode)" in
+    claude|none) ;;
+    *)
+      tlog "ERROR: rewrite is allowed but GP_WRITER_MODE=$(tribunal_writer_mode) cannot rewrite; only GP_WRITER_MODE=claude can. Set it or rerun with --no-rewrite. No judge ran (rc=78)."
+      exit 78
+      ;;
+  esac
+fi
+
 # ─── Lock ─────────────────────────────────────────────────────────────────────
 # Exit code 75 = skipped (another instance is already running this article).
 # Callers (batch-runner, quota-loop, Phase 2 supervisor) must treat this as
