@@ -194,10 +194,20 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 [ "$CASE_RC" -eq 2 ] || fail "CLI writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "CLI writer provider joins active providers"
 
-ACTIVE_WRITER_MODE=codex
-run_case claude claude '[{"provider":"claude","status":"ok","five_hr_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "Codex writer must require OpenAI telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "Codex writer provider joins active providers"
+ACTIVE_WRITER_MODE=claude
+run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+[ "$CASE_RC" -eq 2 ] || fail "Claude-model writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
+run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70},{"provider":"claude","status":"ok","five_hr_remaining_pct":60,"weekly_remaining_pct":50}]'
+[ "$CASE_RC" -eq 0 ] || fail "Claude-model writer with healthy telemetry should pass; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=50"*) ;; *) fail "Claude-model writer did not join the strict minimum: $LOG_OUTPUT" ;; esac
+pass "Claude-model writer provider joins active providers"
+
+for retired_mode in codex grok; do
+  ACTIVE_WRITER_MODE="$retired_mode"
+  run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+  [ "$CASE_RC" -eq 2 ] || fail "retired $retired_mode writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+done
+pass "retired Codex/Grok writer modes fail closed"
 
 ACTIVE_WRITER_MODE=subagent
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'

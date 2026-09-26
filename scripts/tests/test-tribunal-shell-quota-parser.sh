@@ -259,25 +259,31 @@ fi
 pass "legacy Claude compatibility quota path never probes Claude or combined usage"
 
 (
-  tribunal_writer_mode() { printf 'codex\n'; }
+  tribunal_writer_mode() { printf 'claude\n'; }
+  tribunal_claude_agent_model() { printf 'claude-writer-fixture\n'; }
   tribunal_writer_exec_raw() {
-    printf '429 quota exceeded\n'
+    printf 'Claude AI usage limit reached\n'
     return 42
   }
   status_file="$TMP/writer-quota-status.json"
+  rm -f "$TMP/codexbar.argv"
   set +e
-  TRIBUNAL_QUOTA_CODEXBAR_JSON="$weekly_exhausted" \
-  TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
+  CODEXBAR_ARGV="$TMP/codexbar.argv" CODEXBAR_FIXTURE="$sample" \
+  PATH="$TMP/bin:$PATH" \
   TRIBUNAL_QUOTA_STATUS_FILE="$status_file" \
     tribunal_writer_exec "$TMP" tribunal-writer 'quota fixture' \
       >"$TMP/writer-quota.out" 2>&1
   writer_rc=$?
   set -e
   [ "$writer_rc" -eq 75 ] ||
-    fail "Codex writer quota error should suspend with rc75, got $writer_rc"
-  grep -Fxq 'provider=codex' "$status_file" ||
-    fail "Codex writer quota status did not record provider=codex"
+    fail "Claude-model writer quota error should suspend with rc75, got $writer_rc"
+  grep -Fxq 'provider=claude' "$status_file" ||
+    fail "Claude-model writer quota status did not record provider=claude"
   grep -Fxq 'action=suspend' "$status_file" ||
-    fail "Codex writer quota status did not record suspend"
-) || fail "Codex writer did not route quota errors through the shared JSON handler"
-pass "Codex writer quota errors use the provider-specific JSON wait/suspend path"
+    fail "Claude-model writer quota status did not record suspend"
+  grep -Fxq 'tier=unknown' "$status_file" ||
+    fail "Claude-model writer quota must not infer a tier"
+  [ ! -e "$TMP/codexbar.argv" ] ||
+    fail "Claude-model writer quota error probed CodexBar"
+) || fail "Claude-model writer did not suspend quota errors through the shared handler"
+pass "Claude-model writer quota errors suspend as unknown without Claude or combined probes"

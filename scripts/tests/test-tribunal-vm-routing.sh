@@ -72,13 +72,12 @@ case "$expected_vibe_provider" in
   *) printf 'unsupported Vibe provider in fixture: %s\n' "$expected_vibe_provider" >&2; exit 1 ;;
 esac
 [ "$(tribunal_runner_label vibe-opus-scorer)" = "$expected_vibe_runner" ]
-tribunal_writer_provenance_complete \
-  grok grok-4.6 grok-build-grok-4.6-low
-tribunal_writer_provenance_complete \
-  codex gpt-5.6-sol codex-gpt-5.6-sol-xhigh
-if tribunal_writer_provenance_complete claude claude-opus-4-6 claude-opus-4-6 ||
-   tribunal_writer_provenance_complete grok '' grok-build-grok-4.6-low; then
-  printf 'writer provenance guard accepted an incomplete/unsupported provider\n' >&2
+writer_pin="$(tribunal_claude_agent_model tribunal-writer)"
+tribunal_writer_provenance_complete claude "$writer_pin" "$writer_pin"
+if tribunal_writer_provenance_complete grok grok-4.6 grok-build-grok-4.6-low ||
+   tribunal_writer_provenance_complete codex gpt-5.6-sol codex-gpt-5.6-sol-xhigh ||
+   tribunal_writer_provenance_complete claude '' "$writer_pin"; then
+  printf 'writer provenance guard accepted a non-Claude or incomplete writer\n' >&2
   exit 1
 fi
 

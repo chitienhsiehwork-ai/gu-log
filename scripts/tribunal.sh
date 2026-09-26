@@ -623,8 +623,8 @@ WRITER_TRANSACTION_RECOVERY_PATH=""
 WRITER_TRANSACTION_APPLY_UNCERTAIN=0
 WRITER_TRANSACTION_FRONTMATTER_POLICY="preserve-all"
 
-# Run the routed writer against private candidate files, never the canonical
-# post paths. The subprocess gets a workspace-write sandbox rooted at its temp
+# Run the tribunal-writer (Claude model) against private candidate files, never the canonical
+# post paths. The contained Claude session can edit only inside its temp
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
@@ -665,9 +665,9 @@ run_writer_candidate_transaction() {
       ;;
   esac
   case "$(tribunal_writer_mode)" in
-    codex|grok) ;;
+    claude) ;;
     *)
-      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=codex or grok."
+      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=claude (gu-log article rewrites use only the Claude model)."
       return 70
       ;;
   esac

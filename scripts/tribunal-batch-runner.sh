@@ -85,23 +85,22 @@ tribunal_batch_active_providers() {
   writer_provider=""
   case "$writer_mode" in
     none|subagent) ;;
+    claude)
+      writer_provider="claude"
+      ;;
     cli)
       writer_provider=$(tribunal_writer_provider 2>/dev/null) || return 1
       ;;
-    codex)
-      writer_provider="codex"
-      ;;
-    grok)
-      writer_provider="grok"
-      ;;
+    # codex/grok writer modes are retired: gu-log article rewrites use only
+    # the Claude model.
     *) return 1 ;;
   esac
 
   for provider in "$global_provider" "$vibe_provider" "$fallback_provider" "$writer_provider"; do
     [ -n "$provider" ] || continue
-    # Grok uses the shared model router's quota policy. CodexBar cannot yet
-    # provide a reliable Grok percentage on this VM, so do not pretend the
-    # usage-monitor payload is authoritative for it.
+    # A runtime profile may still route a judge to Grok, but usage-monitor has
+    # no reliable Grok percentage, so do not pretend its payload is
+    # authoritative for it.
     if [ "$provider" = "grok" ]; then
       continue
     fi
