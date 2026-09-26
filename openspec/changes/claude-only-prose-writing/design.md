@@ -102,7 +102,7 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 - 帳號設定或 model pin 不能用（座位類型、管理員停用、群組上限 $0、需要 usage credits、org 沒有額度、pin 的模型不存在或沒有權限）：跟登入一樣以 rc 78 停止領新文章，錯誤訊息說明要由人修正方案、管理員設定或 model pin。分類時需要人處理的訊息優先於只要等待的訊息。
 - 其他寫手失敗：候選已丟棄、文章沒變，前一次 FAIL 仍然成立，所以計入一次嘗試但不重評；還有次數就只重試改寫，用完就判 stage 失敗。
 - 手動 batch runner 遇到額度暫停（含暫時性錯誤）或 rc 78 時停下整批並說明原因，開始每篇前也先看暫停檔。
-- 寫手 preflight 在領文章前失敗（例如未登入）時 daemon 直接退出，systemd 至少間隔 10 分鐘才重啟，不會每分鐘重試。部署檢查的 `--doctor --live-probe` 用 unit 的有效環境與 user manager 的 PATH，走跟 daemon 相同的暫態 service，probe 通過就代表 daemon 的前置檢查也會過。
+- 寫手 preflight 在領文章前失敗（例如未登入）時 daemon 直接退出，systemd 至少間隔 10 分鐘才重啟，不會每分鐘重試。部署檢查的 `--doctor --live-probe` 照 systemd 的方式從頭重建 daemon 的環境（user manager 的環境、unit 的 `Environment=`、再由 `tribunal.env` 覆蓋，最後套上 wrapper 的 `TZ` 與 `PATH`），走跟 daemon 相同的暫態 service，probe 通過就代表 daemon 的前置檢查也會過。
 
 ### 9. subagent 與舊版 cli 寫手模式退役
 

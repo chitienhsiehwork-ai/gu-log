@@ -56,3 +56,4 @@
 ## 9. 最後一輪審查修正
 
 - [x] 9.1 受限的 Claude 呼叫（部署版與 runtime profile）改成從空的環境啟動，只帶 `HOME`、`PATH`、`CLAUDE_CONFIG_DIR` 與 `TZ`；刪掉兩份環境變數黑名單與交叉比對測試（8.5 的黑名單部分由此取代）；以塞入 `ANTHROPIC_API_KEY`、`CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR` 與自訂變數的行為測試驗證（Go、model-cli-env、model-router、deploy-readiness）
+- [x] 9.2 live probe 照 systemd 的方式從頭重建 daemon 的環境，包含 `tribunal.env` 的設定，不採用 operator shell 的變數；以 deploy-readiness 驗證 probe 用的是 `tribunal.env` 的 `CLAUDE_CONFIG_DIR`

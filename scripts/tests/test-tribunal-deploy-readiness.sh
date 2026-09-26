@@ -376,7 +376,12 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
 case "$*" in
   *is-enabled*) printf 'enabled\n' ;;
   *'Environment --value'*) printf 'TRIBUNAL_DEPLOYED_MODE=1 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 GP_WRITER_MODE=claude TZ=Asia/Taipei\n' ;;
-  *show-environment*) printf 'PATH=%s\n' "${DOCTOR_MANAGER_PATH:-/usr/bin:/bin}" ;;
+  *show-environment*)
+    printf 'HOME=%s\n' "$HOME"
+    printf 'PATH=%s\n' "${DOCTOR_MANAGER_PATH:-/usr/bin:/bin}"
+    ;;
+  *'EnvironmentFiles --value'*)
+    printf '%s (ignore_errors=no)\n' "$HOME/.config/gu-log/tribunal.env" ;;
   *'MainPID --value'*) printf '4242\n' ;;
   *'tribunal-runtime.slice -p LoadState --value'*) printf 'loaded\n' ;;
   *'tribunal-runtime.slice -p ActiveState --value'*) printf 'active\n' ;;
@@ -452,18 +457,18 @@ CLAUDE
 : > "$TMP/doctor-shell-claude-called"
 exit 99
 CLAUDE
-  cat > "$doctor_manager_bin/systemd-run" <<'SYSTEMD_RUN'
+  cat > "$doctor_manager_bin/systemd-run" <<SYSTEMD_RUN
 #!/usr/bin/env bash
-printf '%s\n' "$@" > "$DOCTOR_SYSTEMD_RUN_ARGS"
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = -- ]; then
+printf '%s\n' "\$@" > "$TMP/doctor-systemd-run.args"
+while [ "\$#" -gt 0 ]; do
+  if [ "\$1" = -- ]; then
     shift
     break
   fi
   shift
 done
-[ "$#" -gt 0 ] || exit 64
-exec "$@"
+[ "\$#" -gt 0 ] || exit 64
+exec "\$@"
 SYSTEMD_RUN
   chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/codex" \
     "$doctor_bin/claude" "$doctor_manager_bin/claude" \
@@ -564,24 +569,35 @@ STATE
     '' '' 'reason=snapshot-changed' "$doctor_same_bytes"
 
   rm -f "$doctor_snapshot_state"
+  # The daemon's settings come from tribunal.env, not from the operator shell.
+  mkdir -p "$doctor_home/.config/gu-log"
+  {
+    printf "GU_LOG_DIR='%s'\n" "$doctor_root"
+    printf "CLAUDE_CONFIG_DIR='%s'\n" "$doctor_home/claude-from-env-file"
+  } > "$doctor_home/.config/gu-log/tribunal.env"
   HOME="$doctor_home" GU_LOG_DIR="$doctor_root" PATH="$doctor_bin:$PATH" \
+  CLAUDE_CONFIG_DIR="$doctor_home/claude-from-shell" \
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
   DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
   DOCTOR_MANAGER_PATH="$doctor_manager_bin:/usr/local/bin:/usr/bin:/bin" \
-  DOCTOR_SYSTEMD_RUN_ARGS="$TMP/doctor-systemd-run.args" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
       >"$TMP/doctor-live.out"
-  grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out"
-  [ -e "$TMP/doctor-claude-called" ]
+  # A subshell tested with || does not stop at a failed command, so every
+  # check below exits on its own.
+  grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out" || exit 1
+  [ -e "$TMP/doctor-claude-called" ] || exit 1
   # Same executor and environment as the daemon: the deployed transient
-  # service, and the claude on the user manager's PATH.
-  [ ! -e "$TMP/doctor-shell-claude-called" ]
-  grep -Fxq -- '--slice=tribunal-runtime.slice' "$TMP/doctor-systemd-run.args"
+  # service, the claude on the user manager's PATH, and tribunal.env's
+  # settings rather than the operator shell's.
+  [ ! -e "$TMP/doctor-shell-claude-called" ] || exit 1
+  grep -Fxq -- '--slice=tribunal-runtime.slice' "$TMP/doctor-systemd-run.args" || exit 1
   awk 'p2 == "--" && p1 ~ /\/env$/ && $0 == "-i" { ok = 1 } { p2 = p1; p1 = $0 } END { exit !ok }' \
-    "$TMP/doctor-systemd-run.args"
-  grep -Fxq -- '--setenv=TZ=Asia/Taipei' "$TMP/doctor-systemd-run.args"
+    "$TMP/doctor-systemd-run.args" || exit 1
+  grep -Fxq -- '--setenv=TZ=Asia/Taipei' "$TMP/doctor-systemd-run.args" || exit 1
+  grep -Fxq -- "CLAUDE_CONFIG_DIR=$doctor_home/claude-from-env-file" \
+    "$TMP/doctor-claude.env" || exit 1
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
 pass "doctor reuses current PID state; only the explicit live probe runs the Claude write canary, through the daemon's executor and environment"
 

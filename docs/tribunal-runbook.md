@@ -178,9 +178,10 @@ bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
 deploy block 最後會跑一次 live probe 確認 Claude CLI 已登入；之後只有需要重新
-驗證 Claude 登入狀態與實際寫入權限時才手動執行。它用正式改寫同一個受限
-Claude 執行器在 disposable workspace 跑一次 bounded write canary（會實際呼叫
-一次 Claude 模型），內容完全吻合才輸出 exact `OK`：
+驗證 Claude 登入狀態與實際寫入權限時才手動執行。它用 daemon 自己的環境
+（含 `tribunal.env`）與正式改寫同一個受限 Claude 執行器，在 disposable
+workspace 跑一次 bounded write canary（會實際呼叫一次 Claude 模型），內容完全
+吻合才輸出 exact `OK`：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe

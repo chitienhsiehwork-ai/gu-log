@@ -144,32 +144,44 @@ if [ "${1:-}" = "--doctor" ]; then
     printf 'role_provider_contract=passed\n'
   fi
   if [ "$live_probe" = "1" ]; then
-    # Probe exactly like the daemon's writer preflight (openspec
-    # tribunal-24-7-operations): the unit's deployed mode selects the same
-    # contained executor in a transient systemd service, and PATH, TZ and the
-    # Claude config directory are the values the daemon would hand to it.
-    manager_path="$(
-      systemctl --user show-environment 2>/dev/null |
-        sed -n 's/^PATH=//p' | tail -1
+    # Probe in the daemon's own environment (openspec tribunal-24-7-operations).
+    # systemd builds it from the user manager's environment, the unit's
+    # Environment= settings and its EnvironmentFile (tribunal.env, which
+    # overrides them); this wrapper then sets TZ and prefixes PATH. Rebuild it
+    # the same way from nothing, so the operator's shell adds nothing and a
+    # passing probe means the daemon's writer preflight passes too.
+    daemon_env=("HOME=$HOME")
+    while IFS= read -r assignment; do
+      case "$assignment" in
+        [A-Za-z_]*=*) daemon_env+=("$assignment") ;;
+      esac
+    done < <(systemctl --user show-environment 2>/dev/null || true)
+    for assignment in $unit_environment; do
+      case "$assignment" in
+        [A-Za-z_]*=*) daemon_env+=("$assignment") ;;
+      esac
+    done
+    env_file="$(
+      systemctl --user show tribunal-loop -p EnvironmentFiles --value 2>/dev/null |
+        sed -n '1s/ (ignore_errors=[a-z]*)$//p'
     )"
     probe_output="$(
-      TRIBUNAL_DEPLOYED_MODE="$(tribunal_effective_runtime_value \
-        "$unit_environment" TRIBUNAL_DEPLOYED_MODE 1)"
-      TZ="$(tribunal_effective_runtime_value \
-        "$unit_environment" TZ "${TZ:-Asia/Taipei}")"
-      CLAUDE_CONFIG_DIR="$(tribunal_effective_runtime_value \
-        "$unit_environment" CLAUDE_CONFIG_DIR "${CLAUDE_CONFIG_DIR:-}")"
-      export TRIBUNAL_DEPLOYED_MODE TZ
-      if [ -n "$CLAUDE_CONFIG_DIR" ]; then
-        export CLAUDE_CONFIG_DIR
-      else
-        unset CLAUDE_CONFIG_DIR
-      fi
-      if [ -n "$manager_path" ]; then
-        # The service inherits the user manager's PATH; the wrapper prefixes it.
-        export PATH="$HOME/.local/bin:$HOME/bin:$manager_path"
-      fi
-      tribunal_writer_preflight 2>/dev/null
+      env -i "${daemon_env[@]}" TRIBUNAL_DAEMON_ENV_FILE="$env_file" \
+        "${BASH:-/bin/bash}" -c '
+          if [ -n "$TRIBUNAL_DAEMON_ENV_FILE" ] && [ -r "$TRIBUNAL_DAEMON_ENV_FILE" ]; then
+            set -a
+            # shellcheck source=/dev/null
+            . "$TRIBUNAL_DAEMON_ENV_FILE"
+            set +a
+          fi
+          unset TRIBUNAL_DAEMON_ENV_FILE
+          export TZ=Asia/Taipei
+          export PATH="$HOME/.local/bin:$HOME/bin:${PATH:-/usr/bin:/bin}"
+          export GP_WRITER_MODE="${GP_WRITER_MODE:-claude}"
+          # shellcheck source=scripts/tribunal-helpers.sh
+          . "$1/tribunal-helpers.sh"
+          tribunal_writer_preflight 2>/dev/null
+        ' _ "$SCRIPT_DIR"
     )" || true
     if [ "$probe_output" = "OK" ]; then
       printf 'writer_preflight=passed source=live result=OK\n'
