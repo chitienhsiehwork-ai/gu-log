@@ -21,6 +21,9 @@ if [ -n "${FAKE_CLAUDE_CALLS:-}" ]; then
   printf '%s\n' "$*" >> "$FAKE_CLAUDE_CALLS"
 fi
 if [ "${1:-}" = auth ] && [ "${2:-}" = status ]; then
+  if [ -n "${FAKE_CLAUDE_ENV:-}" ]; then
+    env > "$FAKE_CLAUDE_ENV"
+  fi
   printf '{"loggedIn":%s}\n' "${FAKE_CLAUDE_LOGGED_IN:-true}"
   exit 0
 fi
@@ -101,6 +104,17 @@ for role in writer translator corrector commentary; do
     '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
     "$CONFIG" >/dev/null; then
     fail "config must not copy the Claude model pin into $role"
+  fi
+done
+
+# The login check sees only the CLI's own login state: API-key and token
+# variables are dropped exactly as for the VM's Claude calls.
+ANTHROPIC_API_KEY=sk-ant-fixture ANTHROPIC_AUTH_TOKEN=bearer-fixture \
+CLAUDE_CODE_OAUTH_TOKEN=oauth-fixture FAKE_CLAUDE_ENV="$TMP_DIR/claude-auth.env" \
+TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" writer --json >/dev/null
+for variable in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN; do
+  if grep -q "^$variable=" "$TMP_DIR/claude-auth.env"; then
+    fail "Claude login check saw $variable"
   fi
 done
 

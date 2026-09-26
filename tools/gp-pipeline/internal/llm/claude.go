@@ -158,12 +158,16 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	// The permission flags end with variadic tool lists. The prompt goes on
 	// stdin, so no trailing positional exists for them to swallow.
 	args = append(args, c.permissionArgs()...)
-	res, err := runner.RunWithOptions(ctx, runner.Options{
+	runOpts := runner.Options{
 		Name:    "claude",
 		Args:    args,
 		Stdin:   []byte(prompt),
 		WorkDir: opts.WorkDir,
-	})
+	}
+	if c.Contained {
+		runOpts.UnsetEnv = claudeContainedBlockedEnv
+	}
+	res, err := runner.RunWithOptions(ctx, runOpts)
 	if err != nil {
 		// With --output-format json the CLI reports model, login and usage-limit
 		// failures on stdout rather than stderr. Carry that message so quota
@@ -241,6 +245,17 @@ func (c *ClaudeProvider) permissionArgs() []string {
 		"--permission-mode", "acceptEdits",
 		"--allowed-tools", "Read,Grep,Glob,Bash,Write,Edit,MultiEdit",
 	}
+}
+
+// claudeContainedBlockedEnv never reaches a contained (runtime-profile) Claude
+// call. API-key variables would silently move billing to the API; the VM
+// authenticates the Claude CLI only through its `claude auth login` state, so a
+// stray OAuth token variable and other providers' keys are dropped too. It
+// matches `tribunal_transient_service_unset_env claude` in
+// scripts/tribunal-helpers.sh, which a test cross-checks.
+var claudeContainedBlockedEnv = []string{
+	"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_API_KEY",
+	"CLAUDE_CODE_OAUTH_TOKEN", "OPENAI_API_KEY", "CODEX_API_KEY",
 }
 
 // claudeReadOnlyTools keeps the tools that only read. Pre-approving them lets a

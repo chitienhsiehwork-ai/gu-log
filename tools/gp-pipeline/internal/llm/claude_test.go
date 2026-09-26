@@ -3,7 +3,10 @@ package llm
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -284,6 +287,55 @@ func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestClaudeContainedCallDropsCredentialVariables keeps API-key and token
+// variables out of runtime-profile Claude calls, and keeps the Go list equal to
+// the Tribunal transient-service list so every VM Claude call authenticates the
+// same way.
+func TestClaudeContainedCallDropsCredentialVariables(t *testing.T) {
+	binDir := t.TempDir()
+	envPath := filepath.Join(t.TempDir(), "env")
+	script := "#!/usr/bin/env bash\nenv > \"$FAKE_CLAUDE_ENV\"\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"ok\"}'\n"
+	if err := os.WriteFile(filepath.Join(binDir, "claude"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("FAKE_CLAUDE_ENV", envPath)
+	for _, key := range claudeContainedBlockedEnv {
+		t.Setenv(key, "fixture-secret")
+	}
+	t.Setenv("CLAUDE_CONFIG_DIR", "/fixture/claude-config")
+	p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
+	if _, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()}); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	env, err := os.ReadFile(envPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range claudeContainedBlockedEnv {
+		if strings.Contains(string(env), "\n"+key+"=") || strings.HasPrefix(string(env), key+"=") {
+			t.Fatalf("contained Claude call kept %s", key)
+		}
+	}
+	if !strings.Contains(string(env), "CLAUDE_CONFIG_DIR=/fixture/claude-config") {
+		t.Fatal("contained Claude call lost the CLI login state directory")
+	}
+
+	out, err := exec.Command("bash", "-c",
+		`source "$1/scripts/tribunal-helpers.sh" && tribunal_transient_service_unset_env claude`,
+		"_", repoRootForRoutingTest(t)).Output()
+	if err != nil {
+		t.Fatalf("read the Tribunal Claude service list: %v", err)
+	}
+	shell := strings.Fields(string(out))
+	goList := append([]string(nil), claudeContainedBlockedEnv...)
+	sort.Strings(shell)
+	sort.Strings(goList)
+	if !reflect.DeepEqual(shell, goList) {
+		t.Fatalf("Tribunal Claude service drops %v but gp-pipeline drops %v; keep them equal", shell, goList)
 	}
 }
 

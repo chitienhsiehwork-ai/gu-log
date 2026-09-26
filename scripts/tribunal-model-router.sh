@@ -53,10 +53,18 @@ model_router_provider_compatible() {
         codex login status >/dev/null 2>&1
       ;;
     claude)
-      # Claude credentials stay in the CLI's own login state; only ask it.
-      command -v claude >/dev/null 2>&1 &&
-        timeout 15 claude auth status --json 2>/dev/null |
-          jq -e '.loggedIn == true' >/dev/null 2>&1
+      # Ask the CLI in the environment every VM Claude call gets, so only its
+      # own `claude auth login` state counts (tribunal_transient_service_unset_env).
+      command -v claude >/dev/null 2>&1 || return 1
+      local blocked variable
+      local -a scrub=()
+      model_router_load_helpers || return 1
+      blocked="$(tribunal_transient_service_unset_env claude)" || return 1
+      for variable in $blocked; do
+        scrub+=(-u "$variable")
+      done
+      env "${scrub[@]}" timeout 15 claude auth status --json 2>/dev/null |
+        jq -e '.loggedIn == true' >/dev/null 2>&1
       ;;
     *) return 1 ;;
   esac
@@ -79,12 +87,17 @@ model_router_is_prose_role() {
 # gp-pipeline's ClaudeOpusPinned mirrors. Reuse the helpers' strict
 # frontmatter parser so there is exactly one implementation.
 model_router_claude_writer_model() {
-  if ! declare -F tribunal_claude_agent_model >/dev/null 2>&1; then
-    # shellcheck source=scripts/tribunal-helpers.sh
-    source "$MODEL_ROUTER_DIR/tribunal-helpers.sh" || return 2
-  fi
+  model_router_load_helpers || return 2
   REPO_ROOT="${REPO_ROOT:-$MODEL_ROUTER_ROOT}" \
     tribunal_claude_agent_model tribunal-writer
+}
+
+# The Claude pin parser and the credential policy live in the helpers; load
+# them on demand when the router runs standalone.
+model_router_load_helpers() {
+  declare -F tribunal_claude_agent_model >/dev/null 2>&1 && return 0
+  # shellcheck source=scripts/tribunal-helpers.sh
+  source "$MODEL_ROUTER_DIR/tribunal-helpers.sh"
 }
 
 model_router_role_key() {
