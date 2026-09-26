@@ -98,12 +98,6 @@ tribunal_batch_active_providers() {
 
   for provider in "$global_provider" "$vibe_provider" "$fallback_provider" "$writer_provider"; do
     [ -n "$provider" ] || continue
-    # A runtime profile may still route a judge to Grok, but usage-monitor has
-    # no reliable Grok percentage, so do not pretend its payload is
-    # authoritative for it.
-    if [ "$provider" = "grok" ]; then
-      continue
-    fi
     case "$provider" in
       codex|claude) ;;
       *) return 1 ;;

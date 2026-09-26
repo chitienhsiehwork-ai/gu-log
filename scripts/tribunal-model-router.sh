@@ -52,9 +52,6 @@ model_router_provider_compatible() {
         codex exec --help >/dev/null 2>&1 &&
         codex login status >/dev/null 2>&1
       ;;
-    grok)
-      command -v grok >/dev/null 2>&1 && grok --help >/dev/null 2>&1
-      ;;
     claude)
       # Claude credentials stay in the CLI's own login state; only ask it.
       command -v claude >/dev/null 2>&1 &&
@@ -108,7 +105,7 @@ model_router_assert_required_providers() {
 
 # Preflight one provider of the profile, or every required provider when no
 # provider is given. Resolving a Codex judge therefore never runs the Claude
-# CLI, and Grok is only queried while some role still routes to it.
+# CLI.
 model_router_assert_profile_compatible() {
   local profile="$1" only_provider="${2:-}" provider
   [ "$profile" = "legacy" ] && return 0
@@ -131,48 +128,16 @@ model_router_assert_profile_compatible() {
         "$profile" "$provider" >&2
       return 2
     }
-    case "$provider" in
-      grok)
-        model_router_assert_grok_models "$profile" || return
-        ;;
-      claude)
-        model_router_claude_writer_model >/dev/null || {
-          printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
-            "$profile" >&2
-          return 2
-        }
-        ;;
-    esac
+    if [ "$provider" = claude ]; then
+      model_router_claude_writer_model >/dev/null || {
+        printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
+          "$profile" >&2
+        return 2
+      }
+    fi
   done < <(
     jq -r --arg profile "$profile" \
       '.profiles[$profile].requiredProviders[]' "$MODEL_ROUTER_CONFIG"
-  )
-}
-
-model_router_assert_grok_models() {
-  local profile="$1" available_models configured_model
-  available_models="$(
-    env -u XAI_API_KEY -u GROK_API_KEY timeout 15 grok models 2>/dev/null
-  )" || {
-    printf 'runtime profile %s requires an authenticated Grok Build session\n' \
-      "$profile" >&2
-    return 2
-  }
-  while IFS= read -r configured_model; do
-    [ -n "$configured_model" ] || continue
-    awk -v model="$configured_model" \
-      '($1 == "*" || $1 == "-") && $2 == model { found = 1 } END { exit !found }' \
-      <<<"$available_models" || {
-      printf 'runtime profile %s requires unavailable Grok model %s\n' \
-        "$profile" "$configured_model" >&2
-      return 2
-    }
-  done < <(
-    jq -r --arg profile "$profile" '
-      [.profiles[$profile] | to_entries[] | .value | objects
-       | select(.provider? == "grok") | .model | strings]
-      | unique[]
-    ' "$MODEL_ROUTER_CONFIG"
   )
 }
 

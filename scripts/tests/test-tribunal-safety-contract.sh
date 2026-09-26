@@ -8,7 +8,6 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TRIBUNAL="$ROOT_DIR/scripts/tribunal.sh"
 VIBE="$ROOT_DIR/scripts/vibe-scorer.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
-GROK_BRIDGE="$ROOT_DIR/scripts/tribunal-grok-provider.sh"
 WRAPPER="$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh"
 LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 SERVICE="$ROOT_DIR/scripts/tribunal-loop.service"
@@ -485,11 +484,7 @@ if ! grep -Fq 'claude) ;;' <<<"$transaction_body" ||
    grep -Eq '(codex|grok)[|)]' <<<"$transaction_body"; then
   fail "isolated writer transaction must accept only the Claude-model writer"
 fi
-if ! grep -Fq 'tribunal_grok_prompt_exec' "$GROK_BRIDGE" ||
-   ! grep -Fq 'model_router_assert_profile_compatible' "$GROK_BRIDGE"; then
-  fail "Go Grok bridge bypasses the shared VM compatibility/containment executor"
-fi
-pass "writer transactions accept only the Claude model; the Go Grok bridge keeps the shared containment executor"
+pass "writer transactions accept only the Claude model"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"

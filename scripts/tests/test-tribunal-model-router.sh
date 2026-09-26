@@ -36,7 +36,6 @@ printf '[{"provider":"openai","status":"ok","session_remaining_pct":101,"weekly_
 SCRIPT
 chmod +x "$BIN_DIR/codex" "$BIN_DIR/claude" "$BIN_DIR/codexbar" \
   "$BIN_DIR/usage-monitor"
-# No grok binary exists anywhere on this PATH: no role routes to Grok.
 export PATH="$BIN_DIR:/usr/bin:/bin"
 export REPO_ROOT=""
 
@@ -177,9 +176,8 @@ assert_config_rejected() {
   grep -q -- "$expected" "$TMP_DIR/$label.out" ||
     fail "config drift $label lacked diagnostic '$expected': $(cat "$TMP_DIR/$label.out")"
 }
-assert_config_rejected grok-writer \
-  '.profiles["vm-codex"].writer = {"provider":"grok","model":"grok-4.6","reasoningEffort":"low"}
-   | .profiles["vm-codex"].requiredProviders = ["codex","claude","grok"]' \
+assert_config_rejected codex-writer \
+  '.profiles["vm-codex"].writer = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh"}' \
   writer 'must use the Claude model'
 assert_config_rejected codex-corrector \
   '.profiles["vm-codex"].corrector = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}' \
@@ -206,10 +204,6 @@ model_router_resolve vibeScorer
 [ "$MODEL_ROUTER_PROVIDER" = codex ] || fail "sourced vibe route is not Codex"
 [ "$MODEL_ROUTER_REASONING" = high ] || fail "sourced vibe route lost its effort"
 [ "$MODEL_ROUTER_QUOTA_ACTION" = run ] || fail "sourced vibe route inherited a quota action"
-# The Grok bridge preflights only Grok; with no role on Grok it fails closed.
-if model_router_assert_profile_compatible vm-codex grok 2>/dev/null; then
-  fail "a provider that no role routes to must fail its preflight"
-fi
 
 if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
   REPO_ROOT="$ROOT_DIR" bash -c '

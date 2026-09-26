@@ -992,14 +992,6 @@ tribunal_claude_cmd() {
   return 1
 }
 
-tribunal_grok_cmd() {
-  if command -v grok >/dev/null 2>&1 && grok --help >/dev/null 2>&1; then
-    printf 'grok\n'
-    return 0
-  fi
-  return 1
-}
-
 # Parse the top-level `model` selector from one Codex agent TOML file. Python's
 # stdlib TOML parser keeps comments and multiline developer instructions from
 # becoming runtime configuration. The value must be one non-empty selector
@@ -1387,11 +1379,6 @@ tribunal_model_id_for_provider() {
         tribunal_codex_agent_model "$agent_name"
       fi
       ;;
-    grok)
-      model_router_resolve "$agent_name" || return 1
-      [ "$MODEL_ROUTER_PROVIDER" = grok ] || return 1
-      printf '%s\n' "$MODEL_ROUTER_MODEL"
-      ;;
     *)
       return 1
       ;;
@@ -1420,8 +1407,7 @@ tribunal_runner_label_for_provider() {
   local agent_name="${2:-}"
   local model reasoning="" runtime_profile
   runtime_profile="$(model_router_profile)" || return 1
-  if [ "$runtime_profile" = "vm-codex" ] &&
-     { [ "$provider" = codex ] || [ "$provider" = grok ]; }; then
+  if [ "$runtime_profile" = "vm-codex" ] && [ "$provider" = codex ]; then
     model_router_resolve "$agent_name" || return 1
     [ "$MODEL_ROUTER_PROVIDER" = "$provider" ] || return 1
     model="$MODEL_ROUTER_MODEL"
@@ -1460,13 +1446,6 @@ tribunal_runner_label_for_resolved_model() {
         fi
       fi
       printf 'codex-%s-%s\n' "$model" "$reasoning"
-      ;;
-    grok)
-      if [ -z "$reasoning" ]; then
-        model_router_resolve vibeScorer || return 1
-        reasoning="$MODEL_ROUTER_REASONING"
-      fi
-      printf 'grok-build-%s-%s\n' "$model" "$reasoning"
       ;;
     *)
       return 1
@@ -1583,164 +1562,6 @@ PROMPT
   )
 }
 
-tribunal_grok_prompt_exec() {
-  local work_dir="$1" model="$2" reasoning="$3" sandbox_profile="$4" prompt="$5"
-  local json_schema="${6:-}"
-  local timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
-  local grok_cmd grok_executable timeout_cmd runtime_profile
-  local -a grok_argv
-  grok_cmd="$(tribunal_grok_cmd)" || return 127
-  grok_executable="$(command -v "$grok_cmd" 2>/dev/null || true)"
-  case "$grok_executable" in
-    /*) ;;
-    *)
-      printf 'Grok executable did not resolve to an absolute path: %s\n' \
-        "$grok_cmd" >&2
-      return 127
-      ;;
-  esac
-  timeout_cmd="$(command -v timeout 2>/dev/null || true)"
-  case "$timeout_cmd" in
-    /*) ;;
-    *) return 127 ;;
-  esac
-  runtime_profile="$(model_router_profile)" || return 2
-  if [ "$runtime_profile" != "vm-codex" ]; then
-    printf 'Grok execution requires the vm-codex runtime profile\n' >&2
-    return 2
-  fi
-  grok_argv=(
-    "$timeout_cmd" "$timeout_sec" "$grok_executable"
-    --no-auto-update
-    --model "$model"
-    --reasoning-effort "$reasoning"
-    --sandbox "$sandbox_profile"
-    --permission-mode bypassPermissions
-    --tools read_file,grep,list_dir,search_replace
-    --no-plan
-    --no-subagents
-    --no-memory
-    --disable-web-search
-    --verbatim
-  )
-  if [ -n "$json_schema" ]; then
-    grok_argv+=(--json-schema "$json_schema")
-  else
-    grok_argv+=(--output-format plain)
-  fi
-  grok_argv+=(--single "$prompt")
-  (
-    cd "$work_dir" || exit
-    exec 200>&-
-    exec </dev/null
-    if [ "$runtime_profile" = "vm-codex" ]; then
-      local systemd_run scope_unit scope_runtime_sec
-      local memory_max cpu_quota tasks_max
-      local -a scope_env
-      systemd_run="$(command -v systemd-run 2>/dev/null || true)"
-      case "$systemd_run" in
-        /*) ;;
-        *)
-          printf 'Deployed Grok containment requires systemd-run\n' >&2
-          exit 127
-          ;;
-      esac
-      memory_max="${TRIBUNAL_CODEX_SCOPE_MEMORY_MAX:-2G}"
-      cpu_quota="${TRIBUNAL_CODEX_SCOPE_CPU_QUOTA:-200%}"
-      tasks_max="${TRIBUNAL_CODEX_SCOPE_TASKS_MAX:-256}"
-      if ! [[ "$memory_max" =~ ^[1-9][0-9]*[KMGT]$ ]] ||
-         ! [[ "$cpu_quota" =~ ^[1-9][0-9]*%$ ]] ||
-         ! [[ "$tasks_max" =~ ^[1-9][0-9]*$ ]]; then
-        printf 'Invalid deployed Grok scope limits: MemoryMax=%s CPUQuota=%s TasksMax=%s\n' \
-          "$memory_max" "$cpu_quota" "$tasks_max" >&2
-        exit 2
-      fi
-      scope_unit="${TRIBUNAL_CODEX_SYSTEMD_UNIT:-$(
-        tribunal_codex_systemd_unit_name call
-      )}"
-      if ! [[ "$scope_unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
-        printf 'Invalid Tribunal systemd unit: %s\n' "$scope_unit" >&2
-        exit 2
-      fi
-      scope_runtime_sec=$((timeout_sec + 10))
-      scope_env=(
-        "--setenv=HOME=$HOME"
-        "--setenv=PATH=$PATH"
-      )
-      if [ -n "${TZ:-}" ]; then
-        scope_env+=("--setenv=TZ=$TZ")
-      fi
-      exec "$systemd_run" \
-        --user \
-        --wait \
-        --pipe \
-        --collect \
-        --quiet \
-        --no-ask-password \
-        --service-type=exec \
-        --expand-environment=no \
-        "--unit=$scope_unit" \
-        --slice=tribunal-runtime.slice \
-        "--description=gu-log Tribunal isolated Grok invocation" \
-        "--working-directory=$work_dir" \
-        --property=KillMode=control-group \
-        --property=SendSIGKILL=yes \
-        --property=TimeoutStopSec=5s \
-        "--property=RuntimeMaxSec=${scope_runtime_sec}s" \
-        --property=OOMPolicy=kill \
-        "--property=MemoryMax=$memory_max" \
-        "--property=CPUQuota=$cpu_quota" \
-        "--property=TasksMax=$tasks_max" \
-        '--property=UnsetEnvironment=CLAUDE_CODE_OAUTH_TOKEN CLAUDE_API_KEY ANTHROPIC_API_KEY XAI_API_KEY GROK_API_KEY' \
-        "${scope_env[@]}" \
-        -- "${grok_argv[@]}"
-    fi
-    exec "${grok_argv[@]}"
-  )
-}
-
-tribunal_grok_exec() {
-  local work_dir="$1" agent_name="$2" user_prompt="$3"
-  if [ -z "${REPO_ROOT:-}" ]; then
-    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  fi
-  # Grok only ever judges: article-writing roles route to the Claude model, so
-  # the router refuses to hand one of them to this executor.
-  model_router_resolve "$agent_name" || return 1
-  [ "$MODEL_ROUTER_PROVIDER" = grok ] || {
-    printf 'Grok executor received non-Grok route for %s\n' "$agent_name" >&2
-    return 1
-  }
-  local codex_agent_file="$REPO_ROOT/.codex/agents/$agent_name.toml"
-  local claude_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
-  local codex_agent_spec="" claude_agent_spec="" sandbox_profile=read-only
-  [ -f "$codex_agent_file" ] && codex_agent_spec="$(cat "$codex_agent_file")"
-  [ -f "$claude_agent_file" ] && claude_agent_spec="$(cat "$claude_agent_file")"
-  local prompt
-  prompt="$(cat <<PROMPT
-You are running inside the gu-log tribunal automation.
-
-## Provider-neutral agent contract: $agent_name
-$codex_agent_spec
-
-## Detailed rubric: $agent_name
-Ignore YAML frontmatter runtime fields such as model and tools. Follow the
-persona, scoring contract, and writing rules in the body.
-
-$claude_agent_spec
-
-## Repo root (read-only reference)
-$REPO_ROOT
-
-## Task
-$user_prompt
-PROMPT
-)"
-  tribunal_grok_prompt_exec \
-    "$work_dir" "$MODEL_ROUTER_MODEL" "$MODEL_ROUTER_REASONING" \
-    "$sandbox_profile" "$prompt"
-}
-
 # Provider-agnostic single-shot exec. Drop-in replacement for direct
 # tribunal_codex_exec calls: routes to codex (primary) or claude (CCC
 # fallback). On the VPS/mac where codex exists this is byte-for-byte the old
@@ -1757,9 +1578,6 @@ tribunal_llm_exec_raw() {
       ;;
     codex)
       tribunal_codex_exec "$work_dir" "$agent_name" "$user_prompt"
-      ;;
-    grok)
-      tribunal_grok_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
     *)
       echo "ERROR: no tribunal LLM provider available for the active runtime profile" >&2
@@ -2518,8 +2336,6 @@ tribunal_codex_exec_watchdog() (
       TRIBUNAL_CODEX_SYSTEMD_UNIT="$systemd_unit" \
         tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
     fi
-  elif [ "$provider" = "grok" ]; then
-    tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &
   elif [ -n "$force_provider" ]; then
     TRIBUNAL_FORCE_PROVIDER="$force_provider" \
       tribunal_llm_exec "$work_dir" "$agent_name" "$user_prompt" > "$output_file" 2>&1 &

@@ -128,7 +128,7 @@ func fakeRouterRoot(t *testing.T, resolution string) string {
 }
 
 func TestProvidersForRuntimeRejectsNonClaudeArticleWriting(t *testing.T) {
-	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"grok","model":"grok-4.6","reasoningEffort":"low","quotaTier":"normal","remainingPercent":"unknown","quotaAction":"run"}`)
+	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"codex","model":"gpt-5.5","reasoningEffort":"low","quotaTier":"normal","remainingPercent":"unknown","quotaAction":"run"}`)
 	for _, role := range []RuntimeRole{RuntimeWriter, RuntimeTranslator, RuntimeCorrector, RuntimeCommentary} {
 		providers, active, err := ProvidersForRuntime(context.Background(), root, role)
 		if err == nil || !active || providers != nil || !strings.Contains(err.Error(), "must use the Claude model") {

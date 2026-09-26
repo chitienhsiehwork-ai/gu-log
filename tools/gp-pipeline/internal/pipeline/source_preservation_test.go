@@ -104,7 +104,7 @@ func newGPState(t *testing.T, source, translation string) (*State, []byte) {
 	s.TweetURL, s.PromptTicketID, s.OriginalDate, s.TranslatedDate = "https://example.com/source", "GP-PENDING", "2026-08-15", "2026-08-15"
 	s.SourceLabel, s.AuthorHandle, s.GPProfile = "Example", "example", "fixture"
 	s.GPProfileSHA256 = preservation.SHA256([]byte("fixture"))
-	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, translatorArtifact))
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, translatorArtifact))
 	return s, sourceBytes
 }
 
@@ -152,8 +152,8 @@ func TestGPPreservationHappyPathSealsManifestAndRoleProvenance(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(sourceBytes, translationBytes)))
-	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(sourceBytes, translationBytes, projection)))
-	s.CommentaryDispatcher = gpFakeDispatcher(t, "fake-commentary", llm.ModelGrok46, artifactJSON(t, emptyCommentary(sourceBytes, translationBytes)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGPT55, artifactJSON(t, passVibe(sourceBytes, translationBytes, projection)))
+	s.CommentaryDispatcher = gpFakeDispatcher(t, "fake-commentary", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, emptyCommentary(sourceBytes, translationBytes)))
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -264,7 +264,7 @@ func TestSourceTranslatePreservesFindingAcrossMDXCanonicalization(t *testing.T) 
 		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(sourceBytes),
 		TranslationMDX: translation, SlopCandidates: []preservation.Finding{finding},
 	}
-	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, translatorArtifact))
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, translatorArtifact))
 
 	if err := s.SourceTranslate(context.Background()); err != nil {
 		t.Fatal(err)
@@ -306,7 +306,7 @@ func TestSourceTranslateValidatesSlopCandidatesBeforeCanonicalizingDates(t *test
 		Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256(source),
 		TranslationMDX: translation, SlopCandidates: []preservation.Finding{finding},
 	}
-	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelGrok46, artifactJSON(t, artifact))
+	s.TranslatorDispatcher = gpFakeDispatcher(t, "fake-translator", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, artifact))
 
 	if err := s.SourceTranslate(ctx); err != nil {
 		t.Fatalf("valid pre-canonicalization slop candidate was rejected: %v", err)
@@ -385,9 +385,9 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, failReview), artifactJSON(t, passReview(source, correctedBytes)))
-	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(source, translationBytes, projection1)), artifactJSON(t, passVibe(source, correctedBytes, projection2)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGPT55, artifactJSON(t, passVibe(source, translationBytes, projection1)), artifactJSON(t, passVibe(source, correctedBytes, projection2)))
 	s.CorrectorDispatcher = gpFakeDispatcher(t, "fake-corrector", llm.ModelGPT56Sol, artifactJSON(t, patch))
-	s.CommentaryDispatcher = gpFakeDispatcher(t, "fake-commentary", llm.ModelGrok46, artifactJSON(t, emptyCommentary(source, correctedBytes)))
+	s.CommentaryDispatcher = gpFakeDispatcher(t, "fake-commentary", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, emptyCommentary(source, correctedBytes)))
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +421,7 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 		t.Fatal(err)
 	}
 	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "recovery-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, correctedBytes)))
-	s.VibeScorerDispatcher = gpFakeDispatcher(t, "recovery-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(source, correctedBytes, correctedProjection)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "recovery-vibe", llm.ModelGPT55, artifactJSON(t, passVibe(source, correctedBytes, correctedProjection)))
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatalf("recover corrected source-preservation: %v", err)
 	}
@@ -429,7 +429,7 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 		t.Fatal("corrector provenance was not restored after replay verification")
 	}
 	s.FromStepInt = StepEnrich
-	s.CommentaryDispatcher = gpFakeDispatcher(t, "recovery-commentary", llm.ModelGrok46, artifactJSON(t, emptyCommentary(source, correctedBytes)))
+	s.CommentaryDispatcher = gpFakeDispatcher(t, "recovery-commentary", llm.ModelID(llm.ClaudeOpusPinned), artifactJSON(t, emptyCommentary(source, correctedBytes)))
 	if err := s.Enrich(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -499,7 +499,7 @@ func TestGPNaturalCalibrationFindingCanBeCorrectedBeforeDeterministicRecheck(t *
 		t.Fatal(err)
 	}
 	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, translationBytes)), artifactJSON(t, passReview(source, correctedBytes)))
-	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, failVibe), artifactJSON(t, passVibe(source, correctedBytes, projection2)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGPT55, artifactJSON(t, failVibe), artifactJSON(t, passVibe(source, correctedBytes, projection2)))
 	s.CorrectorDispatcher = gpFakeDispatcher(t, "fake-corrector", llm.ModelGPT56Sol, artifactJSON(t, patch))
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)
@@ -561,7 +561,7 @@ func TestGPJingjingGateAuthorizesBoundedCorrectionAndRerunsEveryGate(t *testing.
 		t.Fatal(err)
 	}
 	s.SourceReviewerDispatcher = gpFakeDispatcher(t, "fake-source-reviewer", llm.ModelGPT56Sol, artifactJSON(t, passReview(source, initial)), artifactJSON(t, passReview(source, corrected)))
-	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGrok45, artifactJSON(t, passVibe(source, initial, projection1)), artifactJSON(t, passVibe(source, corrected, projection2)))
+	s.VibeScorerDispatcher = gpFakeDispatcher(t, "fake-vibe", llm.ModelGPT55, artifactJSON(t, passVibe(source, initial, projection1)), artifactJSON(t, passVibe(source, corrected, projection2)))
 	s.CorrectorDispatcher = gpFakeDispatcher(t, "fake-corrector", llm.ModelGPT56Sol, artifactJSON(t, patch))
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)

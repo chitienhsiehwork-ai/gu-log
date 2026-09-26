@@ -93,9 +93,9 @@ func TestLoadGPProfileRejectsLegacyAndMissingRoles(t *testing.T) {
 
 func TestLoadGPProfileRejectsNonClaudeArticleWritingRole(t *testing.T) {
 	for role, cfg := range map[string]string{
-		"translator": `"translator":{"provider":"grok","model":"grok-4.6","reasoningEffort":"low","promptContract":"source-translate-v2","outputContract":"source-translation-v1"}`,
+		"translator": `"translator":{"provider":"codex","model":"gpt-5.5","reasoningEffort":"low","promptContract":"source-translate-v2","outputContract":"source-translation-v1"}`,
 		"corrector":  `"corrector":{"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}`,
-		"commentary": `"commentary":{"provider":"grok","model":"grok-4.6","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"}`,
+		"commentary": `"commentary":{"provider":"codex","model":"gpt-5.5","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"}`,
 	} {
 		root := writeGPProfileFixture(t, gpRolesFixture(map[string]string{role: cfg}))
 		_, err := LoadGPProfile(root, "test")

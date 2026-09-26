@@ -151,10 +151,6 @@ func ProvidersForRuntime(
 			ReasoningEffort: runtime.ReasoningEffort,
 			Sandbox:         "read-only",
 		}}, true, nil
-	case "grok":
-		return []Provider{
-			NewGrok(repoRoot, runtime.Model, runtime.ReasoningEffort),
-		}, true, nil
 	default:
 		return nil, false, fmt.Errorf(
 			"unsupported provider %q for runtime role %s", runtime.Provider, role,

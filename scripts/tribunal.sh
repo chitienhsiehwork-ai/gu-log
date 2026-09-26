@@ -1354,8 +1354,8 @@ PROMPT
     actual_provider_file="$(mktemp)"
     quota_status_file="$(mktemp)"
     local judge_score_in_work="$judge_work_dir/score.json"
-    # Grok's minimal writer tool edits existing files; the trusted harness
-    # creates this placeholder before any untrusted article text reaches it.
+    # The trusted harness creates this placeholder before any untrusted
+    # article text reaches the judge.
     printf '{}\n' > "$judge_score_in_work"
     judge_task="${judge_task/SCORE_PATH_PLACEHOLDER/$judge_score_in_work}"
     TRIBUNAL_CODEX_TIMEOUT_SEC="$stage_timeout" \

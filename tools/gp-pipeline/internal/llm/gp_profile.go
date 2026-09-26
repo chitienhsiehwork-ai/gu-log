@@ -104,7 +104,7 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 			// Bind the fingerprint to the pin actually executed, so a pin
 			// change invalidates earlier publish manifests.
 			cfg.Model = ClaudeOpusPinned
-		} else if (cfg.Provider != "codex" && cfg.Provider != "grok") || cfg.Model == "" || cfg.ReasoningEffort == "" {
+		} else if cfg.Provider != "codex" || cfg.Model == "" || cfg.ReasoningEffort == "" {
 			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
 		}
 		if cfg.PromptContract == "" || cfg.OutputContract == "" {
