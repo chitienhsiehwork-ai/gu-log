@@ -1232,8 +1232,21 @@ Write exactly the canary token followed by one newline to the canary path.
 Do not write any other file. Reply OK only after the file is durable." 2>&1
   )" || rc=$?
   if [ "$rc" -ne 0 ]; then
-    printf 'Writer preflight failed: Claude write canary exited %s: %s\n' \
-      "$rc" "$(printf '%s' "$output" | tail -1)" >&2
+    printf '%s\n' "$output" > "$work_dir/.canary-output"
+    case "$(tribunal_claude_failure_class "$work_dir/.canary-output" 2>/dev/null || true)" in
+      login)
+        printf 'Writer preflight failed: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; the daemon retries after its restart backoff (%s)\n' \
+          "${USER:-$(id -un)}" "$(printf '%s' "$output" | tail -1)" >&2
+        ;;
+      quota)
+        printf 'Writer preflight failed: the Claude quota is exhausted; the daemon retries after its restart backoff (%s)\n' \
+          "$(printf '%s' "$output" | tail -1)" >&2
+        ;;
+      *)
+        printf 'Writer preflight failed: Claude write canary exited %s: %s\n' \
+          "$rc" "$(printf '%s' "$output" | tail -1)" >&2
+        ;;
+    esac
     return "$rc"
   fi
   # The token is the whole payload; a missing final newline is tolerated, but
@@ -2097,10 +2110,147 @@ tribunal_quota_write_status() {
   } > "$out_file"
 }
 
+# ── Claude writer failures ───────────────────────────────────────────────────
+# Classes of a failed Claude CLI call (openspec claude-prose-writing-runtime).
+# The patterns follow the messages the installed Claude Code CLI prints; the
+# regression samples live in
+# tools/gp-pipeline/internal/llm/testdata/claude-cli-errors.json and
+# gp-pipeline's ClassifyClaudeFailure must classify them the same way.
+TRIBUNAL_CLAUDE_QUOTA_PATTERN="you.ve hit your |you.re out of usage|your org(anization)? is out of usage|usage limit reached|temporarily limiting requests|rate_limit_error|(^|[^0-9])429([^0-9]|\$)"
+TRIBUNAL_CLAUDE_LOGIN_PATTERN="not logged in|run /login|login expired|oauth token (has )?(expired|revoked)|invalid api key|invalid auth token|authentication required|authentication_error|session (has )?expired"
+
+# Print "quota" or "login" for the Claude CLI output in file $1; fail when the
+# output is neither.
+tribunal_claude_failure_class() {
+  local file="$1"
+  [ -s "$file" ] || return 1
+  if grep -Eiq -- "$TRIBUNAL_CLAUDE_QUOTA_PATTERN" "$file"; then
+    printf 'quota\n'
+  elif grep -Eiq -- "$TRIBUNAL_CLAUDE_LOGIN_PATTERN" "$file"; then
+    printf 'login\n'
+  else
+    return 1
+  fi
+}
+
+# Seconds until the reset Claude reported in file $1 ("resets 5pm (UTC)",
+# "resets Sep 29, 10:30am (Asia/Taipei)"); fail when it reported none. The CLI
+# prints a time of day for resets within a day, so a time well behind now means
+# tomorrow. TRIBUNAL_QUOTA_NOW_EPOCH pins "now" for tests.
+tribunal_claude_reset_seconds() {
+  python3 - "$1" <<'PY' 2>/dev/null
+import datetime, os, re, sys, time
+from zoneinfo import ZoneInfo
+
+text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+match = re.search(
+    r"\bresets\s+(?:([a-z]{3})\s+(\d{1,2}),\s+(?:(\d{4}),\s+)?)?"
+    r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)(?:\s*\(([^)]+)\))?",
+    text, re.I)
+if not match:
+    sys.exit(1)
+month_text, day, year, hour, minute, ampm, zone_name = match.groups()
+try:
+    zone = ZoneInfo(zone_name.strip()) if zone_name else None
+except Exception:
+    sys.exit(1)
+now = datetime.datetime.fromtimestamp(
+    float(os.environ.get("TRIBUNAL_QUOTA_NOW_EPOCH") or time.time()),
+    tz=datetime.timezone.utc)
+local = now.astimezone(zone) if zone else now.astimezone()
+hour, minute = int(hour), int(minute or 0)
+if not 1 <= hour <= 12 or minute > 59:
+    sys.exit(1)
+hour = hour % 12 + (12 if ampm.lower() == "pm" else 0)
+skew = datetime.timedelta(minutes=30)
+if not month_text:
+    reset = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if now - reset > skew:
+        reset += datetime.timedelta(days=1)
+else:
+    months = ["jan", "feb", "mar", "apr", "may", "jun",
+              "jul", "aug", "sep", "oct", "nov", "dec"]
+    if month_text.lower() not in months:
+        sys.exit(1)
+    reset = datetime.datetime(
+        int(year) if year else local.year, months.index(month_text.lower()) + 1,
+        int(day), hour, minute, tzinfo=local.tzinfo)
+    if not year and now - reset > skew:
+        reset = reset.replace(year=reset.year + 1)
+print(max(0, int((reset - now).total_seconds())))
+PY
+}
+
+# The daemon-wide Claude quota pause (openspec tribunal-24-7-operations): a
+# writer that hits the Claude quota records when it resets, and the quota loop
+# holds dispatch until then instead of judging article after article only to
+# hit the same limit again.
+tribunal_claude_pause_file() {
+  printf '%s/.score-loop/state/claude-writer-pause.json\n' \
+    "${TRIBUNAL_MAIN_REPO:-${ROOT_DIR:-${REPO_ROOT:-$PWD}}}"
+}
+
+tribunal_claude_pause_write() {
+  local wait_seconds="$1" reason="$2" file tmp
+  file="$(tribunal_claude_pause_file)"
+  mkdir -p "$(dirname "$file")" || return 1
+  tmp="$(mktemp "$file.XXXXXX")" || return 1
+  jq -n \
+    --argjson until "$(( $(date +%s) + wait_seconds ))" \
+    --arg reason "$reason" \
+    --arg updatedAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    '{provider: "claude", until: $until, reason: $reason, updatedAt: $updatedAt}' \
+    > "$tmp" && mv "$tmp" "$file"
+}
+
+# Print the seconds left in an active Claude quota pause; fail (after removing
+# the file) once it has expired or is unreadable.
+tribunal_claude_pause_remaining() {
+  local file until now
+  file="$(tribunal_claude_pause_file)"
+  [ -f "$file" ] || return 1
+  until="$(jq -r '.until // empty' "$file" 2>/dev/null || true)"
+  now="$(date +%s)"
+  if ! [[ "$until" =~ ^[0-9]+$ ]] || [ "$until" -le "$now" ]; then
+    rm -f "$file"
+    return 1
+  fi
+  printf '%s\n' "$((until - now))"
+}
+
+# A Tribunal writer call hit the Claude quota: suspend the article with the
+# unknown tier and hold daemon dispatch until the reset Claude reported (or the
+# conservative default when it reported none). Never probes CodexBar: it knows
+# nothing about the Claude account.
+tribunal_claude_quota_suspend() {
+  local output_file="$1" class wait_seconds buffer_seconds reason detail
+  class="$(tribunal_claude_failure_class "$output_file")" || return 1
+  [ "$class" = quota ] || return 1
+  detail="$(grep -Ei -m1 -- "$TRIBUNAL_CLAUDE_QUOTA_PATTERN" "$output_file" | tr -d '\r' | cut -c1-240)"
+  if wait_seconds="$(tribunal_claude_reset_seconds "$output_file")"; then
+    reason="Claude reported the reset: $detail"
+  else
+    wait_seconds="$(tribunal_quota_seconds_from_text "${GP_CLAUDE_QUOTA_DEFAULT_WAIT:-1h}")"
+    reason="Claude reported no reset time; conservative wait ${wait_seconds}s: $detail"
+  fi
+  buffer_seconds="$(tribunal_quota_seconds_from_text "${GP_QUOTA_WAIT_BUFFER:-120s}")"
+  wait_seconds=$((wait_seconds + buffer_seconds))
+  tribunal_quota_write_status claude suspend unknown "$wait_seconds" "$reason"
+  if ! tribunal_claude_pause_write "$wait_seconds" "$reason"; then
+    printf 'WARN: could not record the Claude quota pause for the daemon\n' >&2
+  fi
+  tribunal_quota_alarm "claude quota exhausted. $reason. Suspended; the daemon holds dispatch for ${wait_seconds}s."
+  return 89
+}
+
 tribunal_quota_handle_file() {
   local provider="$1"
   local output_file="$2"
   local waits="$3"
+  if [ "$provider" = claude ]; then
+    tribunal_claude_quota_suspend "$output_file"
+    return
+  fi
   tribunal_quota_error_file "$output_file" || return 1
   local decision action tier reset_seconds reason
   decision="$(tribunal_quota_decision "$provider" "$waits")"
@@ -2208,6 +2358,13 @@ tribunal_writer_exec() {
         return 70
       fi
       return 0
+    fi
+    if [ "$provider" = claude ] &&
+       [ "$(tribunal_claude_failure_class "$out" 2>/dev/null || true)" = login ]; then
+      rm -f "$out"
+      printf 'ERROR: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; Tribunal rewrites use only the Claude model.\n' \
+        "${USER:-$(id -un)}" >&2
+      return 78
     fi
     qrc=0
     tribunal_quota_handle_file "$provider" "$out" "$waits" || qrc=$?

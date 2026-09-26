@@ -258,32 +258,102 @@ fi
   fail "legacy Claude compatibility path invoked CodexBar"
 pass "legacy Claude compatibility quota path never probes Claude or combined usage"
 
-(
-  tribunal_writer_mode() { printf 'claude\n'; }
-  tribunal_claude_agent_model() { printf 'claude-writer-fixture\n'; }
-  tribunal_writer_exec_raw() {
-    printf 'Claude AI usage limit reached\n'
-    return 42
-  }
-  status_file="$TMP/writer-quota-status.json"
-  rm -f "$TMP/codexbar.argv"
-  set +e
-  CODEXBAR_ARGV="$TMP/codexbar.argv" CODEXBAR_FIXTURE="$sample" \
-  PATH="$TMP/bin:$PATH" \
-  TRIBUNAL_QUOTA_STATUS_FILE="$status_file" \
-    tribunal_writer_exec "$TMP" tribunal-writer 'quota fixture' \
-      >"$TMP/writer-quota.out" 2>&1
-  writer_rc=$?
-  set -e
-  [ "$writer_rc" -eq 75 ] ||
-    fail "Claude-model writer quota error should suspend with rc75, got $writer_rc"
-  grep -Fxq 'provider=claude' "$status_file" ||
-    fail "Claude-model writer quota status did not record provider=claude"
-  grep -Fxq 'action=suspend' "$status_file" ||
-    fail "Claude-model writer quota status did not record suspend"
-  grep -Fxq 'tier=unknown' "$status_file" ||
-    fail "Claude-model writer quota must not infer a tier"
-  [ ! -e "$TMP/codexbar.argv" ] ||
-    fail "Claude-model writer quota error probed CodexBar"
-) || fail "Claude-model writer did not suspend quota errors through the shared handler"
-pass "Claude-model writer quota errors suspend as unknown without Claude or combined probes"
+# The Claude CLI's real messages (shared with gp-pipeline's classifier) split
+# into quota and login, and a quota wait comes only from Claude's own reset.
+CLAUDE_SAMPLES="$ROOT_DIR/tools/gp-pipeline/internal/llm/testdata/claude-cli-errors.json"
+sample_file="$TMP/claude-sample.txt"
+for class in quota login other; do
+  while IFS= read -r message; do
+    printf '%s\n' "$message" > "$sample_file"
+    got="$(tribunal_claude_failure_class "$sample_file" || true)"
+    want="$class"
+    [ "$class" != other ] || want=""
+    [ "$got" = "$want" ] ||
+      fail "Claude message classified as '$got', want '$want': $message"
+  done < <(jq -r --arg class "$class" '.[$class][]' "$CLAUDE_SAMPLES")
+done
+while IFS= read -r row; do
+  message="$(jq -r '.message' <<<"$row")"
+  now_epoch="$(jq -r '.now | fromdateiso8601' <<<"$row")"
+  want="$(jq -r 'if .reset == "" then "none" else ((.reset | fromdateiso8601) - (.now | fromdateiso8601)) end' <<<"$row")"
+  printf '%s\n' "$message" > "$sample_file"
+  got="$(TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" tribunal_claude_reset_seconds "$sample_file" || printf 'none')"
+  [ "$got" = "$want" ] ||
+    fail "Claude reset for '$message' at $(jq -r '.now' <<<"$row") = $got, want $want"
+done < <(jq -c '.resets[]' "$CLAUDE_SAMPLES")
+pass "real Claude CLI quota and login messages classify like gp-pipeline, with Claude's own reset time"
+
+run_claude_writer_failure() {
+  local message="$1" status_file="$2" output="$3"
+  (
+    tribunal_writer_mode() { printf 'claude\n'; }
+    tribunal_claude_agent_model() { printf 'claude-writer-fixture\n'; }
+    tribunal_writer_exec_raw() {
+      printf '%s\n' "$CLAUDE_FIXTURE_MESSAGE"
+      return 1
+    }
+    CLAUDE_FIXTURE_MESSAGE="$message" \
+    CODEXBAR_ARGV="$TMP/codexbar.argv" CODEXBAR_FIXTURE="$sample" \
+    PATH="$TMP/bin:$PATH" \
+    TRIBUNAL_MAIN_REPO="$TMP/main" \
+    TRIBUNAL_QUOTA_NOW_EPOCH="$(jq -rn '"2026-09-26T12:00:00Z" | fromdateiso8601')" \
+    TRIBUNAL_QUOTA_STATUS_FILE="$status_file" \
+      tribunal_writer_exec "$TMP" tribunal-writer 'writer fixture' >"$output" 2>&1
+  )
+}
+
+pause_file="$TMP/main/.score-loop/state/claude-writer-pause.json"
+rm -f "$TMP/codexbar.argv" "$pause_file"
+set +e
+run_claude_writer_failure "You've hit your session limit · resets 5pm (UTC)" \
+  "$TMP/writer-quota-status" "$TMP/writer-quota.out"
+writer_rc=$?
+set -e
+[ "$writer_rc" -eq 75 ] ||
+  fail "Claude-model writer quota error should suspend with rc75, got $writer_rc"
+grep -Fxq 'provider=claude' "$TMP/writer-quota-status" ||
+  fail "Claude-model writer quota status did not record provider=claude"
+grep -Fxq 'action=suspend' "$TMP/writer-quota-status" ||
+  fail "Claude-model writer quota status did not record suspend"
+grep -Fxq 'tier=unknown' "$TMP/writer-quota-status" ||
+  fail "Claude-model writer quota must not infer a tier"
+grep -Fxq 'reset_seconds=18120' "$TMP/writer-quota-status" ||
+  fail "Claude-model writer quota must wait for Claude's own reset plus the buffer"
+[ ! -e "$TMP/codexbar.argv" ] ||
+  fail "Claude-model writer quota error probed CodexBar"
+pause_left="$(TRIBUNAL_MAIN_REPO="$TMP/main" tribunal_claude_pause_remaining)" ||
+  fail "Claude-model writer quota did not pause daemon dispatch"
+[ "$pause_left" -gt 18000 ] && [ "$pause_left" -le 18120 ] ||
+  fail "Claude quota pause lasts ${pause_left}s, want the reported reset plus buffer"
+jq '.until = 1' "$pause_file" > "$pause_file.tmp" && mv "$pause_file.tmp" "$pause_file"
+if TRIBUNAL_MAIN_REPO="$TMP/main" tribunal_claude_pause_remaining >/dev/null; then
+  fail "an expired Claude quota pause still holds dispatch"
+fi
+[ ! -e "$pause_file" ] || fail "an expired Claude quota pause was not cleared"
+pass "Claude-model writer quota errors suspend as unknown, wait for Claude's reset and pause dispatch without CodexBar"
+
+set +e
+run_claude_writer_failure "Your org is out of usage · contact your admin" \
+  "$TMP/writer-default-status" "$TMP/writer-default.out"
+writer_rc=$?
+set -e
+[ "$writer_rc" -eq 75 ] ||
+  fail "Claude quota without a reset should still suspend, got $writer_rc"
+grep -Fxq 'reset_seconds=3720' "$TMP/writer-default-status" ||
+  fail "Claude quota without a reset must use the conservative default wait"
+pass "Claude quota without a reported reset uses the conservative default wait"
+
+rm -f "$pause_file" "$TMP/writer-login-status"
+set +e
+run_claude_writer_failure "Not logged in · Please run /login" \
+  "$TMP/writer-login-status" "$TMP/writer-login.out"
+writer_rc=$?
+set -e
+[ "$writer_rc" -eq 78 ] ||
+  fail "Claude login failure should stop the writer with rc78, got $writer_rc"
+grep -q 'claude auth login' "$TMP/writer-login.out" ||
+  fail "Claude login failure did not tell the operator to run claude auth login"
+[ ! -s "$TMP/writer-login-status" ] ||
+  fail "Claude login failure was recorded as a quota suspension"
+[ ! -e "$pause_file" ] || fail "Claude login failure wrote a quota pause"
+pass "Claude login failures stop the writer with an actionable error, separate from quota"
