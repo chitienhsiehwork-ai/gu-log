@@ -232,11 +232,11 @@ tools/gp-pipeline/gp-pipeline run <url> --force
 
 分工 policy（**按類別，不按版本號**）：
 
-- **文章寫作一律使用 Claude 模型**：Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。涵蓋初稿、翻譯、MoguNote／commentary 候選、corrector、英文 sidecar、Tribunal 改寫與 final-build 修復；會改字的步驟都算寫作。只評分、不改字的步驟（eval、review、Tribunal judges、source reviewer、natural-zh gate）才可以走 Codex。
+- **文章寫作一律使用 Claude 模型**，只評分、不改字的步驟才可以走 Codex；範圍以 openspec `claude-prose-writing-runtime` 為準。
 - **Voice / taste-sensitive（GP writer / refine / rewriter、Vibe Scorer）→ pin 到固定 Opus 世代**。理由：寫作 voice 跟評分 taste 對 Opus 版本敏感，Anthropic 一升浮動 alias 就可能改掉 LHY persona / 評分基準，所以釘死世代、讓 writer 跟 vibe scorer 共用同一代以對齊 taste。實際版本 = 各自 frontmatter / `ClaudeOpusPinned`（**SSOT**）。
 - **非-voice judge（Fact Checker / Librarian / Fresh Eyes）→ 浮動 `opus` alias（追最新），刻意不 pin**。理由：fact-check / glossary / 陌生讀者視角要的是**最新 reasoning + diversity**，不是跟 writer taste 對齊；fresh-eyes 用跟 writer 不同代的 model 反而能抓同代看不到的盲點。CCC 用 `Agent(subagent_type:"…")` 直接跑即可（`opus` alias 本來就解析成最新，不需要 `claude -p` pin）。
 - **Codex judges（eval / review / tribunal on VM）→ 走 tribunal script 的 Codex runtime config**，完整版不走 mini。
-- **Tribunal Writer agent**（`.claude/agents/tribunal-writer.md`）→ 跟 writer 同類（pin）。它的 `model:` 就是改寫文章用的 Claude 模型：Tribunal 改寫、final-build 修復與 VM 上 gp-pipeline 的寫作步驟都讀它，`ClaudeOpusPinned` 必須同值。
+- **Tribunal Writer agent**（`.claude/agents/tribunal-writer.md`）→ 跟 writer 同類（pin）；它的 `model:` 是寫作步驟用的 Claude 模型 pin，要和 `ClaudeOpusPinned` 一起改。
 
 改 model 要改該 provider 的上述權威來源；修 `.claude/agents` 這些 calibration 檔之前先讀 frontmatter 上方的 PIN 註解。文件只連回來源，不另存一份值。
 

@@ -25,24 +25,15 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 
 ## Model routing
 
-Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或
-改寫文章內容。寫稿、refine、GP 翻譯、corrector、commentary 候選與英文
-sidecar 都走 Claude CLI，model 一律取自 `.claude/agents/tribunal-writer.md`
-的 `model:`（Go 的 `ClaudeOpusPinned` 必須一致，測試會擋 drift）。沒有
-runtime profile 時，`GP_WRITER_PROVIDER` 只接受 `claude` 或不設；設成
-`codex` 會在呼叫任何模型前失敗，缺少 `claude` CLI 也不會退回其他模型。
-eval、review、source reviewer 與 Vibe Scorer 這些只評分的步驟不受影響。
+文章寫作一律使用 Claude 模型，只評分的步驟維持原本的模型；規則見 openspec
+`claude-prose-writing-runtime`，Claude 模型 pin 在
+`.claude/agents/tribunal-writer.md` 的 `model:`。
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本的評審 provider chain。VM profile 的 provider preflight 以步驟為單位：
-寫作步驟確認 Claude CLI 已登入、模型 pin 一致；評審確認 Codex CLI 已登入；
-缺了就 fail closed。寫作步驟被設成 Claude 以外的供應端，或 gate 跟寫作步驟
-用同一個 model，都會被拒絕。
-
-評審的 model、effort、quota threshold 與 unknown policy 只定義在
-`config/llm-pipeline.json`；Claude 模型不寫進 config。README 不複製易過期
-的數值。低額度時不會靜默改用其他模型。
+維持原本的評審 provider chain。VM profile 各步驟的供應端，以及評審的 model、
+effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.json`，
+由 `scripts/tribunal-model-router.sh` 解析；README 不複製易過期的數值。
 
 ## Quick start
 

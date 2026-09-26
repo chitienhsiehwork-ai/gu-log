@@ -178,10 +178,9 @@ bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
 deploy block 最後會跑一次 live probe 確認 Claude CLI 已登入；之後只有需要重新
-驗證 Claude 登入狀態與實際寫入權限時才手動執行 live probe。它會在 disposable workspace 跑 bounded write canary，並重用正式改寫
-同一個受限 Claude 執行器：隔離 workspace、只開檔案工具的 non-interactive
-permission 與 systemd resource boundary；canary
-內容完全吻合後才輸出 exact `OK`。live probe 會實際呼叫一次 Claude 模型：
+驗證 Claude 登入狀態與實際寫入權限時才手動執行。它用正式改寫同一個受限
+Claude 執行器在 disposable workspace 跑一次 bounded write canary（會實際呼叫
+一次 Claude 模型），內容完全吻合才輸出 exact `OK`：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
@@ -205,12 +204,9 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 - `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
   off-repo combined `USAGE_MONITOR`。
 - Codex CLI 已安裝並驗證 non-interactive auth。
-- Claude Code CLI 已安裝，且版本支援 `--tools`、`--json-schema` 與
-  `auth status --json`；以跑 daemon 的使用者執行 `claude auth login`，
-  `claude auth status --json` 回報 `loggedIn: true`。Claude 憑證只留在 CLI
-  自己的登入狀態：deployed runtime 不讀、不匯出、不注入 Claude token、API key
-  或 `~/.cc-cron-token`，暫態 service 也會先清掉這類環境變數。
-- Grok CLI 不再是必要條件：沒有任何步驟使用 Grok。
+- Claude Code CLI 已安裝，並以跑 daemon 的使用者執行過 `claude auth login`；
+  deploy block 最後的 live probe 通過才算確認。憑證只留在 CLI 自己的登入狀態，
+  規則見 `scripts/tribunal-helpers.sh` 的暫態 service 段落。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
 - 下列四個 source-match 都 exit 0：
   - `cmp -s scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"`
@@ -234,34 +230,15 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 - 啟動後 monitor 顯示 `TRIBUNAL_RUNTIME_PROFILE=vm-codex`、
   `GP_WRITER_MODE=claude`、strict role routing 與 writer preflight passed。
 
-Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或
-改寫文章內容。Deployed `vm-codex` profile 因此分成兩半：四個評審依
-`config/llm-pipeline.json` 走 Codex；Tribunal 改寫、final-build 修復，以及
-gp-pipeline 的 writer、translator、corrector、commentary 都走受限的 Claude CLI。
-評審的 model／effort／quota 門檻以 `config/llm-pipeline.json` 為單一 SSOT；
-Claude 模型不寫進 config，一律取自 `.claude/agents/tribunal-writer.md` 的
-`model:`，gp-pipeline 的 `ClaudeOpusPinned` 必須一致（測試會擋 drift），升級時
-兩邊一起改。其餘 `.codex/agents/*.toml` 與 `.claude/agents/*.md` 繼續服務
-legacy／Claude Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只保留
-舊 caller 相容性，不是 production 可接受的設定；deployed preflight 看到它會
-在任何 article claim 前以 rc 78 fail closed。`GP_WRITER_MODE=codex`、`grok`
-已退役，同樣直接失敗，不會改用其他模型。
+文章寫作一律使用 Claude 模型、評審維持 Codex，規則見 openspec
+`claude-prose-writing-runtime`；哪一步走哪個供應端由
+`scripts/tribunal-model-router.sh` 依 `config/llm-pipeline.json` 判定，評審依
+Codex 剩餘額度切換的 model 與門檻也在那份 config。
 
-`vm-codex` 的 provider preflight 以步驟為單位：`requiredProviders` 必須剛好
-等於各步驟實際使用的供應端，多列或少列都 fail closed；解析某一步時只檢查
-該步的供應端，Codex 查 CLI 與登入，Claude 查 `claude auth status` 與模型 pin。
-評審解析不會呼叫 Claude CLI，但 Claude 登出時 daemon 不會只停寫作、繼續評審：
-寫手 preflight 或改寫碰到登入失效時，daemon 停止領新文章，要以跑 daemon 的
-使用者執行 `claude auth login`。寫作步驟被設成 Claude 以外的供應端，router 與
-gp-pipeline 都會拒絕。Codex
-reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
-`gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
-採保守的 Luna。
-
-Claude 額度沒有可靠的剩餘百分比來源，quota controller 也看不到它，所以不會
-預先降速或保留額度。Tribunal 改寫碰到 Claude 回報的額度錯誤時，還原文章、以
-provider `claude`、tier `unknown` 暫停該篇，並暫停派送到 Claude 回報的重置時間；
-不捏造百分比，也不會改用其他模型重試。
+Claude 登出或額度用完時，daemon 不會只停寫作、繼續評審：登出時停止領新文章，
+要以跑 daemon 的使用者執行 `claude auth login`；額度用完時暫停派送到 Claude
+回報的重置時間（quota controller 看不到 Claude 額度）。行為定義見 openspec
+`tribunal-24-7-operations`。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
