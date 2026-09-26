@@ -60,7 +60,7 @@
 
 ### Requirement: 部署版環境 SHALL 以 Claude 模型啟用改寫
 
-部署版非互動式 24/7 執行環境（systemd unit／wrapper）SHALL 設定 `GP_WRITER_MODE=claude`，並 SHALL 在派送文章前驗證 Tribunal 寫手（`tribunal-writer`）能透過 Claude 模型完成有界的寫入 canary。Canary SHALL 從 `.claude/agents/tribunal-writer.md` 的 `model:` 解析 Claude 模型，並 SHALL 重用正式改寫的受限 Claude 執行器、暫態 systemd service 與逾時行為。Claude 憑證 SHALL 由 Claude CLI 自己的登入狀態管理；部署版服務與 wrapper SHALL NOT 讀取、匯出或注入 Claude token。Library 預設 MAY 維持 `none`，非部署版互動式編排 MAY 保留 `subagent` 或舊版 `cli` 相容性；`codex` 與 `grok` 寫手模式已退役。正式 daemon SHALL NOT 以只評分、未消費 broker、舊版 `cli` 或已退役的寫手模式執行。
+部署版非互動式 24/7 執行環境（systemd unit／wrapper）SHALL 設定 `GP_WRITER_MODE=claude`，並 SHALL 在派送文章前驗證 Tribunal 寫手（`tribunal-writer`）能透過 Claude 模型完成有界的寫入 canary。Canary SHALL 從 `.claude/agents/tribunal-writer.md` 的 `model:` 解析 Claude 模型，並 SHALL 重用正式改寫的受限 Claude 執行器、暫態 systemd service 與逾時行為。Claude 憑證 SHALL 由 Claude CLI 自己的登入狀態管理；部署版服務與 wrapper SHALL NOT 讀取、匯出或注入 Claude token。Library 預設 MAY 維持 `none`（只評分、不改寫）；允許改寫時寫手模式 SHALL 是 `claude`，`subagent`、舊版 `cli`、`codex` 與 `grok` 寫手模式都已退役。正式 daemon SHALL NOT 以只評分或已退役的寫手模式執行。
 
 #### Scenario: 未過關文章由 Claude 模型改寫而非跳過
 
@@ -96,5 +96,5 @@
 #### Scenario: 非部署版相容路徑留在正式環境之外
 
 - **WHEN** 部署版嚴格模式未啟用
-- **THEN** 互動式 `subagent`、舊版 `cli` 或 CCC 供應端備援 MAY 維持可用
+- **THEN** CCC 評審的供應端備援 MAY 維持可用
 - **AND** 這些相容路徑 SHALL NOT 滿足或繞過部署版 Claude 寫入 canary 合約
