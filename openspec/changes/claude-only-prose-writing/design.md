@@ -45,7 +45,7 @@ gu-log 的文章由 Mogu 撰寫，Claude 是 Mogu 背後使用的 AI 模型。�
 
 ### 1. 文章寫作步驟一律使用 Claude 模型，檢查放在 dispatch 邊界
 
-哪些步驟算寫作只由 shell router（`scripts/tribunal-model-router.sh`）判定，而且雙向檢查：writer、translator、corrector、commentary 必須用 Claude，Claude 也只能用在這些步驟。Go 的 runtime routing 與 GP profile 都透過 router 解析，不另存一份步驟清單；GP profile 只另外拒絕 gate 評審使用 Claude 寫作 model。本機 `WritingChain` 只回 pin 住的 Claude 模型，`GP_WRITER_PROVIDER=codex` 明確報錯。Tribunal 的隔離候選交易只收 `GP_WRITER_MODE=claude`，`codex`／`grok` 模式在任何模型呼叫前以「已退役」失敗；允許改寫但寫手模式不是 `claude` 時，在第一位評審前就以 rc 78 失敗，不先花評審額度。
+哪些步驟算寫作只由 shell router（`scripts/tribunal-model-router.sh`）判定，而且雙向檢查：writer、translator、corrector、commentary 必須用 Claude，Claude 也只能用在這些步驟。Go 的 runtime routing 與 GP profile 都透過 router 解析，不另存一份步驟清單；GP profile 只另外拒絕 gate 評審使用 Claude 寫作 model。本機 `WritingChain` 只回 pin 住的 Claude 模型，`GP_WRITER_PROVIDER=codex` 明確報錯。Tribunal 的隔離候選交易只收 `GP_WRITER_MODE=claude`，`subagent`、`cli`、`codex`、`grok` 模式在任何模型呼叫前以「已退役」失敗（見第 9 點）；允許改寫但寫手模式不是 `claude` 時，在第一位評審前就以 rc 78 失敗，不先花評審額度。
 
 替代方案是只改 `config/llm-pipeline.json`。那只擋得住 VM，擋不住本機 fallback 與 Tribunal writer mode，未來改 config 也能靜默回流，因此不採用。
 
@@ -100,6 +100,10 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 - 登入：丟棄候選、還原文章，worker 以 rc 78 結束；daemon 停止領新文章、排空進行中的 worker 後退出，並提示以跑 daemon 的使用者執行 `claude auth login`。不重評未改寫的文章，也不計失敗或改寫次數。
 - 寫手 preflight 在領文章前失敗（例如未登入）時 daemon 直接退出，systemd 至少間隔 10 分鐘才重啟，不會每分鐘重試。
 
+### 9. subagent 與舊版 cli 寫手模式退役
+
+`subagent`（外層 session 透過 writer broker 接手改寫）與舊版 `cli`（開放 Bash 等工具、沒有受限參數的 `claude -p` 執行器）原本只保留給非部署版的互動式編排。隔離候選交易只收 `claude`，允許改寫時其他模式又會在第一位評審前失敗，這兩條路已經沒有可達入口，所以刪掉 writer broker、broker 的等待 helper 與舊版 `cli` 執行器，只留輸入驗證：退役模式集中列在 `tribunal_writer_mode_problem` 一處，寫手 preflight、改寫執行器、第一位評審前的檢查與 batch runner 都用它回「已退役」錯誤。非部署版的相容路徑只剩 CCC 評審在沒有 Codex 時的供應端備援，那條路不寫文章，不受影響。
+
 ## Risks / Trade-offs
 
 - [風險] 背景改寫全部改用 Claude 模型，VM 上的 Claude 訂閱額度會被 Tribunal 與 GP pipeline 一起消耗，而控制器看不到 Claude 額度 → 額度錯誤以 unknown 暫停該篇，daemon 暫停派送到 Claude 回報的重置時間並保留可觀測紀錄；runbook 寫明控制器看不到 Claude 額度，必要時用 `--workers` 與停機控制用量。
@@ -110,7 +114,7 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 - [取捨] Claude 額度訊息沒有重置時間時採 1 小時的保守預設 → 可能等太久或太短；等太短時下一次呼叫會再撞到額度並重新暫停，不會改用其他模型。
 - [取捨] GP translator 與 corrector 共用同一個 model → 以獨立 Codex gate 核准 findings、patch boundary 驗證與 fail-closed routing 維持獨立性（見 Decision 3）。
 - [取捨] GP natural-zh vibe gate 仍用 Codex 模型評 Claude 模型寫出的譯文 → 這正是寫作步驟與 gate 分離的要求；owner 只要求文章寫作改用 Claude 模型。
-- [風險] 刪除 Codex／Grok 寫作路徑後，本機若仍設 `GP_WRITER_MODE=codex` 或 `GP_WRITER_PROVIDER=codex` 會直接失敗 → 錯誤訊息指出改用 Claude 模型的設定。
+- [風險] 刪除 Codex／Grok 寫作路徑與 `subagent`、舊版 `cli` 寫手模式後，本機若仍設這些 `GP_WRITER_MODE` 值或 `GP_WRITER_PROVIDER=codex` 會直接失敗 → 錯誤訊息指出改用 Claude 模型的設定；只想評分的 run 可以用 `none` 或 `--no-rewrite`。
 
 ## Migration Plan
 

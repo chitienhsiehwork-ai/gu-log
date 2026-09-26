@@ -42,3 +42,4 @@
 - [x] 7.6 暫態 systemd service 抽成共用函式並寫明各供應端的憑證規則，受限的 Claude 呼叫不載入主機 settings 與 MCP server；以 `test-tribunal-model-cli-env.sh`、安全合約測試與 Go 的環境變數交叉比對測試驗證
 - [x] 7.7 JSON 寫作步驟帶 schema、缺少 `claude` 時給可行動錯誤；以 source preservation 與 dispatcher 測試驗證
 - [x] 7.8 runbook、README、SKILL、playbook 與 Go 註解裡抄的政策收成一句並指回 spec 或 code，runbook 改正 Claude 登出時的行為並在部署步驟確認 Claude 已登入；proposal／design 寫明推翻 2026-07-28 的 Codex-only 部署決定與取捨
+- [x] 7.9 刪除 writer broker（`tribunal_writer_exec_broker`、`scripts/writer-broker-wait.sh` 與其測試）和舊版 `cli` 寫手執行器；`subagent`、`cli` 跟 `codex`、`grok` 一樣集中由 `tribunal_writer_mode_problem` 回「已退役」錯誤，允許改寫時在第一位評審前失敗；以 safety-contract、deploy-readiness、batch provider 測試驗證
