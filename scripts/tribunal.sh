@@ -677,13 +677,6 @@ run_writer_candidate_transaction() {
       return 70
       ;;
   esac
-  case "$(tribunal_writer_mode)" in
-    claude) ;;
-    *)
-      tlog "  RUNNER ERROR: isolated writer transactions require GP_WRITER_MODE=claude (gu-log article rewrites use only the Claude model)."
-      return 70
-      ;;
-  esac
   if [ -f "$ROOT_DIR/src/content/posts/en-$post_file" ]; then
     WRITER_TRANSACTION_EN_EXISTED=1
   fi
@@ -874,6 +867,12 @@ PROMPT
   writer_mode="$(tribunal_writer_mode)"
   if [ "$writer_mode" = "none" ]; then
     tlog "  Rewrite skipped (GP_WRITER_MODE=none) during final build repair; failing without invoking tribunal-writer."
+    return 1
+  fi
+  # Final-build repair runs even without --allow-rewrite, so the check before
+  # the first judge may not have vetted the writer mode.
+  if [ "$writer_mode" != "claude" ]; then
+    tlog "  Final build repair skipped: $(tribunal_writer_mode_problem "$writer_mode"); failing without invoking tribunal-writer."
     return 1
   fi
   writer_out="$(mktemp)"

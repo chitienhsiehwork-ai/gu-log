@@ -488,12 +488,42 @@ EXPECTED_ARGS
 ) || fail "bounded Claude write-canary preflight behavioral check failed"
 pass "deployed runtime selects the VM profile and a contained Claude write canary; retired writer modes fail before any model call"
 
-transaction_body="$(sed -n '/^run_writer_candidate_transaction()/,/^}/p' "$TRIBUNAL")"
-if ! grep -Fq 'claude) ;;' <<<"$transaction_body" ||
-   grep -Eq '(codex|grok)[|)]' <<<"$transaction_body"; then
-  fail "isolated writer transaction must accept only the Claude-model writer"
+# Only the Claude model rewrites: the executor every writer transaction calls
+# refuses any other writer mode before a model is invoked.
+(
+  fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-writer-modes.XXXXXX")"
+  trap 'rm -rf "$fixture_root"' EXIT
+  mkdir -p "$fixture_root/bin" "$fixture_root/work"
+  cat > "$fixture_root/bin/claude" <<'FAKE_CLAUDE'
+#!/usr/bin/env bash
+: > "$FAKE_CLAUDE_CALLED"
+exit 0
+FAKE_CLAUDE
+  chmod +x "$fixture_root/bin/claude"
+  # shellcheck disable=SC1090
+  source "$HELPERS"
+  for mode in none subagent cli codex grok bogus; do
+    if PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_CALLED="$fixture_root/called" \
+      GP_WRITER_MODE="$mode" \
+      tribunal_writer_exec "$fixture_root/work" tribunal-writer 'rewrite' \
+      >"$fixture_root/$mode.out" 2>&1; then
+      echo "x writer executor accepted GP_WRITER_MODE=$mode" >&2
+      exit 1
+    fi
+    [ ! -e "$fixture_root/called" ] || {
+      echo "x writer executor invoked Claude for GP_WRITER_MODE=$mode" >&2
+      exit 1
+    }
+  done
+  grep -q 'rewrite skipped' "$fixture_root/none.out"
+  grep -q 'GP_WRITER_MODE=codex is retired' "$fixture_root/codex.out"
+  grep -q "unsupported GP_WRITER_MODE='bogus'" "$fixture_root/bogus.out"
+) || fail "writer executor must refuse every writer mode except claude"
+if ! grep -Fq '"$writer_mode" != "claude"' \
+  <(sed -n '/^repair_final_build_failure()/,/^}/p' "$TRIBUNAL"); then
+  fail "final-build repair must refuse non-Claude writer modes before its transaction"
 fi
-pass "writer transactions accept only the Claude model"
+pass "writer transactions run only with the Claude model"
 
 (
   fixture_root="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-notifier.XXXXXX")"
