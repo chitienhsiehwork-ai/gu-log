@@ -388,6 +388,11 @@ if ! grep -q '^Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1$' "$SERVICE" ||
    ! grep -q '^if \[ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" \]; then$' "$WRAPPER"; then
   fail "service must select the VM profile and the Claude-model writer while the generic wrapper guards host identity"
 fi
+restart_sec="$(sed -n 's/^RestartSec=\([0-9][0-9]*\)$/\1/p' "$SERVICE")"
+if ! grep -q '^Restart=on-failure$' "$SERVICE" ||
+   ! [ "${restart_sec:-0}" -ge 600 ] 2>/dev/null; then
+  fail "a failed writer preflight must back off at least 10 minutes between restarts (RestartSec=${restart_sec:-unset})"
+fi
 if ! grep -q '^MemoryMax=4G$' "$SLICE" ||
    ! grep -q '^CPUQuota=200%$' "$SLICE" ||
    ! grep -q '^TasksMax=1024$' "$SLICE"; then

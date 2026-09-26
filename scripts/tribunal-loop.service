@@ -14,7 +14,10 @@ Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex
 Environment=GP_WRITER_MODE=claude
 ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
-RestartSec=60
+# Every failed exit restarts no sooner than 10 minutes later, so a writer
+# preflight that fails before any claim (e.g. the Claude CLI is not logged in,
+# rc=78) backs off instead of retrying every minute forever.
+RestartSec=600
 Environment=TZ=Asia/Taipei
 
 # Graceful stop (see OpenSpec: tribunal-graceful-run-control)
