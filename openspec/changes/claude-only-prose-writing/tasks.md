@@ -12,9 +12,9 @@
 
 ## 3. VM runtime profile
 
-- [x] 3.1 `config/llm-pipeline.json` 的寫作步驟改用 Claude 模型且不宣告 model／effort，`requiredProviders` 改為實際使用的供應端，移除 Grok 額度區塊；以 router 與 Go profile 測試驗證
-- [x] 3.2 Router 強制寫作步驟使用 Claude、從 tribunal-writer frontmatter 解析 model、以步驟為單位做供應端 preflight 並檢查 `requiredProviders` 一致性、移除 Grok 額度分支；Grok provider bridge 只檢查 Grok，沒有步驟使用 Grok 時拒絕執行；以 `bash scripts/tests/test-tribunal-model-router.sh`、`test-tribunal-vm-routing.sh` 與 Go 的 Grok bridge 測試驗證
-- [x] 3.3 Go routing 只讓寫作步驟使用 Claude、比對 router 回報的 model 與 `ClaudeOpusPinned`、依步驟給最小權限的 Claude provider；GP profile 改成寫作步驟與 gate 評審不共用 model；以 routing／profile 測試與 pin 漂移測試驗證
+- [x] 3.1 `config/llm-pipeline.json` 的寫作步驟改用 Claude 模型且不宣告 model／effort，`requiredProviders` 改為實際使用的供應端，移除 Grok 額度區塊；以 router 與 Go profile 測試驗證（`requiredProviders` 部分已由 7.5 取代：整個欄位刪除，供應端改由各步驟推導）
+- [x] 3.2 Router 強制寫作步驟使用 Claude、從 tribunal-writer frontmatter 解析 model、以步驟為單位做供應端 preflight 並檢查 `requiredProviders` 一致性、移除 Grok 額度分支；Grok provider bridge 只檢查 Grok，沒有步驟使用 Grok 時拒絕執行；以 `bash scripts/tests/test-tribunal-model-router.sh`、`test-tribunal-vm-routing.sh` 與 Go 的 Grok bridge 測試驗證（`requiredProviders` 一致性與 Grok bridge 部分已由 7.5 取代：兩者都已刪除，router 改為雙向檢查寫作步驟與 Claude 的配對）
+- [x] 3.3 Go routing 只讓寫作步驟使用 Claude、比對 router 回報的 model 與 `ClaudeOpusPinned`、依步驟給最小權限的 Claude provider；GP profile 改成寫作步驟與 gate 評審不共用 model；以 routing／profile 測試與 pin 漂移測試驗證（「Go routing 自己擋非 Claude 寫作步驟」已由 7.5 取代：這項判定只在 router 做，Go 只保留 pin 比對與 gate 不共用 model 的檢查）
 - [x] 3.4 GP run 的英文 sidecar 改用 writer 路由、corrector 帶 bounded-patch schema、doctor 列出 `claude`；以 `go test ./...` 驗證
 
 ## 4. Tribunal 改寫
