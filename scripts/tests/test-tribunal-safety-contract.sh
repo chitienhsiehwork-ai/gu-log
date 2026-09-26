@@ -169,9 +169,18 @@ if ! grep -q 'tribunal_codex_agent_model()' "$HELPERS" ||
    ! grep -q 'tribunal_codex_toml_model()' "$HELPERS"; then
   fail "Codex provider path lacks strict per-role TOML model resolution"
 fi
-missing_models=$(grep -L '^model = "[A-Za-z0-9][A-Za-z0-9._:-]*"$' "$CODEX_AGENTS_DIR"/*.toml || true)
+# Judges bind a Codex model per role. The writer contract binds none: Mogu
+# writes and rewrites articles only with the Claude model.
+missing_models=$(grep -L '^model = "[A-Za-z0-9][A-Za-z0-9._:-]*"$' "$CODEX_AGENTS_DIR"/*.toml |
+  grep -v '/tribunal-writer\.toml$' || true)
 if [ -n "$missing_models" ]; then
-  fail "One or more Codex tribunal agent specs lack a top-level model: $missing_models"
+  fail "One or more Codex tribunal judge specs lack a top-level model: $missing_models"
+fi
+if grep -Eq '^model(_reasoning_effort)?[[:space:]]*=' "$CODEX_WRITER"; then
+  fail "Codex tribunal-writer contract binds a Codex model; article rewrites use only the Claude model"
+fi
+if ! grep -q 'only with the Claude model' "$CODEX_WRITER"; then
+  fail "Codex tribunal-writer contract does not state that rewrites use only the Claude model"
 fi
 pass "Tribunal model selection: per-role TOML + explicit run-scoped override"
 
