@@ -37,12 +37,8 @@ func ProbeChain() []Provider {
 }
 
 // WritingChain returns the provider chain for the legacy (no runtime profile)
-// write, refine and English sidecar steps. Mogu writes gu-log articles only
-// with the Claude model (owner decision 2026-09-26, openspec
-// claude-prose-writing-runtime), so the chain is always the pinned Claude
-// model. A missing claude binary fails
-// closed through the dispatcher's "binary not found" error instead of falling
-// back to another provider.
+// write, refine and English sidecar steps: only the pinned Claude model, with
+// no fallback (openspec claude-prose-writing-runtime).
 func WritingChain() ([]Provider, error) {
 	switch provider := os.Getenv("GP_WRITER_PROVIDER"); provider {
 	case "", "claude":
@@ -94,8 +90,8 @@ func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
 
 // EffectiveStamp returns the (model, harness) display labels for the runtime
 // provider that WritingChain will resolve to. When nothing is on PATH (offline
-// / FakeProvider test runs) it stamps the pinned Claude model, the only
-// model used to write articles, as the deterministic default.
+// / FakeProvider test runs) it stamps the pinned Claude model as the
+// deterministic default.
 func EffectiveStamp() (model, harness string, err error) {
 	chain, err := WritingChain()
 	if err != nil {

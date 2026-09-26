@@ -11,10 +11,9 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>`. Mogu writes and
-// rewrites gu-log articles only with the Claude model (owner decision
-// 2026-09-26, openspec claude-prose-writing-runtime), so this is the only
-// provider for article-writing steps; it is also an explicit judge fallback.
+// ClaudeProvider shells out to `claude -p --model <model>`; it is the only
+// article-writing provider (openspec claude-prose-writing-runtime) and an
+// explicit judge fallback.
 //
 // Permission modes:
 //

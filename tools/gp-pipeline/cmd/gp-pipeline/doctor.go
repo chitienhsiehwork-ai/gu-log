@@ -56,8 +56,8 @@ type capabilityCheck struct {
 // codex is optional rather than required because judges fall back to `claude`
 // when no codex binary is on PATH (the CCC / Claude Code on the web sandbox).
 // claude is optional outside a runtime profile because fetch/eval/dedup run
-// without it, but every article-writing step needs it: Mogu writes only with
-// the Claude model. A runtime profile makes its providers required.
+// without it; writing steps fail with an actionable error when it is missing,
+// and a runtime profile makes its providers required.
 var (
 	requiredBinaries = []string{"git", "bash", "node", "python3", "curl", "pnpm"}
 	optionalBinaries = []string{"codex", "claude", "jq", "make", "yt-dlp"}

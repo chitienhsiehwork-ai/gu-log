@@ -1,7 +1,6 @@
 // Package llm is the dispatcher layer around the external language model
-// CLIs the pipeline can call. Every article-writing step uses only the pinned
-// Claude model (owner decision 2026-09-26); judges default to Codex with an
-// explicit Claude fallback policy. Gemini is available only for experiments.
+// CLIs the pipeline can call; which provider runs which step is defined in
+// defaults.go and routing.go (openspec claude-prose-writing-runtime).
 //
 // Design notes:
 //
@@ -9,9 +8,7 @@
 //     no API client, no auth plumbing, no HTTP. The surrounding CLIs
 //     (installed by the user) handle their own authentication, and we
 //     inherit whatever credentials they already have.
-//   - A Dispatcher composes a fallback chain. The default judge chain is
-//     Codex GPT-5.5 primary; writing chains never fall back to another
-//     provider.
+//   - A Dispatcher composes a fallback chain; defaults.go defines the chains.
 //   - Canary probes (gp-pipeline doctor --probe-llm) send a single short
 //     prompt through each provider independently, reporting which ones
 //     respond non-interactively. This is the load-bearing early warning
