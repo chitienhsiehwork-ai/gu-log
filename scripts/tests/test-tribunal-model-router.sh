@@ -113,12 +113,21 @@ for role in writer translator corrector commentary; do
   fi
 done
 
-# The login check sees only the CLI's own login state: API-key and token
-# variables are dropped exactly as for the VM's Claude calls.
-ANTHROPIC_API_KEY=sk-ant-fixture ANTHROPIC_AUTH_TOKEN=bearer-fixture \
-CLAUDE_CODE_OAUTH_TOKEN=oauth-fixture FAKE_CLAUDE_ENV="$TMP_DIR/claude-auth.env" \
-TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" writer --json >/dev/null
-for variable in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_CODE_OAUTH_TOKEN; do
+# The login check sees only the CLI's own login state: the variables the VM's
+# Claude calls drop (the list lives in tribunal-helpers.sh) are dropped here too.
+claude_blocked_env="$(bash -c '
+  source "$1/scripts/tribunal-helpers.sh"
+  tribunal_transient_service_unset_env claude
+' _ "$ROOT_DIR")"
+[ -n "$claude_blocked_env" ] || fail "cannot read the Claude unset list from tribunal-helpers.sh"
+(
+  for variable in $claude_blocked_env; do
+    export "$variable=fixture-secret"
+  done
+  FAKE_CLAUDE_ENV="$TMP_DIR/claude-auth.env" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+    bash "$ROUTER" writer --json >/dev/null
+)
+for variable in $claude_blocked_env; do
   if grep -q "^$variable=" "$TMP_DIR/claude-auth.env"; then
     fail "Claude login check saw $variable"
   fi
