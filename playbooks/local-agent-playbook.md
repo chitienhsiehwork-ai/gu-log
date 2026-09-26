@@ -162,14 +162,14 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
 
 它 claim 到新的未處理請求時印 `REQUEST <abs path to request.json>`；pipeline pid 已結束且沒有請求時印 `PIPELINE_DONE`；可選 timeout 到期時印 `TIMEOUT` 並用非零 exit code 結束。
 
-## SD 原創文：Opus 寫手、Codex 編排
+## SD 原創文：正文用 Claude 模型，Codex 只編排
 
-當 user 明確指定「叫 Claude Opus 寫」、「writing/refine/rewrite 必須由 Claude Opus 做」時，local Codex actor / Codex 的角色只能是 **orchestrator / scorer / gatekeeper**，不能代寫文章正文。這條包含：
+文章正文一律使用 Claude 模型（openspec `claude-prose-writing-runtime`），不必等 user 指定，所以 local Codex actor / Codex 的角色只能是 **orchestrator / scorer / gatekeeper**，不能代寫文章正文。這條包含：
 
-- 首稿 prose 由 Claude Opus 產出。
-- refine / rewrite prose 由 Claude Opus 產出。
+- 首稿 prose 由 Claude 模型產出。
+- refine / rewrite prose 由 Claude 模型產出。
 - Codex 可以整理 brief、挑 context、跑 validator、跑 scorer、萃取評審 feedback、檢查 frontmatter、修格式錯誤；但不能自己補正文段落、改寫句子、加 MoguNote 當成內容。
-- Claude 不可用時，停在「可交接的 Opus brief + scoring plan」，不要用 Codex 代筆硬完成。
+- Claude 不可用時，停在「可交接的 brief + scoring plan」，不要用 Codex 代筆硬完成。
 
 低 token 工作流：
 
@@ -249,7 +249,7 @@ Frontmatter:
 ...
 ```
 
-這條 workflow 的精神是：**讓 Codex 省 Opus token，讓 Opus 只花在真正需要文筆和敘事判斷的地方。** Codex 不要拿高價寫手去讀整個 repo；也不要在寫手不可用時自己假裝是寫手。
+這條 workflow 的精神是：**讓 Codex 省 Claude token，讓 Claude 模型只花在真正需要文筆和敘事判斷的地方。** Codex 不要叫 Claude 模型去讀整個 repo；Claude 不可用時也不要自己代寫正文。
 
 ## 這份 playbook 是 living doc
 
