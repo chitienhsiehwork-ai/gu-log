@@ -154,6 +154,10 @@ systemctl --user restart tribunal-pass-audit.timer
 loginctl enable-linger "$USER"
 
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
+
+# Writing needs the Claude CLI logged in as this user; the doctor live probe
+# below is the check (see the doctor section after this block).
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 DEPLOY
 ```
 
@@ -173,8 +177,8 @@ canary：
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
-只有需要重新驗證 Claude CLI 登入狀態與實際寫入權限時才明確執行 live
-probe。它會在 disposable workspace 跑 bounded write canary，並重用正式改寫
+deploy block 最後會跑一次 live probe 確認 Claude CLI 已登入；之後只有需要重新
+驗證 Claude 登入狀態與實際寫入權限時才手動執行 live probe。它會在 disposable workspace 跑 bounded write canary，並重用正式改寫
 同一個受限 Claude 執行器：隔離 workspace、只開檔案工具的 non-interactive
 permission 與 systemd resource boundary；canary
 內容完全吻合後才輸出 exact `OK`。live probe 會實際呼叫一次 Claude 模型：
@@ -246,16 +250,18 @@ legacy／Claude Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只
 `vm-codex` 的 provider preflight 以步驟為單位：`requiredProviders` 必須剛好
 等於各步驟實際使用的供應端，多列或少列都 fail closed；解析某一步時只檢查
 該步的供應端，Codex 查 CLI 與登入，Claude 查 `claude auth status` 與模型 pin。
-所以 Claude 登出只會擋下寫作步驟，評審照常；寫作步驟被設成 Claude 以外的
-供應端，router 與 gp-pipeline 都會拒絕。Codex
+評審解析不會呼叫 Claude CLI，但 Claude 登出時 daemon 不會只停寫作、繼續評審：
+寫手 preflight 或改寫碰到登入失效時，daemon 停止領新文章，要以跑 daemon 的
+使用者執行 `claude auth login`。寫作步驟被設成 Claude 以外的供應端，router 與
+gp-pipeline 都會拒絕。Codex
 reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
 `gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
 採保守的 Luna。
 
 Claude 額度沒有可靠的剩餘百分比來源，quota controller 也看不到它，所以不會
-預先降速或保留額度。Tribunal 改寫碰到 Claude 回報的額度或 rate-limit 錯誤時，
-以 provider `claude`、tier `unknown` 暫停，不捏造百分比，也不會改用 Codex
-或 Grok 重試；Claude 額度要由 operator 在 Claude 帳號端留意。
+預先降速或保留額度。Tribunal 改寫碰到 Claude 回報的額度錯誤時，還原文章、以
+provider `claude`、tier `unknown` 暫停該篇，並暫停派送到 Claude 回報的重置時間；
+不捏造百分比，也不會改用其他模型重試。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -340,7 +346,8 @@ Exit code conventions (from `tribunal-all-claude.sh`):
 - `0` — all 4 stages passed and final full-site build passed
 - `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
-- `75` — skipped (per-article lock held by another instance)
+- `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
+- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in); the loop drains and stops dispatching
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
 
 ## Worktree lifecycle cheat sheet
