@@ -1240,8 +1240,16 @@ Do not write any other file. Reply OK only after the file is durable." 2>&1
         printf 'Writer preflight failed: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; the daemon retries after its restart backoff (%s)\n' \
           "${USER:-$(id -un)}" "$(printf '%s' "$output" | tail -1)" >&2
         ;;
+      config)
+        printf 'Writer preflight failed: the Claude account or the pinned model cannot be used as configured; a person must fix the plan, the admin settings or the model pin (%s)\n' \
+          "$(printf '%s' "$output" | tail -1)" >&2
+        ;;
       quota)
         printf 'Writer preflight failed: the Claude quota is exhausted; the daemon retries after its restart backoff (%s)\n' \
+          "$(printf '%s' "$output" | tail -1)" >&2
+        ;;
+      transient)
+        printf 'Writer preflight failed: Claude reported a temporary error; the daemon retries after its restart backoff (%s)\n' \
           "$(printf '%s' "$output" | tail -1)" >&2
         ;;
       *)
@@ -2085,10 +2093,10 @@ print(max(0, int((reset - now).total_seconds())))
 PY
 }
 
-# The daemon-wide Claude quota pause (openspec tribunal-24-7-operations): a
-# writer that hits the Claude quota records when it resets, and the quota loop
-# holds dispatch until then instead of judging article after article only to
-# hit the same limit again.
+# The daemon-wide Claude writer pause (openspec tribunal-24-7-operations): a
+# writer that hits the Claude quota records when it resets, or a short pause
+# after a temporary error, and the quota loop holds dispatch until then instead
+# of judging article after article only to hit the same error again.
 tribunal_claude_pause_file() {
   printf '%s/.score-loop/state/claude-writer-pause.json\n' \
     "${TRIBUNAL_MAIN_REPO:-${ROOT_DIR:-${REPO_ROOT:-$PWD}}}"
@@ -2107,7 +2115,7 @@ tribunal_claude_pause_write() {
     > "$tmp" && mv "$tmp" "$file"
 }
 
-# Print the seconds left in an active Claude quota pause; fail (after removing
+# Print the seconds left in an active Claude writer pause; fail (after removing
 # the file) once it has expired or is unreadable.
 tribunal_claude_pause_remaining() {
   local file until now
@@ -2122,28 +2130,39 @@ tribunal_claude_pause_remaining() {
   printf '%s\n' "$((until - now))"
 }
 
-# A Tribunal writer call hit the Claude quota: suspend the article with the
-# unknown tier and hold daemon dispatch until the reset Claude reported (or the
-# conservative default when it reported none). Never probes CodexBar: it knows
-# nothing about the Claude account.
+# A Tribunal writer call hit the Claude quota or a temporary Claude error:
+# suspend the article with the unknown tier (nothing re-judged or counted) and
+# hold daemon dispatch until the reset Claude reported (the conservative default
+# when it reported none), or briefly after a temporary error. Never probes
+# CodexBar: it knows nothing about the Claude account.
 tribunal_claude_quota_suspend() {
-  local output_file="$1" class wait_seconds buffer_seconds reason detail
+  local output_file="$1" class wait_seconds buffer_seconds reason detail what
   class="$(tribunal_claude_failure_class "$output_file")" || return 1
-  [ "$class" = quota ] || return 1
-  detail="$(tribunal_claude_failure_detail "$output_file" quota)"
-  if wait_seconds="$(tribunal_claude_reset_seconds "$output_file")"; then
-    reason="Claude reported the reset: $detail"
-  else
-    wait_seconds="$(tribunal_quota_seconds_from_text "${GP_CLAUDE_QUOTA_DEFAULT_WAIT:-1h}")"
-    reason="Claude reported no reset time; conservative wait ${wait_seconds}s: $detail"
-  fi
+  detail="$(tribunal_claude_failure_detail "$output_file" "$class")"
+  case "$class" in
+    quota)
+      what="claude quota exhausted"
+      if wait_seconds="$(tribunal_claude_reset_seconds "$output_file")"; then
+        reason="Claude reported the reset: $detail"
+      else
+        wait_seconds="$(tribunal_quota_seconds_from_text "${GP_CLAUDE_QUOTA_DEFAULT_WAIT:-1h}")"
+        reason="Claude reported no reset time; conservative wait ${wait_seconds}s: $detail"
+      fi
+      ;;
+    transient)
+      what="claude temporary error"
+      wait_seconds="$(tribunal_quota_seconds_from_text "${GP_CLAUDE_TRANSIENT_WAIT:-15m}")"
+      reason="Claude reported a temporary error; short pause ${wait_seconds}s: $detail"
+      ;;
+    *) return 1 ;;
+  esac
   buffer_seconds="$(tribunal_quota_seconds_from_text "${GP_QUOTA_WAIT_BUFFER:-120s}")"
   wait_seconds=$((wait_seconds + buffer_seconds))
   tribunal_quota_write_status claude suspend unknown "$wait_seconds" "$reason"
   if ! tribunal_claude_pause_write "$wait_seconds" "$reason"; then
-    printf 'WARN: could not record the Claude quota pause for the daemon\n' >&2
+    printf 'WARN: could not record the Claude writer pause for the daemon\n' >&2
   fi
-  tribunal_quota_alarm "claude quota exhausted. $reason. Suspended; the daemon holds dispatch for ${wait_seconds}s."
+  tribunal_quota_alarm "$what. $reason. Suspended; the daemon holds dispatch for ${wait_seconds}s."
   return 89
 }
 
@@ -2245,12 +2264,20 @@ tribunal_writer_exec() {
       fi
       return 0
     fi
-    if [ "$(tribunal_claude_failure_class "$out" 2>/dev/null || true)" = login ]; then
-      rm -f "$out"
-      printf 'ERROR: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; Tribunal rewrites use only the Claude model.\n' \
-        "${USER:-$(id -un)}" >&2
-      return 78
-    fi
+    case "$(tribunal_claude_failure_class "$out" 2>/dev/null || true)" in
+      login)
+        rm -f "$out"
+        printf 'ERROR: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; Tribunal rewrites use only the Claude model.\n' \
+          "${USER:-$(id -un)}" >&2
+        return 78
+        ;;
+      config)
+        printf 'ERROR: the Claude account or the pinned model cannot be used as configured (%s). A person must fix the plan, the admin settings or the model pin in .claude/agents/tribunal-writer.md; Tribunal rewrites use only the Claude model.\n' \
+          "$(tribunal_claude_failure_detail "$out" config)" >&2
+        rm -f "$out"
+        return 78
+        ;;
+    esac
     qrc=0
     tribunal_quota_handle_file claude "$out" "$waits" || qrc=$?
     rm -f "$out"

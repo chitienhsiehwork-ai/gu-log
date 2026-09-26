@@ -972,10 +972,12 @@ if [ "${1:-}" = "auth" ] && [ "${2:-}" = "status" ]; then
 fi
 prompt="$(cat)"
 printf 'call\n' >> "$FAKE_WRITER_CALLS"
-# Real messages of the installed Claude CLI for a spent quota or a lost login.
+# Real messages of the installed Claude CLI for each failure class.
 case "${FAKE_WRITER_FAILURE:-}" in
   quota) printf "You've hit your session limit · resets 5pm (UTC)\n"; exit 1 ;;
+  transient) printf 'API Error: Repeated 529 Overloaded errors. The API is at capacity — this is usually temporary. Try again in a moment.\n'; exit 1 ;;
   login) printf 'Not logged in · Please run /login\n'; exit 1 ;;
+  config) printf "Your seat type doesn't include usage credits\n"; exit 1 ;;
 esac
 printf '%s\n' "$@" > "$FAKE_WRITER_ARGS"
 candidate_zh="$(
@@ -1145,10 +1147,12 @@ cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
   fail "rollback fixture invoked the writer outside the bounded first attempt"
 pass "run_stage carries its FactChecker policy through validation-failure rollback"
 
-# A Claude quota or login failure during a rewrite leaves the post untouched,
-# is not re-judged, and is neither recorded as a failure nor counted.
+# A Claude quota, temporary, login or account failure during a rewrite leaves
+# the post untouched, is not re-judged, and is neither recorded as a failure
+# nor counted. Quota and temporary errors pause dispatch; login and account
+# errors need a person.
 claude_pause_file="$writer_root/.score-loop/state/claude-writer-pause.json"
-for failure in quota login; do
+for failure in quota transient login config; do
   cp -p "$fixture_zh_baseline" "$fixture_zh_path"
   cp -p "$fixture_en_baseline" "$fixture_en_path"
   printf '{}\n' > "$writer_progress"
@@ -1158,8 +1162,8 @@ for failure in quota login; do
   failure_rc=$?
   set -e
   case "$failure" in
-    quota) want_rc=75 ;;
-    login) want_rc=78 ;;
+    quota|transient) want_rc=75 ;;
+    login|config) want_rc=78 ;;
   esac
   [ "$failure_rc" -eq "$want_rc" ] || {
     sed -n '1,120p' "$TMP/writer-$failure.out" >&2 || true
@@ -1177,26 +1181,41 @@ for failure in quota login; do
   [ "$article_attempts" = "0" ] ||
     fail "Claude $failure during a rewrite was counted as an attempt"
   case "$failure" in
-    quota)
+    quota|transient)
       [ "$article_status" = QUOTA_SUSPENDED ] ||
-        fail "Claude quota during a rewrite recorded status '$article_status'"
+        fail "Claude $failure during a rewrite recorded status '$article_status'"
       [ -f "$claude_pause_file" ] ||
-        fail "Claude quota during a rewrite did not pause daemon dispatch"
+        fail "Claude $failure during a rewrite did not pause daemon dispatch"
+      pause_left=$(( $(jq -r '.until' "$claude_pause_file") - $(date +%s) ))
+      if [ "$failure" = transient ]; then
+        [ "$pause_left" -gt 900 ] && [ "$pause_left" -le 1020 ] ||
+          fail "Claude temporary error paused dispatch for ${pause_left}s, want the short 15m default plus buffer"
+      else
+        [ "$pause_left" -gt 1020 ] ||
+          fail "Claude quota paused dispatch for only ${pause_left}s"
+      fi
       ;;
-    login)
+    login|config)
       case "$article_status" in
         FAILED|EXHAUSTED|QUOTA_SUSPENDED|RUNNER_ERROR)
-          fail "Claude login failure during a rewrite recorded status '$article_status'"
+          fail "Claude $failure failure during a rewrite recorded status '$article_status'"
           ;;
       esac
       [ ! -e "$claude_pause_file" ] ||
-        fail "Claude login failure during a rewrite wrote a quota pause"
-      grep -q 'claude auth login' "$TMP/writer-$failure.out" ||
-        fail "Claude login failure during a rewrite gave no actionable message"
+        fail "Claude $failure failure during a rewrite wrote a quota pause"
+      if [ "$failure" = login ]; then
+        grep -q 'claude auth login' "$TMP/writer-$failure.out" ||
+          fail "Claude login failure during a rewrite gave no actionable message"
+      else
+        grep -q 'must fix the plan, the admin settings or the model pin' "$TMP/writer-$failure.out" || {
+          sed -n '1,80p' "$TMP/writer-$failure.out" >&2 || true
+          fail "Claude account failure during a rewrite gave no actionable message"
+        }
+      fi
       ;;
   esac
 done
-pass "Claude quota and login failures during a rewrite restore, pause, and never re-judge or count"
+pass "Claude quota, temporary, login and account failures during a rewrite restore, pause or stop, and never re-judge or count"
 
 # A run that may rewrite with a non-Claude writer mode fails before any judge.
 cp -p "$fixture_zh_baseline" "$fixture_zh_path"

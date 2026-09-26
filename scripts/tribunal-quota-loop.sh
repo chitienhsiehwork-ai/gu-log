@@ -1087,7 +1087,7 @@ wait_any_worker() {
           tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)"
         fi
         ;;
-    78) tlog "  [worker-$finished_id] $article_slug — needs operator action (rc=78; see the worker log above, e.g. run \`claude auth login\` as ${USER:-$(id -un)}); draining and claiming no new articles."
+    78) tlog "  [worker-$finished_id] $article_slug — needs operator action (rc=78; see the worker log above: run \`claude auth login\` as ${USER:-$(id -un)}, or fix the Claude plan, admin settings or model pin); draining and claiming no new articles."
         stop_requested=true
         stop_source="${stop_source:-worker-config-error}"
         fatal_worker_rc=78
@@ -1297,18 +1297,19 @@ while true; do
     fi
   fi
 
-  # ── Claude quota pause ────────────────────────────────────────────────────
-  # A writer that hit the Claude quota recorded when it resets. Hold new
-  # dispatch until then instead of judging more articles into the same limit;
-  # the controller below only sees Codex quota.
+  # ── Claude writer pause ───────────────────────────────────────────────────
+  # A writer that hit the Claude quota recorded when it resets, or a short
+  # pause after a temporary Claude error. Hold new dispatch until then instead
+  # of judging more articles into the same error; the controller below only
+  # sees Codex quota.
   if CLAUDE_PAUSE_LEFT="$(tribunal_claude_pause_remaining)"; then
     if (( IN_FLIGHT > 0 )); then
-      tlog "Claude quota pause active (${CLAUDE_PAUSE_LEFT}s left); waiting for in-flight workers."
+      tlog "Claude writer pause active (${CLAUDE_PAUSE_LEFT}s left); waiting for in-flight workers."
       wait_any_worker
       continue
     fi
     CLAUDE_PAUSE_WAIT=$(( CLAUDE_PAUSE_LEFT < 1800 ? CLAUDE_PAUSE_LEFT : 1800 ))
-    tlog "Claude quota pause: holding dispatch for ${CLAUDE_PAUSE_LEFT}s; re-checking in ${CLAUDE_PAUSE_WAIT}s (interruptible)."
+    tlog "Claude writer pause: holding dispatch for ${CLAUDE_PAUSE_LEFT}s; re-checking in ${CLAUDE_PAUSE_WAIT}s (interruptible)."
     rc_write_state "stopped_by_quota" "claude_writer_quota remaining=${CLAUDE_PAUSE_LEFT}s"
     rc_interruptible_sleep "$CLAUDE_PAUSE_WAIT" || true
     continue

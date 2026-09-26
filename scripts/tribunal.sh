@@ -1024,7 +1024,8 @@ run_final_build_gate() {
       return 75
     fi
     if [ "$repair_rc" -eq 78 ]; then
-      # Claude CLI login is gone: restore the pre-repair pair, record nothing.
+      # Claude needs a person (login, account or model pin): restore the
+      # pre-repair pair, record nothing.
       if ! restore_writer_rewrite_snapshot \
         "$post_path" "$repair_snapshot_token" "$repair_current_token" \
         "preserve-all"; then
@@ -1611,10 +1612,11 @@ PROMPT
     fi
 
     if [ "$writer_rc" -eq 78 ]; then
-      # Claude CLI login is gone: the candidate was discarded, the canonical
-      # post is untouched, and this attempt is neither re-judged, counted nor
-      # recorded as a failure. The daemon drains and waits for a new login.
-      tlog "  CLAUDE LOGIN REQUIRED during tribunal-writer rewrite: run \`claude auth login\` as the daemon user. The post is unchanged and this attempt is not counted."
+      # Claude needs a person (login, account settings or the model pin): the
+      # candidate was discarded, the canonical post is untouched, and this
+      # attempt is neither re-judged, counted nor recorded as a failure. The
+      # daemon drains and stops claiming articles.
+      tlog "  CLAUDE NEEDS A PERSON during tribunal-writer rewrite (see the writer error below: \`claude auth login\`, or fix the Claude plan, admin settings or model pin). The post is unchanged and this attempt is not counted."
       tail -5 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
       rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
       return 78
@@ -1873,7 +1875,7 @@ for stage_def in "${STAGES[@]}"; do
     commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
     exit 75
   elif [ "$stage_rc" -eq 78 ]; then
-    tlog "=== CLAUDE LOGIN REQUIRED at stage: $label (not a failure; rc=78) ==="
+    tlog "=== CLAUDE NEEDS A PERSON at stage: $label (not a failure; rc=78) ==="
     exit 78
   elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
@@ -1914,7 +1916,7 @@ elif [ "$final_build_rc" -eq 75 ]; then
   commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
   exit 75
 elif [ "$final_build_rc" -eq 78 ]; then
-  tlog "=== CLAUDE LOGIN REQUIRED at final build gate (not a failure; rc=78): $POST_FILE ==="
+  tlog "=== CLAUDE NEEDS A PERSON at final build gate (not a failure; rc=78): $POST_FILE ==="
   exit 78
 fi
 if [ "$final_build_rc" -ne 0 ]; then

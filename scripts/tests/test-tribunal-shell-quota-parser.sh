@@ -346,6 +346,34 @@ grep -Fxq 'reset_seconds=3720' "$TMP/writer-default-status" ||
   fail "Claude quota without a reset must use the conservative default wait"
 pass "Claude quota without a reported reset uses the conservative default wait"
 
+rm -f "$pause_file"
+set +e
+run_claude_writer_failure "API Error: Repeated 529 Overloaded errors. The API is at capacity — this is usually temporary. Try again in a moment." \
+  "$TMP/writer-transient-status" "$TMP/writer-transient.out"
+writer_rc=$?
+set -e
+[ "$writer_rc" -eq 75 ] ||
+  fail "a temporary Claude error should suspend like quota with rc75, got $writer_rc"
+grep -Fxq 'reset_seconds=1020' "$TMP/writer-transient-status" ||
+  fail "a temporary Claude error must pause for the short default (15m) plus buffer"
+[ -e "$pause_file" ] || fail "a temporary Claude error did not pause daemon dispatch"
+pass "temporary Claude errors pause dispatch briefly instead of failing the rewrite"
+
+rm -f "$pause_file" "$TMP/writer-config-status"
+set +e
+run_claude_writer_failure "Your usage allocation has been disabled by your admin · ask your admin for a higher limit" \
+  "$TMP/writer-config-status" "$TMP/writer-config.out"
+writer_rc=$?
+set -e
+[ "$writer_rc" -eq 78 ] ||
+  fail "a Claude account failure should stop the writer with rc78, got $writer_rc"
+grep -q 'model pin' "$TMP/writer-config.out" ||
+  fail "a Claude account failure did not say what a person must fix"
+[ ! -s "$TMP/writer-config-status" ] ||
+  fail "a Claude account failure was recorded as a quota suspension"
+[ ! -e "$pause_file" ] || fail "a Claude account failure wrote a pause"
+pass "Claude account and model-pin failures stop the writer for a person, separate from quota"
+
 rm -f "$pause_file" "$TMP/writer-login-status"
 set +e
 run_claude_writer_failure "Not logged in · Please run /login" \
