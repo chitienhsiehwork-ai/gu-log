@@ -885,9 +885,9 @@ PROMPT
     tlog "  WARN: final build repair writer exited with code $writer_rc"
     tail -10 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
     rm -f "$writer_out" "$writer_quota_status_file"
-    if [ "$writer_rc" -eq 70 ]; then
-      return 70
-    fi
+    case "$writer_rc" in
+      70|78) return "$writer_rc" ;;
+    esac
     return 1
   fi
   rm -f "$writer_out" "$writer_quota_status_file"
@@ -1012,6 +1012,19 @@ run_final_build_gate() {
       fi
       rm -f "$build_log"
       return 75
+    fi
+    if [ "$repair_rc" -eq 78 ]; then
+      # Claude CLI login is gone: restore the pre-repair pair, record nothing.
+      if ! restore_writer_rewrite_snapshot \
+        "$post_path" "$repair_snapshot_token" "$repair_current_token" \
+        "preserve-all"; then
+        FINAL_BUILD_RUNNER_ERROR_REASON="rewrite_restore_failed"
+        FINAL_BUILD_RUNNER_ERROR_ATTEMPT="$repair_attempt"
+        rm -f "$build_log"
+        return 70
+      fi
+      rm -f "$build_log"
+      return 78
     fi
     if [ "$repair_rc" -eq 70 ]; then
       FINAL_BUILD_RUNNER_ERROR_REASON="writer_candidate_transaction_failed"
@@ -1587,6 +1600,16 @@ PROMPT
       return 75
     fi
 
+    if [ "$writer_rc" -eq 78 ]; then
+      # Claude CLI login is gone: the candidate was discarded, the canonical
+      # post is untouched, and this attempt is neither re-judged, counted nor
+      # recorded as a failure. The daemon drains and waits for a new login.
+      tlog "  CLAUDE LOGIN REQUIRED during tribunal-writer rewrite: run \`claude auth login\` as the daemon user. The post is unchanged and this attempt is not counted."
+      tail -5 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+      return 78
+    fi
+
     if [ "$writer_rc" -eq 70 ]; then
       tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
       tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
@@ -1839,6 +1862,9 @@ for stage_def in "${STAGES[@]}"; do
     tlog "=== QUOTA SUSPENDED at stage: $label ==="
     commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at $label stage"
     exit 75
+  elif [ "$stage_rc" -eq 78 ]; then
+    tlog "=== CLAUDE LOGIN REQUIRED at stage: $label (not a failure; rc=78) ==="
+    exit 78
   elif [ "$stage_rc" -eq 70 ]; then
     tlog "=== RUNNER ERROR at stage: $label ==="
     if ! ensure_article_runner_error_checkpoint \
@@ -1877,6 +1903,9 @@ elif [ "$final_build_rc" -eq 75 ]; then
   tlog "=== QUOTA SUSPENDED at final build gate: $POST_FILE ==="
   commit_progress "tribunal(${POST_FILE%.mdx}): QUOTA_SUSPENDED at final build gate"
   exit 75
+elif [ "$final_build_rc" -eq 78 ]; then
+  tlog "=== CLAUDE LOGIN REQUIRED at final build gate (not a failure; rc=78): $POST_FILE ==="
+  exit 78
 fi
 if [ "$final_build_rc" -ne 0 ]; then
   tlog "=== FAILED at final build gate: $POST_FILE ==="

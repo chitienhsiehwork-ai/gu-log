@@ -300,6 +300,24 @@ if ! grep -q 'runner_error propagated' "$ROOT_DIR/scripts/tribunal-quota-loop.sh
 fi
 pass "quota loop drains instead of sweeping the queue after runner_error"
 
+wait_any_body="$(sed -n '/^wait_any_worker()/,/^}/p' "$QUOTA_LOOP")"
+if ! grep -q 'QUOTA_SUSPENDED (rc=75)' <<<"$wait_any_body" ||
+   ! grep -q 'skipped (lock collision)' <<<"$wait_any_body" ||
+   ! grep -q 'fatal_worker_rc=78' <<<"$wait_any_body"; then
+  fail "quota loop must tell a quota suspension from a lock collision and drain on rc=78"
+fi
+main_loop_body="$(sed -n '/^while true; do/,$p' "$QUOTA_LOOP")"
+pause_line="$(grep -n 'tribunal_claude_pause_remaining' <<<"$main_loop_body" | head -1 | cut -d: -f1)"
+claim_line="$(grep -n 'try_claim_next_article' <<<"$main_loop_body" | head -1 | cut -d: -f1)"
+if [ -z "$pause_line" ] || [ -z "$claim_line" ] || [ "$pause_line" -ge "$claim_line" ]; then
+  fail "quota loop must honor the Claude quota pause before claiming an article"
+fi
+if ! sed -n '/^deployed_runtime_preflight()/,/^}/p' "$QUOTA_LOOP" |
+   grep -q 'tribunal_claude_pause_file'; then
+  fail "a passing writer canary must clear a stale Claude quota pause"
+fi
+pass "quota loop pauses dispatch for Claude quota and drains on operator-action exits"
+
 eval "$(sed -n '/^wait_any_worker() {/,/^}/p' "$QUOTA_LOOP")"
 eval "$(sed -n '/^drain_and_exit() {/,/^}/p' "$QUOTA_LOOP")"
 declare -F wait_any_worker >/dev/null || fail "unable to extract wait_any_worker"
@@ -2049,20 +2067,29 @@ if [ "$FINAL_GATE_BEHAVIOR" = "second-infra" ] && [ "$count" -eq 2 ]; then
   exit 70
 fi
 printf '\n<!-- final-gate-writer-%s -->\n' "$count" >> "$candidate_zh"
+# Spent quota and a lost login print the installed Claude CLI's real messages.
+claude_quota_exit() {
+  printf "You've hit your session limit · resets 5pm (UTC)\n"
+  exit 1
+}
 case "$FINAL_GATE_BEHAVIOR" in
   quota|quota-ledger-fail)
-    exit 75
+    claude_quota_exit
     ;;
   quota-tamper)
     snapshot_zh="$(find "$TMPDIR" -path '*/tribunal-rewrite.*/zh' -print -quit)"
     [ -n "$snapshot_zh" ] || exit 71
     printf '%s\n' 'same-uid writer poisoned final-gate snapshot' > "$snapshot_zh"
-    exit 75
+    claude_quota_exit
     ;;
   quota-unsafe-target)
     rm -f "$candidate_en"
     mkdir "$candidate_en"
-    exit 75
+    claude_quota_exit
+    ;;
+  login)
+    printf 'Not logged in · Please run /login\n'
+    exit 1
     ;;
   success-background)
     setsid sh -c '
@@ -2106,7 +2133,7 @@ case "$FINAL_GATE_BEHAVIOR" in
       exit 0
     fi
     ;;
-  exhausted|second-infra|quota|quota-tamper|quota-ledger-fail|quota-unsafe-target)
+  exhausted|second-infra|quota|quota-tamper|quota-ledger-fail|quota-unsafe-target|login)
     ;;
   *)
     exit 2
@@ -2407,6 +2434,23 @@ cmp -s \
   fail "quota checkpoint published an unsafe English candidate"
 pass "quota checkpoints discard hostile candidates without canonical writes"
 
+run_final_gate_scenario login login
+[ "$FINAL_GATE_LAST_RC" -eq 78 ] ||
+  fail "final-build writer login failure must return rc=78, got $FINAL_GATE_LAST_RC"
+[ "$(cat "$FINAL_GATE_LAST_DIR/writer-count")" = "1" ] ||
+  fail "final-build writer login failure retried the writer"
+cmp -s "$final_gate_zh" "$final_gate_zh_baseline" &&
+  cmp -s "$final_gate_en" "$final_gate_en_baseline" ||
+  fail "final-build writer login failure changed the canonical post pair"
+case "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$FINAL_GATE_LAST_PROGRESS")" in
+  FAILED|EXHAUSTED|QUOTA_SUSPENDED|RUNNER_ERROR)
+    fail "final-build writer login failure was recorded as a failure"
+    ;;
+esac
+cat "$FINAL_GATE_LAST_DIR/out" "$FINAL_GATE_LAST_DIR/err" | grep -q 'claude auth login' ||
+  fail "final-build writer login failure gave no actionable message"
+pass "final-build writer login failures restore the pair and record no failure"
+
 if [ -d "$final_gate_en" ]; then
   rmdir "$final_gate_en"
 fi
@@ -2474,7 +2518,8 @@ candidate_zh="$(
 )"
 [ -f "$candidate_zh" ] || exit 72
 printf '\n<!-- stage-quota-writer -->\n' >> "$candidate_zh"
-exit 75
+printf "You've hit your session limit · resets 5pm (UTC)\n"
+exit 1
 STAGE_QUOTA_CLAUDE
 
 cat > "$stage_quota_bin/jq" <<'STAGE_QUOTA_JQ'

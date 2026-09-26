@@ -978,6 +978,11 @@ if [ "${1:-}" = "auth" ] && [ "${2:-}" = "status" ]; then
 fi
 prompt="$(cat)"
 printf 'call\n' >> "$FAKE_WRITER_CALLS"
+# Real messages of the installed Claude CLI for a spent quota or a lost login.
+case "${FAKE_WRITER_FAILURE:-}" in
+  quota) printf "You've hit your session limit · resets 5pm (UTC)\n"; exit 1 ;;
+  login) printf 'Not logged in · Please run /login\n'; exit 1 ;;
+esac
 printf '%s\n' "$@" > "$FAKE_WRITER_ARGS"
 candidate_zh="$(
   printf '%s\n' "$prompt" |
@@ -1086,7 +1091,7 @@ run_factchecker_fixture() {
     FAKE_EXPECTED_EN_SUMMARY="$expected_en_summary" \
     FAKE_POST_PATH="$fixture_zh_path" \
     FAKE_EN_POST_PATH="$fixture_en_path" \
-    GP_WRITER_MODE=claude \
+    GP_WRITER_MODE="${FIXTURE_WRITER_MODE:-claude}" \
     TRIBUNAL_RUNTIME_PROFILE=vm-codex \
     TRIBUNAL_MODEL_CONFIG="$writer_root/config/llm-pipeline.json" \
     TRIBUNAL_NO_COMMIT=1 \
@@ -1145,3 +1150,57 @@ cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
 [ "$(wc -l < "$TMP/writer-calls" | tr -d ' ')" = "1" ] ||
   fail "rollback fixture invoked the writer outside the bounded first attempt"
 pass "run_stage carries its FactChecker policy through validation-failure rollback"
+
+# A Claude quota or login failure during a rewrite leaves the post untouched,
+# is not re-judged, and is neither recorded as a failure nor counted.
+claude_pause_file="$writer_root/.score-loop/state/claude-writer-pause.json"
+for failure in quota login; do
+  cp -p "$fixture_zh_baseline" "$fixture_zh_path"
+  cp -p "$fixture_en_baseline" "$fixture_en_path"
+  printf '{}\n' > "$writer_progress"
+  rm -f "$TMP/judge-count" "$TMP/writer-calls" "$TMP/writer-args" "$claude_pause_file"
+  set +e
+  FAKE_WRITER_FAILURE="$failure" run_factchecker_fixture "$TMP/writer-$failure.out"
+  failure_rc=$?
+  set -e
+  case "$failure" in
+    quota) want_rc=75 ;;
+    login) want_rc=78 ;;
+  esac
+  [ "$failure_rc" -eq "$want_rc" ] || {
+    sed -n '1,120p' "$TMP/writer-$failure.out" >&2 || true
+    fail "Claude $failure during a rewrite exited $failure_rc, want $want_rc"
+  }
+  [ "$(cat "$TMP/judge-count")" = "1" ] ||
+    fail "Claude $failure during a rewrite re-judged the unchanged article"
+  [ "$(wc -l < "$TMP/writer-calls" | tr -d ' ')" = "1" ] ||
+    fail "Claude $failure during a rewrite retried the writer"
+  cmp -s "$fixture_zh_baseline" "$fixture_zh_path" &&
+    cmp -s "$fixture_en_baseline" "$fixture_en_path" ||
+    fail "Claude $failure during a rewrite changed the canonical post pair"
+  article_status="$(jq -r --arg a "$fixture_post" '.[$a].status // ""' "$writer_progress")"
+  article_attempts="$(jq -r --arg a "$fixture_post" '.[$a].topLevelAttempts // 0' "$writer_progress")"
+  [ "$article_attempts" = "0" ] ||
+    fail "Claude $failure during a rewrite was counted as an attempt"
+  case "$failure" in
+    quota)
+      [ "$article_status" = QUOTA_SUSPENDED ] ||
+        fail "Claude quota during a rewrite recorded status '$article_status'"
+      [ -f "$claude_pause_file" ] ||
+        fail "Claude quota during a rewrite did not pause daemon dispatch"
+      ;;
+    login)
+      case "$article_status" in
+        FAILED|EXHAUSTED|QUOTA_SUSPENDED|RUNNER_ERROR)
+          fail "Claude login failure during a rewrite recorded status '$article_status'"
+          ;;
+      esac
+      [ ! -e "$claude_pause_file" ] ||
+        fail "Claude login failure during a rewrite wrote a quota pause"
+      grep -q 'claude auth login' "$TMP/writer-$failure.out" ||
+        fail "Claude login failure during a rewrite gave no actionable message"
+      ;;
+  esac
+done
+pass "Claude quota and login failures during a rewrite restore, pause, and never re-judge or count"
+
