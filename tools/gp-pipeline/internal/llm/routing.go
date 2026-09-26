@@ -71,32 +71,16 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 	return runtime, nil
 }
 
-// IsProseRole reports whether a runtime role produces or rewrites reader-facing
-// article text. Mogu writes and rewrites gu-log articles only with the Claude
-// model (openspec claude-prose-writing-runtime), so these roles never route
-// to another provider.
-func IsProseRole(role RuntimeRole) bool {
-	switch role {
-	case RuntimeWriter, RuntimeTranslator, RuntimeCorrector, RuntimeCommentary:
-		return true
-	default:
-		return false
+// claudeRuntimeTools is the least-privilege tool set of a Claude route. The
+// router only routes article-writing steps to Claude (the single list lives in
+// scripts/tribunal-model-router.sh). The writer drafts files inside its own
+// work dir; every other step returns structured output and gets no tools at
+// all, so an injected source cannot touch the work dir's evidence files.
+func claudeRuntimeTools(role RuntimeRole) []string {
+	if role == RuntimeWriter {
+		return []string{"Read", "Grep", "Glob", "Edit", "Write"}
 	}
-}
-
-// claudeRuntimeTools is the least-privilege tool set of each article-writing
-// role. JSON roles return structured output and get no tools at all, so an
-// injected source cannot touch the work dir's evidence files; the writer
-// drafts files inside its own work dir.
-func claudeRuntimeTools(role RuntimeRole) ([]string, error) {
-	switch role {
-	case RuntimeTranslator, RuntimeCorrector, RuntimeCommentary:
-		return []string{}, nil
-	case RuntimeWriter:
-		return []string{"Read", "Grep", "Glob", "Edit", "Write"}, nil
-	default:
-		return nil, fmt.Errorf("the Claude runtime route is defined only for article-writing roles, not %s", role)
-	}
+	return []string{}
 }
 
 // ProvidersForRuntime returns a VM-specific provider only when vm-codex is
@@ -111,12 +95,6 @@ func ProvidersForRuntime(
 	if runtime.RuntimeProfile == "legacy" {
 		return nil, false, nil
 	}
-	if IsProseRole(role) && runtime.Provider != "claude" {
-		return nil, true, fmt.Errorf(
-			"runtime role %s writes gu-log article text and must use the Claude model; profile %s routes it to %q",
-			role, runtime.RuntimeProfile, runtime.Provider,
-		)
-	}
 	switch runtime.Provider {
 	case "claude":
 		// The router reads the pin from .claude/agents/tribunal-writer.md; the
@@ -127,12 +105,8 @@ func ProvidersForRuntime(
 				runtime.Model, ClaudeOpusPinned,
 			)
 		}
-		tools, err := claudeRuntimeTools(role)
-		if err != nil {
-			return nil, true, err
-		}
 		return []Provider{&ClaudeProvider{
-			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: tools,
+			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: claudeRuntimeTools(role),
 		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{

@@ -127,16 +127,6 @@ func fakeRouterRoot(t *testing.T, resolution string) string {
 	return root
 }
 
-func TestProvidersForRuntimeRejectsNonClaudeArticleWriting(t *testing.T) {
-	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"codex","model":"gpt-5.5","reasoningEffort":"low","quotaTier":"normal","remainingPercent":"unknown"}`)
-	for _, role := range []RuntimeRole{RuntimeWriter, RuntimeTranslator, RuntimeCorrector, RuntimeCommentary} {
-		providers, active, err := ProvidersForRuntime(context.Background(), root, role)
-		if err == nil || !active || providers != nil || !strings.Contains(err.Error(), "must use the Claude model") {
-			t.Fatalf("%s route = (%v, %v, %v), want a Claude-only rejection", role, providers, active, err)
-		}
-	}
-}
-
 func TestProvidersForRuntimeRejectsClaudePinDrift(t *testing.T) {
 	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"claude","model":"claude-opus-drifted","reasoningEffort":"","quotaTier":"normal","remainingPercent":"unknown"}`)
 	_, _, err := ProvidersForRuntime(context.Background(), root, RuntimeWriter)

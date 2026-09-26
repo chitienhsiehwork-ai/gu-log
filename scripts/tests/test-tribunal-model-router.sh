@@ -158,8 +158,8 @@ exit 0
 SCRIPT
 chmod +x "$BIN_DIR/codex"
 
-# Config guards: an article-writing role on another provider and a copied
-# Claude pin fail closed before any dispatch.
+# Config guards: an article-writing role on another provider, a judge on the
+# Claude model and a copied Claude pin fail closed before any dispatch.
 assert_config_rejected() {
   local label="$1" filter="$2" role="$3" expected="$4"
   local fixture="$TMP_DIR/config-$label.json"
@@ -178,6 +178,9 @@ assert_config_rejected codex-writer \
 assert_config_rejected codex-corrector \
   '.profiles["vm-codex"].corrector = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}' \
   corrector 'must use the Claude model'
+assert_config_rejected claude-judge \
+  '.profiles["vm-codex"].vibeScorer = {"provider":"claude","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}' \
+  vibeScorer 'only article-writing steps use the Claude model'
 assert_config_rejected copied-pin \
   '.profiles["vm-codex"].translator.model = "claude-opus-copy"' \
   translator 'remove model/reasoningEffort'

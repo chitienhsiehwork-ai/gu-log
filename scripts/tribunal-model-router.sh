@@ -64,7 +64,9 @@ model_router_provider_compatible() {
 
 # Mogu writes and rewrites gu-log articles only with the Claude model
 # (openspec claude-prose-writing-runtime). These role keys produce or rewrite
-# reader-visible article text.
+# reader-visible article text. This is the single list of article-writing
+# steps: model_router_resolve enforces "provider is claude <=> the step writes
+# article text" and gp-pipeline relies on that instead of keeping a copy.
 model_router_is_prose_role() {
   case "$1" in
     writer|translator|corrector|commentary) return 0 ;;
@@ -182,9 +184,15 @@ model_router_resolve() {
     printf 'runtime profile %s does not route role %s\n' "$profile" "$role" >&2
     return 2
   }
-  if model_router_is_prose_role "$role" && [ "$provider" != claude ]; then
-    printf 'role %s writes gu-log article text and must use the Claude model (config routes it to %s)\n' \
-      "$role" "$provider" >&2
+  if model_router_is_prose_role "$role"; then
+    if [ "$provider" != claude ]; then
+      printf 'role %s writes gu-log article text and must use the Claude model (config routes it to %s)\n' \
+        "$role" "$provider" >&2
+      return 2
+    fi
+  elif [ "$provider" = claude ]; then
+    printf 'role %s only judges or reviews; on this profile only article-writing steps use the Claude model\n' \
+      "$role" >&2
     return 2
   fi
   # Preflight only the provider this step routes to: resolving a Codex judge

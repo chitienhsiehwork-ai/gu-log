@@ -43,13 +43,6 @@ func GPProfileFingerprint(profile GPProfile, promptContexts ...string) (string, 
 	return hex.EncodeToString(sum[:]), nil
 }
 
-// gpProseRoles produce or rewrite GP body text, which Mogu writes only with the
-// Claude model pin. The remaining GP roles are gates that judge that text and
-// must stay on models independent of every writing role.
-var gpProseRoles = map[RuntimeRole]bool{
-	RuntimeTranslator: true, RuntimeCorrector: true, RuntimeCommentary: true,
-}
-
 type gpRoleContract struct {
 	Prompt string
 	Output string
@@ -94,18 +87,19 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 		if err := json.Unmarshal(payload, &cfg); err != nil {
 			return nil, fmt.Errorf("parse GP role %s: %w", role, err)
 		}
-		if gpProseRoles[role] {
-			if cfg.Provider != "claude" {
-				return nil, fmt.Errorf("GP role %s writes article text and must use provider claude (got %q)", role, cfg.Provider)
-			}
-			if cfg.Model != "" || cfg.ReasoningEffort != "" {
-				return nil, fmt.Errorf("GP role %s must not declare model or reasoningEffort; it uses the Claude model pin", role)
-			}
+		// Which steps may use Claude is enforced by the model router when each
+		// role's dispatcher is built; here only the executed model matters.
+		switch {
+		case cfg.Provider == "claude":
 			// Bind the fingerprint to the pin actually executed, so a pin
 			// change invalidates earlier publish manifests.
-			cfg.Model = ClaudeOpusPinned
-		} else if cfg.Provider != "codex" || cfg.Model == "" || cfg.ReasoningEffort == "" {
+			cfg.Model, cfg.ReasoningEffort = ClaudeOpusPinned, ""
+		case cfg.Provider != "codex" || cfg.Model == "" || cfg.ReasoningEffort == "":
 			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
+		case cfg.Model == ClaudeOpusPinned:
+			// A gate that judges the Claude-written text must not run on
+			// the writing model.
+			return nil, fmt.Errorf("GP gate role %s shares the Claude writing model %q", role, cfg.Model)
 		}
 		if cfg.PromptContract == "" || cfg.OutputContract == "" {
 			return nil, fmt.Errorf("GP role %s has an incomplete provider/model/prompt/output contract", role)
@@ -119,18 +113,6 @@ func LoadGPProfile(repoRoot, profileName string) (GPProfile, error) {
 		}
 		seenPrompts[cfg.PromptContract] = role
 		profile[role] = cfg
-	}
-	// Writing roles share the Claude pin; a gate that judges their text must
-	// never run on that same model.
-	for _, gate := range RequiredGPRoles {
-		if gpProseRoles[gate] {
-			continue
-		}
-		for _, writer := range RequiredGPRoles {
-			if gpProseRoles[writer] && profile[gate].Model == profile[writer].Model {
-				return nil, fmt.Errorf("GP gate role %s and article-writing role %s share model %q", gate, writer, profile[gate].Model)
-			}
-		}
 	}
 	return profile, nil
 }

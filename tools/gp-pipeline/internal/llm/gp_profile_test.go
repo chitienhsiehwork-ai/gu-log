@@ -91,36 +91,12 @@ func TestLoadGPProfileRejectsLegacyAndMissingRoles(t *testing.T) {
 	}
 }
 
-func TestLoadGPProfileRejectsNonClaudeArticleWritingRole(t *testing.T) {
-	for role, cfg := range map[string]string{
-		"translator": `"translator":{"provider":"codex","model":"gpt-5.5","reasoningEffort":"low","promptContract":"source-translate-v2","outputContract":"source-translation-v1"}`,
-		"corrector":  `"corrector":{"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}`,
-		"commentary": `"commentary":{"provider":"codex","model":"gpt-5.5","reasoningEffort":"low","promptContract":"commentary-candidates-v1","outputContract":"enrichment-candidates-v1"}`,
-	} {
-		root := writeGPProfileFixture(t, gpRolesFixture(map[string]string{role: cfg}))
-		_, err := LoadGPProfile(root, "test")
-		if err == nil || !strings.Contains(err.Error(), "must use provider claude") {
-			t.Fatalf("%s error = %v, want a Claude-only rejection", role, err)
-		}
-	}
-}
-
-func TestLoadGPProfileRejectsDeclaredClaudeModel(t *testing.T) {
-	root := writeGPProfileFixture(t, gpRolesFixture(map[string]string{
-		"translator": `"translator":{"provider":"claude","model":"claude-opus-9","promptContract":"source-translate-v2","outputContract":"source-translation-v1"}`,
-	}))
-	_, err := LoadGPProfile(root, "test")
-	if err == nil || !strings.Contains(err.Error(), "must not declare model") {
-		t.Fatalf("error = %v, want the pin to stay out of config", err)
-	}
-}
-
 func TestLoadGPProfileRejectsGateSharingWritingModel(t *testing.T) {
 	root := writeGPProfileFixture(t, gpRolesFixture(map[string]string{
 		"vibeScorer": `"vibeScorer":{"provider":"codex","model":"` + ClaudeOpusPinned + `","reasoningEffort":"high","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}`,
 	}))
 	_, err := LoadGPProfile(root, "test")
-	if err == nil || !strings.Contains(err.Error(), "share model") {
+	if err == nil || !strings.Contains(err.Error(), "shares the Claude writing model") {
 		t.Fatalf("error = %v, want the gate/writer model collision rejected", err)
 	}
 }
@@ -166,7 +142,7 @@ func TestGPProfileFingerprintBindsClaudePin(t *testing.T) {
 	}
 	moved := GPProfile{}
 	for role, cfg := range profile {
-		if gpProseRoles[role] {
+		if cfg.Provider == "claude" {
 			cfg.Model = "claude-opus-next-pin"
 		}
 		moved[role] = cfg
