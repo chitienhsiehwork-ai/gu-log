@@ -5,9 +5,9 @@ import (
 	"os"
 )
 
-// DefaultWritingChain returns the preferred provider used for article writing
-// and refine steps. Runtime availability and explicit provider selection are
-// resolved by WritingChain.
+// DefaultWritingChain returns the provider used for article writing and refine
+// steps: the pinned Claude writer. WritingChain adds the GP_WRITER_PROVIDER
+// validation on top.
 func DefaultWritingChain() []Provider {
 	return []Provider{
 		NewClaudeOpusWriter(),
@@ -36,30 +36,26 @@ func ProbeChain() []Provider {
 	return append(DefaultProbeChain(), NewClaudeOpus())
 }
 
-// WritingChain returns the provider chain the pipeline actually dispatches
-// through for write/refine. Explicit provider choices are single-provider,
-// fail-closed routes. When the provider is unset, Claude is preferred and
-// Codex keeps VM runs alive when Claude is absent.
+// WritingChain returns the provider chain for the legacy (no runtime profile)
+// write, refine and English sidecar steps. Only Claude writes gu-log prose
+// (owner decision 2026-09-26, openspec claude-prose-writing-runtime), so the
+// chain is always the pinned Claude writer. A missing claude binary fails
+// closed through the dispatcher's "binary not found" error instead of falling
+// back to another provider.
 func WritingChain() ([]Provider, error) {
-	provider := os.Getenv("GP_WRITER_PROVIDER")
-	switch provider {
-	case "codex":
-		return []Provider{NewCodexGPT55Medium()}, nil
-	case "claude":
+	switch provider := os.Getenv("GP_WRITER_PROVIDER"); provider {
+	case "", "claude":
 		return []Provider{NewClaudeOpusWriter()}, nil
-	case "":
-		// Continue into automatic availability resolution below.
+	case "codex":
+		return nil, fmt.Errorf(
+			`GP_WRITER_PROVIDER=codex is retired: gu-log prose is written only by Claude; unset it or set "claude"`,
+		)
 	default:
 		return nil, fmt.Errorf(
-			`invalid GP_WRITER_PROVIDER=%q; valid values are "claude", "codex", or unset`,
+			`invalid GP_WRITER_PROVIDER=%q; the only valid value is "claude" (or unset)`,
 			provider,
 		)
 	}
-	claude := NewClaudeOpusWriter()
-	if claude.Available() {
-		return []Provider{claude}, nil
-	}
-	return []Provider{NewCodexGPT55Medium()}, nil
 }
 
 // JudgeChain returns the provider chain for eval/review. Judges stay on the
@@ -74,8 +70,8 @@ func JudgeChain() []Provider {
 //   - Binary absence (automatic): on a box where codex isn't on PATH — the
 //     CCC / Claude Code on the web sandbox — judges run on Claude so the eval /
 //     review / tribunal gates still execute instead of dying with "binary not
-//     found". This mirrors WritingChain and is exactly the behavior doctor.go
-//     already documents ("falls back to claude when no codex binary is on PATH").
+//     found". This is the behavior doctor.go documents ("falls back to claude
+//     when no codex binary is on PATH"). Judges only: writing never falls back.
 //   - Quota exhaustion (opt-in via allowClaude): codex is installed but rate
 //     limited; only then do we add Claude as a secondary so the user keeps
 //     control over the codex-vs-claude judging tradeoff on a healthy box.
@@ -97,7 +93,8 @@ func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
 
 // EffectiveStamp returns the (model, harness) display labels for the runtime
 // provider that WritingChain will resolve to. When nothing is on PATH (offline
-// / FakeProvider test runs) it keeps Codex labels as the deterministic default.
+// / FakeProvider test runs) it stamps the pinned Claude writer, the only
+// provider allowed to write prose, as the deterministic default.
 func EffectiveStamp() (model, harness string, err error) {
 	chain, err := WritingChain()
 	if err != nil {
@@ -114,7 +111,8 @@ func EffectiveStamp() (model, harness string, err error) {
 			return DisplayName(m), HarnessName(p.Model()), nil
 		}
 	}
-	return DisplayName(ModelGPT55), HarnessName(ModelGPT55), nil
+	pinned := ModelID(ClaudeOpusPinned)
+	return DisplayName(pinned), HarnessName(pinned), nil
 }
 
 // anyAvailable reports whether at least one provider in chain has its binary
