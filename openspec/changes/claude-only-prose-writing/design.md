@@ -82,7 +82,7 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 
 ### 6. Grok 退出 profile，但保留 provider 程式碼
 
-沒有步驟再使用 Grok，所以從 `requiredProviders` 移除，也移除只為 Grok 寫作步驟存在的額度政策（`grokQuota` 與 router 裡 reserve／pause／defer 分支；該政策本來就因沒有可靠 quota feed 而停用）。Grok 的 provider bridge 與評審 executor 保留，將來若要讓 Grok 擔任評審，只需改 config；寫作步驟則會被第 1 點的檢查擋下。
+沒有步驟再使用 Grok，所以從 `requiredProviders` 移除，也移除只為 Grok 寫作步驟存在的額度政策（`grokQuota` 與 router 裡 reserve／pause／defer 分支；該政策本來就因沒有可靠 quota feed 而停用）。Grok 的 provider bridge 與評審 executor 保留，將來若要讓評審改用 Grok 模型，只需改 config；寫作步驟則會被第 1 點的檢查擋下。Bridge 跟第 5 點一樣只檢查 Grok，不會因為 Claude 登出而擋下 Grok 評審；profile 沒有任何步驟使用 Grok 時，bridge 直接拒絕執行。
 
 ### 7. Codex 寫作路徑退役
 
