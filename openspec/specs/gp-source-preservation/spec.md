@@ -1,7 +1,9 @@
 # gp-source-preservation Specification
 
 ## Purpose
-TBD - created by archiving change preserve-gp-source-voice. Update Purpose after archive.
+
+定義 GP 忠實翻譯的來源保留契約：正文保留原作者的聲音、人稱與論證順序，只允許有來源證據的局部修正與隔離的導航／MoguNote enrichment，並在所有 source-preservation gate 通過前封閉發布。
+
 ## Requirements
 ### Requirement: GP body MUST preserve the source voice
 
