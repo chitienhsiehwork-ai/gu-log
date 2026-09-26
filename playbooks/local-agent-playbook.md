@@ -82,85 +82,20 @@ local Codex actor / local Claude actor 有的 CCC 沒有的：
 
 `CODEX_SHELL`、bundle ID 等 ambient markers 不保證傳進 tool subprocess，不能當 actor identity authority。Codex caller MUST 明確傳 `--runtime codex`；舊的 `CC` / `CCC` mode 只為 automation compatibility 保留。
 
-## Tribunal writer mode 與子代理 broker
+## Tribunal writer mode
 
 文章正文的改寫一律使用 Claude 模型（openspec `claude-prose-writing-runtime`），走哪條路由 `GP_WRITER_MODE` 明確控制，避免靜默花掉額度：
 
-- `GP_WRITER_MODE=claude`：部署版 Tribunal VM 的 24/7 daemon 使用，以受限的 Claude CLI 改寫；VM 上的 Claude CLI 必須已登入，改寫會用掉該帳號的 Claude 額度。
-- `GP_WRITER_MODE=subagent`：Mac 互動式協調使用。pipeline 寫出請求檔，外層 CC session 讀請求後啟動 `tribunal-writer` Claude 子代理，子代理改文，最後寫完成標記。
+- `GP_WRITER_MODE=claude`：唯一會改寫的模式，部署版 Tribunal VM 的 24/7 daemon 固定用它。以受限的 Claude CLI 改寫；跑的那台機器上 Claude CLI 必須已登入，改寫會用掉該帳號的 Claude 額度。
 - `GP_WRITER_MODE=none`：不改寫，只跑評分。這也是未設定或空字串時的 library 預設，避免靜默花錢。
-- `GP_WRITER_MODE=cli`：舊的 `claude -p` 路徑，只有 operator 明確選用時可用；這會走 Claude CLI，可能產生額外付費用量，也不能當部署版 daemon 的設定。
+- `GP_WRITER_MODE=subagent`、`cli`：只剩相容用途。Tribunal 的改寫交易只接受 `claude`，允許改寫時看到這兩個值會在第一位評審前失敗，不會先花評審額度。
 - `GP_WRITER_MODE=codex`、`grok` 已退役，會在呼叫任何模型前直接失敗。
 
 部署版 VM 的 systemd unit 固定 `GP_WRITER_MODE=claude`；Claude CLI 登入、unit 更新與 preflight 檢查見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)。
 
-### 子代理 broker protocol
+### 子代理 broker
 
-外層負責協調的 CC 啟動 pipeline 時設定：
-
-```bash
-export GP_WRITER_MODE=subagent
-export GP_WRITER_BROKER_DIR=/tmp/gu-log-writer-broker
-export GP_WRITER_BROKER_TIMEOUT=1800
-```
-
-`GP_WRITER_BROKER_DIR` 若未設定，pipeline 會退回寫手暫存工作目錄裡的 `.writer-broker`，並在輸出中印出實際 broker 目錄；正常 Mac 協調流程應該總是明確設定。`GP_WRITER_BROKER_TIMEOUT` 預設 1800 秒。
-
-寫手步驟會用 temp file 加 `mv` 的方式原子寫出：
-
-```json
-{
-  "id": "<post-stage-attempt-epoch>",
-  "agent_name": "tribunal-writer",
-  "post_file": "gp-xxx.mdx",
-  "post_path": "<abs path to src/content/posts/gp-xxx.mdx>",
-  "en_post_path": "<abs path to en-gp-xxx.mdx, or empty>",
-  "prompt": "<full tribunal-writer prompt>",
-  "stage": "<stage_key>",
-  "attempt": 1,
-  "created_at": "2026-06-15T00:00:00Z"
-}
-```
-
-完成標記檔與請求檔放在同一個目錄：
-
-- `<id>.done`：Claude 子代理已成功在原檔改寫；pipeline 把寫手步驟視為成功。
-- `<id>.failed`：Claude 子代理失敗；pipeline 把它視為一般寫手失敗，交給既有 cheap validation / revert 流程處理。
-- `<id>.claimed`：由等待 helper 建立，避免兩個 CC loop 拿到同一個請求。
-
-外層 CC loop 範例：
-
-```bash
-GP_WRITER_MODE=subagent GP_WRITER_BROKER_DIR="$broker_dir" \
-  tools/gp-pipeline/gp-pipeline ralph ... &
-pipeline_pid=$!
-
-while true; do
-  event="$(scripts/writer-broker-wait.sh --dir "$broker_dir" --pid "$pipeline_pid")"
-  case "$event" in
-    REQUEST\ *)
-      request_path="${event#REQUEST }"
-      # 啟動 Claude 子代理：
-      # 1. 讀取 "$request_path"。
-      # 2. 讀 request.prompt、request.post_path、需要時讀 request.en_post_path，
-      #    再讀 GU-LOG_WRITER_PROMPT.md、CONTRIBUTING.md、tribunal-writer agent spec。
-      # 3. 在原檔改寫文章。
-      # 4. 成功寫 "$broker_dir/<id>.done"，失敗寫 "<id>.failed"。
-      ;;
-    PIPELINE_DONE)
-      break
-      ;;
-  esac
-done
-```
-
-等待 helper 介面：
-
-```bash
-scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout <s>]
-```
-
-它 claim 到新的未處理請求時印 `REQUEST <abs path to request.json>`；pipeline pid 已結束且沒有請求時印 `PIPELINE_DONE`；可選 timeout 到期時印 `TIMEOUT` 並用非零 exit code 結束。
+`subagent` 模式的 broker（`tribunal_writer_exec_broker`、`scripts/writer-broker-wait.sh`）還留在 code 裡，但 Tribunal 改寫不接受 `subagent`，正常流程用不到它；協定細節以 `scripts/tests/test-writer-broker.sh` 為準。
 
 ## SD 原創文：正文用 Claude 模型，Codex 只編排
 
@@ -210,7 +145,7 @@ scripts/writer-broker-wait.sh --dir <broker_dir> --pid <pipeline_pid> [--timeout
    fi
    ```
 
-   預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限，除非任務明確是透過 broker 改已存在檔案。
+   預設讓 Opus 輸出到 stdout，由 Codex 審核後再寫入 `src/content/posts/*`。不要讓 Opus 直接拿 repo edit 權限。
 
 5. **Codex scoring 只產生 feedback packet**：評審輸出要短，格式固定：`must_fix`、`nice_to_have`、`line_refs_or_excerpts`、`rubric_scores`。不要把整篇文章貼回 Opus；rewrite prompt 只放評審結論、必要片段、原檔路徑。
 6. **Opus rewrite patch**：若需要重寫，Codex 叫 Opus 針對同一份 zh-tw MDX 輸出完整新版或明確 patch；Codex 只負責套用、跑驗證、確認沒有違反規則。
