@@ -272,10 +272,17 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		if err != nil {
 			return recordPreflightFailure(string(failedRole), err)
 		}
+		// The English sidecar is outside the GP role profile. It writes
+		// translated-en.mdx, so it uses the writer route's file tools instead
+		// of the tool-less JSON translator.
+		sidecarWriter, err := buildDispatcherForRole(state, dispatcherWriter)
+		if err != nil {
+			return recordPreflightFailure(string(dispatcherWriter), err)
+		}
 		s.GPProfile = gp.Profile
 		s.GPProfileSHA256 = gp.ProfileSHA256
 		s.CanonicalTerminology = gp.CanonicalTerminology
-		s.Dispatcher, s.WriterDispatcher = gp.Translator, gp.Translator
+		s.Dispatcher, s.WriterDispatcher = gp.Translator, sidecarWriter
 		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
 		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
 	} else {

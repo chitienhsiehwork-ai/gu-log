@@ -4,7 +4,11 @@
 
 TRIBUNAL_HELPERS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/tribunal-model-router.sh
-if [ -r "$TRIBUNAL_HELPERS_DIR/tribunal-model-router.sh" ]; then
+if declare -F model_router_claude_writer_model >/dev/null 2>&1; then
+  # The router is already loaded: it sources these helpers to reuse the
+  # Claude frontmatter parser, so sourcing it again would recurse.
+  :
+elif [ -r "$TRIBUNAL_HELPERS_DIR/tribunal-model-router.sh" ]; then
   source "$TRIBUNAL_HELPERS_DIR/tribunal-model-router.sh"
 else
   # Some compatibility tests and downstream callers copy this helper in
@@ -1695,43 +1699,23 @@ tribunal_grok_prompt_exec() {
   )
 }
 
-tribunal_grok_quota_gate() {
-  case "${MODEL_ROUTER_QUOTA_ACTION:-run}" in
-    run|reserve)
-      return 0
-      ;;
-    pause|defer)
-      local action="${MODEL_ROUTER_QUOTA_ACTION}" reason
-      reason="Grok quota policy action=$action remaining=${MODEL_ROUTER_REMAINING:-unknown}% role=${MODEL_ROUTER_ROLE:-unknown}"
-      tribunal_quota_write_status grok suspend \
-        "${MODEL_ROUTER_TIER:-unknown}" 0 "$reason"
-      printf '%s\n' "$reason" >&2
-      return 75
-      ;;
-    *)
-      printf 'Unknown Grok quota action: %s\n' "$MODEL_ROUTER_QUOTA_ACTION" >&2
-      return 70
-      ;;
-  esac
-}
-
 tribunal_grok_exec() {
   local work_dir="$1" agent_name="$2" user_prompt="$3"
   if [ -z "${REPO_ROOT:-}" ]; then
     REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   fi
+  # Grok only ever judges: article-writing roles route to the Claude model, so
+  # the router refuses to hand one of them to this executor.
   model_router_resolve "$agent_name" || return 1
   [ "$MODEL_ROUTER_PROVIDER" = grok ] || {
     printf 'Grok executor received non-Grok route for %s\n' "$agent_name" >&2
     return 1
   }
-  tribunal_grok_quota_gate || return $?
   local codex_agent_file="$REPO_ROOT/.codex/agents/$agent_name.toml"
   local claude_agent_file="$REPO_ROOT/.claude/agents/$agent_name.md"
   local codex_agent_spec="" claude_agent_spec="" sandbox_profile=read-only
   [ -f "$codex_agent_file" ] && codex_agent_spec="$(cat "$codex_agent_file")"
   [ -f "$claude_agent_file" ] && claude_agent_spec="$(cat "$claude_agent_file")"
-  [ "$agent_name" = tribunal-writer ] && sandbox_profile=workspace
   local prompt
   prompt="$(cat <<PROMPT
 You are running inside the gu-log tribunal automation.

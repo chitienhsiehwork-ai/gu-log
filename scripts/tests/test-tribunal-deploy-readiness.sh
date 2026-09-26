@@ -1009,18 +1009,6 @@ for path_text, summary in ((sys.argv[1], sys.argv[3]), (sys.argv[2], sys.argv[4]
 PY
 printf 'REWRITE COMPLETE\n'
 FAKE_CLAUDE
-# The VM profile still preflights Grok until the runtime routes drop it.
-cat > "$writer_bin/grok" <<'FAKE_GROK'
-#!/usr/bin/env bash
-if [ "${1:-}" = "--help" ]; then
-  exit 0
-fi
-if [ "${1:-}" = "models" ]; then
-  printf '%s\n' '* grok-4.6'
-  exit 0
-fi
-exit 72
-FAKE_GROK
 cat > "$writer_bin/node" <<'FAKE_NODE'
 #!/usr/bin/env bash
 case "${1:-}" in
@@ -1038,8 +1026,8 @@ esac
 exec "$REAL_NODE" "$@"
 FAKE_NODE
 cp "$preflight_root/bin/systemd-run" "$writer_bin/systemd-run"
-chmod +x "$writer_bin/codex" "$writer_bin/claude" "$writer_bin/grok" \
-  "$writer_bin/node" "$writer_bin/systemd-run"
+chmod +x "$writer_bin/codex" "$writer_bin/claude" "$writer_bin/node" \
+  "$writer_bin/systemd-run"
 
 # Run the real stage loop from a disposable repository. A killed test process
 # can leave only its private temp tree behind; no tracked article is ever used

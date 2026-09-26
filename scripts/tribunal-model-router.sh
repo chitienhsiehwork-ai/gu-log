@@ -55,26 +55,102 @@ model_router_provider_compatible() {
     grok)
       command -v grok >/dev/null 2>&1 && grok --help >/dev/null 2>&1
       ;;
+    claude)
+      # Claude credentials stay in the CLI's own login state; only ask it.
+      command -v claude >/dev/null 2>&1 &&
+        timeout 15 claude auth status --json 2>/dev/null |
+          jq -e '.loggedIn == true' >/dev/null 2>&1
+      ;;
     *) return 1 ;;
   esac
 }
 
+# Mogu writes and rewrites gu-log articles only with the Claude model
+# (openspec claude-prose-writing-runtime). These role keys produce or rewrite
+# reader-visible article text.
+model_router_is_prose_role() {
+  case "$1" in
+    writer|translator|corrector|commentary) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Claude article-writing steps never declare a model in config: they use the
+# owner-pinned model from .claude/agents/tribunal-writer.md, the same SSOT
+# gp-pipeline's ClaudeOpusPinned mirrors. Reuse the helpers' strict
+# frontmatter parser so there is exactly one implementation.
+model_router_claude_writer_model() {
+  if ! declare -F tribunal_claude_agent_model >/dev/null 2>&1; then
+    # shellcheck source=scripts/tribunal-helpers.sh
+    source "$MODEL_ROUTER_DIR/tribunal-helpers.sh" || return 2
+  fi
+  REPO_ROOT="${REPO_ROOT:-$MODEL_ROUTER_ROOT}" \
+    tribunal_claude_agent_model tribunal-writer
+}
+
+# requiredProviders is the preflight contract, so it must name exactly the
+# providers the profile's roles route to: nothing unchecked, nothing stale.
+model_router_assert_required_providers() {
+  local profile="$1" required routed
+  required="$(jq -r --arg profile "$profile" '
+    .profiles[$profile].requiredProviders // [] | unique | join(",")
+  ' "$MODEL_ROUTER_CONFIG")" || return 2
+  routed="$(jq -r --arg profile "$profile" '
+    [.profiles[$profile] | to_entries[] | .value | objects | .provider? | strings]
+    | unique | join(",")
+  ' "$MODEL_ROUTER_CONFIG")" || return 2
+  if [ "$required" != "$routed" ]; then
+    printf 'runtime profile %s requiredProviders [%s] must equal the providers its roles use [%s]\n' \
+      "$profile" "$required" "$routed" >&2
+    return 2
+  fi
+}
+
+# Preflight one provider of the profile, or every required provider when no
+# provider is given. Resolving a Codex judge therefore never runs the Claude
+# CLI, and Grok is only queried while some role still routes to it.
 model_router_assert_profile_compatible() {
-  local profile="$1" provider
+  local profile="$1" only_provider="${2:-}" provider
   [ "$profile" = "legacy" ] && return 0
+  model_router_assert_required_providers "$profile" || return
+  if [ -n "$only_provider" ] &&
+     ! jq -e --arg profile "$profile" --arg provider "$only_provider" \
+       '.profiles[$profile].requiredProviders | index($provider) != null' \
+       "$MODEL_ROUTER_CONFIG" >/dev/null 2>&1; then
+    printf 'runtime profile %s does not route any role to %s\n' \
+      "$profile" "$only_provider" >&2
+    return 2
+  fi
   while IFS= read -r provider; do
     [ -n "$provider" ] || continue
+    if [ -n "$only_provider" ] && [ "$provider" != "$only_provider" ]; then
+      continue
+    fi
     model_router_provider_compatible "$provider" || {
       printf 'runtime profile %s requires a compatible, logged-in %s CLI\n' \
         "$profile" "$provider" >&2
       return 2
     }
+    case "$provider" in
+      grok)
+        model_router_assert_grok_models "$profile" || return
+        ;;
+      claude)
+        model_router_claude_writer_model >/dev/null || {
+          printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
+            "$profile" >&2
+          return 2
+        }
+        ;;
+    esac
   done < <(
     jq -r --arg profile "$profile" \
       '.profiles[$profile].requiredProviders[]' "$MODEL_ROUTER_CONFIG"
   )
+}
 
-  local available_models configured_model
+model_router_assert_grok_models() {
+  local profile="$1" available_models configured_model
   available_models="$(
     env -u XAI_API_KEY -u GROK_API_KEY timeout 15 grok models 2>/dev/null
   )" || {
@@ -93,9 +169,8 @@ model_router_assert_profile_compatible() {
     }
   done < <(
     jq -r --arg profile "$profile" '
-      [.profiles[$profile].writer, .profiles[$profile].translator,
-       .profiles[$profile].commentary, .profiles[$profile].vibeScorer]
-      | map(select(.provider == "grok") | .model)
+      [.profiles[$profile] | to_entries[] | .value | objects
+       | select(.provider? == "grok") | .model | strings]
       | unique[]
     ' "$MODEL_ROUTER_CONFIG"
   )
@@ -169,33 +244,6 @@ model_router_reviewer_remaining() {
   return 1
 }
 
-model_router_grok_remaining() {
-  if [ -n "${TRIBUNAL_GROK_REMAINING_PCT:-}" ]; then
-    model_router_validate_remaining "$TRIBUNAL_GROK_REMAINING_PCT"
-    return
-  fi
-  local enabled
-  enabled="$(jq -r '.profiles["vm-codex"].grokQuota.enabled // false' \
-    "$MODEL_ROUTER_CONFIG")"
-  [ "$enabled" = "true" ] || return 1
-  command -v codexbar >/dev/null 2>&1 || return 1
-  local payload remaining
-  payload="$(
-    timeout 15 codexbar usage --provider grok --source auto \
-      --format json --no-color 2>/dev/null
-  )" || return 1
-  remaining="$(jq -er '
-    [ .[]
-      | select(.provider == "grok" and (.error? // null) == null)
-      | .usage
-      | [.primary, .secondary, .tertiary][]
-      | select(type == "object" and (.usedPercent | type) == "number")
-      | (100 - .usedPercent) ]
-    | if length > 0 then min else empty end
-  ' <<<"$payload" 2>/dev/null)" || return 1
-  model_router_validate_remaining "$remaining"
-}
-
 model_router_resolve() {
   local requested_role="$1" role profile
   role="$(model_router_role_key "$requested_role")" || {
@@ -219,15 +267,33 @@ model_router_resolve() {
     printf 'model config not found: %s\n' "$MODEL_ROUTER_CONFIG" >&2
     return 2
   }
-  model_router_assert_profile_compatible "$profile" || return
-  MODEL_ROUTER_QUOTA_ACTION=run
 
   local provider model effort tier remaining threshold unknown_policy value
   provider="$(jq -er --arg role "$role" \
-    '.profiles["vm-codex"][$role].provider' "$MODEL_ROUTER_CONFIG")"
+    '.profiles["vm-codex"][$role].provider' "$MODEL_ROUTER_CONFIG")" || {
+    printf 'runtime profile %s does not route role %s\n' "$profile" "$role" >&2
+    return 2
+  }
+  if model_router_is_prose_role "$role" && [ "$provider" != claude ]; then
+    printf 'role %s writes gu-log article text and must use the Claude model (config routes it to %s)\n' \
+      "$role" "$provider" >&2
+    return 2
+  fi
+  model_router_assert_profile_compatible "$profile" "$provider" || return
   tier=fixed
   remaining=unknown
-  if [ "$role" = reviewer ]; then
+  if [ "$provider" = claude ]; then
+    if jq -e --arg role "$role" \
+      '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
+      "$MODEL_ROUTER_CONFIG" >/dev/null; then
+      printf 'role %s uses the Claude model pin from .claude/agents/tribunal-writer.md; remove model/reasoningEffort from %s\n' \
+        "$role" "$MODEL_ROUTER_CONFIG" >&2
+      return 2
+    fi
+    model="$(model_router_claude_writer_model)" || return 2
+    effort=""
+    tier=normal
+  elif [ "$role" = reviewer ]; then
     threshold="$(jq -er '.profiles["vm-codex"].reviewer.lowQuotaThresholdRemainingPercent' \
       "$MODEL_ROUTER_CONFIG")"
     unknown_policy="$(jq -er '.profiles["vm-codex"].reviewer.quotaUnknownPolicy' \
@@ -253,34 +319,6 @@ model_router_resolve() {
     effort="$(jq -er --arg role "$role" \
       '.profiles["vm-codex"][$role].reasoningEffort' "$MODEL_ROUTER_CONFIG")"
     tier=normal
-    if [ "$provider" = grok ] && value="$(model_router_grok_remaining)"; then
-      remaining="$value"
-      if [ "$role" = writer ] || [ "$role" = translator ] || [ "$role" = commentary ]; then
-        threshold="$(jq -er '.profiles["vm-codex"].grokQuota.pauseWriterBelowRemainingPercent' \
-          "$MODEL_ROUTER_CONFIG")"
-        if awk -v remaining="$remaining" -v threshold="$threshold" \
-          'BEGIN { exit !(remaining < threshold) }'; then
-          tier=criticalQuota
-          MODEL_ROUTER_QUOTA_ACTION=pause
-        else
-          threshold="$(jq -er '.profiles["vm-codex"].grokQuota.reserveWriterBelowRemainingPercent' \
-            "$MODEL_ROUTER_CONFIG")"
-          if awk -v remaining="$remaining" -v threshold="$threshold" \
-            'BEGIN { exit !(remaining < threshold) }'; then
-            tier=lowQuota
-            MODEL_ROUTER_QUOTA_ACTION=reserve
-          fi
-        fi
-      else
-        threshold="$(jq -er '.profiles["vm-codex"].grokQuota.deferVibeBelowRemainingPercent' \
-          "$MODEL_ROUTER_CONFIG")"
-        if awk -v remaining="$remaining" -v threshold="$threshold" \
-          'BEGIN { exit !(remaining < threshold) }'; then
-          tier=lowQuota
-          MODEL_ROUTER_QUOTA_ACTION=defer
-        fi
-      fi
-    fi
   fi
 
   MODEL_ROUTER_PROFILE="$profile"
@@ -290,7 +328,7 @@ model_router_resolve() {
   MODEL_ROUTER_REASONING="$effort"
   MODEL_ROUTER_TIER="$tier"
   MODEL_ROUTER_REMAINING="$remaining"
-  MODEL_ROUTER_QUOTA_ACTION="${MODEL_ROUTER_QUOTA_ACTION:-run}"
+  MODEL_ROUTER_QUOTA_ACTION=run
 }
 
 model_router_print_json() {

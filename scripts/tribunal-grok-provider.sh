@@ -38,7 +38,9 @@ runtime_profile="$(model_router_profile)"
     "$runtime_profile" >&2
   exit 78
 }
-model_router_assert_profile_compatible "$runtime_profile"
+# Preflight only Grok: a Grok call never needs the Claude or Codex CLI, and a
+# profile that routes no role to Grok refuses the bridge outright.
+model_router_assert_profile_compatible "$runtime_profile" grok
 
 prompt="$(cat)"
 [ -n "$prompt" ] || {

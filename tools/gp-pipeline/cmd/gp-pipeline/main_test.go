@@ -111,6 +111,7 @@ func writeCompleteFakeGPRoles(t *testing.T, path string) {
 	mustWrite(t, path, `{
   "roles": {
     "judge": {"provider": "fake-judge", "responses": []},
+    "writer": {"provider": "fake-sidecar-writer", "responses": []},
     "translator": {"provider": "fake-translator", "responses": []},
     "sourceReviewer": {"provider": "fake-source-reviewer", "responses": []},
     "corrector": {"provider": "fake-corrector", "responses": []},
@@ -281,6 +282,37 @@ exit 9
 	}
 	if _, err := os.Stat(curlMarker); !os.IsNotExist(err) {
 		t.Fatalf("standalone fetch unexpectedly invoked curl fallback: %v", err)
+	}
+}
+
+// TestGPRunPreflightBuildsSidecarWriterRoute proves the GP English sidecar no
+// longer reuses the tool-less JSON translator: a GP run must also resolve the
+// writer route, whose file tools let the sidecar write translated-en.mdx.
+func TestGPRunPreflightBuildsSidecarWriterRoute(t *testing.T) {
+	resetGlobals()
+	workDir := t.TempDir()
+	fakePath := filepath.Join(t.TempDir(), "gp-profile-without-writer.json")
+	mustWrite(t, fakePath, `{
+  "roles": {
+    "judge": {"provider": "fake-judge", "responses": []},
+    "translator": {"provider": "fake-translator", "responses": []},
+    "sourceReviewer": {"provider": "fake-source-reviewer", "responses": []},
+    "corrector": {"provider": "fake-corrector", "responses": []},
+    "commentary": {"provider": "fake-commentary", "responses": []},
+    "vibeScorer": {"provider": "fake-vibe", "responses": []}
+  }
+}`)
+
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--json", "--fake-provider", fakePath, "--work-dir", workDir,
+		"run", "https://example.com/source", "--prefix", "GP", "--dry-run",
+	})
+	_, runErr := captureProcessStdout(t, func() error {
+		return cmd.ExecuteContext(context.Background())
+	})
+	if runErr == nil || !strings.Contains(runErr.Error(), "missing role writer") {
+		t.Fatalf("GP preflight error = %v, want the sidecar writer route to be required", runErr)
 	}
 }
 

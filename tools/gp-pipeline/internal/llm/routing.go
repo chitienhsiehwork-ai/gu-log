@@ -76,6 +76,34 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 	return runtime, nil
 }
 
+// IsProseRole reports whether a runtime role produces or rewrites reader-facing
+// article text. Mogu writes and rewrites gu-log articles only with the Claude
+// model (openspec claude-prose-writing-runtime), so these roles never route
+// to another provider.
+func IsProseRole(role RuntimeRole) bool {
+	switch role {
+	case RuntimeWriter, RuntimeTranslator, RuntimeCorrector, RuntimeCommentary:
+		return true
+	default:
+		return false
+	}
+}
+
+// claudeRuntimeTools is the least-privilege tool set of each article-writing
+// role. JSON roles return structured output and get no tools at all, so an
+// injected source cannot touch the work dir's evidence files; the writer
+// drafts files inside its own work dir.
+func claudeRuntimeTools(role RuntimeRole) ([]string, error) {
+	switch role {
+	case RuntimeTranslator, RuntimeCorrector, RuntimeCommentary:
+		return []string{}, nil
+	case RuntimeWriter:
+		return []string{"Read", "Grep", "Glob", "Edit", "Write"}, nil
+	default:
+		return nil, fmt.Errorf("the Claude runtime route is defined only for article-writing roles, not %s", role)
+	}
+}
+
 // ProvidersForRuntime returns a VM-specific provider only when vm-codex is
 // active. Legacy actors get active=false and continue through existing routing.
 func ProvidersForRuntime(
@@ -88,13 +116,35 @@ func ProvidersForRuntime(
 	if runtime.RuntimeProfile == "legacy" {
 		return nil, false, nil
 	}
-	if runtime.QuotaAction == "pause" || runtime.QuotaAction == "defer" {
+	if runtime.QuotaAction != "run" {
 		return nil, true, fmt.Errorf(
-			"%s runtime held by Grok quota policy: action=%s remaining=%s%%",
+			"%s runtime held by quota policy: action=%s remaining=%s%%",
 			role, runtime.QuotaAction, runtime.RemainingPercent,
 		)
 	}
+	if IsProseRole(role) && runtime.Provider != "claude" {
+		return nil, true, fmt.Errorf(
+			"runtime role %s writes gu-log article text and must use the Claude model; profile %s routes it to %q",
+			role, runtime.RuntimeProfile, runtime.Provider,
+		)
+	}
 	switch runtime.Provider {
+	case "claude":
+		// The router reads the pin from .claude/agents/tribunal-writer.md; the
+		// Go side pins ClaudeOpusPinned. Refuse to pick one when they disagree.
+		if runtime.Model != ClaudeOpusPinned {
+			return nil, true, fmt.Errorf(
+				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline pins %q; update both pins together",
+				runtime.Model, ClaudeOpusPinned,
+			)
+		}
+		tools, err := claudeRuntimeTools(role)
+		if err != nil {
+			return nil, true, err
+		}
+		return []Provider{&ClaudeProvider{
+			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: tools,
+		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{
 			ModelName:       runtime.Model,

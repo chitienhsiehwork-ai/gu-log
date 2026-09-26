@@ -2,11 +2,40 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+// grokJudgeConfig writes a copy of the live VM profile whose Vibe gate runs on
+// Grok. No article-writing role may use Grok, so the live config itself routes
+// nothing to it and the bridge refuses to run there.
+func grokJudgeConfig(t *testing.T) string {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(repoRootForRoutingTest(t), "config", "llm-pipeline.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config map[string]any
+	if err := json.Unmarshal(raw, &config); err != nil {
+		t.Fatal(err)
+	}
+	profile := config["profiles"].(map[string]any)["vm-codex"].(map[string]any)
+	vibe := profile["vibeScorer"].(map[string]any)
+	vibe["provider"], vibe["model"], vibe["reasoningEffort"] = "grok", "grok-4.6", "low"
+	profile["requiredProviders"] = []string{"codex", "claude", "grok"}
+	encoded, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "llm-pipeline.json")
+	if err := os.WriteFile(path, encoded, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
 
 func TestGrokProviderRunUsesConfiguredModelAndEffort(t *testing.T) {
 	binDir := t.TempDir()
@@ -37,6 +66,8 @@ printf 'grok-ok\n'
 		t.Fatalf("write fake grok: %v", err)
 	}
 	writeExecutable(t, filepath.Join(binDir, "codex"), "#!/bin/sh\nexit 0\n")
+	claudeCalls := filepath.Join(t.TempDir(), "claude-calls.txt")
+	writeExecutable(t, filepath.Join(binDir, "claude"), "#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$CAPTURE_CLAUDE\"\nexit 1\n")
 	writeExecutable(t, filepath.Join(binDir, "systemd-run"), `#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$@" > "$CAPTURE_SYSTEMD"
@@ -55,10 +86,25 @@ exec "$@"
 	t.Setenv("CAPTURE_ARGS", captureArgs)
 	t.Setenv("CAPTURE_PWD", capturePWD)
 	t.Setenv("CAPTURE_SYSTEMD", captureSystemd)
+	t.Setenv("CAPTURE_CLAUDE", claudeCalls)
 	t.Setenv("TRIBUNAL_RUNTIME_PROFILE", "vm-codex")
 
 	workDir := t.TempDir()
 	provider := NewGrok(repoRootForRoutingTest(t), "grok-4.6", "low")
+
+	// The live config routes no role to Grok, so the bridge fails closed
+	// before it starts the Grok CLI.
+	t.Setenv("TRIBUNAL_MODEL_CONFIG", "")
+	if _, err := provider.Run(
+		context.Background(), "hello prompt", RunOptions{WorkDir: workDir},
+	); err == nil || !strings.Contains(err.Error(), "does not route any role to grok") {
+		t.Fatalf("Run with the live config = %v, want a fail-closed Grok preflight", err)
+	}
+	if _, err := os.Stat(captureArgs); !os.IsNotExist(err) {
+		t.Fatalf("Grok CLI ran although no role routes to Grok (err=%v)", err)
+	}
+
+	t.Setenv("TRIBUNAL_MODEL_CONFIG", grokJudgeConfig(t))
 	out, err := provider.Run(
 		context.Background(), "hello prompt", RunOptions{WorkDir: workDir, JSONSchema: `{"type":"object"}`},
 	)
@@ -132,5 +178,10 @@ exec "$@"
 	}
 	if _, err := os.Stat(probeDir); !os.IsNotExist(err) {
 		t.Fatalf("probe cwd still exists after Run: %q (err=%v)", probeDir, err)
+	}
+	// A Grok call preflights only Grok; it never needs the Claude CLI.
+	if _, err := os.Stat(claudeCalls); !os.IsNotExist(err) {
+		calls, _ := os.ReadFile(claudeCalls)
+		t.Fatalf("Grok bridge ran the Claude CLI: %q", calls)
 	}
 }

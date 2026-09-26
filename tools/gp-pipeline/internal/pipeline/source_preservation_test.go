@@ -391,6 +391,10 @@ func TestGPCorrectionIsBoundedAndRerunsAllGates(t *testing.T) {
 	if err := s.PreserveGP(ctx); err != nil {
 		t.Fatal(err)
 	}
+	corrector := s.CorrectorDispatcher.Providers()[0].(*llm.FakeProvider)
+	if len(corrector.Called) != 1 || corrector.Called[0].Opts.JSONSchema != preservation.BoundedPatchJSONSchema {
+		t.Fatalf("corrector calls = %#v, want one call constrained by the bounded-patch schema", corrector.Called)
+	}
 	got, err := os.ReadFile(filepath.Join(s.WorkDir, "source-translation.mdx"))
 	if err != nil {
 		t.Fatal(err)
