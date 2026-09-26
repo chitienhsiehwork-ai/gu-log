@@ -88,14 +88,9 @@ local Codex actor / local Claude actor 有的 CCC 沒有的：
 
 - `GP_WRITER_MODE=claude`：唯一會改寫的模式，部署版 Tribunal VM 的 24/7 daemon 固定用它。以受限的 Claude CLI 改寫；跑的那台機器上 Claude CLI 必須已登入，改寫會用掉該帳號的 Claude 額度。
 - `GP_WRITER_MODE=none`：不改寫，只跑評分。這也是未設定或空字串時的 library 預設，避免靜默花錢。
-- `GP_WRITER_MODE=subagent`、`cli`：只剩相容用途。Tribunal 的改寫交易只接受 `claude`，允許改寫時看到這兩個值會在第一位評審前失敗，不會先花評審額度。
-- `GP_WRITER_MODE=codex`、`grok` 已退役，會在呼叫任何模型前直接失敗。
+- 其他值一律失敗：已退役的模式（清單在 `scripts/tribunal-helpers.sh` 的 `tribunal_writer_mode_problem`）與未知值，允許改寫時會在第一位評審前就失敗，不會先花評審額度。
 
 部署版 VM 的 systemd unit 固定 `GP_WRITER_MODE=claude`；Claude CLI 登入、unit 更新與 preflight 檢查見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)。
-
-### 子代理 broker
-
-`subagent` 模式的 broker（`tribunal_writer_exec_broker`、`scripts/writer-broker-wait.sh`）還留在 code 裡，但 Tribunal 改寫不接受 `subagent`，正常流程用不到它；協定細節以 `scripts/tests/test-writer-broker.sh` 為準。
 
 ## SD 原創文：正文用 Claude 模型，Codex 只編排
 
