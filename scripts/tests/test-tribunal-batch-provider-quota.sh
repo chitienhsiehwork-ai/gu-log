@@ -201,6 +201,59 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 [ "$CASE_RC" -eq 2 ] || fail "unknown writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "unknown writer mode fails closed"
 
+# The bounded batch stops, with a reason, on a quota suspension or anything a
+# person must fix, and never starts an article during a Claude writer pause.
+stop_progress="$tmp_dir/stop-progress.json"
+jq -n '{
+  "suspended.mdx": {status: "QUOTA_SUSPENDED", failedStage: "vibe",
+    stages: {vibe: {status: "quota_suspended",
+      error: "writer: provider=claude tier=unknown reason=Claude reported a temporary error"}}},
+  "locked.mdx": {status: "PENDING"}
+}' > "$stop_progress"
+stop_rc=0
+stop_note="$(PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 75 suspended.mdx)" || stop_rc=$?
+[ "$stop_rc" -eq 75 ] || fail "a quota-suspended article must stop the batch with rc 75, got $stop_rc"
+case "$stop_note" in
+  *"Claude reported a temporary error"*) ;;
+  *) fail "batch stop reason lost the suspension reason: $stop_note" ;;
+esac
+PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 75 locked.mdx >/dev/null ||
+  fail "a per-article lock collision must not stop the batch"
+stop_rc=0
+stop_note="$(PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 78 locked.mdx)" || stop_rc=$?
+[ "$stop_rc" -eq 78 ] || fail "an operator-action exit must stop the batch with rc 78, got $stop_rc"
+case "$stop_note" in
+  *"claude auth login"*) ;;
+  *) fail "operator-action stop gave no actionable reason: $stop_note" ;;
+esac
+for rc in 0 1 2; do
+  PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason "$rc" locked.mdx >/dev/null ||
+    fail "article result rc=$rc must not stop the batch"
+done
+export TRIBUNAL_MAIN_REPO="$tmp_dir/main"
+if tribunal_batch_claude_pause >/dev/null; then
+  fail "the batch saw a Claude writer pause that does not exist"
+fi
+tribunal_claude_pause_write 600 "Claude reported the reset: fixture"
+pause_note="$(tribunal_batch_claude_pause)" ||
+  fail "the batch ignored an active Claude writer pause"
+case "$pause_note" in
+  *"Claude reported the reset: fixture"*) ;;
+  *) fail "Claude writer pause note lost its reason: $pause_note" ;;
+esac
+unset TRIBUNAL_MAIN_REPO
+main_section="$(sed -n '/^# ─── Main/,$p' "$BATCH_RUNNER")"
+pause_line="$(grep -n 'tribunal_batch_claude_pause' <<<"$main_section" | head -1 | cut -d: -f1)"
+run_line="$(grep -n 'bash "$SCRIPT_DIR/tribunal.sh"' <<<"$main_section" | head -1 | cut -d: -f1)"
+stop_line="$(grep -n 'tribunal_batch_stop_reason "$rc"' <<<"$main_section" | head -1 | cut -d: -f1)"
+if [ -z "$pause_line" ] || [ -z "$run_line" ] || [ -z "$stop_line" ] ||
+   [ "$pause_line" -ge "$run_line" ] || [ "$stop_line" -le "$run_line" ]; then
+  fail "batch main loop must check the Claude pause before and the stop reason after each article"
+fi
+grep -q '^exit "$STOP_RC"$' "$BATCH_RUNNER" ||
+  fail "batch runner must exit with the stop code after its summary"
+pass "batch stops with a reason on quota suspensions, Claude pauses and operator-action exits"
+
 selector_posts="$tmp_dir/posts"
 selector_progress="$tmp_dir/progress.json"
 mkdir -p "$selector_posts"

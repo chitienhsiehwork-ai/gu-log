@@ -210,6 +210,40 @@ PY
   return 0
 }
 
+# A worker result after which the bounded batch stops instead of moving to the
+# next article (openspec tribunal-24-7-operations): a quota suspension, which
+# includes a Claude quota or temporary-error pause, and anything only a person
+# can fix (rc 78: Claude login, account, model pin or configuration). Prints
+# why and returns the batch exit code; returns 0 when the batch may go on.
+tribunal_batch_stop_reason() {
+  local rc="$1" article="$2" status reason
+  case "$rc" in
+    75)
+      status="$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE" 2>/dev/null || true)"
+      # Anything else with rc 75 is a per-article lock held elsewhere.
+      [ "$status" = QUOTA_SUSPENDED ] || return 0
+      reason="$(jq -r --arg a "$article" \
+        '.[$a] as $r | ($r.stages[$r.failedStage // ""].error // "")' \
+        "$PROGRESS_FILE" 2>/dev/null || true)"
+      printf 'quota suspended (%s)\n' "${reason:-no reason recorded}"
+      return 75
+      ;;
+    78)
+      printf 'needs operator action (rc=78; see the batch log: run `claude auth login`, or fix the Claude plan, admin settings, model pin or configuration)\n'
+      return 78
+      ;;
+  esac
+  return 0
+}
+
+# Print why an active Claude writer pause holds the batch; fail when none does.
+tribunal_batch_claude_pause() {
+  local left reason
+  left="$(tribunal_claude_pause_remaining)" || return 1
+  reason="$(jq -r '.reason // ""' "$(tribunal_claude_pause_file)" 2>/dev/null || true)"
+  printf 'Claude writer pause active for %ss (%s)\n' "$left" "${reason:-no reason recorded}"
+}
+
 # ─── Build Unscored Article List (newest → oldest) ───────────────────────────
 # Articles that haven't passed all 4 tribunal stages.
 get_unscored_articles() {
@@ -306,13 +340,20 @@ PROCESSED=0
 PASSED=0
 FAILED=0
 SKIPPED=0
+STOP_RC=0
 
 # Exit-code convention (tribunal.sh):
-#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running)
-#   77=stopped_by_request
+#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running) or
+#   QUOTA_SUSPENDED  77=stopped_by_request  78=needs operator action
 for article in "${ARTICLES[@]}"; do
   if [ "$PROCESSED" -ge "$MAX_ARTICLES" ]; then
     tlog "Reached max articles ($MAX_ARTICLES). Stopping."
+    break
+  fi
+
+  if pause_note="$(tribunal_batch_claude_pause)"; then
+    tlog "$pause_note; stopping the batch."
+    STOP_RC=75
     break
   fi
 
@@ -339,6 +380,14 @@ for article in "${ARTICLES[@]}"; do
   # Run tribunal
   rc=0
   bash "$SCRIPT_DIR/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
+
+  stop_rc=0
+  stop_note="$(tribunal_batch_stop_reason "$rc" "$article")" || stop_rc=$?
+  if [ "$stop_rc" -ne 0 ]; then
+    tlog "  ■ $article — $stop_note; stopping the batch."
+    STOP_RC="$stop_rc"
+    break
+  fi
 
   case "$rc" in
     0)
@@ -373,3 +422,4 @@ tlog "  Remaining: $((TOTAL - PROCESSED))"
 
 # Cleanup old batch logs (keep last 20)
 ls -t "$LOG_DIR"/tribunal-batch-*.log 2>/dev/null | tail -n +21 | xargs rm -f 2>/dev/null
+exit "$STOP_RC"
