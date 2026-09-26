@@ -53,17 +53,12 @@ model_router_provider_compatible() {
         codex login status >/dev/null 2>&1
       ;;
     claude)
-      # Ask the CLI in the environment every VM Claude call gets, so only its
-      # own `claude auth login` state counts (tribunal_transient_service_unset_env).
+      # Ask the CLI in the clean environment every VM Claude call gets, so only
+      # its own `claude auth login` state counts (tribunal_claude_clean_env).
       command -v claude >/dev/null 2>&1 || return 1
-      local blocked variable
-      local -a scrub=()
       model_router_load_helpers || return 1
-      blocked="$(tribunal_transient_service_unset_env claude)" || return 1
-      for variable in $blocked; do
-        scrub+=(-u "$variable")
-      done
-      env "${scrub[@]}" timeout 15 claude auth status --json 2>/dev/null |
+      tribunal_claude_clean_env || return 1
+      "${TRIBUNAL_CLAUDE_CLEAN_ENV[@]}" timeout 15 claude auth status --json 2>/dev/null |
         jq -e '.loggedIn == true' >/dev/null 2>&1
       ;;
     *) return 1 ;;

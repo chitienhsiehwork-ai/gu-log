@@ -223,9 +223,12 @@ fi
 grep -Eq '^--unit=gu-log-tribunal-codex-' \
   "$TMP/preflight-systemd-run.argv" ||
   fail "deployed writer transient service (Claude model) did not use a parent-generated unit"
-grep -Fxq -- "--property=UnsetEnvironment=$(tribunal_transient_service_unset_env claude)" \
+if grep -q -- '^--property=UnsetEnvironment=' "$TMP/preflight-systemd-run.argv"; then
+  fail "deployed writer service (Claude model) relies on an unset list instead of a clean environment"
+fi
+awk 'p2 == "--" && p1 ~ /\/env$/ && $0 == "-i" { ok = 1 } { p2 = p1; p1 = $0 } END { exit !ok }' \
   "$TMP/preflight-systemd-run.argv" ||
-  fail "deployed writer service (Claude model) can see API-key or billing-endpoint variables"
+  fail "deployed writer service (Claude model) does not start Claude from a clean environment"
 for expected_arg in -p --setting-sources --strict-mcp-config --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do
   grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
     fail "deployed writer canary (Claude model) omitted contained flag: $expected_arg"
@@ -430,20 +433,23 @@ LOGINCTL
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
 exit 0
 CODEX
-  cat > "$doctor_manager_bin/claude" <<'CLAUDE'
+  # The stubs carry their marker paths: the probe's Claude call starts from a
+  # clean environment.
+  cat > "$doctor_manager_bin/claude" <<CLAUDE
 #!/usr/bin/env bash
-: > "$FAKE_DOCTOR_CLAUDE_CALLED"
-prompt="$(cat)"
-path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
-token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
-[ -n "$path" ] && [ -n "$token" ] || exit 2
-printf '%s\n' "$token" > "$path"
+: > "$TMP/doctor-claude-called"
+/usr/bin/env > "$TMP/doctor-claude.env"
+prompt="\$(cat)"
+path="\$(printf '%s\n' "\$prompt" | sed -n 's/^Canary path: //p')"
+token="\$(printf '%s\n' "\$prompt" | sed -n 's/^Canary token: //p')"
+[ -n "\$path" ] && [ -n "\$token" ] || exit 2
+printf '%s\n' "\$token" > "\$path"
 printf 'OK\n'
 CLAUDE
   # A claude that only the operator shell would find: the probe must not use it.
-  cat > "$doctor_bin/claude" <<'CLAUDE'
+  cat > "$doctor_bin/claude" <<CLAUDE
 #!/usr/bin/env bash
-: > "$FAKE_DOCTOR_SHELL_CLAUDE_CALLED"
+: > "$TMP/doctor-shell-claude-called"
 exit 99
 CLAUDE
   cat > "$doctor_manager_bin/systemd-run" <<'SYSTEMD_RUN'
@@ -470,7 +476,6 @@ STATE
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
   DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
-  FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
       >"$TMP/doctor-state.out"
   grep -q 'writer_preflight=passed source=state pid=4242' "$TMP/doctor-state.out"
@@ -498,8 +503,7 @@ STATE
     DOCTOR_SERVICE_FRAGMENT_AFTER="$fragment_after" \
     DOCTOR_SERVICE_MISSING_PROPERTY="$missing_property" \
     DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
-    FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
-      bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
+        bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor \
         >"$output" 2>&1
     rc=$?
     set -e
@@ -566,8 +570,6 @@ STATE
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
   DOCTOR_MANAGER_PATH="$doctor_manager_bin:/usr/local/bin:/usr/bin:/bin" \
   DOCTOR_SYSTEMD_RUN_ARGS="$TMP/doctor-systemd-run.args" \
-  FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
-  FAKE_DOCTOR_SHELL_CLAUDE_CALLED="$TMP/doctor-shell-claude-called" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
       >"$TMP/doctor-live.out"
@@ -577,7 +579,7 @@ STATE
   # service, and the claude on the user manager's PATH.
   [ ! -e "$TMP/doctor-shell-claude-called" ]
   grep -Fxq -- '--slice=tribunal-runtime.slice' "$TMP/doctor-systemd-run.args"
-  grep -Fxq -- "--property=UnsetEnvironment=$(tribunal_transient_service_unset_env claude)" \
+  awk 'p2 == "--" && p1 ~ /\/env$/ && $0 == "-i" { ok = 1 } { p2 = p1; p1 = $0 } END { exit !ok }' \
     "$TMP/doctor-systemd-run.args"
   grep -Fxq -- '--setenv=TZ=Asia/Taipei' "$TMP/doctor-systemd-run.args"
 ) || fail "doctor cached/live writer preflight behavior is incorrect"

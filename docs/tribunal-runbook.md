@@ -208,8 +208,8 @@ VM 上每個會用 Claude 模型寫作的帳號，都要用自己的身分各執
 - 跑 Mogu gp-pipeline 的帳號（VM profile 的寫作步驟）。
 
 登入狀態留在該帳號自己的 HOME（或 `CLAUDE_CONFIG_DIR`）。用環境變數 token
-或 API key 認證的方式不再適用：寫作呼叫會清掉這類變數（清單在
-`scripts/tribunal-helpers.sh`），沒登入的帳號會在領文章或寫作步驟開始前失敗。
+或 API key 認證的方式不再適用：寫作呼叫從空的環境啟動，只帶 `HOME`、`PATH`、
+`CLAUDE_CONFIG_DIR` 與 `TZ`，沒登入的帳號會在領文章或寫作步驟開始前失敗。
 daemon 帳號以 deploy block 最後的 live probe 確認；gp-pipeline 帳號在解析
 VM profile 的寫作步驟時會先檢查登入狀態。
 

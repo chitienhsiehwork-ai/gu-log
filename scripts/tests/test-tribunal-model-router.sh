@@ -15,16 +15,22 @@ cat > "$BIN_DIR/codex" <<'SCRIPT'
 #!/usr/bin/env bash
 exit 0
 SCRIPT
-cat > "$BIN_DIR/claude" <<'SCRIPT'
+# The Claude login check runs in a clean environment, so this stub keeps its
+# controls and captures in files: calls, the environment it saw, and whether
+# it reports a login.
+CLAUDE_CALLS="$TMP_DIR/claude-calls"
+CLAUDE_AUTH_ENV="$TMP_DIR/claude-auth.env"
+CLAUDE_LOGGED_OUT="$TMP_DIR/claude-logged-out"
+cat > "$BIN_DIR/claude" <<SCRIPT
 #!/usr/bin/env bash
-if [ -n "${FAKE_CLAUDE_CALLS:-}" ]; then
-  printf '%s\n' "$*" >> "$FAKE_CLAUDE_CALLS"
-fi
-if [ "${1:-}" = auth ] && [ "${2:-}" = status ]; then
-  if [ -n "${FAKE_CLAUDE_ENV:-}" ]; then
-    env > "$FAKE_CLAUDE_ENV"
+printf '%s\n' "\$*" >> "$CLAUDE_CALLS"
+if [ "\${1:-}" = auth ] && [ "\${2:-}" = status ]; then
+  /usr/bin/env > "$CLAUDE_AUTH_ENV"
+  if [ -e "$CLAUDE_LOGGED_OUT" ]; then
+    printf '{"loggedIn":false}\n'
+  else
+    printf '{"loggedIn":true}\n'
   fi
-  printf '{"loggedIn":%s}\n' "${FAKE_CLAUDE_LOGGED_IN:-true}"
   exit 0
 fi
 exit 1
@@ -113,41 +119,38 @@ for role in writer translator corrector commentary; do
   fi
 done
 
-# The login check sees only the CLI's own login state: the variables the VM's
-# Claude calls drop (the list lives in tribunal-helpers.sh) are dropped here too.
-claude_blocked_env="$(bash -c '
-  source "$1/scripts/tribunal-helpers.sh"
-  tribunal_transient_service_unset_env claude
-' _ "$ROOT_DIR")"
-[ -n "$claude_blocked_env" ] || fail "cannot read the Claude unset list from tribunal-helpers.sh"
+# The login check sees only the CLI's own login state: it runs in the same
+# clean environment as every VM Claude call.
+leaked="ANTHROPIC_API_KEY CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR GU_LOG_FIXTURE_UNRELATED"
 (
-  for variable in $claude_blocked_env; do
+  for variable in $leaked; do
     export "$variable=fixture-secret"
   done
-  FAKE_CLAUDE_ENV="$TMP_DIR/claude-auth.env" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-    bash "$ROUTER" writer --json >/dev/null
+  TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" writer --json >/dev/null
 )
-for variable in $claude_blocked_env; do
-  if grep -q "^$variable=" "$TMP_DIR/claude-auth.env"; then
+for variable in $leaked; do
+  if grep -q "^$variable=" "$CLAUDE_AUTH_ENV"; then
     fail "Claude login check saw $variable"
   fi
 done
 
 # Judge routes never run the Claude CLI; a logged-out Claude blocks only the
 # article-writing roles.
-rm -f "$TMP_DIR/claude-calls"
-FAKE_CLAUDE_CALLS="$TMP_DIR/claude-calls" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+rm -f "$CLAUDE_CALLS"
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json >/dev/null
-FAKE_CLAUDE_CALLS="$TMP_DIR/claude-calls" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" vibeScorer --json >/dev/null
-[ ! -e "$TMP_DIR/claude-calls" ] || fail "judge routing invoked the Claude CLI"
-FAKE_CLAUDE_LOGGED_IN=false TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+[ ! -e "$CLAUDE_CALLS" ] || fail "judge routing invoked the Claude CLI"
+: > "$CLAUDE_LOGGED_OUT"
+TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" reviewer --json >/dev/null ||
   fail "a logged-out Claude CLI must not block judge routing"
-if FAKE_CLAUDE_LOGGED_IN=false TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+if TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   bash "$ROUTER" writer --json >/dev/null 2>&1; then
   fail "writer routing must fail when the Claude CLI is logged out"
 fi
+rm -f "$CLAUDE_LOGGED_OUT"
 
 legacy="$(TRIBUNAL_RUNTIME_PROFILE=legacy PATH=/usr/bin:/bin \
   bash "$ROUTER" reviewer --json)"

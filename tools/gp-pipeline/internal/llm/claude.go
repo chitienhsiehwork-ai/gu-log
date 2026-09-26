@@ -165,7 +165,8 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 		WorkDir: opts.WorkDir,
 	}
 	if c.Contained {
-		runOpts.UnsetEnv = claudeContainedBlockedEnv
+		runOpts.CleanEnv = true
+		runOpts.Env = claudeContainedEnv()
 	}
 	res, err := runner.RunWithOptions(ctx, runOpts)
 	if err != nil {
@@ -250,21 +251,21 @@ func (c *ClaudeProvider) permissionArgs() []string {
 	}
 }
 
-// claudeContainedBlockedEnv never reaches a contained (runtime-profile) Claude
-// call: API-key and billing-endpoint variables, a stray OAuth token and other
-// providers' keys. The list is owned by `tribunal_transient_service_unset_env
-// claude` in scripts/tribunal-helpers.sh; a test keeps this copy equal to it.
-var claudeContainedBlockedEnv = []string{
-	"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_API_KEY",
-	"ANTHROPIC_BASE_URL", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_BEDROCK_MANTLE_BASE_URL",
-	"ANTHROPIC_VERTEX_BASE_URL", "ANTHROPIC_FOUNDRY_BASE_URL", "ANTHROPIC_AWS_BASE_URL",
-	"ANTHROPIC_GOOGLE_CLOUD_BASE_URL",
-	"CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
-	"CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
-	"CLAUDE_CODE_USE_MANTLE", "CLAUDE_CODE_USE_GATEWAY",
-	"AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_AWS_API_KEY", "ANTHROPIC_FOUNDRY_API_KEY",
-	"ANTHROPIC_FOUNDRY_AUTH_TOKEN",
-	"CLAUDE_CODE_OAUTH_TOKEN", "OPENAI_API_KEY", "CODEX_API_KEY",
+// claudeContainedEnv is the whole environment of a contained (runtime-profile)
+// Claude call: an empty start with only what the CLI needs to find itself and
+// its `claude auth login` state, so no API key, billing endpoint, token or other
+// provider's key from the host can reach it. The installed CLI runs and reports
+// its login with HOME and PATH alone; CLAUDE_CONFIG_DIR moves that state when
+// set, and TZ keeps its reset times in the caller's zone. The Tribunal's
+// tribunal_claude_clean_env builds the same environment.
+func claudeContainedEnv() []string {
+	var env []string
+	for _, key := range []string{"HOME", "PATH", "CLAUDE_CONFIG_DIR", "TZ"} {
+		if value := os.Getenv(key); value != "" {
+			env = append(env, key+"="+value)
+		}
+	}
+	return env
 }
 
 // claudeReadOnlyTools keeps the tools that only read. Pre-approving them lets a

@@ -673,26 +673,45 @@ tribunal_validate_deployed_systemd_contract() {
 # control-group reaping of setsid() descendants, the shared
 # tribunal-runtime.slice ceiling and narrower per-call limits.
 #
-# Credentials stay in each CLI's own login state under HOME, and every
-# provider's service drops the variables it must not see:
-#   - codex: every Claude credential variable, so a judge never sees them.
-#   - claude: API-key variables and the variables that point the CLI at another
-#     billing endpoint (base URLs, Bedrock/Vertex/Foundry/gateway providers and
-#     their keys); either would silently move billing away from the Claude
-#     account the owner logged in. The VM authenticates the Claude CLI only
-#     through `claude auth login` (state under HOME or CLAUDE_CONFIG_DIR), so a
-#     stray OAuth token variable and other providers' keys are dropped too.
-# This is the only copy of these lists; gp-pipeline's claudeContainedBlockedEnv
-# is cross-checked against `tribunal_transient_service_unset_env claude`.
+# Credentials stay in each CLI's own login state under HOME:
+#   - codex: the service drops every Claude credential variable, so a judge
+#     never sees them.
+#   - claude: the call starts from an empty environment
+#     (tribunal_claude_clean_env), so no API key, billing endpoint, token or
+#     other provider's key from the host can reach it, whatever the CLI reads.
 TRIBUNAL_CLAUDE_API_KEY_ENV="ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY"
-TRIBUNAL_CLAUDE_ENDPOINT_ENV="ANTHROPIC_BASE_URL ANTHROPIC_BEDROCK_BASE_URL ANTHROPIC_BEDROCK_MANTLE_BASE_URL ANTHROPIC_VERTEX_BASE_URL ANTHROPIC_FOUNDRY_BASE_URL ANTHROPIC_AWS_BASE_URL ANTHROPIC_GOOGLE_CLOUD_BASE_URL CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY CLAUDE_CODE_USE_ANTHROPIC_AWS CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD CLAUDE_CODE_USE_MANTLE CLAUDE_CODE_USE_GATEWAY AWS_BEARER_TOKEN_BEDROCK ANTHROPIC_AWS_API_KEY ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_AUTH_TOKEN"
 
 tribunal_transient_service_unset_env() {
   case "$1" in
     codex) printf '%s\n' "CLAUDE_CODE_OAUTH_TOKEN $TRIBUNAL_CLAUDE_API_KEY_ENV" ;;
-    claude) printf '%s\n' "$TRIBUNAL_CLAUDE_API_KEY_ENV $TRIBUNAL_CLAUDE_ENDPOINT_ENV CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY" ;;
     *) return 1 ;;
   esac
+}
+
+# A contained Claude writing call (the deployed Tribunal and the VM runtime
+# profile) starts from an empty environment and gets only what the CLI needs
+# to find itself and its `claude auth login` state (openspec
+# claude-prose-writing-runtime). The installed CLI runs and reports its login
+# with HOME and PATH alone; CLAUDE_CONFIG_DIR moves that state when set, and TZ
+# keeps its reset times in the caller's zone. Sets TRIBUNAL_CLAUDE_CLEAN_ENV
+# to an `env -i ...` command prefix; gp-pipeline's claudeContainedEnv builds
+# the same environment.
+tribunal_claude_clean_env() {
+  local env_cmd variable
+  env_cmd="$(command -v env 2>/dev/null || true)"
+  case "$env_cmd" in
+    /*) ;;
+    *)
+      printf 'env executable is unavailable\n' >&2
+      return 127
+      ;;
+  esac
+  TRIBUNAL_CLAUDE_CLEAN_ENV=("$env_cmd" -i "HOME=$HOME" "PATH=$PATH")
+  for variable in CLAUDE_CONFIG_DIR TZ; do
+    if [ -n "${!variable:-}" ]; then
+      TRIBUNAL_CLAUDE_CLEAN_ENV+=("$variable=${!variable}")
+    fi
+  done
 }
 
 # Usage (from a subshell; it replaces the process):
@@ -704,16 +723,23 @@ tribunal_exec_transient_service() {
   [ "${1:-}" = -- ] && shift
   local systemd_run scope_unit scope_runtime_sec description unset_env
   local memory_max cpu_quota tasks_max
-  local -a scope_env
+  local -a scope_env unset_property=()
   case "$provider" in
-    codex) description="gu-log Tribunal isolated Codex invocation" ;;
-    claude) description="gu-log Tribunal isolated writer invocation (Claude model)" ;;
+    codex)
+      description="gu-log Tribunal isolated Codex invocation"
+      unset_env="$(tribunal_transient_service_unset_env codex)" || exit 2
+      unset_property=("--property=UnsetEnvironment=$unset_env")
+      ;;
+    claude)
+      description="gu-log Tribunal isolated writer invocation (Claude model)"
+      tribunal_claude_clean_env || exit $?
+      set -- "${TRIBUNAL_CLAUDE_CLEAN_ENV[@]}" "$@"
+      ;;
     *)
       printf 'Unknown transient service provider: %s\n' "$provider" >&2
       exit 2
       ;;
   esac
-  unset_env="$(tribunal_transient_service_unset_env "$provider")" || exit 2
   systemd_run="$(command -v systemd-run 2>/dev/null || true)"
   case "$systemd_run" in
     /*) ;;
@@ -774,7 +800,7 @@ tribunal_exec_transient_service() {
     "--property=MemoryMax=$memory_max" \
     "--property=CPUQuota=$cpu_quota" \
     "--property=TasksMax=$tasks_max" \
-    "--property=UnsetEnvironment=$unset_env" \
+    ${unset_property[@]+"${unset_property[@]}"} \
     "${scope_env[@]}" \
     -- "$@"
 }

@@ -67,9 +67,9 @@ Claude 路徑沿用既有 Claude provider 的呼叫方式，不另外帶 effort 
 
 - GP translator、corrector、commentary 只回 JSON：不給任何工具，並用 Claude CLI 的 JSON schema 取得 structured output。原本 corrector 沒帶 schema，這次補上 bounded-patch 的傳輸層 schema；deterministic validator 仍是權威。
 - MP write／refine、英文 sidecar：只給 Read、Grep、Glob、Edit、Write；讀取可涵蓋 repo，編修只在工作目錄內自動核准，沒有 Bash 與網路工具。
-- Tribunal 改寫與寫入 canary：同樣的檔案工具與權限，cwd 是私有候選工作區；部署模式包進與評審相同規格的暫態 systemd service。Codex 與 Claude 的暫態 service 由同一個函式建立，各供應端要清掉的憑證變數也寫在同一處。
+- Tribunal 改寫與寫入 canary：同樣的檔案工具與權限，cwd 是私有候選工作區；部署模式包進與評審相同規格的暫態 systemd service。Codex 與 Claude 的暫態 service 由同一個函式建立。
 - 受限的 Claude 呼叫不載入主機的 user／project／local settings（權限規則、hooks、env）與 MCP server，主機設定不會放寬這次呼叫的權限。
-- VM 上的 Claude CLI 只用 `claude auth login` 的登入狀態認證：暫態 service、Go 的受限呼叫與 router 的登入檢查都清掉 API key、改變計費端點（base URL、Bedrock／Vertex／Foundry／gateway 等供應端）與 `CLAUDE_CODE_OAUTH_TOKEN` 環境變數，避免計費靜默改走 API、其他端點或其他供應端的金鑰。清單只在 `scripts/tribunal-helpers.sh` 維護一份，Go 測試交叉比對 gp-pipeline 的副本。非部署版（開發機、CCC）的直接呼叫只清 API key，因為 CCC 本身靠 `ANTHROPIC_BASE_URL` 連 API。
+- VM 上的 Claude CLI 只用 `claude auth login` 的登入狀態認證：暫態 service、Go 的受限呼叫與 router 的登入檢查都從空的環境啟動 Claude CLI，只帶 `HOME`、`PATH`、`CLAUDE_CONFIG_DIR`（有設才帶）與 `TZ`。用白名單而不是黑名單，是因為 CLI 認得的 API key、token 與計費端點變數會隨版本增加（例如 `CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR`），黑名單追不上；已用安裝的 CLI 實測只帶 `HOME` 與 `PATH` 就能啟動並讀到登入狀態。Codex 評審的 service 仍清掉 Claude 憑證變數。非部署版（開發機、CCC）的直接呼叫維持只清 API key，因為 CCC 本身靠 `ANTHROPIC_BASE_URL` 連 API。
 - 永不使用 bypassPermissions。
 
 實測 Claude CLI：這組參數下讀取 repo 外檔案成功、在 cwd 內寫檔成功、寫 cwd 外的檔案會立即被拒絕並列在 `permission_denials`，不會卡住。
@@ -113,7 +113,7 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 - [風險] 背景改寫全部改用 Claude 模型，VM 上的 Claude 訂閱額度會被 Tribunal 與 GP pipeline 一起消耗，而控制器看不到 Claude 額度 → 額度錯誤以 unknown 暫停該篇，daemon 暫停派送到 Claude 回報的重置時間並保留可觀測紀錄；runbook 寫明控制器看不到 Claude 額度，必要時用 `--workers` 與停機控制用量。
 - [取捨] 推翻 2026-07-28 的 Codex-only 部署：daemon 的評審用 Codex、寫作用 Claude，部署版從此同時依賴兩個供應端，Claude 登入失效或額度用完時改寫停下（fail closed），不退回 Codex → 寫入 canary、doctor live probe、額度暫停與登入失效停止領文章讓問題看得到；恢復靠 operator 重新登入或等額度重置。
 - [風險] VM 的 Claude CLI 版本太舊，缺少受限呼叫需要的參數 → 部署 daemon 的寫入 canary 與 router preflight 會在領取文章前失敗；runbook 的部署步驟會跑 live probe 確認。
-- [風險] VM 用環境變數 token 或 API key 認證 Claude → Tribunal 與 gp-pipeline 的 Claude 呼叫都會清掉這些變數，只認 `claude auth login` 的登入狀態，canary 會直接暴露這個問題。
+- [風險] VM 用環境變數 token 或 API key 認證 Claude，或需要代理伺服器之類的環境變數才能連線 → Tribunal 與 gp-pipeline 的 Claude 呼叫從空的環境啟動，只認 `claude auth login` 的登入狀態；canary 與 live probe 會直接暴露這個問題，真的需要的變數要加進白名單。
 - [取捨] systemd 的 `RestartSec` 拉長到 600 秒，也套用在寫手 preflight 以外的失敗重啟 → 任何失敗後最慢 10 分鐘才自動恢復；operator 修好後可以手動 restart。
 - [取捨] Claude 額度訊息沒有重置時間時採 1 小時的保守預設 → 可能等太久或太短；等太短時下一次呼叫會再撞到額度並重新暫停，不會改用其他模型。
 - [取捨] GP translator 與 corrector 共用同一個 model → 以獨立 Codex gate 核准 findings、patch boundary 驗證與 fail-closed routing 維持獨立性（見 Decision 3）。

@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 // Result is what every external command returns through this package.
@@ -38,11 +37,12 @@ type Options struct {
 	Stdin []byte
 	// WorkDir is the child process CWD. Empty means inherit the parent.
 	WorkDir string
-	// Env appends KEY=VALUE overrides to the inherited process environment.
+	// Env appends KEY=VALUE overrides to the inherited process environment,
+	// or, with CleanEnv, is the child's whole environment.
 	Env []string
-	// UnsetEnv removes these variables from the inherited environment before
-	// Env is appended.
-	UnsetEnv []string
+	// CleanEnv starts the child from an empty environment instead of the
+	// inherited one, so nothing but Env reaches it.
+	CleanEnv bool
 }
 
 // Run executes name with args, using the provided context for cancellation
@@ -63,8 +63,11 @@ func RunWithOptions(ctx context.Context, opts Options) (*Result, error) {
 	if opts.WorkDir != "" {
 		cmd.Dir = opts.WorkDir
 	}
-	if len(opts.Env) > 0 || len(opts.UnsetEnv) > 0 {
-		cmd.Env = append(filterEnv(os.Environ(), opts.UnsetEnv), opts.Env...)
+	switch {
+	case opts.CleanEnv:
+		cmd.Env = append([]string{}, opts.Env...)
+	case len(opts.Env) > 0:
+		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 
 	var outBuf, errBuf bytes.Buffer
@@ -89,25 +92,6 @@ func RunWithOptions(ctx context.Context, opts Options) (*Result, error) {
 		return res, fmt.Errorf("%s exited with code %d: %s", opts.Name, res.ExitCode, trimStderr(res.Stderr))
 	}
 	return res, fmt.Errorf("running %s: %w", opts.Name, err)
-}
-
-// filterEnv drops every KEY=VALUE entry whose key is listed in unset.
-func filterEnv(environ, unset []string) []string {
-	if len(unset) == 0 {
-		return environ
-	}
-	drop := make(map[string]bool, len(unset))
-	for _, key := range unset {
-		drop[key] = true
-	}
-	kept := make([]string, 0, len(environ))
-	for _, entry := range environ {
-		key, _, _ := strings.Cut(entry, "=")
-		if !drop[key] {
-			kept = append(kept, entry)
-		}
-	}
-	return kept
 }
 
 // LookPath is a thin wrapper around exec.LookPath so callers can mock it in

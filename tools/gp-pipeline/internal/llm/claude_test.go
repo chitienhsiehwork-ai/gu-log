@@ -3,10 +3,7 @@ package llm
 import (
 	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -122,7 +119,9 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 }
 
 // writeFakeClaude installs a claude stub that records argv (one per line) and
-// stdin, then prints stdout and exits with rc.
+// stdin, then prints stdout and exits with rc. The capture paths are written
+// into the stub: a contained call starts from a clean environment, so the stub
+// cannot read them from the caller's.
 func writeFakeClaude(t *testing.T, stdout string, rc int) (argsPath, stdinPath string) {
 	t.Helper()
 	binDir := t.TempDir()
@@ -130,16 +129,14 @@ func writeFakeClaude(t *testing.T, stdout string, rc int) (argsPath, stdinPath s
 	argsPath = filepath.Join(capture, "args")
 	stdinPath = filepath.Join(capture, "stdin")
 	script := "#!/usr/bin/env bash\n" +
-		"printf '%s\\n' \"$@\" > \"$FAKE_CLAUDE_ARGS\"\n" +
-		"cat > \"$FAKE_CLAUDE_STDIN\"\n" +
+		"printf '%s\\n' \"$@\" > " + strconv.Quote(argsPath) + "\n" +
+		"cat > " + strconv.Quote(stdinPath) + "\n" +
 		"cat <<'JSON'\n" + stdout + "\nJSON\n" +
 		"exit " + strconv.Itoa(rc) + "\n"
 	if err := os.WriteFile(filepath.Join(binDir, "claude"), []byte(script), 0o755); err != nil {
 		t.Fatalf("write fake claude: %v", err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("FAKE_CLAUDE_ARGS", argsPath)
-	t.Setenv("FAKE_CLAUDE_STDIN", stdinPath)
 	return argsPath, stdinPath
 }
 
@@ -306,52 +303,41 @@ func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
 	}
 }
 
-// TestClaudeContainedCallDropsCredentialVariables keeps API-key and token
-// variables out of runtime-profile Claude calls, and keeps the Go list equal to
-// the Tribunal transient-service list so every VM Claude call authenticates the
-// same way.
-func TestClaudeContainedCallDropsCredentialVariables(t *testing.T) {
+// TestClaudeContainedCallStartsFromCleanEnvironment keeps everything but the
+// CLI's own needs out of runtime-profile Claude calls: API keys, a key handed
+// over as a file descriptor, and anything else the host happens to export.
+func TestClaudeContainedCallStartsFromCleanEnvironment(t *testing.T) {
 	binDir := t.TempDir()
 	envPath := filepath.Join(t.TempDir(), "env")
-	script := "#!/usr/bin/env bash\nenv > \"$FAKE_CLAUDE_ENV\"\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"ok\"}'\n"
+	script := "#!/bin/sh\n/usr/bin/env > \"" + envPath + "\"\ncat >/dev/null\nprintf '%s\\n' '{\"type\":\"result\",\"result\":\"ok\"}'\n"
 	if err := os.WriteFile(filepath.Join(binDir, "claude"), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	t.Setenv("FAKE_CLAUDE_ENV", envPath)
-	for _, key := range claudeContainedBlockedEnv {
+	leaked := []string{"ANTHROPIC_API_KEY", "CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR", "GU_LOG_FIXTURE_UNRELATED"}
+	for _, key := range leaked {
 		t.Setenv(key, "fixture-secret")
 	}
 	t.Setenv("CLAUDE_CONFIG_DIR", "/fixture/claude-config")
+	t.Setenv("TZ", "Asia/Taipei")
 	p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
 	if _, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()}); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	env, err := os.ReadFile(envPath)
+	data, err := os.ReadFile(envPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range claudeContainedBlockedEnv {
-		if strings.Contains(string(env), "\n"+key+"=") || strings.HasPrefix(string(env), key+"=") {
+	env := "\n" + string(data)
+	for _, key := range leaked {
+		if strings.Contains(env, "\n"+key+"=") {
 			t.Fatalf("contained Claude call kept %s", key)
 		}
 	}
-	if !strings.Contains(string(env), "CLAUDE_CONFIG_DIR=/fixture/claude-config") {
-		t.Fatal("contained Claude call lost the CLI login state directory")
-	}
-
-	out, err := exec.Command("bash", "-c",
-		`source "$1/scripts/tribunal-helpers.sh" && tribunal_transient_service_unset_env claude`,
-		"_", repoRootForRoutingTest(t)).Output()
-	if err != nil {
-		t.Fatalf("read the Tribunal Claude service list: %v", err)
-	}
-	shell := strings.Fields(string(out))
-	goList := append([]string(nil), claudeContainedBlockedEnv...)
-	sort.Strings(shell)
-	sort.Strings(goList)
-	if !reflect.DeepEqual(shell, goList) {
-		t.Fatalf("Tribunal Claude service drops %v but gp-pipeline drops %v; keep them equal", shell, goList)
+	for _, want := range []string{"HOME=" + os.Getenv("HOME"), "PATH=" + os.Getenv("PATH"), "CLAUDE_CONFIG_DIR=/fixture/claude-config", "TZ=Asia/Taipei"} {
+		if !strings.Contains(env, "\n"+want+"\n") {
+			t.Fatalf("contained Claude call lost %s", want)
+		}
 	}
 }
 
