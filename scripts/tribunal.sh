@@ -869,12 +869,6 @@ PROMPT
     tlog "  Rewrite skipped (GP_WRITER_MODE=none) during final build repair; failing without invoking tribunal-writer."
     return 1
   fi
-  # Final-build repair runs even without --allow-rewrite, so the check before
-  # the first judge may not have vetted the writer mode.
-  if [ "$writer_mode" != "claude" ]; then
-    tlog "  Final build repair skipped: $(tribunal_writer_mode_problem "$writer_mode"); failing without invoking tribunal-writer."
-    return 1
-  fi
   writer_out="$(mktemp)"
   writer_quota_status_file="$(mktemp)"
   writer_rc=0

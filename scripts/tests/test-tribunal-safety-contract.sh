@@ -519,10 +519,6 @@ FAKE_CLAUDE
   grep -q 'GP_WRITER_MODE=codex is retired' "$fixture_root/codex.out"
   grep -q "unsupported GP_WRITER_MODE='bogus'" "$fixture_root/bogus.out"
 ) || fail "writer executor must refuse every writer mode except claude"
-if ! grep -Fq '"$writer_mode" != "claude"' \
-  <(sed -n '/^repair_final_build_failure()/,/^}/p' "$TRIBUNAL"); then
-  fail "final-build repair must refuse non-Claude writer modes before its transaction"
-fi
 pass "writer transactions run only with the Claude model"
 
 (

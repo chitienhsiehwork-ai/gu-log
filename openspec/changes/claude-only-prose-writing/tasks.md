@@ -51,9 +51,10 @@
 - [x] 8.3 手動 batch runner 遇到額度暫停或 rc 78 時停下整批並說明原因，開始每篇前先看暫停檔；以 batch provider 測試驗證
 - [x] 8.4 doctor 的 live probe 走跟 daemon 相同的暫態 service、有效環境與 user manager PATH；以 deploy-readiness 驗證
 - [x] 8.5 Claude 寫作呼叫也清掉改變計費端點的環境變數，清單只在 helpers 維護一份，測試改讀那份清單；以 model-cli-env、deploy-readiness、model-router 與 Go 交叉比對驗證
-- [x] 8.6 runbook 寫明 VM 上每個用 Claude 寫作的帳號都要各自登入，其他文件指過去；final-build 修復在交易前拒絕非 claude 模式，交易裡重複的模式檢查刪掉；補 requiredProviders、gp-pipeline wrapper 預設與 router pin 解析失敗三個測試
+- [x] 8.6 runbook 寫明 VM 上每個用 Claude 寫作的帳號都要各自登入，其他文件指過去；交易裡重複的模式檢查刪掉（當時在 final-build 修復加的非 claude 檢查也走不到：修復本身要求允許改寫，已由 9.3 刪除）；補 requiredProviders、gp-pipeline wrapper 預設與 router pin 解析失敗三個測試
 
 ## 9. 最後一輪審查修正
 
 - [x] 9.1 受限的 Claude 呼叫（部署版與 runtime profile）改成從空的環境啟動，只帶 `HOME`、`PATH`、`CLAUDE_CONFIG_DIR` 與 `TZ`；刪掉兩份環境變數黑名單與交叉比對測試（8.5 的黑名單部分由此取代）；以塞入 `ANTHROPIC_API_KEY`、`CLAUDE_CODE_API_KEY_FILE_DESCRIPTOR` 與自訂變數的行為測試驗證（Go、model-cli-env、model-router、deploy-readiness）
 - [x] 9.2 live probe 照 systemd 的方式從頭重建 daemon 的環境，包含 `tribunal.env` 的設定，不採用 operator shell 的變數；以 deploy-readiness 驗證 probe 用的是 `tribunal.env` 的 `CLAUDE_CONFIG_DIR`
+- [x] 9.3 刪掉 final-build 修復裡走不到的非 claude 檢查（修復一開始就要求允許改寫，而允許改寫時第一位評審前的檢查只放行 `claude` 與 `none`）；補行為測試：允許改寫＋`none` 會被放行、照常評分且不呼叫寫手
