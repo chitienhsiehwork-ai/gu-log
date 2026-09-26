@@ -1162,16 +1162,6 @@ tribunal_judge_provider() {
   tribunal_llm_provider
 }
 
-# Resolve the legacy CLI writer provider. Tribunal-internal prose rewrites must
-# never fall back to Codex/GPT; the only CLI writer is explicit opt-in Claude.
-tribunal_writer_provider() {
-  if tribunal_claude_cmd >/dev/null 2>&1; then
-    printf 'claude\n'
-    return 0
-  fi
-  return 1
-}
-
 tribunal_writer_mode() {
   if [ -n "${GP_WRITER_MODE:-}" ]; then
     printf '%s\n' "$GP_WRITER_MODE"
@@ -1185,7 +1175,7 @@ tribunal_writer_mode() {
 # claude-prose-writing-runtime).
 tribunal_writer_mode_problem() {
   case "$1" in
-    subagent|codex|grok)
+    subagent|cli|codex|grok)
       printf 'GP_WRITER_MODE=%s is retired; gu-log article rewrites use only the Claude model (set GP_WRITER_MODE=claude)' "$1"
       ;;
     *)
@@ -1205,10 +1195,6 @@ tribunal_writer_preflight() (
     claude) ;;
     none)
       printf 'Writer preflight failed: the deployed runtime rewrites articles and requires GP_WRITER_MODE=claude (got none)\n' >&2
-      return 1
-      ;;
-    cli)
-      printf 'Writer preflight failed: GP_WRITER_MODE=cli is compatibility-only and cannot be deployed\n' >&2
       return 1
       ;;
     *)
@@ -1547,14 +1533,14 @@ PROMPT
   local timeout_sec claude_cmd
   timeout_sec="${TRIBUNAL_CODEX_TIMEOUT_SEC:-3600}"
   claude_cmd="$(tribunal_claude_cmd)" || return 127
-  # The CLI starts in an isolated temp directory, so both judge and writer must
-  # explicitly receive the repo as one narrow additional directory. Keep
+  # The CLI starts in an isolated temp directory, so the judge must explicitly
+  # receive the repo as one narrow additional directory. Keep
   # --add-dir before the variadic --allowed-tools flag, and keep the prompt on
   # stdin so no option can swallow it.
   #
   # acceptEdits alone only auto-approves edits; the judge task passes the post as
   # a PATH (not inlined), so Read would still prompt. Pre-approve only the
-  # read/search/compute/write tools judge and writer need (no MCP, no network).
+  # read/search/compute/write tools the judge needs (no MCP, no network).
   # This same non-interactive contract is required for root and non-root:
   # permission-mode auto can print "Waiting for permission to edit" and return
   # rc=0 without changing the article, while bypassPermissions is rejected in
@@ -1636,35 +1622,9 @@ tribunal_writer_exec_raw() {
     claude)
       tribunal_claude_writer_exec "$work_dir" "$agent_name" "$user_prompt"
       ;;
-    cli)
-      case "$(tribunal_writer_provider 2>/dev/null)" in
-        claude)
-          tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
-          ;;
-        *)
-          echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
-          return 127
-          ;;
-      esac
-      ;;
     *)
       echo "ERROR: $(tribunal_writer_mode_problem "$(tribunal_writer_mode)")" >&2
       return 2
-      ;;
-  esac
-}
-
-tribunal_writer_exec_raw_legacy_cli() {
-  local work_dir="$1"
-  local agent_name="$2"
-  local user_prompt="$3"
-  case "$(tribunal_writer_provider 2>/dev/null)" in
-    claude)
-      tribunal_claude_exec "$work_dir" "$agent_name" "$user_prompt"
-      ;;
-    *)
-      echo "ERROR: GP_WRITER_MODE=cli requires claude on PATH; refusing Codex/GPT writer fallback" >&2
-      return 127
       ;;
   esac
 }
@@ -2228,28 +2188,14 @@ tribunal_writer_exec() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
-  local mode provider resolved_model exec_function
-  mode="$(tribunal_writer_mode)"
-  case "$mode" in
-    claude)
-      provider="claude"
-      resolved_model="$(tribunal_claude_agent_model "$agent_name")" || return 1
-      exec_function="tribunal_writer_exec_raw"
-      ;;
-    cli)
-      provider="$(tribunal_writer_provider 2>/dev/null || true)"
-      [ -n "$provider" ] || return 127
-      resolved_model="$(tribunal_model_id_for_provider "$provider" "$agent_name")" ||
-        return 1
-      exec_function="tribunal_writer_exec_raw_legacy_cli"
-      ;;
-    *)
-      # none skips the rewrite; retired or unknown modes fail with the reason.
-      tribunal_writer_exec_quiesced_once \
-        tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
-      return $?
-      ;;
-  esac
+  local resolved_model
+  if [ "$(tribunal_writer_mode)" != claude ]; then
+    # none skips the rewrite; retired or unknown modes fail with the reason.
+    tribunal_writer_exec_quiesced_once \
+      tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
+    return $?
+  fi
+  resolved_model="$(tribunal_claude_agent_model "$agent_name")" || return 1
 
   local waits=0 out rc qrc
   while true; do
@@ -2259,27 +2205,26 @@ tribunal_writer_exec() {
     # records the same value even if the agent frontmatter changes mid-run.
     TRIBUNAL_CLAUDE_WRITER_MODEL="$resolved_model" \
       tribunal_writer_exec_quiesced_once \
-        "$exec_function" "$work_dir" "$agent_name" "$user_prompt" \
+        tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt" \
         >"$out" 2>&1 || rc=$?
     cat "$out"
     if [ "$rc" -eq 0 ]; then
       rm -f "$out"
       if ! tribunal_write_actual_provider \
-        "$provider" "$agent_name" "$resolved_model" ""; then
+        claude "$agent_name" "$resolved_model" ""; then
         echo "ERROR: failed to record tribunal-writer provider/model provenance" >&2
         return 70
       fi
       return 0
     fi
-    if [ "$provider" = claude ] &&
-       [ "$(tribunal_claude_failure_class "$out" 2>/dev/null || true)" = login ]; then
+    if [ "$(tribunal_claude_failure_class "$out" 2>/dev/null || true)" = login ]; then
       rm -f "$out"
       printf 'ERROR: the Claude CLI is not logged in. Run `claude auth login` as %s on this host; Tribunal rewrites use only the Claude model.\n' \
         "${USER:-$(id -un)}" >&2
       return 78
     fi
     qrc=0
-    tribunal_quota_handle_file "$provider" "$out" "$waits" || qrc=$?
+    tribunal_quota_handle_file claude "$out" "$waits" || qrc=$?
     rm -f "$out"
     if [ "$qrc" -eq 88 ]; then
       waits=$((waits + 1))

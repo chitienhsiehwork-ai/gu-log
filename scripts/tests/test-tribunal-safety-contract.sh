@@ -462,7 +462,7 @@ FAKE_CLAUDE
       exit 1
     }
   done
-  for mode in subagent codex grok; do
+  for mode in subagent cli codex grok; do
     grep -q "GP_WRITER_MODE=$mode is retired" "$fixture_root/$mode.out"
   done
   PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE=claude \

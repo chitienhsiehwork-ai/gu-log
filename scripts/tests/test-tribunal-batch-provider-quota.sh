@@ -46,7 +46,6 @@ export USAGE_MONITOR QUOTA_FLOOR_PCT
 ACTIVE_GLOBAL_PROVIDER=codex
 ACTIVE_VIBE_PROVIDER=codex
 ACTIVE_WRITER_MODE=none
-ACTIVE_WRITER_PROVIDER=claude
 CLAUDE_AVAILABLE=true
 GP_JUDGE_ALLOW_CLAUDE=0
 LOG_OUTPUT=""
@@ -73,13 +72,6 @@ tribunal_judge_provider() {
 
 tribunal_writer_mode() {
   printf '%s\n' "$ACTIVE_WRITER_MODE"
-}
-
-tribunal_writer_provider() {
-  case "$ACTIVE_WRITER_PROVIDER" in
-    codex|claude) printf '%s\n' "$ACTIVE_WRITER_PROVIDER" ;;
-    *) return 1 ;;
-  esac
 }
 
 tribunal_claude_cmd() {
@@ -189,11 +181,6 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 pass "enabled Claude judge fallback joins active providers"
 GP_JUDGE_ALLOW_CLAUDE=0
 
-ACTIVE_WRITER_MODE=cli
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "CLI writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "CLI writer provider joins active providers"
-
 ACTIVE_WRITER_MODE=claude
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
 [ "$CASE_RC" -eq 2 ] || fail "Claude-model writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
@@ -202,12 +189,12 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=50"*) ;; *) fail "Claude-model writer did not join the strict minimum: $LOG_OUTPUT" ;; esac
 pass "Claude-model writer provider joins active providers"
 
-for retired_mode in subagent codex grok; do
+for retired_mode in subagent cli codex grok; do
   ACTIVE_WRITER_MODE="$retired_mode"
   run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
   [ "$CASE_RC" -eq 2 ] || fail "retired $retired_mode writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 done
-pass "retired subagent/Codex/Grok writer modes fail closed"
+pass "retired subagent/cli/Codex/Grok writer modes fail closed"
 
 ACTIVE_WRITER_MODE=unknown
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'

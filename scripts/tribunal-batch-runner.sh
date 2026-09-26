@@ -88,9 +88,6 @@ tribunal_batch_active_providers() {
     claude)
       writer_provider="claude"
       ;;
-    cli)
-      writer_provider=$(tribunal_writer_provider 2>/dev/null) || return 1
-      ;;
     # Retired writer modes (see tribunal_writer_mode_problem) and unknown
     # values fail closed: gu-log article rewrites use only the Claude model.
     *) return 1 ;;
