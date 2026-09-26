@@ -52,7 +52,7 @@ if [ "${1:-}" = "--doctor" ]; then
   printf 'unit_enabled=%s\n' "$unit_enabled"
   [ "$unit_enabled" = "enabled" ] || failed=1
   if command -v loginctl >/dev/null 2>&1; then
-    linger="$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)"
+    linger="$(loginctl show-user "${USER:-$(id -un)}" -p Linger --value 2>/dev/null || true)"
     [ -n "$linger" ] || linger="unknown"
     printf 'linger=%s\n' "$linger"
     [ "$linger" = "yes" ] || failed=1
