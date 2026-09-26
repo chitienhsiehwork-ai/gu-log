@@ -6,7 +6,7 @@ import (
 )
 
 // DefaultWritingChain returns the provider used for article writing and refine
-// steps: the pinned Claude writer. WritingChain adds the GP_WRITER_PROVIDER
+// steps: the pinned Claude model. WritingChain adds the GP_WRITER_PROVIDER
 // validation on top.
 func DefaultWritingChain() []Provider {
 	return []Provider{
@@ -37,9 +37,10 @@ func ProbeChain() []Provider {
 }
 
 // WritingChain returns the provider chain for the legacy (no runtime profile)
-// write, refine and English sidecar steps. Only Claude writes gu-log prose
-// (owner decision 2026-09-26, openspec claude-prose-writing-runtime), so the
-// chain is always the pinned Claude writer. A missing claude binary fails
+// write, refine and English sidecar steps. Mogu writes gu-log articles only
+// with the Claude model (owner decision 2026-09-26, openspec
+// claude-prose-writing-runtime), so the chain is always the pinned Claude
+// model. A missing claude binary fails
 // closed through the dispatcher's "binary not found" error instead of falling
 // back to another provider.
 func WritingChain() ([]Provider, error) {
@@ -48,7 +49,7 @@ func WritingChain() ([]Provider, error) {
 		return []Provider{NewClaudeOpusWriter()}, nil
 	case "codex":
 		return nil, fmt.Errorf(
-			`GP_WRITER_PROVIDER=codex is retired: gu-log prose is written only by Claude; unset it or set "claude"`,
+			`GP_WRITER_PROVIDER=codex is retired: gu-log articles are written only with the Claude model; unset it or set "claude"`,
 		)
 	default:
 		return nil, fmt.Errorf(
@@ -93,8 +94,8 @@ func JudgeChainWithClaudeFallback(allowClaude bool) []Provider {
 
 // EffectiveStamp returns the (model, harness) display labels for the runtime
 // provider that WritingChain will resolve to. When nothing is on PATH (offline
-// / FakeProvider test runs) it stamps the pinned Claude writer, the only
-// provider allowed to write prose, as the deterministic default.
+// / FakeProvider test runs) it stamps the pinned Claude model, the only
+// model used to write articles, as the deterministic default.
 func EffectiveStamp() (model, harness string, err error) {
 	chain, err := WritingChain()
 	if err != nil {

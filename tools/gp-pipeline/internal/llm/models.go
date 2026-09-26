@@ -1,6 +1,6 @@
 // Package llm is the dispatcher layer around the external language model
-// CLIs the pipeline can call. Every prose-writing role runs only on the pinned
-// Claude writer (owner decision 2026-09-26); judges default to Codex with an
+// CLIs the pipeline can call. Every article-writing step uses only the pinned
+// Claude model (owner decision 2026-09-26); judges default to Codex with an
 // explicit Claude fallback policy. Gemini is available only for experiments.
 //
 // Design notes:

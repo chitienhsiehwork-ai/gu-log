@@ -255,7 +255,7 @@ func TestClaudeRunRejectsErrorResultWithZeroExit(t *testing.T) {
 }
 
 // TestClaudeWriterPinMatchesTribunalWriterFrontmatter guards the two SSOTs of
-// the Claude writer pin. Runtime-profile routing reads the frontmatter through
+// the Claude model pin. Runtime-profile routing reads the frontmatter through
 // the shell router and refuses to dispatch when it disagrees with this
 // constant, so a drift must fail here first.
 func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {

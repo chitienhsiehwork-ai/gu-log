@@ -11,9 +11,10 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// ClaudeProvider shells out to `claude -p --model <model>`. It is the only
-// provider allowed to write gu-log prose (owner decision 2026-09-26, see
-// openspec claude-prose-writing-runtime) and an explicit judge fallback.
+// ClaudeProvider shells out to `claude -p --model <model>`. Mogu writes and
+// rewrites gu-log articles only with the Claude model (owner decision
+// 2026-09-26, openspec claude-prose-writing-runtime), so this is the only
+// provider for article-writing steps; it is also an explicit judge fallback.
 //
 // Permission modes:
 //
@@ -33,8 +34,8 @@ import (
 //     "please approve the permission" message instead of the MDX the parser
 //     expects.
 type ClaudeProvider struct {
-	// ModelFlag is the value passed to --model. Prose roles use the pinned
-	// writer build; judge fallbacks use the floating "opus" alias.
+	// ModelFlag is the value passed to --model. Article-writing steps use the
+	// pinned Claude model; judge fallbacks use the floating "opus" alias.
 	ModelFlag string
 	// Contained selects the least-privilege invocation described above.
 	Contained bool

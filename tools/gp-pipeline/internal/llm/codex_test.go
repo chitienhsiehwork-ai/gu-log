@@ -198,7 +198,7 @@ func TestWritingChainNeverFallsBackToCodexWhenClaudeIsUnavailable(t *testing.T) 
 		t.Fatalf("unset writer chain length = %d, want 1", len(autoChain))
 	}
 	if _, ok := autoChain[0].(*ClaudeProvider); !ok {
-		t.Fatalf("unset writer provider type = %T, want the Claude writer even when only Codex is installed", autoChain[0])
+		t.Fatalf("unset writer provider type = %T, want the Claude model even when only Codex is installed", autoChain[0])
 	}
 	if autoChain[0].Available() {
 		t.Fatal("Claude should be unavailable in the isolated PATH")
