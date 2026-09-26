@@ -254,10 +254,10 @@ func TestClaudeStructuredOutputMissingFailsClosed(t *testing.T) {
 // TestClaudeRunSurfacesCLIErrorResult keeps usage-limit text visible: with
 // --output-format json the CLI reports it on stdout, not stderr.
 func TestClaudeRunSurfacesCLIErrorResult(t *testing.T) {
-	writeFakeClaude(t, `{"type":"result","is_error":true,"result":"Claude AI usage limit reached"}`, 1)
+	writeFakeClaude(t, `{"type":"result","is_error":true,"result":"You've hit your session limit · resets 5pm (UTC)"}`, 1)
 	p := NewClaudeOpusWriter()
 	_, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()})
-	if err == nil || !strings.Contains(err.Error(), "usage limit reached") {
+	if err == nil || !strings.Contains(err.Error(), "hit your session limit") {
 		t.Fatalf("Run error = %v, want the CLI result message", err)
 	}
 	if !IsQuotaError(p.Name(), err) {

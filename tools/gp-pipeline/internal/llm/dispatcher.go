@@ -124,6 +124,9 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 				FellBackFrom: fellBack,
 			}, nil
 		}
+		if isClaudeProviderName(p.Name()) && ClassifyClaudeFailure(err.Error()) == ClaudeFailureLogin {
+			return nil, fmt.Errorf("%s: the Claude CLI is not logged in; run `claude auth login` as this user and rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+		}
 		if IsQuotaError(p.Name(), err) {
 			if d.quota.AllowClaudeJudgeFallback && isCodexProvider(p) {
 				d.log.Warn("llm: %s hit quota; trying explicit Claude judge fallback", p.Name())
