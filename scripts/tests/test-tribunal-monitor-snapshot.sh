@@ -60,7 +60,7 @@ case "$*" in
   "--user show tribunal-loop -p Environment --value")
     [ "${FAIL_LOOP_ENV_QUERY:-0}" != "1" ] || exit 1
     [ "${EMPTY_LOOP_ENV_QUERY:-0}" != "1" ] || exit 0
-    echo "QUOTA_FLOOR=12 GP_WRITER_MODE=subagent TRIBUNAL_STRICT_ROLE_PROVIDERS=0"
+    echo "QUOTA_FLOOR=12 GP_WRITER_MODE=claude TRIBUNAL_STRICT_ROLE_PROVIDERS=0"
     ;;
   "--user is-enabled tribunal-loop")
     echo "enabled"
