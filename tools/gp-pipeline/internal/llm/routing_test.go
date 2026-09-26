@@ -128,7 +128,7 @@ func fakeRouterRoot(t *testing.T, resolution string) string {
 }
 
 func TestProvidersForRuntimeRejectsNonClaudeArticleWriting(t *testing.T) {
-	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"codex","model":"gpt-5.5","reasoningEffort":"low","quotaTier":"normal","remainingPercent":"unknown","quotaAction":"run"}`)
+	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"codex","model":"gpt-5.5","reasoningEffort":"low","quotaTier":"normal","remainingPercent":"unknown"}`)
 	for _, role := range []RuntimeRole{RuntimeWriter, RuntimeTranslator, RuntimeCorrector, RuntimeCommentary} {
 		providers, active, err := ProvidersForRuntime(context.Background(), root, role)
 		if err == nil || !active || providers != nil || !strings.Contains(err.Error(), "must use the Claude model") {
@@ -138,18 +138,10 @@ func TestProvidersForRuntimeRejectsNonClaudeArticleWriting(t *testing.T) {
 }
 
 func TestProvidersForRuntimeRejectsClaudePinDrift(t *testing.T) {
-	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"claude","model":"claude-opus-drifted","reasoningEffort":"","quotaTier":"normal","remainingPercent":"unknown","quotaAction":"run"}`)
+	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"writer","provider":"claude","model":"claude-opus-drifted","reasoningEffort":"","quotaTier":"normal","remainingPercent":"unknown"}`)
 	_, _, err := ProvidersForRuntime(context.Background(), root, RuntimeWriter)
 	if err == nil || !strings.Contains(err.Error(), "pin drift") {
 		t.Fatalf("drifted pin route error = %v, want a pin drift rejection", err)
-	}
-}
-
-func TestProvidersForRuntimeRejectsHeldQuotaAction(t *testing.T) {
-	root := fakeRouterRoot(t, `{"runtimeProfile":"vm-codex","role":"reviewer","provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","quotaTier":"lowQuota","remainingPercent":"5","quotaAction":"pause"}`)
-	_, active, err := ProvidersForRuntime(context.Background(), root, RuntimeReviewer)
-	if err == nil || !active || !strings.Contains(err.Error(), "action=pause") {
-		t.Fatalf("held route = (active=%v, err=%v), want the quota hold surfaced", active, err)
 	}
 }
 

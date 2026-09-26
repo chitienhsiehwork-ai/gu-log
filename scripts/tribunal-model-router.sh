@@ -224,7 +224,6 @@ model_router_resolve() {
     MODEL_ROUTER_REASONING=""
     MODEL_ROUTER_TIER=legacy
     MODEL_ROUTER_REMAINING=unknown
-    MODEL_ROUTER_QUOTA_ACTION=run
     return 0
   fi
 
@@ -293,7 +292,6 @@ model_router_resolve() {
   MODEL_ROUTER_REASONING="$effort"
   MODEL_ROUTER_TIER="$tier"
   MODEL_ROUTER_REMAINING="$remaining"
-  MODEL_ROUTER_QUOTA_ACTION=run
 }
 
 model_router_print_json() {
@@ -305,11 +303,9 @@ model_router_print_json() {
     --arg reasoningEffort "$MODEL_ROUTER_REASONING" \
     --arg quotaTier "$MODEL_ROUTER_TIER" \
     --arg remainingPercent "$MODEL_ROUTER_REMAINING" \
-    --arg quotaAction "$MODEL_ROUTER_QUOTA_ACTION" \
     '{runtimeProfile: $runtimeProfile, role: $role, provider: $provider,
       model: $model, reasoningEffort: $reasoningEffort,
-      quotaTier: $quotaTier, remainingPercent: $remainingPercent,
-      quotaAction: $quotaAction}'
+      quotaTier: $quotaTier, remainingPercent: $remainingPercent}'
 }
 
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
@@ -323,10 +319,9 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   if [ "$format" = --json ]; then
     model_router_print_json
   else
-    printf '%s|%s|%s|%s|%s|%s|%s|%s\n' \
+    printf '%s|%s|%s|%s|%s|%s|%s\n' \
       "$MODEL_ROUTER_PROFILE" "$MODEL_ROUTER_ROLE" "$MODEL_ROUTER_PROVIDER" \
       "$MODEL_ROUTER_MODEL" "$MODEL_ROUTER_REASONING" \
-      "$MODEL_ROUTER_TIER" "$MODEL_ROUTER_REMAINING" \
-      "$MODEL_ROUTER_QUOTA_ACTION"
+      "$MODEL_ROUTER_TIER" "$MODEL_ROUTER_REMAINING"
   fi
 fi

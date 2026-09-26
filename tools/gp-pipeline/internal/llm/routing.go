@@ -31,7 +31,6 @@ type ResolvedRuntime struct {
 	ReasoningEffort  string `json:"reasoningEffort"`
 	QuotaTier        string `json:"quotaTier"`
 	RemainingPercent string `json:"remainingPercent"`
-	QuotaAction      string `json:"quotaAction"`
 }
 
 // ResolveRuntime delegates to the Bash router so gp-pipeline and Tribunal use
@@ -45,7 +44,6 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 				RuntimeProfile: "legacy",
 				Role:           string(role),
 				QuotaTier:      "legacy",
-				QuotaAction:    "run",
 			}, nil
 		}
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: %w", role, err)
@@ -69,9 +67,6 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 	}
 	if runtime.RuntimeProfile != "legacy" && (runtime.Provider == "" || runtime.Model == "") {
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: provider/model missing", role)
-	}
-	if runtime.QuotaAction == "" {
-		runtime.QuotaAction = "run"
 	}
 	return runtime, nil
 }
@@ -115,12 +110,6 @@ func ProvidersForRuntime(
 	}
 	if runtime.RuntimeProfile == "legacy" {
 		return nil, false, nil
-	}
-	if runtime.QuotaAction != "run" {
-		return nil, true, fmt.Errorf(
-			"%s runtime held by quota policy: action=%s remaining=%s%%",
-			role, runtime.QuotaAction, runtime.RemainingPercent,
-		)
 	}
 	if IsProseRole(role) && runtime.Provider != "claude" {
 		return nil, true, fmt.Errorf(

@@ -38,7 +38,6 @@ else
     MODEL_ROUTER_REASONING=""
     MODEL_ROUTER_TIER=legacy
     MODEL_ROUTER_REMAINING=unknown
-    MODEL_ROUTER_QUOTA_ACTION=run
   }
 fi
 

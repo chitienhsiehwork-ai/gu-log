@@ -46,14 +46,12 @@ writer_pin="$(bash -c '
 [ -n "$writer_pin" ] || fail "cannot read the Claude model pin from tribunal-writer frontmatter"
 
 assert_route() {
-  local payload="$1" model="$2" effort="$3" tier="$4" action="${5:-run}"
-  jq -e --arg model "$model" --arg effort "$effort" --arg tier "$tier" \
-    --arg action "$action" '
+  local payload="$1" model="$2" effort="$3" tier="$4"
+  jq -e --arg model "$model" --arg effort "$effort" --arg tier "$tier" '
     .runtimeProfile == "vm-codex"
     and .model == $model
     and .reasoningEffort == $effort
     and .quotaTier == $tier
-    and .quotaAction == $action
   ' <<<"$payload" >/dev/null
 }
 
@@ -129,7 +127,6 @@ jq -e '
   and .provider == ""
   and .model == ""
   and .quotaTier == "legacy"
-  and .quotaAction == "run"
 ' <<<"$legacy" >/dev/null
 
 CODEX_ONLY="$TMP_DIR/codex-only"
@@ -203,7 +200,6 @@ model_router_resolve writer
 model_router_resolve vibeScorer
 [ "$MODEL_ROUTER_PROVIDER" = codex ] || fail "sourced vibe route is not Codex"
 [ "$MODEL_ROUTER_REASONING" = high ] || fail "sourced vibe route lost its effort"
-[ "$MODEL_ROUTER_QUOTA_ACTION" = run ] || fail "sourced vibe route inherited a quota action"
 
 if TRIBUNAL_RUNTIME_PROFILE=bogus TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
   REPO_ROOT="$ROOT_DIR" bash -c '
