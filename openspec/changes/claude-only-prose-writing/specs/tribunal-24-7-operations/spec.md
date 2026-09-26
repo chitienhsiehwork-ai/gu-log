@@ -30,6 +30,16 @@
 - **WHEN** 部署版 Tribunal 改寫或寫入 canary 呼叫的 Claude 模型回報額度錯誤
 - **THEN** runner SHALL 丟棄候選並還原 canonical 文章後，以 unknown tier 將該篇標為額度暫停
 - **AND** SHALL NOT 執行 Claude 額度指令、合併供應端探測，或改用其他模型改寫
+- **AND** 該次改寫 SHALL NOT 被記成評審失敗，也 SHALL NOT 計入該篇的改寫嘗試次數
+- **AND** daemon SHALL 暫停派送到 Claude 回報的重置時間（無法解析時採保守預設），SHALL NOT 繼續評審其他文章而重複撞上同一個額度錯誤
+
+#### Scenario: Tribunal 改寫時 Claude 登入失效
+
+- **WHEN** 部署版 Tribunal 改寫呼叫的 Claude 模型回報未登入或登入已失效
+- **THEN** runner SHALL 丟棄候選並還原 canonical 文章
+- **AND** daemon SHALL 暫停領取新文章，並輸出需要重新登入 Claude CLI 的可行動錯誤
+- **AND** SHALL NOT 重新評審未改寫的文章、把該篇記成失敗，或計入改寫嘗試次數
+- **AND** SHALL NOT 改用其他模型改寫
 
 #### Scenario: Codex 額度 JSON 無法取得或無效
 
@@ -74,6 +84,7 @@
 - **THEN** 部署版 daemon SHALL 在領取或派送文章前退出
 - **AND** SHALL 輸出可採取行動的寫手前置檢查錯誤
 - **AND** SHALL NOT 改用 Codex、Grok 或其他模型重試
+- **AND** 服務 SHALL 退避後重試，兩次重試的間隔 SHALL 不短於 10 分鐘，SHALL NOT 以固定短間隔無限重啟
 
 #### Scenario: 部署版評審路徑不依賴 Claude
 
