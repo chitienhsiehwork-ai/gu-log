@@ -144,7 +144,33 @@ if [ "${1:-}" = "--doctor" ]; then
     printf 'role_provider_contract=passed\n'
   fi
   if [ "$live_probe" = "1" ]; then
-    probe_output="$(tribunal_writer_preflight 2>/dev/null || true)"
+    # Probe exactly like the daemon's writer preflight (openspec
+    # tribunal-24-7-operations): the unit's deployed mode selects the same
+    # contained executor in a transient systemd service, and PATH, TZ and the
+    # Claude config directory are the values the daemon would hand to it.
+    manager_path="$(
+      systemctl --user show-environment 2>/dev/null |
+        sed -n 's/^PATH=//p' | tail -1
+    )"
+    probe_output="$(
+      TRIBUNAL_DEPLOYED_MODE="$(tribunal_effective_runtime_value \
+        "$unit_environment" TRIBUNAL_DEPLOYED_MODE 1)"
+      TZ="$(tribunal_effective_runtime_value \
+        "$unit_environment" TZ "${TZ:-Asia/Taipei}")"
+      CLAUDE_CONFIG_DIR="$(tribunal_effective_runtime_value \
+        "$unit_environment" CLAUDE_CONFIG_DIR "${CLAUDE_CONFIG_DIR:-}")"
+      export TRIBUNAL_DEPLOYED_MODE TZ
+      if [ -n "$CLAUDE_CONFIG_DIR" ]; then
+        export CLAUDE_CONFIG_DIR
+      else
+        unset CLAUDE_CONFIG_DIR
+      fi
+      if [ -n "$manager_path" ]; then
+        # The service inherits the user manager's PATH; the wrapper prefixes it.
+        export PATH="$HOME/.local/bin:$HOME/bin:$manager_path"
+      fi
+      tribunal_writer_preflight 2>/dev/null
+    )" || true
     if [ "$probe_output" = "OK" ]; then
       printf 'writer_preflight=passed source=live result=OK\n'
     else

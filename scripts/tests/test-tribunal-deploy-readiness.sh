@@ -346,13 +346,16 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
   doctor_home="$TMP/doctor-home"
   doctor_root="$TMP/doctor-root"
   doctor_bin="$TMP/doctor-bin"
+  # The user manager's PATH, which the daemon's service (and so the live
+  # probe) uses; the operator shell's PATH must not decide which claude runs.
+  doctor_manager_bin="$TMP/doctor-manager-bin"
   doctor_unit_dir="$doctor_home/.config/systemd/user"
   doctor_service="$doctor_unit_dir/tribunal-loop.service"
   doctor_same_bytes="$doctor_root/same-bytes-tribunal-loop.service"
   doctor_snapshot_state="$doctor_root/service-snapshot-count"
   mkdir -p "$doctor_home" "$doctor_root/.score-loop/state" \
     "$doctor_root/.codex/agents" "$doctor_root/scripts" "$doctor_bin" \
-    "$doctor_unit_dir"
+    "$doctor_manager_bin" "$doctor_unit_dir"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
     "$doctor_root/scripts/tribunal-runtime.slice"
   cp "$ROOT_DIR/scripts/tribunal-runtime.slice" \
@@ -369,7 +372,8 @@ pass "monitor helper reports effective unit writer/floor/strict-role values"
 #!/usr/bin/env bash
 case "$*" in
   *is-enabled*) printf 'enabled\n' ;;
-  *'Environment --value'*) printf 'GP_WRITER_MODE=claude TRIBUNAL_STRICT_ROLE_PROVIDERS=1\n' ;;
+  *'Environment --value'*) printf 'TRIBUNAL_DEPLOYED_MODE=1 TRIBUNAL_STRICT_ROLE_PROVIDERS=1 GP_WRITER_MODE=claude TZ=Asia/Taipei\n' ;;
+  *show-environment*) printf 'PATH=%s\n' "${DOCTOR_MANAGER_PATH:-/usr/bin:/bin}" ;;
   *'MainPID --value'*) printf '4242\n' ;;
   *'tribunal-runtime.slice -p LoadState --value'*) printf 'loaded\n' ;;
   *'tribunal-runtime.slice -p ActiveState --value'*) printf 'active\n' ;;
@@ -426,7 +430,7 @@ LOGINCTL
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then exit 0; fi
 exit 0
 CODEX
-  cat > "$doctor_bin/claude" <<'CLAUDE'
+  cat > "$doctor_manager_bin/claude" <<'CLAUDE'
 #!/usr/bin/env bash
 : > "$FAKE_DOCTOR_CLAUDE_CALLED"
 prompt="$(cat)"
@@ -436,8 +440,28 @@ token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
 printf '%s\n' "$token" > "$path"
 printf 'OK\n'
 CLAUDE
+  # A claude that only the operator shell would find: the probe must not use it.
+  cat > "$doctor_bin/claude" <<'CLAUDE'
+#!/usr/bin/env bash
+: > "$FAKE_DOCTOR_SHELL_CLAUDE_CALLED"
+exit 99
+CLAUDE
+  cat > "$doctor_manager_bin/systemd-run" <<'SYSTEMD_RUN'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$DOCTOR_SYSTEMD_RUN_ARGS"
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = -- ]; then
+    shift
+    break
+  fi
+  shift
+done
+[ "$#" -gt 0 ] || exit 64
+exec "$@"
+SYSTEMD_RUN
   chmod +x "$doctor_bin/systemctl" "$doctor_bin/loginctl" "$doctor_bin/codex" \
-    "$doctor_bin/claude"
+    "$doctor_bin/claude" "$doctor_manager_bin/claude" \
+    "$doctor_manager_bin/systemd-run"
   cat > "$doctor_root/.score-loop/state/writer-preflight.json" <<'STATE'
 {"status":"passed","mode":"claude","detail":"OK","pid":4242,"updatedAt":"2026-07-24T00:00:00Z"}
 STATE
@@ -540,14 +564,24 @@ STATE
   DOCTOR_SLICE_FRAGMENT="$doctor_root/installed-tribunal-runtime.slice" \
   DOCTOR_SERVICE_FRAGMENT="$doctor_service" \
   DOCTOR_SERVICE_SNAPSHOT_STATE="$doctor_snapshot_state" \
+  DOCTOR_MANAGER_PATH="$doctor_manager_bin:/usr/local/bin:/usr/bin:/bin" \
+  DOCTOR_SYSTEMD_RUN_ARGS="$TMP/doctor-systemd-run.args" \
   FAKE_DOCTOR_CLAUDE_CALLED="$TMP/doctor-claude-called" \
+  FAKE_DOCTOR_SHELL_CLAUDE_CALLED="$TMP/doctor-shell-claude-called" \
   TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     bash "$ROOT_DIR/scripts/cc-tribunal-loop-wrapper.sh" --doctor --live-probe \
       >"$TMP/doctor-live.out"
   grep -q 'writer_preflight=passed source=live result=OK' "$TMP/doctor-live.out"
   [ -e "$TMP/doctor-claude-called" ]
+  # Same executor and environment as the daemon: the deployed transient
+  # service, and the claude on the user manager's PATH.
+  [ ! -e "$TMP/doctor-shell-claude-called" ]
+  grep -Fxq -- '--slice=tribunal-runtime.slice' "$TMP/doctor-systemd-run.args"
+  grep -Fxq -- "--property=UnsetEnvironment=$(tribunal_transient_service_unset_env claude)" \
+    "$TMP/doctor-systemd-run.args"
+  grep -Fxq -- '--setenv=TZ=Asia/Taipei' "$TMP/doctor-systemd-run.args"
 ) || fail "doctor cached/live writer preflight behavior is incorrect"
-pass "doctor reuses current PID state; only explicit live probe invokes the Claude write canary"
+pass "doctor reuses current PID state; only the explicit live probe runs the Claude write canary, through the daemon's executor and environment"
 
 # The CCC compatibility judge runs through tribunal_claude_exec. From an isolated
 # workdir it must grant exactly REPO_ROOT through --add-dir and use the same
