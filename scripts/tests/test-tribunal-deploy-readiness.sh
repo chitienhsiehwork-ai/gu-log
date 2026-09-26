@@ -223,7 +223,7 @@ fi
 grep -Eq '^--unit=gu-log-tribunal-codex-' \
   "$TMP/preflight-systemd-run.argv" ||
   fail "deployed writer transient service (Claude model) did not use a parent-generated unit"
-grep -Fxq -- '--property=UnsetEnvironment=ANTHROPIC_API_KEY CLAUDE_API_KEY OPENAI_API_KEY CODEX_API_KEY XAI_API_KEY GROK_API_KEY' \
+grep -Fxq -- '--property=UnsetEnvironment=ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY' \
   "$TMP/preflight-systemd-run.argv" ||
   fail "deployed writer service (Claude model) can see API-key credentials"
 for expected_arg in -p --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do

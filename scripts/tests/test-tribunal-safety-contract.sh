@@ -533,10 +533,12 @@ fi
 writer_exec_body="$(sed -n '/^tribunal_claude_writer_exec()/,/^}/p' "$HELPERS")"
 writer_prompt_body="$(sed -n '/^tribunal_claude_writer_prompt_exec()/,/^}/p' "$HELPERS")"
 writer_preflight_body="$(sed -n '/^tribunal_writer_preflight()/,/^)/p' "$HELPERS")"
+transient_service_body="$(sed -n '/^tribunal_exec_transient_service()/,/^}/p' "$HELPERS")"
 if ! grep -q 'tribunal_claude_writer_prompt_exec' <<<"$writer_exec_body" ||
    ! grep -q 'tribunal_claude_writer_prompt_exec' <<<"$writer_preflight_body" ||
-   ! grep -Fq -- '--slice=tribunal-runtime.slice' <<<"$writer_prompt_body" ||
-   ! grep -Fq -- '--property=KillMode=control-group' <<<"$writer_prompt_body" ||
+   ! grep -q 'tribunal_exec_transient_service claude' <<<"$writer_prompt_body" ||
+   ! grep -Fq -- '--slice=tribunal-runtime.slice' <<<"$transient_service_body" ||
+   ! grep -Fq -- '--property=KillMode=control-group' <<<"$transient_service_body" ||
    grep -Fq -- '--add-dir' <<<"$writer_prompt_body" ||
    [ "$(grep -c -- '--sandbox workspace-write' <<<"$judge_sandbox_body")" -ne 1 ]; then
   fail "formal writer and deployed canary do not share one contained Claude executor"

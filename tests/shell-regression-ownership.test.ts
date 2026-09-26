@@ -27,6 +27,7 @@ const PORTABLE_CONTRACTS = [
   'test-quota-controller.sh',
   'test-setup-hooks-worktree.sh',
   'test-tribunal-batch-provider-quota.sh',
+  'test-tribunal-model-cli-env.sh',
   'test-tribunal-model-router.sh',
   'test-tribunal-quota-controller-codexbar.sh',
   'test-tribunal-monitor-snapshot.sh',

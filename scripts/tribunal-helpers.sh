@@ -667,6 +667,114 @@ tribunal_validate_deployed_systemd_contract() {
   fi
 }
 
+# ── Transient model services ─────────────────────────────────────────────────
+# Deployed judge, writer and write-canary calls each run in a transient systemd
+# service (openspec codex-tribunal-runtime): a parent-generated unit identity,
+# control-group reaping of setsid() descendants, the shared
+# tribunal-runtime.slice ceiling and narrower per-call limits.
+#
+# Credentials stay in each CLI's own login state under HOME, and every
+# provider's service drops the variables it must not see:
+#   - codex: every Claude credential variable, so a judge never sees them.
+#   - claude: API-key variables (they would silently move billing to the API
+#     without the owner knowing) and other providers' keys. The VM
+#     authenticates the Claude CLI only through `claude auth login` (state
+#     under HOME or CLAUDE_CONFIG_DIR), so a stray OAuth token variable is
+#     dropped as well.
+TRIBUNAL_CLAUDE_API_KEY_ENV="ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY"
+
+tribunal_transient_service_unset_env() {
+  case "$1" in
+    codex) printf '%s\n' "CLAUDE_CODE_OAUTH_TOKEN $TRIBUNAL_CLAUDE_API_KEY_ENV" ;;
+    claude) printf '%s\n' "$TRIBUNAL_CLAUDE_API_KEY_ENV CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Usage (from a subshell; it replaces the process):
+#   tribunal_exec_transient_service <codex|claude> <work_dir> <timeout_sec> -- argv...
+# Stdin is piped through to argv.
+tribunal_exec_transient_service() {
+  local provider="$1" work_dir="$2" timeout_sec="$3"
+  shift 3
+  [ "${1:-}" = -- ] && shift
+  local systemd_run scope_unit scope_runtime_sec description unset_env
+  local memory_max cpu_quota tasks_max
+  local -a scope_env
+  case "$provider" in
+    codex) description="gu-log Tribunal isolated Codex invocation" ;;
+    claude) description="gu-log Tribunal isolated writer invocation (Claude model)" ;;
+    *)
+      printf 'Unknown transient service provider: %s\n' "$provider" >&2
+      exit 2
+      ;;
+  esac
+  unset_env="$(tribunal_transient_service_unset_env "$provider")" || exit 2
+  systemd_run="$(command -v systemd-run 2>/dev/null || true)"
+  case "$systemd_run" in
+    /*) ;;
+    *)
+      printf 'Deployed %s containment requires systemd-run\n' "$provider" >&2
+      exit 127
+      ;;
+  esac
+  memory_max="${TRIBUNAL_CODEX_SCOPE_MEMORY_MAX:-2G}"
+  cpu_quota="${TRIBUNAL_CODEX_SCOPE_CPU_QUOTA:-200%}"
+  tasks_max="${TRIBUNAL_CODEX_SCOPE_TASKS_MAX:-256}"
+  if ! [[ "$memory_max" =~ ^[1-9][0-9]*[KMGT]$ ]] ||
+     ! [[ "$cpu_quota" =~ ^[1-9][0-9]*%$ ]] ||
+     ! [[ "$tasks_max" =~ ^[1-9][0-9]*$ ]]; then
+    printf 'Invalid deployed %s scope limits: MemoryMax=%s CPUQuota=%s TasksMax=%s\n' \
+      "$provider" "$memory_max" "$cpu_quota" "$tasks_max" >&2
+    exit 2
+  fi
+  scope_unit="${TRIBUNAL_CODEX_SYSTEMD_UNIT:-$(
+    tribunal_codex_systemd_unit_name call
+  )}"
+  if ! [[ "$scope_unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
+    printf 'Invalid Tribunal systemd unit: %s\n' "$scope_unit" >&2
+    exit 2
+  fi
+  scope_runtime_sec=$((timeout_sec + 10))
+  scope_env=(
+    "--setenv=HOME=$HOME"
+    "--setenv=PATH=$PATH"
+  )
+  if [ "$provider" = codex ] && [ -n "${CODEX_HOME:-}" ]; then
+    scope_env+=("--setenv=CODEX_HOME=$CODEX_HOME")
+  fi
+  if [ "$provider" = claude ] && [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
+    scope_env+=("--setenv=CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR")
+  fi
+  if [ -n "${TZ:-}" ]; then
+    scope_env+=("--setenv=TZ=$TZ")
+  fi
+  exec "$systemd_run" \
+    --user \
+    --wait \
+    --pipe \
+    --collect \
+    --quiet \
+    --no-ask-password \
+    --service-type=exec \
+    --expand-environment=no \
+    "--unit=$scope_unit" \
+    --slice=tribunal-runtime.slice \
+    "--description=$description" \
+    "--working-directory=$work_dir" \
+    --property=KillMode=control-group \
+    --property=SendSIGKILL=yes \
+    --property=TimeoutStopSec=5s \
+    "--property=RuntimeMaxSec=${scope_runtime_sec}s" \
+    --property=OOMPolicy=kill \
+    "--property=MemoryMax=$memory_max" \
+    "--property=CPUQuota=$cpu_quota" \
+    "--property=TasksMax=$tasks_max" \
+    "--property=UnsetEnvironment=$unset_env" \
+    "${scope_env[@]}" \
+    -- "$@"
+}
+
 tribunal_codex_workspace_prompt_exec() {
   local work_dir="$1"
   local model="$2"
@@ -731,68 +839,7 @@ tribunal_codex_workspace_prompt_exec() {
       -- "$prompt"
     )
     if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
-      local systemd_run scope_unit scope_runtime_sec
-      local memory_max cpu_quota tasks_max
-      local -a scope_env
-      systemd_run="$(command -v systemd-run 2>/dev/null || true)"
-      case "$systemd_run" in
-        /*) ;;
-        *)
-          printf 'Deployed Codex containment requires systemd-run\n' >&2
-          exit 127
-          ;;
-      esac
-      memory_max="${TRIBUNAL_CODEX_SCOPE_MEMORY_MAX:-2G}"
-      cpu_quota="${TRIBUNAL_CODEX_SCOPE_CPU_QUOTA:-200%}"
-      tasks_max="${TRIBUNAL_CODEX_SCOPE_TASKS_MAX:-256}"
-      if ! [[ "$memory_max" =~ ^[1-9][0-9]*[KMGT]$ ]] ||
-         ! [[ "$cpu_quota" =~ ^[1-9][0-9]*%$ ]] ||
-         ! [[ "$tasks_max" =~ ^[1-9][0-9]*$ ]]; then
-        printf 'Invalid deployed Codex scope limits: MemoryMax=%s CPUQuota=%s TasksMax=%s\n' \
-          "$memory_max" "$cpu_quota" "$tasks_max" >&2
-        exit 2
-      fi
-      scope_unit="${TRIBUNAL_CODEX_SYSTEMD_UNIT:-$(
-        tribunal_codex_systemd_unit_name call
-      )}"
-      if ! [[ "$scope_unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
-        printf 'Invalid Tribunal Codex systemd unit: %s\n' "$scope_unit" >&2
-        exit 2
-      fi
-      scope_runtime_sec=$((timeout_sec + 10))
-      scope_env=(
-        "--setenv=HOME=$HOME"
-        "--setenv=PATH=$PATH"
-      )
-      if [ -n "${CODEX_HOME:-}" ]; then
-        scope_env+=("--setenv=CODEX_HOME=$CODEX_HOME")
-      fi
-      if [ -n "${TZ:-}" ]; then
-        scope_env+=("--setenv=TZ=$TZ")
-      fi
-      exec "$systemd_run" \
-        --user \
-        --wait \
-        --pipe \
-        --collect \
-        --quiet \
-        --no-ask-password \
-        --service-type=exec \
-        --expand-environment=no \
-        "--unit=$scope_unit" \
-        --slice=tribunal-runtime.slice \
-        "--description=gu-log Tribunal isolated Codex invocation" \
-        "--working-directory=$work_dir" \
-        --property=KillMode=control-group \
-        --property=SendSIGKILL=yes \
-        --property=TimeoutStopSec=5s \
-        "--property=RuntimeMaxSec=${scope_runtime_sec}s" \
-        --property=OOMPolicy=kill \
-        "--property=MemoryMax=$memory_max" \
-        "--property=CPUQuota=$cpu_quota" \
-        "--property=TasksMax=$tasks_max" \
-        '--property=UnsetEnvironment=CLAUDE_CODE_OAUTH_TOKEN CLAUDE_API_KEY ANTHROPIC_API_KEY' \
-        "${scope_env[@]}" \
+      tribunal_exec_transient_service codex "$work_dir" "$timeout_sec" \
         -- "${codex_exec_argv[@]}"
     fi
     exec "${codex_exec_argv[@]}"
@@ -806,8 +853,8 @@ tribunal_codex_workspace_prompt_exec() {
 # private candidate cwd, and there is no command or web tool, so an injected
 # article cannot run commands or write the canonical repo. bypassPermissions
 # is never used. The prompt stays on stdin so the trailing variadic tool flags
-# cannot swallow it. Deployed mode wraps the call in the same transient
-# systemd service contract as the Codex judges.
+# cannot swallow it. Deployed mode wraps the call in the shared transient
+# service (tribunal_exec_transient_service).
 tribunal_claude_writer_prompt_exec() {
   local work_dir="$1"
   local model="$2"
@@ -857,74 +904,16 @@ tribunal_claude_writer_prompt_exec() {
     # See tribunal_codex_exec: do not leak the article flock into timeout/CLI.
     exec 200>&-
     if [ "${TRIBUNAL_DEPLOYED_MODE:-0}" = "1" ]; then
-      local systemd_run scope_unit scope_runtime_sec
-      local memory_max cpu_quota tasks_max
-      local -a scope_env
-      systemd_run="$(command -v systemd-run 2>/dev/null || true)"
-      case "$systemd_run" in
-        /*) ;;
-        *)
-          printf 'Deployed tribunal-writer containment requires systemd-run\n' >&2
-          exit 127
-          ;;
-      esac
-      memory_max="${TRIBUNAL_CODEX_SCOPE_MEMORY_MAX:-2G}"
-      cpu_quota="${TRIBUNAL_CODEX_SCOPE_CPU_QUOTA:-200%}"
-      tasks_max="${TRIBUNAL_CODEX_SCOPE_TASKS_MAX:-256}"
-      if ! [[ "$memory_max" =~ ^[1-9][0-9]*[KMGT]$ ]] ||
-         ! [[ "$cpu_quota" =~ ^[1-9][0-9]*%$ ]] ||
-         ! [[ "$tasks_max" =~ ^[1-9][0-9]*$ ]]; then
-        printf 'Invalid deployed tribunal-writer scope limits: MemoryMax=%s CPUQuota=%s TasksMax=%s\n' \
-          "$memory_max" "$cpu_quota" "$tasks_max" >&2
-        exit 2
-      fi
-      scope_unit="${TRIBUNAL_CODEX_SYSTEMD_UNIT:-$(
-        tribunal_codex_systemd_unit_name call
-      )}"
-      if ! [[ "$scope_unit" =~ ^gu-log-tribunal-codex-[a-z0-9-]+-[0-9]+-[0-9]+-[0-9]+$ ]]; then
-        printf 'Invalid Tribunal systemd unit: %s\n' "$scope_unit" >&2
-        exit 2
-      fi
-      scope_runtime_sec=$((timeout_sec + 10))
-      scope_env=(
-        "--setenv=HOME=$HOME"
-        "--setenv=PATH=$PATH"
-      )
-      if [ -n "${CLAUDE_CONFIG_DIR:-}" ]; then
-        scope_env+=("--setenv=CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR")
-      fi
-      if [ -n "${TZ:-}" ]; then
-        scope_env+=("--setenv=TZ=$TZ")
-      fi
-      # Claude authenticates through its own login state under HOME. API-key
-      # variables would silently switch billing or expose other providers'
-      # credentials, so the writer service never sees them.
-      exec "$systemd_run" \
-        --user \
-        --wait \
-        --pipe \
-        --collect \
-        --quiet \
-        --no-ask-password \
-        --service-type=exec \
-        --expand-environment=no \
-        "--unit=$scope_unit" \
-        --slice=tribunal-runtime.slice \
-        "--description=gu-log Tribunal isolated writer invocation (Claude model)" \
-        "--working-directory=$work_dir" \
-        --property=KillMode=control-group \
-        --property=SendSIGKILL=yes \
-        --property=TimeoutStopSec=5s \
-        "--property=RuntimeMaxSec=${scope_runtime_sec}s" \
-        --property=OOMPolicy=kill \
-        "--property=MemoryMax=$memory_max" \
-        "--property=CPUQuota=$cpu_quota" \
-        "--property=TasksMax=$tasks_max" \
-        '--property=UnsetEnvironment=ANTHROPIC_API_KEY CLAUDE_API_KEY OPENAI_API_KEY CODEX_API_KEY XAI_API_KEY GROK_API_KEY' \
-        "${scope_env[@]}" \
+      tribunal_exec_transient_service claude "$work_dir" "$timeout_sec" \
         -- "${claude_argv[@]}" <<<"$prompt"
     fi
-    exec "${claude_argv[@]}" <<<"$prompt"
+    # Outside the service, drop API-key variables all the same.
+    local -a unset_args=()
+    local var
+    for var in $TRIBUNAL_CLAUDE_API_KEY_ENV; do
+      unset_args+=(-u "$var")
+    done
+    exec env "${unset_args[@]}" "${claude_argv[@]}" <<<"$prompt"
   )
 }
 
