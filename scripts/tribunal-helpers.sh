@@ -1180,6 +1180,20 @@ tribunal_writer_mode() {
   fi
 }
 
+# Why a writer mode cannot rewrite. Only `claude` rewrites and `none` means a
+# score-only run; every retired mode is listed here and nowhere else (openspec
+# claude-prose-writing-runtime).
+tribunal_writer_mode_problem() {
+  case "$1" in
+    subagent|codex|grok)
+      printf 'GP_WRITER_MODE=%s is retired; gu-log article rewrites use only the Claude model (set GP_WRITER_MODE=claude)' "$1"
+      ;;
+    *)
+      printf "unsupported GP_WRITER_MODE='%s' (expected claude, or none for a score-only run)" "$1"
+      ;;
+  esac
+}
+
 # Probe the deployed writer before any article is claimed. The canary is
 # deliberately tiny and bounded, but it executes through the exact same
 # contained Claude executor as a real rewrite.
@@ -1189,12 +1203,8 @@ tribunal_writer_preflight() (
   mode="$(tribunal_writer_mode)"
   case "$mode" in
     claude) ;;
-    codex|grok)
-      printf 'Writer preflight failed: GP_WRITER_MODE=%s is retired; gu-log article rewrites use only the Claude model (set GP_WRITER_MODE=claude)\n' "$mode" >&2
-      return 1
-      ;;
-    none|subagent)
-      printf 'Writer preflight failed: deployed runtime requires its configured CLI writer (got %s)\n' "$mode" >&2
+    none)
+      printf 'Writer preflight failed: the deployed runtime rewrites articles and requires GP_WRITER_MODE=claude (got none)\n' >&2
       return 1
       ;;
     cli)
@@ -1202,7 +1212,7 @@ tribunal_writer_preflight() (
       return 1
       ;;
     *)
-      printf 'Writer preflight failed: unsupported GP_WRITER_MODE=%s\n' "$mode" >&2
+      printf 'Writer preflight failed: %s\n' "$(tribunal_writer_mode_problem "$mode")" >&2
       return 1
       ;;
   esac
@@ -1614,101 +1624,11 @@ tribunal_llm_exec() {
   tribunal_llm_exec_raw "$@"
 }
 
-tribunal_writer_exec_broker() {
-  local work_dir="$1"
-  local agent_name="$2"
-  local user_prompt="$3"
-  if [ -z "${REPO_ROOT:-}" ]; then
-    REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-  fi
-
-  local broker_dir="${GP_WRITER_BROKER_DIR:-$work_dir/.writer-broker}"
-  local timeout_sec="${GP_WRITER_BROKER_TIMEOUT:-1800}"
-  local poll_interval="${GP_WRITER_BROKER_POLL_INTERVAL:-2}"
-  local post_file="${TRIBUNAL_WRITER_POST_FILE:-unknown-post.mdx}"
-  local stage="${TRIBUNAL_WRITER_STAGE:-unknown}"
-  local attempt="${TRIBUNAL_WRITER_ATTEMPT:-0}"
-  local attempt_json="$attempt"
-  case "$attempt_json" in
-    ''|*[!0-9]*) attempt_json=0 ;;
-  esac
-
-  mkdir -p "$broker_dir"
-  local safe_post safe_stage epoch id request tmp done_marker failed_marker claimed_marker
-  safe_post="$(printf '%s' "$post_file" | tr -c 'A-Za-z0-9._-' '-')"
-  safe_stage="$(printf '%s' "$stage" | tr -c 'A-Za-z0-9._-' '-')"
-  epoch="$(date +%s)"
-  id="${safe_post}-${safe_stage}-${attempt_json}-${epoch}-$$-$RANDOM"
-  request="$broker_dir/$id.request.json"
-  tmp="$broker_dir/$id.request.json.tmp.$$"
-  done_marker="$broker_dir/$id.done"
-  failed_marker="$broker_dir/$id.failed"
-  claimed_marker="$broker_dir/$id.claimed"
-
-  local post_path en_post_path created_at
-  post_path="$REPO_ROOT/src/content/posts/$post_file"
-  en_post_path=""
-  if [ -f "$REPO_ROOT/src/content/posts/en-$post_file" ]; then
-    en_post_path="$REPO_ROOT/src/content/posts/en-$post_file"
-  fi
-  created_at="$(TZ=UTC date '+%Y-%m-%dT%H:%M:%SZ')"
-
-  jq -n \
-    --arg id "$id" \
-    --arg agent_name "$agent_name" \
-    --arg post_file "$post_file" \
-    --arg post_path "$post_path" \
-    --arg en_post_path "$en_post_path" \
-    --arg prompt "$user_prompt" \
-    --arg stage "$stage" \
-    --argjson attempt "$attempt_json" \
-    --arg created_at "$created_at" \
-    '{
-      id: $id,
-      agent_name: $agent_name,
-      post_file: $post_file,
-      post_path: $post_path,
-      en_post_path: $en_post_path,
-      prompt: $prompt,
-      stage: $stage,
-      attempt: $attempt,
-      created_at: $created_at
-    }' > "$tmp"
-  mv "$tmp" "$request"
-
-  printf 'writer broker request: %s\n' "$request"
-  printf 'writer broker dir: %s\n' "$broker_dir"
-
-  local start now
-  start="$(date +%s)"
-  while true; do
-    if [ -f "$done_marker" ]; then
-      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
-      return 0
-    fi
-    if [ -f "$failed_marker" ]; then
-      echo "ERROR: tribunal-writer broker request failed: $request" >&2
-      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
-      return 1
-    fi
-    now="$(date +%s)"
-    if [ $((now - start)) -ge "$timeout_sec" ]; then
-      echo "WARN: tribunal-writer broker timed out after ${timeout_sec}s waiting for $request" >&2
-      rm -f "$request" "$done_marker" "$failed_marker" "$claimed_marker"
-      return 1
-    fi
-    sleep "$poll_interval"
-  done
-}
-
 tribunal_writer_exec_raw() {
   local work_dir="$1"
   local agent_name="$2"
   local user_prompt="$3"
   case "$(tribunal_writer_mode)" in
-    subagent)
-      tribunal_writer_exec_broker "$work_dir" "$agent_name" "$user_prompt"
-      ;;
     none)
       echo "rewrite skipped (GP_WRITER_MODE=none)" >&2
       return 76
@@ -1727,12 +1647,8 @@ tribunal_writer_exec_raw() {
           ;;
       esac
       ;;
-    codex|grok)
-      echo "ERROR: GP_WRITER_MODE=$(tribunal_writer_mode) is retired; gu-log article rewrites use only the Claude model (set GP_WRITER_MODE=claude)" >&2
-      return 2
-      ;;
     *)
-      echo "ERROR: unsupported GP_WRITER_MODE='$(tribunal_writer_mode)' (expected none, subagent, claude, or cli)" >&2
+      echo "ERROR: $(tribunal_writer_mode_problem "$(tribunal_writer_mode)")" >&2
       return 2
       ;;
   esac
@@ -2327,12 +2243,8 @@ tribunal_writer_exec() {
         return 1
       exec_function="tribunal_writer_exec_raw_legacy_cli"
       ;;
-    none|subagent)
-      tribunal_writer_exec_quiesced_once \
-        tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
-      return $?
-      ;;
     *)
+      # none skips the rewrite; retired or unknown modes fail with the reason.
       tribunal_writer_exec_quiesced_once \
         tribunal_writer_exec_raw "$work_dir" "$agent_name" "$user_prompt"
       return $?

@@ -1215,6 +1215,8 @@ mode_rc=$?
 set -e
 [ "$mode_rc" -eq 78 ] ||
   fail "rewrite with GP_WRITER_MODE=subagent exited $mode_rc, want 78 before any judge"
+grep -q 'GP_WRITER_MODE=subagent is retired' "$TMP/writer-mode.out" ||
+  fail "rewrite with the retired subagent writer mode did not say it is retired"
 [ ! -e "$TMP/judge-count" ] ||
   fail "rewrite with a non-Claude writer mode spent a judge call first"
 pass "a rewrite-capable run without the Claude writer fails before the first judge"

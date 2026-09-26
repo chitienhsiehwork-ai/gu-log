@@ -462,8 +462,9 @@ FAKE_CLAUDE
       exit 1
     }
   done
-  grep -q 'retired' "$fixture_root/codex.out"
-  grep -q 'retired' "$fixture_root/grok.out"
+  for mode in subagent codex grok; do
+    grep -q "GP_WRITER_MODE=$mode is retired" "$fixture_root/$mode.out"
+  done
   PATH="$fixture_root/bin:$PATH" FAKE_CLAUDE_ARGS="$args" GP_WRITER_MODE=claude \
     TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 tribunal_writer_preflight >/dev/null
   cat > "$fixture_root/expected.args" <<'EXPECTED_ARGS'

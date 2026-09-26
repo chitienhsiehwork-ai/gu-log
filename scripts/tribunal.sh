@@ -172,7 +172,7 @@ if [ "$ALLOW_REWRITE" = 1 ]; then
   case "$(tribunal_writer_mode)" in
     claude|none) ;;
     *)
-      tlog "ERROR: rewrite is allowed but GP_WRITER_MODE=$(tribunal_writer_mode) cannot rewrite; only GP_WRITER_MODE=claude can. Set it or rerun with --no-rewrite. No judge ran (rc=78)."
+      tlog "ERROR: rewrite is allowed, but $(tribunal_writer_mode_problem "$(tribunal_writer_mode)"). Rerun with --no-rewrite for a score-only run. No judge ran (rc=78)."
       exit 78
       ;;
   esac
@@ -642,17 +642,16 @@ WRITER_TRANSACTION_FRONTMATTER_POLICY="preserve-all"
 # workdir; the parent then reads stable candidate bytes and applies them only
 # if the canonical bilingual pair still exactly matches the captured baseline.
 run_writer_candidate_transaction() {
-  if [ "$#" -ne 7 ]; then
+  if [ "$#" -ne 6 ]; then
     tlog "  RUNNER ERROR: writer transaction expects stage as its only policy input."
     return 70
   fi
   local post_path="$1"
   local post_file="$2"
   local stage="$3"
-  local attempt="$4"
-  local prompt_template="$5"
-  local writer_out="$6"
-  local quota_status_file="$7"
+  local prompt_template="$4"
+  local writer_out="$5"
+  local quota_status_file="$6"
   local frontmatter_policy
   local snapshot_token snapshot_rc writer_work_dir writer_prompt writer_rc
   local candidate_token candidate_capture_rc validation_work_dir apply_rc
@@ -712,9 +711,6 @@ run_writer_candidate_transaction() {
   writer_rc=0
   TRIBUNAL_QUOTA_STATUS_FILE="$quota_status_file" \
     TRIBUNAL_ACTUAL_PROVIDER_FILE="$actual_provider_file" \
-    TRIBUNAL_WRITER_POST_FILE="$post_file" \
-    TRIBUNAL_WRITER_STAGE="$stage" \
-    TRIBUNAL_WRITER_ATTEMPT="$attempt" \
     tribunal_writer_exec \
       "$writer_work_dir" "tribunal-writer" "$writer_prompt" \
       >>"$writer_out" 2>&1 || writer_rc=$?
@@ -885,7 +881,7 @@ PROMPT
   writer_rc=0
   run_writer_candidate_transaction \
     "$ROOT_DIR/src/content/posts/$post_file" \
-    "$post_file" "finalBuild" "$repair_attempt" "$writer_prompt" \
+    "$post_file" "finalBuild" "$writer_prompt" \
     "$writer_out" "$writer_quota_status_file" || writer_rc=$?
   if [ "$writer_rc" -eq 75 ]; then
     local writer_quota_reason
@@ -1591,7 +1587,7 @@ PROMPT
     writer_quota_status_file="$(mktemp)"
     writer_rc=0
     run_writer_candidate_transaction \
-      "$post_path" "$post_file" "$stage_key" "$attempt" "$writer_prompt" \
+      "$post_path" "$post_file" "$stage_key" "$writer_prompt" \
       "$writer_out" "$writer_quota_status_file" || writer_rc=$?
 
     if [ "$writer_rc" -eq 75 ]; then

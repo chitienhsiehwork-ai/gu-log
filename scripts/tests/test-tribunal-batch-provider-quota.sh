@@ -202,17 +202,12 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=50"*) ;; *) fail "Claude-model writer did not join the strict minimum: $LOG_OUTPUT" ;; esac
 pass "Claude-model writer provider joins active providers"
 
-for retired_mode in codex grok; do
+for retired_mode in subagent codex grok; do
   ACTIVE_WRITER_MODE="$retired_mode"
   run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
   [ "$CASE_RC" -eq 2 ] || fail "retired $retired_mode writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 done
-pass "retired Codex/Grok writer modes fail closed"
-
-ACTIVE_WRITER_MODE=subagent
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 0 ] || fail "external writer broker must not invent an in-process provider; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "external writer broker does not invent a provider"
+pass "retired subagent/Codex/Grok writer modes fail closed"
 
 ACTIVE_WRITER_MODE=unknown
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'

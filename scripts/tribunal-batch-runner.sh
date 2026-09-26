@@ -84,15 +84,15 @@ tribunal_batch_active_providers() {
   writer_mode=$(tribunal_writer_mode 2>/dev/null) || return 1
   writer_provider=""
   case "$writer_mode" in
-    none|subagent) ;;
+    none) ;;
     claude)
       writer_provider="claude"
       ;;
     cli)
       writer_provider=$(tribunal_writer_provider 2>/dev/null) || return 1
       ;;
-    # codex/grok writer modes are retired: gu-log article rewrites use only
-    # the Claude model.
+    # Retired writer modes (see tribunal_writer_mode_problem) and unknown
+    # values fail closed: gu-log article rewrites use only the Claude model.
     *) return 1 ;;
   esac
 

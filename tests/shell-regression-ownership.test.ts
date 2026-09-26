@@ -40,7 +40,6 @@ const PORTABLE_CONTRACTS = [
   'test-tribunal-systemd-containment.sh',
   'test-tribunal-vm-routing.sh',
   'test-tribunal-worker-sync-ref.sh',
-  'test-writer-broker.sh',
 ] as const;
 
 // The production scripts exercise associative arrays/mapfile and run on the
