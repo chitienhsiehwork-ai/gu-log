@@ -152,6 +152,15 @@ func readLines(t *testing.T, path string) []string {
 	return strings.Split(strings.TrimSuffix(string(data), "\n"), "\n")
 }
 
+func containsArg(args []string, want string) bool {
+	for _, arg := range args {
+		if arg == want {
+			return true
+		}
+	}
+	return false
+}
+
 // flagValue returns the argument following flag, and whether flag was present.
 func flagValue(args []string, flag string) (string, bool) {
 	for i := 0; i+1 < len(args); i++ {
@@ -181,10 +190,14 @@ func TestClaudeContainedWriterUsesLeastPrivilege(t *testing.T) {
 		"--permission-mode": "acceptEdits",
 		"--tools":           "Read,Grep,Glob,Edit,Write",
 		"--allowed-tools":   "Read,Grep,Glob",
+		"--setting-sources": "",
 	} {
 		if got, ok := flagValue(args, flag); !ok || got != want {
 			t.Fatalf("%s = %q (present=%v), want %q; args=%q", flag, got, ok, want, args)
 		}
+	}
+	if !containsArg(args, "--strict-mcp-config") {
+		t.Fatalf("contained args %q load host MCP servers", args)
 	}
 	joined := strings.Join(args, " ")
 	for _, forbidden := range []string{"bypassPermissions", "--dangerously-skip-permissions", "Bash", "write the draft"} {
@@ -220,6 +233,9 @@ func TestClaudeContainedJSONRoleReturnsStructuredOutput(t *testing.T) {
 	}
 	if _, ok := flagValue(args, "--allowed-tools"); ok {
 		t.Fatalf("JSON role must not pre-approve tools: %q", args)
+	}
+	if got, ok := flagValue(args, "--setting-sources"); !ok || got != "" || !containsArg(args, "--strict-mcp-config") {
+		t.Fatalf("JSON role args %q load host settings or MCP servers", args)
 	}
 	if got := p.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel = %q, want %q", got, ClaudeOpusPinned)

@@ -892,9 +892,13 @@ tribunal_claude_writer_prompt_exec() {
       return 127
       ;;
   esac
+  # No user/project/local settings (permission rules, hooks, env) and no MCP
+  # servers from the host. The variadic tool lists stay last.
   claude_argv=(
     "$timeout_cmd" "$timeout_sec" "$claude_executable" -p
     --model "$model"
+    --setting-sources ""
+    --strict-mcp-config
     --permission-mode acceptEdits
     --tools "Read,Grep,Glob,Edit,Write"
     --allowed-tools "Read,Grep,Glob"

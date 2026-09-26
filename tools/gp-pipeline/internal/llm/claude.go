@@ -23,7 +23,8 @@ import (
 //     session (none when empty), read-only tools are pre-approved everywhere,
 //     and edits are auto-accepted only inside the working directory, so a
 //     prompt-injected source cannot run commands or write outside the step's
-//     work dir.
+//     work dir. The session loads no user/project/local settings (permission
+//     rules, hooks, env) and no MCP servers from the host.
 //   - Non-root legacy callers (dev laptops) → bypassPermissions: the setting
 //     the bash pipeline historically used.
 //   - Root legacy callers (CCC sandboxes / Claude Code on the web) →
@@ -223,7 +224,10 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 // invocation; see the ClaudeProvider doc comment for the three modes.
 func (c *ClaudeProvider) permissionArgs() []string {
 	if c.Contained {
+		// The variadic --tools/--allowed-tools lists stay last.
 		args := []string{
+			"--setting-sources", "",
+			"--strict-mcp-config",
 			"--permission-mode", "acceptEdits",
 			"--tools", strings.Join(c.Tools, ","),
 		}

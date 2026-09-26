@@ -465,6 +465,9 @@ FAKE_CLAUDE
 -p
 --model
 claude-writer-fixture
+--setting-sources
+
+--strict-mcp-config
 --permission-mode
 acceptEdits
 --tools

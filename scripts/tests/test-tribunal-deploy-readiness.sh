@@ -226,7 +226,7 @@ grep -Eq '^--unit=gu-log-tribunal-codex-' \
 grep -Fxq -- '--property=UnsetEnvironment=ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY' \
   "$TMP/preflight-systemd-run.argv" ||
   fail "deployed writer service (Claude model) can see API-key credentials"
-for expected_arg in -p --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do
+for expected_arg in -p --setting-sources --strict-mcp-config --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do
   grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
     fail "deployed writer canary (Claude model) omitted contained flag: $expected_arg"
 done

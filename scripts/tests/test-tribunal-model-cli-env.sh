@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Credential isolation of Tribunal model CLI calls: the shared transient
-# service drops each provider's forbidden variables, and a Claude writing call
-# never carries API-key variables, inside or outside the service.
+# Isolation of Tribunal model CLI calls: the shared transient service drops
+# each provider's forbidden credential variables, and a Claude writing call
+# never carries API-key variables nor loads host settings or MCP servers,
+# inside or outside the service.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -96,5 +97,10 @@ for variable in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY; do
 done
 grep -q "^CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR$" "$CLAUDE_ENV" ||
   fail "direct Claude writer call lost the CLI login state directory"
+# The contained call loads no host settings or MCP servers.
+awk 'prev == "--setting-sources" && $0 == "" { ok = 1 } { prev = $0 } END { exit !ok }' \
+  "$CLAUDE_ARGS" || fail "Claude writer call loads host settings"
+grep -Fxq -- '--strict-mcp-config' "$CLAUDE_ARGS" ||
+  fail "Claude writer call loads host MCP servers"
 
-echo "ok model CLI calls drop the credential variables each provider must not see"
+echo "ok model CLI calls drop forbidden credentials and never load host Claude settings or MCP servers"
