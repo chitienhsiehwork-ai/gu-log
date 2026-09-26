@@ -254,6 +254,39 @@ func TestClaudeRunRejectsErrorResultWithZeroExit(t *testing.T) {
 	}
 }
 
+// TestClaudeRunRejectsErrorResultsCarryingOnlyErrors covers result objects the
+// CLI flags is_error with an empty result and the cause only in errors[]: the
+// provider must fail with that cause instead of returning the raw JSON (which
+// write, translate and refine would otherwise save as the draft).
+func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		stdout string
+		rc     int
+	}{
+		{"exit 0, error_during_execution", `{"type":"result","subtype":"error_during_execution","is_error":true,"errors":["queryParams builder failed: boom"],"modelUsage":{}}`, 0},
+		{"exit 0, success subtype with empty result", `{"type":"result","subtype":"success","is_error":true,"result":"","errors":["queryParams builder failed: boom"]}`, 0},
+		{"exit 1, errors only", `{"type":"result","subtype":"error_during_execution","is_error":true,"errors":["queryParams builder failed: boom"]}`, 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			writeFakeClaude(t, tc.stdout, tc.rc)
+			for _, opts := range []RunOptions{
+				{WorkDir: t.TempDir()},
+				{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`},
+			} {
+				p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
+				out, err := p.Run(context.Background(), "hi", opts)
+				if err == nil || out != "" {
+					t.Fatalf("Run(schema=%t) = (%q, %v), want an error and no output", opts.JSONSchema != "", out, err)
+				}
+				if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
+					t.Fatalf("Run(schema=%t) error = %v, want the errors[] detail", opts.JSONSchema != "", err)
+				}
+			}
+		})
+	}
+}
+
 // TestClaudeWriterPinMatchesTribunalWriterFrontmatter guards the two SSOTs of
 // the Claude model pin. Runtime-profile routing reads the frontmatter through
 // the shell router and refuses to dispatch when it disagrees with this

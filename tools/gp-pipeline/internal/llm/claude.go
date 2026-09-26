@@ -169,8 +169,10 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 		// failures on stdout rather than stderr. Carry that message so quota
 		// classification and operators see the real cause.
 		if res != nil {
-			if parsed, ok := parseClaudeJSON(strings.TrimSpace(string(res.Stdout))); ok && parsed.Result != "" {
-				return "", fmt.Errorf("%w: %s", err, strings.TrimSpace(parsed.Result))
+			if parsed, ok := parseClaudeJSON(strings.TrimSpace(string(res.Stdout))); ok {
+				if detail := parsed.errorDetail(); detail != "" {
+					return "", fmt.Errorf("%w: %s", err, detail)
+				}
 			}
 		}
 		return "", err
@@ -193,8 +195,15 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	} else if m := primaryModelUsage(parsed.ModelUsage); m != "" {
 		c.actualModel = ModelID(m)
 	}
+	// A result flagged is_error is a failure even with exit code 0, an empty
+	// result or details only in errors[]; its text must never become an
+	// article or artifact.
 	if parsed.IsError {
-		return "", fmt.Errorf("claude reported an error: %s", strings.TrimSpace(parsed.Result))
+		detail := parsed.errorDetail()
+		if detail == "" {
+			detail = "no error detail (subtype=" + parsed.Subtype + ")"
+		}
+		return "", fmt.Errorf("claude reported an error: %s", detail)
 	}
 	if opts.JSONSchema != "" {
 		structured := strings.TrimSpace(string(parsed.StructuredOutput))
@@ -272,11 +281,33 @@ func (c *ClaudeProvider) modelFlag() string {
 }
 
 type claudeJSONOutput struct {
+	Type             string                     `json:"type"`
+	Subtype          string                     `json:"subtype"`
 	Result           string                     `json:"result"`
+	Errors           []json.RawMessage          `json:"errors"`
 	Model            string                     `json:"model"`
 	ModelUsage       map[string]modelUsageEntry `json:"modelUsage"`
 	IsError          bool                       `json:"is_error"`
 	StructuredOutput json.RawMessage            `json:"structured_output"`
+}
+
+// errorDetail joins the result text with every errors[] entry. Error results
+// such as error_during_execution carry their cause only in errors[].
+func (o claudeJSONOutput) errorDetail() string {
+	var parts []string
+	if result := strings.TrimSpace(o.Result); result != "" {
+		parts = append(parts, result)
+	}
+	for _, raw := range o.Errors {
+		var text string
+		if err := json.Unmarshal(raw, &text); err != nil {
+			text = string(raw)
+		}
+		if text = strings.TrimSpace(text); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 type modelUsageEntry struct {
@@ -288,5 +319,5 @@ func parseClaudeJSON(out string) (claudeJSONOutput, bool) {
 	if err := json.Unmarshal([]byte(out), &parsed); err != nil {
 		return parsed, false
 	}
-	return parsed, parsed.Result != "" || parsed.Model != "" || len(parsed.ModelUsage) > 0
+	return parsed, parsed.Type == "result" || parsed.Result != "" || parsed.Model != "" || len(parsed.ModelUsage) > 0
 }
