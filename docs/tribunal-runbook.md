@@ -166,17 +166,18 @@ deploy 時的 timer restart 可能立刻補跑一次 audit。這是預期行為�
 讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
 不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
 strict provider contract、loaded resource slice，以及目前 service PID 寫下
-的 writer preflight 狀態；這個日常檢查不會再執行一次 Codex：
+的 writer preflight 狀態；這個日常檢查不會呼叫任何模型，也不會再跑一次寫入
+canary：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
-只有需要重新驗證正式 writer CLI/auth 與實際寫入 sandbox 時才明確執行 live
-probe。它會在 disposable workspace 跑 bounded write canary，並重用正式
-writer 的隔離 workspace、non-interactive permission 與 systemd resource
-boundary；canary
-內容完全吻合後才輸出 exact `OK`：
+只有需要重新驗證 Claude CLI 登入狀態與實際寫入權限時才明確執行 live
+probe。它會在 disposable workspace 跑 bounded write canary，並重用正式改寫
+同一個受限 Claude 執行器：隔離 workspace、只開檔案工具的 non-interactive
+permission 與 systemd resource boundary；canary
+內容完全吻合後才輸出 exact `OK`。live probe 會實際呼叫一次 Claude 模型：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
@@ -199,8 +200,13 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 
 - `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
   off-repo combined `USAGE_MONITOR`。
-- Codex CLI 與官方 Grok Build CLI 都已安裝、已驗證 non-interactive auth；deployed runtime 不讀
-  Claude CLI、Claude token 或 `~/.cc-cron-token`。
+- Codex CLI 已安裝並驗證 non-interactive auth。
+- Claude Code CLI 已安裝，且版本支援 `--tools`、`--json-schema` 與
+  `auth status --json`；以跑 daemon 的使用者執行 `claude auth login`，
+  `claude auth status --json` 回報 `loggedIn: true`。Claude 憑證只留在 CLI
+  自己的登入狀態：deployed runtime 不讀、不匯出、不注入 Claude token、API key
+  或 `~/.cc-cron-token`，暫態 service 也會先清掉這類環境變數。
+- Grok CLI 不再是必要條件：沒有任何步驟使用 Grok。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
 - 下列四個 source-match 都 exit 0：
   - `cmp -s scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"`
@@ -222,29 +228,34 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 - `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
 - `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
 - 啟動後 monitor 顯示 `TRIBUNAL_RUNTIME_PROFILE=vm-codex`、
-  `GP_WRITER_MODE=grok`、strict role routing 與 writer preflight passed。
+  `GP_WRITER_MODE=claude`、strict role routing 與 writer preflight passed。
 
-Deployed `vm-codex` profile 由 Codex 執行 Fact Checker、Librarian 與 Fresh
-Eyes，由 Grok Build 執行 writer 與 Vibe Scorer。model／effort／quota 門檻的
-單一 SSOT 是 `config/llm-pipeline.json`；升級 model 時只改這裡與 contract
-tests。`.codex/agents/*.toml` 與 `.claude/agents/*.md` 繼續服務 legacy／Claude
-Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只保留舊 caller
-相容性，不是 production 可接受的設定；deployed preflight 看到它會在任何
-article claim 前以 rc 78 fail closed。
+Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或
+改寫文章內容。Deployed `vm-codex` profile 因此分成兩半：四個評審依
+`config/llm-pipeline.json` 走 Codex；Tribunal 改寫、final-build 修復，以及
+gp-pipeline 的 writer、translator、corrector、commentary 都走受限的 Claude CLI。
+評審的 model／effort／quota 門檻以 `config/llm-pipeline.json` 為單一 SSOT；
+Claude 模型不寫進 config，一律取自 `.claude/agents/tribunal-writer.md` 的
+`model:`，gp-pipeline 的 `ClaudeOpusPinned` 必須一致（測試會擋 drift），升級時
+兩邊一起改。其餘 `.codex/agents/*.toml` 與 `.claude/agents/*.md` 繼續服務
+legacy／Claude Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只保留
+舊 caller 相容性，不是 production 可接受的設定；deployed preflight 看到它會
+在任何 article claim 前以 rc 78 fail closed。`GP_WRITER_MODE=codex`、`grok`
+已退役，同樣直接失敗，不會改用其他模型。
 
-`vm-codex` 啟動前會同時驗證 Codex 與 Grok CLI、登入狀態及 Grok model
-availability；任一不相容就 fail closed，不會半套啟用新 routing。Codex
+`vm-codex` 的 provider preflight 以步驟為單位：`requiredProviders` 必須剛好
+等於各步驟實際使用的供應端，多列或少列都 fail closed；解析某一步時只檢查
+該步的供應端，Codex 查 CLI 與登入，Claude 查 `claude auth status` 與模型 pin。
+所以 Claude 登出只會擋下寫作步驟，評審照常；寫作步驟被設成 Claude 以外的
+供應端，router 與 gp-pipeline 都會拒絕。Codex
 reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
 `gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
-採保守的 Luna。Grok 4.6 writer／Vibe 使用 `low` effort。
+採保守的 Luna。
 
-Grok 低 quota 政策只有在取得真實百分比時才生效：
-`10% <= remaining < 20%` 保留 writer、延後 Vibe；低於 10% writer 也暫停，
-不會偷換其他 writer。現行 CodexBar
-尚無可靠 Grok Build quota feed，因此 `grokQuota.enabled` 預設為 `false`，
-未知就是 unknown，不捏造百分比。`TRIBUNAL_GROK_REMAINING_PCT` 只供有
-可信外部讀值的 operator 注入與 contract test；CodexBar 日後支援時，再於
-同一份 config 開啟自動 probe。
+Claude 額度沒有可靠的剩餘百分比來源，quota controller 也看不到它，所以不會
+預先降速或保留額度。Tribunal 改寫碰到 Claude 回報的額度或 rate-limit 錯誤時，
+以 provider `claude`、tier `unknown` 暫停，不捏造百分比，也不會改用 Codex
+或 Grok 重試；Claude 額度要由 operator 在 Claude 帳號端留意。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -391,7 +402,7 @@ Log interpretation:
 When `--workers > 1`, the supervisor samples the shared
 `tribunal-runtime.slice` memory each loop iteration and adjusts a soft cap on
 the active worker count. The slice includes the supervisor/build workers and
-all transient Codex/Grok judge/writer services, so provider RSS cannot disappear from
+all transient judge and writer services, so provider RSS cannot disappear from
 autoscaling or escape the aggregate 4G/200% boundary.
 
 **Decision ladder** (per iteration):
@@ -540,9 +551,9 @@ bash scripts/tribunal-quota-loop.sh --workers 5
 - 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
 - `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
   不代表 cgroup 一定允許 5 個同時跑。
-- controller 只控制 OpenAI/Codex quota；Grok 另走上述獨立 gate。deadline
-  burst 不需要、也不得拿 Claude quota 或 credential 當成功條件，也不會
-  自動取消 Grok 的 10% writer reserve。
+- controller 只控制 OpenAI/Codex quota，看不到 Claude 額度。deadline burst
+  只放寬 Codex 評審的派送，不會替 Claude 改寫多生額度；Claude 改寫碰到
+  額度錯誤時照上述規則暫停。
 
 systemd unit 不再接受 off-repo `USAGE_MONITOR`，啟動只需要有效的
 `GU_LOG_DIR`。Quota 讀取由 tracked runtime 的 Codex-only JSON path 負責；
@@ -554,8 +565,8 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
 1. `systemctl --user stop tribunal-loop`，先保留 runtime ledger、recovery
    token 與任何 `.tribunal-restore-*` exchange evidence。
 2. 透過正常 feature branch／PR 將 code 與 OpenSpec 整體 revert 到上一個已知
-   可用 release；不可只在新版 strict mode 加 `--legacy-quota` 或偷切
-   Claude fallback。
+   可用 release；不可只在新版 strict mode 加 `--legacy-quota` 或偷把評審
+   切到 Claude fallback。
 3. VM checkout 同步到該 revert 已 merge 的 exact `origin/main`，重新複製
    匹配版本的 tracked `scripts/tribunal-loop.service`。
 4. `systemctl --user daemon-reload` 後再啟動 service，跑 doctor、monitor 與

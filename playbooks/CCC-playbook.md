@@ -224,18 +224,19 @@ tools/gp-pipeline/gp-pipeline run <url> --force
 2. 單獨跑 prompt：`claude -p --model <writer pin 的完整 id>` 模擬 write / refine 階段（id = `tribunal-writer` agent frontmatter，**SSOT**；要打之前先讀 frontmatter）（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus，吃不到 writer pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走各自 runtime 的既定路由；只有 provider 路徑壞掉才用本節 fallback。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 judge role 平行跑（Vibe 用 exact-pin `claude -p`，其餘浮動 judge 用 `Agent`）
 
-**GP writer 在 Mac pipeline 鎖某一代 Opus**（id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
+**GP writer 鎖某一代 Opus**（Mac 與 Tribunal VM 都一樣；id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代，測試會擋兩邊不一致），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
-### 模型路由（Mac writer + Codex judges）
+### 模型路由（Claude 寫作 + Codex 評審）
 
-> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：tribunal runtime 決定 provider；Codex model 讀 runtime config，Claude role selector 讀對應的 `.claude/agents/*.md` frontmatter；Mac GP writer pin 讀 `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。下面只描述 routing policy，不複製 model 值。
+> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：tribunal runtime 決定 provider；Codex model 讀 runtime config，Claude role selector 讀對應的 `.claude/agents/*.md` frontmatter；GP writer pin 讀 `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。下面只描述 routing policy，不複製 model 值。
 
 分工 policy（**按類別，不按版本號**）：
 
+- **文章寫作一律使用 Claude 模型**：Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。涵蓋初稿、翻譯、MoguNote／commentary 候選、corrector、英文 sidecar、Tribunal 改寫與 final-build 修復；會改字的步驟都算寫作。只評分、不改字的步驟（eval、review、Tribunal judges、source reviewer、natural-zh gate）才可以走 Codex。
 - **Voice / taste-sensitive（GP writer / refine / rewriter、Vibe Scorer）→ pin 到固定 Opus 世代**。理由：寫作 voice 跟評分 taste 對 Opus 版本敏感，Anthropic 一升浮動 alias 就可能改掉 LHY persona / 評分基準，所以釘死世代、讓 writer 跟 vibe scorer 共用同一代以對齊 taste。實際版本 = 各自 frontmatter / `ClaudeOpusPinned`（**SSOT**）。
 - **非-voice judge（Fact Checker / Librarian / Fresh Eyes）→ 浮動 `opus` alias（追最新），刻意不 pin**。理由：fact-check / glossary / 陌生讀者視角要的是**最新 reasoning + diversity**，不是跟 writer taste 對齊；fresh-eyes 用跟 writer 不同代的 model 反而能抓同代看不到的盲點。CCC 用 `Agent(subagent_type:"…")` 直接跑即可（`opus` alias 本來就解析成最新，不需要 `claude -p` pin）。
 - **Codex judges（eval / review / tribunal on VM）→ 走 tribunal script 的 Codex runtime config**，完整版不走 mini。
-- **Tribunal Writer legacy agent**（`.claude/agents/tribunal-writer.md`）→ 跟 writer 同類（pin），只當 legacy / fallback calibration，不是 active runtime selector。
+- **Tribunal Writer agent**（`.claude/agents/tribunal-writer.md`）→ 跟 writer 同類（pin）。它的 `model:` 就是改寫文章用的 Claude 模型：Tribunal 改寫、final-build 修復與 VM 上 gp-pipeline 的寫作步驟都讀它，`ClaudeOpusPinned` 必須同值。
 
 改 model 要改該 provider 的上述權威來源；修 `.claude/agents` 這些 calibration 檔之前先讀 frontmatter 上方的 PIN 註解。文件只連回來源，不另存一份值。
 

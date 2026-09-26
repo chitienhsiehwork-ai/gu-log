@@ -25,11 +25,16 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
 ```
 
 GP 的 production model routing 由 `config/llm-pipeline.json` 控制；runtime 必須
-具備完整、互不混用的 translator、source reviewer、corrector、commentary 與
-natural-zh vibe scorer profile，且所有 provider preflight 都通過才可開始。
+具備完整的 translator、source reviewer、corrector、commentary 與 natural-zh
+vibe scorer profile，且所有 provider preflight 都通過才可開始。Mogu 撰寫與
+改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。
+所以 translator、corrector、commentary 都走 Claude，model 取自
+`.claude/agents/tribunal-writer.md`；source reviewer 與 vibe scorer 這兩個 gate
+必須用跟寫作步驟不同的 model，prompt contract 也互不混用。
 未設定完整 profile 的 runtime 可以做 fetch／eval／dedup 或處理非 GP，但不得
-fallback 到 legacy GP flow 發布。model、effort 或 quota threshold 升級時只改
-config 與 contract tests，不在 skill 複製快照。
+fallback 到 legacy GP flow 發布。評審的 model、effort 或 quota threshold 升級時
+只改 config 與 contract tests；Claude 模型則改 tribunal-writer frontmatter 與
+`ClaudeOpusPinned`；不在 skill 複製快照。
 
 Mogu Picks：
 
@@ -149,7 +154,7 @@ tools/gp-pipeline/gp-pipeline --json run '<url>' --prefix GP
 2. 從 `pipeline-status.json` 與 role artifacts 找最後成功 step，再用**原本的** `--work-dir` 搭配 `--from-step` 恢復；不要重新配置 ticket，也不要把 verdict 複製到另一個 workdir。
 3. source validation 失敗時，修完整 source capture，不要拿 preview 摘要硬寫。
 4. counter、ticket prefix 或 pending filename 遇到非 GP／MP canonical 值時，修呼叫端與資料；不要加 alias。
-5. GP provider preflight、執行或 output contract 失敗時保留 failure artifact／state，修好原 provider 後從安全 recovery point 重跑；不得由另一角色無聲代打。
+5. GP provider preflight、執行或 output contract 失敗時保留 failure artifact／state，修好原 provider 後從安全 recovery point 重跑；不得由另一角色無聲代打，寫作步驟也不得改用 Claude 以外的模型。
 6. provider quota 或外部 runtime 問題依 repo playbook 處理；Tribunal VM 等環境座標不是 taxonomy compatibility surface。
 
 實際 flags 與預設值以 `gp-pipeline <subcommand> --help` 為準；counter schema、frontmatter 與 OpenSpec 才是資料契約 SSOT。

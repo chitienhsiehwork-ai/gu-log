@@ -84,13 +84,15 @@ local Codex actor / local Claude actor 有的 CCC 沒有的：
 
 ## Tribunal writer mode 與子代理 broker
 
-Tribunal 評審仍由 Codex/GPT-5.5 跑；文章正文的改寫永遠只能交給 Claude 寫手。為了避免 `claude -p` 產生額外付費用量，寫手路徑由 `GP_WRITER_MODE` 明確控制：
+Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。Tribunal 評審依 runtime config 由 Codex 跑；文章正文的改寫只用 Claude 模型，走哪條路由 `GP_WRITER_MODE` 明確控制，避免靜默花掉額度：
 
+- `GP_WRITER_MODE=claude`：部署版 Tribunal VM 的 24/7 daemon 使用。以受限的 Claude CLI 改寫（只開檔案工具、隔離工作區、暫態 systemd service），model 取自 `.claude/agents/tribunal-writer.md`；daemon 領文章前會先跑寫入 canary。VM 上的 Claude CLI 必須已登入，改寫會用掉該帳號的 Claude 額度。
 - `GP_WRITER_MODE=subagent`：Mac 互動式協調使用。pipeline 寫出請求檔，外層 CC session 讀請求後啟動 `tribunal-writer` Claude 子代理，子代理改文，最後寫完成標記。
-- `GP_WRITER_MODE=none`：不改寫，只跑評分。這也是未設定或空字串時的預設，避免靜默花 API 錢。
-- `GP_WRITER_MODE=cli`：舊的 `claude -p` 路徑，只有 operator 明確選用時可用；這會走 Claude CLI，可能產生額外付費用量。
+- `GP_WRITER_MODE=none`：不改寫，只跑評分。這也是未設定或空字串時的 library 預設，避免靜默花錢。
+- `GP_WRITER_MODE=cli`：舊的 `claude -p` 路徑，只有 operator 明確選用時可用；這會走 Claude CLI，可能產生額外付費用量，也不能當部署版 daemon 的設定。
+- `GP_WRITER_MODE=codex`、`grok` 已退役，會在呼叫任何模型前直接失敗。
 
-VM cron 沒有互動式 CC、沒有 `claude -p`，也沒有 API 預算，所以 VM 使用 `GP_WRITER_MODE=none` 或直接不設定；結果是只跑評分，不會嘗試改寫。
+部署版 VM 的 systemd unit 固定 `GP_WRITER_MODE=claude`；Claude CLI 登入、unit 更新與 preflight 檢查見 [`docs/tribunal-runbook.md`](../docs/tribunal-runbook.md)。
 
 ### 子代理 broker protocol
 

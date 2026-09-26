@@ -23,18 +23,26 @@ Pipeline 包含 source validation、LLM routing、dedup、可恢復 state、coun
 
 wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bin/gp-pipeline`，然後 `exec`。repo 不追蹤平台特定 binary。
 
-## VM model routing
+## Model routing
+
+Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或
+改寫文章內容。寫稿、refine、GP 翻譯、corrector、commentary 候選與英文
+sidecar 都走 Claude CLI，model 一律取自 `.claude/agents/tribunal-writer.md`
+的 `model:`（Go 的 `ClaudeOpusPinned` 必須一致，測試會擋 drift）。沒有
+runtime profile 時，`GP_WRITER_PROVIDER` 只接受 `claude` 或不設；設成
+`codex` 會在呼叫任何模型前失敗，缺少 `claude` CLI 也不會退回其他模型。
+eval、review、source reviewer 與 Vibe Scorer 這些只評分的步驟不受影響。
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本 provider chain。VM profile 會先確認 Codex 與官方 Grok Build CLI
-都相容且已登入，缺任一個就 fail closed。
+維持原本的評審 provider chain。VM profile 的 provider preflight 以步驟為單位：
+寫作步驟確認 Claude CLI 已登入、模型 pin 一致；評審確認 Codex CLI 已登入；
+缺了就 fail closed。寫作步驟被設成 Claude 以外的供應端，或 gate 跟寫作步驟
+用同一個 model，都會被拒絕。
 
-所有常換的 model、effort、quota threshold 與 unknown policy 都只定義在
-`config/llm-pipeline.json`；README 不複製易過期的數值。Router 依該檔選擇
-reviewer、writer 與 Vibe Scorer，而且不會在低額度時靜默改用其他 writer。
-CodexBar 尚未提供可靠 Grok Build quota 前，自動 Grok probe 保持關閉，
-不猜百分比。
+評審的 model、effort、quota threshold 與 unknown policy 只定義在
+`config/llm-pipeline.json`；Claude 模型不寫進 config。README 不複製易過期
+的數值。低額度時不會靜默改用其他模型。
 
 ## Quick start
 
