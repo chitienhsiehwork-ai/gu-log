@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Isolation of Tribunal model CLI calls: the shared transient service drops
-# each provider's forbidden credential variables, and a Claude writing call
-# never carries API-key variables nor loads host settings or MCP servers,
-# inside or outside the service.
+# each provider's forbidden variables (the lists live only in
+# tribunal-helpers.sh), and a Claude writing call never carries API-key
+# variables nor loads host settings or MCP servers, inside or outside the
+# service.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -39,24 +40,20 @@ unset_list() {
   sed -n 's/^--property=UnsetEnvironment=//p' "$SYSTEMD_RUN_ARGS"
 }
 
+# The service must drop exactly the provider's list from tribunal-helpers.sh.
 assert_unsets() {
-  local provider="$1"
-  shift
-  local list variable
-  list=" $(unset_list) "
-  for variable in "$@"; do
-    case "$list" in
-      *" $variable "*) ;;
-      *) fail "$provider service keeps $variable (UnsetEnvironment=$list)" ;;
-    esac
-  done
+  local provider="$1" expected
+  expected="$(tribunal_transient_service_unset_env "$provider")"
+  [ -n "$expected" ] || fail "no unset list for $provider"
+  [ "$(unset_list)" = "$expected" ] ||
+    fail "$provider service UnsetEnvironment=$(unset_list), want $expected"
 }
 
 export CODEX_HOME="$TMP_DIR/codex-home"
 export CLAUDE_CONFIG_DIR="$TMP_DIR/claude-config"
 
 ( tribunal_exec_transient_service codex "$WORK_DIR" 5 -- /bin/true )
-assert_unsets codex CLAUDE_CODE_OAUTH_TOKEN ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY
+assert_unsets codex
 grep -Fxq -- "--setenv=CODEX_HOME=$CODEX_HOME" "$SYSTEMD_RUN_ARGS" ||
   fail "codex service lost CODEX_HOME"
 if grep -q -- '--setenv=CLAUDE_CONFIG_DIR=' "$SYSTEMD_RUN_ARGS"; then
@@ -66,8 +63,7 @@ grep -Fxq -- '--description=gu-log Tribunal isolated Codex invocation' \
   "$SYSTEMD_RUN_ARGS" || fail "codex service description drifted"
 
 ( tribunal_exec_transient_service claude "$WORK_DIR" 5 -- /bin/true )
-assert_unsets claude ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY \
-  CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY
+assert_unsets claude
 grep -Fxq -- "--setenv=CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR" "$SYSTEMD_RUN_ARGS" ||
   fail "claude service lost the CLI login state directory"
 if grep -q -- '--setenv=CODEX_HOME=' "$SYSTEMD_RUN_ARGS"; then
@@ -86,14 +82,17 @@ fi
 # Outside the deployed service the Claude writer still drops API-key
 # variables, so a stray key cannot switch billing to the API.
 unset CLAUDE_CODE_OAUTH_TOKEN
-ANTHROPIC_API_KEY=sk-ant-fixture ANTHROPIC_AUTH_TOKEN=bearer-fixture \
-CLAUDE_API_KEY=claude-key-fixture TRIBUNAL_DEPLOYED_MODE=0 \
+for variable in $TRIBUNAL_CLAUDE_API_KEY_ENV; do
+  export "$variable=fixture-secret"
+done
+TRIBUNAL_DEPLOYED_MODE=0 \
   tribunal_claude_writer_prompt_exec "$WORK_DIR" claude-writer-fixture 'rewrite' \
   >/dev/null
-for variable in ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY; do
+for variable in $TRIBUNAL_CLAUDE_API_KEY_ENV; do
   if grep -q "^$variable=" "$CLAUDE_ENV"; then
     fail "direct Claude writer call kept $variable"
   fi
+  unset "$variable"
 done
 grep -q "^CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR$" "$CLAUDE_ENV" ||
   fail "direct Claude writer call lost the CLI login state directory"

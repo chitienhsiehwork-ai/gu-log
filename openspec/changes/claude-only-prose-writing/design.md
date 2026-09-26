@@ -69,7 +69,7 @@ Claude 路徑沿用既有 Claude provider 的呼叫方式，不另外帶 effort 
 - MP write／refine、英文 sidecar：只給 Read、Grep、Glob、Edit、Write；讀取可涵蓋 repo，編修只在工作目錄內自動核准，沒有 Bash 與網路工具。
 - Tribunal 改寫與寫入 canary：同樣的檔案工具與權限，cwd 是私有候選工作區；部署模式包進與評審相同規格的暫態 systemd service。Codex 與 Claude 的暫態 service 由同一個函式建立，各供應端要清掉的憑證變數也寫在同一處。
 - 受限的 Claude 呼叫不載入主機的 user／project／local settings（權限規則、hooks、env）與 MCP server，主機設定不會放寬這次呼叫的權限。
-- VM 上的 Claude CLI 只用 `claude auth login` 的登入狀態認證：暫態 service、Go 的受限呼叫與 router 的登入檢查都清掉 API key 類與 `CLAUDE_CODE_OAUTH_TOKEN` 環境變數，避免計費靜默改走 API 或碰到其他供應端的金鑰；Go 測試會交叉比對 Go 與 shell 兩邊的清單。
+- VM 上的 Claude CLI 只用 `claude auth login` 的登入狀態認證：暫態 service、Go 的受限呼叫與 router 的登入檢查都清掉 API key、改變計費端點（base URL、Bedrock／Vertex／Foundry／gateway 等供應端）與 `CLAUDE_CODE_OAUTH_TOKEN` 環境變數，避免計費靜默改走 API、其他端點或其他供應端的金鑰。清單只在 `scripts/tribunal-helpers.sh` 維護一份，Go 測試交叉比對 gp-pipeline 的副本。非部署版（開發機、CCC）的直接呼叫只清 API key，因為 CCC 本身靠 `ANTHROPIC_BASE_URL` 連 API。
 - 永不使用 bypassPermissions。
 
 實測 Claude CLI：這組參數下讀取 repo 外檔案成功、在 cwd 內寫檔成功、寫 cwd 外的檔案會立即被拒絕並列在 `permission_denials`，不會卡住。

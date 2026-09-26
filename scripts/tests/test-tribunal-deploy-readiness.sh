@@ -223,9 +223,9 @@ fi
 grep -Eq '^--unit=gu-log-tribunal-codex-' \
   "$TMP/preflight-systemd-run.argv" ||
   fail "deployed writer transient service (Claude model) did not use a parent-generated unit"
-grep -Fxq -- '--property=UnsetEnvironment=ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY' \
+grep -Fxq -- "--property=UnsetEnvironment=$(tribunal_transient_service_unset_env claude)" \
   "$TMP/preflight-systemd-run.argv" ||
-  fail "deployed writer service (Claude model) can see API-key credentials"
+  fail "deployed writer service (Claude model) can see API-key or billing-endpoint variables"
 for expected_arg in -p --setting-sources --strict-mcp-config --permission-mode acceptEdits --tools Read,Grep,Glob,Edit,Write; do
   grep -Fxq -- "$expected_arg" "$TMP/preflight-systemd-run.argv" ||
     fail "deployed writer canary (Claude model) omitted contained flag: $expected_arg"

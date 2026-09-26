@@ -251,13 +251,19 @@ func (c *ClaudeProvider) permissionArgs() []string {
 }
 
 // claudeContainedBlockedEnv never reaches a contained (runtime-profile) Claude
-// call. API-key variables would silently move billing to the API; the VM
-// authenticates the Claude CLI only through its `claude auth login` state, so a
-// stray OAuth token variable and other providers' keys are dropped too. It
-// matches `tribunal_transient_service_unset_env claude` in
-// scripts/tribunal-helpers.sh, which a test cross-checks.
+// call: API-key and billing-endpoint variables, a stray OAuth token and other
+// providers' keys. The list is owned by `tribunal_transient_service_unset_env
+// claude` in scripts/tribunal-helpers.sh; a test keeps this copy equal to it.
 var claudeContainedBlockedEnv = []string{
 	"ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_API_KEY",
+	"ANTHROPIC_BASE_URL", "ANTHROPIC_BEDROCK_BASE_URL", "ANTHROPIC_BEDROCK_MANTLE_BASE_URL",
+	"ANTHROPIC_VERTEX_BASE_URL", "ANTHROPIC_FOUNDRY_BASE_URL", "ANTHROPIC_AWS_BASE_URL",
+	"ANTHROPIC_GOOGLE_CLOUD_BASE_URL",
+	"CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY",
+	"CLAUDE_CODE_USE_ANTHROPIC_AWS", "CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD",
+	"CLAUDE_CODE_USE_MANTLE", "CLAUDE_CODE_USE_GATEWAY",
+	"AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_AWS_API_KEY", "ANTHROPIC_FOUNDRY_API_KEY",
+	"ANTHROPIC_FOUNDRY_AUTH_TOKEN",
 	"CLAUDE_CODE_OAUTH_TOKEN", "OPENAI_API_KEY", "CODEX_API_KEY",
 }
 

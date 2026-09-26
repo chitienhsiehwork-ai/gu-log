@@ -676,17 +676,21 @@ tribunal_validate_deployed_systemd_contract() {
 # Credentials stay in each CLI's own login state under HOME, and every
 # provider's service drops the variables it must not see:
 #   - codex: every Claude credential variable, so a judge never sees them.
-#   - claude: API-key variables (they would silently move billing to the API
-#     without the owner knowing) and other providers' keys. The VM
-#     authenticates the Claude CLI only through `claude auth login` (state
-#     under HOME or CLAUDE_CONFIG_DIR), so a stray OAuth token variable is
-#     dropped as well.
+#   - claude: API-key variables and the variables that point the CLI at another
+#     billing endpoint (base URLs, Bedrock/Vertex/Foundry/gateway providers and
+#     their keys); either would silently move billing away from the Claude
+#     account the owner logged in. The VM authenticates the Claude CLI only
+#     through `claude auth login` (state under HOME or CLAUDE_CONFIG_DIR), so a
+#     stray OAuth token variable and other providers' keys are dropped too.
+# This is the only copy of these lists; gp-pipeline's claudeContainedBlockedEnv
+# is cross-checked against `tribunal_transient_service_unset_env claude`.
 TRIBUNAL_CLAUDE_API_KEY_ENV="ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN CLAUDE_API_KEY"
+TRIBUNAL_CLAUDE_ENDPOINT_ENV="ANTHROPIC_BASE_URL ANTHROPIC_BEDROCK_BASE_URL ANTHROPIC_BEDROCK_MANTLE_BASE_URL ANTHROPIC_VERTEX_BASE_URL ANTHROPIC_FOUNDRY_BASE_URL ANTHROPIC_AWS_BASE_URL ANTHROPIC_GOOGLE_CLOUD_BASE_URL CLAUDE_CODE_USE_BEDROCK CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY CLAUDE_CODE_USE_ANTHROPIC_AWS CLAUDE_CODE_USE_ANTHROPIC_GOOGLE_CLOUD CLAUDE_CODE_USE_MANTLE CLAUDE_CODE_USE_GATEWAY AWS_BEARER_TOKEN_BEDROCK ANTHROPIC_AWS_API_KEY ANTHROPIC_FOUNDRY_API_KEY ANTHROPIC_FOUNDRY_AUTH_TOKEN"
 
 tribunal_transient_service_unset_env() {
   case "$1" in
     codex) printf '%s\n' "CLAUDE_CODE_OAUTH_TOKEN $TRIBUNAL_CLAUDE_API_KEY_ENV" ;;
-    claude) printf '%s\n' "$TRIBUNAL_CLAUDE_API_KEY_ENV CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY" ;;
+    claude) printf '%s\n' "$TRIBUNAL_CLAUDE_API_KEY_ENV $TRIBUNAL_CLAUDE_ENDPOINT_ENV CLAUDE_CODE_OAUTH_TOKEN OPENAI_API_KEY CODEX_API_KEY" ;;
     *) return 1 ;;
   esac
 }
@@ -911,7 +915,9 @@ tribunal_claude_writer_prompt_exec() {
       tribunal_exec_transient_service claude "$work_dir" "$timeout_sec" \
         -- "${claude_argv[@]}" <<<"$prompt"
     fi
-    # Outside the service, drop API-key variables all the same.
+    # Outside the service (dev machines, CCC) drop API-key variables all the
+    # same. Endpoint variables stay: a CCC sandbox reaches the API through its
+    # own ANTHROPIC_BASE_URL.
     local -a unset_args=()
     local var
     for var in $TRIBUNAL_CLAUDE_API_KEY_ENV; do
