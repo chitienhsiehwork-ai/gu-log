@@ -14,10 +14,12 @@ import (
 )
 
 type claudeCLIErrorSamples struct {
-	Quota  []string `json:"quota"`
-	Login  []string `json:"login"`
-	Other  []string `json:"other"`
-	Resets []struct {
+	Quota     []string `json:"quota"`
+	Login     []string `json:"login"`
+	Config    []string `json:"config"`
+	Transient []string `json:"transient"`
+	Other     []string `json:"other"`
+	Resets    []struct {
 		Message string `json:"message"`
 		Now     string `json:"now"`
 		Reset   string `json:"reset"`
@@ -38,20 +40,27 @@ func loadClaudeCLIErrorSamples(t *testing.T) claudeCLIErrorSamples {
 }
 
 // TestClassifyClaudeFailureRealMessages classifies the messages the installed
-// Claude CLI prints; the Tribunal shell classifier runs the same samples.
+// Claude CLI prints; the Tribunal shell classifier runs the same samples. Only
+// the classes that recover by waiting take the quota wait path.
 func TestClassifyClaudeFailureRealMessages(t *testing.T) {
 	samples := loadClaudeCLIErrorSamples(t)
 	for class, messages := range map[string][]string{
-		ClaudeFailureQuota: samples.Quota,
-		ClaudeFailureLogin: samples.Login,
-		"":                 samples.Other,
+		ClaudeFailureQuota:     samples.Quota,
+		ClaudeFailureLogin:     samples.Login,
+		ClaudeFailureConfig:    samples.Config,
+		ClaudeFailureTransient: samples.Transient,
+		"":                     samples.Other,
 	} {
+		if len(messages) == 0 {
+			t.Fatalf("no samples for class %q", class)
+		}
+		waits := class == ClaudeFailureQuota || class == ClaudeFailureTransient
 		for _, message := range messages {
 			if got := ClassifyClaudeFailure(message); got != class {
 				t.Errorf("ClassifyClaudeFailure(%q) = %q, want %q", message, got, class)
 			}
-			if got := IsQuotaError("claude-opus", errors.New(message)); got != (class == ClaudeFailureQuota) {
-				t.Errorf("IsQuotaError(claude, %q) = %v", message, got)
+			if got := IsQuotaError("claude-opus", errors.New(message)); got != waits {
+				t.Errorf("IsQuotaError(claude, %q) = %v, want %v", message, got, waits)
 			}
 		}
 	}
@@ -100,9 +109,13 @@ func TestClaudeQuotaActionUsesOnlyClaudeReset(t *testing.T) {
 		t.Fatalf("far reset action = %+v, want a suspension that reports the Sep 29 reset", action)
 	}
 	t.Setenv("GP_CLAUDE_QUOTA_DEFAULT_WAIT", "45m")
-	action = decideClaudeQuotaAction("claude-opus", errors.New("Your org is out of usage · contact your admin"), policy, 0, now)
+	action = decideClaudeQuotaAction("claude-opus", errors.New("You've reached your Fable limit."), policy, 0, now)
 	if !action.Wait || action.WaitDuration != 47*time.Minute {
 		t.Fatalf("unknown reset action = %+v, want the conservative default plus buffer", action)
+	}
+	action = decideClaudeQuotaAction("claude-opus", errors.New("API Error: Repeated 529 Overloaded errors. The API is at capacity — this is usually temporary. Try again in a moment."), policy, 0, now)
+	if !action.Wait || action.WaitDuration != 17*time.Minute {
+		t.Fatalf("temporary error action = %+v, want the short default (15m) plus buffer", action)
 	}
 
 	DecideQuotaAction("claude-opus", errors.New("You've hit your session limit · resets 5pm (UTC)"), policy, 0)
@@ -122,6 +135,24 @@ func TestDispatcherReportsMissingClaudeCLIAsActionable(t *testing.T) {
 	_, err = d.Run(context.Background(), "write", RunOptions{})
 	if err == nil || !strings.Contains(err.Error(), "claude CLI is not on PATH") || !strings.Contains(err.Error(), "claude auth login") {
 		t.Fatalf("dispatcher error = %v, want an actionable missing-claude message", err)
+	}
+}
+
+// TestDispatcherReportsClaudeConfigAsActionable fails at once, without a quota
+// wait, when the Claude account or the model pin needs a person.
+func TestDispatcherReportsClaudeConfigAsActionable(t *testing.T) {
+	claude := NewFakeClaude().WithResponses(FakeResponse{Err: "claude exited with code 1: Your seat type doesn't include usage credits"})
+	d, err := NewDispatcher(logx.New(), claude)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Run(context.Background(), "write", RunOptions{})
+	if err == nil || !strings.Contains(err.Error(), "a person must fix the plan, the admin settings or the model pin") {
+		t.Fatalf("dispatcher error = %v, want the actionable Claude account message", err)
+	}
+	var suspend *QuotaSuspendError
+	if errors.As(err, &suspend) {
+		t.Fatalf("account failure was treated as a quota suspension: %v", err)
 	}
 }
 

@@ -128,8 +128,13 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 				FellBackFrom: fellBack,
 			}, nil
 		}
-		if isClaudeProviderName(p.Name()) && ClassifyClaudeFailure(err.Error()) == ClaudeFailureLogin {
-			return nil, fmt.Errorf("%s: the Claude CLI is not logged in; run `claude auth login` as this user and rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+		if isClaudeProviderName(p.Name()) {
+			switch ClassifyClaudeFailure(err.Error()) {
+			case ClaudeFailureLogin:
+				return nil, fmt.Errorf("%s: the Claude CLI is not logged in; run `claude auth login` as this user and rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+			case ClaudeFailureConfig:
+				return nil, fmt.Errorf("%s: the Claude account or the pinned model cannot be used as configured; a person must fix the plan, the admin settings or the model pin, then rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+			}
 		}
 		if IsQuotaError(p.Name(), err) {
 			if d.quota.AllowClaudeJudgeFallback && isCodexProvider(p) {

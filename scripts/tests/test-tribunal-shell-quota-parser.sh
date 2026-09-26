@@ -259,10 +259,13 @@ fi
 pass "legacy Claude compatibility quota path never probes Claude or combined usage"
 
 # The Claude CLI's real messages (shared with gp-pipeline's classifier) split
-# into quota and login, and a quota wait comes only from Claude's own reset.
+# into quota, transient, login and config, and a quota wait comes only from
+# Claude's own reset.
 CLAUDE_SAMPLES="$ROOT_DIR/tools/gp-pipeline/internal/llm/testdata/claude-cli-errors.json"
 sample_file="$TMP/claude-sample.txt"
-for class in quota login other; do
+for class in quota transient login config other; do
+  [ "$(jq --arg class "$class" '.[$class] | length' "$CLAUDE_SAMPLES")" -gt 0 ] ||
+    fail "no Claude CLI samples for class $class"
   while IFS= read -r message; do
     printf '%s\n' "$message" > "$sample_file"
     got="$(tribunal_claude_failure_class "$sample_file" || true)"
@@ -281,7 +284,7 @@ while IFS= read -r row; do
   [ "$got" = "$want" ] ||
     fail "Claude reset for '$message' at $(jq -r '.now' <<<"$row") = $got, want $want"
 done < <(jq -c '.resets[]' "$CLAUDE_SAMPLES")
-pass "real Claude CLI quota and login messages classify like gp-pipeline, with Claude's own reset time"
+pass "real Claude CLI quota, transient, login and config messages classify like gp-pipeline, with Claude's own reset time"
 
 run_claude_writer_failure() {
   local message="$1" status_file="$2" output="$3"
@@ -333,7 +336,7 @@ fi
 pass "Claude-model writer quota errors suspend as unknown, wait for Claude's reset and pause dispatch without CodexBar"
 
 set +e
-run_claude_writer_failure "Your org is out of usage · contact your admin" \
+run_claude_writer_failure "You've reached your Fable limit." \
   "$TMP/writer-default-status" "$TMP/writer-default.out"
 writer_rc=$?
 set -e

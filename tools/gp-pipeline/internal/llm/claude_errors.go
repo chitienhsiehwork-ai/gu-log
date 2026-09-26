@@ -7,30 +7,41 @@ import (
 	"time"
 )
 
-// Claude CLI failure classes (openspec claude-prose-writing-runtime). The
-// patterns follow the messages the installed Claude Code CLI prints;
-// testdata/claude-cli-errors.json keeps those messages as the regression
-// samples, and scripts/tribunal-helpers.sh classifies the same samples the
-// same way.
+// Claude CLI failure classes (openspec claude-prose-writing-runtime). Quota and
+// transient failures recover by waiting; login and config failures need a
+// person (log in, fix the plan or admin settings, or fix the model pin). The
+// patterns follow the messages the installed Claude Code CLI prints, including
+// its own list of usage-limit prefixes; testdata/claude-cli-errors.json keeps
+// those messages as the regression samples, and scripts/tribunal-helpers.sh
+// classifies the same samples the same way.
 const (
-	ClaudeFailureQuota = "quota"
-	ClaudeFailureLogin = "login"
+	ClaudeFailureQuota     = "quota"
+	ClaudeFailureLogin     = "login"
+	ClaudeFailureConfig    = "config"
+	ClaudeFailureTransient = "transient"
 )
 
 var (
-	claudeQuotaRe = regexp.MustCompile(`(?i)you.ve hit your |you.re out of usage|your org(?:anization)? is out of usage|usage limit reached|temporarily limiting requests|rate_limit_error|(?:^|[^0-9])429(?:[^0-9]|$)`)
-	claudeLoginRe = regexp.MustCompile(`(?i)not logged in|run /login|login expired|oauth token (?:has )?(?:expired|revoked)|invalid api key|invalid auth token|authentication required|authentication_error|session (?:has )?expired`)
-	claudeResetRe = regexp.MustCompile(`(?i)\bresets\s+(?:([a-z]{3})\s+(\d{1,2}),\s+(?:(\d{4}),\s+)?)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)(?:\s*\(([^)]+)\))?`)
+	claudeConfigRe    = regexp.MustCompile(`(?i)your seat type doesn.t include|usage allocation has been disabled|group.s usage limit is set to|requires usage credits|this service is disabled for your org|your org(?:anization)? is out of usage|issue with the selected model|isn.t available for your account|model '[^']*' not found`)
+	claudeLoginRe     = regexp.MustCompile(`(?i)not logged in|run /login|login expired|oauth token (?:has )?(?:expired|revoked)|invalid api key|invalid auth token|authentication required|authentication_error|session (?:has )?expired`)
+	claudeQuotaRe     = regexp.MustCompile(`(?i)you.ve hit your |you.ve reached your |you.re out of (?:extra )?usage|usage limit reached|rate_limit_error|(?:^|[^0-9])429(?:[^0-9]|$)`)
+	claudeTransientRe = regexp.MustCompile(`(?i)overloaded|(?:^|[^0-9])529(?:[^0-9]|$)|high load|temporarily limiting requests|timed out|connection to the api was lost|connection error|econnreset|etimedout|socket hang up|server-side issue|could not refresh your login|temporary network issue`)
+	claudeResetRe     = regexp.MustCompile(`(?i)\bresets\s+(?:([a-z]{3})\s+(\d{1,2}),\s+(?:(\d{4}),\s+)?)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)(?:\s*\(([^)]+)\))?`)
 )
 
-// ClassifyClaudeFailure returns ClaudeFailureQuota, ClaudeFailureLogin or ""
-// for a Claude CLI failure message.
+// ClassifyClaudeFailure returns the ClaudeFailure* class of a Claude CLI failure
+// message, or "" for any other failure. A message that asks for a person wins
+// over one that only asks to wait.
 func ClassifyClaudeFailure(text string) string {
 	switch {
-	case claudeQuotaRe.MatchString(text):
-		return ClaudeFailureQuota
+	case claudeConfigRe.MatchString(text):
+		return ClaudeFailureConfig
 	case claudeLoginRe.MatchString(text):
 		return ClaudeFailureLogin
+	case claudeQuotaRe.MatchString(text):
+		return ClaudeFailureQuota
+	case claudeTransientRe.MatchString(text):
+		return ClaudeFailureTransient
 	default:
 		return ""
 	}

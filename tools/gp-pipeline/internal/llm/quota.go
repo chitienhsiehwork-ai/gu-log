@@ -49,7 +49,11 @@ func IsQuotaError(provider string, err error) bool {
 		return false
 	}
 	if isClaudeProviderName(provider) {
-		return ClassifyClaudeFailure(err.Error()) == ClaudeFailureQuota
+		switch ClassifyClaudeFailure(err.Error()) {
+		case ClaudeFailureQuota, ClaudeFailureTransient:
+			return true
+		}
+		return false
 	}
 	text := strings.ToLower(provider + " " + err.Error())
 	patterns := []string{
@@ -108,12 +112,16 @@ func DecideQuotaAction(provider string, err error, policy QuotaPolicy, previousW
 }
 
 // decideClaudeQuotaAction waits only for the reset time Claude itself reported
-// (or a conservative default when the message has none). It never reads Codex
+// (or a conservative default when the message has none), and only briefly for
+// a temporary error such as an overload or a timeout. It never reads Codex
 // quota data: CodexBar knows nothing about the Claude account.
 func decideClaudeQuotaAction(provider string, err error, policy QuotaPolicy, previousWaits int, now time.Time) QuotaAction {
 	action := QuotaAction{Provider: provider, Tier: QuotaTierUnknown, Err: err}
 	wait := durationFromEnv("GP_CLAUDE_QUOTA_DEFAULT_WAIT", time.Hour)
-	if reset, ok := ClaudeResetTime(err.Error(), now); ok {
+	if ClassifyClaudeFailure(err.Error()) == ClaudeFailureTransient {
+		wait = durationFromEnv("GP_CLAUDE_TRANSIENT_WAIT", 15*time.Minute)
+		action.Reason = "Claude reported a temporary error; short wait " + wait.String()
+	} else if reset, ok := ClaudeResetTime(err.Error(), now); ok {
 		action.ResetAt = reset
 		action.Reason = "Claude reported the reset time " + reset.Format(time.RFC3339)
 		wait = reset.Sub(now)

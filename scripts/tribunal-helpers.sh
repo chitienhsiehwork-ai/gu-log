@@ -1993,26 +1993,48 @@ tribunal_quota_write_status() {
 }
 
 # ── Claude writer failures ───────────────────────────────────────────────────
-# Classes of a failed Claude CLI call (openspec claude-prose-writing-runtime).
-# The patterns follow the messages the installed Claude Code CLI prints; the
-# regression samples live in
-# tools/gp-pipeline/internal/llm/testdata/claude-cli-errors.json and
+# Classes of a failed Claude CLI call (openspec claude-prose-writing-runtime):
+# quota and transient failures recover by waiting; login and config failures
+# need a person (log in, fix the plan or admin settings, or fix the model pin).
+# The patterns follow the messages the installed Claude Code CLI prints,
+# including its own list of usage-limit prefixes; the regression samples live
+# in tools/gp-pipeline/internal/llm/testdata/claude-cli-errors.json and
 # gp-pipeline's ClassifyClaudeFailure must classify them the same way.
-TRIBUNAL_CLAUDE_QUOTA_PATTERN="you.ve hit your |you.re out of usage|your org(anization)? is out of usage|usage limit reached|temporarily limiting requests|rate_limit_error|(^|[^0-9])429([^0-9]|\$)"
+TRIBUNAL_CLAUDE_CONFIG_PATTERN="your seat type doesn.t include|usage allocation has been disabled|group.s usage limit is set to|requires usage credits|this service is disabled for your org|your org(anization)? is out of usage|issue with the selected model|isn.t available for your account|model '[^']*' not found"
 TRIBUNAL_CLAUDE_LOGIN_PATTERN="not logged in|run /login|login expired|oauth token (has )?(expired|revoked)|invalid api key|invalid auth token|authentication required|authentication_error|session (has )?expired"
+TRIBUNAL_CLAUDE_QUOTA_PATTERN="you.ve hit your |you.ve reached your |you.re out of (extra )?usage|usage limit reached|rate_limit_error|(^|[^0-9])429([^0-9]|\$)"
+TRIBUNAL_CLAUDE_TRANSIENT_PATTERN="overloaded|(^|[^0-9])529([^0-9]|\$)|high load|temporarily limiting requests|timed out|connection to the api was lost|connection error|econnreset|etimedout|socket hang up|server-side issue|could not refresh your login|temporary network issue"
 
-# Print "quota" or "login" for the Claude CLI output in file $1; fail when the
-# output is neither.
+# Print config, login, quota or transient for the Claude CLI output in file $1
+# (a message that asks for a person wins over one that only asks to wait); fail
+# for any other failure.
 tribunal_claude_failure_class() {
-  local file="$1"
+  local file="$1" class pattern
   [ -s "$file" ] || return 1
-  if grep -Eiq -- "$TRIBUNAL_CLAUDE_QUOTA_PATTERN" "$file"; then
-    printf 'quota\n'
-  elif grep -Eiq -- "$TRIBUNAL_CLAUDE_LOGIN_PATTERN" "$file"; then
-    printf 'login\n'
-  else
-    return 1
-  fi
+  for class in config login quota transient; do
+    pattern="$(tribunal_claude_failure_pattern "$class")"
+    if grep -Eiq -- "$pattern" "$file"; then
+      printf '%s\n' "$class"
+      return 0
+    fi
+  done
+  return 1
+}
+
+tribunal_claude_failure_pattern() {
+  case "$1" in
+    config) printf '%s\n' "$TRIBUNAL_CLAUDE_CONFIG_PATTERN" ;;
+    login) printf '%s\n' "$TRIBUNAL_CLAUDE_LOGIN_PATTERN" ;;
+    quota) printf '%s\n' "$TRIBUNAL_CLAUDE_QUOTA_PATTERN" ;;
+    transient) printf '%s\n' "$TRIBUNAL_CLAUDE_TRANSIENT_PATTERN" ;;
+    *) return 1 ;;
+  esac
+}
+
+# The first line of file $1 that shows its Claude failure class $2.
+tribunal_claude_failure_detail() {
+  grep -Ei -m1 -- "$(tribunal_claude_failure_pattern "$2")" "$1" |
+    tr -d '\r' | cut -c1-240
 }
 
 # Seconds until the reset Claude reported in file $1 ("resets 5pm (UTC)",
@@ -2108,7 +2130,7 @@ tribunal_claude_quota_suspend() {
   local output_file="$1" class wait_seconds buffer_seconds reason detail
   class="$(tribunal_claude_failure_class "$output_file")" || return 1
   [ "$class" = quota ] || return 1
-  detail="$(grep -Ei -m1 -- "$TRIBUNAL_CLAUDE_QUOTA_PATTERN" "$output_file" | tr -d '\r' | cut -c1-240)"
+  detail="$(tribunal_claude_failure_detail "$output_file" quota)"
   if wait_seconds="$(tribunal_claude_reset_seconds "$output_file")"; then
     reason="Claude reported the reset: $detail"
   else
