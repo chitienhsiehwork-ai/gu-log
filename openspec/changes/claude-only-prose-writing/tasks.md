@@ -31,3 +31,14 @@
 ## 6. 整合驗證
 
 - [x] 6.1 跑 `go test ./...`、`pnpm exec vitest run`（CI 的 unit tests；本 repo 的 `pnpm run test` 是 Playwright）、`pnpm run lint`、`node scripts/validate-posts.mjs`、`scripts/tests/*.sh` 與 `openspec validate --strict`，把沙盒造成的失敗和 main 上的同一批失敗逐一比對
+
+## 7. 第一輪審查修正
+
+- [x] 7.1 Claude CLI 的額度與登入錯誤分成兩類，以目前 CLI 實際輸出的訊息當 Go 與 shell 共用的回歸樣本；額度等待只看 Claude 回報的重置時間，無法解析時採保守預設，不執行 CodexBar；以 `go test ./internal/llm` 與 `test-tribunal-shell-quota-parser.sh` 驗證
+- [x] 7.2 Claude 回報 `is_error` 時一律失敗並帶出 `errors[]`（含結束碼 0、`result` 為空）；以 Claude provider 測試驗證
+- [x] 7.3 Tribunal 改寫撞到 Claude 額度時還原文章、不計失敗與改寫次數，daemon 暫停派送到重置時間；登入失效時還原文章、停止領新文章並提示 `claude auth login`；quota loop 分辨 rc 75 的額度暫停與 lock collision；以 runner-error-guard 與 deploy-readiness 測試驗證
+- [x] 7.4 允許改寫但寫手模式不是 `claude` 時，在第一位評審前失敗；寫手 preflight 失敗後 systemd 至少間隔 10 分鐘才重啟；以 deploy-readiness 與安全合約測試驗證
+- [x] 7.5 刪除 `quotaAction`、`requiredProviders` 與 Grok 供應端，router 成為判定寫作步驟的唯一位置並雙向檢查；以 model-router、vm-routing 與 Go routing／profile 測試驗證
+- [x] 7.6 暫態 systemd service 抽成共用函式並寫明各供應端的憑證規則，受限的 Claude 呼叫不載入主機 settings 與 MCP server；以 `test-tribunal-model-cli-env.sh`、安全合約測試與 Go 的環境變數交叉比對測試驗證
+- [x] 7.7 JSON 寫作步驟帶 schema、缺少 `claude` 時給可行動錯誤；以 source preservation 與 dispatcher 測試驗證
+- [x] 7.8 runbook、README、SKILL、playbook 與 Go 註解裡抄的政策收成一句並指回 spec 或 code，runbook 改正 Claude 登出時的行為並在部署步驟確認 Claude 已登入；proposal／design 寫明推翻 2026-07-28 的 Codex-only 部署決定與取捨
