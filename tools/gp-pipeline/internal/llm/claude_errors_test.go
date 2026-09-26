@@ -111,6 +111,20 @@ func TestClaudeQuotaActionUsesOnlyClaudeReset(t *testing.T) {
 	}
 }
 
+// TestDispatcherReportsMissingClaudeCLIAsActionable: the writing chain has no
+// other provider, so a missing claude binary must say what to install.
+func TestDispatcherReportsMissingClaudeCLIAsActionable(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	d, err := NewDispatcher(logx.New(), NewClaudeOpusWriter())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = d.Run(context.Background(), "write", RunOptions{})
+	if err == nil || !strings.Contains(err.Error(), "claude CLI is not on PATH") || !strings.Contains(err.Error(), "claude auth login") {
+		t.Fatalf("dispatcher error = %v, want an actionable missing-claude message", err)
+	}
+}
+
 // TestDispatcherReportsClaudeLoginAsActionable keeps a login failure out of the
 // quota path and tells the operator what to run.
 func TestDispatcherReportsClaudeLoginAsActionable(t *testing.T) {

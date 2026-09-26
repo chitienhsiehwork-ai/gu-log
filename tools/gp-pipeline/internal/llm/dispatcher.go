@@ -95,7 +95,11 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 
 	for _, p := range d.providers {
 		if !p.Available() {
-			errs = append(errs, fmt.Sprintf("%s: binary not found on PATH", p.Name()))
+			if isClaudeProviderName(p.Name()) {
+				errs = append(errs, fmt.Sprintf("%s: the claude CLI is not on PATH; install Claude Code and run `claude auth login` (gu-log articles are written only with the Claude model)", p.Name()))
+			} else {
+				errs = append(errs, fmt.Sprintf("%s: binary not found on PATH", p.Name()))
+			}
 			continue
 		}
 	retryProvider:

@@ -358,8 +358,8 @@ exit 0
 	if err == nil {
 		t.Fatal("Translate should fail when explicit Claude routing is unavailable")
 	}
-	if !strings.Contains(err.Error(), "binary not found") {
-		t.Fatalf("Translate error = %q, want missing-Claude diagnostic", err)
+	if !strings.Contains(err.Error(), "claude CLI is not on PATH") || !strings.Contains(err.Error(), "claude auth login") {
+		t.Fatalf("Translate error = %q, want the actionable missing-Claude diagnostic", err)
 	}
 	if _, err := os.Stat(filepath.Join(postsDir, "en-"+s.ActiveFilename)); !os.IsNotExist(err) {
 		t.Fatalf("missing Claude produced an English sidecar: %v", err)
