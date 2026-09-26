@@ -92,13 +92,17 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 
 刪除用 Codex 模型改寫的 executor 與 Codex 寫入 canary。`.codex/agents/tribunal-writer.toml` 保留寫作契約文字（改寫 prompt 會引用），但移除 Codex `model`／effort 綁定，並寫明改寫只使用 Claude 模型，避免 Codex session 把它當成可用 Codex 模型執行的改寫工具。
 
-### 8. Claude 額度與登入失效
+### 8. Claude 錯誤：等待恢復或交給人處理
 
-控制器維持只讀 Codex 額度。Claude CLI 的錯誤分成額度與登入兩類；分類規則以目前 Claude CLI 實際輸出的訊息為回歸樣本，Go 與 shell 共用同一份樣本檔。Claude 以 `is_error` 回報的結果（包含結束碼為 0、`result` 為空、細節只在 `errors[]` 的情況）一律視為失敗並帶出 `errors[]`，讓分類認得出來。
+控制器維持只讀 Codex 額度。Claude CLI 的錯誤分成可以等待恢復的額度、暫時性錯誤，以及需要人處理的登入、帳號設定與 model pin 問題；分類規則以目前 Claude CLI 實際輸出的訊息（含 CLI 自己的用量限制訊息清單）為回歸樣本，Go 與 shell 共用同一份樣本檔。Claude 以 `is_error` 回報的結果（包含結束碼為 0、`result` 為空、細節只在 `errors[]` 的情況）一律視為失敗並帶出 `errors[]`，讓分類認得出來。
 
 - 額度：等待時間只取 Claude 回報的重置時間，無法解析時採保守預設（1 小時，可用 `GP_CLAUDE_QUOTA_DEFAULT_WAIT` 調整）；不執行 CodexBar，也不拿 Codex 的重置時間。Tribunal 改寫撞到額度時丟棄候選、還原文章、標記 `QUOTA_SUSPENDED`，不記評審失敗、不計改寫次數，並讓 daemon 暫停派送到重置時間，避免繼續評審其他文章又撞上同一個額度。
+- 暫時性錯誤（過載、529、逾時、連線中斷、5xx）：跟額度一樣丟棄候選、還原文章、標記 `QUOTA_SUSPENDED`、不計次，但 daemon 只短暫暫停（預設 15 分鐘，`GP_CLAUDE_TRANSIENT_WAIT`）；gp-pipeline 也只等這麼久。
 - 登入：丟棄候選、還原文章，worker 以 rc 78 結束；daemon 停止領新文章、排空進行中的 worker 後退出，並提示以跑 daemon 的使用者執行 `claude auth login`。不重評未改寫的文章，也不計失敗或改寫次數。
-- 寫手 preflight 在領文章前失敗（例如未登入）時 daemon 直接退出，systemd 至少間隔 10 分鐘才重啟，不會每分鐘重試。
+- 帳號設定或 model pin 不能用（座位類型、管理員停用、群組上限 $0、需要 usage credits、org 沒有額度、pin 的模型不存在或沒有權限）：跟登入一樣以 rc 78 停止領新文章，錯誤訊息說明要由人修正方案、管理員設定或 model pin。分類時需要人處理的訊息優先於只要等待的訊息。
+- 其他寫手失敗：候選已丟棄、文章沒變，前一次 FAIL 仍然成立，所以計入一次嘗試但不重評；還有次數就只重試改寫，用完就判 stage 失敗。
+- 手動 batch runner 遇到額度暫停（含暫時性錯誤）或 rc 78 時停下整批並說明原因，開始每篇前也先看暫停檔。
+- 寫手 preflight 在領文章前失敗（例如未登入）時 daemon 直接退出，systemd 至少間隔 10 分鐘才重啟，不會每分鐘重試。部署檢查的 `--doctor --live-probe` 用 unit 的有效環境與 user manager 的 PATH，走跟 daemon 相同的暫態 service，probe 通過就代表 daemon 的前置檢查也會過。
 
 ### 9. subagent 與舊版 cli 寫手模式退役
 

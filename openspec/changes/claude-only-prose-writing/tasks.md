@@ -43,3 +43,12 @@
 - [x] 7.7 JSON 寫作步驟帶 schema、缺少 `claude` 時給可行動錯誤；以 source preservation 與 dispatcher 測試驗證
 - [x] 7.8 runbook、README、SKILL、playbook 與 Go 註解裡抄的政策收成一句並指回 spec 或 code，runbook 改正 Claude 登出時的行為並在部署步驟確認 Claude 已登入；proposal／design 寫明推翻 2026-07-28 的 Codex-only 部署決定與取捨
 - [x] 7.9 刪除 writer broker（`tribunal_writer_exec_broker`、`scripts/writer-broker-wait.sh` 與其測試）和舊版 `cli` 寫手執行器；`subagent`、`cli` 跟 `codex`、`grok` 一樣集中由 `tribunal_writer_mode_problem` 回「已退役」錯誤，允許改寫時在第一位評審前失敗；以 safety-contract、deploy-readiness、batch provider 測試驗證
+
+## 8. 第三輪審查修正
+
+- [x] 8.1 錯誤分類補上 CLI 用量限制清單裡的訊息與暫時性錯誤：quota、transient 可以等待，login、config（帳號設定與 model pin）需要人處理；Go 與 shell 共用樣本；以 `go test ./internal/llm` 與 `test-tribunal-shell-quota-parser.sh` 驗證
+- [x] 8.2 改寫遇到暫時性錯誤時還原、不重評、不計次並短暫暫停派送；帳號設定或 model pin 不能用時 rc 78 停止領文章；寫手失敗且沒有候選時計一次嘗試但不重評；以 deploy-readiness 與 runner-error-guard 驗證
+- [x] 8.3 手動 batch runner 遇到額度暫停或 rc 78 時停下整批並說明原因，開始每篇前先看暫停檔；以 batch provider 測試驗證
+- [x] 8.4 doctor 的 live probe 走跟 daemon 相同的暫態 service、有效環境與 user manager PATH；以 deploy-readiness 驗證
+- [x] 8.5 Claude 寫作呼叫也清掉改變計費端點的環境變數，清單只在 helpers 維護一份，測試改讀那份清單；以 model-cli-env、deploy-readiness、model-router 與 Go 交叉比對驗證
+- [x] 8.6 runbook 寫明 VM 上每個用 Claude 寫作的帳號都要各自登入，其他文件指過去；final-build 修復在交易前拒絕非 claude 模式，交易裡重複的模式檢查刪掉；補 requiredProviders、gp-pipeline wrapper 預設與 router pin 解析失敗三個測試

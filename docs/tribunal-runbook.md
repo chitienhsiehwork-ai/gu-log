@@ -248,9 +248,11 @@ VM profile 的寫作步驟時會先檢查登入狀態。
 `scripts/tribunal-model-router.sh` 依 `config/llm-pipeline.json` 判定，評審依
 Codex 剩餘額度切換的 model 與門檻也在那份 config。
 
-Claude 登出或額度用完時，daemon 不會只停寫作、繼續評審：登出時停止領新文章，
-要以跑 daemon 的使用者執行 `claude auth login`；額度用完時暫停派送到 Claude
-回報的重置時間（quota controller 看不到 Claude 額度）。行為定義見 openspec
+Claude 出錯時，daemon 不會只停寫作、繼續評審：登出、帳號設定或 model pin
+不能用時停止領新文章，要照錯誤訊息處理（登入見〈VM 上的 Claude CLI 登入〉）；
+額度用完時暫停派送到 Claude 回報的重置時間，過載、逾時這類暫時性錯誤只短暫
+暫停（quota controller 看不到 Claude 額度）；其他寫手失敗計一次嘗試，但不重評
+沒改過的文章。手動 batch runner 遇到這些情況會停下整批。行為定義見 openspec
 `tribunal-24-7-operations`。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
@@ -337,7 +339,7 @@ Exit code conventions (from `tribunal-all-claude.sh`):
 - `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
-- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in); the loop drains and stops dispatching
+- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
 
 ## Worktree lifecycle cheat sheet

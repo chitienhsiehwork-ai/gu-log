@@ -16,7 +16,7 @@ ShroomDog 在 2026-09-26 拍板：「目前前沿模型裡，只有 Claude 寫�
 - **BREAKING**：已經沒有可達入口的 `GP_WRITER_MODE=subagent`（writer broker）與舊版 `cli` 寫手模式一併退役並刪除 code；兩者跟 `codex`、`grok` 一樣回「已退役」錯誤。非部署版的相容路徑只剩 CCC 評審的供應端備援。
 - VM runtime profile 不再另列 `requiredProviders`：需要 preflight 的供應端由各步驟設定的 provider 推導。`scripts/tribunal-model-router.sh` 是判定「哪些是寫作步驟」的唯一位置，雙向檢查寫作步驟一定用 Claude、Claude 也只用在寫作步驟；Claude 的 preflight 驗證 CLI 登入與模型 pin。沒有任何步驟再使用 Grok，因此刪除 Grok 供應端與只為 Grok 寫作步驟存在的額度政策；`GP_WRITER_MODE=grok` 保留已退役的錯誤。
 - 呼叫 Claude 模型撰寫文章時改為最小權限：只回 JSON 的步驟不給任何工具並用 structured output；需要寫檔的步驟只有檔案工具，編修只限該步驟的私有工作目錄；不載入主機的 settings 與 MCP server；部署版 Tribunal 改寫沿用暫態 systemd service 與寫入 canary。VM 上的 Claude CLI 只用 `claude auth login` 的登入狀態認證，API key、改變計費端點的變數與 OAuth token 環境變數一律清掉。
-- Claude CLI 的錯誤分成額度與登入兩類，以目前 CLI 實際輸出的訊息當回歸樣本；`is_error` 結果一律視為失敗並帶出 `errors[]`。額度錯誤只看 Claude 回報的重置時間（無法解析時採保守預設），不讀 Codex 額度資料；Tribunal 改寫撞到額度時暫停派送到重置時間，登入失效時停止領新文章並提示執行 `claude auth login`，兩者都還原文章、不重評、不計失敗或改寫次數。
+- Claude CLI 的錯誤分成可以等待恢復（額度、暫時性錯誤）與需要人處理（登入、帳號設定、model pin 不能用）兩大類，以目前 CLI 實際輸出的訊息（含 CLI 自己的用量限制訊息清單）當回歸樣本；`is_error` 結果一律視為失敗並帶出 `errors[]`。額度錯誤只看 Claude 回報的重置時間（無法解析時採保守預設），不讀 Codex 額度資料；Tribunal 改寫撞到額度時暫停派送到重置時間、暫時性錯誤只短暫暫停，需要人處理時停止領新文章並說明怎麼修，這些情況都還原文章、不重評、不計失敗或改寫次數；其他寫手失敗計一次嘗試但不重評沒改過的文章。手動 batch runner 遇到這些情況停下整批。
 - Tribunal 允許改寫但寫手模式不是 `claude` 時，在第一位評審前就失敗；部署版寫手 preflight 失敗時，服務至少間隔 10 分鐘才重試。
 - GP 獨立性規則從「翻譯、修正、語感評審三個不同 model」改成「寫作步驟與 gate 評審不共用 model」，因為所有寫作步驟依規定共用同一個 Claude 模型 pin。
 - 只打分或審查、不寫文章字句的評審（Tribunal 四位評審、eval、review、GP source reviewer、natural-zh vibe gate）維持原本的模型。
