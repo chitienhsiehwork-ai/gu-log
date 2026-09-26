@@ -41,4 +41,4 @@ ShroomDog 在 2026-09-26 拍板：「目前前沿模型裡，只有 Claude 寫�
 - Shell：`scripts/tribunal-model-router.sh`、`scripts/tribunal-helpers.sh`、`scripts/tribunal.sh`、quota loop、batch runner、systemd unit（重啟退避）、wrapper、gp-pipeline wrapper；刪除 `scripts/tribunal-grok-provider.sh` 與 `scripts/writer-broker-wait.sh`。
 - 測試：Go routing／profile／provider 測試與 Tribunal shell 合約測試。
 - 文件：runbook、gp-pipeline README／SKILL、playbooks、ShroomDog 回饋紀錄。
-- VM：需要安裝 Claude Code CLI 並以跑 daemon 的使用者執行 `claude auth login`、重新安裝 systemd unit 並 `daemon-reload`；Claude 額度成為背景改寫的新耗用來源。
+- VM：每個會用 Claude 寫作的帳號都要自己登入 Claude CLI（見 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉），並重新安裝 systemd unit、`daemon-reload`；Claude 額度成為背景改寫的新耗用來源。

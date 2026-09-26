@@ -199,14 +199,27 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 狀態則保留 evidence 並在 dispatch 前 fail closed。不要手動刪除
 `src/content/posts/.tribunal-pair-journal-*` 或對應 restore temp。
 
+### VM 上的 Claude CLI 登入
+
+VM 上每個會用 Claude 模型寫作的帳號，都要用自己的身分各執行一次
+`claude auth login`：
+
+- 跑 Tribunal daemon 的使用者（背景改寫、final-build 修復與寫入 canary）。
+- 跑 Mogu gp-pipeline 的帳號（VM profile 的寫作步驟）。
+
+登入狀態留在該帳號自己的 HOME（或 `CLAUDE_CONFIG_DIR`）。用環境變數 token
+或 API key 認證的方式不再適用：寫作呼叫會清掉這類變數（清單在
+`scripts/tribunal-helpers.sh`），沒登入的帳號會在領文章或寫作步驟開始前失敗。
+daemon 帳號以 deploy block 最後的 live probe 確認；gp-pipeline 帳號在解析
+VM profile 的寫作步驟時會先檢查登入狀態。
+
 部署 checklist：
 
 - `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
   off-repo combined `USAGE_MONITOR`。
 - Codex CLI 已安裝並驗證 non-interactive auth。
-- Claude Code CLI 已安裝，並以跑 daemon 的使用者執行過 `claude auth login`；
-  deploy block 最後的 live probe 通過才算確認。憑證只留在 CLI 自己的登入狀態，
-  規則見 `scripts/tribunal-helpers.sh` 的暫態 service 段落。
+- Claude Code CLI 已安裝，每個會用 Claude 寫作的帳號都照〈VM 上的 Claude CLI
+  登入〉登入過；deploy block 最後的 live probe 通過才算確認 daemon 帳號。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
 - 下列四個 source-match 都 exit 0：
   - `cmp -s scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"`

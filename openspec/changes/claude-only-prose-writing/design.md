@@ -118,7 +118,7 @@ GP run 的英文 sidecar 原本共用 translator dispatcher；translator 不再�
 
 ## Migration Plan
 
-1. Merge 後在 Tribunal VM 以 tribunal 使用者安裝或更新 Claude Code CLI，執行 `claude auth login`，確認 `claude auth status` 回報已登入；不要改用 API key 或 OAuth token 環境變數認證。
+1. Merge 後照 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉，讓 VM 上每個會用 Claude 寫作的帳號（跑 daemon 的使用者與跑 Mogu gp-pipeline 的帳號）各自安裝或更新 Claude Code CLI 並登入。
 2. 重新安裝受版控的 `tribunal-loop.service`（這次也改了 `RestartSec`），`systemctl --user daemon-reload` 後重啟；doctor 的 service contract 會比對檔案內容。
 3. 跑 `bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe`，確認 Claude 寫入 canary 通過。
 4. Grok CLI 可以移除，repo 已刪除 Grok 供應端。

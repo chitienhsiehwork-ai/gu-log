@@ -27,7 +27,8 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 
 文章寫作一律使用 Claude 模型，只評分的步驟維持原本的模型；規則見 openspec
 `claude-prose-writing-runtime`，Claude 模型 pin 在
-`.claude/agents/tribunal-writer.md` 的 `model:`。
+`.claude/agents/tribunal-writer.md` 的 `model:`。VM 上跑 gp-pipeline 的帳號要
+自己登入 Claude CLI，見 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉。
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
