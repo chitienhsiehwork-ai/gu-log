@@ -1,15 +1,23 @@
-# Level-Up Learning Index
+# 學習索引
 
-> 這份 `learning/` 是 gu-log repo 內的 level-up **本地存檔**，給 CCC（雲端 sandbox，碰不到 user 的 dotfiles）用。
-> 跨 repo 的 master profile 仍在 user dotfiles 的 `skills/shared/level-up/learning/`；這裡只存 gu-log 相關主題 + 一份精簡 learner profile。發現新偏好／新證據就更新。
+這是可公開、跨機器使用的概念進度。先讀 [教學偏好](user-profile.md)，再讀相關主題；狀態與證據只記在主題檔。
+沒有紀錄的主題先確認起點；不要從 agent 完成的工作推斷學習者已會。
 
-| Topic | Status | Evidence | Updated | File |
-| --- | --- | --- | --- | --- |
-| CCC SOP (gu-log) | mastered (Lv.1–7)，boss 未打 | 七關 MCQ 全部一次答對 | 2026-06-18 | topics/ccc-sop.md |
-| Tribunal 24/7 readiness | mastered (Lv.1–9 full clear) | 9/9 MCQ 一次過；自己推出 claim 必須共享、用單一 Tribunal VM 決策繞 boss | 2026-06-19 | topics/tribunal-24-7.md |
-| Spec-driven SDLC (openspec + multi-agent) | mastered (full clear) | 自己推導出 coach(macro) vs players(micro)、spec-altitude、reviewer+simplifier+implementor loop(=tribunal 形狀)、explore-first escalation；核心：一條 spec scenario = gate+rubric+邊界 | 2026-06-22 | topics/spec-driven-sdlc.md |
-| Self-help / 行為改變概念（Dan Koe 拆解） | mastered（判準+angle 層 full clear） | Lv.1–4 全一次過；自己挖 cybernetics↔Kubernetes 字根、提出「niche=angle 函數」、逼出 agent 三層定義 | 2026-06-20 | topics/self-help-concepts.md |
-| Claude Tag + OpenClaw self-host | mastered（決策層 full clear） | 四篇系列 shotcall 全拍板；learner 自推 GitLab-issues pivot（換 surface 繞掉 inbound）為最強一手 | 2026-07-15 | topics/claude-tag-openclaw-selfhost.md |
-| Founder framework〈Before It Was Obvious〉 | mastered (Lv.1–5 full clear) | 5/5 MCQ 一次過；自己把 yin/wedge/hair-on-fire 套到 gu-log 並用無職轉生當 benchmark 自評 | 2026-06-20 | topics/founder-framework-before-obvious.md |
-
-Learner profile（taste / framing / 語氣）：`user-profile.md`
+| 概念 | 紀錄 |
+| --- | --- |
+| Agent 指令與單一正本 | [agent-instructions](topics/agent-instructions.md) |
+| Agent 協作與執行邊界 | [agent-coordination](topics/agent-coordination.md) |
+| 關聯資料與索引 | [relational-data](topics/relational-data.md) |
+| 去重、候選排序與合併語意 | [dedup-design](topics/dedup-design.md) |
+| Git 變更審查與整合 | [git-integration](topics/git-integration.md) |
+| 部署、驗證與復原 | [deployment-verification](topics/deployment-verification.md) |
+| 身分、授權與不可變版本 | [authorization-versioning](topics/authorization-versioning.md) |
+| LLM 應用先備知識 | [llm-foundations](topics/llm-foundations.md) |
+| 訊息佇列與背景工作 | [message-brokers](topics/message-brokers.md) |
+| tmux 與終端機分層 | [terminal-multiplexing](topics/terminal-multiplexing.md) |
+| 日誌寫入與耐久性取捨 | [logging-durability](topics/logging-durability.md) |
+| 來源寫作與敘事判斷 | [editorial-reasoning](topics/editorial-reasoning.md) |
+| 螢幕亮度控制 | [display-control](topics/display-control.md) |
+| 產品資料與低摩擦操作 | [product-data-design](topics/product-data-design.md) |
+| Working tree 衛生與 agent 視野 | [working-tree-hygiene](topics/working-tree-hygiene.md) |
+| 文字相似度技術（pg_trgm、BM25、embedding） | [text-similarity-techniques](topics/text-similarity-techniques.md) |

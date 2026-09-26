@@ -17,11 +17,13 @@
 
 ## 互動方式
 
-- 沿用 `SKILL.md` 的 Engagement-First 原則與 `learning/user-profile.md`；不要在本檔重複比喻規則。
+- 沿用本次 session 已由 router 載入的 Engagement-First contract 與
+  `learning/user-profile.md`；不要在本檔重複比喻規則。
 - 問題要優先問「答案會改變實作路線」的事，一次問少量，避免把訪談做成表單地獄。
 - user 若不確定，給 2-3 個可比較選項，並說清楚 tradeoff。
-- 「決策確認」預設用 **shotcall MCQ**（規則見 SKILL.md「Shotcall MCQ」節）：先概念故事、再一題選項全合理的決策題，user 的選擇＝決策定案。
-- 途中冒出值得深教的進階概念 → 提議開一個 teacher agent（用 runtime 可用的 subagent 機制，例如 Claude Code 的 `Agent` tool）對該概念跑 quiz 模式的支線課，主線 preflight 不中斷。
+- 「決策確認」預設用已載入的 **shotcall MCQ** contract：先概念故事、
+  再一題選項全合理的決策題，user 的選擇＝決策定案。
+- 途中冒出值得深教的進階概念 → 提議開一個內建 teacher subagent 對該概念跑 quiz 模式的支線課，主線 preflight 不中斷。
 
 ## 終點產物
 
@@ -32,5 +34,3 @@
 3. Known unknowns: 還沒查清但已知道會影響什麼。
 4. Implementation outline: 主要步驟與驗證方式。
 5. Mechanical refactors: 低風險、可交給 agent 自行處理的部分。
-
-HTML 可用，但不是必須。user 明確要求 HTML 或內容需要視覺比較時才產生 HTML。
