@@ -290,6 +290,15 @@ else
   warn "chromium 未裝" "UI 工作前先跑 'node_modules/.bin/playwright install chromium'（或 --fix 在 CCC 會自動背景補）"
 fi
 
+# ── 9b. level-up skill 鏡像（optional）─────────────────────────────
+# .claude/skills/level-up/ 是 dotfiles 的鏡像；落後只提醒，不擋開工。
+section "9b. level-up skill 鏡像"
+if LEVEL_UP_MSG=$(timeout 20 bash scripts/sync-level-up-skill.sh --check-latest 2>&1); then
+  pass "level-up 鏡像是 dotfiles 最新版"
+else
+  warn "level-up 鏡像落後或抓不到 dotfiles" "$(printf '%s' "$LEVEL_UP_MSG" | tail -1)"
+fi
+
 # ── 10. 慢 gate（--full 才跑）────────────────────────────────────
 if $FULL; then
   section "10. 慢 gate (--full)"

@@ -6,7 +6,8 @@
 
 - Data model、architecture、user-facing behavior、guardrail/SSOT 改動：agent 必須主動提議 post-implementation quiz。
 - Type/API contracts、permissions、migration、跨 agent workflow 改動：通常也應提議。
-- user 可明確 skip；依 `SKILL.md` 的規則靜默記成 workflow event，不得改變 topic 的學習狀態。
+- user 可明確 skip；依已載入的 learning-record contract 靜默記成
+  workflow event，不得改變 topic 的學習狀態。
 - typo、純格式化、機械小改不觸發。
 - 不做 git hook；這是 workflow 規範，不是硬擋。
 
@@ -41,7 +42,8 @@
 
 ## Quiz 設計
 
-- 沿用 `SKILL.md` 的 MCQ anti-tell 與 distractor 規則。
+- 沿用本次 session 已由 router 載入的 MCQ anti-tell 與 distractor
+  contract。
 - 題目測「user 能否判斷改動是否合理」，不要測背誦哪幾個檔案改了。
 - 一關一題，題數跟著決策數走；高風險可加一題 tiny application check。
 - 正確答案應要求理解 tradeoff，例如 compatibility、migration order、failure mode、rollback path。
