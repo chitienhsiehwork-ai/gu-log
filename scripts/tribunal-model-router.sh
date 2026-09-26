@@ -85,62 +85,6 @@ model_router_claude_writer_model() {
     tribunal_claude_agent_model tribunal-writer
 }
 
-# requiredProviders is the preflight contract, so it must name exactly the
-# providers the profile's roles route to: nothing unchecked, nothing stale.
-model_router_assert_required_providers() {
-  local profile="$1" required routed
-  required="$(jq -r --arg profile "$profile" '
-    .profiles[$profile].requiredProviders // [] | unique | join(",")
-  ' "$MODEL_ROUTER_CONFIG")" || return 2
-  routed="$(jq -r --arg profile "$profile" '
-    [.profiles[$profile] | to_entries[] | .value | objects | .provider? | strings]
-    | unique | join(",")
-  ' "$MODEL_ROUTER_CONFIG")" || return 2
-  if [ "$required" != "$routed" ]; then
-    printf 'runtime profile %s requiredProviders [%s] must equal the providers its roles use [%s]\n' \
-      "$profile" "$required" "$routed" >&2
-    return 2
-  fi
-}
-
-# Preflight one provider of the profile, or every required provider when no
-# provider is given. Resolving a Codex judge therefore never runs the Claude
-# CLI.
-model_router_assert_profile_compatible() {
-  local profile="$1" only_provider="${2:-}" provider
-  [ "$profile" = "legacy" ] && return 0
-  model_router_assert_required_providers "$profile" || return
-  if [ -n "$only_provider" ] &&
-     ! jq -e --arg profile "$profile" --arg provider "$only_provider" \
-       '.profiles[$profile].requiredProviders | index($provider) != null' \
-       "$MODEL_ROUTER_CONFIG" >/dev/null 2>&1; then
-    printf 'runtime profile %s does not route any role to %s\n' \
-      "$profile" "$only_provider" >&2
-    return 2
-  fi
-  while IFS= read -r provider; do
-    [ -n "$provider" ] || continue
-    if [ -n "$only_provider" ] && [ "$provider" != "$only_provider" ]; then
-      continue
-    fi
-    model_router_provider_compatible "$provider" || {
-      printf 'runtime profile %s requires a compatible, logged-in %s CLI\n' \
-        "$profile" "$provider" >&2
-      return 2
-    }
-    if [ "$provider" = claude ]; then
-      model_router_claude_writer_model >/dev/null || {
-        printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
-          "$profile" >&2
-        return 2
-      }
-    fi
-  done < <(
-    jq -r --arg profile "$profile" \
-      '.profiles[$profile].requiredProviders[]' "$MODEL_ROUTER_CONFIG"
-  )
-}
-
 model_router_role_key() {
   case "$1" in
     writer|tribunal-writer|refiner) printf 'writer\n' ;;
@@ -243,7 +187,13 @@ model_router_resolve() {
       "$role" "$provider" >&2
     return 2
   fi
-  model_router_assert_profile_compatible "$profile" "$provider" || return
+  # Preflight only the provider this step routes to: resolving a Codex judge
+  # never runs the Claude CLI, and a provider no step uses is never queried.
+  model_router_provider_compatible "$provider" || {
+    printf 'runtime profile %s requires a compatible, logged-in %s CLI for role %s\n' \
+      "$profile" "$provider" "$role" >&2
+    return 2
+  }
   tier=fixed
   remaining=unknown
   if [ "$provider" = claude ]; then
@@ -254,7 +204,11 @@ model_router_resolve() {
         "$role" "$MODEL_ROUTER_CONFIG" >&2
       return 2
     fi
-    model="$(model_router_claude_writer_model)" || return 2
+    model="$(model_router_claude_writer_model)" || {
+      printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
+        "$profile" >&2
+      return 2
+    }
     effort=""
     tier=normal
   elif [ "$role" = reviewer ]; then

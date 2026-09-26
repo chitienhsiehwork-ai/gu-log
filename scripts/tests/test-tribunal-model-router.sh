@@ -158,9 +158,8 @@ exit 0
 SCRIPT
 chmod +x "$BIN_DIR/codex"
 
-# Config guards: an article-writing role on another provider, a copied Claude
-# pin, and a requiredProviders list that drifts from the routed providers all
-# fail closed before any dispatch.
+# Config guards: an article-writing role on another provider and a copied
+# Claude pin fail closed before any dispatch.
 assert_config_rejected() {
   local label="$1" filter="$2" role="$3" expected="$4"
   local fixture="$TMP_DIR/config-$label.json"
@@ -182,12 +181,6 @@ assert_config_rejected codex-corrector \
 assert_config_rejected copied-pin \
   '.profiles["vm-codex"].translator.model = "claude-opus-copy"' \
   translator 'remove model/reasoningEffort'
-assert_config_rejected missing-required \
-  '.profiles["vm-codex"].requiredProviders = ["codex"]' \
-  reviewer 'must equal the providers its roles use'
-assert_config_rejected stale-required \
-  '.profiles["vm-codex"].requiredProviders = ["codex","claude","grok"]' \
-  reviewer 'must equal the providers its roles use'
 
 # Sourced callers resolve several roles in one shell; a Claude writer route
 # must not leak its empty effort into the following Codex vibe route.
