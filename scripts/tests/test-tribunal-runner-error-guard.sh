@@ -2480,6 +2480,21 @@ if [ "${1:-}" = "exec" ]; then
       tail -1
   )"
   if [ -n "$score_path" ]; then
+    if [ -n "${STAGE_JUDGE_COUNT:-}" ]; then
+      printf 'judge\n' >> "$STAGE_JUDGE_COUNT"
+    fi
+    if [ "${STAGE_QUOTA_JUDGE:-factCheck}" = vibe ]; then
+      cat > "$score_path" <<'JSON'
+{
+  "judge": "vibe",
+  "dimensions": {"persona": 4, "moguNote": 9, "vibe": 9, "narrative": 9},
+  "score": 4,
+  "verdict": "FAIL",
+  "reasons": {"persona": "stage writer fixture"}
+}
+JSON
+      exit 0
+    fi
     cat > "$score_path" <<'JSON'
 {
   "judge": "factCheck",
@@ -2517,7 +2532,15 @@ candidate_zh="$(
     tail -1
 )"
 [ -f "$candidate_zh" ] || exit 72
+if [ -n "${STAGE_WRITER_COUNT:-}" ]; then
+  printf 'writer\n' >> "$STAGE_WRITER_COUNT"
+fi
 printf '\n<!-- stage-quota-writer -->\n' >> "$candidate_zh"
+if [ "$STAGE_QUOTA_BEHAVIOR" = other ]; then
+  # A failure that is neither quota, temporary, login nor account.
+  printf 'Execution error\n'
+  exit 1
+fi
 printf "You've hit your session limit · resets 5pm (UTC)\n"
 exit 1
 STAGE_QUOTA_CLAUDE
@@ -2544,8 +2567,8 @@ chmod +x "$stage_quota_bin/codex" "$stage_quota_bin/claude" \
   "$stage_quota_bin/jq" "$stage_quota_bin/pnpm"
 
 run_stage_quota_scenario() {
-  local behavior="$1"
-  local scenario_dir="$TMP/stage-quota-$behavior"
+  local behavior="$1" stage="${2:-factChecker}" judge="${3:-factCheck}"
+  local scenario_dir="$TMP/stage-quota-$behavior-$stage"
   local progress_file="$scenario_dir/progress.json"
   mkdir -p "$scenario_dir/tmp" "$scenario_dir/article-locks" "$scenario_dir/shared-locks"
   chmod 700 "$scenario_dir/article-locks"
@@ -2566,15 +2589,44 @@ run_stage_quota_scenario() {
   TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
   TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
   STAGE_QUOTA_BEHAVIOR="$behavior" \
+  STAGE_QUOTA_JUDGE="$judge" \
+  STAGE_JUDGE_COUNT="$scenario_dir/judge-count" \
+  STAGE_WRITER_COUNT="$scenario_dir/writer-count" \
   STAGE_QUOTA_POST_PATH="$final_gate_zh" \
   STAGE_QUOTA_BASELINE="$final_gate_zh_baseline" \
   STAGE_QUOTA_REAL_JQ="$stage_quota_real_jq" \
-  bash "$TRIBUNAL" --only-stage factChecker --allow-rewrite --no-commit \
+  bash "$TRIBUNAL" --only-stage "$stage" --allow-rewrite --no-commit \
     "$final_gate_post" >"$scenario_dir/out" 2>"$scenario_dir/err"
   STAGE_QUOTA_LAST_RC=$?
   set -e
   STAGE_QUOTA_LAST_PROGRESS="$progress_file"
+  STAGE_QUOTA_LAST_DIR="$scenario_dir"
 }
+
+# A writer that fails for any other reason leaves no candidate: the unchanged
+# post keeps its FAIL, the attempt counts, and the judge is never re-run on the
+# same text. FactChecker (2 loops) fails at once; Vibe (3 loops) retries only
+# the rewrite.
+for stage_case in factChecker:factCheck:2:1 vibe:vibe:3:2; do
+  IFS=: read -r other_stage other_judge want_attempts want_writers <<<"$stage_case"
+  run_stage_quota_scenario other "$other_stage" "$other_judge"
+  [ "$STAGE_QUOTA_LAST_RC" -eq 1 ] || {
+    sed -n '1,80p' "$STAGE_QUOTA_LAST_DIR/out" >&2 || true
+    fail "$other_stage writer failure without a candidate must fail the stage, got rc=$STAGE_QUOTA_LAST_RC"
+  }
+  [ "$(wc -l < "$STAGE_QUOTA_LAST_DIR/judge-count" | tr -d ' ')" = 1 ] ||
+    fail "$other_stage writer failure re-judged the unchanged post"
+  [ "$(wc -l < "$STAGE_QUOTA_LAST_DIR/writer-count" | tr -d ' ')" = "$want_writers" ] ||
+    fail "$other_stage writer failure ran the writer $(wc -l < "$STAGE_QUOTA_LAST_DIR/writer-count") time(s), want $want_writers"
+  cmp -s "$final_gate_zh" "$final_gate_zh_baseline" &&
+    cmp -s "$final_gate_en" "$final_gate_en_baseline" ||
+    fail "$other_stage writer failure changed the canonical post pair"
+  [ "$(jq -r --arg a "$final_gate_post" --arg s "$other_stage" '.[$a].stages[$s].attempts' "$STAGE_QUOTA_LAST_PROGRESS")" = "$want_attempts" ] ||
+    fail "$other_stage writer failure did not count its attempt"
+  [ "$(jq -r --arg a "$final_gate_post" '.[$a].status' "$STAGE_QUOTA_LAST_PROGRESS")" = FAILED ] ||
+    fail "$other_stage writer failure was not recorded as a failed stage"
+done
+pass "a writer that fails without a candidate counts the attempt and never re-judges the unchanged post"
 
 run_stage_quota_scenario quota
 [ "$STAGE_QUOTA_LAST_RC" -eq 75 ] ||

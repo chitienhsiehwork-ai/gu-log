@@ -1584,65 +1584,80 @@ PROMPT
       return 1
     fi
 
-    writer_out="$(mktemp)"
-    writer_quota_status_file="$(mktemp)"
-    writer_rc=0
-    run_writer_candidate_transaction \
-      "$post_path" "$post_file" "$stage_key" "$writer_prompt" \
-      "$writer_out" "$writer_quota_status_file" || writer_rc=$?
+    # A writer that produced no candidate retries here, under the same verdict.
+    while :; do
+      writer_out="$(mktemp)"
+      writer_quota_status_file="$(mktemp)"
+      writer_rc=0
+      run_writer_candidate_transaction \
+        "$post_path" "$post_file" "$stage_key" "$writer_prompt" \
+        "$writer_out" "$writer_quota_status_file" || writer_rc=$?
 
-    if [ "$writer_rc" -eq 75 ]; then
-      local writer_quota_reason
-      writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
-      tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
-      if ! mark_article_quota_suspended \
-        "$post_file" "$stage_key" "$runner_label" "$attempt" \
-        "writer: $writer_quota_reason"; then
-        tlog "  RUNNER ERROR: failed to persist writer quota suspension after leaving canonical posts unchanged."
+      if [ "$writer_rc" -eq 75 ]; then
+        local writer_quota_reason
+        writer_quota_reason="$(quota_status_summary "$writer_quota_status_file")"
+        tlog "  QUOTA SUSPEND during tribunal-writer rewrite: $writer_quota_reason"
+        if ! mark_article_quota_suspended \
+          "$post_file" "$stage_key" "$runner_label" "$attempt" \
+          "writer: $writer_quota_reason"; then
+          tlog "  RUNNER ERROR: failed to persist writer quota suspension after leaving canonical posts unchanged."
+          if ! mark_article_runner_error \
+            "$post_file" "$stage_key" "$runner_label" "$attempt" \
+            "quota_suspension_persistence_failed"; then
+            tlog "  ERROR: failed to persist RUNNER_ERROR after writer quota ledger failure."
+          fi
+          rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+          return 70
+        fi
+        rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+        return 75
+      fi
+
+      if [ "$writer_rc" -eq 78 ]; then
+        # Claude needs a person (login, account settings or the model pin): the
+        # candidate was discarded, the canonical post is untouched, and this
+        # attempt is neither re-judged, counted nor recorded as a failure. The
+        # daemon drains and stops claiming articles.
+        tlog "  CLAUDE NEEDS A PERSON during tribunal-writer rewrite (see the writer error below: \`claude auth login\`, or fix the Claude plan, admin settings or model pin). The post is unchanged and this attempt is not counted."
+        tail -5 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+        rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
+        return 78
+      fi
+
+      if [ "$writer_rc" -eq 70 ]; then
+        tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
+        tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
         if ! mark_article_runner_error \
           "$post_file" "$stage_key" "$runner_label" "$attempt" \
-          "quota_suspension_persistence_failed"; then
-          tlog "  ERROR: failed to persist RUNNER_ERROR after writer quota ledger failure."
+          "writer_candidate_transaction_failed"; then
+          tlog "  ERROR: failed to persist RUNNER_ERROR after candidate transaction failure."
         fi
         rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
         return 70
       fi
-      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
-      return 75
-    fi
 
-    if [ "$writer_rc" -eq 78 ]; then
-      # Claude needs a person (login, account settings or the model pin): the
-      # candidate was discarded, the canonical post is untouched, and this
-      # attempt is neither re-judged, counted nor recorded as a failure. The
-      # daemon drains and stops claiming articles.
-      tlog "  CLAUDE NEEDS A PERSON during tribunal-writer rewrite (see the writer error below: \`claude auth login\`, or fix the Claude plan, admin settings or model pin). The post is unchanged and this attempt is not counted."
-      tail -5 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
-      return 78
-    fi
-
-    if [ "$writer_rc" -eq 70 ]; then
-      tlog "  RUNNER ERROR: isolated writer candidate transaction failed."
-      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-      if ! mark_article_runner_error \
-        "$post_file" "$stage_key" "$runner_label" "$attempt" \
-        "writer_candidate_transaction_failed"; then
-        tlog "  ERROR: failed to persist RUNNER_ERROR after candidate transaction failure."
+      if [ "$writer_rc" -ne 0 ]; then
+        tlog "  WARN: tribunal-writer exited with code $writer_rc"
+        # Surface the writer's own output so a non-quota failure (e.g. a permission
+        # rejection, a CLI error) is diagnosable instead of silently discarded.
+        # Mirrors the final-build repair path's dump.
+        tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
+        rm -f "$writer_out" "$writer_quota_status_file"
+        # No candidate reached the post, so the judge's FAIL still describes it:
+        # count the attempt, but never spend another judge call on the same text.
+        attempt=$((attempt + 1))
+        if [ "$attempt" -ge "$max_loops" ]; then
+          tlog "  $label attempt $attempt/$max_loops: the post is unchanged, so its FAIL stands. Max loops ($max_loops) exhausted without re-judging. FAIL."
+          write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+          rm -f "$score_tmp"
+          return 1
+        fi
+        tlog "  $label attempt $attempt/$max_loops: the post is unchanged, so its FAIL stands; retrying the rewrite without re-judging."
+        write_stage_progress "$post_file" "$stage_key" "in_progress" "null" "$runner_label" "$attempt"
+        continue
       fi
-      rm -f "$writer_out" "$writer_quota_status_file" "$score_tmp"
-      return 70
-    fi
-
-    if [ "$writer_rc" -ne 0 ]; then
-      tlog "  WARN: tribunal-writer exited with code $writer_rc"
-      # Surface the writer's own output so a non-quota failure (e.g. a permission
-      # rejection, a CLI error) is diagnosable instead of silently discarded.
-      # Mirrors the final-build repair path's dump.
-      tail -15 "$writer_out" | while IFS= read -r line; do tlog "    $line"; done
-      rm -f "$writer_out" "$writer_quota_status_file"
-      continue
-    fi
+      break
+    done
     rewrite_snapshot_token="$WRITER_TRANSACTION_SNAPSHOT_TOKEN"
     rewrite_candidate_token="$WRITER_TRANSACTION_CANDIDATE_TOKEN"
     rewrite_frontmatter_policy="$WRITER_TRANSACTION_FRONTMATTER_POLICY"
