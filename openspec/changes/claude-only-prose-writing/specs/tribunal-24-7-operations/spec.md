@@ -41,6 +41,25 @@
 - **AND** SHALL NOT 重新評審未改寫的文章、把該篇記成失敗，或計入改寫嘗試次數
 - **AND** SHALL NOT 改用其他模型改寫
 
+#### Scenario: Tribunal 改寫遇到 Claude 暫時性錯誤
+
+- **WHEN** 部署版 Tribunal 改寫呼叫的 Claude 模型回報服務過載、逾時或其他暫時性錯誤
+- **THEN** runner SHALL 丟棄候選並還原 canonical 文章
+- **AND** SHALL NOT 重新評審未改寫的文章，也 SHALL NOT 計入改寫嘗試次數
+- **AND** daemon SHALL 短暫暫停派送後再重試，SHALL NOT 改用其他模型改寫
+
+#### Scenario: Claude 模型 pin 無法使用或帳號設定不允許
+
+- **WHEN** Claude CLI 回報 pin 的模型不存在、已退役，或帳號設定不允許使用
+- **THEN** runner SHALL 還原 canonical 文章，daemon SHALL 以需要人處理的設定錯誤停止領取新文章
+- **AND** SHALL NOT 重新評審未改寫的文章、計入改寫嘗試次數，或改用其他模型
+
+#### Scenario: 寫手失敗且沒有產出候選
+
+- **WHEN** Tribunal 改寫因上述以外的原因失敗，且沒有產出可驗證的候選
+- **THEN** runner SHALL 還原 canonical 文章並計入一次改寫嘗試
+- **AND** SHALL NOT 重新評審未改寫的文章
+
 #### Scenario: Codex 額度 JSON 無法取得或無效
 
 - **WHEN** 限定 Codex 供應端的 CodexBar 指令失敗、逾時、輸出格式錯誤的 JSON，或缺少必要的 Codex 額度欄位
@@ -77,6 +96,7 @@
 - **AND** 前置檢查 SHALL 在設定的逾時內驗證完全相同的 sentinel 內容
 - **AND** canary SHALL 無權寫入 canary 工作區以外的路徑，也沒有執行指令或網路的工具
 - **AND** daemon SHALL 只在這項驗證完成後領取或派送文章
+- **AND** 部署檢查用的 live probe SHALL 走與部署版 daemon 相同的受限執行器與環境，probe 通過就代表 daemon 的寫手前置檢查也會通過
 
 #### Scenario: 寫手前置檢查在派送前失敗
 

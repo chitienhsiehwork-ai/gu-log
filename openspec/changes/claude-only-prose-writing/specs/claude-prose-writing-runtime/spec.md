@@ -32,7 +32,7 @@ gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。�
 - **THEN** 隔離候選交易 SHALL 只接受 `GP_WRITER_MODE=claude`
 - **AND** `GP_WRITER_MODE=codex` 或 `grok` SHALL 在呼叫任何模型前以已退役的錯誤失敗
 - **AND** 寫手來源紀錄 SHALL 記錄 Claude provider 與實際 pin model，其他供應端的來源紀錄 SHALL 被視為不完整
-- **AND** Tribunal 允許改寫但寫手模式不是 `claude` 時，SHALL 在第一位評審執行前就失敗，SHALL NOT 先花掉評審額度
+- **AND** Tribunal 允許改寫但寫手模式既不是 `claude`、也不是只評分的 `none` 時，SHALL 在第一位評審執行前就失敗，SHALL NOT 先花掉評審額度
 
 #### Scenario: Claude 模型 pin 在兩個 SSOT 之間漂移
 
@@ -62,7 +62,7 @@ Runtime profile 與 Tribunal 部署路徑呼叫 Claude 模型撰寫文章時，S
 - 需要寫檔的寫作步驟（MP write／refine、英文 sidecar、Tribunal 改寫與寫入 canary）SHALL 只提供檔案讀寫工具；讀取 MAY 涵蓋 repo 參考文件，編修 SHALL 只在該步驟的私有工作目錄內被自動核准，SHALL NOT 提供執行指令或網路工具。
 - 部署版 Tribunal 改寫與寫入 canary SHALL 共用同一個 Claude 執行器，並在暫態 systemd service 內執行。
 - Pipeline SHALL 從 Claude CLI 的 JSON 結果擷取最終回覆或 structured output，SHALL NOT 把 CLI 雜訊、錯誤訊息或空的 structured output 當成文章內容。
-- Claude 寫作呼叫 SHALL NOT 載入主機的使用者設定、權限規則或 MCP server，也 SHALL NOT 帶入 API key 類的環境變數（例如 `ANTHROPIC_API_KEY`），讓權限與計費都不受主機設定影響。
+- Claude 寫作呼叫 SHALL NOT 載入主機的使用者設定、權限規則或 MCP server，也 SHALL NOT 帶入 API key 或會改變計費端點的環境變數（例如 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL`、`CLAUDE_CODE_USE_BEDROCK`），讓權限與計費都不受主機設定影響。
 
 #### Scenario: JSON 寫作步驟沒有工具可用
 
@@ -82,5 +82,5 @@ Runtime profile 與 Tribunal 部署路徑呼叫 Claude 模型撰寫文章時，S
 - **WHEN** Claude CLI 以非零結束碼或 `is_error` 結果回報模型、登入或額度錯誤（包含結束碼為 0、`result` 為空、錯誤細節只在 `errors[]` 的情況）
 - **THEN** 呼叫 SHALL 以包含 CLI 錯誤訊息的錯誤失敗，讓額度分類可以辨識
 - **AND** 該錯誤訊息 SHALL NOT 被寫成文章或 artifact 內容
-- **AND** 錯誤分類 SHALL 能辨識目前 Claude CLI 實際輸出的額度與登入錯誤訊息，並把兩者分開；回歸測試 SHALL 以實際訊息為樣本
+- **AND** 錯誤分類 SHALL 能辨識目前 Claude CLI 實際輸出的額度、登入、帳號設定與暫時性錯誤訊息（包含 CLI 自己歸類為用量限制的各種訊息），把可以等待恢復的錯誤（額度、服務過載、逾時）和需要人處理的錯誤（登入、帳號設定、model pin 無法使用）分開；回歸測試 SHALL 以實際訊息為樣本
 - **AND** 額度錯誤的等待時間 SHALL 只取自 Claude 回報的重置時間，無法解析時採保守預設，SHALL NOT 讀取 Codex 的額度資料
