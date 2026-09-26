@@ -90,6 +90,12 @@ assert_route "$({
     bash "$ROUTER" reviewer --json
 })" gpt-5.6-luna max lowQuota
 
+# Preflight providers come from each step's provider; config keeps no second
+# provider list.
+if jq -e '[.profiles[] | has("requiredProviders")] | any' "$CONFIG" >/dev/null; then
+  fail "config must not declare requiredProviders; each step's provider decides the preflight"
+fi
+
 # Every article-writing role uses the Claude model pin from the tribunal-writer
 # frontmatter; config never carries a copy of it.
 for role in writer tribunal-writer refiner translator corrector commentary; do
@@ -198,6 +204,19 @@ assert_config_rejected claude-judge \
 assert_config_rejected copied-pin \
   '.profiles["vm-codex"].translator.model = "claude-opus-copy"' \
   translator 'remove model/reasoningEffort'
+
+# A Claude model pin the router cannot resolve blocks article writing before
+# any dispatch.
+broken_pin_root="$TMP_DIR/broken-pin"
+mkdir -p "$broken_pin_root/.claude/agents"
+printf '%s\n' '---' 'name: tribunal-writer' 'model: null' '---' \
+  > "$broken_pin_root/.claude/agents/tribunal-writer.md"
+if REPO_ROOT="$broken_pin_root" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  bash "$ROUTER" writer --json >"$TMP_DIR/broken-pin.out" 2>&1; then
+  fail "writer routing accepted an unresolvable Claude model pin"
+fi
+grep -q 'requires a valid Claude model pin' "$TMP_DIR/broken-pin.out" ||
+  fail "unresolvable Claude model pin lacked a diagnostic: $(cat "$TMP_DIR/broken-pin.out")"
 
 # Sourced callers resolve several roles in one shell; a Claude writer route
 # must not leak its empty effort into the following Codex vibe route.
