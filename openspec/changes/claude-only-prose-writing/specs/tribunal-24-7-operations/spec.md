@@ -2,7 +2,7 @@
 
 ### Requirement: 部署版額度路徑 SHALL 使用限定 Codex 供應端的 JSON
 
-部署版額度控制器與 model 額度錯誤探測 SHALL 執行有界指令 `codexbar usage --provider codex --source cli --format json --pretty`，並 SHALL 只根據通過驗證的 Codex JSON 做決策。部署版路徑 SHALL NOT 執行 CodexBar 合併供應端指令、Claude 額度指令，或任何會初始化這兩條路徑的 helper。控制器只調節 Codex 額度；Claude 寫手的額度錯誤 SHALL 以 unknown 暫停該篇文章，不得推測 Claude 額度。
+部署版額度控制器與 model 額度錯誤探測 SHALL 執行有界指令 `codexbar usage --provider codex --source cli --format json --pretty`，並 SHALL 只根據通過驗證的 Codex JSON 做決策。部署版路徑 SHALL NOT 執行 CodexBar 合併供應端指令、Claude 額度指令，或任何會初始化這兩條路徑的 helper。控制器只調節 Codex 額度；Tribunal 改寫遇到 Claude 模型的額度錯誤時，SHALL 以 unknown 暫停該篇文章，不得推測 Claude 額度。
 
 #### Scenario: 控制器讀取 Codex 額度
 
@@ -25,11 +25,11 @@
 - **AND** 只有通過驗證的 exhausted 視窗 MAY 提供 tier 與 reset；視窗 unavailable 或讀值仍非零時 SHALL 以 unknown 暫停，不得推測耗盡的視窗
 - **AND** SHALL NOT 呼叫合併或 Claude 額度路徑
 
-#### Scenario: Claude 寫手回報額度錯誤
+#### Scenario: Tribunal 改寫遇到 Claude 額度錯誤
 
-- **WHEN** 部署版 Claude 寫手或寫入 canary 回報額度錯誤
+- **WHEN** 部署版 Tribunal 改寫或寫入 canary 呼叫的 Claude 模型回報額度錯誤
 - **THEN** runner SHALL 丟棄候選並還原 canonical 文章後，以 unknown tier 將該篇標為額度暫停
-- **AND** SHALL NOT 執行 Claude 額度指令、合併供應端探測，或改派其他寫手
+- **AND** SHALL NOT 執行 Claude 額度指令、合併供應端探測，或改用其他模型改寫
 
 #### Scenario: Codex 額度 JSON 無法取得或無效
 
@@ -42,20 +42,20 @@
 
 ### Requirement: 長時間執行的部署版環境 SHALL 啟用改寫
 
-**Reason**: 部署版寫手從 Codex 改成 Claude（owner 2026-09-26 決定只有 Claude 寫得出 gu-log 等級的繁中）。原 requirement 的名稱與情境綁定 Codex 寫手、Codex 寫入 canary 與「部署版完全不需要 Claude」，已無法原地修正。
+**Reason**: Owner 在 2026-09-26 決定 Mogu 撰寫與改寫文章時一律使用 Claude 模型，部署版改寫不再使用 Codex 模型。原 requirement 的名稱與情境綁定 Codex 改寫、Codex 寫入 canary 與「部署版完全不需要 Claude」，已無法原地修正。
 
-**Migration**: 由「部署版環境 SHALL 以 Claude 寫手啟用改寫」取代；評審路徑仍不需要 Claude 的要求保留在新 requirement 的情境中。
+**Migration**: 由「部署版環境 SHALL 以 Claude 模型啟用改寫」取代；評審路徑仍不需要 Claude 的要求保留在新 requirement 的情境中。
 
 ## ADDED Requirements
 
-### Requirement: 部署版環境 SHALL 以 Claude 寫手啟用改寫
+### Requirement: 部署版環境 SHALL 以 Claude 模型啟用改寫
 
-部署版非互動式 24/7 執行環境（systemd unit／wrapper）SHALL 設定 `GP_WRITER_MODE=claude`，並 SHALL 在派送文章前驗證 Claude 寫手能完成有界的寫入 canary。Canary SHALL 從 `.claude/agents/tribunal-writer.md` 的 `model:` 解析寫手 model，並 SHALL 重用正式寫手的受限 Claude 執行器、暫態 systemd service 與逾時行為。Claude 憑證 SHALL 由 Claude CLI 自己的登入狀態管理；部署版服務與 wrapper SHALL NOT 讀取、匯出或注入 Claude token。Library 預設 MAY 維持 `none`，非部署版互動式編排 MAY 保留 `subagent` 或舊版 `cli` 相容性；`codex` 與 `grok` 寫手模式已退役。正式 daemon SHALL NOT 以只評分、未消費 broker、舊版 `cli` 或已退役的寫手模式執行。
+部署版非互動式 24/7 執行環境（systemd unit／wrapper）SHALL 設定 `GP_WRITER_MODE=claude`，並 SHALL 在派送文章前驗證 Tribunal 寫手（`tribunal-writer`）能透過 Claude 模型完成有界的寫入 canary。Canary SHALL 從 `.claude/agents/tribunal-writer.md` 的 `model:` 解析 Claude 模型，並 SHALL 重用正式改寫的受限 Claude 執行器、暫態 systemd service 與逾時行為。Claude 憑證 SHALL 由 Claude CLI 自己的登入狀態管理；部署版服務與 wrapper SHALL NOT 讀取、匯出或注入 Claude token。Library 預設 MAY 維持 `none`，非部署版互動式編排 MAY 保留 `subagent` 或舊版 `cli` 相容性；`codex` 與 `grok` 寫手模式已退役。正式 daemon SHALL NOT 以只評分、未消費 broker、舊版 `cli` 或已退役的寫手模式執行。
 
-#### Scenario: 未過關文章由 Claude 改寫而非跳過
+#### Scenario: 未過關文章由 Claude 模型改寫而非跳過
 
 - **WHEN** 文章在部署版 daemon 的任一評審階段未過關
-- **THEN** Claude Tribunal 寫手 SHALL 使用 `.claude/agents/tribunal-writer.md` 的 model 接受呼叫
+- **THEN** Tribunal 寫手 SHALL 使用 `.claude/agents/tribunal-writer.md` 指定的 Claude 模型改寫
 - **AND** 改寫 SHALL 在私有候選工作區以受限 Claude 執行器進行
 - **AND** 本次執行 SHALL NOT 記錄 `rewrite skipped (GP_WRITER_MODE=none)`，也不得在沒有改寫時耗盡嘗試次數變成 EXHAUSTED
 - **AND** 寫手 log 或進度來源 SHALL 記錄實際 Claude provider／model
@@ -63,7 +63,7 @@
 #### Scenario: 寫手寫入 canary 在派送前成功
 
 - **WHEN** 部署版 daemon 啟動時 Claude CLI 已登入，且 tribunal-writer frontmatter 的 model 有效
-- **THEN** 前置檢查 SHALL 要求正式 Claude 寫手執行器在私有專用 canary 工作區寫入固定 sentinel
+- **THEN** 前置檢查 SHALL 要求正式 Claude 執行器在私有專用 canary 工作區寫入固定 sentinel
 - **AND** 前置檢查 SHALL 在設定的逾時內驗證完全相同的 sentinel 內容
 - **AND** canary SHALL 無權寫入 canary 工作區以外的路徑，也沒有執行指令或網路的工具
 - **AND** daemon SHALL 只在這項驗證完成後領取或派送文章
@@ -73,14 +73,14 @@
 - **WHEN** 寫手模式不是 `claude`、Claude CLI 不可用或未登入、tribunal-writer frontmatter 無效、canary 逾時，或 sentinel 遺失或錯誤
 - **THEN** 部署版 daemon SHALL 在領取或派送文章前退出
 - **AND** SHALL 輸出可採取行動的寫手前置檢查錯誤
-- **AND** SHALL NOT 透過 Codex、Grok 或其他寫手重試
+- **AND** SHALL NOT 改用 Codex、Grok 或其他模型重試
 
 #### Scenario: 部署版評審路徑不依賴 Claude
 
 - **WHEN** 部署版 Codex 評審、額度控制器或額度復原執行
 - **THEN** 這些路徑 SHALL NOT 檢查或呼叫 Claude 執行檔
 - **AND** SHALL NOT 讀取、匯出或驗證 Claude 憑證
-- **AND** Claude CLI SHALL 只在寫手、寫入 canary 與解析 Claude 寫作角色的 preflight 被呼叫
+- **AND** Claude CLI SHALL 只在 Tribunal 改寫、寫入 canary 與解析使用 Claude 模型的寫作步驟時被呼叫
 
 #### Scenario: 非部署版相容路徑留在正式環境之外
 
