@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-const POST = '/posts/gp-275-20260817-article-qwen-3-8-27b/';
+const POST = '/posts/mp-310-20260620-alisa-industry-job-search/';
+const INTERNAL_HREF = '/glossary#token';
+const EXTERNAL_HREF = 'https://natolambert.com/writing/ai-phd-job-hunt';
+const NOTE_INTERNAL_PREFIX = '/posts/mp-307';
 
 function channelToLinear(channel: number) {
   const value = channel / 255;
@@ -32,55 +35,63 @@ for (const theme of ['dark', 'light'] as const) {
     );
     await page.goto(POST);
 
-    const colors = await page.evaluate(() => {
-      const content = document.querySelector('.post-content');
-      const internal = content?.querySelector<HTMLAnchorElement>('a[href="/glossary#pi"]');
-      const external = content?.querySelector<HTMLAnchorElement>('a[href="https://pi.dev/"]');
-      const noteInternal = content?.querySelector<HTMLAnchorElement>(
-        '[data-mogu-note] a[href^="/posts/gp-141"]'
-      );
-      const moguPrefix = content?.querySelector<HTMLAnchorElement>('.mogu-prefix-link');
-      if (!content || !internal || !external || !noteInternal || !moguPrefix) {
-        throw new Error('Link color fixtures are missing');
+    const colors = await page.evaluate(
+      ({ internalHref, externalHref, noteInternalPrefix }) => {
+        const content = document.querySelector('.post-content');
+        const internal = content?.querySelector<HTMLAnchorElement>(`a[href="${internalHref}"]`);
+        const external = content?.querySelector<HTMLAnchorElement>(`a[href="${externalHref}"]`);
+        const noteInternal = content?.querySelector<HTMLAnchorElement>(
+          `[data-mogu-note] a[href^="${noteInternalPrefix}"]`
+        );
+        const moguPrefix = content?.querySelector<HTMLAnchorElement>('.mogu-prefix-link');
+        if (!content || !internal || !external || !noteInternal || !moguPrefix) {
+          throw new Error('Link color fixtures are missing');
+        }
+
+        const noteExternal = external.cloneNode(true) as HTMLAnchorElement;
+        noteInternal.parentElement?.append(noteExternal);
+
+        const internalStyle = getComputedStyle(internal);
+        const underlineCanvas = document.createElement('canvas');
+        underlineCanvas.width = 1;
+        underlineCanvas.height = 1;
+        const underlineContext = underlineCanvas.getContext('2d');
+        if (!underlineContext) throw new Error('Canvas context is unavailable');
+        underlineContext.fillStyle = internalStyle.textDecorationColor;
+        underlineContext.fillRect(0, 0, 1, 1);
+        const underlineAlpha = underlineContext.getImageData(0, 0, 1, 1).data[3] / 255;
+
+        return {
+          internal: internalStyle.color,
+          external: getComputedStyle(external).color,
+          background: getComputedStyle(document.body).backgroundColor,
+          noteInternal: getComputedStyle(noteInternal).color,
+          noteExternal: getComputedStyle(noteExternal).color,
+          noteBackground: getComputedStyle(noteInternal.closest('[data-mogu-note]')!)
+            .backgroundColor,
+          internalKind: internal.dataset.linkKind,
+          externalKind: external.dataset.linkKind,
+          externalMarker: external
+            .querySelector('.external-link-marker')
+            ?.textContent?.replaceAll('\u2060', ''),
+          externalMarkerHidden: external
+            .querySelector('.external-link-marker')
+            ?.getAttribute('aria-hidden'),
+          moguPrefix: getComputedStyle(moguPrefix).color,
+          moguPrefixParent: getComputedStyle(moguPrefix.parentElement!).color,
+          moguPrefixDecoration: getComputedStyle(moguPrefix).textDecorationLine,
+          internalDecoration: getComputedStyle(internal).textDecorationLine,
+          internalDecorationColor: internalStyle.textDecorationColor,
+          internalDecorationAlpha: underlineAlpha,
+          externalDecoration: getComputedStyle(external).textDecorationLine,
+        };
+      },
+      {
+        internalHref: INTERNAL_HREF,
+        externalHref: EXTERNAL_HREF,
+        noteInternalPrefix: NOTE_INTERNAL_PREFIX,
       }
-
-      const noteExternal = external.cloneNode(true) as HTMLAnchorElement;
-      noteInternal.parentElement?.append(noteExternal);
-
-      const internalStyle = getComputedStyle(internal);
-      const underlineCanvas = document.createElement('canvas');
-      underlineCanvas.width = 1;
-      underlineCanvas.height = 1;
-      const underlineContext = underlineCanvas.getContext('2d');
-      if (!underlineContext) throw new Error('Canvas context is unavailable');
-      underlineContext.fillStyle = internalStyle.textDecorationColor;
-      underlineContext.fillRect(0, 0, 1, 1);
-      const underlineAlpha = underlineContext.getImageData(0, 0, 1, 1).data[3] / 255;
-
-      return {
-        internal: internalStyle.color,
-        external: getComputedStyle(external).color,
-        background: getComputedStyle(document.body).backgroundColor,
-        noteInternal: getComputedStyle(noteInternal).color,
-        noteExternal: getComputedStyle(noteExternal).color,
-        noteBackground: getComputedStyle(noteInternal.closest('[data-mogu-note]')!).backgroundColor,
-        internalKind: internal.dataset.linkKind,
-        externalKind: external.dataset.linkKind,
-        externalMarker: external
-          .querySelector('.external-link-marker')
-          ?.textContent?.replaceAll('\u2060', ''),
-        externalMarkerHidden: external
-          .querySelector('.external-link-marker')
-          ?.getAttribute('aria-hidden'),
-        moguPrefix: getComputedStyle(moguPrefix).color,
-        moguPrefixParent: getComputedStyle(moguPrefix.parentElement!).color,
-        moguPrefixDecoration: getComputedStyle(moguPrefix).textDecorationLine,
-        internalDecoration: getComputedStyle(internal).textDecorationLine,
-        internalDecorationColor: internalStyle.textDecorationColor,
-        internalDecorationAlpha: underlineAlpha,
-        externalDecoration: getComputedStyle(external).textDecorationLine,
-      };
-    });
+    );
 
     expect(colors.internal).not.toBe(colors.external);
     expect(colors.internalKind).toBe('internal');
@@ -100,7 +111,7 @@ for (const theme of ['dark', 'light'] as const) {
     expect(colors.moguPrefix).toBe(colors.moguPrefixParent);
     expect(colors.moguPrefixDecoration).toBe('none');
 
-    const external = page.locator('.post-content a[href="https://pi.dev/"]').last();
+    const external = page.locator(`.post-content a[href="${EXTERNAL_HREF}"]`).last();
     await external.hover();
     await expect(external).toHaveCSS('text-decoration-line', 'underline');
 

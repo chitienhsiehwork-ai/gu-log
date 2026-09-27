@@ -103,7 +103,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     test.skip(!isDesktop, 'E2E file-path coverage runs only in the Desktop Chrome project');
   });
 
-  const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+  const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
   async function setupLoggedIn(page: import('@playwright/test').Page) {
     await page.goto(TEST_POST);
@@ -150,7 +150,7 @@ test.describe('AiPopup filePath — E2E Request Validation', () => {
     expect(capturedFilePath).toBeTruthy();
     expect(capturedFilePath).toMatch(/\.mdx$/);
     expect(capturedFilePath).not.toMatch(/\.mdx\.mdx/);
-    // Should look like: src/content/posts/gp-24-20260204-claude-is-a-space-to-think.mdx
+    // Should look like: src/content/posts/mp-25-20260204-cursor-vibe-coding-lies.mdx
     expect(capturedFilePath).toMatch(/^src\/content\/posts\/[a-z0-9-]+\.mdx$/);
   });
 

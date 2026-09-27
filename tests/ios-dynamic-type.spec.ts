@@ -7,7 +7,7 @@ test.describe('iOS Dynamic Type layout', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     const isMobileSafari = test.info().project.name === 'Mobile Safari';
 
-    for (const route of ['/', '/posts/gp-245-20260624-mattpocockuk-skill-no-op/']) {
+    for (const route of ['/', '/posts/mp-25-20260204-cursor-vibe-coding-lies/']) {
       await page.goto(route);
 
       if (isMobileSafari) {

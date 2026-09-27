@@ -301,7 +301,7 @@ test.describe('Component smoke — storage fallbacks', () => {
       };
     });
 
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     await expect(page.locator('article').first()).toBeVisible();
     await expect(page.locator('[data-read-button]')).toHaveCSS('display', 'none');
@@ -311,8 +311,8 @@ test.describe('Component smoke — storage fallbacks', () => {
   test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
     page,
   }) => {
-    const readSlug = 'gp-143-20260402-ecc-autonomous-loops';
-    const unreadSlug = 'gp-146-20260402-ecc-hook-architecture';
+    const readSlug = 'sd-11-20260402-ai-agent-memory-architecture';
+    const unreadSlug = 'sd-13-20260402-prompt-cache-economics';
 
     await page.addInitScript((preloadedSlug) => {
       localStorage.removeItem('gu-log-jwt');
@@ -338,7 +338,7 @@ test.describe('Component smoke — storage fallbacks', () => {
       });
     }, readSlug);
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
 
     const readIndicator = page.locator(
       `[data-series-nav] [data-read-indicator][data-slug="${readSlug}"]`
@@ -452,7 +452,7 @@ test.describe('Component smoke — shared high-fanout styles', () => {
       expect((await paginationLink.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     }
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
     const seriesToggleIcon = page.locator('.series-list-toggle .toggle-icon');
     await expect(seriesToggleIcon).toBeVisible();
     await expect(seriesToggleIcon).toHaveCSS('border-left-width', '0px');
@@ -507,7 +507,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 
   test('an GP post page renders article body', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
     await expect(page.locator('article').first()).toBeVisible();
     // Body should contain at least one heading
     expect(await page.locator('h2, h3').count()).toBeGreaterThan(0);
@@ -515,7 +515,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
   });
 
   test('comments explain when the Giscus client cannot load', async ({ page }) => {
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     const status = page.locator('.giscus-status');
     await expect(status).toContainText('留言載入中');
@@ -534,7 +534,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         body: '',
       });
     });
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     const errors = await page.evaluate(async () => {
       const capturedErrors: string[] = [];
@@ -566,7 +566,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         body: '',
       });
     });
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     const status = page.locator('.giscus-status');
     await expect(status).toBeVisible();
@@ -642,8 +642,8 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     const errorsByRoute: Record<string, string[]> = {};
 
     for (const [route, consumer] of [
-      ['/posts/gp-100-20260304-berryxia-ai-ai-prompt', '[data-related-articles]'],
-      ['/posts/gp-144-20260402-ecc-instinct-system', '[data-series-nav]'],
+      ['/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools', '[data-related-articles]'],
+      ['/posts/sd-12-20260402-claude-code-bad-patterns', '[data-series-nav]'],
     ] as const) {
       await page.goto(route);
       await expect(page.locator(consumer)).toBeVisible();
@@ -679,8 +679,8 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     }
 
     expect(errorsByRoute).toEqual({
-      '/posts/gp-100-20260304-berryxia-ai-ai-prompt': [],
-      '/posts/gp-144-20260402-ecc-instinct-system': [],
+      '/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools': [],
+      '/posts/sd-12-20260402-claude-code-bad-patterns': [],
     });
   });
 
@@ -691,7 +691,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme);
       }, theme);
-      await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+      await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
       const pageBackground = page.locator('body');
       const relatedCard = page.locator('.related-card').first();
@@ -711,7 +711,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         ).toBeGreaterThanOrEqual(4.5);
       }
 
-      await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+      await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
       const seriesCard = page.locator('.series-nav-link').first();
       await seriesCard.hover();
       expect(
@@ -722,7 +722,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 
   test('mobile article chrome avoids repeated rounded side-tab cards', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
     for (const locator of [
       page.locator('.source-citation'),
@@ -791,7 +791,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     await expect(mobileToc).toHaveAttribute('data-open', 'false');
     await expect(mobileTocContent).toHaveCSS('border-left-width', '0px');
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
     const seriesNavLink = page.locator('.series-nav-link').first();
     const seriesNavStyles = await seriesNavLink.evaluate((element) => {
       const style = getComputedStyle(element);

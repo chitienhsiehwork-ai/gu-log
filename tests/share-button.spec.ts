@@ -23,12 +23,10 @@ test.describe('ShareButton fallback', () => {
       });
     });
 
-    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think?token=private#access-token');
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies?token=private#access-token');
 
     const expected = await page.locator('link[rel~="canonical"]').getAttribute('href');
-    expect(expected).toBe(
-      'https://gu-log.vercel.app/posts/gp-24-20260204-claude-is-a-space-to-think'
-    );
+    expect(expected).toBe('https://gu-log.vercel.app/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
     await page.locator('.share-native').click();
     await page.locator('.share-copy').evaluate((button: HTMLButtonElement) => button.click());
@@ -72,7 +70,7 @@ test.describe('ShareButton fallback', () => {
     });
     await page.clock.install();
 
-    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
     const copyButton = page.locator('.share-copy');
     const copyText = copyButton.locator('.copy-text');
@@ -148,7 +146,7 @@ test.describe('ShareButton fallback', () => {
         });
       }, outcome);
 
-      await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+      await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
       const copyButton = page.locator('.share-copy');
       await expect(copyButton).toBeVisible();

@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import PostVideo from '../../components/PostVideo.astro';
+---
+
+<BaseLayout
+  title="Post Video Fixture"
+  description="Test fixture for inline post videos"
+  noindex={true}
+>
+  <article class="fixture-article" aria-labelledby="fixture-title">
+    <h1 id="fixture-title">Post Video Fixture</h1>
+    <p>
+      這頁是測試用
+      fixture：兩段寬高比例不同的影片，確認文章影片在手機上維持內嵌、延遲載入、不會撐破版面。
+    </p>
+
+    <PostVideo
+      src="https://media.example.com/fixtures/landscape-demo.mp4"
+      poster="https://media.example.com/fixtures/landscape-demo-first-frame.jpg"
+      label="橫向影片測試：動畫圖表"
+      width={720}
+      height={548}
+    />
+
+    <PostVideo
+      src="https://media.example.com/fixtures/square-demo.mp4"
+      poster="https://media.example.com/fixtures/square-demo-first-frame.jpg"
+      label="方形影片測試：動畫圓形"
+      width={1078}
+      height={1080}
+    />
+  </article>
+</BaseLayout>
+
+<style>
+  .fixture-article {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+</style>

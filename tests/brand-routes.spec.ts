@@ -39,8 +39,8 @@ test.describe('Mogu / GP / MP breaking route contract', () => {
   test('GIVEN a migrated post WHEN old and new slugs are requested THEN only GP resolves', async ({
     request,
   }) => {
-    const canonical = '/posts/gp-7-20260130-clawdbot-architecture-deep-dive';
-    const retired = '/posts/sp-7-20260130-clawdbot-architecture-deep-dive';
+    const canonical = '/posts/gp-1-20260128-demo';
+    const retired = '/posts/sp-1-20260128-demo';
 
     expect((await request.get(canonical)).status()).toBe(200);
     const retiredResponse = await request.get(retired, { maxRedirects: 0 });

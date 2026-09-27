@@ -6,8 +6,8 @@ import { test, expect } from './fixtures';
  * LoginCta appears at the bottom of posts to encourage login for AI features.
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
-const EN_TEST_POST = '/en/posts/en-gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
+const EN_TEST_POST = '/en/posts/en-mp-25-20260204-cursor-vibe-coding-lies';
 
 test.describe('LoginCta Component', () => {
   test('loads its runtime from a cacheable script instead of repeating it inline', async ({
