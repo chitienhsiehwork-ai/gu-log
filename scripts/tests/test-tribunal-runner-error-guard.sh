@@ -521,8 +521,8 @@ cat > "$race_progress" <<'JSON'
     "tribunalVersion": 999,
     "stages": {}
   },
-  "gp-2-20260129-claude-code-vs-codex.mdx": {
-    "article": "gp-2-20260129-claude-code-vs-codex.mdx",
+  "sd-10-20260322-ralph-loop-quality-system.mdx": {
+    "article": "sd-10-20260322-ralph-loop-quality-system.mdx",
     "status": "PENDING",
     "topLevelAttempts": 0,
     "tribunalVersion": 999,
@@ -603,7 +603,7 @@ TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$race_progress" \
 TRIBUNAL_CODEX_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC=5 \
 TRIBUNAL_CODEX_IDLE_POLL_SEC=1 \
-timeout 15s bash "$TRIBUNAL" --score-only --only-stage factChecker gp-2-20260129-claude-code-vs-codex.mdx \
+timeout 15s bash "$TRIBUNAL" --score-only --only-stage factChecker sd-10-20260322-ralph-loop-quality-system.mdx \
   >"$TMP/exhausted-race-y.out" 2>"$TMP/exhausted-race-y.err"
 race_y_rc=$?
 : > "$race_release"
@@ -617,7 +617,7 @@ set -e
   fail "peer runner crash must remain rc=70 instead of stealing EXHAUSTED, got rc=$race_y_rc"
 [ "$(jq -r '."gp-1-20260128-demo.mdx".status' "$race_progress")" = "EXHAUSTED" ] ||
   fail "exhausted article lost its terminal ledger status"
-[ "$(jq -r '."gp-2-20260129-claude-code-vs-codex.mdx".status' "$race_progress")" = "RUNNER_ERROR" ] ||
+[ "$(jq -r '."sd-10-20260322-ralph-loop-quality-system.mdx".status' "$race_progress")" = "RUNNER_ERROR" ] ||
   fail "peer article did not retain its independent runner-error status"
 pass "concurrent articles cannot steal each other's EXHAUSTED signal"
 
