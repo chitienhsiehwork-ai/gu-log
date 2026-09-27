@@ -134,6 +134,8 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **PR 動到 `src/content/posts/*.mdx`（新增 GP/MP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR；跑完 sub-8 不是 merge blocker，但 floor 沒過不能 merge。**
 
+**唯一例外是下架**：把文章改成 `status: taken-down` 不是改寫，不跑 Tribunal；下架文章也不在 Tribunal 範圍內，範圍只看 `status`（`post-takedown` 與 `tribunal-verification-scope` spec）。下架一律走 `scripts/take-down-posts.mjs`，不要自己清正文。
+
 **首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
 
 **沙箱 fallback**（只有上面 shell/pipeline 路真的壞掉時才用——例如 quota 用盡、CLI 版本回歸）：CCC 依 `.claude/agents/` 的四個 role 平行跑；浮動 alias 的 judge 用 `Agent` tool，exact-version pinned 的 Vibe 用 `claude -p --model <frontmatter 的完整 id>`：

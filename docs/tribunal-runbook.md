@@ -340,7 +340,7 @@ Exit code conventions (from `tribunal-all-claude.sh`):
 - `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
-- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
+- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching. A manual run on a `status: taken-down` post also exits `78` before any judge runs; candidate selection already skips those posts (`post-takedown` spec)
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
 
 ## Worktree lifecycle cheat sheet
