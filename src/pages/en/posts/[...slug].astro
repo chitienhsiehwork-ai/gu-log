@@ -155,7 +155,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     </header>
 
     {
-      postStatus.status !== 'published' && (
+      postStatus.status !== 'published' && postStatus.status !== 'taken-down' && (
         <PostStatusBanner
           type={postStatus.status}
           lang="en"

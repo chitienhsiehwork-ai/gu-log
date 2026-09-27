@@ -2,7 +2,8 @@
 import type { PostStatus } from '../utils/post-status';
 
 interface Props {
-  type: Exclude<PostStatus, 'published'>;
+  // 下架文章渲染墓碑頁，不顯示狀態 banner（openspec: post-takedown）。
+  type: Exclude<PostStatus, 'published' | 'taken-down'>;
   replacementHref?: string;
   replacementUrl?: string;
   replacementTitle?: string;

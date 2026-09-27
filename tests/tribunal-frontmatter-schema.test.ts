@@ -7,7 +7,8 @@
  *     stripped by Zod's default unknown-key behavior)
  *   - score dimensions are integers 0..10; tribunalVersion is a positive int
  *   - cross-field invariants (deprecated↔deprecatedBy, humanOverride reason,
- *     acknowledged overlap justification, proxy author distinction)
+ *     acknowledged overlap justification, proxy author distinction,
+ *     taken-down↔takenDownAt + sourceTitle)
  *   - stage4Scores shape is version-aware (v9 must not carry Vibe clarity)
  *
  * `astro:content` is a virtual module only Astro can resolve — mock it with
@@ -324,6 +325,69 @@ describe('posts schema — cross-field invariants', () => {
       authorCanonical: 'andrej-karpathy',
     });
     expect(distinct.success, issueMessages(distinct)).toBe(true);
+  });
+});
+
+describe('posts schema — taken-down invariants (post-takedown)', () => {
+  const TAKEN_DOWN = {
+    ...BASE,
+    ticketId: 'GP-273',
+    summary: '這篇翻譯已下架。',
+    status: 'taken-down',
+    takenDownAt: '2026-09-27',
+    sourceTitle: 'The human is the loop',
+  };
+
+  it('accepts a taken-down post that keeps its original fields', async () => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({
+      ...TAKEN_DOWN,
+      tags: ['agents'],
+      sourceType: 'primary',
+      authorCanonical: 'brent-fitzgerald',
+      scores: { tribunalVersion: 9, vibe: { ...VIBE_V9 } },
+    });
+    expect(r.success, issueMessages(r)).toBe(true);
+    expect(r.data.status).toBe('taken-down');
+  });
+
+  it('rejects status=taken-down without takenDownAt or sourceTitle', async () => {
+    const schema = await loadPostsSchema();
+    const noDate = schema.safeParse({ ...TAKEN_DOWN, takenDownAt: undefined });
+    expect(noDate.success).toBe(false);
+    expect(issueMessages(noDate)).toContain('takenDownAt is required when status is taken-down');
+
+    const noTitle = schema.safeParse({ ...TAKEN_DOWN, sourceTitle: undefined });
+    expect(noTitle.success).toBe(false);
+    expect(issueMessages(noTitle)).toContain('sourceTitle is required when status is taken-down');
+
+    const blankTitle = schema.safeParse({ ...TAKEN_DOWN, sourceTitle: '   ' });
+    expect(blankTitle.success).toBe(false);
+    expect(issueMessages(blankTitle)).toContain(
+      'sourceTitle is required when status is taken-down'
+    );
+  });
+
+  it('rejects a malformed takenDownAt', async () => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({ ...TAKEN_DOWN, takenDownAt: '2026/09/27' });
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain('takenDownAt must be YYYY-MM-DD');
+  });
+
+  it('rejects takenDownAt on a post that is not taken down', async () => {
+    const schema = await loadPostsSchema();
+    for (const status of ['published', 'retired']) {
+      const r = schema.safeParse({ ...BASE, ticketId: 'GP-2', status, takenDownAt: '2026-09-27' });
+      expect(r.success).toBe(false);
+      expect(issueMessages(r)).toContain('status must be taken-down when takenDownAt is present');
+    }
+  });
+
+  it('allows sourceTitle on a published post', async () => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({ ...BASE, ticketId: 'GP-2', sourceTitle: 'Original title' });
+    expect(r.success, issueMessages(r)).toBe(true);
   });
 });
 
