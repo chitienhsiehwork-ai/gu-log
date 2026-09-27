@@ -16,8 +16,15 @@
  *
  * Output (stdout):
  *   BLOCK: Duplicate of GP-127 (URL match)
+ *   BLOCK: Source blocked — GP-35 was taken down (URL match): <title>
  *   WARN: Similar to MP-238 (score: 0.24)
  *   PASS
+ *
+ * Taken-down posts (openspec: post-takedown) are blocked sources, not live
+ * articles: Layer 1 still matches their URL / tweet / YouTube identity and
+ * blocks with "Source blocked", while Layer 2 never compares against them
+ * because their content is gone. This file stays self-contained (the
+ * gp-pipeline Go tests run a lone copy of it), so the status is read inline.
  *
  * Exit codes:
  *   0 = PASS or WARN (pipeline may continue)
@@ -280,12 +287,14 @@ function computeSimilarity(textA, textB) {
 
 // ─── Article loading ──────────────────────────────────────────────────────────
 
-function loadPublishedArticles() {
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
+const TAKEN_DOWN_STATUS = 'taken-down';
+
+function loadPublishedArticles(postsDir = POSTS_DIR) {
+  const files = fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
   const articles = [];
 
   for (const file of files) {
-    const filePath = path.join(POSTS_DIR, file);
+    const filePath = path.join(postsDir, file);
     let data;
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
@@ -312,6 +321,7 @@ function loadPublishedArticles() {
       normalizedUrl,
       tweetId,
       youtubeVideoId,
+      takenDown: data.status === TAKEN_DOWN_STATUS,
       keywordText: `${data.title ?? ''} ${data.summary ?? ''} ${Array.isArray(data.tags) ? data.tags.join(' ') : ''}`,
     });
   }
@@ -352,6 +362,14 @@ function layer1Match(candidateUrl, articles) {
   return null;
 }
 
+/** The stdout line for a Layer 1 hit; a taken-down match is a blocked source. */
+function formatLayer1Block({ article, reason }) {
+  if (article.takenDown) {
+    return `BLOCK: Source blocked — ${article.ticketId} was taken down (${reason}): ${article.title}`;
+  }
+  return `BLOCK: Duplicate of ${article.ticketId} (${reason}): ${article.title}`;
+}
+
 // ─── Layer 2: Topic similarity ────────────────────────────────────────────────
 
 function layer2Match(candidateTitle, candidateTags, articles) {
@@ -359,6 +377,8 @@ function layer2Match(candidateTitle, candidateTags, articles) {
   let best = { score: 0, enOverlap: 0, article: null };
 
   for (const art of articles) {
+    // A taken-down post's content is gone; only its source identity blocks.
+    if (art.takenDown) continue;
     // Title-to-title (tight match)
     const titleSim = computeSimilarity(candidateTitle, art.title);
     // Full-to-full (broad match)
@@ -543,9 +563,7 @@ function main() {
   // Layer 1: URL
   const urlMatch = layer1Match(args.url, articles);
   if (urlMatch) {
-    const { article, reason } = urlMatch;
-    const msg = `BLOCK: Duplicate of ${article.ticketId} (${reason}): ${article.title}`;
-    process.stdout.write(msg + '\n');
+    process.stdout.write(formatLayer1Block(urlMatch) + '\n');
     if (!args.dryRun) process.exit(1);
     process.exit(0);
   }
@@ -598,6 +616,7 @@ export {
   jaccard,
   computeSimilarity,
   layer1Match,
+  formatLayer1Block,
   layer2Match,
   layer3QueueCheck,
   loadPublishedArticles,

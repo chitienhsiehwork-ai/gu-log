@@ -5,7 +5,10 @@
  * plus the URL/keyword helpers that drive the thresholds.
  */
 import { describe, it, expect } from 'vitest';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as dedupModule from '../scripts/dedup-gate.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // dedup-gate.mjs is plain JS without .d.ts; widen for ergonomic destructuring.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,8 +24,10 @@ const {
   jaccard,
   computeSimilarity,
   layer1Match,
+  formatLayer1Block,
   layer2Match,
   layer3QueueCheck,
+  loadPublishedArticles,
   parseArgs,
   REJECT_THRESHOLD,
   FLAG_THRESHOLD,
@@ -427,5 +432,71 @@ describe('parseArgs', () => {
     ]);
     expect(args.url).toBe('https://youtu.be/dQw4w9WgXcQ');
     expect(args.identityOnly).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// taken-down（openspec: post-takedown）：下架文章是「來源已封鎖」，不是「不存在」。
+// ════════════════════════════════════════════════════════════════════════════
+describe('taken-down posts are blocked sources', () => {
+  const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+  const postsDir = makeTempDirectory('gu-log-dedup-takedown-');
+  const write = (file: string, fm: string[]) =>
+    fs.writeFileSync(path.join(postsDir, file), `---\n${fm.join('\n')}\n---\n`);
+  write('gp-35-agent-teams.mdx', [
+    'ticketId: "GP-35"',
+    'title: "Claude Code Agent Teams 官方文件深入解析"',
+    'sourceUrl: "https://code.claude.com/docs/en/agent-teams"',
+    'tags: ["claude-code", "agent-teams"]',
+    'status: "taken-down"',
+  ]);
+  write('mp-9-live.mdx', [
+    'ticketId: "MP-9"',
+    'title: "Codex CLI sandbox 設定筆記"',
+    'sourceUrl: "https://example.com/codex-sandbox"',
+    'tags: ["codex"]',
+  ]);
+  write('mp-8-deprecated.mdx', [
+    'ticketId: "MP-8"',
+    'title: "舊文"',
+    'sourceUrl: "https://example.com/old"',
+    'status: "deprecated"',
+    'deprecatedBy: "MP-9"',
+  ]);
+  const articles = loadPublishedArticles(postsDir);
+
+  it('keeps taken-down posts for identity matching and flags them', () => {
+    const byTicket = Object.fromEntries(
+      articles.map((article: { ticketId: string; takenDown: boolean }) => [
+        article.ticketId,
+        article.takenDown,
+      ])
+    );
+    expect(byTicket).toEqual({ 'GP-35': true, 'MP-9': false });
+  });
+
+  it('Layer 1 BLOCKs a candidate from a taken-down source and says why', () => {
+    const match = layer1Match(
+      'https://code.claude.com/docs/en/agent-teams/?utm_source=x',
+      articles
+    );
+    expect(match?.article.ticketId).toBe('GP-35');
+    expect(formatLayer1Block(match)).toBe(
+      'BLOCK: Source blocked — GP-35 was taken down (URL match): Claude Code Agent Teams 官方文件深入解析'
+    );
+    const live = layer1Match('https://example.com/codex-sandbox', articles);
+    expect(formatLayer1Block(live)).toBe(
+      'BLOCK: Duplicate of MP-9 (URL match): Codex CLI sandbox 設定筆記'
+    );
+  });
+
+  it('Layer 2 never compares against a taken-down post', () => {
+    const result = layer2Match(
+      'Claude Code Agent Teams 官方文件深入解析',
+      ['claude-code', 'agent-teams'],
+      articles
+    );
+    expect(result.article?.ticketId).not.toBe('GP-35');
+    expect(result.verdict).toBe('PASS');
   });
 });
