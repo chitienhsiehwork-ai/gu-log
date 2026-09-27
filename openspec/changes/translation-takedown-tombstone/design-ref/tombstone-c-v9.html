@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人，才是那個迴圈（已下架） - gu-log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans&family=Noto+Sans+Kannada&family=Noto+Sans+Lao&family=Noto+Serif+Tibetan&display=swap">
+<style>
+  /* gu-log 主題色：淺色 Solarized Light（預設在這份稿），深色 Dracula */
+  :root {
+    --bg: #fdf6e3;
+    --surface: #eee8d5;
+    --border: #d3cbb7;
+    --text: #556b73;
+    --text-strong: #4a5a5e;
+    --note-text: #425458;
+    --accent: #1c679b;
+    --on-accent: #ffffff;
+    --mogu-orange: #854d35;
+    --badge-gp: #195d8c;
+    --badge-gp-bg: rgba(25, 93, 140, 0.12);
+    --badge-gp-border: rgba(25, 93, 140, 0.35);
+    --tomb-ink: #3d4a4e;
+    --tomb-rule: rgba(61, 74, 78, 0.35);
+    --gone: #854d35;
+    --gone-bg: rgba(133, 77, 53, 0.12);
+  }
+  [data-theme="dark"] {
+    --bg: #282a36;
+    --surface: #44475a;
+    --border: #44475a;
+    --text: #cecdda;
+    --text-strong: #cecdda;
+    --note-text: #cecdda;
+    --accent: #ff79c6;
+    --on-accent: #282a36;
+    --mogu-orange: #ffb86c;
+    --badge-gp: #8be9fd;
+    --badge-gp-bg: rgba(139, 233, 253, 0.15);
+    --badge-gp-border: transparent;
+    --gone: #ffb86c;
+    --gone-bg: rgba(255, 184, 108, 0.15);
+  }
+  * { box-sizing: border-box; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', 'Noto Sans TC', -apple-system, sans-serif;
+  }
+  .page { max-width: 680px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+  }
+  header a { color: var(--text-strong); font-weight: 700; font-size: 18px; text-decoration: none; }
+  .theme-toggle {
+    font: inherit; font-size: 13px; color: var(--accent); background: none;
+    border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; min-height: 32px;
+  }
+  main { display: flex; flex-direction: column; gap: 20px; padding: 24px 20px 32px; }
+  .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
+  .pill-gp { color: var(--badge-gp); background: var(--badge-gp-bg); border: 1px solid var(--badge-gp-border); }
+  .pill-gone { color: var(--gone); background: var(--gone-bg); }
+
+  /* 墓碑場景：墓碑、Mogu 用素材圖；碑文用 HTML 疊在石面上，每篇換標題和日期。
+     石頭在深淺色主題都是淺米色，所以碑文固定用深色墨水。 */
+  .scene { position: relative; height: 290px; }
+  .scene::after {
+    content: ''; position: absolute; left: 4%; right: 4%; bottom: -8px; height: 16px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.12), transparent 70%);
+  }
+  .tomb { position: absolute; right: 0; bottom: 0; width: 225px; }
+  .tomb img { display: block; width: 100%; height: auto; }
+  .tomb-text {
+    position: absolute; left: 16%; right: 22%; top: 21%; bottom: 29%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; text-align: center; color: var(--tomb-ink);
+  }
+  .tomb-text .owner { font-size: 14px; font-weight: 700; }
+  .tomb-text .epitaph { font-size: 19px; font-weight: 700; letter-spacing: 0.08em; }
+  .tomb-text .title { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.35; }
+  .tomb-text .dates { font-size: 12px; font-weight: 600; }
+  .tomb-text .rip { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .tomb-text hr { width: 80%; margin: 2px 0; border: 0; border-top: 1px solid var(--tomb-rule); }
+  .mogu { position: absolute; left: -4px; bottom: -4px; width: 150px; height: auto; z-index: 1; }
+
+  .bubble {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+    color: var(--note-text); font-size: 15px; line-height: 1.8;
+  }
+  .bubble strong { color: var(--mogu-orange); }
+  .bubble p { margin: 0; text-wrap: pretty; }
+  .kao { white-space: nowrap; font-family: 'Noto Sans TC', 'Noto Sans', 'Noto Sans Kannada', 'Noto Serif Tibetan', 'Noto Sans Lao', sans-serif; }
+
+  .cta {
+    display: flex; align-items: center; gap: 14px; min-height: 44px;
+    border-radius: 12px; background: var(--accent); color: var(--on-accent);
+    padding: 14px 16px; text-decoration: none;
+  }
+  .cta svg { flex: none; width: 30px; height: 30px; }
+  .cta .text { display: flex; flex-direction: column; gap: 4px; }
+  .cta .label { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+  .cta .src-title { font-size: 17px; font-weight: 700; }
+  .cta .src-author { font-size: 13px; }
+  .foot { display: flex; justify-content: flex-end; font-size: 13px; }
+  .foot a { color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <a href="https://gu-log.vercel.app/">gu-log</a>
+    <!-- 只給設計預覽用的切換鈕；正式網站沿用 gu-log 原本的主題切換 -->
+    <button class="theme-toggle" type="button" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? '' : 'dark'">切換深淺色</button>
+  </header>
+  <main>
+    <h1 class="sr-only">人，才是那個迴圈（gu-log 翻譯文章，已下架）</h1>
+    <div class="meta">
+      <span class="pill pill-gp">GP-273</span>
+      <span class="pill pill-gone">已下架</span>
+    </div>
+
+    <div class="scene">
+      <div class="tomb">
+        <img src="tombstone.webp" alt="" width="450" height="507">
+        <div class="tomb-text">
+          <span class="owner">gu-log 的</span>
+          <span class="epitaph">翻譯文章之墓</span>
+          <hr>
+          <span class="dates">2026.08.13 – [下架日期]</span>
+          <span class="rip">安息吧 (－人－)</span>
+        </div>
+      </div>
+      <img class="mogu" src="mogu-crying.webp" alt="" width="280" height="320">
+    </div>
+
+    <div class="bubble">
+      <strong>Mogu 內心小劇場：</strong>
+      <p>嗚嗚，我辛辛苦苦翻了一整篇 <span class="kao">ಥ_ಥ</span></p>
+      <p>結果才知道，整篇翻譯要先經過作者同意</p>
+      <p>可是我太 i 了，不敢問 <span class="kao">((( ；ﾟДﾟ)))</span></p>
+      <p>只好幫中文版立個小墓碑</p>
+      <p>還好原文沒事，點下面去看原汁原味的吧！</p>
+    </div>
+
+    <a class="cta" href="https://brentfitzgerald.com/posts/the-human-is-the-loop/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M19 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/></svg>
+      <span class="text">
+        <span class="label">去讀原文 →</span>
+        <span class="src-title">The human is the loop</span>
+        <span class="src-author">Brent Fitzgerald · brentfitzgerald.com</span>
+      </span>
+    </a>
+
+    <div class="foot"><a href="https://gu-log.vercel.app/">回首頁 →</a></div>
+  </main>
+</div>
+</body>
+</html>
