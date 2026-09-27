@@ -300,6 +300,21 @@ is_canonical_terminology_only_diff() {
     node "$REPO_ROOT/scripts/check-glossary-links.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
 }
 
+# is_taken_down_staged FILE → 0 when the staged frontmatter says
+# `status: taken-down` (openspec: post-takedown). A taken-down post has no
+# article body left, so the reader-content gates (score floor, pronoun,
+# 晶晶體, AI tells, glossary coverage, topic dedup) skip it. Frontmatter
+# validation (validate-posts) and the emoji / takedown ratchets still run.
+is_taken_down_staged() {
+    local file="$1"
+    git show ":$file" 2>/dev/null | awk '
+        NR == 1 { if ($0 == "---") { in_fm = 1; next } else { exit 1 } }
+        in_fm && $0 == "---" { exit found ? 0 : 1 }
+        in_fm && /^status:[[:space:]]*["'"'"']?taken-down["'"'"']?[[:space:]]*$/ { found = 1 }
+        END { exit found ? 0 : 1 }
+    '
+}
+
 GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_MODIFIED[@]}")
 
 if [ "${#GATE_CANDIDATES[@]}" -eq 0 ]; then
@@ -310,6 +325,11 @@ else
     for file in "${GATE_CANDIDATES[@]}"; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # Taking a post down needs no Tribunal score (openspec: post-takedown).
+        if is_taken_down_staged "$file"; then
+            continue
+        fi
 
         if is_canonical_taxonomy_only_diff "$file"; then
             continue
@@ -387,6 +407,9 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                if is_taken_down_staged "$file"; then
+                    continue
+                fi
                 if is_canonical_taxonomy_only_diff "$file"; then
                     continue
                 fi
@@ -479,12 +502,19 @@ STAGED_GLOSSARY=()
 while IFS= read -r -d '' file; do
     STAGED_GLOSSARY+=("$file")
 done < <(git diff --cached --name-only -z --diff-filter=ACM -- src/data/glossary.json 2>/dev/null || true)
+GLOSSARY_MDX=()
+for file in "${STAGED_MDX[@]}"; do
+    if is_taken_down_staged "$file"; then
+        continue
+    fi
+    GLOSSARY_MDX+=("$file")
+done
 if [ "$IS_MERGE_COMMIT" != "1" ]; then
-    if [ "${#STAGED_MDX[@]}" -gt 0 ] || [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
+    if [ "${#GLOSSARY_MDX[@]}" -gt 0 ] || [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
         echo "🔗 Glossary links: checking staged post/glossary coverage..."
         GLOSSARY_ARGS=()
-        if [ "${#STAGED_MDX[@]}" -gt 0 ]; then
-            GLOSSARY_ARGS+=("${STAGED_MDX[@]}")
+        if [ "${#GLOSSARY_MDX[@]}" -gt 0 ]; then
+            GLOSSARY_ARGS+=("${GLOSSARY_MDX[@]}")
         fi
         if [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
             GLOSSARY_ARGS+=("--changed-terms=HEAD")
@@ -513,6 +543,10 @@ else
     for file in "${ADDED_ZH_POSTS[@]}"; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then
+            continue
+        fi
+
+        if is_taken_down_staged "$file"; then
             continue
         fi
 
@@ -562,6 +596,12 @@ content_gate_mdx_files() {
     CONTENT_GATE_MDX=()
     local file
     for file in "${STAGED_MDX[@]}"; do
+        # Taken-down posts always go through frontmatter validation: the
+        # validator checks the takedown fields and the empty body.
+        if is_taken_down_staged "$file"; then
+            CONTENT_GATE_MDX+=("$file")
+            continue
+        fi
         if is_canonical_taxonomy_only_diff "$file"; then
             continue
         fi

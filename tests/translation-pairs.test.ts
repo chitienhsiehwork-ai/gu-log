@@ -45,6 +45,21 @@ describe('translation-pair PR scope', () => {
     }
   });
 
+  it('does not ask a taken-down post for a sidecar (openspec: post-takedown)', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      fs.writeFileSync(
+        path.join(postsDir, 'mp-987656-taken-down.mdx'),
+        '---\nticketId: MP-987656\nstatus: taken-down\ntakenDownAt: "2026-09-27"\n---\n'
+      );
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
   it('does not let body text retire an English-only post with no frontmatter status', () => {
     const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
 

@@ -415,6 +415,36 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
   });
 });
 
+describe('pre-commit: taken-down posts skip reader-content gates (post-takedown)', () => {
+  it('lets a takedown commit through without a Tribunal score', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      '---\nticketId: MP-162\nlang: zh-tw\nstatus: "taken-down"\ntakenDownAt: "2026-09-27"\n---\n'
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  it('still gates a rewrite that only mentions taken-down in the body', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      '---\nticketId: MP-162\nlang: zh-tw\n---\nstatus: taken-down 只是正文裡的一行字\n'
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+});
+
 describe('pre-commit: tmp/ untracked guard (Step -0.5)', () => {
   it('blocks a tracked-file rename into ignored tmp/', () => {
     const repo = makeFakeRepo();

@@ -141,6 +141,14 @@ function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
   return JSON.stringify(removed) === JSON.stringify(added);
 }
 
+// Taken-down posts have no reader content left to lint (openspec:
+// post-takedown); frontmatter validation still covers them.
+function isTakenDown(currentFile) {
+  if (!fs.existsSync(currentFile)) return false;
+  const parts = splitFrontmatter(fs.readFileSync(currentFile, 'utf8'));
+  return /^status:\s*["']?taken-down["']?\s*$/m.test(parts?.frontmatter ?? '');
+}
+
 function isExistingTicketAddition(baseRef, baseFile, currentFile) {
   if (existsAt(baseRef, baseFile)) return false;
   return ticketExistsAt(baseRef, readTicketId(currentFile), currentFile);
@@ -207,6 +215,7 @@ const changed = git([
 const files = parseNameStatus(changed)
   .filter(({ currentFile }) => !path.basename(currentFile).startsWith('en-'))
   .filter(({ currentFile }) => fs.existsSync(currentFile))
+  .filter(({ currentFile }) => !isTakenDown(currentFile))
   .filter(
     ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
   )
