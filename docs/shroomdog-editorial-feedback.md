@@ -14,6 +14,15 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
 
+## 2026-09-27 — 整篇翻譯要作者同意：GP 全下架、付費新聞 MP 下架
+
+### Feedback: 沒有作者同意的整篇翻譯不能公開；下架要真的下架，不是貼標籤
+
+- ShroomDog feedback：2026-09-26 在 chat 決定，整篇翻譯屬於改作，要先取得原作者同意；gu-log 的 GP 都沒有取得同意，所以全部下架（GP-1 是自寫示範文、不是翻譯，保留）。直接取材自付費新聞媒體的 MP 也下架；判斷不確定的 MP 先不動，交給之後的 MP 防翻譯檢查。原本「不要刪除任何已發布內容，除非我明確同意」的規則照舊，這次就是明確同意。2026-09-27 再授權：「下架清單不用給我看，直接 e2e 做完」。
+- 情境：網站原本沒有真正的下架。`status: retired`／`deprecated` 只是標籤，全文照樣出現在文章頁、JSON API、`.md` 匯出與 sitemap；公開 repo 的 HEAD 也還留著譯文、第三方原文擷取、測試資料裡的譯文與第三方 prompt 全文。
+- 修法：OpenSpec change `translation-takedown-tombstone` 新增 `status: taken-down`：保留網址與原有 frontmatter，正文清空、摘要換成中性句，原網址改顯示定稿墓碑（200 加 `noindex`），並從列表、feed、搜尋與 sitemap 移除；CI 棘輪擋下架文章被寫回、擋新 GP、擋用已下架來源寫新文章。清單由工具依規則算出（GP 繁中 270、英文 269，MP 4 個 ticket 共 8 檔，合計 547 檔），不逐篇請 owner 確認；同時清掉 repo HEAD 上的第三方原文與譯文副本。git 歷史另案處理（issue #1111）。
+- Reusable lesson：`retired`／`deprecated` 是「仍公開全文」的編輯標籤，不等於下架；下架要關掉每個出口（HTML、JSON、`.md`、feed、搜尋、sitemap、repo HEAD），而且要有棘輪防止自動化寫回去。第三方原文擷取一律留在 repo 外，`sources/` 只放 ShroomDog 自己的 ChatGPT 對話。owner 授權「依規則做完」時，把規則與授權寫進紀錄、讓工具從規則算出清單，不要再加一輪逐篇確認。
+
 ## 2026-09-26 — Mogu 撰寫與改寫文章一律使用 Claude 模型
 
 ### Feedback: 只有 Claude 寫得出 gu-log 等級的繁中；角色是 Mogu，Claude 是模型
