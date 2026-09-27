@@ -19,6 +19,11 @@ import yaml from 'yaml';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 import { MODEL_MAP } from './detect-model.mjs';
+import {
+  TAKEN_DOWN_STATUS,
+  getNeutralSummary,
+  getTakedownSeries,
+} from '../src/lib/tombstone-copy.mjs';
 
 // Claude's 5-generation models (Sonnet 5, Fable 5, ...) ship as whole-number
 // release names with no minor version, unlike the 4.x Opus/Sonnet line. Rule
@@ -283,6 +288,96 @@ function extractMoguNotes(content) {
 }
 
 // ─── Validation Rules ──────────────────────────────────────────────
+// ─── Taken-down posts (openspec: post-takedown) ────────────────────
+// 下架文章保留原 frontmatter、清空正文，網址改顯示墓碑頁。這裡檢查下架
+// 專屬欄位與翻譯配對一致；只對正文有意義的規則（長度、kaomoji、MoguNote、
+// 英文正文 CJK…）在 validatePost 裡對下架文章跳過。
+const TAKEN_DOWN_INCOMPATIBLE_FIELDS = [
+  'deprecatedBy',
+  'deprecatedReason',
+  'retiredReason',
+  'retiredAt',
+];
+
+function findTranslationPair(filename, allPosts) {
+  if (!allPosts) return null;
+  const baseName = getBaseFilename(filename);
+  return (
+    allPosts.find((p) => getBaseFilename(p.filename) === baseName && p.filename !== filename) ??
+    null
+  );
+}
+
+function validateTakedownState({ fm, body, filename, allPosts }) {
+  const errors = [];
+  const isTakenDown = fm.status === TAKEN_DOWN_STATUS;
+  const pair = findTranslationPair(filename, allPosts);
+
+  if (!isTakenDown) {
+    if (fm.takenDownAt) {
+      errors.push('takenDownAt is only allowed when status is taken-down');
+    }
+    if (pair?.status === TAKEN_DOWN_STATUS) {
+      errors.push(
+        `Translation pair ${pair.filename} is taken-down but this post is not; take down both languages together (openspec: post-takedown)`
+      );
+    }
+    return errors;
+  }
+
+  const series = getTakedownSeries(fm.ticketId);
+  if (!series) {
+    errors.push(
+      `status taken-down is only supported for GP/MP posts (got ticketId ${JSON.stringify(fm.ticketId)})`
+    );
+  }
+  if (body.trim().length > 0) {
+    errors.push(
+      `taken-down post body must be empty (found ${body.trim().length} non-whitespace chars); the tombstone renders from frontmatter only`
+    );
+  }
+  if (!fm.takenDownAt) {
+    errors.push('taken-down post requires takenDownAt (YYYY-MM-DD)');
+  } else if (!DATE_PATTERN.test(fm.takenDownAt)) {
+    errors.push(`Invalid takenDownAt format: "${fm.takenDownAt}" (expected YYYY-MM-DD)`);
+  }
+  const sourceTitle = typeof fm.sourceTitle === 'string' ? fm.sourceTitle.trim() : '';
+  if (!sourceTitle) {
+    errors.push("taken-down post requires a non-empty sourceTitle (the source's own title)");
+  } else if (typeof fm.title === 'string' && sourceTitle === fm.title.trim()) {
+    errors.push("sourceTitle must be the source's own title, not the gu-log title");
+  }
+  if (series && VALID_LANGS.includes(fm.lang)) {
+    const expectedSummary = getNeutralSummary({ ticketId: fm.ticketId, lang: fm.lang });
+    if (fm.summary !== expectedSummary) {
+      errors.push(
+        `taken-down post summary must be the neutral sentence ${JSON.stringify(expectedSummary)}`
+      );
+    }
+  }
+  for (const field of TAKEN_DOWN_INCOMPATIBLE_FIELDS) {
+    if (fm[field] !== undefined) {
+      errors.push(`${field} must be removed when status is taken-down`);
+    }
+  }
+  if (pair) {
+    if (pair.status !== TAKEN_DOWN_STATUS) {
+      errors.push(
+        `Translation pair ${pair.filename} must also be taken-down (take down both languages together)`
+      );
+    } else {
+      for (const field of ['takenDownAt', 'sourceUrl', 'sourceTitle']) {
+        if (pair[field] !== fm[field]) {
+          errors.push(
+            `Translation pair ${pair.filename} has a different ${field} (${JSON.stringify(pair[field])} vs ${JSON.stringify(fm[field])})`
+          );
+        }
+      }
+    }
+  }
+  return errors;
+}
+
 function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
@@ -313,6 +408,10 @@ function validatePost(filepath, allPosts, options = {}) {
     errors.push('Missing or malformed frontmatter (--- block)');
     return { filename, errors, warnings };
   }
+
+  // ── Rule 1.5: Taken-down state (openspec: post-takedown) ──
+  const isTakenDown = fm.status === TAKEN_DOWN_STATUS;
+  errors.push(...validateTakedownState({ fm, body, filename, allPosts }));
 
   // ── Rule 2: Required fields ──
   const required = [
@@ -410,8 +509,13 @@ function validatePost(filepath, allPosts, options = {}) {
     errors.push('Retired ClawdNote component/import; use MoguNote');
   }
 
+  // Rules 8–11, 16, 18 and 19 only make sense for an article body. A
+  // taken-down post must have an empty body (Rule 1.5), so skip them instead
+  // of stacking body diagnostics on top of that error.
+  const checksBody = !isTakenDown;
+
   // ── Rule 8: No duplicate bottom citations ──
-  for (const pattern of REDUNDANT_BOTTOM_CITATION_PATTERNS) {
+  for (const pattern of checksBody ? REDUNDANT_BOTTOM_CITATION_PATTERNS : []) {
     if (pattern.test(content)) {
       errors.push('Redundant bottom citation found (source is already shown at top by layout)');
       break;
@@ -419,7 +523,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 9: MoguNote no redundant prefix ──
-  for (const pattern of MOGU_NOTE_REDUNDANT_PREFIX) {
+  for (const pattern of checksBody ? MOGU_NOTE_REDUNDANT_PREFIX : []) {
     if (pattern.test(content)) {
       errors.push('MoguNote contains redundant "Mogu:" prefix (component auto-adds it)');
       break;
@@ -427,7 +531,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 10: Long MoguNote requires writer-authored summary ──
-  if (options.enforceLongMoguNoteSummary) {
+  if (checksBody && options.enforceLongMoguNoteSummary) {
     for (const note of extractMoguNotes(content)) {
       if (note.length > LONG_MOGU_NOTE_CHARS && !note.hasSummary) {
         errors.push(
@@ -445,7 +549,7 @@ function validatePost(filepath, allPosts, options = {}) {
   // ── Rule 11: Minimum content length ──
   // Strip imports and component tags for length check
   const cleanBody = stripMarkupTags(body.replace(/^import\s+.*$/gm, '')).trim();
-  if (cleanBody.length < MIN_CONTENT_LENGTH) {
+  if (checksBody && cleanBody.length < MIN_CONTENT_LENGTH) {
     errors.push(`Content too short (${cleanBody.length} chars, minimum ${MIN_CONTENT_LENGTH})`);
   }
 
@@ -577,7 +681,12 @@ function validatePost(filepath, allPosts, options = {}) {
   // Match parenthesized expressions containing distinctive kaomoji face characters
   // Broad kaomoji detection (synced with add-kaomoji.mjs)
   const KAOMOJI_PATTERN = /[（(][^)）\n]{0,40}[ω◕ᴗᗜ◍˃˂╥‿▽∀■□﹏ﾟ°⊙≧≦¬╯╮╰⌐・ˊˋ๑ㅂᵔᗒ˘ᴖ⤙◞◟⇀↼‶∇▿△ᐛ]/;
-  if (filename !== 'demo.mdx' && filename !== 'en-demo.mdx' && !KAOMOJI_PATTERN.test(bodyNoCode)) {
+  if (
+    checksBody &&
+    filename !== 'demo.mdx' &&
+    filename !== 'en-demo.mdx' &&
+    !KAOMOJI_PATTERN.test(bodyNoCode)
+  ) {
     errors.push('Missing kaomoji — every gu-log post needs at least one (brand voice)');
   }
 
@@ -591,7 +700,7 @@ function validatePost(filepath, allPosts, options = {}) {
   // Astro doesn't auto-render mermaid code fences — must use <Mermaid chart={...} /> component.
   // Match ```mermaid (with optional whitespace) that's NOT inside another code block example.
   const mermaidFencePattern = /^```mermaid\s*$/m;
-  if (mermaidFencePattern.test(body)) {
+  if (checksBody && mermaidFencePattern.test(body)) {
     errors.push(
       'Raw ```mermaid code fence detected — use <Mermaid chart={`...`} /> component instead. ' +
         'See src/components/Mermaid.astro for usage.'
@@ -606,7 +715,7 @@ function validatePost(filepath, allPosts, options = {}) {
   // ``` fence line instead — an inline comment on a code line would render
   // as literal garbage text in the published snippet. Frontmatter is exempt
   // (source/attribution fields legitimately carry original-language names).
-  if (filename.startsWith('en-')) {
+  if (checksBody && filename.startsWith('en-')) {
     const bodyStartOffset = content.length - body.length;
     const bodyStartLine = content.slice(0, bodyStartOffset).split('\n').length;
     let inEscapedFence = false;
@@ -646,17 +755,23 @@ function validatePost(filepath, allPosts, options = {}) {
 
 // ─── Duplicate Detection ────────────────────────────────────────────
 /**
- * Load all active (non-deprecated) zh-tw articles for duplicate scanning.
+ * Load all active zh-tw articles for duplicate scanning.
  * Returns array of article metadata objects.
+ *
+ * Deprecated and taken-down articles are skipped. A taken-down post is a
+ * blocked source, not a live article: new posts reusing its source are
+ * stopped by dedup-gate / the takedown ratchet, but existing posts are never
+ * "duplicates" of a tombstone (GP-35 was deprecated → GP-105 before both
+ * were taken down, and must not resurface as an active duplicate pair).
  */
-function loadActiveZhTwArticles() {
+function loadActiveZhTwArticles(postsDir = POSTS_DIR) {
   const allFiles = fs
-    .readdirSync(POSTS_DIR)
+    .readdirSync(postsDir)
     .filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
   const articles = [];
 
   for (const file of allFiles) {
-    const filePath = path.join(POSTS_DIR, file);
+    const filePath = path.join(postsDir, file);
     let content;
     try {
       content = fs.readFileSync(filePath, 'utf-8');
@@ -673,8 +788,8 @@ function loadActiveZhTwArticles() {
       continue;
     }
     if (!fm || !fm.ticketId) continue;
-    // Skip deprecated articles
-    if (fm.status === 'deprecated') continue;
+    // Skip deprecated and taken-down articles
+    if (fm.status === 'deprecated' || fm.status === TAKEN_DOWN_STATUS) continue;
     // Only zh-tw (no en- prefix, already filtered above, but double-check lang)
     if (fm.lang && fm.lang !== 'zh-tw') continue;
 
@@ -757,7 +872,11 @@ function isMultiPartSeries(titleA, titleB) {
 function checkDuplicates() {
   const articles = loadActiveZhTwArticles();
   console.log(`\nScanning ${articles.length} active zh-tw articles for duplicates...\n`);
+  const groups = findDuplicateGroups(articles, { log: console.log });
+  reportDuplicateGroups(groups);
+}
 
+function findDuplicateGroups(articles, { log = () => {} } = {}) {
   // Build URL frequency map: URLs shared by 3+ articles are multi-article
   // sources (e.g., newsletter issues, podcast episode pages) — not duplicates.
   const urlCounts = new Map();
@@ -770,7 +889,7 @@ function checkDuplicates() {
     [...urlCounts.entries()].filter(([, count]) => count >= 3).map(([url]) => url)
   );
   if (multiArticleUrls.size > 0) {
-    console.log(
+    log(
       `  Detected ${multiArticleUrls.size} multi-article source URL(s) (3+ articles share URL, skipping URL dedup for these).\n`
     );
   }
@@ -858,7 +977,10 @@ function checkDuplicates() {
     }
   }
 
-  // Report
+  return groups;
+}
+
+function reportDuplicateGroups(groups) {
   let activeGroupCount = 0;
 
   if (groups.length === 0) {
@@ -943,7 +1065,14 @@ function main() {
         fingerprint: getFrontmatterFingerprint(content),
       });
     }
-    return { filename: f, ticketId: fm?.ticketId || '' };
+    return {
+      filename: f,
+      ticketId: fm?.ticketId || '',
+      status: fm?.status,
+      takenDownAt: fm?.takenDownAt,
+      sourceUrl: fm?.sourceUrl,
+      sourceTitle: fm?.sourceTitle,
+    };
   });
 
   // Determine which files to validate
@@ -1042,5 +1171,7 @@ export {
   getFrontmatterBlock,
   getFrontmatterFingerprint,
   validatePost,
+  loadActiveZhTwArticles,
+  findDuplicateGroups,
   CJK_GRANDFATHERED_LINES,
 };
