@@ -158,7 +158,7 @@
 
 - 下架文章正文：由下架 commit 清掉。
 - `sources/`：刪除第三方原文擷取（`anthropic/`、`openai/`、`x/`、`supergoal/`、`synthid-c2pa/`、`mattpocock-skills-teach/`、`leerob-agents.md`、`earendil-pi-autoresearch-databricks.md`、`clawd-rip-events.json`、`clawd-rip-timeline.md`），保留 `sources/chatgpt/`（ShroomDog 自己的 ChatGPT 對話）。CI 棘輪之後擋新增。
-- 測試資料：`tools/gp-pipeline/internal/preservation/testdata/gp-273/` 換成自寫合成稿，保留原 regression 測的四種 finding；`tools/gp-pipeline/testdata/clean-fxtwitter.md` 換成自寫推文。
+- 測試資料：保真 regression 原本的 GP-273 fixture 目錄換成自寫合成稿 `tools/gp-pipeline/internal/preservation/testdata/synthetic-first-person/`，保留原 regression 測的四種 finding；`tools/gp-pipeline/testdata/clean-fxtwitter.md` 換成自寫推文。
 - `tribunal/fixtures/`：GP 文章的 `contentSnapshot`（例如 GP-102 約 950 字、GP-80、GP-143／144、GP-165 與它的英文版）換成保留 dedup 判斷關係的合成摘要，`humanReasoning` 與分類不變；MP 的快照不動。依 `dedup-eval-harness` delta 用 `fix(fixture):` commit。
 - `public/prompts/ui-ux-auditor-prompt.md`：第三方 prompt 全文（@kloss_xyz），正式站讀得到，而且只有下架的 GP-27／GP-28 連過去，刪除。`scripts/ui-ux-auditor-prompt.md` 是同一份檔案，repo 內沒有任何工具、skill 或文章引用它，也刪除。
 - 只被下架文章使用的 `src/assets/posts/**` 圖檔在下架 commit 一併刪除。

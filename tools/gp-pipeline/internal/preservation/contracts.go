@@ -424,9 +424,9 @@ func inFrontmatter(doc []byte, start, end int) bool {
 func DeterministicNaturalFindings(source, translation []byte) []string {
 	text := string(translation)
 	var findings []string
-	// Spec-owned GP-273 calibration phrases. Keep this exact corpus deliberately
-	// tiny; the LLM gate discovers other problems without turning one article's
-	// wording into a global style blacklist.
+	// Spec-owned calibration phrases from the GP-273 incident. Keep this exact
+	// corpus deliberately tiny; the LLM gate discovers other problems without
+	// turning one article's wording into a global style blacklist.
 	for _, term := range []string{
 		"銜尾蛇",
 		"演算法動態",

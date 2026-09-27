@@ -55,7 +55,7 @@
 ## 9. Repo HEAD 副本清理
 
 - [ ] 9.1 刪除 `sources/` 的第三方原文擷取（保留 `sources/chatgpt/`）；確認 brand-taxonomy 掃描與測試照常通過
-- [ ] 9.2 `tools/gp-pipeline/internal/preservation/testdata/gp-273/` 換成自寫合成稿，保留原 regression 的四種 finding；`tools/gp-pipeline/testdata/clean-fxtwitter.md` 換成自寫推文；以 `go test ./...` 驗證
+- [ ] 9.2 保真 regression 原本的 GP-273 fixture 目錄換成自寫合成稿 `tools/gp-pipeline/internal/preservation/testdata/synthetic-first-person/`，保留原 regression 的四種 finding；`tools/gp-pipeline/testdata/clean-fxtwitter.md` 換成自寫推文；以 `go test ./...` 驗證
 - [ ] 9.3 `tribunal/fixtures/` 的 GP 譯文快照換成合成摘要（`fix(fixture):` commit，分類與理由不變）
 - [ ] 9.4 刪除 `public/prompts/ui-ux-auditor-prompt.md` 與沒人使用的 `scripts/ui-ux-auditor-prompt.md`
 - [ ] 9.5 `.agents/skills/shroomdog-url-fetch/SKILL.md`：第三方原文的長期擷取放 repo 外
