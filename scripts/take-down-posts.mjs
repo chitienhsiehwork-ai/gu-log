@@ -26,10 +26,28 @@ import { findEmojiSequences } from './lib/emoji-sequences.mjs';
 import { postIdFromFilename, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-export const DEFAULT_LIST_PATH = path.join(
-  REPO_ROOT,
-  'openspec/changes/translation-takedown-tombstone/takedown-list.json'
-);
+const TAKEDOWN_CHANGE = 'translation-takedown-tombstone';
+
+/**
+ * 規則檔跟著 OpenSpec change 走：change 還沒 archive 時在
+ * openspec/changes/<change>/，archive 後搬到 openspec/changes/archive/<日期>-<change>/。
+ */
+export function resolveDefaultListPath(root = REPO_ROOT) {
+  const active = path.join(root, 'openspec/changes', TAKEDOWN_CHANGE, 'takedown-list.json');
+  if (fs.existsSync(active)) return active;
+  const archiveDir = path.join(root, 'openspec/changes/archive');
+  const archived = fs.existsSync(archiveDir)
+    ? fs
+        .readdirSync(archiveDir)
+        .filter((name) => name.endsWith(`-${TAKEDOWN_CHANGE}`))
+        .sort()
+    : [];
+  return archived.length > 0
+    ? path.join(archiveDir, archived[archived.length - 1], 'takedown-list.json')
+    : active;
+}
+
+export const DEFAULT_LIST_PATH = resolveDefaultListPath();
 const DEFAULT_POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const DEFAULT_ASSETS_DIR = path.join(REPO_ROOT, 'src/assets/posts');
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

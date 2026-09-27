@@ -13,6 +13,7 @@ import {
   matchRule,
   planTakedown,
   readPosts,
+  resolveDefaultListPath,
   takeDownSource,
   tweetMetadata,
 } from '../scripts/take-down-posts.mjs';
@@ -65,6 +66,22 @@ describe('takedown rules and plan', () => {
     expect(() => loadTakedownList(listPath)).toThrow(/no owner authorization/);
     fs.writeFileSync(listPath, JSON.stringify(LIST));
     expect(loadTakedownList(listPath).rules).toHaveLength(2);
+  });
+
+  it('finds the rule file in the active change, then in the archived change', () => {
+    const root = makeTempDirectory('gu-log-takedown-root-');
+    const active = path.join(root, 'openspec/changes/translation-takedown-tombstone');
+    expect(resolveDefaultListPath(root)).toBe(path.join(active, 'takedown-list.json'));
+    const archived = path.join(
+      root,
+      'openspec/changes/archive/2026-09-28-translation-takedown-tombstone'
+    );
+    fs.mkdirSync(archived, { recursive: true });
+    fs.writeFileSync(path.join(archived, 'takedown-list.json'), '{}');
+    expect(resolveDefaultListPath(root)).toBe(path.join(archived, 'takedown-list.json'));
+    fs.mkdirSync(active, { recursive: true });
+    fs.writeFileSync(path.join(active, 'takedown-list.json'), '{}');
+    expect(resolveDefaultListPath(root)).toBe(path.join(active, 'takedown-list.json'));
   });
 
   it('matches paid-news domains by sourceUrl host only, including subdomains', () => {
