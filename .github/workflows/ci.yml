@@ -167,6 +167,18 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
+      - name: Takedown ratchet (PR only — tombstones stay tombstones)
+        # Same executable as pre-commit step -3.5, but PR base → head: a
+        # taken-down post must stay taken-down with an empty body, new GP
+        # posts are paused, new posts may not reuse a taken-down source, and
+        # sources/ only grows under sources/chatgpt/ (openspec: post-takedown).
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          node scripts/check-takedown-ratchet.mjs "--base=$BASE_SHA"
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
       - name: Block retired brand taxonomy contracts

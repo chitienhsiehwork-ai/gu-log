@@ -34,6 +34,15 @@ echo "🚫 Content emoji policy: checking staged reader-visible lines..."
 node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
 echo ""
 
+# ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
+# A taken-down post must stay a tombstone (still present, still taken-down,
+# empty body); new GP posts are paused; a new post may not reuse a
+# taken-down source; sources/ only grows under sources/chatgpt/. CI runs the
+# same script with the PR base SHA.
+echo "🪦 Takedown ratchet: checking staged changes against HEAD..."
+node "$REPO_ROOT/scripts/check-takedown-ratchet.mjs" --staged
+echo ""
+
 # ─── Step -3: Regenerate post manifests for staged content changes ──
 # `post-versions.json` is derived from git history. Pre-commit runs before the
 # new commit exists, so the generator includes staged post touches to write the
