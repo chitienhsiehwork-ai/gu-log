@@ -479,9 +479,23 @@
     {
       "path": "tests/brand-routes.spec.ts",
       "rule": "post-slug",
-      "token": "sp-7-20260130-clawdbot-architecture-deep-dive",
+      "token": "sp-1-20260128-demo",
       "expectedCount": 1,
-      "reason": "Breaking-route regression requires this retired post URL to return 404 while the GP URL resolves."
+      "reason": "Breaking-route regression requires this retired post URL to return 404 while the GP URL resolves (GP-1 stays public after the GP takedown)."
+    },
+    {
+      "path": "tests/deploy-smoke-workflow.test.ts",
+      "rule": "legacy-route",
+      "token": "shroomdog-picks",
+      "expectedCount": 2,
+      "reason": "Smoke workflow test pins the retired GP listing pagination redirects: while GP is paused they must land on the listing root."
+    },
+    {
+      "path": "tests/deploy-smoke-workflow.test.ts",
+      "rule": "legacy-route",
+      "token": "clawd-picks",
+      "expectedCount": 1,
+      "reason": "Smoke workflow test pins that the retired MP listing pagination redirect keeps its page number."
     },
     {
       "path": "tests/pipeline-taxonomy.test.ts",

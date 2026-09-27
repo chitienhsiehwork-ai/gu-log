@@ -27,7 +27,7 @@ import { config as redirectConfig, LANG_PREFIXES, LISTING_SERIES } from '../verc
 // reference -- Vercel destinations may only reference the capture name, not
 // repeat its regex). These must be materialized with separate patterns. A
 // destination without `:page` (the paused GP listing root) is compared
-// literally, so /shroomdog-picks/2 must land exactly on /gu-log-picks.
+// literally, so an old GP numeric page must land exactly on /gu-log-picks.
 const SOURCE_PAGE_PATTERN = ':page(\\d+)';
 const DESTINATION_PAGE_PATTERN = ':page';
 const AUDIT_PAGE_NUMBER = 2;
