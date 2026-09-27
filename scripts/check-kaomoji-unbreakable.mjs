@@ -61,7 +61,15 @@ const CORPUS = [
   '(•̀ᴗ•́)و',
   '(๑˃ᴗ˂)ﻭ',
   '( •̀ ω •́ )✧',
+  // 下架墓碑頁（src/lib/tombstone-copy.mjs）用到的顏文字。
+  '(－人－)',
+  '((( ；ﾟДﾟ)))',
 ];
+
+// Faces without a bracket group: the plugin has nothing to detect, so they
+// rely on Unicode line breaking alone (ಥ and _ are both alphabetic, no break
+// opportunity between them). Lock that they stay untouched and atomic.
+const BARE_ATOMIC_FACES = ['ಥ_ಥ'];
 
 // Ordinary parentheticals that must NEVER be treated as kaomoji. Includes
 // inline-code parens (the backtick false-positive that bit us once).
@@ -78,6 +86,8 @@ const NEGATIVES = [
   '（版本 A • 支援 ❤）',
   '（版本 B · 支援 ♥）',
   '（版本 C - 支援 ❤）',
+  '（三人一組）',
+  '(-1, -2)',
 ];
 
 // Soft-warning scan only. Halfwidth katakana (U+FF65–FF9F) almost never appears
@@ -101,6 +111,13 @@ export function check() {
       hard.push(
         `corpus kaomoji still breakable after protect: ${JSON.stringify(k)} -> ${JSON.stringify(p)}`
       );
+  }
+
+  for (const k of BARE_ATOMIC_FACES) {
+    if (protectKaomoji(k) !== k)
+      hard.push(`bare kaomoji unexpectedly rewritten by plugin: ${JSON.stringify(k)}`);
+    else if (hasBreakOpportunity(k))
+      hard.push(`bare kaomoji has an internal break opportunity: ${JSON.stringify(k)}`);
   }
 
   // 2. Ordinary parentheticals must stay untouched (no false positives).
@@ -141,6 +158,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     process.exit(1);
   }
   console.log(
-    `✓ kaomoji unbreakable: ${CORPUS.length} corpus + all plugin-detected post kaomoji are atomic`
+    `✓ kaomoji unbreakable: ${CORPUS.length + BARE_ATOMIC_FACES.length} corpus + all plugin-detected post kaomoji are atomic`
   );
 }

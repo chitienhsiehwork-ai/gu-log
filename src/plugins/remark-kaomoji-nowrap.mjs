@@ -35,6 +35,16 @@ const WJ = '⁠';
 // in ordinary parenthetical prose to establish kaomoji identity by themselves.
 const KAOMOJI_CHARS = /[°□▽△￣ᴥᴗᵕ◍◔◕๑˃˂ᗜಠ∀ω‿╥﹏☆⁰¬⌐■ヘヮД´・⊂⊃⊙≧≦ㅂ₃ง･-ﾟ]/u;
 
+// Multi-glyph faces whose single glyphs are too common in prose to join
+// KAOMOJI_CHARS on their own. The praying face (－人－) is only a kaomoji as
+// the whole flanked shape; a bare 人 inside ordinary parentheticals such as
+// （三人） must stay untouched.
+const KAOMOJI_FACES = /[－-]人[－-]/u;
+
+function looksLikeKaomoji(match) {
+  return KAOMOJI_CHARS.test(match) || KAOMOJI_FACES.test(match);
+}
+
 // Decoration / arm glyphs that flank the bracket group (leading or trailing),
 // e.g. ╰(°▽°)╯, ヽ(°〇°)ﾉ, ٩(◕‿◕｡)۶, (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧. Halfwidth katakana is
 // included via the range so ﾉ / ﾟ / ･ count as arms too.
@@ -79,7 +89,7 @@ export function protectKaomoji(text) {
   return text.replace(POTENTIAL_KAOMOJI, (match) => {
     // Structural shape matched — only transform if it actually looks like a
     // kaomoji (contains a face glyph), so normal "(see note)" stays untouched.
-    if (!KAOMOJI_CHARS.test(match)) return match;
+    if (!looksLikeKaomoji(match)) return match;
     return protect(match);
   });
 }
@@ -92,7 +102,7 @@ export function protectKaomoji(text) {
 export function findKaomojiSpans(text) {
   const spans = [];
   for (const match of text.matchAll(POTENTIAL_KAOMOJI)) {
-    if (!KAOMOJI_CHARS.test(match[0])) continue;
+    if (!looksLikeKaomoji(match[0])) continue;
     spans.push({ start: match.index, end: match.index + match[0].length, text: match[0] });
   }
   return spans;
