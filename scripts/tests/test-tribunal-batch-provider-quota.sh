@@ -6,6 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BATCH_RUNNER="$ROOT_DIR/scripts/tribunal-batch-runner.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 
 # shellcheck source=scripts/tribunal-helpers.sh
@@ -278,6 +279,8 @@ write_selector_post current-pass.mdx 2026-01-05
 write_selector_post deprecated-unquoted.mdx 2026-01-04 deprecated
 write_selector_post deprecated-single-quoted.mdx 2026-01-03 "'deprecated'"
 write_selector_post deprecated-double-quoted.mdx 2026-01-02 '"deprecated"'
+write_selector_post taken-down-unquoted.mdx 2026-01-09 taken-down
+write_selector_post taken-down-double-quoted.mdx 2026-01-10 '"taken-down"'
 
 cat > "$selector_progress" <<'JSON'
 {
@@ -304,5 +307,18 @@ TRIBUNAL_VERSION=9
 selector_output=$(get_unscored_articles)
 expected_selector_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
 [ "$selector_output" = "$expected_selector_output" ] ||
-  fail "selector included deprecated/current terminal entries: $selector_output"
-pass "selector excludes deprecated and current-version terminal entries"
+  fail "selector included deprecated/taken-down/current terminal entries: $selector_output"
+pass "selector excludes deprecated, taken-down and current-version terminal entries"
+
+# The quota loop keeps its own copy of the selector; it must agree with the
+# batch runner, including the taken-down exclusion (openspec: post-takedown).
+quota_loop_selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Dry Run/ { exit }
+  capture { print }
+' "$QUOTA_LOOP")
+eval "$quota_loop_selector_section"
+quota_loop_output=$(get_unscored_articles)
+[ "$quota_loop_output" = "$expected_selector_output" ] ||
+  fail "quota-loop selector disagrees with the batch runner: $quota_loop_output"
+pass "quota-loop selector also excludes taken-down posts"

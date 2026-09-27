@@ -51,6 +51,30 @@ get_ticket_id() {
     | tr -d '[:space:]'
 }
 
+# Print the `status` scalar of a post's first frontmatter block, unquoted
+# (empty when absent). Frontmatter may use quoted or unquoted YAML scalars.
+tribunal_post_status() {
+  awk '
+    /^---$/ { c++; if (c == 2) exit; next }
+    c == 1 && /^status:/ {
+      sub(/^status:[[:space:]]*/, "", $0)
+      gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
+      print
+      exit
+    }
+  ' "$1" 2>/dev/null
+}
+
+# Tribunal scope is decided by status alone (openspec:
+# tribunal-verification-scope, post-takedown): deprecated posts are skipped,
+# and a taken-down post has no article body left, so no judge ever runs on it.
+tribunal_post_outside_scope() {
+  case "$(tribunal_post_status "$1")" in
+    deprecated|taken-down) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # Classify a full-site build failure for one target article.
 # Operational evidence wins even when the log also names the target. Content
 # evidence is actionable only when one diagnostic line contains both the exact

@@ -250,7 +250,7 @@ get_unscored_articles() {
   # Ensure progress file exists
   ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
-  # List zh-tw articles (not en-, not deprecated), sorted newest-first by
+  # List zh-tw articles (not en-, not deprecated/taken-down), sorted newest-first by
   # frontmatter translatedDate. Keep in sync with
   # tribunal-quota-loop.sh:get_unscored_articles — this replaces the old
   # filename `sort -V` which grouped by series prefix.
@@ -269,19 +269,9 @@ get_unscored_articles() {
 
   for article in $all_zh_articles; do
     local full_path="$POSTS_DIR/$article"
-    # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
-    # scalars, so parse only the first frontmatter block instead of matching
-    # one exact string.
-    if awk '
-      /^---$/ { c++; if (c == 2) exit; next }
-      c == 1 && /^status:/ {
-        sub(/^status:[[:space:]]*/, "", $0)
-        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
-        if ($0 == "deprecated") found = 1
-        exit
-      }
-      END { exit(found ? 0 : 1) }
-    ' "$full_path" 2>/dev/null; then
+    # Skip deprecated and taken-down posts: Tribunal scope is decided by
+    # frontmatter status alone (tribunal_post_outside_scope).
+    if tribunal_post_outside_scope "$full_path"; then
       continue
     fi
 

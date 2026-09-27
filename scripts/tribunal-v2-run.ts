@@ -13,7 +13,8 @@
  */
 
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { isTakenDownData, splitPostSource } from './lib/taken-down-posts.mjs';
 import {
   runPipeline,
   type PipelineState,
@@ -96,6 +97,12 @@ async function main(): Promise<void> {
   if (!existsSync(articlePath)) {
     console.error(`Article not found: ${articlePath}`);
     process.exit(1);
+  }
+  // Tribunal scope is decided by status (openspec: post-takedown,
+  // tribunal-verification-scope): refuse a taken-down post before any judge.
+  if (isTakenDownData(splitPostSource(readFileSync(articlePath, 'utf8'), articlePath).data)) {
+    console.error(`${articlePath} is taken-down; it is outside Tribunal scope. No judge ran.`);
+    process.exit(78);
   }
 
   const resume = argv.includes('--resume');
