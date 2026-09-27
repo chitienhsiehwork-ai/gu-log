@@ -32,6 +32,29 @@ afterEach(() => {
   }
 });
 
+describe('post-deploy smoke workflow — takedown and GP pause', () => {
+  it('expects paused GP legacy pagination to land on the listing root', async () => {
+    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
+    const job = workflow.jobs['smoke-test'] as Job;
+    const redirects = job.steps.find((step) =>
+      step.name?.startsWith('Smoke test — public URL permanent redirects')
+    );
+    expect(redirects?.run).toContain('check_redirect "/shroomdog-picks/2" "/gu-log-picks"\n');
+    expect(redirects?.run).toContain('check_redirect "/en/shroomdog-picks/2" "/en/gu-log-picks"\n');
+    expect(redirects?.run).toContain('check_redirect "/clawd-picks/2" "/mogu-picks/2"');
+  });
+
+  it('checks the paused GP listing for the notice instead of a post count', async () => {
+    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
+    const job = workflow.jobs['smoke-test'] as Job;
+    const listings = job.steps.find(
+      (step) => step.name === 'Smoke test — check picks listings contain canonical posts'
+    );
+    expect(listings?.run).toContain("import('./src/lib/gp-series-pause.mjs')");
+    expect(listings?.run).toContain('data-gp-paused-notice');
+  });
+});
+
 describe('post-deploy smoke workflow hardening', () => {
   it('runs only terminal Production states and fails closed on deployment errors', async () => {
     const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
@@ -124,6 +147,12 @@ describe('post-deploy smoke workflow hardening', () => {
         `---\ntranslatedDate: ${quote}${translatedDate}${quote}\n---\n`
       );
     }
+    // A taken-down post is a tombstone, not a live article (post-takedown):
+    // even the newest one must not take a latest-article slot.
+    writeFileSync(
+      path.join(postsDirectory, 'gp-0-taken-down-newest.mdx'),
+      '---\ntranslatedDate: "2026-07-30"\nstatus: "taken-down"\n---\n'
+    );
 
     const fakeCurl = path.join(binDirectory, 'curl');
     writeFileSync(
@@ -166,6 +195,7 @@ printf '200'
     expect(requestedUrls).not.toContain(
       'https://gu-log.vercel.app/posts/sd-99-filename-sorts-first'
     );
+    expect(requestedUrls).not.toContain('https://gu-log.vercel.app/posts/gp-0-taken-down-newest');
 
     const invalidFixtureRoot = mkdtempSync(path.join(tmpdir(), 'gu-log-deploy-smoke-invalid-'));
     temporaryDirectories.push(invalidFixtureRoot);

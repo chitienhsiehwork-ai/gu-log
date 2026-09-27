@@ -25,7 +25,9 @@ import { config as redirectConfig, LANG_PREFIXES, LISTING_SERIES } from '../verc
 // vercel.mjs emits the numeric-pagination rule as source `:page(\d+)`
 // (Vercel capture-with-regex syntax) and destination `:page` (bare capture
 // reference -- Vercel destinations may only reference the capture name, not
-// repeat its regex). These must be materialized with separate patterns.
+// repeat its regex). These must be materialized with separate patterns. A
+// destination without `:page` (the paused GP listing root) is compared
+// literally, so /shroomdog-picks/2 must land exactly on /gu-log-picks.
 const SOURCE_PAGE_PATTERN = ':page(\\d+)';
 const DESTINATION_PAGE_PATTERN = ':page';
 const AUDIT_PAGE_NUMBER = 2;
