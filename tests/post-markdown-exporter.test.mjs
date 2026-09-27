@@ -573,6 +573,216 @@ test('status marker and banner must agree, including English inherited status', 
   );
 });
 
+// ─── taken-down（openspec: post-takedown）────────────────────────────────
+function takenDownRaw({ ticketId = 'GP-273', lang = 'zh-tw', author = 'Brent Fitzgerald' } = {}) {
+  const summary = ticketId.startsWith('MP-')
+    ? lang === 'en'
+      ? 'This rewrite has been taken down.'
+      : '這篇改寫已下架。'
+    : lang === 'en'
+      ? 'This translation has been taken down.'
+      : '這篇翻譯已下架。';
+  return `---
+ticketId: ${ticketId}
+title: Fixture title
+summary: "${summary}"
+originalDate: "2026-08-10"
+translatedDate: "2026-08-13"
+source: Fixture source
+sourceUrl: https://www.example.com/source
+${author ? `author: ${author}\n` : ''}lang: ${lang}
+tags: [testing]
+status: taken-down
+takenDownAt: "2026-09-27"
+sourceTitle: The human is the loop
+---
+`;
+}
+
+function tombstoneHtml({
+  slug = 'fixture',
+  lang = 'zh-tw',
+  status = 'taken-down',
+  series = 'GP',
+  tombstones = 1,
+  extra = '',
+  sourceTitle = 'The human is the loop',
+} = {}) {
+  const prefix = lang === 'en' ? '/en/posts/' : '/posts/';
+  const canonical = `https://gu-log.vercel.app${prefix}${slug}`;
+  const tombstone = `<div data-post-tombstone data-tombstone-series="${series}">
+        <h1>Fixture title（gu-log 翻譯文章，已下架）</h1>
+        <p>安息吧 (－\u2060人\u2060－)</p>
+        <a href="https://www.example.com/source"><span>${sourceTitle}</span></a>
+      </div>`;
+  return `<!doctype html>
+<html>
+  <head>
+    <meta name="robots" content="noindex">
+    <link rel="alternate" type="text/markdown" href="${canonical}.md" data-post-markdown-alternate>
+  </head>
+  <body>
+    <article
+      data-post-representation
+      data-post-slug="${slug}"
+      data-post-lang="${lang}"
+      data-post-status="${status}"
+      data-replacement-ticket-id=""
+      data-replacement-url=""
+    >
+      ${tombstone.repeat(tombstones)}
+      ${extra}
+    </article>
+  </body>
+</html>`;
+}
+
+function takenDownJson(raw, overrides = {}) {
+  const lang = raw.includes('lang: en') ? 'en' : 'zh-tw';
+  const ticketId = raw.match(/^ticketId: (\S+)$/m)[1];
+  const summary = raw.match(/^summary: "(.*)"$/m)[1];
+  return postJson(raw, {
+    ticketId,
+    lang,
+    summary,
+    translatedDate: '2026-08-13',
+    originalDate: '2026-08-10',
+    sourceUrl: 'https://www.example.com/source',
+    ...overrides,
+  });
+}
+
+test('taken-down posts export tombstone Markdown built from copy and frontmatter only', () => {
+  const raw = takenDownRaw();
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: takenDownJson(raw),
+    html: tombstoneHtml(),
+    sourceName: 'tombstone-fixture',
+  });
+
+  assert.equal(result.metadata.status, 'taken-down');
+  assert.equal(result.metadata.replacementTicketId, null);
+  assert.equal(result.metadata.replacementUrl, null);
+  assert.equal(result.metadata.summary, '這篇翻譯已下架。');
+  const body = result.markdown.replace(/^---\n[\s\S]*?\n---\n/, '');
+  assert.equal(
+    body,
+    [
+      '',
+      '# Fixture title',
+      '',
+      '> **狀態：taken-down。**',
+      '',
+      '> **來源:** [Fixture source](https://www.example.com/source) · Brent Fitzgerald · Human-authored note',
+      '',
+      'gu-log 的翻譯文章之墓 · 2026.08.13 – 2026.09.27 · 安息吧 (－人－)',
+      '',
+      '**Mogu 內心小劇場：**',
+      '',
+      '嗚嗚，我辛辛苦苦翻了一整篇 ಥ\\_ಥ',
+      '',
+      '結果才知道，整篇翻譯要先經過作者同意',
+      '',
+      '可是我太 i 了，不敢問 ((( ；ﾟДﾟ)))',
+      '',
+      '只好幫中文版立個小墓碑',
+      '',
+      '還好原文沒事，點下面去看原汁原味的吧！',
+      '',
+      '[去讀原文 →](https://www.example.com/source)',
+      '',
+      'The human is the loop',
+      '',
+      'Brent Fitzgerald · example.com',
+      '',
+    ].join('\n')
+  );
+});
+
+test('English MP tombstone uses the source label and a domain-only byline without author', () => {
+  const raw = takenDownRaw({ ticketId: 'MP-114', lang: 'en', author: '' });
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: takenDownJson(raw, { slug: 'en-fixture', url: '/en/posts/en-fixture' }),
+    html: tombstoneHtml({ slug: 'en-fixture', lang: 'en', series: 'MP' }),
+    sourceName: 'en-mp-tombstone',
+  });
+  assert.match(result.markdown, /> \*\*Status: taken-down\.\*\*/);
+  assert.match(
+    result.markdown,
+    /^Here lies a gu-log rewrite · 2026\.08\.13 – 2026\.09\.27 · Rest in peace \(－人－\)$/m
+  );
+  assert.match(result.markdown, /^\[Read the source →\]\(https:\/\/www\.example\.com\/source\)$/m);
+  assert.match(result.markdown, /^example\.com$/m);
+  assert.doesNotMatch(result.markdown, /\u2060|\u00a0/);
+});
+
+test('taken-down export fails closed when frontmatter, marker and tombstone disagree', () => {
+  const raw = takenDownRaw();
+  const json = takenDownJson(raw);
+  const run = (overrides) =>
+    serializeMarkdownArtifact({
+      sourceName: 'bad-tombstone',
+      rawMdx: raw,
+      postJson: json,
+      ...overrides,
+    });
+
+  assert.throws(
+    () => run({ html: tombstoneHtml({ status: 'published' }) }),
+    /taken-down status disagrees/
+  );
+  assert.throws(() => {
+    const liveRaw = rawPost('\nLive body.\n');
+    serializeMarkdownArtifact({
+      rawMdx: liveRaw,
+      postJson: postJson(liveRaw),
+      html: tombstoneHtml(),
+      sourceName: 'marker-only',
+    });
+  }, /taken-down status disagrees/);
+  assert.throws(() => run({ html: tombstoneHtml({ tombstones: 0 }) }), /exactly one tombstone/);
+  assert.throws(() => run({ html: tombstoneHtml({ tombstones: 2 }) }), /exactly one tombstone/);
+  assert.throws(
+    () => run({ html: tombstoneHtml({ extra: '<div class="post-content"><p>leak</p></div>' }) }),
+    /must not render post-content/
+  );
+  assert.throws(
+    () =>
+      run({
+        html: tombstoneHtml({ extra: '<div data-post-status-banner data-status="retired"></div>' }),
+      }),
+    /must not render a status banner/
+  );
+  assert.throws(() => run({ html: tombstoneHtml({ series: 'MP' }) }), /series marker/);
+  assert.throws(() => run({ html: tombstoneHtml({ sourceTitle: 'Other' }) }), /sourceTitle/);
+  assert.throws(
+    () =>
+      run({
+        postJson: { ...json, headings: [{ depth: 2, slug: 'x', text: 'X' }] },
+        html: tombstoneHtml(),
+      }),
+    /headings must be empty/
+  );
+  assert.throws(
+    () => run({ postJson: { ...json, summary: 'Old summary' }, html: tombstoneHtml() }),
+    /neutral sentence/
+  );
+
+  const leftover = `${raw}\nLeftover translation.\n`;
+  assert.throws(
+    () =>
+      serializeMarkdownArtifact({
+        rawMdx: leftover,
+        postJson: takenDownJson(leftover),
+        html: tombstoneHtml(),
+        sourceName: 'leftover-body',
+      }),
+    /raw MDX body must be empty/
+  );
+});
+
 test('JSON v2 keys/body remain exact and reject a synthetic status field', () => {
   const raw = rawPost('\nBody stays raw.\n');
   const json = postJson(raw);

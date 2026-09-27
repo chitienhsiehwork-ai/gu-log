@@ -7,6 +7,13 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { POST_JSON_V2_KEYS } from './post-json-v2-contract.mjs';
 import { assertRenderedAdapterDomContract } from './post-markdown-dom-contract.mjs';
+import {
+  TAKEN_DOWN_STATUS,
+  getNeutralSummary,
+  getSourceByline,
+  getTombstoneCopy,
+  getTombstoneStoneLines,
+} from '../../src/lib/tombstone-copy.mjs';
 
 export { POST_JSON_V2_KEYS } from './post-json-v2-contract.mjs';
 
@@ -1290,7 +1297,131 @@ function validateProjectionCounts(postContent, inventory, context) {
   }
 }
 
-function projectRenderedArticle({ html, rawMdx, slug, lang, canonicalUrl, sourceName = slug }) {
+function isoDateValue(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return typeof value === 'string' ? value : '';
+}
+
+function tombstoneMarkdownBody({ copy, stoneLines, lang, sourceUrl, sourceTitle, byline }) {
+  const [owner, epitaph, dates, rest] = stoneLines;
+  const stone = `${owner}${lang === 'en' ? ' ' : ''}${epitaph} · ${dates} · ${rest}`;
+  return [
+    escapeInline(stone),
+    `**${escapeInline(copy.bubbleTitle)}**`,
+    ...copy.bubbleLines.map((line) => escapeInline(line)),
+    `[${escapeInline(copy.cardLabel)}](${sourceUrl})`,
+    escapeInline(sourceTitle),
+    escapeInline(byline),
+  ].join('\n\n');
+}
+
+/**
+ * Taken-down posts (openspec: post-takedown) render a tombstone instead of an
+ * article body. Cross-check frontmatter, route marker and the tombstone element,
+ * then build the Markdown from the shared copy module and frontmatter only —
+ * never from any former article content.
+ */
+function projectTombstoneArticle({ article, rawMdx, rawData, postJson, context, markdownUrl }) {
+  const { sourceName } = context;
+  const markerStatus = markerValue(article, 'dataPostStatus');
+  if (rawData.status !== TAKEN_DOWN_STATUS || markerStatus !== TAKEN_DOWN_STATUS) {
+    fail(
+      sourceName,
+      `taken-down status disagrees: frontmatter=${JSON.stringify(rawData.status ?? 'published')}, article marker=${JSON.stringify(markerStatus)}`
+    );
+  }
+  if (stripFrontmatter(rawMdx).trim().length !== 0) {
+    fail(sourceName, 'taken-down raw MDX body must be empty');
+  }
+  if (
+    markerValue(article, 'dataReplacementTicketId') !== null ||
+    markerValue(article, 'dataReplacementUrl') !== null
+  ) {
+    fail(sourceName, 'taken-down article must not carry a replacement marker');
+  }
+  const tombstones = findElements(
+    article,
+    (candidate) => candidate.properties?.dataPostTombstone !== undefined
+  );
+  if (tombstones.length !== 1) {
+    fail(
+      sourceName,
+      `taken-down article must render exactly one tombstone, found ${tombstones.length}`
+    );
+  }
+  if (findElements(article, (candidate) => hasClass(candidate, 'post-content')).length !== 0) {
+    fail(sourceName, 'taken-down article must not render post-content');
+  }
+  if (
+    findElements(article, (candidate) => candidate.properties?.dataPostStatusBanner !== undefined)
+      .length !== 0
+  ) {
+    fail(sourceName, 'taken-down article must not render a status banner');
+  }
+  if (!Array.isArray(postJson.headings) || postJson.headings.length !== 0) {
+    fail(sourceName, 'taken-down post JSON headings must be empty');
+  }
+
+  const { ticketId, lang } = postJson;
+  let copy;
+  try {
+    copy = getTombstoneCopy({ ticketId, lang });
+  } catch (error) {
+    fail(sourceName, error.message);
+  }
+  if (postJson.summary !== getNeutralSummary({ ticketId, lang })) {
+    fail(sourceName, 'taken-down post JSON summary must be the neutral sentence');
+  }
+  const tombstone = tombstones[0];
+  if (markerValue(tombstone, 'dataTombstoneSeries') !== copy.series) {
+    fail(sourceName, 'tombstone series marker does not match the ticketId');
+  }
+  const sourceTitle = typeof rawData.sourceTitle === 'string' ? rawData.sourceTitle.trim() : '';
+  if (!sourceTitle) fail(sourceName, 'taken-down post requires sourceTitle');
+  if (!visibleText(tombstone).includes(normalizeRenderedText(sourceTitle).replace(/\s+/g, ' '))) {
+    fail(sourceName, 'rendered tombstone does not show the frontmatter sourceTitle');
+  }
+  const sourceUrl = absoluteUrl(postJson.sourceUrl, context.canonicalUrl, 'source URL', context);
+  let stoneLines;
+  try {
+    stoneLines = getTombstoneStoneLines({
+      ticketId,
+      lang,
+      translatedDate: isoDateValue(postJson.translatedDate ?? rawData.translatedDate),
+      takenDownAt: isoDateValue(rawData.takenDownAt),
+    });
+  } catch (error) {
+    fail(sourceName, error.message);
+  }
+  const author = typeof rawData.author === 'string' ? rawData.author : null;
+  const body = tombstoneMarkdownBody({
+    copy,
+    stoneLines,
+    lang,
+    sourceUrl,
+    sourceTitle,
+    byline: getSourceByline({ author, sourceUrl }),
+  });
+  return {
+    status: TAKEN_DOWN_STATUS,
+    replacementTicketId: null,
+    replacementUrl: null,
+    body,
+    inventory: inventoryMdx(rawMdx, { sourceName }),
+    markdownUrl,
+  };
+}
+
+function projectRenderedArticle({
+  html,
+  rawMdx,
+  rawData,
+  postJson,
+  slug,
+  lang,
+  canonicalUrl,
+  sourceName = slug,
+}) {
   const tree = fromHtml(html);
   const context = { sourceName, canonicalUrl };
   const articles = findElements(
@@ -1324,6 +1455,20 @@ function projectRenderedArticle({ html, rawMdx, slug, lang, canonicalUrl, source
       expectedMarkdownUrl
   ) {
     fail(sourceName, 'Markdown alternate does not match the canonical post representation');
+  }
+
+  if (
+    rawData.status === TAKEN_DOWN_STATUS ||
+    markerValue(article, 'dataPostStatus') === TAKEN_DOWN_STATUS
+  ) {
+    return projectTombstoneArticle({
+      article,
+      rawMdx,
+      rawData,
+      postJson,
+      context,
+      markdownUrl: expectedMarkdownUrl,
+    });
   }
 
   const postContent = requiredElement(
@@ -1413,15 +1558,17 @@ export function serializeMarkdownArtifact({
   const canonicalUrl = absoluteUrl(postJson.url, siteOrigin, 'canonical post URL', {
     sourceName,
   }).replace(/\/$/, '');
+  const rawData = frontmatterData(rawMdx, sourceName);
   const projected = projectRenderedArticle({
     html,
     rawMdx,
+    rawData,
+    postJson,
     slug: postJson.slug,
     lang: postJson.lang,
     canonicalUrl,
     sourceName,
   });
-  const rawData = frontmatterData(rawMdx, sourceName);
   const sourceUrl = absoluteUrl(postJson.sourceUrl, canonicalUrl, 'source URL', { sourceName });
   const author =
     typeof rawData.author === 'string' && rawData.author.trim() ? rawData.author : null;
