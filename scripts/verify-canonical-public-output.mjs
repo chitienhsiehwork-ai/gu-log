@@ -274,6 +274,19 @@ export function onwardNavigationHtml(html) {
   return html.slice(start, end === -1 ? undefined : end);
 }
 
+/**
+ * Every public output must treat taken-down posts as tombstones only.
+ * @param {{
+ *   takenDownPosts: Array<{ id: string, lang: string, path: string, ticketId?: string }>,
+ *   sitemaps?: Array<{ name: string, content: string }>,
+ *   rss?: { content: string },
+ *   searchIndexes?: Array<{ name: string, content: string }>,
+ *   feed?: { content: string } | null,
+ *   postArtifacts?: Map<string, { html?: string | null, json?: string | null, markdown?: string | null }>,
+ *   navigationPages?: Array<{ name: string, content: string }>,
+ * }} input
+ * @returns {string[]}
+ */
 export function validateTakedownOutputs({
   takenDownPosts,
   sitemaps = [],

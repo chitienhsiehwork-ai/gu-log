@@ -43,7 +43,7 @@ const LIST = {
   boundaryCases: [{ ticketId: 'MP-72', category: 'source 欄提到' }],
 };
 
-function post(file: string, fields: Record<string, unknown>, body = '正文 (◕‿◕)\n') {
+function post(fields: Record<string, unknown>, body = '正文 (◕‿◕)\n') {
   const fm = Object.entries(fields)
     .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
     .join('\n');
@@ -106,21 +106,21 @@ describe('takedown rules and plan', () => {
 
   it('plans with lowercase canonical ids and keeps GP-1 public', () => {
     const dir = writeCorpus({
-      'gp-1-20260128-demo.mdx': post('x', { ticketId: 'GP-1', sourceUrl: 'https://example.com' }),
-      'gp-63-20260214-GP63-benson.mdx': post('x', {
+      'gp-1-20260128-demo.mdx': post({ ticketId: 'GP-1', sourceUrl: 'https://example.com' }),
+      'gp-63-20260214-GP63-benson.mdx': post({
         ticketId: 'GP-63',
         sourceUrl: 'https://x.com/benson/status/1',
       }),
-      'en-gp-63-20260214-GP63-benson.mdx': post('x', {
+      'en-gp-63-20260214-GP63-benson.mdx': post({
         ticketId: 'GP-63',
         lang: 'en',
         sourceUrl: 'https://x.com/benson/status/1',
       }),
-      'mp-114-20260223-paulford.mdx': post('x', {
+      'mp-114-20260223-paulford.mdx': post({
         ticketId: 'MP-114',
         sourceUrl: 'https://www.nytimes.com/2026/02/23/opinion/ai.html',
       }),
-      'mp-72-20260212-electricity.mdx': post('x', {
+      'mp-72-20260212-electricity.mdx': post({
         ticketId: 'MP-72',
         source: 'Bloomberg 引述',
         sourceUrl: 'https://x.com/anthropic/status/2',
@@ -144,7 +144,7 @@ describe('takedown rules and plan', () => {
 
   it('fails when a recorded boundary case would be taken down by a rule', () => {
     const dir = writeCorpus({
-      'mp-72-x.mdx': post('x', { ticketId: 'MP-72', sourceUrl: 'https://www.bloomberg.com/a' }),
+      'mp-72-x.mdx': post({ ticketId: 'MP-72', sourceUrl: 'https://www.bloomberg.com/a' }),
     });
     expect(() => planTakedown({ list: LIST, posts: readPosts(dir) })).toThrow(/boundary cases/);
   });
@@ -217,7 +217,6 @@ describe('takeDownSource', () => {
 
   it('uses the series and language neutral sentence and adds status when absent', () => {
     const mpEn = post(
-      'en-mp-114.mdx',
       {
         ticketId: 'MP-114',
         title: 'CEO confession',

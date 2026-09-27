@@ -236,6 +236,9 @@ function addedPaths(cwd, diffArgs, pathspec) {
   return output.split('\0').filter(Boolean);
 }
 
+/**
+ * @param {{ mode: string, base?: string, cwd?: string }} options  mode 是 staged 或 range
+ */
 export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
   const staged = mode === 'staged';
   const baseRev = staged ? 'HEAD' : base;

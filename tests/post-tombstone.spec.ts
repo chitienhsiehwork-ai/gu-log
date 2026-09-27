@@ -1,4 +1,5 @@
-import { test, expect, type Page } from './fixtures';
+import type { Page } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /**
  * Taken-down posts render only the final tombstone (openspec: post-takedown).

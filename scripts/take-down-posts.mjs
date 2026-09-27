@@ -270,7 +270,12 @@ export function tweetMetadata(payload) {
   };
 }
 
-/** Emoji-free, single-line, bounded value that is never the gu-log title. */
+/**
+ * Emoji-free, single-line, bounded value that is never the gu-log title.
+ * @param {unknown} value
+ * @param {{ forbid?: string[], max?: number }} [options]
+ * @returns {string | null}
+ */
 export function cleanMetadataValue(value, { forbid = [], max = MAX_SOURCE_TITLE } = {}) {
   if (typeof value !== 'string') return null;
   let cleaned = decodeEntities(value).replace(/\s*\{#[^}]*\}/g, '');
@@ -359,6 +364,9 @@ function sameValue(left, right) {
 /**
  * Rewrite one post into a tombstone (pure). Keeps every original field except the
  * ones D1 changes, and verifies that by re-parsing the result.
+ * @param {string} source
+ * @param {{ file: string, date: string, sourceTitle: string, author?: string | null }} options
+ * @returns {{ changed: boolean, content: string }}
  */
 export function takeDownSource(source, { file, date, sourceTitle, author }) {
   if (!DATE_PATTERN.test(date ?? '')) throw new Error(`${file}: --date must be YYYY-MM-DD`);
@@ -436,7 +444,11 @@ export function takeDownSource(source, { file, date, sourceTitle, author }) {
 
 // ─── Assets ────────────────────────────────────────────────────────
 
-/** `src/assets/posts/<dir>` directories referenced only by taken-down posts. */
+/**
+ * `src/assets/posts/<dir>` directories referenced only by taken-down posts.
+ * @param {{ posts: Array<{ source: string, data: { status?: string } }>, assetsDir?: string }} input
+ * @returns {string[]}
+ */
 export function findOrphanAssetDirs({ posts, assetsDir = DEFAULT_ASSETS_DIR }) {
   if (!fs.existsSync(assetsDir)) return [];
   const dirs = fs
