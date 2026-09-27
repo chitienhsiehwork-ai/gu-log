@@ -1,37 +1,50 @@
 ## MODIFIED Requirements
 
-### Requirement: Frontmatter 必填欄位
+### Requirement: Schema 層跨欄位不變量
 
-每篇未下架 post 的 frontmatter SHALL 有以下必填欄位：`sourceType`、`temporalType`、`authorCanonical`、`authorType`、`clusterIds`。Zod schema SHALL 在 build 階段驗證這些欄位的存在與型別。已下架（`status: taken-down`）的 post SHALL 改依 `post-takedown` 的墓碑欄位範圍驗證，SHALL NOT 要求、也 SHALL NOT 接受這些欄位。
+Zod schema SHALL 驗證以下同一篇文章內部的跨欄位不變量（欄位互相不矛盾）。此規則為「單兵檢查」——不讀其他文章、不呼叫語言模型。
 
-**型別規範**：
+1. `status = 'deprecated'` ↔ `deprecatedBy` 必須存在
+2. `dedup.humanOverride = true` → `dedup.humanOverrideReason` 必須存在且非空
+3. `dedup.acknowledgedOverlapWith` 存在且非空陣列 → `dedup.overlapJustification` 必須存在且非空
+4. `authorType = 'proxy'` → `author` 欄位 SHALL NOT 與 `authorCanonical` 完全相同
+5. `status = 'taken-down'` → `takenDownAt`（`YYYY-MM-DD`）與非空 `sourceTitle` 必須存在
+6. `takenDownAt` 存在 → `status` 必須是 `taken-down`
 
-- `sourceType`：enum of `'primary' | 'derivative' | 'commentary'`
-- `temporalType`：enum of `'event' | 'evergreen' | 'hybrid'`
-- `authorCanonical`：非空字串
-- `authorType`：enum of `'individual' | 'org' | 'proxy'`
-- `clusterIds`：字串陣列，允許為空陣列 `[]`
+#### Scenario: deprecated 但缺 deprecatedBy 應失敗
 
-#### Scenario: 缺必填欄位的 post build 失敗
-
-- **WHEN** 未下架 post 的 frontmatter 缺少 `sourceType`
+- **WHEN** post 設 `status: deprecated` 但無 `deprecatedBy`
 - **THEN** Zod schema 驗證 SHALL 失敗
-- **AND** `pnpm run build` SHALL 回報 error 並指出缺欄位的 post 路徑
+- **AND** 錯誤訊息 SHALL 指出 `deprecatedBy is required when status is deprecated`
 
-#### Scenario: enum 值不合法 build 失敗
+#### Scenario: humanOverride 但缺 reason 應失敗
 
-- **WHEN** post 的 `temporalType` 值為 `"news"`（不在 enum 列表）
+- **WHEN** post 設 `dedup.humanOverride: true` 但無 `dedup.humanOverrideReason`
 - **THEN** Zod schema 驗證 SHALL 失敗
-- **AND** 錯誤訊息 SHALL 指出合法值 `event | evergreen | hybrid`
 
-#### Scenario: clusterIds 允許空陣列
+#### Scenario: acknowledgedOverlapWith 非空但缺 justification 應失敗
 
-- **WHEN** 一篇獨立 standalone post 的 `clusterIds = []`
-- **THEN** Zod schema 驗證 SHALL 通過
-- **AND** 此 post 代表「目前未納入任何 cluster」
+- **WHEN** post 設 `dedup.acknowledgedOverlapWith: ["GP-165"]` 但無 `dedup.overlapJustification`
+- **THEN** Zod schema 驗證 SHALL 失敗
 
-#### Scenario: 下架 post 不帶 taxonomy 欄位
+#### Scenario: proxy authorType 但 author 等於 canonical 應失敗
 
-- **WHEN** 一篇 `status: taken-down` 的 post 只有墓碑欄位，沒有 `sourceType` 等欄位
-- **THEN** Zod schema 驗證 SHALL 通過
-- **AND** 若它帶了 `sourceType` 等墓碑範圍外的欄位，驗證 SHALL 失敗
+- **WHEN** post 設 `authorType: proxy`、`authorCanonical: "andrej-karpathy"`、`author: "andrej-karpathy"`
+- **THEN** Zod schema 驗證 SHALL 失敗
+- **AND** 錯誤訊息 SHALL 指出 proxy 必須能從 author 欄位區分真實作者
+
+#### Scenario: 已退役 ticket reference 在跨欄位檢查前失敗
+
+- **WHEN** post 設 `dedup.acknowledgedOverlapWith: ["SP-165"]`
+- **THEN** canonical taxonomy validation SHALL 失敗並要求 `GP-165`
+
+#### Scenario: 下架文章缺 takenDownAt 應失敗
+
+- **WHEN** post 設 `status: taken-down` 但無 `takenDownAt` 或 `sourceTitle`
+- **THEN** Zod schema 驗證 SHALL 失敗
+- **AND** 錯誤訊息 SHALL 指出缺少的欄位
+
+#### Scenario: 未下架文章帶 takenDownAt 應失敗
+
+- **WHEN** post 設 `status: published` 卻有 `takenDownAt`
+- **THEN** Zod schema 驗證 SHALL 失敗

@@ -8,13 +8,19 @@ Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated file
 
 Series identity SHALL come from `ticketId`; content-type tags `clawd-picks`, `mogu-picks`, `shroom-picks`, `shroomdog-picks`, and any transitional `gu-log-picks` SHALL be removed without replacement.
 
-Reader-facing listing and article URLs that were publicly reachable before being retired SHALL be the sole compatibility boundary. `/shroomdog-picks` and `/clawd-picks` listing paths, their English equivalents, and their purely numeric pagination subpaths SHALL return an HTTP 308 permanent redirect to the corresponding canonical GP／MP path while preserving the page number. Every retired article URL recorded in `quality/brand-taxonomy-post-migration.json`, both with and without exactly one trailing slash, SHALL return an HTTP 308 permanent redirect to that entry's exact current canonical GP／MP article URL. When that canonical article has been taken down under `post-takedown`, the alias SHALL keep pointing to it, and the destination SHALL answer with its HTTP 410 tombstone instead of 200. This SHALL include old SP／CP cutover URLs and a previously canonical GP／MP URL later retired by an editorial correction or reclassification. Multiple exact historical article URLs MAY converge on one current canonical destination. Redirects SHALL NOT infer destinations from a broad legacy prefix or accept deeper paths below an article alias. Manifest summary counts SHALL be derived from its entries and SHALL fail validation when files, unique tickets, complete language pairs, or incomplete tickets drift.
+Reader-facing listing and article URLs that were publicly reachable before being retired SHALL be the sole compatibility boundary. `/shroomdog-picks` and `/clawd-picks` listing paths, their English equivalents, and their purely numeric pagination subpaths SHALL return an HTTP 308 permanent redirect to the corresponding canonical GP／MP listing in the same language. Mogu Picks pagination redirects SHALL preserve the page number. Gu-log Picks pagination redirects SHALL go to the Gu-log Picks listing root, because the translations those old pages listed have been taken down under `post-takedown` and the listing no longer has numbered pages while GP is paused under `editorial-charter`. Every retired article URL recorded in `quality/brand-taxonomy-post-migration.json`, both with and without exactly one trailing slash, SHALL return an HTTP 308 permanent redirect to that entry's exact current canonical GP／MP article URL. This SHALL include old SP／CP cutover URLs and a previously canonical GP／MP URL later retired by an editorial correction or reclassification. Multiple exact historical article URLs MAY converge on one current canonical destination. Redirects SHALL NOT infer destinations from a broad legacy prefix or accept deeper paths below an article alias. Manifest summary counts SHALL be derived from its entries and SHALL fail validation when files, unique tickets, complete language pairs, or incomplete tickets drift.
 
 #### Scenario: Reader opens a canonical series page
 
 - **WHEN** a reader opens `/gu-log-picks` or `/mogu-picks`
 - **THEN** the page SHALL filter directly by GP or MP ticket IDs
 - **AND** SHALL NOT read SP/CP IDs or legacy tags and translate them for display
+
+#### Scenario: Reader opens the paused Gu-log Picks listing
+
+- **WHEN** a reader opens `/gu-log-picks` or `/en/gu-log-picks` while GP is paused under `editorial-charter`
+- **THEN** the page SHALL return 200 with the rebuild empty state
+- **AND** SHALL NOT list any post or link to any tombstone
 
 #### Scenario: Agent invokes the translation CLI
 
@@ -26,7 +32,8 @@ Reader-facing listing and article URLs that were publicly reachable before being
 
 - **WHEN** a request targets `/shroomdog-picks`, `/clawd-picks`, their English equivalents, or one of those routes followed by a numeric page segment
 - **THEN** the response SHALL be HTTP 308
-- **AND** `Location` SHALL be the corresponding `/gu-log-picks` or `/mogu-picks` canonical path with the same language and page number
+- **AND** `Location` SHALL be the corresponding `/gu-log-picks` or `/mogu-picks` canonical path in the same language
+- **AND** a `/clawd-picks` numeric page SHALL keep its page number, while a `/shroomdog-picks` numeric page SHALL go to the Gu-log Picks listing root
 - **AND** following the redirect SHALL return 200 without a redirect loop
 
 #### Scenario: Reader requests an old article URL in the migration manifest
@@ -35,16 +42,7 @@ Reader-facing listing and article URLs that were publicly reachable before being
 - **WHEN** a reader requests that language's old public article URL with no trailing slash or with exactly one trailing slash
 - **THEN** both forms SHALL respond with HTTP 308
 - **AND** `Location` SHALL equal that entry's exact current canonical public article URL
-- **AND** following either redirect SHALL reach that destination without a redirect loop
-- **AND** the destination SHALL return 200, or HTTP 410 with its tombstone when the destination has been taken down
-
-#### Scenario: Old article URL points to a taken-down article
-
-- **GIVEN** a migration manifest entry's current canonical article has `status: taken-down`
-- **WHEN** a reader requests that entry's old public article URL
-- **THEN** the response SHALL be HTTP 308 to the taken-down article's canonical URL
-- **AND** following the redirect SHALL return HTTP 410 with the tombstone page
-- **AND** the manifest entry SHALL NOT be removed or re-pointed to another article because of the takedown
+- **AND** following either redirect SHALL return 200 without a redirect loop
 
 #### Scenario: Published canonical article is reclassified
 

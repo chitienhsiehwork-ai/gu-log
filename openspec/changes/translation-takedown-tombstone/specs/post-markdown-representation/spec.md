@@ -2,11 +2,11 @@
 
 ### Requirement: 每篇 canonical post SHALL 有明確的靜態 Markdown 表示
 
-系統 SHALL 在每次 production build 為所有可建置、且未下架的繁中與英文 canonical post 產生 deterministic Markdown artifact。已下架（`status: taken-down`）的文章 SHALL NOT 有 Markdown artifact，只以帶墓碑 marker 的 HTML 存在（見 `post-takedown`）。繁中 artifact SHALL 位於 `/posts/{slug}.md`，英文 artifact SHALL 位於 `/en/posts/{slug}.md`，且每個 artifact SHALL 只由同一篇 authoritative content、既有 metadata 與有效 status SSOT 衍生，不得成為可獨立編輯或提交 Git 的第二份內容來源。
+系統 SHALL 在每次 production build 為所有可建置的繁中與英文 canonical post 產生 deterministic Markdown artifact。繁中 artifact SHALL 位於 `/posts/{slug}.md`，英文 artifact SHALL 位於 `/en/posts/{slug}.md`，且每個 artifact SHALL 只由同一篇 authoritative content、既有 metadata 與有效 status SSOT 衍生，不得成為可獨立編輯或提交 Git 的第二份內容來源。
 
 每個 artifact SHALL 以 `schemaVersion: 1` 的 YAML frontmatter 開頭，固定包含 `slug`、`ticketId`、`lang`、`title`、`summary`、`originalDate`、`translatedDate`、`source`、`sourceUrl`、nullable `author`、`authorshipNote`、absolute `canonicalUrl`、effective `status`、nullable `replacementTicketId` 與 nullable absolute `replacementUrl`。欄位 SHALL 由安全 YAML serializer 輸出並逐欄對應既有 post schema、`getPostAuthorshipNote()`、`getLocalizedPostUrl()` 與 `resolvePostStatus()`；不得用 description、published date 或其他推測欄位取代現有 SSOT。
 
-Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published 時出現的 status／replacement blockquote、單一 source attribution blockquote，最後才是文章正文。正文 SHALL NOT 重複頁面 header 的 H1、日期或來源卡。
+Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published 時出現的 status／replacement blockquote、單一 source attribution blockquote，最後才是文章正文。正文 SHALL NOT 重複頁面 header 的 H1、日期或來源卡。已下架（`status: taken-down`）的文章 SHALL 照樣產生 artifact 並使用同一套 frontmatter，但正文 SHALL 換成簡短的墓碑內容與來源連結（見 `post-takedown`），SHALL NOT 含任何原本的正文。
 
 #### Scenario: 繁中與英文文章成功建置
 
@@ -17,17 +17,9 @@ Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published �
 
 #### Scenario: 任一格式缺少對應 artifact
 
-- **WHEN** 未下架文章在 HTML、既有 JSON 或 Markdown 的繁中／英文 slug set 不相等，或任一 Markdown artifact 為空
+- **WHEN** HTML、既有 JSON 或 Markdown 的繁中／英文 slug set 不相等，或任一 Markdown artifact 為空
 - **THEN** build SHALL 以非 0 結束並阻止 deployment
 - **AND** SHALL NOT 把不完整的一批 artifacts 視為成功輸出
-
-#### Scenario: 下架文章只剩 HTML 墓碑
-
-- **GIVEN** 語料有未下架文章集合 L 與下架文章集合 T
-- **WHEN** production build 產生 HTML、JSON 與 Markdown
-- **THEN** HTML 的 slug set SHALL 等於 L 與 T 的聯集，JSON 與 Markdown 的 slug set SHALL 都等於 L
-- **AND** T 的 HTML SHALL 帶墓碑 marker
-- **AND** 任一下架文章出現 JSON 或 Markdown artifact，或它的 HTML 缺少墓碑 marker 時，build SHALL 以非 0 結束
 
 #### Scenario: Optional metadata 缺少
 
@@ -35,9 +27,65 @@ Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published �
 - **THEN** YAML frontmatter SHALL 依固定 schema 將對應欄位輸出為 `null`
 - **AND** SHALL NOT 省略欄位、補猜測值或產生無法解析的 YAML
 
+#### Scenario: 文章已下架
+
+- **WHEN** 文章是 `status: taken-down`，原始 MDX 正文為空
+- **THEN** build SHALL 仍為它產生對應語系與 slug 的 `.md` artifact，slug set 照舊與 HTML、JSON 一致
+- **AND** artifact 的 frontmatter SHALL 記錄 `status: taken-down`
+- **AND** 正文 SHALL 只含墓碑文案與連到 `sourceUrl` 的來源連結
+
+### Requirement: Markdown SHALL 忠實保留文章的閱讀語意
+
+Markdown artifact SHALL 保留文章 title、summary、originalDate、translatedDate、source／author attribution、canonical URL、有效 status／replacement、heading hierarchy、段落、清單、引用、連結、圖片 alt／URL、程式碼、表格，以及自訂文章元件的可閱讀語意。繁中與英文 SHALL 使用各自既有內容與 canonical path；英文文章的 effective status SHALL 沿用現有由繁中來源繼承的規則。已下架文章沒有文章內容可保留，artifact SHALL 只保留 metadata、墓碑文案與來源連結。
+
+系統 SHALL 明確投影目前 corpus 使用的 MoguNote、ShroomDogNote、Toggle、LevelUpProgress、LevelUpQuiz、AnalogyBox、Mermaid、PostImage、DiffBlock 與 CodexLearningMap，也 SHALL 明確投影既有 `a.artifact-callout` 原生 JSX 階層。輸出 SHALL NOT 含 MDX import、JSX、script、layout navigation、互動 control、純裝飾 markup、hidden duplicate、U+2060 或 U+00A0。站內連結與圖片 URL SHALL 可由不具頁面 base context 的外部 client 解析。
+
+#### Scenario: 文章含 Mogu 與 ShroomDog 註解
+
+- **WHEN** 原文使用 MoguNote 或 ShroomDogNote
+- **THEN** Markdown SHALL 以明確標示的可閱讀註解保留 speaker 與內容
+- **AND** SHALL NOT 輸出 JSX tag、元件 import 或純裝飾 DOM
+
+#### Scenario: 文章含互動與視覺元件
+
+- **WHEN** 原文使用 Toggle、LevelUpQuiz、LevelUpProgress、Mermaid、DiffBlock 或 CodexLearningMap
+- **THEN** Markdown SHALL 依對應 adapter 保留能獨立理解的題目、答案／說明、進度語意、diagram source／fallback、diff 或 learning-map 內容
+- **AND** SHALL NOT 重複輸出 hidden content 或依賴 JavaScript 才能讀取的 controls
+
+#### Scenario: 文章含站內連結與 Astro 處理的圖片
+
+- **WHEN** rendered article 含相對站內連結或 build 後資產 URL
+- **THEN** Markdown SHALL 輸出可從 `.md` endpoint 或獨立 client 正確解析的 URL
+- **AND** 圖片 SHALL 保留 meaningful alt text 與實際可取得的 build asset URL
+
+#### Scenario: 文章含 artifact callout
+
+- **WHEN** 原文使用既有 `a.artifact-callout` 與固定巢狀 span 結構
+- **THEN** Markdown SHALL 只輸出一個以主要 strong 文字為 label 的絕對 link，並各保留一次 callout label 與 meta
+- **AND** SHALL NOT 輸出 tap／cta／icon／`aria-hidden` 裝飾或重複連結文字
+
+#### Scenario: Kaomoji 經 rendered-only 防斷行處理
+
+- **WHEN** rendered article 的可見文字含 remark plugin 注入的 U+2060 或 U+00A0
+- **THEN** Markdown SHALL 移除 U+2060、將 U+00A0 正規化成一般空白並保留相同可見字串
+- **AND** completeness gate SHALL 驗證兩種控制字元都沒有殘留
+
+#### Scenario: 文章已 deprecated 或 retired
+
+- **WHEN** 既有 `resolvePostStatus()` 將文章解析為 deprecated 或 retired，並可能提供 replacement
+- **THEN** Markdown metadata 與開頭狀態提示 SHALL 反映相同 effective status
+- **AND** replacement 存在時 SHALL 提供可解析的 replacement URL
+- **AND** 英文 artifact SHALL 遵守目前由繁中來源繼承 status／replacement 的規則
+
+#### Scenario: 文章已下架的閱讀語意
+
+- **WHEN** 文章是 `status: taken-down`
+- **THEN** Markdown SHALL 保留 title、中性摘要、日期、source 標示與 canonical URL
+- **AND** SHALL NOT 輸出原本的 heading、段落、程式碼、圖片或自訂元件內容
+
 ### Requirement: Effective status SHALL 由每篇都存在的 route marker 封閉傳遞
 
-繁中與英文 post route SHALL 直接從 `resolvePostStatus(post, allPosts)` 在每個已渲染 `<article>` 輸出 machine-readable marker，至少包含 effective status、nullable replacement ticket 與 nullable absolute replacement URL。Marker SHALL 對 published、deprecated 與 retired 每篇都存在；匯出器 SHALL 與人類可見 `PostStatusBanner` 交叉驗證，且 SHALL NOT 以 banner 缺少推測 published。已下架文章的墓碑頁 SHALL 輸出 status 為 `taken-down` 的墓碑 marker，沒有 replacement，也沒有 status banner；匯出器 SHALL 確認帶墓碑 marker 的文章集合等於 frontmatter 的下架集合，且 SHALL NOT 為它們產生 Markdown。
+繁中與英文 post route SHALL 直接從 `resolvePostStatus(post, allPosts)` 在每個已渲染 `<article>` 輸出 machine-readable marker，至少包含 effective status、nullable replacement ticket 與 nullable absolute replacement URL。Marker SHALL 對 published、deprecated、retired 與 taken-down 每篇都存在；匯出器 SHALL 與人類可見 `PostStatusBanner` 交叉驗證，且 SHALL NOT 以 banner 缺少推測 published。`taken-down` 的 marker SHALL 沒有 replacement，頁面 SHALL 沒有 status banner、SHALL 有唯一的墓碑元素；匯出器 SHALL 確認 marker、墓碑元素與 frontmatter 的 `taken-down` 三者一致，並確認原始 MDX 正文為空。
 
 #### Scenario: Published 文章 marker 完整
 
@@ -58,76 +106,9 @@ Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published �
 - **THEN** exporter SHALL 使 build 失敗並指出文章與 mismatch
 - **AND** SHALL NOT 把 marker 遺失當成 published 或發布錯誤 status 的 Markdown
 
-#### Scenario: 下架文章的墓碑 marker
+#### Scenario: 下架文章的 marker
 
 - **WHEN** 文章是 `status: taken-down`
-- **THEN** 它的 HTML SHALL 帶 status 為 `taken-down` 的墓碑 marker
-- **AND** 匯出器 SHALL 略過它，不產生 Markdown
-- **AND** 墓碑 marker 缺少，或出現在未下架文章上時，匯出器 SHALL 使 build 失敗
-
-### Requirement: Canonical HTML SHALL 可發現對應 Markdown
-
-每個未下架的繁中與英文 canonical post 的 HTML `<head>` SHALL 包含且只包含一個對應同語系文章的 `<link rel="alternate" type="text/markdown">`。Alternate `href` SHALL 是可由外部 client 直接解析的 canonical absolute `.md` URL。非文章頁與下架文章的墓碑頁 SHALL NOT 因共用 layout 而輸出不存在的 Markdown alternate。
-
-#### Scenario: Agent 從文章 HTML 尋找 Markdown 表示
-
-- **WHEN** client 取得繁中或英文 canonical post HTML
-- **THEN** `<head>` SHALL 提供對應語系與 slug 的 Markdown alternate URL
-- **AND** GET 該 URL SHALL 取得同一篇文章的 Markdown artifact
-
-#### Scenario: 非文章頁使用 BaseLayout
-
-- **WHEN** 首頁、標籤頁或其他非文章 route 使用相同 layout
-- **THEN** 頁面 SHALL NOT 輸出指向不存在文章 `.md` 的 alternate link
-
-#### Scenario: 下架文章的墓碑頁
-
-- **WHEN** client 取得下架文章的墓碑頁 HTML
-- **THEN** `<head>` SHALL NOT 含 Markdown alternate link
-
-### Requirement: 正式文章 SHALL 依 Accept 偏好協商 HTML 與 Markdown
-
-未下架的繁中與英文正式文章網址 SHALL 對 GET 與 HEAD 請求在既有 HTML 與同篇 Markdown 產物間進行伺服器端內容協商。下架文章的正式網址 SHALL NOT 進行協商，一律依 `post-takedown` 回應 HTTP 410 墓碑頁。系統 SHALL 解析 `Accept` 媒體範圍的明確類型、類型萬用範圍、全域萬用範圍、明確程度與 q 權重；只有 `text/markdown` 的有效品質大於 0 且嚴格高於 `text/html` 時才 SHALL 選擇 Markdown，其餘情況 SHALL 保留 HTML。
-
-Markdown 回應 SHALL 以內部改寫讀取既有同語系 `.md` 產物，維持瀏覽器正式網址、成功狀態與 `Content-Type: text/markdown; charset=utf-8`。HTML 回應 SHALL 維持既有頁面正文、SEO 與 `text/html` 契約。兩種表示 SHALL 都包含 `Vary: Accept`。
-
-#### Scenario: 用戶端明確只接受 Markdown
-
-- **WHEN** 用戶端對有效繁中或英文正式文章傳送 `Accept: text/markdown`
-- **THEN** 回應 SHALL 回傳同篇 Markdown 產物與 `text/markdown; charset=utf-8`
-- **AND** 瀏覽器可見的正式網址 SHALL 不變
-- **AND** 回應 SHALL 包含 `Vary: Accept`
-
-#### Scenario: 用戶端較偏好 Markdown
-
-- **WHEN** 用戶端傳送 `Accept: text/markdown, text/html;q=0.9`
-- **THEN** 回應 SHALL 選擇 Markdown
-
-#### Scenario: 用戶端較偏好 HTML 或兩者同分
-
-- **WHEN** HTML 的有效 q-value 高於或等於 Markdown
-- **THEN** 回應 SHALL 選擇既有 HTML
-- **AND** SHALL NOT 因標頭中只要出現 `text/markdown` 字串就改寫
-
-#### Scenario: Markdown 被明確拒絕
-
-- **WHEN** 最明確的 `text/markdown` 範圍為 `q=0`
-- **THEN** 回應 SHALL 選擇既有 HTML
-- **AND** 萬用範圍 SHALL NOT 蓋過較明確的拒絕
-
-#### Scenario: 缺少、萬用範圍或不支援的 Accept
-
-- **WHEN** `Accept` 缺少、只含 `*/*`／`text/*`、格式無效或只要求 `application/markdown`
-- **THEN** 回應 SHALL 保守選擇既有 HTML
-
-#### Scenario: HEAD 使用相同 negotiation
-
-- **WHEN** 用戶端對正式文章傳送 HEAD 與會選中 HTML 或 Markdown 的 `Accept`
-- **THEN** 回應標頭 SHALL 對應 GET 會選中的表示
-- **AND** 回應 SHALL 沒有訊息正文
-
-#### Scenario: 下架文章不協商
-
-- **WHEN** 用戶端對下架文章的正式網址傳送讓 Markdown 勝出的 `Accept`
-- **THEN** 回應 SHALL 是 HTTP 410 的墓碑頁 HTML
-- **AND** SHALL NOT 改寫到 `.md`
+- **THEN** article marker SHALL 記錄 `taken-down` 與 null replacement
+- **AND** 頁面 SHALL 有唯一的墓碑元素、沒有 status banner
+- **AND** marker、墓碑元素或 frontmatter 三者任一不一致時，匯出器 SHALL 使 build 失敗
