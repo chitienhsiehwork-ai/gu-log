@@ -499,7 +499,9 @@ func findRealPost(t *testing.T) string {
 	}
 	dir := cwd
 	for i := 0; i < 6; i++ {
-		candidate := filepath.Join(dir, "src", "content", "posts", "gp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx")
+		// A ShroomDog original: GP posts are taken down (empty body), so they
+		// cannot exercise body preservation.
+		candidate := filepath.Join(dir, "src", "content", "posts", "sd-10-20260322-ralph-loop-quality-system.mdx")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
