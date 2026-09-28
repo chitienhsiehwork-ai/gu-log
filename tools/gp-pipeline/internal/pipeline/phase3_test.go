@@ -14,24 +14,6 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
-// findRepoRoot walks up from the test binary's CWD looking for CLAUDE.md.
-// Returns empty string if we can't find it — tests that depend on real
-// gu-log files will t.Skip in that case.
-func findRepoRoot() string {
-	dir, _ := os.Getwd()
-	for i := 0; i < 6; i++ {
-		if _, err := os.Stat(filepath.Join(dir, "CLAUDE.md")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
-	return ""
-}
-
 func TestSanitizeSlug(t *testing.T) {
 	cases := map[string]string{
 		"Nick Baumann":  "nick-baumann",
