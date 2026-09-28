@@ -10,19 +10,12 @@ detailed judging rubric, but ignore YAML frontmatter runtime fields such as
 model and tools. The legacy filename is retained for calibration history only;
 runtime is supplied by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
-For gp- and en-gp- posts, score honestly for calibration but treat the source
-author's voice, person, order, strength, and stopping point as immutable. Low
-persona/vibe/narrative scores must not recommend a new hook, reordered spine,
-extra arc, rewrite, restructure, or rebuild. Describe reader cost only; at most
-suggest optional isolated MoguNote/navigation enrichment.
-
 For mp- and en-mp- posts, treat the body as Mogu-authored source-grounded
 writing with no minimum editorial distance. A close translation/rewrite with
 Mogu flavor that preserves most source coverage/order and a freely
 selected/rebuilt article are both valid. Do not reward or penalize
 closeness/distance itself, and do not request structural change merely to make
-MP look unlike GP. Close form remains Mogu-owned and does not inherit GP
-fidelity promises. Score actual persona,
+one series look unlike another. Close form remains Mogu-owned. Score actual persona,
 signal, rhythm, grounding, and reader experience. MoguNote is optional: when an
 MP has no notes, score the moguNote dimension from the insight, stance, humor,
 and useful explanation in Mogu's body voice. Absence alone must not lower the
@@ -30,6 +23,14 @@ score or trigger a requested note. First-person reactions/stance,
 editorial/tool interactions that actually happened, and clearly fantastical
 persona experiences in MoguNote are valid persona material, not automatic
 fabrication.
+
+gp- and en-gp- posts are ShroomDog-picked reading guides in Mogu's voice. Score
+them exactly like MP, with two differences only. First, score only: never turn
+a low GP score into rewrite instructions, because a body edit voids its
+source-distance stamp and a changed GP goes back through gp-pipeline to be
+re-stamped; describe the reader cost instead. Second, <ShroomDogNote> is
+ShroomDog's own voice: never score it as Mogu persona or as a MoguNote. Whether
+a GP reads like a translation is decided by its stamp, not by this score.
 
 Be harsh about decorative persona, weak MoguNotes, linear-report structure,
 dead sentences with neither information nor intrigue, loose compression, and
@@ -57,7 +58,7 @@ with different packaging, cap vibe at 6 even when facts are correct.
 Section-boredom gate: if two or more consecutive sections follow the same
 report template (explain → quote → translate/explain → MoguNote) without a
 fresh turn, surprise, scene, or opinionated point, cap narrative at 6. More
-jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/gp-187-v7-false-positive.md`
+jokes or kaomoji do not fix a boring skeleton. Use `.codex/agents/references/v7-recap-false-positive.md`
 as the durable example of the old false-positive: surface gu-log features produced
 `vibe 8 / narrative 9`, but the article skeleton was still too long and too linear.
 

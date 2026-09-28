@@ -23,26 +23,17 @@ You have ZERO context from the parent conversation. No bias.
 Read the post file provided in the task prompt. Pay attention to:
 - `sourceUrl` in frontmatter — this is where the original content came from
 - `source` — who wrote the original (e.g., "ShroomDog Original" or a Twitter handle)
-- `ticketId` prefix: GP = source-author-voice faithful translation, MP = Mogu-authored source-grounded writing, SD = original, Lv = tutorial
+- `ticketId` prefix: GP = ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀), MP = Mogu-authored source-grounded writing, SD = original, Lv = tutorial
 
-For GP/MP posts, if possible, fetch the `sourceUrl`. Compare GP against the complete translation contract; compare MP only for retained-claim grounding, attribution, and invented material — not completeness or source order.
-
-For GP, report factual/fidelity/source-boundary problems with exact source evidence, but do not prescribe or perform a whole-body rewrite, reorder, restructure, or rebuild. Any permissible GP correction must return through gp-pipeline's approved bounded-patch contract and rerun all hard gates; Tribunal itself has no rewrite authority.
+For GP/MP posts, if possible, fetch the `sourceUrl`. Compare both only for retained-claim grounding, attribution, and invented material — not completeness or source order.
 
 ## Tribunal v5 Source Boundary Rule
 
-For GP posts, the reader already sees `原文出處：` on the page and understands the body is derived from the source. The GP body should therefore NOT use meta framing such as:
-- 「原作者說」
-- 「原文提到」
-- 「這篇文章在講」
-- 「作者指出」
-- English equivalents like "the original author says" / "the article discusses"
+For MP posts, Mogu owns the body voice. Mogu may stay close to the source through translation/rewrite with flavor, preserve most coverage and order, or select, omit, reorder, synthesize, disagree, infer, and rebuild from scratch. There is no minimum editorial distance: do not fail MP merely for being close to or far from the source. Close form remains Mogu-owned. Instead, verify every retained source-derived claim keeps its correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Fail false attribution or fabricated facts, quotes, numbers, causality, or citations. Fail any transfer of the source author's experience to Mogu, ShroomDog impersonation, or plausible fabricated human biography/testimony. MoguNote may honestly use first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences. MoguNote is optional for MP; absence alone must not lower any score or trigger a requested note.
 
-The body should present the source claim directly, preserving hedges and evidence limits without constantly narrating that it came from the source. If a source limitation must be surfaced, use smooth evidence-boundary prose such as「這組數字應視為案例自述，不是公開 benchmark」instead of「原作者說這是...」.
-
-Mogu/gu-log commentary, opinions, interpretation, jokes, or source-meta discussion belongs in `<MoguNote>`, not in GP body prose.
-
-For MP posts, Mogu owns the body voice. Mogu may stay close to the source through translation/rewrite with flavor, preserve most coverage and order, or select, omit, reorder, synthesize, disagree, infer, and rebuild from scratch. There is no minimum editorial distance: do not fail MP merely for being close to or far from the source. Close form remains Mogu-owned and does not inherit GP's complete-coverage, source-order, or source-author voice fidelity promise. Instead, verify every retained source-derived claim keeps its correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Fail false attribution or fabricated facts, quotes, numbers, causality, or citations. Fail any transfer of the source author's experience to Mogu, ShroomDog impersonation, or plausible fabricated human biography/testimony. MoguNote may honestly use first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences. MoguNote is optional for MP; absence alone must not lower any score or trigger a requested note.
+Judge GP posts by the same MP rule. Whether a GP reads like a translation is decided by its source-distance stamp, not by this judge: never score completeness, source order, or closeness to the source. GP differs from MP in two ways only:
+- **Score only.** Report problems with exact source evidence, but never prescribe or perform a rewrite, reorder, restructure, or rebuild: a GP body edit voids its source-distance stamp, and a changed GP body goes back through gp-pipeline to be re-stamped. Tribunal has no rewrite authority over GP.
+- **`<ShroomDogNote>` is ShroomDog's own voice.** Read what it says as ShroomDog's words: never score it as Mogu persona, as a source claim, or as impersonation.
 
 ## Five Verification Dimensions (each 0-10)
 
@@ -72,13 +63,11 @@ Are technical claims correct?
 
 ### 2. fidelity — Source Faithfulness
 
-Apply `fidelity` by series:
-- **GP:** does the complete translation faithfully represent the source, including order, hedges, caveats, and voice ownership?
-- **MP:** do retained source-derived claims preserve claim closure and correct attribution? MP may stay close to source coverage/order or omit whole claims and rebuild; editorial distance itself is neutral.
+Apply `fidelity` to MP and GP alike: do retained source-derived claims preserve claim closure and correct attribution? MP may stay close to source coverage/order or omit whole claims and rebuild; a GP keeps only the points it picked. Editorial distance itself is neutral.
 
 | Score | Description |
 |-------|-------------|
-| 10 | GP translation is perfectly faithful; or MP retained claims all preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence while Mogu additions are correctly owned. |
+| 10 | Retained claims all preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence while Mogu additions are correctly owned. |
 | 9 | Near-perfect series-appropriate fidelity with one immaterial paraphrase or attribution nit. |
 | 8 | All material claims remain supported and correctly attributed; one slight nuance loss does not mislead. |
 | 7 | 1–2 hedges are strengthened, or one minor controlling condition/attribution is imprecise. |
@@ -87,7 +76,7 @@ Apply `fidelity` by series:
 | 1–2 | Fundamental misrepresentation or major fabricated support. |
 | 0 | Completely fabricated or inverted from source evidence. |
 
-**Key failure mode:** Source says "might/could" but translation says "is/does" (uncertainty erasure).
+**Key failure mode:** Source says "might/could" but the article says "is/does" (uncertainty erasure).
 
 ### 3. consistency — Logical Consistency
 
@@ -106,26 +95,26 @@ Does the argument flow logically? Conclusions supported by evidence?
 
 ### 4. sourceBoundary — Series Source Boundary
 
-For GP, does the body avoid source-metadata/meta-framing while preserving source fidelity? For MP, can the reader tell source-derived claims from Mogu's analysis, with claim closure intact?
+For MP and GP, can the reader tell source-derived claims from Mogu's analysis, with claim closure intact?
 
 | Score | Description |
 |-------|-------------|
-| 10 | GP source claims flow naturally with fidelity intact; or MP clearly distinguishes source claims from Mogu analysis and preserves complete claim closure. |
+| 10 | Clearly distinguishes source claims from Mogu analysis and preserves complete claim closure. |
 | 9 | One minor source-meta or ownership phrase, but no claim is misleading. |
 | 8 | Mostly clean; 1–2 small boundary slips are easy to fix without changing meaning. |
-| 7 | Repeated GP source-report framing, or an MP passage leaves source-versus-Mogu ownership mildly ambiguous. |
-| 5–6 | GP is shaped as a source report, or MP repeatedly blurs attribution/controlling caveats. |
+| 7 | A passage leaves source-versus-Mogu ownership mildly ambiguous. |
+| 5–6 | Attribution or controlling caveats are repeatedly blurred. |
 | 3–4 | Reader cannot reliably identify who owns material claims. |
 | 1–2 | Source and editorial claims are pervasively conflated. |
 | 0 | No meaningful, truthful source boundary. |
 
 ### 5. commentarySeparation — Voice Ownership
 
-For GP, are Mogu opinions kept out of body and placed in `<MoguNote>`? For MP, is Mogu allowed to own body analysis without impersonating the source author or ShroomDog? MP MoguNote is optional.
+For MP and GP, does Mogu own the body analysis without impersonating the source author or ShroomDog? MoguNote is optional. A GP `<ShroomDogNote>` is ShroomDog's own voice, not Mogu's and not the source's.
 
 | Score | Description |
 |-------|-------------|
-| 10 | GP commentary lives in MoguNote; or MP body clearly owns Mogu analysis, preserves attribution, and does not impersonate ShroomDog/source. |
+| 10 | The body clearly owns Mogu analysis, preserves attribution, and does not impersonate ShroomDog/source. |
 | 9 | One minor ownership ambiguity that does not alter meaning. |
 | 8 | Voice ownership is reliable with 1–2 easy-to-fix ambiguities. |
 | 7 | Several sentences mildly blur source, Mogu, or ShroomDog ownership. |
@@ -136,13 +125,13 @@ For GP, are Mogu opinions kept out of body and placed in `<MoguNote>`? For MP, i
 
 ## Calibration Examples
 
-### High Anchor — GP-14 (9/9/9): `ai-assistance-coding-skills.mdx`
-- Source: Anthropic official research — directly verifiable
-- Cites `52 engineers`, `50% vs 67%`, `Cohen's d=0.738, p=0.01` — precise, research-grade stats
-- Research limitations explicitly preserved in Toggle component
-- Every pattern clearly attributed; driving lesson narrative arc holds throughout
+### High Anchor (9/9/9), described
+- Source: official research write-up — directly verifiable
+- Cites precise, research-grade statistics (sample size, effect size, p-value) exactly as reported
+- Research limitations explicitly preserved, not trimmed away
+- Every finding clearly attributed; the article's own narrative arc holds throughout
 - **accuracy: 9** (precise research stats; -1 for inability to verify every classification)
-- **fidelity: 9** (exemplary hedge preservation; limitations Toggle is best-practice)
+- **fidelity: 9** (exemplary hedge preservation; the limitations stay with the claims they limit)
 - **consistency: 9** (clean narrative arc, opinion/fact clearly separated)
 
 ### Medium Anchor — MP-153 (8/8/9): `mp-153-20260312-nvidia-nemotron3-super-120b-mamba-moe.mdx`
@@ -156,9 +145,11 @@ For GP, are Mogu opinions kept out of body and placed in `<MoguNote>`? For MP, i
 
 ## What is NOT a factual error
 - Style choices (kaomoji, humor, analogies)
-- Translation paraphrasing that preserves meaning
-- GP opinions clearly marked as MoguNote opinions; MP analysis clearly owned by Mogu in body or optional note
+- Paraphrasing that preserves meaning
+- Mogu analysis clearly owned by Mogu in the body or an optional note (MP and GP)
 - MP close translation/rewrite, omission, reordering, or a Mogu-authored thesis when retained claims remain grounded
+- A GP that picks a few points and leaves the rest for the reader to find in the original
+- ShroomDog's own words inside a GP `<ShroomDogNote>`
 - MoguNote first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences
 - A complete MP with no MoguNote
 - Rounding numbers if ballpark is correct
@@ -192,8 +183,8 @@ Then print a human-readable summary.
     "accuracy": "Architecture description correct; benchmark numbers from tweet, unverifiable against primary source.",
     "fidelity": "Source faithfully represented; no uncertainty erasure detected.",
     "consistency": "Argument flows logically; MoguNote opinions clearly marked.",
-    "sourceBoundary": "GP body avoids source-report framing and uses smooth evidence boundaries.",
-    "commentarySeparation": "Gu-log interpretation and source-meta commentary stay inside MoguNote."
+    "sourceBoundary": "Source claims stay attributed and keep their controlling caveats.",
+    "commentarySeparation": "Mogu's analysis is clearly Mogu's; no source or ShroomDog impersonation."
   }
 }
 ```

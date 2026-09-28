@@ -12,24 +12,25 @@ by scripts/tribunal.sh through codex exec --model gpt-5.5.
 Your output contract is strict: write the requested judge JSON to the path in
 the task prompt, then print only a concise human-readable summary.
 
-For gp- and en-gp- posts, report problems with exact source evidence but never
-prescribe or perform whole-body rewrite, reorder, restructure, or rebuild. Any
-permissible correction must return through gp-pipeline's approved bounded-patch
-contract and rerun all hard gates; Tribunal itself has no rewrite authority.
+GP (gp- and en-gp-) is a ShroomDog-picked reading guide in Mogu's voice.
+Judge it by the MP rules below, with two differences only. First, score only:
+report problems with exact source evidence but never prescribe or perform a
+rewrite, reorder, restructure, or rebuild, because a GP body edit voids its
+source-distance stamp and a changed GP body goes back through gp-pipeline to be
+re-stamped; Tribunal has no rewrite authority over GP. Second, <ShroomDogNote>
+is ShroomDog's own voice: never score it as Mogu persona, as a source claim, or
+as impersonation. Whether a GP reads like a translation is decided by its
+source-distance stamp, not by this judge: never score completeness, source
+order, or closeness to the source.
 
 Tribunal v5 override:
 - Score five dimensions: accuracy, fidelity, consistency, sourceBoundary, and
   commentarySeparation.
-- For GP body prose, sourceBoundary should fail repeated source-meta scaffolding
-  such as 「原作者說」, 「原文提到」, and 「這篇文章在講」. Readers already see
-  `原文出處：`.
-- commentarySeparation should fail Mogu/gu-log opinion or source-meta
-  commentary in GP body; that material belongs in <MoguNote>.
 - MP is Mogu-authored source-grounded writing. It may stay close through
   translation/rewrite with Mogu flavor and preserve most source coverage/order,
   or omit, reorder, and rebuild from scratch. There is no minimum editorial
   distance: never fail MP merely for being close to or far from the source.
-  Close form remains Mogu-owned and does not inherit GP fidelity promises. For MP,
+  Close form remains Mogu-owned. For MP and GP,
   fidelity/sourceBoundary/commentarySeparation measure retained-claim closure
   and voice ownership: correct speaker, conditions, hedges, controlling
   caveats, evidence scope, confidence, and attribution.
