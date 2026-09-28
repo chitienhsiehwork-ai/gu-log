@@ -9,14 +9,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
   POLICY,
+  decide,
   isExternalSource,
   requiresStamp,
+  rewriteReport,
+  scoreAlignment,
   segmentGuide,
   segmentSource,
   sourceSummary,
   splitSentences,
   subjectFingerprint,
   units,
+  validateAlignment,
 } from '../scripts/lib/source-distance.mjs';
 
 const FIXTURES = path.join(__dirname, 'fixtures/source-distance');
@@ -187,5 +191,204 @@ describe('外部來源與需要章的文章', () => {
     expect(requiresStamp({ ...gp, ticketId: 'MP-12' })).toBe(false);
     expect(requiresStamp({ ...gp, status: 'taken-down' })).toBe(false);
     expect(requiresStamp({ ...gp, sourceUrl: 'https://example.com/original-article' })).toBe(false);
+  });
+});
+
+type Sentence = { id: string; text: string; units: number; block: number };
+
+/** 合成的斷句：每句給定 units，每句自成一個區塊。 */
+function synthetic(prefix: string, unitList: number[], text = (i: number) => `${prefix}${i}`) {
+  return unitList.map((u, i) => ({
+    id: `${prefix}${i + 1}`,
+    text: text(i + 1),
+    units: u,
+    block: i + 1,
+  })) as Sentence[];
+}
+
+function alignment(entries: Record<string, string[]>, guide: Sentence[]) {
+  return new Map(guide.map((c) => [c.id, entries[c.id] || []]));
+}
+
+const range = (from: number, to: number) =>
+  Array.from({ length: to - from + 1 }, (_, i) => `S${from + i}`);
+
+describe('配對驗證', () => {
+  const guide = synthetic('C', [16, 16]);
+  const source = synthetic('S', [10, 10]);
+
+  it('合格的配對轉成 Map，重複的原文編號去重', () => {
+    const map = validateAlignment(
+      {
+        alignments: [
+          { c: 'C1', s: ['S1', 'S1'] },
+          { c: 'C2', s: [] },
+        ],
+      },
+      guide,
+      source
+    );
+    expect(map.get('C1')).toEqual(['S1']);
+    expect(map.get('C2')).toEqual([]);
+  });
+
+  it.each([
+    ['漏句', { alignments: [{ c: 'C1', s: ['S1'] }] }, /missing guide sentence/],
+    [
+      '重複列出導讀句',
+      {
+        alignments: [
+          { c: 'C1', s: [] },
+          { c: 'C1', s: [] },
+          { c: 'C2', s: [] },
+        ],
+      },
+      /twice/,
+    ],
+    ['不存在的導讀句', { alignments: [{ c: 'C9', s: [] }] }, /unknown guide sentence/],
+    [
+      '不存在的原文句',
+      {
+        alignments: [
+          { c: 'C1', s: ['S7'] },
+          { c: 'C2', s: [] },
+        ],
+      },
+      /unknown source sentence S7/,
+    ],
+    ['沒有 alignments', { result: [] }, /no "alignments"/],
+  ])('%s讓這次配對失敗', (_name, raw, message) => {
+    expect(() => validateAlignment(raw, guide, source)).toThrow(message);
+  });
+});
+
+describe('擋下條件由程式依固定參數計算', () => {
+  // κ 1.6：16 units 的導讀句等效長度 10，剛好等於一句 10 units 的原文。
+  const source30 = synthetic('S', Array(30).fill(10));
+
+  it('連續三句照順序翻譯：規則①不通過', () => {
+    const guide = synthetic('C', [16, 16, 16]);
+    const map = alignment({ C1: ['S1'], C2: ['S2'], C3: ['S3'] }, guide);
+    expect(scoreAlignment(guide, source30, map).maxRun).toBe(3);
+    expect(decide(guide, source30, [map])).toMatchObject({ verdict: 'FAIL', fails: ['run'] });
+  });
+
+  it('三句併一句照翻算翻譯型配對，不會被當成摘要', () => {
+    const guide = synthetic('C', [48, 48, 48]);
+    const map = alignment({ C1: range(1, 3), C2: range(4, 6), C3: range(7, 9) }, guide);
+    const score = scoreAlignment(guide, source30, map);
+    expect(score.pairs.every((p: { translation: boolean }) => p.translation)).toBe(true);
+    expect(score.maxRun).toBe(3);
+  });
+
+  it('翻兩句夾一句吐槽：評論與摘要都不切斷連續段', () => {
+    const guide = synthetic('C', [16, 16, 20, 16]);
+    const commentary = alignment({ C1: ['S1'], C2: ['S2'], C4: ['S3'] }, guide);
+    expect(scoreAlignment(guide, source30, commentary).maxRun).toBe(3);
+
+    const summary = synthetic('C', [16, 16, 2, 16]);
+    const withSummary = alignment(
+      { C1: ['S1'], C2: ['S2'], C3: range(10, 20), C4: ['S3'] },
+      summary
+    );
+    const score = scoreAlignment(summary, source30, withSummary);
+    expect(score.pairs.find((p: { c: string }) => p.c === 'C3').translation).toBe(false);
+    expect(score.maxRun).toBe(3);
+  });
+
+  it('一句總覽只算它自身等效長度的原文量', () => {
+    const guide = synthetic('C', [8]);
+    const score = scoreAlignment(guide, source30, alignment({ C1: range(1, 30) }, guide));
+    expect(score.pairs[0].translation).toBe(false);
+    expect(score.sourceRatio).toBeCloseTo(5 / 300, 10);
+  });
+
+  it('重講的原文超過三成：規則②不通過', () => {
+    const guide = synthetic('C', Array(10).fill(16));
+    const entries = Object.fromEntries(guide.map((c, i) => [c.id, [`S${1 + 3 * i}`]]));
+    const map = alignment(entries, guide);
+    const score = scoreAlignment(guide, source30, map);
+    expect(score.maxRun).toBe(1);
+    expect(score.sourceRatio).toBeCloseTo(100 / 300, 10);
+    expect(decide(guide, source30, [map])).toMatchObject({ verdict: 'FAIL', fails: ['ratio'] });
+  });
+
+  it('第一次配對沒有任何配對：零配對', () => {
+    const guide = synthetic('C', [16, 16]);
+    expect(decide(guide, source30, [alignment({}, guide)])).toMatchObject({
+      verdict: 'ZERO',
+      fails: ['zero'],
+    });
+  });
+
+  it('第一次三條都過才做第二次；第二次規則①沒過就不通過', () => {
+    const guide = synthetic('C', [16, 16, 16]);
+    const first = alignment({ C1: ['S1'], C2: ['S5'], C3: ['S9'] }, guide);
+    expect(decide(guide, source30, [first])).toMatchObject({ verdict: 'NEEDS_SECOND' });
+
+    const second = alignment({ C1: ['S1'], C2: ['S2'], C3: ['S3'] }, guide);
+    expect(decide(guide, source30, [first, second])).toMatchObject({
+      verdict: 'FAIL',
+      fails: ['run'],
+    });
+
+    const pass = decide(guide, source30, [first, first]);
+    expect(pass).toMatchObject({
+      verdict: 'PASS',
+      metrics: { maxRun: 1, sourceRatio: 0.1, alignedSentences: 3 },
+    });
+  });
+
+  it('規則②用兩次配對的聯集計算', () => {
+    // 兩次配對各自只配到一半的導讀句（各重講 60/300），聯集後是 120/300。
+    const guide = synthetic('C', Array(12).fill(16));
+    const firstHalf = Object.fromEntries(
+      guide.slice(0, 6).map((c, i) => [c.id, [`S${1 + 4 * i}`]])
+    );
+    const secondHalf = Object.fromEntries(guide.slice(6).map((c, i) => [c.id, [`S${3 + 4 * i}`]]));
+    const first = alignment(firstHalf, guide);
+    const second = alignment(secondHalf, guide);
+    const result = decide(guide, source30, [first, second]);
+    expect(result.scores.map((s: { sourceRatio: number }) => s.sourceRatio)).toEqual([0.2, 0.2]);
+    expect(result).toMatchObject({ verdict: 'FAIL', fails: ['ratio'] });
+    expect(result.metrics.sourceRatio).toBeCloseTo(0.4, 10);
+  });
+
+  it('一句對到 S4＋S103 時先依相鄰關係分群，進度不會直接跳到尾', () => {
+    const source = synthetic('S', Array(110).fill(10));
+    const guide = synthetic('C', [32, 16, 16]);
+    const map = alignment({ C1: ['S4', 'S103'], C2: ['S5'], C3: ['S6'] }, guide);
+    expect(scoreAlignment(guide, source, map).maxRun).toBe(3);
+  });
+
+  it('被切碎成三句的短引文不會湊出假的連續段', () => {
+    const source = synthetic('S', [2, 4, 3, ...Array(20).fill(10)]);
+    const guide = synthetic('C', [4, 7, 5]);
+    const map = alignment({ C1: ['S1'], C2: ['S2'], C3: ['S3'] }, guide);
+    const score = scoreAlignment(guide, source, map);
+    expect(score.translationPairs).toBe(3);
+    expect(score.maxRun).toBe(0);
+  });
+
+  it('改寫報告只列段落，不含任何數字、門檻或規則名稱', () => {
+    const texts = [
+      '燈塔日誌的第一句照翻',
+      '第二句也照原文順序',
+      '第三句繼續照翻',
+      '這段是我們自己的評論',
+    ];
+    const guide = synthetic('C', [16, 16, 16, 16], (i) => texts[i - 1]);
+    const map = alignment({ C1: ['S1'], C2: ['S2'], C3: ['S3'] }, guide);
+    const result = decide(guide, source30, [map]);
+    expect(result.verdict).toBe('FAIL');
+    const report = result.report as string;
+    for (const text of texts.slice(0, 3)) expect(report).toContain(text);
+    expect(report).not.toMatch(/\d/);
+    for (const word of ['門檻', '占比', '規則', '指標', 'β', 'κ', 'maxRun', 'ratio', '%']) {
+      expect(report).not.toContain(word);
+    }
+    expect(rewriteReport(guide, source30, [map], [scoreAlignment(guide, source30, map)])).toBe(
+      report
+    );
   });
 });

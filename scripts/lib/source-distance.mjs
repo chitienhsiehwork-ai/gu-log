@@ -508,6 +508,303 @@ export function sourceSummary(sourceSentences, policy = POLICY) {
   };
 }
 
+// ─── 配對驗證 ───────────────────────────────────────────────────────────
+
+/**
+ * 驗證 aligner 的輸出：每個導讀句剛好出現一次、所有編號都存在。不合格就丟錯，
+ * 這次配對不能當成通過，也不能當成「沒有配對」。回傳 Map<C id, S id[]>。
+ */
+export function validateAlignment(raw, guide, source) {
+  const alignments = raw && typeof raw === 'object' ? raw.alignments : undefined;
+  if (!Array.isArray(alignments)) {
+    throw new Error('alignment output has no "alignments" array');
+  }
+  const guideIds = new Set(guide.map((s) => s.id));
+  const sourceIds = new Set(source.map((s) => s.id));
+  const map = new Map();
+  for (const entry of alignments) {
+    if (!entry || typeof entry.c !== 'string' || !Array.isArray(entry.s)) {
+      throw new Error('alignment entries must look like {"c": "C1", "s": ["S1"]}');
+    }
+    if (!guideIds.has(entry.c))
+      throw new Error(`alignment names unknown guide sentence ${entry.c}`);
+    if (map.has(entry.c)) throw new Error(`alignment lists guide sentence ${entry.c} twice`);
+    const ids = new Set();
+    for (const id of entry.s) {
+      if (typeof id !== 'string' || !sourceIds.has(id)) {
+        throw new Error(`alignment for ${entry.c} names unknown source sentence ${String(id)}`);
+      }
+      ids.add(id);
+    }
+    map.set(entry.c, [...ids]);
+  }
+  const missing = guide.filter((s) => !map.has(s.id)).map((s) => s.id);
+  if (missing.length)
+    throw new Error(`alignment is missing guide sentence(s) ${missing.join(', ')}`);
+  return map;
+}
+
+export function unionAlignments(maps) {
+  const out = new Map();
+  for (const map of maps) {
+    for (const [c, ss] of map) out.set(c, [...new Set([...(out.get(c) || []), ...ss])]);
+  }
+  return out;
+}
+
+// ─── 計分 ───────────────────────────────────────────────────────────────
+
+const sentenceIndex = (id) => Number(id.slice(1));
+
+/**
+ * 一次配對的指標。規則①（照順序一句對一句）與規則②（原文占比）都由這裡從配對算出，
+ * 定義見 source-distance-stamp spec〈擋下條件 SHALL 由程式依固定參數計算〉。
+ */
+export function scoreAlignment(guide, source, map, policy = POLICY) {
+  const kappa = kappaFor(source, policy);
+  const sourceUnits = new Map(source.map((s) => [s.id, s.units]));
+  const totalSource = source.reduce((sum, s) => sum + s.units, 0);
+
+  // 有配對的導讀句＝一個配對。
+  const pairs = [];
+  for (const c of guide) {
+    const ss = (map.get(c.id) || []).slice().sort((a, b) => sentenceIndex(a) - sentenceIndex(b));
+    if (!ss.length) continue;
+    const sourceLength = ss.reduce((sum, s) => sum + sourceUnits.get(s), 0);
+    const equivalent = c.units / kappa;
+    pairs.push({
+      c: c.id,
+      block: c.block,
+      ss,
+      sourceLength,
+      equivalent,
+      translation: equivalent >= policy.beta * sourceLength,
+    });
+  }
+
+  // 規則①：翻譯型配對依導讀順序沿著原文往前推進時形成連續段。一個配對對到的原文句先
+  // 依相鄰關係分群（S4＋S103 不能讓進度直接跳到尾），同時追多條候選連續段取最長。
+  const unitsIn = (pair, lo, hi) =>
+    pair.ss
+      .filter((s) => sentenceIndex(s) > lo && sentenceIndex(s) <= hi)
+      .reduce((sum, s) => sum + sourceUnits.get(s), 0);
+  const clusters = (pair) => {
+    const ids = pair.ss.map(sentenceIndex);
+    const out = [];
+    let current = [ids[0], ids[0]];
+    for (const i of ids.slice(1)) {
+      if (i - current[1] <= policy.gap + 1) current[1] = i;
+      else {
+        out.push(current);
+        current = [i, i];
+      }
+    }
+    out.push(current);
+    return out;
+  };
+  let maxRun = 0;
+  const runs = [];
+  let chains = [];
+  for (const pair of pairs.filter((p) => p.translation)) {
+    const next = [];
+    const groups = clusters(pair);
+    for (const chain of chains) {
+      let best = null;
+      for (const [a, b] of groups) {
+        let candidate = null;
+        if (a >= chain.lastStart && b <= chain.frontier) {
+          // 停在已涵蓋範圍內：不加步數，也不切斷。
+          candidate = { ...chain, members: [...chain.members, pair.c] };
+        } else if (
+          a >= chain.lastStart &&
+          b > chain.frontier &&
+          a - chain.frontier <= policy.gap + 1
+        ) {
+          const fresh = unitsIn(pair, chain.frontier, b);
+          candidate = {
+            lastStart: a,
+            frontier: b,
+            steps: chain.steps + (fresh >= policy.minStep ? 1 : 0),
+            members: [...chain.members, pair.c],
+          };
+        }
+        if (
+          candidate &&
+          (!best ||
+            candidate.steps > best.steps ||
+            (candidate.steps === best.steps && candidate.frontier > best.frontier))
+        ) {
+          best = candidate;
+        }
+      }
+      if (best) next.push(best);
+    }
+    for (const [a, b] of groups) {
+      next.push({
+        lastStart: a,
+        frontier: b,
+        steps: unitsIn(pair, a - 1, b) >= policy.minStep ? 1 : 0,
+        members: [pair.c],
+      });
+    }
+    const byRange = new Map();
+    for (const chain of next) {
+      const key = `${chain.lastStart}:${chain.frontier}`;
+      if (!byRange.has(key) || byRange.get(key).steps < chain.steps) byRange.set(key, chain);
+    }
+    chains = [...byRange.values()];
+    for (const chain of chains) {
+      if (chain.steps > maxRun) maxRun = chain.steps;
+      if (chain.steps >= policy.runLimit) runs.push(chain.members);
+    }
+  }
+
+  // 規則②：每個配對最多算它的等效長度，依原文句長度分攤，每個原文句最多算滿自己。
+  const credit = new Map();
+  for (const pair of pairs) {
+    const amount = Math.min(pair.sourceLength, pair.equivalent);
+    for (const s of pair.ss) {
+      credit.set(s, (credit.get(s) || 0) + (amount * sourceUnits.get(s)) / pair.sourceLength);
+    }
+  }
+  let reproduced = 0;
+  for (const [s, value] of credit) reproduced += Math.min(sourceUnits.get(s), value);
+
+  return {
+    aligned: pairs.length,
+    translationPairs: pairs.filter((p) => p.translation).length,
+    maxRun,
+    sourceRatio: totalSource ? reproduced / totalSource : 0,
+    runs: dedupeRuns(runs),
+    pairs,
+  };
+}
+
+function dedupeRuns(runs) {
+  const unique = [...new Map(runs.map((r) => [r.join(','), r])).values()];
+  return unique.filter(
+    (run) =>
+      !unique.some(
+        (other) => other !== run && other.length > run.length && run.every((c) => other.includes(c))
+      )
+  );
+}
+
+function failedRules(score, policy, { run = true, ratio = true } = {}) {
+  const fails = [];
+  if (run && score.maxRun >= policy.runLimit) fails.push('run');
+  if (ratio && score.sourceRatio > policy.ratioLimit) fails.push('ratio');
+  return fails;
+}
+
+/**
+ * 兩次配對的判法：第一次零配對 → ZERO（直接結束，不改寫）；第一次任一條沒過 → FAIL；
+ * 第一次三條都過、只有一次配對 → NEEDS_SECOND；第二次的規則①各自判、規則②用聯集 → PASS
+ * 或 FAIL。FAIL 附上改寫報告（只列段落，不含門檻、指標或規則名稱）。
+ */
+export function decide(guide, source, maps, policy = POLICY) {
+  if (!maps.length) throw new Error('decide needs at least one alignment');
+  const first = scoreAlignment(guide, source, maps[0], policy);
+  if (first.aligned === 0) {
+    return { verdict: 'ZERO', fails: ['zero'], scores: [first] };
+  }
+  const firstFails = failedRules(first, policy);
+  if (firstFails.length) {
+    return {
+      verdict: 'FAIL',
+      fails: firstFails,
+      scores: [first],
+      report: rewriteReport(guide, source, [maps[0]], [first], policy),
+    };
+  }
+  if (maps.length < 2) return { verdict: 'NEEDS_SECOND', fails: [], scores: [first] };
+  const second = scoreAlignment(guide, source, maps[1], policy);
+  const union = scoreAlignment(guide, source, unionAlignments(maps.slice(0, 2)), policy);
+  const fails = [
+    ...failedRules(second, policy, { ratio: false }),
+    ...failedRules(union, policy, { run: false }),
+  ];
+  const metrics = {
+    maxRun: Math.max(first.maxRun, second.maxRun),
+    sourceRatio: floor4(union.sourceRatio),
+    alignedSentences: union.aligned,
+  };
+  if (fails.length) {
+    return {
+      verdict: 'FAIL',
+      fails,
+      scores: [first, second],
+      union,
+      metrics,
+      report: rewriteReport(guide, source, maps.slice(0, 2), [first, second], policy),
+    };
+  }
+  return { verdict: 'PASS', fails: [], scores: [first, second], union, metrics };
+}
+
+// 章上的比例無條件捨去到小數四位：通過時的精確值在門檻內，記錄值也一定在門檻內。
+function floor4(value) {
+  return Math.floor(value * 1e4) / 1e4;
+}
+
+function joinSentences(texts) {
+  let out = '';
+  for (const text of texts) {
+    if (out && /[A-Za-z0-9.,!?;:)"'’”]$/.test(out) && /^[A-Za-z0-9("'‘“]/.test(text)) out += ' ';
+    out += text;
+  }
+  return out;
+}
+
+/**
+ * 改寫報告：只列兩種段落——連續段裡的導讀句（每次配對中達到上限的連續段，去重），以及
+ * 依聯集配對、轉述量最多、累計到總轉述量四成的段落。不給門檻、指標或規則名稱，避免寫手
+ * 對著數字剛好壓線。
+ */
+export function rewriteReport(guide, source, maps, scores, policy = POLICY) {
+  const textOf = new Map(guide.map((s) => [s.id, s.text]));
+  const runs = dedupeRuns(scores.flatMap((score) => score.runs));
+  const runText = runs.length
+    ? runs.map((run) => run.map((c) => `- ${textOf.get(c)}`).join('\n')).join('\n\n')
+    : '（無）';
+
+  const union = scoreAlignment(guide, source, unionAlignments(maps), policy);
+  const byBlock = new Map();
+  for (const pair of union.pairs) {
+    byBlock.set(
+      pair.block,
+      (byBlock.get(pair.block) || 0) + Math.min(pair.sourceLength, pair.equivalent)
+    );
+  }
+  const total = [...byBlock.values()].reduce((sum, v) => sum + v, 0);
+  const heavy = [];
+  let accumulated = 0;
+  for (const [block, amount] of [...byBlock].sort((a, b) => b[1] - a[1] || a[0] - b[0])) {
+    if (accumulated >= 0.4 * total) break;
+    heavy.push(block);
+    accumulated += amount;
+  }
+  const heavyText = heavy.length
+    ? heavy
+        .sort((a, b) => a - b)
+        .map(
+          (block) => `> ${joinSentences(guide.filter((s) => s.block === block).map((s) => s.text))}`
+        )
+        .join('\n\n')
+    : '（無）';
+
+  return [
+    '## 連續照原文順序轉述的句子',
+    '',
+    runText,
+    '',
+    '## 主要在重講原文內容的段落',
+    '',
+    heavyText,
+    '',
+  ].join('\n');
+}
+
 // ─── 外部來源與需要章的文章 ─────────────────────────────────────────────
 
 const EXAMPLE_HOSTS = ['example.com', 'example.org', 'example.net'];
