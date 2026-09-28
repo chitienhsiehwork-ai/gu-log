@@ -712,6 +712,50 @@ func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
 	}
 }
 
+// TestStandaloneCreditsRejectsGP: stamping credits rewrites frontmatter, so a
+// GP post or a work-dir final.mdx with a GP ticket exits 1 with「GP 暫停中」
+// and stays untouched, while a non-GP final.mdx still gets stamped.
+func TestStandaloneCreditsRejectsGP(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	gpPost := filepath.Join(t.TempDir(), "gp-10-20260723-author-title.mdx")
+	gpFinal := filepath.Join(t.TempDir(), "final.mdx")
+	mpFinal := filepath.Join(t.TempDir(), "final.mdx")
+	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
+	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n")
+	mustWrite(t, mpFinal, "---\ntitle: \"MP\"\nticketId: \"MP-PENDING\"\nlang: zh-tw\n---\nbody\n")
+	credits := func(path string) error {
+		resetGlobals()
+		cmd := buildRoot()
+		cmd.SetArgs([]string{"credits", "--file", path})
+		return cmd.ExecuteContext(context.Background())
+	}
+
+	for name, path := range map[string]string{"GP post": gpPost, "GP final.mdx": gpFinal} {
+		t.Run(name, func(t *testing.T) {
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = credits(path)
+			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) || !strings.Contains(err.Error(), "GP 暫停中") {
+				t.Fatalf("error = %v (exit %d), want the exit-1「GP 暫停中」rejection", err, exitCodeFor(err))
+			}
+			if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, before) {
+				t.Fatalf("GP rejection changed %s: %q, %v", path, after, err)
+			}
+		})
+	}
+	t.Run("MP final.mdx", func(t *testing.T) {
+		if err := credits(mpFinal); err != nil {
+			t.Fatalf("credits on an MP final.mdx: %v", err)
+		}
+		if got, err := os.ReadFile(mpFinal); err != nil || !strings.Contains(string(got), "pipelineUrl") {
+			t.Fatalf("MP final.mdx was not stamped: %q, %v", got, err)
+		}
+	})
+}
+
 // TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
 // series only changes whether Tribunal may rewrite (GP is score-only), and the
 // existing levelup- Lv corpus and en- sidecars must resolve instead of failing.
