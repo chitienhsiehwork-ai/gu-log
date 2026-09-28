@@ -116,6 +116,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 - `stamp` 只寫 frontmatter 的 `sourceDistance`，不改正文；原文擷取留在 repo 外的工作目錄。沒過或零配對以 exit 19 結束並印出標出的段落，檔案不變。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。有外部來源的 GP 要帶有效的來源距離章，validator 才會放行。
+- deploy（含 `run` 最後的 deploy）的 commit 訊息結尾會附上環境變數 `GP_COMMIT_TRAILERS` 列的 git trailer，一行一個 `Key: value`（例如執行環境要求的 `Co-Authored-By`）；沒設就不加，格式不對的行在配置號碼前就擋下。
 - standalone `deploy --dry-run` 只做 CLI 輸入預檢，不跑 validator，也不做 counter、檔案、build 或 git 異動；不得用它假裝完成發布。
 - `run --dry-run` 會跑完 translate、保留產生的 en sidecar 與 report，然後停在 deploy 前；不配置 ticket、不 validate/build，也不 commit/push。`--skip-validate`、`--skip-build`、`--skip-push` 是 testing-only flags；standalone deploy 正常執行不支援前兩者，standalone dry-run 也不會執行它們所對應的階段。
 

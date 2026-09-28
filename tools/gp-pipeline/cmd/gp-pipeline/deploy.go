@@ -53,6 +53,11 @@ node scripts/validate-posts.mjs.
 Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
+The commit message ends with the git trailers listed in GP_COMMIT_TRAILERS,
+one "Key: value" per line (for example a Co-Authored-By line); a line that is
+not a trailer fails before the counter is touched. Unset, the message is just
+"Add <ticket>: <title>".
+
 The series comes from the --active-file pending filename, and an explicit
 --prefix must match it.
 
