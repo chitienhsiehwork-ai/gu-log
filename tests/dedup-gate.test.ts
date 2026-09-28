@@ -265,29 +265,44 @@ describe('layer1Match (URL gate)', () => {
   ];
 
   it('matches normalized URL aliases', () => {
-    const r = layer1Match('https://www.anthropic.com/engineering/claude-code-auto-mode', articles);
+    const [r] = layer1Match(
+      'https://www.anthropic.com/engineering/claude-code-auto-mode',
+      articles
+    );
     expect(r?.article.ticketId).toBe('GP-1');
     expect(r?.reason).toBe('URL match');
   });
 
   it('matches tweet ID across x.com / twitter.com', () => {
-    const r = layer1Match('https://twitter.com/simonw/status/12345', articles);
+    const [r] = layer1Match('https://twitter.com/simonw/status/12345', articles);
     expect(r?.article.ticketId).toBe('MP-1');
     expect(r?.reason).toBe('tweet ID match');
   });
 
   it('matches YouTube video ID across watch / shorts / youtu.be forms', () => {
-    const r = layer1Match('https://youtube.com/shorts/dQw4w9WgXcQ', articles);
+    const [r] = layer1Match('https://youtube.com/shorts/dQw4w9WgXcQ', articles);
     expect(r?.article.ticketId).toBe('GP-2');
     expect(r?.reason).toBe('YouTube video ID match');
   });
 
-  it('returns null on no match', () => {
-    expect(layer1Match('https://example.com/other', articles)).toBeNull();
+  it('returns every article with the same source, not just the first', () => {
+    const twin = { ...articles[0], file: 'mp-9-same-source.mdx', ticketId: 'MP-9' };
+    const matches = layer1Match('https://www.anthropic.com/engineering/claude-code-auto-mode', [
+      ...articles,
+      twin,
+    ]);
+    expect(matches.map((m: { article: { ticketId: string } }) => m.article.ticketId)).toEqual([
+      'GP-1',
+      'MP-9',
+    ]);
   });
 
-  it('returns null on empty URL', () => {
-    expect(layer1Match('', articles)).toBeNull();
+  it('returns no match for another source', () => {
+    expect(layer1Match('https://example.com/other', articles)).toEqual([]);
+  });
+
+  it('returns no match for an empty URL', () => {
+    expect(layer1Match('', articles)).toEqual([]);
   });
 });
 
@@ -485,7 +500,7 @@ describe('taken-down posts are blocked sources', () => {
   });
 
   it('Layer 1 BLOCKs a candidate from a taken-down source and says why', () => {
-    const match = layer1Match(
+    const [match] = layer1Match(
       'https://code.claude.com/docs/en/agent-teams/?utm_source=x',
       articles
     );
@@ -493,7 +508,7 @@ describe('taken-down posts are blocked sources', () => {
     expect(formatLayer1Block(match)).toBe(
       'BLOCK: Source blocked — GP-35 was taken down (URL match): Claude Code Agent Teams 官方文件深入解析'
     );
-    const live = layer1Match('https://example.com/codex-sandbox', articles);
+    const [live] = layer1Match('https://example.com/codex-sandbox', articles);
     expect(formatLayer1Block(live)).toBe(
       'BLOCK: Duplicate of MP-9 (URL match): Codex CLI sandbox 設定筆記'
     );

@@ -6,11 +6,12 @@
  * 棘輪擋住「把墓碑寫回全文」與「從已封鎖的來源再寫一篇」：
  *
  *   1. 基準版本已是 taken-down 的文章：新版本必須還在、仍是 taken-down、正文為空。
- *   2. GP 暫停期間（src/lib/gp-series-pause.mjs），新增的 GP 文章（含 GP-PENDING）
- *      一律失敗；既有 ticketId 的改名或配對不算新增。
- *   3. 新增文章的 sourceUrl 與任一下架文章是同一個來源 → 來源已封鎖。比對直接用
- *      dedup-gate 的 layer1Match（正規化網址、推文 ID、YouTube 影片 ID）。
- *   4. sources/ 底下只准新增 sources/chatgpt/（ShroomDog 自己的對話）。
+ *   2. 新增的文章，以及改了 sourceUrl 的既有文章，來源與任一下架文章相同 → 來源已
+ *      封鎖。比對用 dedup-gate 的 layer1Match（正規化網址、推文 ID、YouTube 影片 ID），
+ *      找出所有相同來源的下架文章。唯一的例外三個條件都要成立：這篇是 GP、相同來源的
+ *      下架文章全部是 GP、這篇帶有效的來源距離章（驗章用 scripts/lib/source-distance.mjs，
+ *      跟 validate-posts 同一份）。有一篇下架的不是 GP 就照樣封鎖。
+ *   3. sources/ 底下只准新增 sources/chatgpt/（ShroomDog 自己的對話）。
  *
  * 用法：
  *   node scripts/check-takedown-ratchet.mjs --staged       # pre-commit：HEAD → index
@@ -20,8 +21,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { GP_SERIES_PAUSED } from '../src/lib/gp-series-pause.mjs';
 import { layer1Match, sourceIdentity } from './dedup-gate.mjs';
+import { isGpTicket, loadPostIndex, verifyStamp } from './lib/source-distance.mjs';
 import { TAKEN_DOWN_STATUS, isTakenDownData, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
@@ -48,19 +49,19 @@ function ticketOf(data) {
  * @param {Array<{ path: string, content: string }>} input.baseTakenDown  基準版本的下架文章
  * @param {Map<string, string | null>} input.headContents  上述檔案在新版本的內容（null＝不存在）
  * @param {Array<{ path: string, content: string }>} input.addedPosts  新增的文章
+ * @param {Array<{ path: string, content: string }>} [input.changedSourcePosts]  改了 sourceUrl 的既有文章（新版本內容）
  * @param {Array<{ path: string, content: string }>} input.headTakenDown  新版本的下架文章
  * @param {string[]} input.addedSourcePaths  sources/ 底下新增的檔案
- * @param {Set<string>} input.baseTicketIds  基準版本已存在的 ticketId
- * @param {boolean} [input.gpPaused]
+ * @param {Map<string, object>} [input.postIndex]  驗章用的站內文章索引（預設讀工作目錄的 posts/）
  */
 export function evaluateTakedownRatchet({
   baseTakenDown,
   headContents,
   addedPosts,
+  changedSourcePosts = [],
   headTakenDown,
   addedSourcePaths,
-  baseTicketIds,
-  gpPaused = GP_SERIES_PAUSED,
+  postIndex = null,
 }) {
   const errors = [];
 
@@ -96,29 +97,45 @@ export function evaluateTakedownRatchet({
     });
   }
 
-  for (const { path: file, content } of addedPosts) {
+  let index = postIndex;
+  const hasValidStamp = (content, data, file) => {
+    index ??= loadPostIndex();
+    const { required, errors: stampErrors } = verifyStamp({
+      content,
+      data,
+      file,
+      postIndex: index,
+    });
+    return required && stampErrors.length === 0;
+  };
+
+  for (const { path: file, content } of [...addedPosts, ...changedSourcePosts]) {
     const parsed = parsePost(content, file);
     if (!parsed) continue; // validate-posts reports unreadable frontmatter
     const { data } = parsed;
     if (isTakenDownData(data)) continue;
-    const ticketId = ticketOf(data);
+    const matches = typeof data.sourceUrl === 'string' ? layer1Match(data.sourceUrl, blocked) : [];
+    if (matches.length === 0) continue;
 
-    if (
-      gpPaused &&
-      /^GP-(?:\d+|PENDING)$/.test(ticketId) &&
-      (ticketId.endsWith('-PENDING') || !baseTicketIds.has(ticketId))
-    ) {
-      errors.push(
-        `${file}: new GP posts are paused — whole-article translations need the source author's consent first (openspec: editorial-charter)`
-      );
-    }
+    // 唯一的例外：GP 導讀、相同來源的下架文章全部是 GP、而且這篇帶有效的章。
+    const gp = isGpTicket(ticketOf(data));
+    const nonGp = matches.filter(({ article }) => !isGpTicket(article.ticketId));
+    if (gp && nonGp.length === 0 && hasValidStamp(content, data, file)) continue;
 
-    const match = typeof data.sourceUrl === 'string' ? layer1Match(data.sourceUrl, blocked) : null;
-    if (match) {
-      errors.push(
-        `${file}: source is blocked — ${data.sourceUrl} was taken down as ${match.article.ticketId || match.article.file} (${match.reason}; openspec: post-takedown)`
-      );
+    const shown = gp && nonGp.length > 0 ? nonGp : matches;
+    const takenDownAs = shown
+      .map(({ article, reason }) => `${article.ticketId || article.file} (${reason})`)
+      .join(', ');
+    let why = '';
+    if (gp && nonGp.length === 0) {
+      why =
+        '; a GP reading guide may reuse a taken-down GP source only with a valid sourceDistance stamp';
+    } else if (gp) {
+      why = '; a non-GP post was taken down from it, and no stamp lifts that';
     }
+    errors.push(
+      `${file}: source is blocked — ${data.sourceUrl} was taken down as ${takenDownAs}${why} (openspec: post-takedown)`
+    );
   }
 
   for (const file of addedSourcePaths) {
@@ -196,21 +213,7 @@ function takenDownPathsAt(cwd, tree) {
     .map((line) => line.replace(/^[^:]+:(?=src\/)/, ''));
 }
 
-function ticketIdsAt(cwd, tree) {
-  return new Set(
-    grepPosts(cwd, tree, ['-h', '-E', '^ticketId:'])
-      .split('\n')
-      .map((line) =>
-        line
-          .replace(/^ticketId:\s*/, '')
-          .replace(/^["']|["']\s*$/g, '')
-          .trim()
-      )
-      .filter(Boolean)
-  );
-}
-
-function addedPaths(cwd, diffArgs, pathspec) {
+function changedPaths(cwd, filter, diffArgs, pathspec) {
   const output = git(cwd, [
     '-c',
     'diff.renameLimit=0',
@@ -218,12 +221,19 @@ function addedPaths(cwd, diffArgs, pathspec) {
     '--name-only',
     '-z',
     '--no-renames',
-    '--diff-filter=A',
+    `--diff-filter=${filter}`,
     ...diffArgs,
     '--',
     pathspec,
   ]);
   return output.split('\0').filter(Boolean);
+}
+
+const addedPaths = (cwd, diffArgs, pathspec) => changedPaths(cwd, 'A', diffArgs, pathspec);
+
+function sourceUrlOf(content) {
+  const parsed = content ? parsePost(content, 'post') : null;
+  return typeof parsed?.data?.sourceUrl === 'string' ? parsed.data.sourceUrl : null;
 }
 
 /**
@@ -238,15 +248,23 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
   const baseTakenDownPaths = takenDownPathsAt(cwd, { rev: baseRev });
   const headTakenDownPaths = takenDownPathsAt(cwd, staged ? { cached: true } : { rev: 'HEAD' });
   const addedPostPaths = addedPaths(cwd, diffArgs, `${POSTS_DIR}/*.mdx`);
+  const modifiedPostPaths = changedPaths(cwd, 'M', diffArgs, `${POSTS_DIR}/*.mdx`);
   const addedSourcePaths = addedPaths(cwd, diffArgs, SOURCES_DIR);
 
   const baseBlobs = readBlobs(
     cwd,
-    baseTakenDownPaths.map((file) => `${baseRev}:${file}`)
+    [...new Set([...baseTakenDownPaths, ...modifiedPostPaths])].map((file) => `${baseRev}:${file}`)
   );
   const headBlobs = readBlobs(
     cwd,
-    [...new Set([...baseTakenDownPaths, ...headTakenDownPaths, ...addedPostPaths])].map(headSpec)
+    [
+      ...new Set([
+        ...baseTakenDownPaths,
+        ...headTakenDownPaths,
+        ...addedPostPaths,
+        ...modifiedPostPaths,
+      ]),
+    ].map(headSpec)
   );
 
   return {
@@ -268,8 +286,16 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
       path: file,
       content: headBlobs.get(headSpec(file)) ?? '',
     })),
+    // 既有文章改了 sourceUrl，跟新增文章一樣要過來源封鎖。
+    changedSourcePosts: modifiedPostPaths
+      .map((file) => ({
+        path: file,
+        base: baseBlobs.get(`${baseRev}:${file}`) ?? null,
+        content: headBlobs.get(headSpec(file)) ?? '',
+      }))
+      .filter(({ base, content }) => sourceUrlOf(base) !== sourceUrlOf(content))
+      .map(({ path: file, content }) => ({ path: file, content })),
     addedSourcePaths,
-    baseTicketIds: ticketIdsAt(cwd, { rev: baseRev }),
   };
 }
 
@@ -293,7 +319,7 @@ function main() {
     process.exit(1);
   }
   console.log(
-    `✓ Takedown ratchet: ${input.baseTakenDown.length} taken-down post(s) intact, ${input.addedPosts.length} new post(s) checked`
+    `✓ Takedown ratchet: ${input.baseTakenDown.length} taken-down post(s) intact, ${input.addedPosts.length + input.changedSourcePosts.length} new or re-sourced post(s) checked`
   );
 }
 

@@ -339,17 +339,24 @@ function loadPublishedArticles(postsDir = POSTS_DIR) {
 
 // ─── Layer 1: URL match ───────────────────────────────────────────────────────
 
+/**
+ * Every article whose source identity equals the candidate's, in corpus
+ * order: callers decide on all of them (a source taken down as both a GP and
+ * an MP stays blocked for a GP reading guide), so the first hit is not enough.
+ */
 function layer1Match(candidateUrl, articles) {
-  if (!candidateUrl) return null;
+  if (!candidateUrl) return [];
 
   const normCandidate = normalizeUrl(candidateUrl);
   const candidateTweetId = extractTweetId(candidateUrl);
   const candidateYouTubeVideoId = extractYouTubeVideoId(candidateUrl);
 
+  const matches = [];
   for (const art of articles) {
     // Tweet ID match (x.com vs twitter.com, mobile vs desktop)
     if (candidateTweetId && art.tweetId && candidateTweetId === art.tweetId) {
-      return { article: art, reason: 'tweet ID match' };
+      matches.push({ article: art, reason: 'tweet ID match' });
+      continue;
     }
 
     // YouTube identity match (watch vs shorts vs youtu.be).
@@ -358,16 +365,17 @@ function layer1Match(candidateUrl, articles) {
       art.youtubeVideoId &&
       candidateYouTubeVideoId === art.youtubeVideoId
     ) {
-      return { article: art, reason: 'YouTube video ID match' };
+      matches.push({ article: art, reason: 'YouTube video ID match' });
+      continue;
     }
 
     // Normalized URL exact match
     if (normCandidate && art.normalizedUrl && normCandidate === art.normalizedUrl) {
-      return { article: art, reason: 'URL match' };
+      matches.push({ article: art, reason: 'URL match' });
     }
   }
 
-  return null;
+  return matches;
 }
 
 /** The stdout line for a Layer 1 hit; a taken-down match is a blocked source. */
@@ -569,9 +577,9 @@ function main() {
   }
 
   // Layer 1: URL
-  const urlMatch = layer1Match(args.url, articles);
-  if (urlMatch) {
-    process.stdout.write(formatLayer1Block(urlMatch) + '\n');
+  const urlMatches = layer1Match(args.url, articles);
+  if (urlMatches.length > 0) {
+    process.stdout.write(formatLayer1Block(urlMatches[0]) + '\n');
     if (!args.dryRun) process.exit(1);
     process.exit(0);
   }
