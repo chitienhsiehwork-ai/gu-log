@@ -116,10 +116,13 @@ function relevance(postA, postB) {
 }
 
 // ─── Load all posts ─────────────────────────────────────────────────
-/** 把一篇文章的 frontmatter 整理成比對用的資料；檔名決定 slug。 */
+/**
+ * 把一篇文章的 frontmatter 整理成比對用的資料；檔名決定 slug。沒有 frontmatter 或已下架
+ * （只剩墓碑，openspec post-takedown）時回傳 null：不當延伸閱讀的候選，也不插連結。
+ */
 export function postInfo(filename, content) {
   const fm = parseFrontmatter(content);
-  if (!fm) return null;
+  if (!fm || isTakenDownData(fm)) return null;
 
   const slug = filename.replace(/\.mdx$/, '');
   const lang = fm.lang || (filename.startsWith('en-') ? 'en' : 'zh-tw');
@@ -139,10 +142,7 @@ export function loadPosts(postsDir = POSTS_DIR) {
   const posts = [];
 
   for (const filename of files) {
-    const content = fs.readFileSync(path.join(postsDir, filename), 'utf-8');
-    // 下架文章只剩墓碑，不能當延伸閱讀的候選，也不該被插連結（openspec post-takedown）。
-    if (isTakenDownData(parseFrontmatter(content))) continue;
-    const post = postInfo(filename, content);
+    const post = postInfo(filename, fs.readFileSync(path.join(postsDir, filename), 'utf-8'));
     if (post) posts.push(post);
   }
 

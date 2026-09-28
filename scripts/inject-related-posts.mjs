@@ -129,7 +129,7 @@ function processOutsideFile(filePath) {
   const post = postInfo(path.basename(resolved), content);
   const label = path.basename(resolved);
   if (!post) {
-    process.stderr.write(`${label}: no frontmatter; nothing to inject\n`);
+    process.stderr.write(`${label}: no frontmatter, or taken down; nothing to inject\n`);
     return true;
   }
   if (hasInternalLinks(getBody(content))) {
