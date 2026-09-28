@@ -227,9 +227,11 @@ case "$stop_note" in
   *"claude auth login"*) ;;
   *) fail "operator-action stop gave no actionable reason: $stop_note" ;;
 esac
+# suspended.mdx keeps a stale QUOTA_SUSPENDED ledger entry: only rc 75 may read
+# it, so a later rc 0/1/2 on that article (e.g. a taken-down post) must not stop.
 for rc in 0 1 2; do
-  PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason "$rc" locked.mdx >/dev/null ||
-    fail "article result rc=$rc must not stop the batch"
+  PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason "$rc" suspended.mdx >/dev/null ||
+    fail "article result rc=$rc must not stop the batch, even with a stale QUOTA_SUSPENDED entry"
 done
 export TRIBUNAL_MAIN_REPO="$tmp_dir/main"
 if tribunal_batch_claude_pause >/dev/null; then
