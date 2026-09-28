@@ -231,6 +231,11 @@ for rc in 0 1 2; do
   PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason "$rc" locked.mdx >/dev/null ||
     fail "article result rc=$rc must not stop the batch"
 done
+# tribunal.sh refuses a taken-down post with rc 1 before touching the ledger
+# (openspec: post-takedown); a stale QUOTA_SUSPENDED entry left from before the
+# takedown must not turn that refusal into a batch stop.
+PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 1 suspended.mdx >/dev/null ||
+  fail "a taken-down refusal (rc 1) must not stop the batch, even with a stale QUOTA_SUSPENDED entry"
 export TRIBUNAL_MAIN_REPO="$tmp_dir/main"
 if tribunal_batch_claude_pause >/dev/null; then
   fail "the batch saw a Claude writer pause that does not exist"

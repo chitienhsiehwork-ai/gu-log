@@ -337,10 +337,10 @@ ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 
 Exit code conventions (from `tribunal-all-claude.sh`):
 - `0` — all 4 stages passed and final full-site build passed
-- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
+- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch). A run on a `status: taken-down` post also exits `1` before any judge runs or writes the ledger; candidate selection already skips those posts (`post-takedown` spec), so the batch and the loop just log it and move on
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
-- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching. A manual run on a `status: taken-down` post also exits `78` before any judge runs; candidate selection already skips those posts (`post-takedown` spec)
+- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
 
 ## Worktree lifecycle cheat sheet

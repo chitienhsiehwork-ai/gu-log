@@ -155,9 +155,14 @@ fi
 
 # A taken-down post is outside Tribunal scope (openspec: post-takedown,
 # tribunal-verification-scope): refuse before any judge runs or writes back.
+# Plain rc 1 on purpose: the batch runner and quota loop log it as a failed
+# article and move on. 78 would drain the loop as "needs operator action",
+# and 75 would make them consult a possibly stale QUOTA_SUSPENDED ledger
+# entry; candidate selection already skips these posts, so a refusal only
+# happens when HEAD moved after the list was built.
 if [ "$(tribunal_post_status "$POST_PATH")" = "taken-down" ]; then
-  echo "ERROR: $POST_FILE is taken-down; it is outside Tribunal scope. No judge ran (rc=78)." >&2
-  exit 78
+  echo "ERROR: $POST_FILE is taken-down; it is outside Tribunal scope. No judge ran (rc=1)." >&2
+  exit 1
 fi
 
 # ─── Logging ──────────────────────────────────────────────────────────────────

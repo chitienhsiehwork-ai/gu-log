@@ -434,6 +434,49 @@ pass "worker completion attribution failure retains evidence and exits 70"
 run_completion_attribution_scenario unmatched
 pass "unmatched completion markers remain fatal infrastructure errors"
 
+# tribunal.sh refuses a taken-down post with rc 1 before any judge runs
+# (openspec: post-takedown). When HEAD moved after the article was claimed,
+# the loop must log an ordinary failed article: no drain, claim released.
+(
+  scenario_dir="$TMP/completion-taken-down"
+  events="$scenario_dir/events.log"
+  mkdir -p "$scenario_dir"
+  : > "$events"
+  printf 'worker_id=a\nrc=1\n' > "$scenario_dir/a.claimed.1"
+  declare -A WORKER_PID=([a]=4343)
+  declare -A WORKER_ARTICLE=([a]=gp-50-taken-down)
+  declare -A WORKER_RESULT_LOG=([a]="$scenario_dir/worker-a.log")
+  declare -A WORKER_COMPLETION=([a]="$scenario_dir/a.done")
+  declare -A WORKER_TRACKING=([a]="$scenario_dir/a.tracking")
+  stop_requested=false
+  stop_source=""
+  fatal_worker_rc=0
+  fatal_worker_detail=""
+  WORKER_COMPLETION_DIR="$scenario_dir"
+  LOG_FILE="$events"
+  PROGRESS_FILE="$scenario_dir/progress.json"
+  printf '{}\n' > "$PROGRESS_FILE"
+  event() { printf '%s:%s\n' "$1" "${2:-}" >> "$events"; }
+  tribunal_wait_for_worker_completion() {
+    TRIBUNAL_WORKER_COMPLETION_KIND="marker"
+    TRIBUNAL_WORKER_COMPLETION_MARKER="$scenario_dir/a.claimed.1"
+  }
+  tribunal_collect_worker_completion() { TRIBUNAL_COMPLETED_WORKER_RC=1; }
+  tribunal_alert_worker_completion() { :; }
+  tlog() { event log "$*"; }
+  rc_write_state() { event state "$1"; }
+  rc_release_claim() { event release "$1"; }
+
+  wait_any_worker
+  [ "$stop_requested" = false ] && [ "$fatal_worker_rc" -eq 0 ] ||
+    fail "a taken-down refusal (rc 1) must not drain the quota loop"
+  grep -qx 'release:gp-50-taken-down' "$events" ||
+    fail "a taken-down refusal (rc 1) must release the article claim"
+  ! grep -q '^state:draining' "$events" ||
+    fail "a taken-down refusal (rc 1) must not put the loop into draining"
+)
+pass "quota loop treats a taken-down refusal as an ordinary failed article"
+
 old_bin="$TMP/old-bin"
 mkdir -p "$old_bin"
 cat > "$old_bin/codex" <<'OLD_CODEX'
