@@ -1399,6 +1399,65 @@ describe('pipeline — GP is score-only', () => {
     expect(matter(after).data.scores?.factCheck?.accuracy).toBe(5);
   });
 
+  it('keeps scoring after a FAIL: every judge runs and all four scores are recorded', async () => {
+    const judged: string[] = [];
+    const state = await runPipeline(
+      articlePath,
+      scoreOnlyConfig({
+        stage1Judge: {
+          run: async () => {
+            judged.push('vibe');
+            return vibe(false, FAILING_SCORES);
+          },
+        },
+        stage2Judge: {
+          run: async () => {
+            judged.push('freshEyes');
+            return freshEyesPass();
+          },
+        },
+        stage3Judge: {
+          run: async () => {
+            judged.push('factLib');
+            return factLibPass();
+          },
+        },
+      })
+    );
+    expect(judged).toEqual(['vibe', 'freshEyes', 'factLib']);
+    expect(state.status).toBe('failed');
+    expect(state.stages.stage1.status).toBe('failed');
+    expect(state.stages.stage2.status).toBe('passed');
+    expect(state.stages.stage3.status).toBe('passed');
+    expect(state.stages.stage4.status).toBe('skipped');
+    const after = await readFile(articlePath, 'utf-8');
+    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    const scores = matter(after).data.scores;
+    for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
+      expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
+    }
+    expect(scores.vibe.persona).toBe(7);
+  });
+
+  it('records the Stage 3 scores of a dupCheck-only FAIL', async () => {
+    const dupOnly: FactLibJudgeOutput = {
+      ...factLibPass(),
+      scores: { ...factLibPass().scores, dupCheck: 3 },
+      improvements: { dupCheck: 'class=hard-dup action=BLOCK matchedSlugs=[] reason=same event' },
+    };
+    const state = await runPipeline(
+      articlePath,
+      scoreOnlyConfig({ stage3Judge: { run: async () => dupOnly } })
+    );
+    expect(state.status).toBe('needs_review');
+    const after = await readFile(articlePath, 'utf-8');
+    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    const scores = matter(after).data.scores;
+    for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
+      expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
+    }
+  });
+
   it('a passing GP skips Final Vibe and its writer', async () => {
     const state = await runPipeline(articlePath, scoreOnlyConfig({}));
     expect(state.status).toBe('passed');

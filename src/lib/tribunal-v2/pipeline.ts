@@ -338,7 +338,8 @@ async function persistScoreToFrontmatter(
  * GP is score-only (openspec gp-source-preservation): any body edit voids its
  * source-distance stamp, and only gp-pipeline re-stamps a GP. Tribunal v2 only
  * runs the judges on GP — no judge→writer loop, no FactCorrector rewrite, no
- * Librarian link insertion, no Final Vibe rewrite — and records the scores.
+ * Librarian link insertion, no Final Vibe rewrite. Every judge runs even after
+ * another one fails, and each score, failing ones included, is recorded.
  */
 export function isScoreOnlyArticle(articlePath: string): boolean {
   const basename = articlePath.substring(articlePath.lastIndexOf('/') + 1);
@@ -552,8 +553,8 @@ async function runJudgeWriterLoop<
     }
 
     if (scoreOnly) {
-      // GP: record the failing scores and stop. Re-judging an unchanged
-      // article is pointless, and no writer may touch a GP.
+      // GP: record the failing scores and end this stage. Re-judging an
+      // unchanged article is pointless, and no writer may touch a GP.
       stage.status = 'failed';
       stage.completedAt = now();
       await persistScores(judgeOutput);
@@ -768,6 +769,8 @@ async function runStage3(
     // write the verdict to frontmatter, and mark needs_review for human triage
     // (or Level F gate).
     if (judgeOutput.fact_pass && judgeOutput.library_pass && !judgeOutput.dupCheck_pass) {
+      // A score-only GP records every judge's score, this verdict included.
+      if (scoreOnly) await persistFactLibScores();
       // Extract verdict from improvements.dupCheck if present
       const verdictRaw = judgeOutput.improvements?.dupCheck ?? '';
       const classMatch = verdictRaw.match(/class=([^\s]+)/);
@@ -813,7 +816,8 @@ async function runStage3(
     }
 
     if (scoreOnly) {
-      // GP: record the failing scores and stop; no worker may edit a GP.
+      // GP: record the failing scores and end this stage; no worker may edit
+      // a GP.
       stage.status = 'failed';
       stage.completedAt = now();
       await persistFactLibScores();
@@ -1056,7 +1060,8 @@ export async function runPipeline(
     scoreOnly
   );
 
-  if (!stage1Passed) {
+  // A score-only GP runs every judge even after a FAIL (see below).
+  if (!stage1Passed && !scoreOnly) {
     state.status = 'failed';
     state.completedAt = now();
     await config.onProgress?.(state);
@@ -1077,7 +1082,7 @@ export async function runPipeline(
     scoreOnly
   );
 
-  if (!stage2Passed) {
+  if (!stage2Passed && !scoreOnly) {
     state.status = 'failed';
     state.completedAt = now();
     await config.onProgress?.(state);
@@ -1086,6 +1091,20 @@ export async function runPipeline(
 
   // --- Stage 3: FactLib (worker-first) ---
   const stage3Passed = await runStage3(state, config, version, scoreOnly);
+
+  // A score-only GP has now been scored by every judge, and every score,
+  // failing ones included, is in its frontmatter: whether it ships is the
+  // floor's call, not these verdicts. A failing GP ends here like any other
+  // failed run.
+  if (scoreOnly && !(stage1Passed && stage2Passed && stage3Passed)) {
+    const judged = [state.stages.stage1, state.stages.stage2, state.stages.stage3];
+    state.status = judged.some((stage) => stage.status === 'failed') ? 'failed' : 'needs_review';
+    // Final Vibe only guards rewrites, and a GP is never rewritten.
+    state.stages.stage4.status = 'skipped';
+    state.completedAt = now();
+    await config.onProgress?.(state);
+    return state;
+  }
 
   if (!stage3Passed) {
     // Propagate stage-level status: 'needs_review' (dupCheck-only FAIL) vs

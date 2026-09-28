@@ -18,6 +18,9 @@
 # Single-stage mode is judge-only by default: it scores and may update progress,
 # but it will not invoke tribunal-writer unless --allow-rewrite is explicit.
 # --score-only is fully non-mutating: no rewrite, no frontmatter, no commit.
+# A GP (gp-*/en-gp-*) never rewrites: every stage runs even after a FAIL, and
+# each judge's score, passing or failing, is written to the frontmatter; the
+# run exits 1 when any stage failed.
 # On crash resume: re-run same command; completed stages are skipped.
 
 set -euo pipefail
@@ -139,12 +142,18 @@ if [ -z "$ALLOW_REWRITE" ]; then
 fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
+# GP is score-only (openspec gp-source-preservation): no rewrite, every judge
+# scores it, and each judge's score, passing or failing, goes into the
+# frontmatter. Whether the GP ships is the floor's call (CONTRIBUTING.md
+# 〈兩層品質門檻〉), not four PASSes.
+GP_SCORE_ONLY=0
 if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
   if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
     echo "ERROR: GP is score-only in Tribunal, so --allow-rewrite is refused: a changed GP body voids its source-distance stamp and must go back through gp-pipeline to be re-stamped (tools/gp-pipeline/gp-pipeline stamp --file $POST_FILE)" >&2
     exit 1
   fi
   ALLOW_REWRITE=0
+  GP_SCORE_ONLY=1
 fi
 POST_PATH="$ROOT_DIR/src/content/posts/$POST_FILE"
 
@@ -1217,9 +1226,46 @@ PY
   esac
 }
 
+# ─── Persist One Judge Score ──────────────────────────────────────────────────
+# Writes the judge's score to the post frontmatter (and its en- sidecar) with
+# the programmatic model id; the judge's self-reported model is only compared.
+# A no-op without a frontmatter key or under --score-only. A failed write is
+# recorded as a runner error and returns 70.
+persist_stage_score() {
+  local post_path="$1" post_file="$2" stage_key="$3" fm_judge_key="$4"
+  local model_id="$5" runner_label="$6" attempt="$7" score_file="$8"
+  if [ -z "$fm_judge_key" ] || [ "$WRITE_FRONTMATTER" -ne 1 ]; then
+    return 0
+  fi
+
+  local fm_score_json fm_model judge_reported_model
+  # Programmatic model — never trust judge self-report (judges hallucinate their own model ID)
+  fm_model="$model_id"
+  judge_reported_model="$(jq -r '.judge_model // empty' "$score_file")"
+  if [ -n "$judge_reported_model" ]; then
+    if [ "$judge_reported_model" != "$fm_model" ]; then
+      tlog "  WARN: Model mismatch — expected=$fm_model, judge_self_report=$judge_reported_model"
+    else
+      tlog "  Model confirmed: judge agrees with expected=$fm_model"
+    fi
+  fi
+  fm_score_json="$(jq --arg model "$fm_model" '. + {model: $model}' "$score_file")"
+  tlog "  Writing $fm_judge_key score to frontmatter (model=$fm_model)..."
+  if write_score_to_frontmatter "$post_path" "$fm_judge_key" "$fm_score_json"; then
+    tlog "  Frontmatter updated for $fm_judge_key."
+    return 0
+  fi
+  tlog "  ERROR: Failed to write $fm_judge_key score to frontmatter."
+  if ! mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "frontmatter_persistence_failed"; then
+    tlog "  ERROR: Failed to persist RUNNER_ERROR after frontmatter failure."
+  fi
+  return 70
+}
+
 # ─── Run One Tribunal Stage ───────────────────────────────────────────────────
 # Args: stage_key, agent_name, validate_name, label, max_loops, post_file
-# Returns: 0 = stage passed, 1 = stage failed (max loops exhausted)
+# Returns: 0 = stage passed, 1 = stage failed (max loops exhausted, rewrite
+# disabled, or a score-only GP whose failing score was recorded)
 run_stage() {
   local stage_key="$1"    # progress key: librarian, factChecker, freshEyes, vibe
   local agent_name="$2"   # agent name: librarian, fact-checker, fresh-eyes, vibe-opus-scorer
@@ -1467,30 +1513,10 @@ PROMPT
       tlog "  PASS: $label passed on attempt $attempt"
 
       # ── Write score to post frontmatter (tribunal badge) ──
-      if [ -n "$fm_judge_key" ] && [ "$WRITE_FRONTMATTER" -eq 1 ]; then
-        local fm_score_json fm_model judge_reported_model
-        # Programmatic model — never trust judge self-report (judges hallucinate their own model ID)
-        fm_model="$model_id"
-        judge_reported_model="$(jq -r '.judge_model // empty' "$score_tmp")"
-        if [ -n "$judge_reported_model" ]; then
-          if [ "$judge_reported_model" != "$fm_model" ]; then
-            tlog "  WARN: Model mismatch — expected=$fm_model, judge_self_report=$judge_reported_model"
-          else
-            tlog "  Model confirmed: judge agrees with expected=$fm_model"
-          fi
-        fi
-        fm_score_json="$(jq --arg model "$fm_model" '. + {model: $model}' "$score_tmp")"
-        tlog "  Writing $fm_judge_key score to frontmatter (model=$fm_model)..."
-        if write_score_to_frontmatter "$post_path" "$fm_judge_key" "$fm_score_json"; then
-          tlog "  Frontmatter updated for $fm_judge_key."
-        else
-          tlog "  ERROR: Failed to write $fm_judge_key score to frontmatter."
-          if ! mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "frontmatter_persistence_failed"; then
-            tlog "  ERROR: Failed to persist RUNNER_ERROR after frontmatter failure."
-          fi
-          rm -f "$score_tmp"
-          return 70
-        fi
+      if ! persist_stage_score "$post_path" "$post_file" "$stage_key" "$fm_judge_key" \
+        "$model_id" "$runner_label" "$attempt" "$score_tmp"; then
+        rm -f "$score_tmp"
+        return 70
       fi
 
       if ! write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt"; then
@@ -1512,6 +1538,21 @@ PROMPT
     reasons="$(jq -r '.reasons | to_entries[] | "    \(.key): \(.value)"' "$score_tmp" 2>/dev/null || true)"
     if [ -n "$reasons" ]; then
       echo "$reasons" | while IFS= read -r line; do tlog "$line"; done
+    fi
+
+    # ── GP: record the failing score, never rewrite, never re-judge ──────────
+    # The caller runs the remaining judges, so the post ends up with all four
+    # scores; re-judging an unchanged article would only spend quota.
+    if [ "$GP_SCORE_ONLY" = 1 ]; then
+      if ! persist_stage_score "$post_path" "$post_file" "$stage_key" "$fm_judge_key" \
+        "$model_id" "$runner_label" "$attempt" "$score_tmp"; then
+        rm -f "$score_tmp"
+        return 70
+      fi
+      tlog "  GP is score-only: recorded the $label FAIL score without invoking tribunal-writer."
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      rm -f "$score_tmp"
+      return 1
     fi
 
     # ── Max loops exhausted — no more rewrites ────────────────────────────────
@@ -1874,6 +1915,9 @@ declare -a STAGES=(
   "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:vibe"
 )
 
+# A score-only GP keeps going after a FAIL; these collect what failed.
+GP_FAILED_STAGE_KEYS=()
+GP_FAILED_LABELS=()
 for stage_def in "${STAGES[@]}"; do
   IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
 
@@ -1901,12 +1945,26 @@ for stage_def in "${STAGES[@]}"; do
     fi
     exit 70
   elif [ "$stage_rc" -ne 0 ]; then
+    if [ "$GP_SCORE_ONLY" = 1 ]; then
+      tlog "  GP is score-only: $label FAIL is recorded; the remaining judges still score it."
+      GP_FAILED_STAGE_KEYS+=("$stage_key")
+      GP_FAILED_LABELS+=("$label")
+      continue
+    fi
     tlog "=== FAILED at stage: $label ==="
     mark_article_failed "$POST_FILE" "$stage_key"
     commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $label stage"
     exit 1
   fi
 done
+
+if [ "${#GP_FAILED_LABELS[@]}" -gt 0 ]; then
+  GP_FAILED_SUMMARY="$(IFS=,; printf '%s' "${GP_FAILED_LABELS[*]}")"
+  tlog "=== FAILED at stage(s): $GP_FAILED_SUMMARY (GP score-only: every judge's score is in the frontmatter) ==="
+  mark_article_failed "$POST_FILE" "${GP_FAILED_STAGE_KEYS[0]}"
+  commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $GP_FAILED_SUMMARY (GP score-only)"
+  exit 1
+fi
 
 if [ -n "$ONLY_STAGE" ]; then
   tlog "=== ONLY STAGE PASSED: $ONLY_STAGE for $POST_FILE ==="
