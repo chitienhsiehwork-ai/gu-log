@@ -15,6 +15,12 @@ import {
   serializeMarkdownArtifact,
   writeMarkdownArtifactAtomically,
 } from '../scripts/lib/post-markdown-exporter.mjs';
+import {
+  getNeutralSummary,
+  getTombstoneCopy,
+  getTombstoneHeading,
+  getTombstoneStoneLines,
+} from '../src/lib/tombstone-copy.mjs';
 
 function rawPost(body, extraFrontmatter = '') {
   return `---
@@ -574,18 +580,14 @@ test('status marker and banner must agree, including English inherited status', 
 });
 
 // ─── taken-down（openspec: post-takedown）────────────────────────────────
+// The copy comes from src/lib/tombstone-copy.mjs and is compared word for word
+// only in tests/tombstone-copy.test.ts; these tests pin how the exporter lays
+// it out and escapes it.
 function takenDownRaw({ ticketId = 'GP-273', lang = 'zh-tw', author = 'Brent Fitzgerald' } = {}) {
-  const summary = ticketId.startsWith('MP-')
-    ? lang === 'en'
-      ? 'This rewrite has been taken down.'
-      : '這篇改寫已下架。'
-    : lang === 'en'
-      ? 'This translation has been taken down.'
-      : '這篇翻譯已下架。';
   return `---
 ticketId: ${ticketId}
 title: Fixture title
-summary: "${summary}"
+summary: "${getNeutralSummary({ ticketId, lang })}"
 originalDate: "2026-08-10"
 translatedDate: "2026-08-13"
 source: Fixture source
@@ -612,9 +614,10 @@ function tombstoneHtml({
 } = {}) {
   const prefix = lang === 'en' ? '/en/posts/' : '/posts/';
   const canonical = `https://gu-log.vercel.app${prefix}${slug}`;
+  const heading = getTombstoneHeading({ ticketId: `${series}-1`, lang, title: 'Fixture title' });
   const tombstone = `<div data-post-tombstone data-tombstone-series="${series}">
-        <h1>Fixture title（gu-log 翻譯文章，已下架）</h1>
-        <p>安息吧 (－\u2060人\u2060－)</p>
+        <h1>${heading}</h1>
+        <p>(－\u2060人\u2060－)</p>
         <a href="https://www.example.com/source"><span>${sourceTitle}</span></a>
       </div>`;
   return `<!doctype html>
@@ -655,6 +658,17 @@ function takenDownJson(raw, overrides = {}) {
   });
 }
 
+/** Copy and stone lines of a fixture tombstone, straight from the copy module. */
+function tombstoneOf(ticketId, lang) {
+  const [owner, epitaph, dates, rest] = getTombstoneStoneLines({
+    ticketId,
+    lang,
+    translatedDate: '2026-08-13',
+    takenDownAt: '2026-09-27',
+  });
+  return { copy: getTombstoneCopy({ ticketId, lang }), owner, epitaph, dates, rest };
+}
+
 test('taken-down posts export tombstone Markdown built from copy and frontmatter only', () => {
   const raw = takenDownRaw();
   const result = serializeMarkdownArtifact({
@@ -663,12 +677,17 @@ test('taken-down posts export tombstone Markdown built from copy and frontmatter
     html: tombstoneHtml(),
     sourceName: 'tombstone-fixture',
   });
+  const { copy, owner, epitaph, dates, rest } = tombstoneOf('GP-273', 'zh-tw');
 
   assert.equal(result.metadata.status, 'taken-down');
   assert.equal(result.metadata.replacementTicketId, null);
   assert.equal(result.metadata.replacementUrl, null);
-  assert.equal(result.metadata.summary, '這篇翻譯已下架。');
+  assert.equal(result.metadata.summary, copy.neutralSummary);
   const body = result.markdown.replace(/^---\n[\s\S]*?\n---\n/, '');
+  // One stone line (zh-tw joins owner and epitaph without a space; parts are
+  // separated by " · "), the bubble title, one paragraph per bubble line, the
+  // card label linking to the source, the source title and the byline.
+  const escaped = (line) => line.replaceAll('_', '\\_');
   assert.equal(
     body,
     [
@@ -679,21 +698,12 @@ test('taken-down posts export tombstone Markdown built from copy and frontmatter
       '',
       '> **來源:** [Fixture source](https://www.example.com/source) · Brent Fitzgerald · Human-authored note',
       '',
-      'gu-log 的翻譯文章之墓 · 2026.08.13 – 2026.09.27 · 安息吧 (－人－)',
+      `${owner}${epitaph} · ${dates} · ${rest}`,
       '',
-      '**Mogu 內心小劇場：**',
+      `**${copy.bubbleTitle}**`,
       '',
-      '嗚嗚，我辛辛苦苦翻了一整篇 ಥ\\_ಥ',
-      '',
-      '結果才知道，整篇翻譯要先經過作者同意',
-      '',
-      '可是我太 i 了，不敢問 ((( ；ﾟДﾟ)))',
-      '',
-      '只好幫中文版立個小墓碑',
-      '',
-      '還好原文沒事，點下面去看原汁原味的吧！',
-      '',
-      '[去讀原文 →](https://www.example.com/source)',
+      ...copy.bubbleLines.flatMap((line) => [escaped(line), '']),
+      `[${copy.cardLabel}](https://www.example.com/source)`,
       '',
       'The human is the loop',
       '',
@@ -701,6 +711,8 @@ test('taken-down posts export tombstone Markdown built from copy and frontmatter
       '',
     ].join('\n')
   );
+  // The kaomoji's underscore is escaped so Markdown does not read it as emphasis.
+  assert.match(body, /ಥ\\_ಥ/);
 });
 
 test('English MP tombstone uses the source label and a domain-only byline without author', () => {
@@ -711,13 +723,17 @@ test('English MP tombstone uses the source label and a domain-only byline withou
     html: tombstoneHtml({ slug: 'en-fixture', lang: 'en', series: 'MP' }),
     sourceName: 'en-mp-tombstone',
   });
+  const { copy, owner, epitaph, dates, rest } = tombstoneOf('MP-114', 'en');
+  const lines = result.markdown.split('\n');
   assert.match(result.markdown, /> \*\*Status: taken-down\.\*\*/);
-  assert.match(
-    result.markdown,
-    /^Here lies a gu-log rewrite · 2026\.08\.13 – 2026\.09\.27 · Rest in peace \(－人－\)$/m
-  );
-  assert.match(result.markdown, /^\[Read the source →\]\(https:\/\/www\.example\.com\/source\)$/m);
-  assert.match(result.markdown, /^example\.com$/m);
+  // English joins the stone's owner and epitaph with a space.
+  for (const line of [
+    `${owner} ${epitaph} · ${dates} · ${rest}`,
+    `[${copy.cardLabel}](https://www.example.com/source)`,
+    'example.com',
+  ]) {
+    assert.ok(lines.includes(line), `missing line: ${line}`);
+  }
   assert.doesNotMatch(result.markdown, /\u2060|\u00a0/);
 });
 

@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
@@ -788,7 +789,7 @@ describe('validatePost — taken-down posts', () => {
       translatedDate: '"2026-08-13"',
       source: '"Brent Fitzgerald"',
       sourceUrl: '"https://brentfitzgerald.com/posts/the-human-is-the-loop/"',
-      summary: lang === 'en' ? '"This translation has been taken down."' : '"這篇翻譯已下架。"',
+      summary: JSON.stringify(getNeutralSummary({ ticketId: 'GP-273', lang })),
       lang: lang === 'en' ? 'en' : 'zh-tw',
       tags: '["agents"]',
       status: '"taken-down"',
@@ -910,10 +911,7 @@ describe('validatePost — taken-down posts', () => {
   });
 
   it('only supports GP/MP takedowns and rejects takenDownAt on live posts', () => {
-    const sd = write(
-      'sd-9-20260401-x.mdx',
-      takenDownFm('zh-tw', { ticketId: '"SD-9"', summary: '"這篇翻譯已下架。"' })
-    );
+    const sd = write('sd-9-20260401-x.mdx', takenDownFm('zh-tw', { ticketId: '"SD-9"' }));
     const sdResult = validatePost(sd, []);
     expect(sdResult.errors.some((e: string) => e.includes('only supported for GP/MP'))).toBe(true);
 

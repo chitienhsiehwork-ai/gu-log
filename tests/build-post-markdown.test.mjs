@@ -5,6 +5,7 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { assertInputSlugSets, buildPostMarkdown } from '../scripts/build-post-markdown.mjs';
+import { getTombstoneCopy } from '../src/lib/tombstone-copy.mjs';
 
 async function fixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gu-log-post-markdown-build-'));
@@ -69,10 +70,11 @@ test('a taken-down post still gets a tombstone Markdown artifact in the same slu
   const env = await fixture();
   t.after(() => fs.rm(env.root, { recursive: true, force: true }));
   const slug = 'gp-63-20260214-gp63-fixture';
+  const copy = getTombstoneCopy({ ticketId: 'GP-63', lang: 'zh-tw' });
   const raw = `---
 ticketId: GP-63
 title: Fixture title
-summary: "這篇翻譯已下架。"
+summary: "${copy.neutralSummary}"
 originalDate: "2026-02-10"
 translatedDate: "2026-02-14"
 source: Fixture source
@@ -89,7 +91,7 @@ sourceTitle: Original fixture title
     ticketId: 'GP-63',
     url: `/posts/${slug}`,
     title: 'Fixture title',
-    summary: '這篇翻譯已下架。',
+    summary: copy.neutralSummary,
     tags: [],
     lang: 'zh-tw',
     originalDate: '2026-02-10',
@@ -117,7 +119,10 @@ sourceTitle: Original fixture title
   assert.equal(summary.artifacts, 1);
   const markdown = await fs.readFile(path.join(env.distDir, 'posts', `${slug}.md`), 'utf8');
   assert.match(markdown, /^status: taken-down$/m);
-  assert.match(markdown, /^\[去讀原文 →\]\(https:\/\/example\.com\/source\)$/m);
+  assert.ok(
+    markdown.split('\n').includes(`[${copy.cardLabel}](https://example.com/source)`),
+    'tombstone Markdown links the card label to the source'
+  );
   assert.match(markdown, /^Original fixture title$/m);
   assert.match(markdown, /^example\.com$/m);
 });

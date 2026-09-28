@@ -14,6 +14,7 @@ import {
   sourceTitleForTicket,
   takeDownSource,
 } from '../scripts/take-down-posts.mjs';
+import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -197,7 +198,7 @@ describe('takeDownSource', () => {
       sourceType: 'primary',
       authorCanonical: 'anthropic',
       scores: { vibe: { score: 8, date: '2026-03-01' } },
-      summary: '這篇翻譯已下架。',
+      summary: getNeutralSummary({ ticketId: 'GP-35', lang: 'zh-tw' }),
       status: 'taken-down',
       takenDownAt: '2026-09-27',
       sourceTitle: 'Orchestrate teams of Claude Code sessions',
@@ -236,7 +237,7 @@ describe('takeDownSource', () => {
       sourceTitle: 'The Final Bottleneck',
     });
     const fm = parse(result.content.split('---\n')[1]);
-    expect(fm.summary).toBe('This rewrite has been taken down.');
+    expect(fm.summary).toBe(getNeutralSummary({ ticketId: 'MP-114', lang: 'en' }));
     expect(fm.status).toBe('taken-down');
     expect(fm.author).toBeUndefined();
   });

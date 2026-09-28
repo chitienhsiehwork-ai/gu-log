@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 /**
- * The owner-approved tombstone copy is pinned word for word here, and only
- * here: components, the Markdown exporter and the E2E spec all read it from
- * src/lib/tombstone-copy.mjs instead of repeating it.
+ * The owner-approved tombstone copy is compared word for word here, and only
+ * here: components and the Markdown exporter read it from
+ * src/lib/tombstone-copy.mjs, and the other tests (unit and E2E) build their
+ * expected values from that module instead of repeating it.
  */
 import {
   formatTombstoneDate,
