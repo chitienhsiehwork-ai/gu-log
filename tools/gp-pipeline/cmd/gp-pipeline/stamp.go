@@ -34,14 +34,14 @@ func newStampCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "stamp --file <post> [--source <capture>]",
 		Short: "Check an existing GP post against its source and write its source-distance stamp",
-		Long: `stamp runs the source-distance check on one existing GP post: a zh-tw
+		Long: fmt.Sprintf(`stamp runs the source-distance check on one existing GP post: a zh-tw
 post gets two independent alignments and scoring, an English post gets the
 verbatim n-gram check. Use it after writing a GP by hand, after ShroomDog adds
 a ShroomDogNote, or after any other edit that voids the stamp.
 
 A pass writes only the sourceDistance stamp; the body is never changed. A
 passing English post also clears the zh-tw stamp's englishSkipped mark. A post
-that does not pass (including zero alignments) exits 19, prints the flagged
+that does not pass (including zero alignments) exits %[1]d, prints the flagged
 passages, and stays unchanged; stamp never rewrites anything.
 
 The source is fetched from the post's sourceUrl into a work directory outside
@@ -50,7 +50,7 @@ post with an external source can carry a stamp: anything else fails at ingress
 with exit 1, before any fetch or model call.
 
 Exit codes: 0 stamped, 1 not a post that takes a stamp or bad input,
-10 fetch failed, 14 the aligner failed, 19 did not pass.`,
+10 fetch failed, 14 the aligner failed, %[1]d did not pass.`, pipeline.SourceDistanceExitCode),
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runStamp(cmd.Context(), state, file, sourcePath)

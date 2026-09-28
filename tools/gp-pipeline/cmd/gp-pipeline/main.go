@@ -176,8 +176,8 @@ func newExitError(code int, err error) *ExitError {
 	return &ExitError{Code: code, Err: err}
 }
 
-// exitCodeFor maps known error types to documented exit codes. See
-// SKILL.md for the full exit code contract.
+// exitCodeFor maps known error types to documented exit codes. `run --help`
+// lists the full exit code contract.
 func exitCodeFor(err error) int {
 	if err == nil {
 		return 0

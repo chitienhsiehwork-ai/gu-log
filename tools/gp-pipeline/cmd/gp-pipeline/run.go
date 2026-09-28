@@ -79,7 +79,7 @@ func newRunCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "run [tweet_url]",
 		Short: "Run the full pipeline end-to-end",
-		Long: `run wires the individual step subcommands into a single monolithic
+		Long: fmt.Sprintf(`run wires the individual step subcommands into a single monolithic
 invocation covering the whole pipeline (step sequence, prompt templates,
 frontmatter shape, commit message, exit codes).
 
@@ -105,8 +105,8 @@ not a translation. After the post-fixer, source-distance asks a pinned Claude
 aligner which guide sentences restate which source sentences, and the
 program scores that: a draft that reads like a translation goes back to
 refine with only the flagged passages, then through the post-fixer again, at
-most 3 rewrites. Zero alignments, or a draft still failing after the third
-rewrite, stops with exit 19: nothing is deployed and the counter is untouched;
+most %[1]d rewrites. Zero alignments, or a draft still failing after the last
+rewrite, stops with exit %[2]d: nothing is deployed and the counter is untouched;
 every round's evidence stays in the work dir. A GP English version must pass a
 verbatim check against the source; one that does not is dropped without a
 retranslation, the zh-tw stamp records englishSkipped: verbatim, and zh-tw
@@ -126,10 +126,10 @@ re-pairs and re-scores the work dir's final.mdx without rewriting the draft.
 Exit codes: 1 ingress or usage error, 2 eval split, 10 fetch failed,
 11 incomplete capture, 12 eval SKIP, 13 dedup BLOCK, 14 a step or the aligner
 failed, 16 validate-posts rejected, 17 build failed, 18 push failed,
-19 GP source distance did not pass, 124 timeout.
+%[2]d GP source distance did not pass, 124 timeout.
 
 Use --fake-provider <json> only to test without spending credits or to pin
-canned responses for regression tests.`,
+canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tweetURL string

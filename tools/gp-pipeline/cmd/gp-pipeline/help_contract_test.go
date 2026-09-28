@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func TestCandidateHelpContract(t *testing.T) {
@@ -188,10 +190,16 @@ func TestSkillRecoveryContract(t *testing.T) {
 		"以檔名系列為準",
 		"AGENTS.md",
 		"detect-env.sh --runtime <codex|claude-code>",
+		"gp-pipeline run --help",
 	} {
 		if !strings.Contains(skill, want) {
 			t.Errorf("skill missing recovery contract %q", want)
 		}
+	}
+	// The exit code list lives in `run --help` (built from the constants); the
+	// skill points there instead of keeping a second table.
+	if strings.Contains(skill, "| Code |") {
+		t.Error("skill still keeps its own exit code table; point to `run --help` instead")
 	}
 	// The GP translation flow is retired (openspec: gp-source-preservation) and
 	// GP is no longer paused: the skill must not route agents back to either.
@@ -224,9 +232,17 @@ func TestGPReadingGuideHelpContract(t *testing.T) {
 		return out.String()
 	}
 	for args, phrases := range map[string][]string{
-		"run":   {"post-fixer", "source-distance", "reading guide", "most 3 rewrites", "19 GP source distance did not pass", "--from-step source-distance", "englishSkipped: verbatim"},
-		"stamp": {"--file", "--source", "the body is never changed", "exits 19", "outside the repo", "exit 1"},
-		"":      {"stamp"},
+		"run": {
+			"post-fixer", "source-distance", "reading guide", "--from-step source-distance", "englishSkipped: verbatim",
+			fmt.Sprintf("most %d rewrites", pipeline.MaxSourceDistanceRewrites),
+			fmt.Sprintf("%d GP source distance did not pass", pipeline.SourceDistanceExitCode),
+		},
+		"stamp": {
+			"--file", "--source", "the body is never changed", "outside the repo", "exit 1",
+			fmt.Sprintf("exits %d", pipeline.SourceDistanceExitCode),
+			fmt.Sprintf("%d did not pass", pipeline.SourceDistanceExitCode),
+		},
+		"": {"stamp"},
 	} {
 		var out string
 		if args == "" {

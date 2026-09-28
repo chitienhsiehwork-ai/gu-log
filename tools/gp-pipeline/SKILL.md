@@ -123,23 +123,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 
 ## Exit code
 
-以 code 為準（`cmd/gp-pipeline` 的 `exitCodeFor` 與 `internal/pipeline` 的 `NewStepError`），此表是導覽：
-
-| Code | 意義 |
-|---:|---|
-| 0 | 成功 |
-| 1 | 一般錯誤，含 ingress 拒絕：非 canonical prefix、`--prefix` 與檔名系列不一致、沒有檔案時沒帶 `--prefix`、`stamp` 的目標不是有外部來源的 GP |
-| 2 | eval 兩位評審意見分歧（split）；確認後用 `--force` 覆寫 |
-| 10 | fetch 失敗，或 YouTube 來源缺少 `yt-dlp` |
-| 11 | source capture 不完整 |
-| 12 | evaluator 判定 SKIP |
-| 13 | dedup BLOCK |
-| 14 | eval、write、review、refine 或 translate 步驟失敗（含寫手輸出 `ShroomDogNote`），或 aligner 失敗（不算一輪改寫） |
-| 16 | deploy：validate-posts 拒絕 |
-| 17 | deploy：`pnpm run build` 失敗 |
-| 18 | deploy：`git push` 失敗 |
-| 19 | GP 來源距離沒過：零配對，或改寫到上限還沒過；`stamp` 沒過也是 19 |
-| 124 | timeout |
+完整清單看 `tools/gp-pipeline/gp-pipeline run --help`，`stamp` 自己的 exit code 看 `stamp --help`。以 code 為準（`cmd/gp-pipeline` 的 `exitCodeFor` 與 `internal/pipeline` 的 `NewStepError`）；清單只放在 help，這裡不另抄一份。
 
 JSON 模式可供自動化讀取：
 
