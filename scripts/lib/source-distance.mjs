@@ -46,7 +46,7 @@ export const POLICY = Object.freeze({
 
 export const STAMP_FIELD = 'sourceDistance';
 export const ENGLISH_SKIPPED_VERBATIM = 'verbatim';
-export const STAMP_COMMAND = 'tools/gp-pipeline/gp-pipeline stamp --file';
+const STAMP_COMMAND = 'tools/gp-pipeline/gp-pipeline stamp --file';
 
 const SITE_ORIGIN = 'https://gu-log.vercel.app';
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -67,7 +67,7 @@ export function units(text) {
 }
 
 /** CJK 字元占所有字母與數字的比例。 */
-export function cjkRatio(text) {
+function cjkRatio(text) {
   const letters = (text.match(/[\p{L}\p{N}]/gu) || []).length;
   return letters ? (text.match(CJK_CHARS) || []).length / letters : 0;
 }
@@ -187,7 +187,7 @@ function textOfJsxAttribute(node, name) {
 }
 
 /** 站內文章連結的小寫 slug；不是站內文章連結就回 null。 */
-export function inSitePostSlug(href) {
+function inSitePostSlug(href) {
   if (typeof href !== 'string' || !href) return null;
   let url;
   try {
@@ -325,7 +325,7 @@ function collectBlocks(node, blocks, ctx, kind = null) {
         break;
       case 'code':
         // 以 CJK 為主的 fenced code 是文字（例如中文範例），其餘是程式碼，不進投影。
-        if (cjkRatio(child.value) >= ctx.policy.codeTextCjkRatio) {
+        if (cjkRatio(child.value) >= POLICY.codeTextCjkRatio) {
           blocks.push({ kind: 'code-text', text: child.value });
         }
         break;
@@ -361,7 +361,7 @@ function toSentences(blocks, prefix) {
 const FRONTMATTER = /^(---\r?\n)([\s\S]*?)(\r?\n---(?:\r?\n|$))/;
 
 /** 拆出 frontmatter 文字與正文；沒有 frontmatter 時 frontmatter 是 null。 */
-export function splitFrontmatter(content) {
+function splitFrontmatter(content) {
   const match = content.match(FRONTMATTER);
   if (!match) return { frontmatter: null, body: content };
   return { frontmatter: match[2], body: content.slice(match[0].length) };
@@ -380,22 +380,22 @@ function parseMdx(body) {
  * 導讀（文章）的正文投影與斷句。postIndex：小寫 slug → { ticketId, title }，
  * 用來判斷「文字就是目標文 ticket 或標題」的站內連結；沒給就所有連結都只取文字。
  * @param {string} content
- * @param {{ postIndex?: PostIndex | null, policy?: typeof POLICY }} [options]
+ * @param {{ postIndex?: PostIndex | null }} [options]
  */
-export function segmentGuide(content, { postIndex = null, policy = POLICY } = {}) {
+export function segmentGuide(content, { postIndex = null } = {}) {
   const { body } = splitFrontmatter(content);
   const tree = parseMdx(body);
   const blocks = [];
-  collectBlocks(tree, blocks, { postIndex, policy, machineBlocks: true });
+  collectBlocks(tree, blocks, { postIndex, machineBlocks: true });
   return toSentences(blocks, 'C');
 }
 
 /** 正文投影：一行一句的正規化純文字，不依賴 MDX 套件的序列化格式。 */
-export function projectionText(sentences) {
+function projectionText(sentences) {
   return sentences.map((s) => s.text).join('\n');
 }
 
-export function sha256(text) {
+function sha256(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
@@ -498,7 +498,7 @@ function trimFrame(lines) {
  * 從擷取結果產生蓋章用的原文：去掉擷取標頭與標記，依寫死的規則剪掉網站外框，
  * 再以跟導讀相同的規則斷句。同一份擷取每次結果都一樣。
  */
-export function segmentSource(capture, { policy = POLICY } = {}) {
+export function segmentSource(capture) {
   const lines = capture
     .replace(/\r\n?/g, '\n')
     .split('\n')
@@ -506,22 +506,22 @@ export function segmentSource(capture, { policy = POLICY } = {}) {
   const text = trimFrame(lines).join('\n');
   const tree = unified().use(remarkParse).use(remarkGfm).parse(text);
   const blocks = [];
-  collectBlocks(tree, blocks, { postIndex: null, policy, machineBlocks: false });
+  collectBlocks(tree, blocks, { postIndex: null, machineBlocks: false });
   return toSentences(blocks, 'S');
 }
 
 /** κ 依原文的 CJK 比例切換：以 CJK 為主的原文先用等長假設。 */
-export function kappaFor(sourceSentences, policy = POLICY) {
+function kappaFor(sourceSentences) {
   const ratio = cjkRatio(projectionText(sourceSentences));
-  return ratio >= policy.cjkSourceRatio ? policy.kappaCjk : policy.kappa;
+  return ratio >= POLICY.cjkSourceRatio ? POLICY.kappaCjk : POLICY.kappa;
 }
 
 /** 原文的摘要：正規化原文的 SHA-256、units 與 κ。 */
-export function sourceSummary(sourceSentences, policy = POLICY) {
+export function sourceSummary(sourceSentences) {
   return {
     sourceSha256: sha256(projectionText(sourceSentences)),
     sourceUnits: sourceSentences.reduce((sum, s) => sum + s.units, 0),
-    kappa: kappaFor(sourceSentences, policy),
+    kappa: kappaFor(sourceSentences),
   };
 }
 
@@ -561,7 +561,7 @@ export function validateAlignment(raw, guide, source) {
   return map;
 }
 
-export function unionAlignments(maps) {
+function unionAlignments(maps) {
   const out = new Map();
   for (const map of maps) {
     for (const [c, ss] of map) out.set(c, [...new Set([...(out.get(c) || []), ...ss])]);
@@ -577,8 +577,8 @@ const sentenceIndex = (id) => Number(id.slice(1));
  * 一次配對的指標。規則①（照順序一句對一句）與規則②（原文占比）都由這裡從配對算出，
  * 定義見 source-distance-stamp spec〈擋下條件 SHALL 由程式依固定參數計算〉。
  */
-export function scoreAlignment(guide, source, map, policy = POLICY) {
-  const kappa = kappaFor(source, policy);
+export function scoreAlignment(guide, source, map) {
+  const kappa = kappaFor(source);
   const sourceUnits = new Map(source.map((s) => [s.id, s.units]));
   const totalSource = source.reduce((sum, s) => sum + s.units, 0);
 
@@ -595,7 +595,7 @@ export function scoreAlignment(guide, source, map, policy = POLICY) {
       ss,
       sourceLength,
       equivalent,
-      translation: equivalent >= policy.beta * sourceLength,
+      translation: equivalent >= POLICY.beta * sourceLength,
     });
   }
 
@@ -610,7 +610,7 @@ export function scoreAlignment(guide, source, map, policy = POLICY) {
     const out = [];
     let current = [ids[0], ids[0]];
     for (const i of ids.slice(1)) {
-      if (i - current[1] <= policy.gap + 1) current[1] = i;
+      if (i - current[1] <= POLICY.gap + 1) current[1] = i;
       else {
         out.push(current);
         current = [i, i];
@@ -635,13 +635,13 @@ export function scoreAlignment(guide, source, map, policy = POLICY) {
         } else if (
           a >= chain.lastStart &&
           b > chain.frontier &&
-          a - chain.frontier <= policy.gap + 1
+          a - chain.frontier <= POLICY.gap + 1
         ) {
           const fresh = unitsIn(pair, chain.frontier, b);
           candidate = {
             lastStart: a,
             frontier: b,
-            steps: chain.steps + (fresh >= policy.minStep ? 1 : 0),
+            steps: chain.steps + (fresh >= POLICY.minStep ? 1 : 0),
             members: [...chain.members, pair.c],
           };
         }
@@ -660,7 +660,7 @@ export function scoreAlignment(guide, source, map, policy = POLICY) {
       next.push({
         lastStart: a,
         frontier: b,
-        steps: unitsIn(pair, a - 1, b) >= policy.minStep ? 1 : 0,
+        steps: unitsIn(pair, a - 1, b) >= POLICY.minStep ? 1 : 0,
         members: [pair.c],
       });
     }
@@ -672,7 +672,7 @@ export function scoreAlignment(guide, source, map, policy = POLICY) {
     chains = [...byRange.values()];
     for (const chain of chains) {
       if (chain.steps > maxRun) maxRun = chain.steps;
-      if (chain.steps >= policy.runLimit) runs.push(chain.members);
+      if (chain.steps >= POLICY.runLimit) runs.push(chain.members);
     }
   }
 
@@ -707,10 +707,10 @@ function dedupeRuns(runs) {
   );
 }
 
-function failedRules(score, policy, { run = true, ratio = true } = {}) {
+function failedRules(score, { run = true, ratio = true } = {}) {
   const fails = [];
-  if (run && score.maxRun >= policy.runLimit) fails.push('run');
-  if (ratio && score.sourceRatio > policy.ratioLimit) fails.push('ratio');
+  if (run && score.maxRun >= POLICY.runLimit) fails.push('run');
+  if (ratio && score.sourceRatio > POLICY.ratioLimit) fails.push('ratio');
   return fails;
 }
 
@@ -719,28 +719,25 @@ function failedRules(score, policy, { run = true, ratio = true } = {}) {
  * 第一次三條都過、只有一次配對 → NEEDS_SECOND；第二次的規則①各自判、規則②用聯集 → PASS
  * 或 FAIL。FAIL 附上改寫報告（只列段落，不含門檻、指標或規則名稱）。
  */
-export function decide(guide, source, maps, policy = POLICY) {
+export function decide(guide, source, maps) {
   if (!maps.length) throw new Error('decide needs at least one alignment');
-  const first = scoreAlignment(guide, source, maps[0], policy);
+  const first = scoreAlignment(guide, source, maps[0]);
   if (first.aligned === 0) {
     return { verdict: 'ZERO', fails: ['zero'], scores: [first] };
   }
-  const firstFails = failedRules(first, policy);
+  const firstFails = failedRules(first);
   if (firstFails.length) {
     return {
       verdict: 'FAIL',
       fails: firstFails,
       scores: [first],
-      report: rewriteReport(guide, source, [maps[0]], [first], policy),
+      report: rewriteReport(guide, source, [maps[0]], [first]),
     };
   }
   if (maps.length < 2) return { verdict: 'NEEDS_SECOND', fails: [], scores: [first] };
-  const second = scoreAlignment(guide, source, maps[1], policy);
-  const union = scoreAlignment(guide, source, unionAlignments(maps.slice(0, 2)), policy);
-  const fails = [
-    ...failedRules(second, policy, { ratio: false }),
-    ...failedRules(union, policy, { run: false }),
-  ];
+  const second = scoreAlignment(guide, source, maps[1]);
+  const union = scoreAlignment(guide, source, unionAlignments(maps.slice(0, 2)));
+  const fails = [...failedRules(second, { ratio: false }), ...failedRules(union, { run: false })];
   const metrics = {
     maxRun: Math.max(first.maxRun, second.maxRun),
     sourceRatio: floor4(union.sourceRatio),
@@ -753,7 +750,7 @@ export function decide(guide, source, maps, policy = POLICY) {
       scores: [first, second],
       union,
       metrics,
-      report: rewriteReport(guide, source, maps.slice(0, 2), [first, second], policy),
+      report: rewriteReport(guide, source, maps.slice(0, 2), [first, second]),
     };
   }
   return { verdict: 'PASS', fails: [], scores: [first, second], union, metrics };
@@ -778,14 +775,14 @@ function joinSentences(texts) {
  * 依聯集配對、轉述量最多、累計到總轉述量四成的段落。不給門檻、指標或規則名稱，避免寫手
  * 對著數字剛好壓線。
  */
-export function rewriteReport(guide, source, maps, scores, policy = POLICY) {
+export function rewriteReport(guide, source, maps, scores) {
   const textOf = new Map(guide.map((s) => [s.id, s.text]));
   const runs = dedupeRuns(scores.flatMap((score) => score.runs));
   const runText = runs.length
     ? runs.map((run) => run.map((c) => `- ${textOf.get(c)}`).join('\n')).join('\n\n')
     : '（無）';
 
-  const union = scoreAlignment(guide, source, unionAlignments(maps), policy);
+  const union = scoreAlignment(guide, source, unionAlignments(maps));
   const byBlock = new Map();
   for (const pair of union.pairs) {
     byBlock.set(
@@ -843,13 +840,13 @@ const QUOTE_SPANS = /“[^”]*”|"[^"\n]*"/gu;
 /**
  * @param {string} content
  * @param {Array<object>} source
- * @param {{ postIndex?: PostIndex | null, policy?: typeof POLICY }} [options]
+ * @param {{ postIndex?: PostIndex | null }} [options]
  */
-export function englishVerbatim(content, source, { postIndex = null, policy = POLICY } = {}) {
-  const { n, containmentLimit, verbatimWordLimit, quoteAllowanceRatio } = policy.ngram;
+export function englishVerbatim(content, source, { postIndex = null } = {}) {
+  const { n, containmentLimit, verbatimWordLimit, quoteAllowanceRatio } = POLICY.ngram;
   const { body } = splitFrontmatter(content);
   const blocks = [];
-  collectBlocks(parseMdx(body), blocks, { postIndex, policy, machineBlocks: true });
+  collectBlocks(parseMdx(body), blocks, { postIndex, machineBlocks: true });
 
   const sourceWords = words(projectionText(source));
   const vocabulary = new Map();
@@ -1070,9 +1067,9 @@ function isRatio(value) {
  * content 是整份檔案（含 frontmatter）；data 是解析過的 frontmatter。
  */
 /**
- * @param {{ content: string, data: any, file: string, postIndex?: PostIndex | null, policy?: typeof POLICY }} input
+ * @param {{ content: string, data: any, file: string, postIndex?: PostIndex | null }} input
  */
-export function verifyStamp({ content, data, file, postIndex = null, policy = POLICY }) {
+export function verifyStamp({ content, data, file, postIndex = null }) {
   const errors = [];
   const required = requiresStamp(data);
   const stamp = data ? data[STAMP_FIELD] : undefined;
@@ -1096,9 +1093,9 @@ export function verifyStamp({ content, data, file, postIndex = null, policy = PO
     errors.push(`${STAMP_FIELD} must be a mapping — run: ${fix}`);
     return { required, errors };
   }
-  if (stamp.policy !== policy.version) {
+  if (stamp.policy !== POLICY.version) {
     errors.push(
-      `${STAMP_FIELD}.policy is ${JSON.stringify(stamp.policy)}, current policy is ${policy.version} — re-stamp: ${fix}`
+      `${STAMP_FIELD}.policy is ${JSON.stringify(stamp.policy)}, current policy is ${POLICY.version} — re-stamp: ${fix}`
     );
   }
   if (stamp.verdict !== 'PASS') {
@@ -1123,8 +1120,8 @@ export function verifyStamp({ content, data, file, postIndex = null, policy = PO
         `${STAMP_FIELD}.metrics must record ngramContainment, maxVerbatimWords and quotedWords — re-stamp: ${fix}`
       );
     } else if (
-      ngramContainment >= policy.ngram.containmentLimit ||
-      maxVerbatimWords >= policy.ngram.verbatimWordLimit
+      ngramContainment >= POLICY.ngram.containmentLimit ||
+      maxVerbatimWords >= POLICY.ngram.verbatimWordLimit
     ) {
       errors.push(`${STAMP_FIELD}.metrics exceed the current verbatim limits — re-stamp: ${fix}`);
     }
@@ -1139,8 +1136,8 @@ export function verifyStamp({ content, data, file, postIndex = null, policy = PO
         `${STAMP_FIELD}.metrics must record maxRun, sourceRatio and alignedSentences — re-stamp: ${fix}`
       );
     } else if (
-      maxRun >= policy.runLimit ||
-      sourceRatio > policy.ratioLimit ||
+      maxRun >= POLICY.runLimit ||
+      sourceRatio > POLICY.ratioLimit ||
       alignedSentences === 0
     ) {
       errors.push(
@@ -1162,7 +1159,7 @@ export function verifyStamp({ content, data, file, postIndex = null, policy = PO
   if (isHex64(stamp.subjectSha256)) {
     let actual;
     try {
-      actual = subjectFingerprint(data.sourceUrl, segmentGuide(content, { postIndex, policy }));
+      actual = subjectFingerprint(data.sourceUrl, segmentGuide(content, { postIndex }));
     } catch (error) {
       errors.push(`cannot compute the body projection for ${STAMP_FIELD}: ${error.message}`);
     }
