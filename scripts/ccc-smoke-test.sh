@@ -119,6 +119,11 @@ pw_bridge_browser_builds() {
   return $([ "$bridged" -gt 0 ] && echo 0 || echo 1)
 }
 
+# fetch_article_deps_ok — scripts/fetch-article.py 要的 Python 套件（版本釘在
+#   scripts/requirements-fetch-article.txt）能不能 import。缺了 gp-pipeline 抓非 X 來源時
+#   fetch-article.py 一啟動就失敗，默默退回 curl，originalDate 變成抓取當天。
+fetch_article_deps_ok() { python3 -c "import bs4, lxml, readability" >/dev/null 2>&1; }
+
 # ── --fix：開工前自動補環境 ───────────────────────────────────────
 if $FIX; then
   section "FIX: 補環境"
@@ -175,6 +180,20 @@ if $FIX; then
         || warn "openspec CLI 安裝失敗" "見 $LOG_DIR/ccc-openspec-install.log"
     fi
   fi
+
+  # 抓文章的 Python 套件：CCC sandbox 不預裝（CI 的 unit-tests job 有裝）。套件小，同步裝；
+  # idempotent：import 得到就跳過。只在 CCC 跑（local machine actor 自己管 local Python），
+  # 裝不起來只 warn，不擋開場——沒有它只影響抓非 X 來源（見 fetch_article_deps_ok）。
+  if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+    if fetch_article_deps_ok; then
+      pass "fetch-article Python 套件已存在，跳過安裝"
+    elif python3 -m pip install --requirement scripts/requirements-fetch-article.txt \
+      >"$LOG_DIR/ccc-fetch-article-install.log" 2>&1 && fetch_article_deps_ok; then
+      pass "fetch-article Python 套件安裝完成"
+    else
+      warn "fetch-article Python 套件安裝失敗" "見 $LOG_DIR/ccc-fetch-article-install.log"
+    fi
+  fi
 fi
 
 # ── 1. 身份 ───────────────────────────────────────────────────────
@@ -211,6 +230,12 @@ if [ -d node_modules ]; then
   pass "node_modules 存在"
 else
   fail "node_modules 缺" "跑 './scripts/ccc-smoke-test.sh --fix' 或 'pnpm install'"
+fi
+# optional：缺了不擋開工，但 gp-pipeline 抓非 X 來源會退回 curl（見 fetch_article_deps_ok）。
+if fetch_article_deps_ok; then
+  pass "fetch-article Python 套件可 import"
+else
+  warn "fetch-article Python 套件缺" "非 X 來源會退回 curl、originalDate 變成抓取當天；跑 'python3 -m pip install --requirement scripts/requirements-fetch-article.txt'（CCC 的 --fix 會自動補）"
 fi
 
 # ── 5. Git hooks 已掛上且是 canonical 版 ─────────────────────────

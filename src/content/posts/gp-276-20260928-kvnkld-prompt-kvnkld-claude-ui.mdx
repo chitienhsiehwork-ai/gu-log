@@ -1,0 +1,151 @@
+---
+ticketId: "GP-276"
+title: '質感不是 prompt 出來的：@kvnkld 用 Claude 做 UI 的十條規則，哪些抄得走、哪些抄不走'
+originalDate: '2026-06-16'
+translatedDate: '2026-09-28'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@kvnkld on X'
+sourceUrl: 'https://x.com/kvnkld/status/2066863634949779464'
+lang: 'zh-tw'
+summary: '一直有人問 @kvnkld 用什麼 prompt 讓 Claude 做出精緻的 UI 元件，他的回答是：沒有魔法咒語，只有一套把品味寫成設計變數、把元件當成狀態系統的做法。Mogu 挑出最值得偷的幾條，也聊聊那句「最後 10% 是人」該怎麼讀。'
+tags: ['ui-design', 'frontend', 'prompt-engineering', 'claude']
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: '0d27938c09c958261f1b988f6a18a003e73433e04311fcd5f50faffc0563939d'
+  sourceSha256: '145a21b4e5c64f4ad1547e071b8fb10b0baddc89d147a58dc64ca6badacdbc0e'
+  sourceUnits: 2249
+  metrics:
+    maxRun: 2
+    sourceRatio: 0.2722
+    alignedSentences: 33
+  aligner: 'claude-sonnet-5'
+  rewrites: 1
+  alignerCalls: 3
+  checkedAt: '2026-09-28'
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 5
+    sourceAlign: 8
+    attribution: 9
+    score: 7
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+這篇最好用的讀法，是邊讀邊分兩堆：抄得走的，和抄不走的。抄得走的是一疊可以直接貼進專案的 CSS 數字；抄不走的，是 @kvnkld 一開頭就講明的那件事：質感不是能用 [Prompt](/glossary#prompt) 點出來的功能，模型是一雙很好的手，品味和上百個小決定還是人的。Mogu 覺得這篇值得讀，就在於兩堆難得出現在同一篇裡。數字下面挑著講；那個主張要不要同意，留到最後再談。
+
+## 形容詞不會編譯
+
+整篇文章的主線，是他在十條規則之後整理 prompt 心法時寫的第一句："Give numbers, never adjectives."（給數字，不給形容詞。）在他眼裡，「滑順」這個詞對模型沒有意義，一條具體的曲線配上 280 毫秒才做得出來。
+
+前兩條規則是這句話最直接的落地：先把自己調的緩動曲線、圓角、時長、陰影寫成設計變數，再叫模型「只能用這些變數」。作者估計，光這一句指令就能去掉八成的「AI slop」感（一眼就看得出是 AI 隨手生出來的那種廉價感）。
+
+[Mogu](/glossary#mogu) 覺得這兩條合起來講的是同一件事：模型拿到模糊的形容詞時，會交出訓練資料裡最常見的那個版本，也就是平均值。平均值剛好就是「一看就是 AI 做的」。給它精確數字，等於把選擇權收回人手上；給它一組變數並禁止例外，等於連「下次要不要亂發明一個 13 像素的圓角」的選擇權都收回來。
+
+不過他自己也留了一個重要的保留條件：這些曲線 "aren't sacred numbers"（不是什麼神聖數字），是他一個一個憑感覺調出來的，調的過程本身才是功夫。所以直接抄他的數字可以當起點，把它們當成標準答案就誤會了。
+
+<MoguNote>
+為什麼數字一定要鎖進變數？Mogu 在原文裡撿到一個現成的反例：講進場動畫的第五條，時長在規則本文寫的是約 280 毫秒，到了幾行後的 prompt 範例變成約 320 毫秒。不知道是筆誤還是刻意，但它說明了一個數字只要在散文裡打第二遍，連作者本人都會打出兩個版本。鎖進 `--duration-slow` 這種變數，就只會有一份。人類寫散文會飄，變數不會 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 最值得偷的，是讓介面有「重量」的那幾條
+
+如果只打算從原文帶走一部分，建議帶走處理「物理感」的那幾條，因為它們最不容易自己想到。
+
+陰影是「給數字」最難反駁的例子。跟模型說「陰影有層次一點」「高級一點」，它聽得懂字面，卻還原不出 @kvnkld 要的那種深度：在他看來，真實的深度是很多層淡到幾乎看不見的影子疊出來的，不是一層深色的影子。Mogu 的看法是，越是靠「淡」取勝的效果，越沒辦法用形容詞交代，只能一層一層寫成參數。要疊幾層、每層多淡，他那兩組現成的預設寫得清清楚楚，直接去原文抄最準。
+
+吸附那條則是 Mogu 最喜歡的一條：滑桿靠近有意義的值就被磁吸過去，吸進來的範圍小、要掙脫的範圍大。作者說這點小阻力會在潛意識裡被讀成品質；它最迷人的地方，則是把一種說不清的「手感」寫成兩個可以調的範圍，剛好替前面那條主線做了示範。
+
+<MoguNote>
+這個「進來容易、出去要多用力」的雙區設計，工程上有個正式名字叫「遲滯」，冷氣和恆溫器天天在用：設 26 度，不會在 25.9 和 26.1 之間瘋狂開關，而是留一段緩衝帶。作者沒用這個詞，但他描述的正是同一招。少了這段緩衝，滑桿停在吸附點邊緣時就會抖來抖去，像一台沒留緩衝帶、每隔幾秒就開開關關的冷氣。
+</MoguNote>
+
+但「給數字」不是萬用解，原文自己就有一處看起來在唱反調：講拖曳物理的第三條，@kvnkld 的 prompt 建議反而是別講術語、直接描述你要的感覺，理由是模型本來就懂物理，缺的只是知道你要它感覺起來像什麼。
+
+Mogu 的讀法是用一個問題來分：模型猜不猜得到你要的東西？這條分界是 Mogu 自己畫的，原文沒有；作者在 prompt 心法清單裡，只是把「給數字」和「描述感覺、附一個參照」列在一起，沒交代哪種情況用哪一條。照這個分法，兩條就不打架了。撞到邊緣要彈回來，是人人都有直覺的物理，掛一個大家都認得的參照（例如 iOS）就猜得中；曲線偏多少才算對，是一個人的口味，模型沒有東西可以猜，只能給數字。
+
+---
+
+## 有些狀態，要摸過才知道缺
+
+整篇 Mogu 最想劃線的，是作者對自己設計稿的一個讓步。對做 UI 的人來說，這個讓步反而是解脫：設計稿可以從「驗收標準」退回「起點」，實作時多冒出幾個狀態是預期中的事，不代表設計沒做好。讓步出現在他排為最重要的第十條，但重點不是「元件是一組狀態」這句老話，而是他承認需要哪些狀態可能要做出來、實際拖過才會發現缺，所以他把 Figma 檔稱為一個假設。他實際摸出了哪些狀態，原文有幾個很具體的例子。
+
+他在 prompt 心法裡還有一條：迭代時一次只動一個地方，「現在只調陰影」「現在只調進場」。Mogu 把這兩條連起來看：如果狀態是摸出來的，那工作流就不可能是一次寫好一個完美 prompt，而是做出來、摸、發現缺口、只修那一個、再摸。期待一發 prompt 就到位的人，會在這一條撞牆。
+
+<MoguNote>
+gu-log 的編輯台也是這樣長大的。repo 裡有一份 `docs/shroomdog-editorial-feedback.md`，每次 ShroomDog 讀完稿子覺得哪裡怪，就把原話、情境、修法記進去，使用規則裡直接要求：不要只寫「語氣再自然一點」這種抽象話，要留下具體的壞例子和好例子。翻成這篇的語言：給數字，不給形容詞。裡面很多條目都不是事先規劃好的，而是讀到稿子、覺得卡，才發現「喔原來這裡少了一個狀態」。你正在讀的這篇導讀，就是照著那份被摸出來的規則寫的。
+</MoguNote>
+
+---
+
+## 「最後 10% 是人」該怎麼讀
+
+「最後一成」到底長什麼樣子？照 Mogu 的讀法，就是按鈕按下去該縮到 98% 還是 95% 這種差三個百分點的決定。這也是作者自己挑的例子：他承認彈簧動畫哪個模型都做得比人手工快，但這三個百分點，沒有一個模型替他決定過。有這麼小的例子墊著，他收尾那句「prompt 幾分鐘就能帶人走完九成，大家真正會拍手的最後一成是人自己」才不只是口號。
+
+Mogu 同意這個方向，但想補兩個看法。第一，90 和 10 是修辭，不是量出來的比例，讀的時候當成「大部分 vs 決定性的一小塊」就好。第二，這篇文章本身有點在反駁自己的結論：他正在做的，就是把自己的品味一條一條外化成 CSS 變數、陰影參數和 prompt 句型，然後公開讓所有人「全部拿去偷」。被寫成變數的那部分品味，下一個人拿到之後就變成了「手」。所以人跟模型之間那條線不是固定的，會一直往前移；留在人身上的，是還沒被寫下來、得靠手上摸過才知道的那一段。這也剛好接回第十條。
+
+還有一條邊界得讀者自己補：這套規則從頭到尾是網頁前端、以 CSS 為主的語境，拿去做手機原生應用或遊戲介面要自己轉換。講效能的第九條也只給方向，沒有附量測數據，Mogu 會把它當經驗法則，真要用在自己的專案，還是先量一次再說。
+
+---
+
+## 回原文看什麼
+
+這篇導讀刻意沒搬的東西，正是[原文](https://x.com/kvnkld/status/2066863634949779464)最值得打開的部分。每一條規則他都附了規則本身和可以直接貼進對話的 prompt 句子，有需要的幾條還附了在 Figma 裡怎麼先準備好。那些 prompt 句子的措辭很值得逐句看，因為它們就是「給數字」的示範。
+
+如果只挑一段親自讀，就挑他講 Figma [MCP](/glossary#mcp) 交接的那段。在 Mogu 看來，那段就是「給數字，不給形容詞」搬到交接上：他不認為交接會自己做到像素級還原，所以在 prompt 裡逐項點名要從選取的圖層讀哪些屬性。正在用 [Agent](/glossary#agent) 把設計稿轉成程式碼的人，拿那段對照自己的交接 prompt，應該很快就看得出自己漏交代了什麼。其他實作寫法也都留在原文。
+
+
+## 延伸閱讀
+
+- [MP-21: CLAUDE.md 完全指南 — 讓 Claude Code 記住你的偏好](/posts/mp-21-20260204-vishwas-claude-md-guide/)
+- [MP-206: Claude 會用你的電腦了！但真正的護城河依然是「深度」](/posts/mp-206-20260324-unfityogi-claude-computer-use-moat/)
+- [MP-304: Clawd.rip 把 Claude 的翻車史排成時間線：Anthropic 的品牌債終於有收據了](/posts/mp-304-20260529-clawd-rip-claude-timeline/)

@@ -13,12 +13,19 @@ import (
 // the existing scripts/fetch-x-article.sh via the source package, then
 // populates SourcePath / AuthorHandle / OriginalDate for downstream steps.
 //
-// When skipped via --from-step, the step is a no-op and the caller is
-// expected to have set SourcePath manually (or to have used --file so
-// later steps read from src/content/posts directly).
+// When skipped via --from-step, nothing is fetched, but a capture already in
+// the work dir still hydrates the metadata: ralph names a fresh article's file
+// after the source author, so a resumed run would otherwise fall back to the
+// "article" slug.
 func (s *State) Fetch(ctx context.Context) error {
 	if s.shouldSkipBelow(StepFetch) {
 		s.Log.Info("Step 1: fetch content — SKIPPED (--from-step)")
+		if data, err := os.ReadFile(filepath.Join(s.WorkDir, "source-tweet.md")); err == nil && len(data) > 0 {
+			meta := source.ParseCaptureHeader(data)
+			meta.Path = filepath.Join(s.WorkDir, "source-tweet.md")
+			meta.Bytes = len(data)
+			s.hydrateSourceMetadata(meta)
+		}
 		return nil
 	}
 	if s.TweetURL == "" {

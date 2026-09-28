@@ -6,13 +6,15 @@ import { describe, expect, it } from 'vitest';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const SMOKE_SCRIPT = path.join(REPO_ROOT, 'scripts', 'ccc-smoke-test.sh');
+const FETCH_ARTICLE_REQUIREMENTS = 'scripts/requirements-fetch-article.txt';
 
 function runSmoke(
   fixtureRoot: string,
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv,
+  args: string[] = []
 ): Promise<{ status: number | null; output: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn('bash', ['scripts/ccc-smoke-test.sh'], {
+    const child = spawn('bash', ['scripts/ccc-smoke-test.sh', ...args], {
       cwd: fixtureRoot,
       env,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -121,5 +123,114 @@ exit 7
     } finally {
       fs.rmSync(fixtureRoot, { recursive: true, force: true });
     }
+  });
+});
+
+describe('CCC smoke --fix: fetch-article Python packages', () => {
+  // 假的 python3 只認 smoke test 的兩種呼叫：import 檢查看 state 目錄有沒有 installed，
+  // pip install 把參數記進 pip.calls（FAKE_PIP_FAIL=1 時裝失敗）；其他呼叫一律失敗。
+  const FAKE_PYTHON = `#!/bin/sh
+if [ "$1" = "-c" ] && [ "$2" = "import bs4, lxml, readability" ]; then
+  [ -f "$FAKE_PY_STATE/installed" ]
+  exit $?
+fi
+if [ "$1" = "-m" ] && [ "$2" = "pip" ]; then
+  printf '%s\\n' "$*" >> "$FAKE_PY_STATE/pip.calls"
+  [ "$FAKE_PIP_FAIL" = "1" ] && exit 1
+  : > "$FAKE_PY_STATE/installed"
+  exit 0
+fi
+exit 1
+`;
+
+  async function runFix({
+    remote,
+    installed,
+    pipFails = false,
+  }: {
+    remote: boolean;
+    installed: boolean;
+    pipFails?: boolean;
+  }) {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-ccc-smoke-fetch-deps-'));
+    try {
+      const scriptsDir = path.join(fixtureRoot, 'scripts');
+      const binDir = path.join(fixtureRoot, 'bin');
+      const stateDir = path.join(fixtureRoot, 'python-state');
+      const tmpDir = path.join(fixtureRoot, 'tmp');
+      const homeDir = path.join(fixtureRoot, 'home');
+      for (const directory of [scriptsDir, binDir, stateDir, tmpDir, homeDir]) {
+        fs.mkdirSync(directory, { recursive: true });
+      }
+      fs.copyFileSync(SMOKE_SCRIPT, path.join(scriptsDir, 'ccc-smoke-test.sh'));
+      fs.copyFileSync(
+        path.join(REPO_ROOT, FETCH_ARTICLE_REQUIREMENTS),
+        path.join(fixtureRoot, FETCH_ARTICLE_REQUIREMENTS)
+      );
+      if (installed) fs.writeFileSync(path.join(stateDir, 'installed'), '');
+      // 其他 --fix 步驟一律用假的，測試不會真的裝任何東西。
+      for (const [name, body] of [
+        ['python3', FAKE_PYTHON],
+        ['pnpm', '#!/bin/sh\nexit 0\n'],
+        ['npm', '#!/bin/sh\nexit 1\n'],
+        ['openspec', '#!/bin/sh\nexit 0\n'],
+        ['pgrep', '#!/bin/sh\nexit 1\n'],
+        ['curl', "#!/bin/sh\nprintf '200'\n"],
+      ] as const) {
+        fs.writeFileSync(path.join(binDir, name), body, { mode: 0o755 });
+      }
+
+      const env: NodeJS.ProcessEnv = {
+        ...process.env,
+        HOME: homeDir,
+        PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}`,
+        TMPDIR: tmpDir,
+        PLAYWRIGHT_BROWSERS_PATH: path.join(fixtureRoot, 'no-browsers'),
+        FAKE_PY_STATE: stateDir,
+        FAKE_PIP_FAIL: pipFails ? '1' : '',
+        CLAUDE_CODE_REMOTE: remote ? 'true' : '',
+      };
+      const { output } = await runSmoke(fixtureRoot, env, ['--fix']);
+      const pipCallsPath = path.join(stateDir, 'pip.calls');
+      const pipCalls = fs.existsSync(pipCallsPath) ? fs.readFileSync(pipCallsPath, 'utf-8') : '';
+      return { output, pipCalls };
+    } finally {
+      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+    }
+  }
+
+  it('installs the pinned requirements when the import fails, then reports them importable', async () => {
+    const { output, pipCalls } = await runFix({ remote: true, installed: false });
+
+    expect(pipCalls).toBe(`-m pip install --requirement ${FETCH_ARTICLE_REQUIREMENTS}\n`);
+    expect(output).toContain('✓ fetch-article Python 套件安裝完成');
+    expect(output).toContain('✓ fetch-article Python 套件可 import');
+  });
+
+  it('skips pip when the packages already import', async () => {
+    const { output, pipCalls } = await runFix({ remote: true, installed: true });
+
+    expect(pipCalls).toBe('');
+    expect(output).toContain('✓ fetch-article Python 套件已存在，跳過安裝');
+    expect(output).toContain('✓ fetch-article Python 套件可 import');
+  });
+
+  it('only warns, never fails, when pip cannot install them', async () => {
+    const { output, pipCalls } = await runFix({ remote: true, installed: false, pipFails: true });
+
+    expect(pipCalls).not.toBe('');
+    expect(output).toMatch(
+      /! fetch-article Python 套件安裝失敗 — 見 .+\/ccc-fetch-article-install\.log/
+    );
+    expect(output).toContain('! fetch-article Python 套件缺');
+    expect(output).not.toContain('✗ fetch-article');
+  });
+
+  it('leaves a local Python alone outside CCC and only reports the gap', async () => {
+    const { output, pipCalls } = await runFix({ remote: false, installed: false });
+
+    expect(pipCalls).toBe('');
+    expect(output).not.toContain('fetch-article Python 套件安裝');
+    expect(output).toContain('! fetch-article Python 套件缺');
   });
 });
