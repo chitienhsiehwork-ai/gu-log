@@ -52,15 +52,18 @@ type ClaudeProvider struct {
 // ClaudeOpusPinned is the writer / refine voice. The maintainer has pinned it
 // to a specific Opus build (not the floating alias) because Opus writing-voice
 // calibration is version-sensitive — a silent Anthropic bump can change the LHY
-// persona. Keep this in sync with the PIN comments in
-// .claude/agents/tribunal-writer.md and .claude/agents/vibe-opus-scorer.md.
+// persona. The owner moved the writer and the vibe scorer to Opus 5.5 together
+// on 2026-09-27 (one-taste-loop: generate and grade on the same generation);
+// keep this in sync with the PIN comments in .claude/agents/tribunal-writer.md
+// and .claude/agents/vibe-opus-scorer.md.
 //
 // The pin and the alias are independent on purpose: the pin holds this build
 // when the alias moves on. TestClaudeWriterPinMatchesTribunalWriterFrontmatter
-// fails when this constant and the tribunal-writer frontmatter disagree.
+// and TestClaudeWriterPinMatchesVibeScorerFrontmatter fail when this constant
+// and either agent's frontmatter disagree.
 const (
 	ClaudeOpusAlias  = "opus"
-	ClaudeOpusPinned = "claude-opus-4-6"
+	ClaudeOpusPinned = "claude-opus-5-5"
 )
 
 // NewClaudeOpus returns a ClaudeProvider wired to the floating Opus alias. Use

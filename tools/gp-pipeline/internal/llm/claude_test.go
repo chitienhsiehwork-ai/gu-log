@@ -21,8 +21,8 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.Model()); got != "Opus 4.6" {
-		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 4.6")
+	if got := DisplayName(w.Model()); got != "Opus 5.5" {
+		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 5.5")
 	}
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
@@ -46,6 +46,8 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 func TestDisplayNameWholeNumberClaudeGeneration(t *testing.T) {
 	cases := map[ModelID]string{
 		"claude-opus-5":             "Opus 5",
+		"claude-opus-5-5":           "Opus 5.5",
+		"claude-opus-5-5[1m]":       "Opus 5.5",
 		"claude-sonnet-5":           "Sonnet 5",
 		"claude-opus-4-5":           "Opus 4.5",
 		"claude-haiku-4-5-20251001": "Haiku 4.5",
@@ -113,8 +115,8 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.ActualModel()); got != "Opus 4.6" {
-		t.Fatalf("stamped DisplayName = %q, want Opus 4.6", got)
+	if got := DisplayName(w.ActualModel()); got != "Opus 5.5" {
+		t.Fatalf("stamped DisplayName = %q, want Opus 5.5", got)
 	}
 }
 
@@ -323,15 +325,14 @@ func TestClaudeContainedCallStartsFromCleanEnvironment(t *testing.T) {
 	}
 }
 
-// TestClaudeWriterPinMatchesTribunalWriterFrontmatter guards the two SSOTs of
-// the Claude model pin. Runtime-profile routing reads the frontmatter through
-// the shell router and refuses to dispatch when it disagrees with this
-// constant, so a drift must fail here first.
-func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
-	path := filepath.Join(repoRootForRoutingTest(t), ".claude", "agents", "tribunal-writer.md")
+// agentFrontmatterModel reads the `model:` value of a .claude/agents/<name>.md
+// frontmatter block.
+func agentFrontmatterModel(t *testing.T, name string) string {
+	t.Helper()
+	path := filepath.Join(repoRootForRoutingTest(t), ".claude", "agents", name+".md")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("read writer agent: %v", err)
+		t.Fatalf("read %s agent: %v", name, err)
 	}
 	lines := strings.Split(string(data), "\n")
 	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
@@ -346,7 +347,24 @@ func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
 			model = strings.Trim(strings.TrimSpace(value), `"'`)
 		}
 	}
-	if model != ClaudeOpusPinned {
+	return model
+}
+
+// TestClaudeWriterPinMatchesTribunalWriterFrontmatter guards the two SSOTs of
+// the Claude model pin. Runtime-profile routing reads the frontmatter through
+// the shell router and refuses to dispatch when it disagrees with this
+// constant, so a drift must fail here first.
+func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
+	if model := agentFrontmatterModel(t, "tribunal-writer"); model != ClaudeOpusPinned {
 		t.Fatalf("tribunal-writer frontmatter model = %q, ClaudeOpusPinned = %q; update both pins together", model, ClaudeOpusPinned)
+	}
+}
+
+// TestClaudeWriterPinMatchesVibeScorerFrontmatter locks the one-taste-loop
+// rule: the owner moves the writer and the Vibe scorer to a new Opus
+// generation together, so generating and grading share one taste.
+func TestClaudeWriterPinMatchesVibeScorerFrontmatter(t *testing.T) {
+	if model := agentFrontmatterModel(t, "vibe-opus-scorer"); model != ClaudeOpusPinned {
+		t.Fatalf("vibe-opus-scorer frontmatter model = %q, ClaudeOpusPinned = %q; the writer and the Vibe scorer move together", model, ClaudeOpusPinned)
 	}
 }

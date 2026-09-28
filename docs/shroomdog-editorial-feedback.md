@@ -674,3 +674,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - 這篇的產品角色：GP-274 是七個心智模型的入口目錄，不是最終解釋。正文七個標題各連到 glossary；每個 glossary 條目再用 `definedIn` 回指 GP-274 與真正把概念用在 AI、職涯、知識系統或制度分析裡的舊文，條目之間也用 `related` 串成圖。
 - 定義的加值方式：glossary 不重抄來源的一句話版定義，而是補上容易誤用的邊界，例如機會成本只看最佳替代方案、二階思考要把機率與下行一起算、單純重複不等於複利、避開失敗也不會自動成功。
 - Reusable lesson：**文章的價值不只來自新穎度，也可以來自「替讀者建立入口」**。遇到清楚但基礎、而且站內知識已經散落各處的 source，可以讓文章當 map、glossary 當穩定節點、舊文當深挖路徑。這樣收錄 beginner post 不會稀釋 gu-log，反而會把既有內容從文章清單變成可走的知識網。
+
+## 2026-09-27 — writer + vibe scorer 一起升到 Opus 5.5（pin 世代前移，one-taste-loop 不變）
+
+### Feedback: 寫手 pin 從 `claude-opus-4-6` 改成 Opus 5.5，vibe scorer 一起換
+
+- 情境：GP 改成 ShroomDog 精選導讀之前，ShroomDog 在 chat 拍板把寫手換成 Opus 5.5（`claude-opus-5-5`），並照 2026-07-28「寫手與 vibe 評分同一代」的規則讓 vibe scorer 一起換。時間點定在導讀新格式 PR 的第一個 commit，讓前 10 篇導讀改寫前就生效。
+- 修法：pin 的三個家一起改（`.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md`、`claude.go` 的 `ClaudeOpusPinned`），PIN 註解寫上 sign-off 日期與世代沿革；新增 Go 測試鎖住 vibe scorer 的 `model:` 也等於 `ClaudeOpusPinned`，同代規則從此有測試守。歷史評分紀錄（文章的 `translatedBy.model`、`scores.*.model`）不改。
+- 撞到的前置 bug：`claude-opus-5-5` 是 5 世代的小版號，`scripts/detect-model.mjs` 的部分比對會先撞到 `claude-opus-5`，把它顯示成「Opus 5」。已在 `MODEL_MAP` 把 `claude-opus-5-5` 排在 `claude-opus-5` 前面並加測試。教訓：**同一個世代開始有小版號時，靠 `includes` 做部分比對的對照表要把長的 key 排前面**。
+- 不改的：`.codex/agents/vibe-opus-scorer.toml`（VM 的 vibe judge 是 Codex，同代規則只在 Claude 路徑成立）；浮動 `opus` alias 的記錄值另案決定。

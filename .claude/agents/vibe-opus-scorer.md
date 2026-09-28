@@ -1,17 +1,17 @@
 ---
 name: vibe-opus-scorer
 description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts. Scores on 4 dimensions (Persona/MoguNote/Vibe/Narrative); clarity moved to Fresh Eyes at tribunalVersion 9. Pass bar: composite ≥ 8 AND at least one dimension ≥ 9 AND no dimension < 8. Zero context from parent conversation. Use this to evaluate post quality without bias."
-# PINNED: claude-opus-4-6 (owner sign-off 2026-07-28: ShroomDog moved writer AND
-# vibe-scorer back to Opus 4.6 together, keeping the one-taste-loop rule
+# PINNED: claude-opus-5-5 (owner sign-off 2026-09-27: ShroomDog moved writer AND
+# vibe-scorer to Opus 5.5 together, keeping the one-taste-loop rule
 # — generate and grade stay on the same generation).
-# History: 4-6 → 4-5 (2026-06-18) → 5 (2026-07-25) → 4-6 (2026-07-28).
+# History: 4-6 → 4-5 (2026-06-18) → 5 (2026-07-25) → 4-6 (2026-07-28) → 5-5 (2026-09-27).
 # Still a PIN, not the floating `opus` alias: scoring calibration is
 # version-sensitive, so a silent Anthropic bump must not move the grader. Do NOT
 # bump without owner sign-off. Avoid the [1m] context variant — it needs usage
 # credits this account does not have (CCC sandbox); standard context is more
 # than enough to score one post + the scoring standard.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
-model: claude-opus-4-6
+model: claude-opus-5-5
 tools:
   - Read
   - Write
