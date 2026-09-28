@@ -23,8 +23,10 @@
 # passing or failing, is written to the frontmatter, because whether a GP ships
 # is the floor's call (CONTRIBUTING.md 〈兩層品質門檻〉), not four PASSes. The
 # run exits 1 when any stage failed.
-# On crash resume: re-run same command; completed stages are skipped, and for a
-# GP that includes a FAIL whose score is still in the frontmatter.
+# On a rerun, recorded stages are skipped: a PASS whose score is still in the
+# frontmatter and, for a GP, also such a FAIL, unless --only-stage asks for that
+# stage. A GP stage is skipped only while the body its judges scored (zh-tw plus
+# any en- version) is unchanged; after a body edit every stage is judged again.
 
 set -euo pipefail
 
@@ -317,8 +319,10 @@ get_stage_status() {
     'if ((.[$a].stages[$s].tribunalVersion // 0) >= $v) then (.[$a].stages[$s].status // "pending") else "pending" end' "$PROGRESS_FILE"
 }
 
+# body_sha (optional): a GP's body fingerprint when the stage was scored.
 write_stage_progress() {
   local article="$1" stage="$2" status="$3" score_json="$4" model="$5" attempts="$6"
+  local body_sha="${7:-}"
   (
     flock -x 9
     local tmp
@@ -330,7 +334,9 @@ write_stage_progress() {
        --argjson attempts "$attempts" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --argjson score "$score_json" \
-       '.[$a].stages[$s] = {status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion}' \
+       --arg bodySha256 "$body_sha" \
+       '.[$a].stages[$s] = ({status: $status, score: $score, model: $model, attempts: $attempts, tribunalVersion: $tribunalVersion}
+          + (if $bodySha256 == "" then {} else {bodySha256: $bodySha256} end))' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -1079,7 +1085,7 @@ run_final_build_gate() {
   done
 }
 
-# A recorded stage (a PASS, or a GP's FAIL) is resumable only when its
+# A recorded stage (a PASS, or a GP's FAIL) is skipped on a rerun only when its
 # reader-visible score artifact still exists in every current artifact
 # (including a tracked English sidecar) and matches the exact dimensions/score
 # the ledger recorded. Worker bootstrap may reset/delete uncommitted artifacts
@@ -1141,6 +1147,35 @@ stage_score_artifacts_present() {
     fi
   done
   return 0
+}
+
+# The body a GP's judges score, as a fingerprint the ledger keeps with each
+# recorded stage: the zh-tw body plus the English body when an en- version
+# exists, without frontmatter (score writes only touch that). It hashes the
+# body itself, not the source-distance stamp, so an edit that was never
+# re-stamped still counts as a change.
+gp_body_sha256() {
+  python3 - "$ROOT_DIR/src/content/posts/$1" "$ROOT_DIR/src/content/posts/en-$1" <<'PY'
+import hashlib, os, re, sys
+digest = hashlib.sha256()
+for label, path in zip((b'zh-tw', b'en'), sys.argv[1:]):
+    if not os.path.isfile(path):
+        continue
+    with open(path, 'rb') as post:
+        text = post.read()
+    frontmatter = re.match(rb'---\r?\n.*?\r?\n---(?:\r?\n|$)', text, re.S)
+    body = text[frontmatter.end():] if frontmatter else text
+    digest.update(label + b'\0' + str(len(body)).encode() + b'\0' + body)
+print(digest.hexdigest())
+PY
+}
+
+# Whether a recorded stage was scored on the given body fingerprint. A non-GP
+# records none and passes "", so this always holds for it.
+stage_body_unchanged() {
+  local post_file="$1" stage_key="$2" body_sha="$3"
+  [ "$(jq -r --arg a "$post_file" --arg s "$stage_key" \
+        '.[$a].stages[$s].bodySha256 // empty' "$PROGRESS_FILE")" = "$body_sha" ]
 }
 
 # ─── Pass Bar Checks (code is the rule) ───────────────────────────────────────
@@ -1316,21 +1351,30 @@ run_stage() {
     fi
   fi
 
-  # ── Crash resume: skip already-passed stages ──
+  # ── Rerun: skip stages already recorded ──
   # A GP is never rewritten, so its recorded FAIL is final too: judging the
-  # same text again would only spend quota and reroll the score.
+  # same body again would only spend quota and reroll the score.
+  local body_sha=""
+  if [ "$GP_SCORE_ONLY" = 1 ] && ! body_sha="$(gp_body_sha256 "$post_file")"; then
+    tlog "  RUNNER ERROR: could not fingerprint the GP body."
+    mark_article_runner_error "$post_file" "$stage_key" "$runner_label" 0 "gp_body_fingerprint_failed"
+    return 70
+  fi
   local existing_status
   existing_status="$(get_stage_status "$post_file" "$stage_key")"
-  if [ "$existing_status" = "pass" ]; then
+  if { [ "$existing_status" = "pass" ] || [ "$existing_status" = "fail" ]; } &&
+     ! stage_body_unchanged "$post_file" "$stage_key" "$body_sha"; then
+    tlog "  Stage '$label' was scored on a different GP body; judging it again."
+  elif [ "$existing_status" = "pass" ]; then
     if stage_score_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
-      tlog "  Stage '$label' already PASS with matching frontmatter artifacts (crash resume). Skipping."
+      tlog "  Stage '$label' already PASS with matching frontmatter artifacts (rerun). Skipping."
       return 0
     fi
     tlog "  Stage '$label' ledger says PASS but frontmatter artifacts are missing or drifted; rerunning."
-  elif [ "$existing_status" = "fail" ] && [ "$GP_SCORE_ONLY" = 1 ] &&
+  elif [ "$existing_status" = "fail" ] && [ "$GP_SCORE_ONLY" = 1 ] && [ -z "$ONLY_STAGE" ] &&
        [ "$WRITE_FRONTMATTER" -eq 1 ] && [ -n "$fm_judge_key" ]; then
     if stage_score_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
-      tlog "  Stage '$label' already FAIL with its score in the frontmatter (GP, crash resume). Not re-judging."
+      tlog "  Stage '$label' already FAIL with its score in the frontmatter (GP rerun). Not re-judging."
       return 1
     fi
     tlog "  Stage '$label' ledger says FAIL but its frontmatter score is missing or drifted; rerunning."
@@ -1526,7 +1570,7 @@ PROMPT
         return 70
       fi
 
-      if ! write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt"; then
+      if ! write_stage_progress "$post_file" "$stage_key" "pass" "$score_json" "$runner_label" "$attempt" "$body_sha"; then
         tlog "  ERROR: Failed to persist resumable PASS for $stage_key."
         if ! mark_article_runner_error "$post_file" "$stage_key" "$runner_label" "$attempt" "stage_pass_persistence_failed"; then
           tlog "  ERROR: Failed to persist RUNNER_ERROR after stage PASS ledger failure."
@@ -1559,14 +1603,14 @@ PROMPT
     # ── Max loops exhausted — no more rewrites ────────────────────────────────
     if [ "$attempt" -ge "$max_loops" ]; then
       tlog "  Max loops ($max_loops) exhausted for $label. FAIL."
-      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt" "$body_sha"
       rm -f "$score_tmp"
       return 1
     fi
 
     if [ "$ALLOW_REWRITE" != "1" ]; then
       tlog "  Rewrite disabled for this run (judge-only, --only-stage default or a GP). FAIL without invoking tribunal-writer."
-      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt" "$body_sha"
       rm -f "$score_tmp"
       return 1
     fi

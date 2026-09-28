@@ -4,7 +4,9 @@
  * one fails, writes every judge's score — failing ones included — to the
  * frontmatter of both language versions, and leaves the body and the
  * source-distance stamp untouched, so the post still validates and ships zh-tw
- * on the floor rule. The judges are a fake Codex CLI; no model is called.
+ * on the floor rule. A rerun skips a recorded stage only while the body its
+ * judges scored is unchanged. The judges are a fake Codex CLI; no model is
+ * called.
  * Tribunal v2 is covered in tests/tribunal-v2/pipeline.test.ts.
  */
 import { spawnSync } from 'node:child_process';
@@ -77,7 +79,7 @@ const EN_GP_POST = withValidStamp(
 
 // A fake Codex judge: it answers for the agent named in the prompt, writes the
 // score where the prompt asks, and gives FAKE_FAILING_JUDGE the failing score
-// FAKE_FAIL_SCORE.
+// FAKE_FAIL_SCORE and every other judge the passing score FAKE_PASS_SCORE.
 const FAKE_CODEX = `#!/usr/bin/env bash
 if [ "\${1:-}" = "--version" ]; then echo "codex-cli 0.128.0"; exit 0; fi
 if [ "\${1:-}" = "exec" ] && [ "\${2:-}" = "--help" ]; then exit 0; fi
@@ -87,7 +89,7 @@ agent="$(printf '%s\\n' "$prompt" | sed -n 's/^## Codex agent config: //p' | hea
 score_path="$(printf '%s\\n' "$prompt" | sed -n 's/^Write your JSON result to: //p' | tail -1)"
 [ -n "$agent" ] && [ -n "$score_path" ] || exit 72
 printf '%s\\n' "$agent" >> "$FAKE_JUDGE_LOG"
-n=9; verdict=PASS
+n="$FAKE_PASS_SCORE"; verdict=PASS
 if [ "$agent" = "$FAKE_FAILING_JUDGE" ]; then n="$FAKE_FAIL_SCORE"; verdict=FAIL; fi
 case "$agent" in
   fact-checker) judge=factCheck; dims="accuracy fidelity consistency sourceBoundary commentarySeparation" ;;
@@ -141,10 +143,14 @@ function makeRepo() {
   return { root, bin };
 }
 
+function librarianScore(file: string) {
+  return matter(fs.readFileSync(file, 'utf8')).data.scores?.librarian?.score;
+}
+
 function runTribunal(
   { root, bin }: ReturnType<typeof makeRepo>,
   failingJudge: string,
-  failScore = 6
+  { failScore = 6, passScore = 9, args = [] as string[] } = {}
 ) {
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of [
@@ -159,7 +165,7 @@ function runTribunal(
   ]) {
     delete env[key];
   }
-  const result = spawnSync('bash', ['scripts/tribunal.sh', POST_FILE], {
+  const result = spawnSync('bash', ['scripts/tribunal.sh', ...args, POST_FILE], {
     cwd: root,
     encoding: 'utf8',
     timeout: 90_000,
@@ -175,6 +181,7 @@ function runTribunal(
       TRIBUNAL_CODEX_IDLE_POLL_SEC: '1',
       FAKE_FAILING_JUDGE: failingJudge,
       FAKE_FAIL_SCORE: String(failScore),
+      FAKE_PASS_SCORE: String(passScore),
       FAKE_JUDGE_LOG: path.join(root, 'judges.log'),
       FAKE_CLAUDE_LOG: path.join(root, 'claude.log'),
     },
@@ -232,7 +239,7 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
   );
 
   linuxIt(
-    'a re-run does not re-judge a FAIL whose score is still in the frontmatter',
+    'a rerun skips a recorded FAIL, except under --only-stage or once its score is gone',
     () => {
       const repo = makeRepo();
       const first = runTribunal(repo, 'librarian');
@@ -241,12 +248,21 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
       const recorded = fs.readFileSync(first.postPath, 'utf8');
 
       // Judged again, the failing judge would now score 5.
-      const rerun = runTribunal(repo, 'librarian', 5);
+      const rerun = runTribunal(repo, 'librarian', { failScore: 5 });
       expect(rerun.result.status, rerun.output).toBe(1);
       expect(rerun.judges, 'no judge runs again').toEqual(JUDGES);
       expect(fs.readFileSync(rerun.postPath, 'utf8')).toBe(recorded);
       expect(rerun.progress[POST_FILE]?.status).toBe('FAILED');
       expect(rerun.output).toContain('Not re-judging');
+
+      // --only-stage asks for that stage, so its recorded FAIL is judged again.
+      const only = runTribunal(repo, 'librarian', {
+        failScore: 5,
+        args: ['--only-stage', 'librarian'],
+      });
+      expect(only.result.status, only.output).toBe(1);
+      expect(only.judges, only.output).toEqual([...JUDGES, 'librarian']);
+      expect(librarianScore(only.postPath), only.output).toBe(5);
 
       // Once the frontmatter no longer holds the recorded score, the stage is judged again.
       const deleted = spawnSync(
@@ -260,11 +276,40 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
         { encoding: 'utf8' }
       );
       expect(deleted.status, deleted.stderr).toBe(0);
-      const drifted = runTribunal(repo, 'librarian', 5);
+      const drifted = runTribunal(repo, 'librarian', { failScore: 4 });
       expect(drifted.result.status, drifted.output).toBe(1);
-      expect(drifted.judges, drifted.output).toEqual([...JUDGES, 'librarian']);
-      const scores = matter(fs.readFileSync(drifted.postPath, 'utf8')).data.scores;
-      expect(scores?.librarian?.score, drifted.output).toBe(5);
+      expect(drifted.judges, drifted.output).toEqual([...JUDGES, 'librarian', 'librarian']);
+      expect(librarianScore(drifted.postPath), drifted.output).toBe(4);
+    },
+    120_000
+  );
+
+  linuxIt(
+    'a rerun after a body edit judges every stage again, PASS and FAIL alike',
+    () => {
+      const repo = makeRepo();
+      const first = runTribunal(repo, 'librarian');
+      expect(first.result.status, first.output).toBe(1);
+
+      // The zh-tw body changes; the frontmatter, scores and stamp stay as recorded.
+      fs.appendFileSync(first.postPath, '\n值班交接也要寫下沒發生的事。\n');
+      const zhEdited = runTribunal(repo, 'librarian', { failScore: 5, passScore: 10 });
+      expect(zhEdited.result.status, zhEdited.output).toBe(1);
+      expect(zhEdited.judges, zhEdited.output).toEqual([...JUDGES, ...JUDGES]);
+      expect(zhEdited.output).toContain('was scored on a different GP body');
+      const scores = matter(fs.readFileSync(zhEdited.postPath, 'utf8')).data.scores;
+      for (const key of SCORE_KEYS) {
+        expect(scores?.[key]?.score, `${key}\n${zhEdited.output}`).toBe(
+          key === 'librarian' ? 5 : 10
+        );
+      }
+      expect(matter(fs.readFileSync(zhEdited.enPath, 'utf8')).data.scores).toEqual(scores);
+
+      // The English body is part of what was scored too.
+      fs.appendFileSync(zhEdited.enPath, '\nThe handoff records what did not happen.\n');
+      const enEdited = runTribunal(repo, 'librarian', { failScore: 4 });
+      expect(enEdited.judges, enEdited.output).toEqual([...JUDGES, ...JUDGES, ...JUDGES]);
+      expect(librarianScore(enEdited.postPath), enEdited.output).toBe(4);
     },
     120_000
   );
