@@ -805,6 +805,109 @@ export function rewriteReport(guide, source, maps, scores, policy = POLICY) {
   ].join('\n');
 }
 
+// ─── 英文逐字檢查 ───────────────────────────────────────────────────────
+
+function words(text) {
+  return (
+    text
+      .normalize('NFKC')
+      .toLowerCase()
+      .match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) || []
+  );
+}
+
+const QUOTE_SPANS = /“[^”]*”|"[^"\n]*"/gu;
+
+/**
+ * 英文版跟正規化原文的逐字比對：非引文文字的詞級 n-gram 有多少比例出現在原文，以及
+ * 最長一段跟原文逐字相同的詞數。blockquote 與雙引號內的文字是標明的引文，依文件順序
+ * 豁免到上限（原文詞數的比例），超過上限的部分照常計入。
+ */
+export function englishVerbatim(content, source, { postIndex = null, policy = POLICY } = {}) {
+  const { n, containmentLimit, verbatimWordLimit, quoteAllowanceRatio } = policy.ngram;
+  const { body } = splitFrontmatter(content);
+  const blocks = [];
+  collectBlocks(parseMdx(body), blocks, { postIndex, policy, machineBlocks: true });
+
+  const sourceWords = words(projectionText(source));
+  const vocabulary = new Map();
+  const toIds = (list) =>
+    list.map((w) => {
+      if (!vocabulary.has(w)) vocabulary.set(w, vocabulary.size + 1);
+      return vocabulary.get(w);
+    });
+  const sourceIds = toIds(sourceWords);
+  const sourceGrams = new Set();
+  for (let i = 0; i + n <= sourceIds.length; i++)
+    sourceGrams.add(sourceIds.slice(i, i + n).join(' '));
+
+  // 依文件順序切出一般文字段與引文段。
+  const pieces = [];
+  for (const { kind, text } of blocks) {
+    if (kind === 'quote') {
+      pieces.push({ quote: true, words: words(text) });
+      continue;
+    }
+    let last = 0;
+    for (const match of text.matchAll(QUOTE_SPANS)) {
+      pieces.push({ quote: false, words: words(text.slice(last, match.index)) });
+      pieces.push({ quote: true, words: words(match[0]) });
+      last = match.index + match[0].length;
+    }
+    pieces.push({ quote: false, words: words(text.slice(last)) });
+  }
+
+  const allowance = Math.floor(quoteAllowanceRatio * sourceWords.length);
+  let quotedWords = 0;
+  const counted = [];
+  for (const piece of pieces) {
+    if (!piece.words.length) continue;
+    if (!piece.quote) {
+      counted.push(piece.words);
+      continue;
+    }
+    const exempt = Math.min(piece.words.length, allowance - quotedWords);
+    quotedWords += exempt;
+    if (exempt < piece.words.length) counted.push(piece.words.slice(exempt));
+  }
+
+  let grams = 0;
+  let hits = 0;
+  let maxVerbatimWords = 0;
+  for (const segment of counted) {
+    const ids = toIds(segment);
+    for (let i = 0; i + n <= ids.length; i++) {
+      grams++;
+      if (sourceGrams.has(ids.slice(i, i + n).join(' '))) hits++;
+    }
+    maxVerbatimWords = Math.max(maxVerbatimWords, longestCommonRun(ids, sourceIds));
+  }
+  const ngramContainment = grams ? hits / grams : 0;
+  const metrics = {
+    ngramContainment: floor4(ngramContainment),
+    maxVerbatimWords,
+    quotedWords,
+  };
+  const fails = [];
+  if (ngramContainment >= containmentLimit) fails.push('ngram');
+  if (maxVerbatimWords >= verbatimWordLimit) fails.push('verbatim');
+  return { verdict: fails.length ? 'FAIL' : 'PASS', fails, metrics };
+}
+
+function longestCommonRun(a, b) {
+  let best = 0;
+  let previous = new Int32Array(b.length + 1);
+  let current = new Int32Array(b.length + 1);
+  for (let i = 0; i < a.length; i++) {
+    for (let j = 0; j < b.length; j++) {
+      current[j + 1] = a[i] === b[j] ? previous[j] + 1 : 0;
+      if (current[j + 1] > best) best = current[j + 1];
+    }
+    [previous, current] = [current, previous];
+  }
+  return best;
+}
+
 // ─── 外部來源與需要章的文章 ─────────────────────────────────────────────
 
 const EXAMPLE_HOSTS = ['example.com', 'example.org', 'example.net'];

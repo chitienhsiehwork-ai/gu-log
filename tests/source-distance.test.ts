@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import {
   POLICY,
   decide,
+  englishVerbatim,
   isExternalSource,
   requiresStamp,
   rewriteReport,
@@ -390,5 +391,54 @@ describe('擋下條件由程式依固定參數計算', () => {
     expect(rewriteReport(guide, source30, [map], [scoreAlignment(guide, source30, map)])).toBe(
       report
     );
+  });
+});
+
+describe('英文版的逐字 n-gram 檢查', () => {
+  const source = segmentSource(CAPTURE);
+  const english = (body: string) =>
+    [
+      '---',
+      "ticketId: 'GP-PENDING'",
+      "lang: 'en'",
+      `sourceUrl: '${SOURCE_URL}'`,
+      '---',
+      '',
+      body,
+    ].join('\n');
+  const own =
+    'Mara Quill turns an old maritime habit into an on-call rule, and the part worth stealing is small. ' +
+    'Write one line even when nothing happens, because a missing line becomes the alarm.';
+
+  it('沒標成引文的 40 詞照抄不通過', () => {
+    const copied =
+      'The first change was a fixed format: time, signal, action. People stopped writing essays at three in the morning. ' +
+      'The second change was a rule about silence. If a shift leaves no handoff, the next person pages the previous one before doing anything else.';
+    const result = englishVerbatim(english(`${own}\n\n${copied}`), source);
+    expect(result.metrics.maxVerbatimWords).toBeGreaterThanOrEqual(40);
+    expect(result.verdict).toBe('FAIL');
+  });
+
+  it('上限內的 blockquote 與引號引文不會讓檢查不通過', () => {
+    const body = `${own}\n\n> Nobody wrote long entries.\n\nShe calls it "the silence rule" and means it.`;
+    const result = englishVerbatim(english(body), source);
+    expect(result.verdict).toBe('PASS');
+    expect(result.metrics.quotedWords).toBe(7);
+  });
+
+  it('超過上限的引文照常計入逐字比對', () => {
+    const quote =
+      'The first change was a fixed format: time, signal, action. People stopped writing essays at three in the morning. The second change was a rule about silence.';
+    const result = englishVerbatim(english(`${own}\n\n> ${quote}`), source);
+    const allowance = Math.floor(POLICY.ngram.quoteAllowanceRatio * 215);
+    expect(result.metrics.quotedWords).toBe(allowance);
+    expect(result.verdict).toBe('FAIL');
+  });
+
+  it('原文是中文時英文版自然通過', () => {
+    const zh = segmentSource('燈塔看守人每晚都在日誌寫一行。沒事也要寫，少了一行就代表出事。');
+    const result = englishVerbatim(english(own), zh);
+    expect(result.metrics.ngramContainment).toBe(0);
+    expect(result.verdict).toBe('PASS');
   });
 });
