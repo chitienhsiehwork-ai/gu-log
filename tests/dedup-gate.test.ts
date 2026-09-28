@@ -57,6 +57,15 @@ describe('normalizeUrl', () => {
     expect(normalizeUrl('https://example.com/x?ref=hn&id=1')).toBe('https://example.com/x?id=1');
   });
 
+  it('strips share / click tracking params (smid, fbclid, gclid, Mailchimp)', () => {
+    expect(normalizeUrl('https://www.nytimes.com/2026/02/23/opinion/ai.html?smid=url-share')).toBe(
+      'https://nytimes.com/2026/02/23/opinion/ai.html'
+    );
+    expect(
+      normalizeUrl('https://example.com/x?fbclid=a&gclid=b&mc_cid=c&mc_eid=d&id=7&utm_term=e')
+    ).toBe('https://example.com/x?id=7');
+  });
+
   it('applies known alias claude.com/blog/auto-mode → anthropic.com/engineering/...', () => {
     expect(normalizeUrl('https://claude.com/blog/auto-mode')).toBe(
       'https://anthropic.com/engineering/claude-code-auto-mode'

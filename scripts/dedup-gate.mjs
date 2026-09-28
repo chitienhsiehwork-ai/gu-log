@@ -100,6 +100,19 @@ const URL_ALIASES = [
   ],
 ];
 
+// Tracking / share params that never change which article a URL points to
+// (utm_* is stripped by prefix). One list for dedup, validate-posts and the
+// takedown ratchet, so a share link cannot slip past a blocked source.
+const TRACKING_PARAMS = new Set([
+  'ref',
+  'source',
+  'smid', // NYT share links (?smid=url-share)
+  'fbclid',
+  'gclid',
+  'mc_cid',
+  'mc_eid',
+]);
+
 function normalizeUrl(raw) {
   if (!raw) return '';
   const url = raw.trim().replace(/^['"]|['"]$/g, '');
@@ -118,19 +131,9 @@ function normalizeUrl(raw) {
   // Strip www / m subdomain
   let host = parsed.hostname.toLowerCase().replace(/^(www|m)\./, '');
 
-  // Strip tracking params
-  const STRIP_PARAMS = [
-    'utm_source',
-    'utm_medium',
-    'utm_campaign',
-    'utm_content',
-    'utm_term',
-    'ref',
-    'source',
-  ];
   const kept = [];
   for (const [k, v] of parsed.searchParams.entries()) {
-    if (!STRIP_PARAMS.includes(k) && !k.startsWith('utm_')) {
+    if (!TRACKING_PARAMS.has(k) && !k.startsWith('utm_')) {
       kept.push(`${k}=${v}`);
     }
   }
