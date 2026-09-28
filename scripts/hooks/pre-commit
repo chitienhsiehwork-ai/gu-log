@@ -734,6 +734,29 @@ else
 fi
 echo ""
 
+# ─── Step 1.2: Source-distance stamp on every staged post (blocking) ─
+# openspec source-distance-stamp. The content gate above skips terminology-,
+# link- and backend-frontmatter-only edits, but those can still move the body
+# projection or sourceUrl away from a GP's stamp, so every staged post is
+# verified here. Posts that take no stamp (non-GP, demo sources, taken down)
+# pass unless they carry one. Errors go to stderr; the JSON report is dropped.
+STAMP_ARGS=()
+for file in "${STAGED_MDX[@]}"; do
+    if [ -f "$REPO_ROOT/$file" ]; then
+        STAMP_ARGS+=(--file "$REPO_ROOT/$file")
+    fi
+done
+if [ "${#STAMP_ARGS[@]}" -gt 0 ]; then
+    if ! node "$REPO_ROOT/scripts/source-distance.mjs" verify "${STAMP_ARGS[@]}" >/dev/null; then
+        echo ""
+        echo "❌ Source-distance stamp check FAILED. Re-stamp with the command above:"
+        echo "   tools/gp-pipeline/gp-pipeline stamp --file <post>"
+        exit 1
+    fi
+    echo "✓ Source-distance stamps checked"
+fi
+echo ""
+
 # ─── Step 1.5: translatedBy.model runtime consistency (blocking) ─
 if [ "${#CONTENT_GATE_MDX[@]}" -gt 0 ]; then
     FILE_ARGS=()

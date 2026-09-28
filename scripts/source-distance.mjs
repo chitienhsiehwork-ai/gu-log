@@ -30,7 +30,7 @@
  *   2  aligner 的配對輸出不合格（漏句、重複、不存在的編號）
  *   3  輸入超出 policy 的範圍（沒有導讀句、沒有原文句、原文句數超過上限）
  *   4  拒絕蓋章（結果不是 PASS，或檔案在計分之後被改過）
- *   5  verify 發現章有問題
+ *   5  verify 發現章有問題（每條錯誤也以「檔案: 訊息」寫到 stderr）
  */
 import fs from 'node:fs';
 import process from 'node:process';
@@ -329,7 +329,13 @@ function main() {
     );
   const output = run(options);
   process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
-  if (command === 'verify' && output.results.some((r) => !r.ok)) process.exitCode = 5;
+  if (command === 'verify') {
+    // pre-commit 丟掉 JSON，只給人看 stderr。
+    for (const r of output.results) {
+      for (const error of r.errors) process.stderr.write(`${r.file}: ${error}\n`);
+    }
+    if (output.results.some((r) => !r.ok)) process.exitCode = 5;
+  }
 }
 
 try {

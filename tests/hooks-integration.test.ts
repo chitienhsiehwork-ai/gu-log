@@ -60,7 +60,7 @@ function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
   };
 }
 
-function makeScoreGateProbeEnv(): NodeJS.ProcessEnv {
+function makeScoreGateProbeEnv(stampVerifyExit = 0): NodeJS.ProcessEnv {
   const bin = makeTempDirectory('gu-log-hook-score-bin-');
   for (const name of ['gitleaks', 'npx']) {
     const tool = path.join(bin, name);
@@ -84,6 +84,11 @@ case "$1" in
     echo score-check-sentinel
     exit 1
     ;;
+  */source-distance.mjs)
+    shift
+    echo "stamp-verify-sentinel $*" >&2
+    exit "$STAMP_VERIFY_EXIT"
+    ;;
 esac
 if [ "$2" = "--check-canonical-staged-file" ]; then
   exit 1
@@ -97,6 +102,7 @@ exit 0
     ...process.env,
     PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
     REAL_NODE: process.execPath,
+    STAMP_VERIFY_EXIT: String(stampVerifyExit),
   };
 }
 
@@ -412,6 +418,46 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
     );
 
     expect(runLinkValidator(repo, post).status).toBe(0);
+  });
+});
+
+describe('pre-commit: every staged post goes through the source-distance stamp check', () => {
+  // 只改站內連結的 GP 會被 content gate 放過（不跑 validate-posts），但連結文字可能在
+  // 投影裡，所以驗章要另外跑、而且擋得住（openspec source-distance-stamp）。
+  function stageLinkOnlyGpEdit(repo: string) {
+    seedLinkMaintenanceRepo(repo);
+    const gp = path.join(repo, 'src', 'content', 'posts', 'gp-162-related-reading.mdx');
+    const write = (line: string) =>
+      fs.writeFileSync(gp, `---\nticketId: GP-162\nlang: zh-tw\n---\n${line}\n`);
+    write('延伸閱讀：[GP-53: 舊標題](/posts/gp-53-20260213-openclaw-setup-guide-review/)');
+    commitAll(repo, 'base GP post');
+    write(`延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`);
+    execSync('git add -A', { cwd: repo });
+    return gp;
+  }
+
+  it('verifies a link-only GP edit that the content gate skips, and blocks a bad stamp', () => {
+    const repo = makeFakeRepo();
+    const gp = stageLinkOnlyGpEdit(repo);
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeScoreGateProbeEnv(5),
+      encoding: 'utf-8',
+    });
+
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+    expect(r.stderr).toContain(`stamp-verify-sentinel verify --file ${fs.realpathSync(gp)}`);
+    expect(r.stdout).toContain('Source-distance stamp check FAILED');
+    expect(r.status).toBe(1);
+  });
+
+  it('lets the same edit through when the stamp check passes', () => {
+    const repo = makeFakeRepo();
+    stageLinkOnlyGpEdit(repo);
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.stderr).toContain('stamp-verify-sentinel verify --file');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
   });
 });
 

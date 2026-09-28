@@ -691,7 +691,9 @@ describe('scripts/source-distance.mjs CLI', () => {
     expect(run(['score', '--segments', segFile, '--alignment', align]).code).toBe(2);
 
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('值班交接', '值班的交接'));
-    expect(run(['verify', '--file', file]).code).toBe(5);
+    const stale = run(['verify', '--file', file]);
+    expect(stale.code).toBe(5);
+    expect(stale.err).toContain(`${file}: sourceDistance is stale`);
     expect(run([...stampArgs, '--rewrites', '0', '--aligner-calls', '2']).code).toBe(4);
   });
 });
