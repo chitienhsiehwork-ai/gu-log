@@ -6,7 +6,7 @@
 
 ### Requirement: 下架 SHALL 是保留原欄位、清空正文的文章狀態
 
-文章 frontmatter 的 `status` SHALL 支援 `taken-down`，代表文章已下架。下架時 SHALL 保留原本的 frontmatter 欄位，只做以下改變：`status` 改成 `taken-down`；加上 `YYYY-MM-DD` 格式的 `takenDownAt`；沒有 `sourceTitle` 時補上來源自己的標題（來源沒有標題時可用來源開頭一句或 `source`，但 SHALL NOT 使用 gu-log 自己的文章標題）；`summary` 換成對應系列與語言的中性句；移除與新狀態不相容的 `deprecatedBy`、`deprecatedReason`、`retiredReason`、`retiredAt`；正文清空，只允許空白字元。
+文章 frontmatter 的 `status` SHALL 支援 `taken-down`，代表文章已下架。下架時 SHALL 保留原本的 frontmatter 欄位，只做以下改變：`status` 改成 `taken-down`；加上 `YYYY-MM-DD` 格式的 `takenDownAt`；沒有 `sourceTitle` 時補上來源自己的標題（來源沒有標題、或抓不到標題時，可用來源開頭一句或 `source`，但 SHALL NOT 使用 gu-log 自己的文章標題）；沒有 `author` 時可補上來源標示的作者或機構，查不到或不確定就不補，SHALL NOT 用猜的；`summary` 換成對應系列與語言的中性句；移除與新狀態不相容的 `deprecatedBy`、`deprecatedReason`、`retiredReason`、`retiredAt`；正文清空，只允許空白字元。
 
 同一 `ticketId` 的繁中檔與英文檔 SHALL 一起下架，並 SHALL 使用相同的 `takenDownAt`、`sourceUrl` 與 `sourceTitle`。
 
@@ -137,9 +137,9 @@
 
 ### Requirement: 下架文章 SHALL 從所有公開列表與機器輸出移除
 
-下架文章 SHALL NOT 出現在首頁、系列列表、tags 與 tags 索引、Level-Up 列表、閱讀紀錄、glossary 的文章連結、相關文章、系列導覽與上下篇導覽、RSS、JSON feed、搜尋索引與 sitemap。
+下架文章 SHALL NOT 出現在首頁、系列列表、tags 與 tags 索引、Level-Up 列表、閱讀紀錄、glossary 的文章連結、相關文章、系列導覽與上下篇導覽、RSS、JSON feed、搜尋索引與 sitemap。在 RSS、JSON feed、搜尋索引與 sitemap 裡，「出現」指下架文章自己的項目；其他公開文章正文裡指向墓碑頁的連結不算，SHALL 保留。
 
-Production build SHALL 驗證：下架文章的網址沒有出現在 sitemap、RSS、搜尋索引與 JSON feed；下架文章的 JSON `body` 為空；Markdown 是墓碑內容；HTML 帶墓碑 marker 與 `noindex`、沒有文章正文容器。任一條件不符時 build SHALL 以非 0 結束並阻止部署。
+Production build SHALL 驗證：sitemap、RSS、搜尋索引與 JSON feed 裡沒有下架文章的項目；下架文章的 JSON `body` 為空；Markdown 是墓碑內容；HTML 帶墓碑 marker 與 `noindex`、沒有文章正文容器。任一條件不符時 build SHALL 以非 0 結束並阻止部署。
 
 #### Scenario: 列表與導覽排除下架文章
 
@@ -149,11 +149,17 @@ Production build SHALL 驗證：下架文章的網址沒有出現在 sitemap、R
 #### Scenario: Feed、索引與 sitemap 排除下架文章
 
 - **WHEN** build 產生 RSS、JSON feed、搜尋索引與 sitemap
-- **THEN** 其中 SHALL NOT 有任何下架文章的項目或網址
+- **THEN** 其中 SHALL NOT 有任何下架文章的項目
+
+#### Scenario: 公開文章連到下架文章
+
+- **WHEN** 一篇公開文章的正文連到下架文章的網址，而這段正文進了搜尋索引、RSS 或 JSON feed
+- **THEN** build SHALL NOT 因為這條連結失敗
+- **AND** 連結 SHALL 指向墓碑頁
 
 #### Scenario: 下架文章漏進輸出
 
-- **WHEN** 任一下架文章的網址出現在 sitemap、RSS、搜尋索引或 JSON feed，或它的 JSON 有正文，或它的 HTML 含文章正文容器
+- **WHEN** sitemap、RSS、搜尋索引或 JSON feed 有任一下架文章的項目，或下架文章的 JSON 有正文，或它的 HTML 含文章正文容器
 - **THEN** build SHALL 失敗
 - **AND** 診斷 SHALL 指出文章與出口
 
