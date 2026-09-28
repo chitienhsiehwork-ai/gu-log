@@ -2,8 +2,7 @@
 // validate-posts → build → git add → git commit → git push.
 //
 // It calls `node scripts/validate-posts.mjs`, `pnpm run build`,
-// and `git commit -m "Add ${TICKET}: ${TITLE}"`, followed by the trailers in
-// GP_COMMIT_TRAILERS when the caller sets them.
+// and `git commit -m "Add ${TICKET}: ${TITLE}"`.
 package deploy
 
 import (
@@ -26,40 +25,6 @@ import (
 // dateStampRe matches the YYYYMMDD filename date-stamp format used by both
 // ralph.go's pending-filename builder and the final deploy filename.
 var dateStampRe = regexp.MustCompile(`^\d{8}$`)
-
-// CommitTrailersEnv names the environment variable whose lines deploy appends
-// to its commit message as git trailers, one "Key: value" per line — for
-// example the Co-Authored-By and session lines an agent's runtime asks for.
-// Unset or empty adds none.
-const CommitTrailersEnv = "GP_COMMIT_TRAILERS"
-
-var trailerLineRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9-]*: \S.*$`)
-
-// CommitTrailers reads CommitTrailersEnv. A line that is not a trailer is an
-// error, so deploy can refuse it before allocating a ticket.
-func CommitTrailers() ([]string, error) {
-	var trailers []string
-	for _, line := range strings.Split(os.Getenv(CommitTrailersEnv), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		if !trailerLineRe.MatchString(line) {
-			return nil, fmt.Errorf("deploy: %s line %q is not a git trailer (\"Key: value\")", CommitTrailersEnv, line)
-		}
-		trailers = append(trailers, line)
-	}
-	return trailers, nil
-}
-
-// commitMessage appends the trailers to subject after a blank line, where git
-// reads them as trailers.
-func commitMessage(subject string, trailers []string) string {
-	if len(trailers) == 0 {
-		return subject
-	}
-	return subject + "\n\n" + strings.Join(trailers, "\n")
-}
 
 // ValidateFilenameSlots fails loud, before any counter bump / rename /
 // commit / push, when the caller has not supplied everything needed to
@@ -170,10 +135,6 @@ func RunExisting(ctx context.Context, opts Options) (*Result, error) {
 	if err := ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
 		return nil, err
 	}
-	trailers, err := CommitTrailers()
-	if err != nil {
-		return nil, err
-	}
 	if err := rejectPreExistingStagedChanges(ctx, opts.Cfg.RepoRoot); err != nil {
 		return nil, err
 	}
@@ -231,7 +192,7 @@ func RunExisting(ctx context.Context, opts Options) (*Result, error) {
 		if title == "" {
 			title = opts.ActiveFilename
 		}
-		if err := gitCommit(ctx, opts.Cfg.RepoRoot, commitMessage(fmt.Sprintf("Update %s: %s", identity, title), trailers)); err != nil {
+		if err := gitCommit(ctx, opts.Cfg.RepoRoot, fmt.Sprintf("Update %s: %s", identity, title)); err != nil {
 			return nil, fmt.Errorf("deploy: git commit existing files: %w", err)
 		}
 	} else {
@@ -274,10 +235,6 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		return nil, err
 	}
 	if err := ValidateFilenameSlots(opts); err != nil {
-		return nil, err
-	}
-	trailers, err := CommitTrailers()
-	if err != nil {
 		return nil, err
 	}
 
@@ -403,7 +360,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	if err := gitAdd(ctx, opts.Cfg.RepoRoot, addPaths...); err != nil {
 		return nil, fmt.Errorf("deploy: git add: %w", err)
 	}
-	commitMsg := commitMessage(fmt.Sprintf("Add %s: %s", ticketID, opts.Title), trailers)
+	commitMsg := fmt.Sprintf("Add %s: %s", ticketID, opts.Title)
 	if err := gitCommit(ctx, opts.Cfg.RepoRoot, commitMsg); err != nil {
 		return nil, fmt.Errorf("deploy: git commit: %w", err)
 	}

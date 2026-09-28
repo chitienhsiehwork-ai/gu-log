@@ -126,7 +126,6 @@ func TestDeployHelpContract(t *testing.T) {
 		"fresh PENDING article",
 		"--dry-run performs only CLI input preflight",
 		"normal standalone deploy rejects them",
-		"GP_COMMIT_TRAILERS",
 	} {
 		if !strings.Contains(help, want) {
 			t.Errorf("deploy help missing contract phrase %q", want)
