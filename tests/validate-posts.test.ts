@@ -789,6 +789,25 @@ describe('validatePost — source-distance stamp', () => {
     expect(r.errors).toEqual([]);
   });
 
+  it('下架文章留著章：由下架欄位規則擋下', () => {
+    const tombstone = [
+      '---',
+      ...guideFm('GP-274', 'zh-tw').map((line) =>
+        line.startsWith('summary:')
+          ? `summary: ${JSON.stringify(getNeutralSummary({ ticketId: 'GP-274', lang: 'zh-tw' }))}`
+          : line
+      ),
+      'status: "taken-down"',
+      'takenDownAt: "2026-09-27"',
+      'sourceTitle: "The logbook on call"',
+      '---',
+      '',
+    ].join('\n');
+    const withStamp = writeStamp(tombstone, stampFor(makePost(guideFm('GP-274', 'zh-tw'))));
+    const r = validatePost(write('gp-274-20260813-logbook.mdx', withStamp), []);
+    expect(r.errors).toEqual(['sourceDistance must be removed when status is taken-down']);
+  });
+
   it('非 GP 文章帶章失敗', () => {
     const mp = makePost(guideFm('MP-40', 'zh-tw'));
     const r = validatePost(write('mp-40-20260928-logbook.mdx', writeStamp(mp, stampFor(mp))), []);

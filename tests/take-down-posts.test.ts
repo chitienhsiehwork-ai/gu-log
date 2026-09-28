@@ -208,6 +208,29 @@ describe('takeDownSource', () => {
     expect(fm.deprecatedReason).toBeUndefined();
   });
 
+  it('removes the source-distance stamp together with the body', () => {
+    const stamped = original.replace(
+      'authorCanonical: anthropic',
+      [
+        'authorCanonical: anthropic',
+        'sourceDistance:',
+        "  policy: 'source-distance/v1'",
+        "  verdict: 'PASS'",
+        '  metrics:',
+        '    maxRun: 1',
+        "  checkedAt: '2026-09-28'",
+      ].join('\n')
+    );
+    const result = takeDownSource(stamped, {
+      file: 'gp-35.mdx',
+      date: '2026-09-27',
+      sourceTitle: 'Orchestrate teams of Claude Code sessions',
+    });
+    const fm = parse(result.content.split('---\n')[1]);
+    expect(fm.sourceDistance).toBeUndefined();
+    expect(fm).toMatchObject({ authorCanonical: 'anthropic', scores: { vibe: { score: 8 } } });
+  });
+
   it('never adds or changes author; an existing author stays as written', () => {
     const withAuthor = original.replace('lang: "zh-tw"', 'lang: "zh-tw"\nauthor: "Anthropic"');
     const fm = parse(

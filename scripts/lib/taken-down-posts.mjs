@@ -57,12 +57,16 @@ export function postPathFor({ id, lang }) {
   return lang === 'en' ? `/en/posts/${id}` : `/posts/${id}`;
 }
 
-/** Frontmatter 欄位在下架後必須拿掉（和 taken-down 不相容），validator 與下架工具共用。 */
+/**
+ * Frontmatter 欄位在下架後必須拿掉（和 taken-down 不相容），validator 與下架工具共用。
+ * 來源距離章也在內：下架文章沒有正文可驗，留著章等於不實標示（source-distance-stamp）。
+ */
 export const TAKEN_DOWN_INCOMPATIBLE_FIELDS = Object.freeze([
   'deprecatedBy',
   'deprecatedReason',
   'retiredReason',
   'retiredAt',
+  'sourceDistance',
 ]);
 
 /** 這篇（frontmatter 資料）是不是下架文章。JS 這邊只用這個判斷，不各自比字串。 */
