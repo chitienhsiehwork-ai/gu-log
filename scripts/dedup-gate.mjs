@@ -537,18 +537,18 @@ function parseArgs(argv) {
       if (!next || next.startsWith('--')) {
         throw new Error('--series requires GP, MP, SD or Lv');
       }
-      const upper = next.toUpperCase();
-      if (upper === 'SP') {
+      const series = next.toUpperCase();
+      if (series === 'SP') {
         throw new Error('retired series "SP"; use "GP"');
       }
-      if (upper === 'CP') {
+      if (series === 'CP') {
         throw new Error('retired series "CP"; use "MP"');
       }
-      const series = { GP: 'GP', MP: 'MP', SD: 'SD', LV: 'Lv' }[upper];
-      if (!series) {
+      const canonical = { GP: 'GP', MP: 'MP', SD: 'SD', LV: 'Lv' }[series];
+      if (!canonical) {
         throw new Error(`unsupported series "${next}"; expected GP, MP, SD or Lv`);
       }
-      args.series = series;
+      args.series = canonical;
       i++;
     } else if (flag === '--queue') {
       // Consume all remaining positional args after --queue as JSON objects
