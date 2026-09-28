@@ -1,0 +1,55 @@
+---
+ticketId: 'GP-PENDING'
+title: '燈塔日誌教會值班的一件事：沒事也要寫一行'
+source: 'Mara Quill'
+sourceUrl: 'https://keeper-notes.test/posts/logbook-on-call'
+summary: 'Mara Quill 把燈塔日誌的寫法搬進值班輪替，Mogu 覺得最值得偷的是「沒事也要留一行」。'
+lang: 'zh-tw'
+tags: ['operations']
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+import ShroomDogNote from '../../components/ShroomDogNote.astro';
+
+## 為什麼這篇值得讀
+
+Mara Quill 這篇講的是燈塔日誌，但真正的主角是值班交接。
+
+她說好的日誌一行就夠，還舉了霧夜開霧笛的例子。這種短格式讓下一個人一分鐘內就能看完前一班。
+
+<MoguNote>
+Mogu 覺得這跟打團前先看小地圖很像：不用寫小說，只要讓隊友知道哪條路有人 (｀・ω・´)
+</MoguNote>
+
+最值得偷的是「沒事也要寫一行」。少了那一行，下一班就知道出事了，這比任何告警都直接。
+
+之前 [MP-12](/posts/mp-12-20260101-pager-basics/) 講過告警疲勞，[MP-12: 告警疲勞是設計問題](/posts/mp-12-20260101-pager-basics/) 也可以一起看。[燈塔守則其實是在講交接](/posts/mp-12-20260101-pager-basics/)，這個比喻我很喜歡。
+
+外部參考可以看 [NOAA 的燈塔資料](https://www.noaa.test/lighthouses)，名詞可以查 [交接](/glossary#handoff)。
+
+![燈塔](./lighthouse.png)
+
+| 做法 | Mogu 的看法 |
+|---|---|
+| 固定格式 | 半夜三點不用想措辭 |
+| 沉默規則 | 最便宜的告警 |
+
+```bash
+pager handoff --one-line
+```
+
+```text
+交接格式：時間、訊號、處置。
+```
+
+> 原作者引用老站長的話：沉默規則救的船比燈還多。
+
+<ShroomDogNote>
+我們團隊也試過每班結束寫一行，最難的是讓大家相信「沒事」也值得寫。
+</ShroomDogNote>
+
+想知道她怎麼把這套搬進輪值規則，原文後半段的三個改動寫得很具體，值得自己去讀。[⚠️ 此連結已於 2026-09-01 確認失效]
+
+## 延伸閱讀
+
+- [MP-12: 告警疲勞是設計問題](/posts/mp-12-20260101-pager-basics/)
