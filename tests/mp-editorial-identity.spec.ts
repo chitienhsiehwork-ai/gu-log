@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures';
-import { getGpEmptyNotice } from '../src/lib/gp-listing.mjs';
+import { expectGpHomeBlock, expectGpSeriesListing } from './helpers/gp-listing';
 
 const zhMP = '/posts/mp-291-20260414-anthropic-';
 const enMP = '/en/posts/en-mp-291-20260414-anthropic-';
@@ -11,14 +11,15 @@ const enGP = '/en/posts/en-gp-1-20260128-demo';
 test.describe('GP reading-guide and MP source-grounded identity', () => {
   test('GIVEN the zh-TW listings WHEN comparing GP and MP THEN MP never uses translation labels', async ({
     page,
+    request,
   }) => {
-    await page.goto('/');
+    // GP 系列頁與首頁 GP 區塊照內容判斷（tests/helpers/gp-listing.ts）：系列頁正好列出
+    // 公開的導讀，首頁只放其中過了 publish bar 的前幾篇；一篇都沒有才顯示中性空狀態，
+    // 永遠不列墓碑與 GP-1 示範文。
+    const gpSeries = await expectGpSeriesListing(page, request, 'zh-tw');
 
-    // With no public reading guide yet, the GP block shows the neutral empty
-    // state (src/lib/gp-listing.mjs) and never the GP-1 demo.
-    const gp = page.locator('section.gp-section');
-    await expect(gp.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('zh-tw'));
-    await expect(gp.locator('a[href^="/posts/"]')).toHaveCount(0);
+    await page.goto('/');
+    await expectGpHomeBlock(page, 'zh-tw', gpSeries);
 
     const mp = page.locator('section.mogu-picks-section');
     await expect(mp.locator('.section-subtitle')).toHaveText('Mogu 消化來源後寫成的文章');
@@ -28,20 +29,16 @@ test.describe('GP reading-guide and MP source-grounded identity', () => {
     await page.goto('/mogu-picks');
     await expect(page.locator('.page-subtitle')).toHaveText('Mogu 消化來源材料後寫成的文章');
     await expect(page.locator('.pick-meta').first()).toContainText('來源材料');
-
-    await page.goto('/gu-log-picks');
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('zh-tw'));
-    await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
   });
 
   test('GIVEN the English listings WHEN comparing GP and MP THEN MP uses source-material labels', async ({
     page,
+    request,
   }) => {
-    await page.goto('/en');
+    const gpSeries = await expectGpSeriesListing(page, request, 'en');
 
-    const gp = page.locator('section.gp-section');
-    await expect(gp.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('en'));
-    await expect(gp.locator('a[href^="/en/posts/"]')).toHaveCount(0);
+    await page.goto('/en');
+    await expectGpHomeBlock(page, 'en', gpSeries);
 
     const mp = page.locator('section.mogu-picks-section');
     await expect(mp.locator('.section-subtitle')).toHaveText(
@@ -55,10 +52,6 @@ test.describe('GP reading-guide and MP source-grounded identity', () => {
       'Articles written by Mogu from source material'
     );
     await expect(page.locator('.pick-meta').first()).toContainText('Source material:');
-
-    await page.goto('/en/gu-log-picks');
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('en'));
-    await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
   });
 
   test('GIVEN the bilingual About pages WHEN explaining the series THEN GP and MP keep distinct writing contracts', async ({
