@@ -382,27 +382,13 @@ func TestClaudeContainedCallStartsFromCleanEnvironment(t *testing.T) {
 	}
 }
 
-// agentFrontmatterModel reads the `model:` value of a .claude/agents/<name>.md
-// frontmatter block.
-func agentFrontmatterModel(t *testing.T, name string) string {
+// agentPin reads a .claude/agents/<name>.md pin with the parser gp-pipeline
+// uses at run time.
+func agentPin(t *testing.T, name string) string {
 	t.Helper()
-	path := filepath.Join(repoRootForRoutingTest(t), ".claude", "agents", name+".md")
-	data, err := os.ReadFile(path)
+	model, err := AgentModelPin(repoRootForRoutingTest(t), filepath.Join(".claude", "agents", name+".md"))
 	if err != nil {
-		t.Fatalf("read %s agent: %v", name, err)
-	}
-	lines := strings.Split(string(data), "\n")
-	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
-		t.Fatalf("%s does not start with YAML frontmatter", path)
-	}
-	model := ""
-	for _, line := range lines[1:] {
-		if strings.TrimSpace(line) == "---" {
-			break
-		}
-		if value, ok := strings.CutPrefix(line, "model:"); ok {
-			model = strings.Trim(strings.TrimSpace(value), `"'`)
-		}
+		t.Fatal(err)
 	}
 	return model
 }
@@ -412,7 +398,7 @@ func agentFrontmatterModel(t *testing.T, name string) string {
 // the shell router and refuses to dispatch when it disagrees with this
 // constant, so a drift must fail here first.
 func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
-	if model := agentFrontmatterModel(t, "tribunal-writer"); model != ClaudeOpusPinned {
+	if model := agentPin(t, "tribunal-writer"); model != ClaudeOpusPinned {
 		t.Fatalf("tribunal-writer frontmatter model = %q, ClaudeOpusPinned = %q; update both pins together", model, ClaudeOpusPinned)
 	}
 }
@@ -421,7 +407,7 @@ func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
 // rule: the owner moves the writer and the Vibe scorer to a new Opus
 // generation together, so generating and grading share one taste.
 func TestClaudeWriterPinMatchesVibeScorerFrontmatter(t *testing.T) {
-	if model := agentFrontmatterModel(t, "vibe-opus-scorer"); model != ClaudeOpusPinned {
+	if model := agentPin(t, "vibe-opus-scorer"); model != ClaudeOpusPinned {
 		t.Fatalf("vibe-opus-scorer frontmatter model = %q, ClaudeOpusPinned = %q; the writer and the Vibe scorer move together", model, ClaudeOpusPinned)
 	}
 }

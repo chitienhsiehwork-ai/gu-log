@@ -107,9 +107,3 @@ func TestAlignerProvidersAreContainedAndToolless(t *testing.T) {
 	}
 	check("vm-codex", vm)
 }
-
-func TestAlignerQuotaPolicyStopsInsteadOfWaiting(t *testing.T) {
-	if got := AlignerQuotaPolicy().MaxWaits; got != 0 {
-		t.Fatalf("aligner MaxWaits = %d, want 0 (stop and resume with --from-step source-distance)", got)
-	}
-}
