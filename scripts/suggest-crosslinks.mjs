@@ -15,6 +15,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { isTakenDownData } from './lib/taken-down-posts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -138,7 +139,10 @@ export function loadPosts(postsDir = POSTS_DIR) {
   const posts = [];
 
   for (const filename of files) {
-    const post = postInfo(filename, fs.readFileSync(path.join(postsDir, filename), 'utf-8'));
+    const content = fs.readFileSync(path.join(postsDir, filename), 'utf-8');
+    // 下架文章只剩墓碑，不能當延伸閱讀的候選，也不該被插連結（openspec post-takedown）。
+    if (isTakenDownData(parseFrontmatter(content))) continue;
+    const post = postInfo(filename, content);
     if (post) posts.push(post);
   }
 

@@ -125,6 +125,24 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
   });
 });
 
+describe('suggest-crosslinks.mjs 的候選語料', () => {
+  it('不把已下架的墓碑當成延伸閱讀候選（openspec post-takedown）', () => {
+    const corpus = path.join(dir, 'posts');
+    fs.mkdirSync(corpus);
+    fs.writeFileSync(
+      path.join(corpus, 'gp-1-20260101-live.mdx'),
+      '---\nticketId: "GP-1"\ntitle: "還在的文章"\nlang: "zh-tw"\ntags: ["ui"]\n---\n\n正文。\n'
+    );
+    fs.writeFileSync(
+      path.join(corpus, 'gp-2-20260101-gone.mdx'),
+      '---\nticketId: "GP-2"\ntitle: "下架的文章"\nlang: "zh-tw"\nstatus: "taken-down"\ntags: ["ui"]\n---\n'
+    );
+    expect(loadPosts(corpus).map((p: { ticketId: string | null }) => p.ticketId)).toEqual([
+      'GP-1',
+    ]);
+  });
+});
+
 describe('inject-related-posts.mjs on a file inside posts/ (the MP call)', () => {
   it('still uses the corpus-wide suggestions for that post', () => {
     const eligible = posts.find((p) => {
