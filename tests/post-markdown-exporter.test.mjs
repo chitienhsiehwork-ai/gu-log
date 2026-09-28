@@ -813,6 +813,35 @@ test('taken-down export fails closed when frontmatter, marker and tombstone disa
   );
 });
 
+test('the source-distance stamp stays out of the Markdown export and post JSON', () => {
+  const raw = rawPost(
+    '\nStamped body.\n',
+    [
+      'sourceDistance:',
+      "  policy: 'source-distance/v1'",
+      "  verdict: 'PASS'",
+      "  subjectSha256: '" + 'a'.repeat(64) + "'",
+      '  metrics:',
+      '    maxRun: 1',
+      "  checkedAt: '2026-09-28'",
+      '',
+    ].join('\n')
+  );
+  const result = serializeMarkdownArtifact({
+    rawMdx: raw,
+    postJson: postJson(raw),
+    html: pageHtml('<p>Stamped body. (◕‿◕)</p>'),
+    sourceName: 'fixture',
+  });
+  assert.doesNotMatch(result.markdown, /sourceDistance|source-distance|subjectSha256/);
+  assert.equal('sourceDistance' in result.metadata, false);
+  assert.throws(
+    () =>
+      assertPostJsonV2({ ...postJson(raw), sourceDistance: {} }, raw, { sourceName: 'fixture' }),
+    /post JSON v2 keys changed/
+  );
+});
+
 test('JSON v2 keys/body remain exact and reject a synthetic status field', () => {
   const raw = rawPost('\nBody stays raw.\n');
   const json = postJson(raw);

@@ -492,4 +492,19 @@ describe('reader-facing revision manifest', () => {
 
     expect(computeReaderRevisionFromContent(before)).toBe(computeReaderRevisionFromContent(after));
   });
+
+  it('does not expose or depend on the source-distance stamp', async () => {
+    const { computeReaderRevisionFromContent } =
+      await import('../scripts/build-reader-revision-manifest.mjs');
+    const { extractPostParts, readerRevisionCanonicalJSON } =
+      await import('../scripts/lib/reader-revision-core.mjs');
+    const plain = '---\ntitle: Test\nlang: zh-tw\n---\nSame body\n';
+    const stamped =
+      "---\ntitle: Test\nlang: zh-tw\nsourceDistance:\n  policy: 'source-distance/v1'\n" +
+      "  verdict: 'PASS'\n  metrics:\n    maxRun: 1\n---\nSame body\n";
+    const { frontmatter, body } = extractPostParts(stamped);
+
+    expect(readerRevisionCanonicalJSON(frontmatter, body)).not.toContain('sourceDistance');
+    expect(computeReaderRevisionFromContent(stamped)).toBe(computeReaderRevisionFromContent(plain));
+  });
 });
