@@ -31,7 +31,7 @@
 - [x] 5.3 `source-distance` 步驟與 post-fixer 位置：`scripts/add-kaomoji.mjs` 與 `scripts/inject-related-posts.mjs` 改成接受任意路徑（語料照舊從 posts/ 讀，MP 的呼叫與結果不變，補測試）；GP 在 refine 之後對工作目錄的 `final.mdx` 跑 post-fixer，再呼叫 Node 斷句、第一次配對與計分（零配對直接 exit 19）、三條都過才做第二次配對，通過就把章寫進 `final.mdx`；沒過就把改寫報告放進工作目錄、重跑 refine 與 post-fixer，最多三輪，仍沒過 exit 19；章記錄 `rewrites` 與 `alignerCalls`；每輪證據寫進工作目錄、run report 記錄結果；`--from-step source-distance` 可恢復；`ralph` 對 GP 把已蓋章的 `final.mdx` 放進 posts/、不跑 post-fixer、只評分。Go 測試用 FakeProvider：第一輪通過、沒過→改寫→通過、第二次配對沒過、第一次零配對直接 exit 19 且沒有呼叫 refine、三輪都沒過（exit 19、沒有 deploy、counter 不變、證據保留）、aligner 失敗不算一輪、從 source-distance 恢復不重寫草稿，以及跑完整條 GP 流程後部署出去的繁中檔重算指紋等於章（對應「GP 導讀跑完整流程」「章涵蓋 post-fixer 之後的正文」「從 source-distance 恢復」與「沒過 SHALL 自動改寫最多三輪，改寫看不到門檻」的情境）
 - [x] 5.4 英文逐字檢查步驟：`translate` 產出英文檔後呼叫 Node 檢查，通過就寫英文章，沒過就移除英文檔、繁中章寫 `englishSkipped: verbatim`、繁中照常部署、run report 記錄，不重翻；之後補上通過的英文版時清掉標記。`scripts/check-translation-pairs.mjs` 看到這個標記就放行只有繁中的 GP。Go 測試涵蓋通過與沒過兩條路；vitest 涵蓋配對檢查在 strict 模式下「有標記放行、沒標記且 Tribunal 通過照舊失敗」（對應「英文版沒過不重翻」「略過英文版的 GP 通過翻譯配對檢查」）
 - [x] 5.5 `gp-pipeline stamp --file <檔> [--source <capture>]`：繁中檔兩次配對與計分、英文檔逐字檢查，通過只寫章、不改正文，英文檔通過時清掉繁中章的 `englishSkipped`；沒過或零配對 exit 19 並印出標出的段落、檔案不變；非 GP 或非外部來源在 ingress exit 1、不呼叫模型；擷取結果不寫進 repo。Go 測試對應「手寫或人工修改的 GP SHALL 能用 `gp-pipeline stamp` 蓋章」的三個情境
-- [ ] 5.6 help 與操作文件：root、`run`、`counter`、`stamp` 等 help 拿掉「GP 暫停中」與「`--prefix` 預設 GP，要明確帶系列」的提醒，寫出導讀流程與 exit code 19；`tools/gp-pipeline/SKILL.md`、`tools/gp-pipeline/README.md`（系列表、流程、`--from-step source-distance`、`stamp`、exit code 表）、`.agents/skills/gp-pipeline-sop/SKILL.md`、`scripts/crontab-tribunal.example` 同步；help contract 測試通過
+- [x] 5.6 help 與操作文件：root、`run`、`counter`、`stamp` 等 help 拿掉「GP 暫停中」與「`--prefix` 預設 GP，要明確帶系列」的提醒，寫出導讀流程與 exit code 19；`tools/gp-pipeline/SKILL.md`、`tools/gp-pipeline/README.md`（系列表、流程、`--from-step source-distance`、`stamp`、exit code 表）、`.agents/skills/gp-pipeline-sop/SKILL.md`、`scripts/crontab-tribunal.example` 同步；help contract 測試通過
 
 ## 6. 棘輪、dedup 與下架工具
 
@@ -53,8 +53,8 @@
 
 ## 9. 寫作與操作文件
 
-- [ ] 9.1 `GU-LOG_WRITER_PROMPT.md` 的 GP 段落改成導讀契約與 Mogu 聲音，自然中文段落加入 GP-273 的「銜尾蛇」「演算法動態」反例；`CONTRIBUTING.md` 的 GP 段落從「暫停中」改成導讀流程、來源距離章與 `stamp`，拿掉「`--prefix` 預設 GP」的提醒；`scripts/mogu-picks-prompt.md` 裡跟 GP 的對照改成導讀；`tests/mp-editorial-contract.test.ts` 通過
-- [ ] 9.2 `AGENTS.md` 路由表、`playbooks/CCC-playbook.md`（CCC 可以跑完整 GP、拿掉 `--prefix` 提醒）、`docs/tribunal-runbook.md`（GP 只評分的理由改成重新蓋章）、`docs/shroomdog-editorial-feedback.md`（2026-09-27 導讀格式決定）同步；以 `rg -n "GP 暫停中|GP_SERIES_PAUSED|gp-series-pause|忠實翻譯|paused|GP 翻譯|GP translation"` 掃 repo（含 `.github/workflows/ci.yml`、兩份 pre-commit hook、`tests/spec-ownership.json`、兩份 x-source-fetch skill、`.agents/README.md`），剩下的命中只能在 openspec archive 與歷史紀錄，逐一確認
+- [x] 9.1 `GU-LOG_WRITER_PROMPT.md` 的 GP 段落改成導讀契約與 Mogu 聲音，自然中文段落加入 GP-273 的「銜尾蛇」「演算法動態」反例；`CONTRIBUTING.md` 的 GP 段落從「暫停中」改成導讀流程、來源距離章與 `stamp`，拿掉「`--prefix` 預設 GP」的提醒；`scripts/mogu-picks-prompt.md` 裡跟 GP 的對照改成導讀；`tests/mp-editorial-contract.test.ts` 通過
+- [x] 9.2 `AGENTS.md` 路由表、`playbooks/CCC-playbook.md`（CCC 可以跑完整 GP、拿掉 `--prefix` 提醒）、`docs/tribunal-runbook.md`（GP 只評分的理由改成重新蓋章）、`docs/shroomdog-editorial-feedback.md`（2026-09-27 導讀格式決定）同步；以 `rg -n "GP 暫停中|GP_SERIES_PAUSED|gp-series-pause|忠實翻譯|paused|GP 翻譯|GP translation"` 掃 repo（含 `.github/workflows/ci.yml`、兩份 pre-commit hook、`tests/spec-ownership.json`、兩份 x-source-fetch skill、`.agents/README.md`），剩下的命中只能在 openspec archive 與歷史紀錄，逐一確認
 
 ## 10. 整合驗證、archive 與上線
 
