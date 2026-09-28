@@ -92,3 +92,15 @@
 - [x] 13.10 墓碑頁：石碑圖載入失敗時墊石頭色碑身（`--color-tombstone-stone`，兩主題碑文 5.63:1）；對話框改成中文只在標點處換行、各行平衡，390／360px 都沒有孤行；uiux-auditor 深淺主題、390px 與桌機重跑
 - [x] 13.11 publisher 碰到在 origin/main 已下架的 PASS 文章就跳過，不開 PR
 - [x] 13.12 更正 `getTombstoneHeading` 的註解：墓碑 Markdown 的 H1 用原標題
+
+## 14. 實作審查第 2 輪後的清理
+
+- [x] 14.1 exporter 檢查下架文章「沒有正文容器」改查整頁 HTML；測試補 `.post-content` 放在 `</article>` 之後的情境
+- [x] 14.2 下架工具的 `sourceTitle` 退路對齊 spec R1：`source` 是必填欄位，刪掉網域退路；`source` 是空的或等於 gu-log 標題時，在寫入那一對檔案前停下，請執行的人手動補；design D10 同步
+- [x] 14.3 定稿文案的逐字比對真的只留在 `tests/tombstone-copy.test.ts`：exporter、build-post-markdown、下架工具與 validator 的測試改從文案模組組預期值，只留版面與跳脫的斷言；`tests/spec-ownership.json` 的描述同步
+- [x] 14.4 `scripts/check-contrast.mjs` 的 `bgVar` 死分支改回一行
+- [x] 14.5 確認列表與導覽排除的測試覆蓋：首頁、系列頁、tags、Level-Up、閱讀紀錄與文章底部導覽都呼叫 `tests/post-status.test.ts` 測過的 helper，glossary 的過濾卻寫在兩個頁面裡、沒有測試，所以 postbuild 對列表與文章底部導覽的掃描這輪保留
+- [x] 14.6 刪掉 360／390px 對話框孤行的 E2E（逐字量座標、受字型影響）；顏文字不斷行的 E2E 保留
+- [x] 14.7 小重複：postbuild 驗證改用共用的 `postPathFor`；下架工具改用 `readPostIndex`（多回傳 `source`）；`global.css` 淺色區塊不再重複定義墓碑 token
+- [x] 14.8 過時說明：`scripts/lib/taken-down-posts.mjs` 的使用者清單改成實際情況；下架文章用 rc 1 而不用 75／78 的理由只留在 `docs/tribunal-runbook.md`，並補 `TRIBUNAL_WORKER_SYNC_REF=origin/main` 時選文可能一直挑到已下架文章的注意事項
+- [x] 14.9 測試去重：batch 測試裡和 `for rc in 0 1 2` 重複的 rc 1 案例；deploy smoke 只比對 workflow YAML 字串的兩個測試，連同兩條品牌 allowlist 例外
