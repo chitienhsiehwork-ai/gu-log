@@ -21,6 +21,13 @@ import { loadPostMap, findMissingPairs, reminderText } from './check-translation
 import { MODEL_MAP } from './detect-model.mjs';
 import { getNeutralSummary, getTakedownSeries } from '../src/lib/tombstone-copy.mjs';
 import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-down-posts.mjs';
+import {
+  STAMP_FIELD,
+  loadPostIndex,
+  parseFrontmatter as parseStampFrontmatter,
+  requiresStamp,
+  verifyStamp,
+} from './lib/source-distance.mjs';
 
 // Claude's 5-generation models (Sonnet 5, Fable 5, ...) ship as whole-number
 // release names with no minor version, unlike the 4.x Opus/Sonnet line. Rule
@@ -31,7 +38,8 @@ import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-dow
 const KNOWN_MODEL_DISPLAY_NAMES = new Set(Object.values(MODEL_MAP).map((n) => n.toLowerCase()));
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const POSTS_DIR = path.join(__dirname, '../src/content/posts');
+const REPO_ROOT = path.join(__dirname, '..');
+const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 
 // ─── Config ────────────────────────────────────────────────────────
 const VALID_LANGS = ['zh-tw', 'en'];
@@ -369,6 +377,23 @@ function validateTakedownState({ fm, body, filename, allPosts }) {
   return errors;
 }
 
+// 來源距離章（openspec: source-distance-stamp）：有外部來源、沒下架的 GP 繁中與英文檔都要
+// 帶有效的章，非 GP 不得帶章。pre-commit 與 CI 用同一份 lib 驗。章的數字要用沒被
+// coerceYamlValue 轉成字串的 frontmatter，所以這裡另外解析一次（只有需要驗章的文章）。
+function validateSourceDistance({ content, fm, filepath }) {
+  if (!requiresStamp(fm) && fm[STAMP_FIELD] === undefined) return [];
+  let data;
+  try {
+    data = parseStampFrontmatter(content);
+  } catch (e) {
+    return [`cannot read frontmatter for ${STAMP_FIELD}: ${e.message}`];
+  }
+  const absolute = path.resolve(filepath);
+  const relative = path.relative(REPO_ROOT, absolute);
+  const file = relative.startsWith('..') || path.isAbsolute(relative) ? absolute : relative;
+  return verifyStamp({ content, data: data ?? {}, file, postIndex: loadPostIndex() }).errors;
+}
+
 function validatePost(filepath, allPosts, options = {}) {
   const filename = path.basename(filepath);
   const content = fs.readFileSync(filepath, 'utf-8');
@@ -403,6 +428,9 @@ function validatePost(filepath, allPosts, options = {}) {
   // ── Rule 1.5: Taken-down state (openspec: post-takedown) ──
   const isTakenDown = isTakenDownData(fm);
   errors.push(...validateTakedownState({ fm, body, filename, allPosts }));
+
+  // ── Rule 1.6: Source-distance stamp (openspec: source-distance-stamp) ──
+  errors.push(...validateSourceDistance({ content, fm, filepath }));
 
   // ── Rule 2: Required fields ──
   const required = [
