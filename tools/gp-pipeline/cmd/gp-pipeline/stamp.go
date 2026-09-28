@@ -12,6 +12,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/candidate"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
@@ -88,7 +89,7 @@ func runStamp(ctx context.Context, state *rootState, fileArg, sourceArg string) 
 		if info, err := os.Stat(capture); err != nil || !info.Mode().IsRegular() {
 			return newExitError(1, fmt.Errorf("stamp: --source %s is not a readable file", sourceArg))
 		}
-		if insideDir(state.cfg.RepoRoot, capture) {
+		if candidate.ResolvesWithin(state.cfg.RepoRoot, capture) {
 			return newExitError(1, fmt.Errorf("stamp: --source %s is inside the repo; keep source captures outside it (openspec post-takedown)", sourceArg))
 		}
 		s.SourcePath = capture
@@ -103,7 +104,7 @@ func runStamp(ctx context.Context, state *rootState, fileArg, sourceArg string) 
 	if workDir, err = filepath.Abs(workDir); err != nil {
 		return err
 	}
-	if insideDir(state.cfg.RepoRoot, workDir) {
+	if candidate.ResolvesWithin(state.cfg.RepoRoot, workDir) {
 		return newExitError(1, fmt.Errorf("stamp: --work-dir %s is inside the repo; the fetched source must stay outside it", workDir))
 	}
 	if err := os.MkdirAll(workDir, 0o755); err != nil {
@@ -185,10 +186,4 @@ func resolvePostPath(cfg *config.Config, arg string) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("--file %s is not a post file", arg)
-}
-
-// insideDir reports whether path lies inside dir.
-func insideDir(dir, path string) bool {
-	rel, err := filepath.Rel(dir, path)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
 }

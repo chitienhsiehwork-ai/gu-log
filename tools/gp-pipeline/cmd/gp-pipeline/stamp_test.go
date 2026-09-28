@@ -210,8 +210,15 @@ func TestStampRefusesPostsThatTakeNoStamp(t *testing.T) {
 	inRepo := filepath.Join(root, "capture.txt")
 	data, _ := os.ReadFile(capture)
 	mustWrite(t, inRepo, string(data))
-	_, err := runStampCmd(t, "--fake-provider", missing, "stamp", "--file", gp, "--source", inRepo)
-	if exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "inside the repo") {
-		t.Fatalf("error = %v (exit %d), want the in-repo capture refusal", err, exitCodeFor(err))
+	// So is a symlink outside the repo that resolves into it.
+	link := filepath.Join(t.TempDir(), "capture-link.txt")
+	if err := os.Symlink(inRepo, link); err != nil {
+		t.Fatal(err)
+	}
+	for _, capture := range []string{inRepo, link} {
+		_, err := runStampCmd(t, "--fake-provider", missing, "stamp", "--file", gp, "--source", capture)
+		if exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "inside the repo") {
+			t.Fatalf("%s: error = %v (exit %d), want the in-repo capture refusal", capture, err, exitCodeFor(err))
+		}
 	}
 }
