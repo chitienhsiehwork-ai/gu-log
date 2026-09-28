@@ -14,8 +14,8 @@ test.describe('GP reading-guide and MP source-grounded identity', () => {
     request,
   }) => {
     // GP 系列頁與首頁 GP 區塊照內容判斷（tests/helpers/gp-listing.ts）：系列頁正好列出
-    // 公開的導讀，首頁只放其中過了 publish bar 的前幾篇；一篇都沒有才顯示中性空狀態，
-    // 永遠不列墓碑與 GP-1 示範文。
+    // 公開的導讀，首頁只放其中過了 publish bar 的前幾篇、放不下的由「查看全部」帶去系列頁；
+    // 系列頁一篇都不會列時才顯示中性空狀態，永遠不列墓碑與 GP-1 示範文。
     const gpSeries = await expectGpSeriesListing(page, request, 'zh-tw');
 
     await page.goto('/');

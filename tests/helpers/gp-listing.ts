@@ -71,6 +71,10 @@ function neverListedPaths(lang: Lang): ReadonlySet<string> {
   );
 }
 
+function seriesListingPath(lang: Lang): string {
+  return lang === 'en' ? '/en/gu-log-picks' : '/gu-log-picks';
+}
+
 function postLinkSelector(lang: Lang): string {
   return lang === 'en' ? 'a[href^="/en/posts/"]' : 'a[href^="/posts/"]';
 }
@@ -98,7 +102,7 @@ export async function expectGpSeriesListing(
   request: APIRequestContext,
   lang: Lang
 ): Promise<string[]> {
-  const listingPath = lang === 'en' ? '/en/gu-log-picks' : '/gu-log-picks';
+  const listingPath = seriesListingPath(lang);
   const expected = expectedSeriesPaths(lang);
   const emptyNotice = page.locator('[data-gp-empty-notice]');
 
@@ -137,11 +141,14 @@ export async function expectGpSeriesListing(
 }
 
 /**
- * 在已開好的首頁斷言 GP 區塊：用首頁的挑選規則算期望值，沒有就是中性空狀態、零連結；有的話
- * 沒有空狀態，依 `seriesOrder`（expectGpSeriesListing 回傳的系列頁順序）放最前面幾篇。
- * 首頁區塊是系列頁的預覽，排序跟著系列頁，測試就不必另寫一套排序規則。
+ * 在已開好的首頁斷言 GP 區塊。空狀態只看系列頁會不會列出任何導讀（openspec:
+ * editorial-charter）：一篇都沒有時是中性空狀態、零連結、沒有「查看全部」。有的話沒有空狀態，
+ * 照首頁的挑選規則（getIndexPosts）依 `seriesOrder`（expectGpSeriesListing 回傳的系列頁順序）
+ * 放最前面幾篇；系列頁列的比首頁放的多時，要有連到系列頁的「查看全部」。首頁區塊是系列頁的
+ * 預覽，排序跟著系列頁，測試就不必另寫一套排序規則。
  */
 export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: readonly string[]) {
+  const listedCount = expectedSeriesPaths(lang).length;
   const eligible = new Set(expectedHomePaths(lang));
   expect(seriesOrder, '首頁能放的 GP 都該列在系列頁上').toEqual(
     expect.arrayContaining([...eligible])
@@ -149,8 +156,9 @@ export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: rea
   const expected = seriesOrder.filter((path) => eligible.has(path)).slice(0, HOME_PREVIEW_LIMIT);
   const section = page.locator('section.gp-section');
   const emptyNotice = section.locator('[data-gp-empty-notice]');
+  const viewAll = section.locator('.view-all a');
 
-  if (eligible.size === 0) {
+  if (listedCount === 0) {
     await expect(emptyNotice).toHaveText(getGpEmptyNotice(lang));
   } else {
     await expect(emptyNotice).toHaveCount(0);
@@ -159,4 +167,10 @@ export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: rea
   const shown = await listedPostPaths(section, lang);
   expect(shown).toEqual(expected);
   expectNeverListed(shown, lang);
+
+  if (listedCount > expected.length) {
+    await expect(viewAll).toHaveAttribute('href', seriesListingPath(lang));
+  } else {
+    await expect(viewAll).toHaveCount(0);
+  }
 }
