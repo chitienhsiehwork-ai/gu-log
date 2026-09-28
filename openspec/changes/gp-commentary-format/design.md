@@ -157,6 +157,7 @@ sourceDistance:            # 繁中檔
 - 位置：`translate` 之後、`deploy` 之前。沒過就移除英文檔、不部署英文版，繁中版照既有規則部署，run report 記錄原因；不做自動重翻。英文檔進 repo 前就擋，Tribunal 的額度也不會白花（繁中照常上線）。要補英文走既有補救路徑（`run --from-step translate --file <繁中檔>`）。原文不是英文時比對自然接近 0，不另設例外。
 - **跟翻譯配對檢查的銜接**：英文沒過時，繁中章寫 `englishSkipped: verbatim`。`scripts/check-translation-pairs.mjs` 目前只在 Tribunal 沒過時放行只有繁中的 GP，改成看到這個標記也放行；補上通過檢查的英文版時，pipeline 與 `stamp` 清掉標記（只改 frontmatter，不影響指紋）。
 - `translate.tmpl` 的 GP 分支要求不得把轉述還原成原文措辭，只有標明的引文可以逐字。
+- 英文檔的 `sourceUrl` 由 `translate` 步驟還原成繁中檔的值（跟 `translatedBy` 一樣不信任模型）：它決定英文版要不要做這個檢查，也進英文章的指紋，模型改了就可能讓檢查被跳過。
 
 ### 10. `gp-pipeline stamp --file`
 

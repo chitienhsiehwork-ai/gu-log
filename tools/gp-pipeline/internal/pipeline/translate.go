@@ -151,6 +151,16 @@ func (s *State) Translate(ctx context.Context) error {
 	translatedFile.StripLinesMatching(func(line string) bool {
 		return strings.HasPrefix(line, sourceDistanceField+":")
 	})
+	// sourceUrl decides whether a GP English version takes the verbatim check
+	// and goes into its stamp's fingerprint, so it is the zh-tw value, never
+	// whatever the model wrote.
+	if raw, ok := sourceFile.GetScalar("sourceUrl"); ok {
+		translatedFile.SetScalar("sourceUrl", raw)
+	} else {
+		translatedFile.StripLinesMatching(func(line string) bool {
+			return strings.HasPrefix(line, "sourceUrl:")
+		})
+	}
 	// The model is not authoritative for provenance. Restore the canonical
 	// nested history from the zh-tw source, then stamp only this invocation's
 	// direct translator fields and date.
