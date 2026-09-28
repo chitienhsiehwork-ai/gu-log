@@ -23,7 +23,8 @@
 # passing or failing, is written to the frontmatter, because whether a GP ships
 # is the floor's call (CONTRIBUTING.md 〈兩層品質門檻〉), not four PASSes. The
 # run exits 1 when any stage failed.
-# On crash resume: re-run same command; completed stages are skipped.
+# On crash resume: re-run same command; completed stages are skipped, and for a
+# GP that includes a FAIL whose score is still in the frontmatter.
 
 set -euo pipefail
 
@@ -1078,12 +1079,12 @@ run_final_build_gate() {
   done
 }
 
-# A PASS ledger is resumable only when its reader-visible score artifact still
-# exists in every current artifact (including a tracked English sidecar) and
-# matches the exact dimensions/score that earned the ledger PASS. Worker
-# bootstrap may reset/delete uncommitted artifacts while retaining the shared
-# runtime ledger; blindly skipping then would create a progress-only PASS that
-# the final artifact gate must reject much later.
+# A recorded stage (a PASS, or a GP's FAIL) is resumable only when its
+# reader-visible score artifact still exists in every current artifact
+# (including a tracked English sidecar) and matches the exact dimensions/score
+# the ledger recorded. Worker bootstrap may reset/delete uncommitted artifacts
+# while retaining the shared runtime ledger; blindly skipping then would create
+# a progress-only PASS that the final artifact gate must reject much later.
 tracked_english_post_state() {
   local post_file="$1"
   local tracked_en="src/content/posts/en-$post_file"
@@ -1097,7 +1098,7 @@ tracked_english_post_state() {
   esac
 }
 
-stage_pass_artifacts_present() {
+stage_score_artifacts_present() {
   local post_file="$1" stage_key="$2" fm_judge_key="$3"
   if [ "$WRITE_FRONTMATTER" -ne 1 ] || [ -z "$fm_judge_key" ]; then
     return 0
@@ -1316,14 +1317,23 @@ run_stage() {
   fi
 
   # ── Crash resume: skip already-passed stages ──
+  # A GP is never rewritten, so its recorded FAIL is final too: judging the
+  # same text again would only spend quota and reroll the score.
   local existing_status
   existing_status="$(get_stage_status "$post_file" "$stage_key")"
   if [ "$existing_status" = "pass" ]; then
-    if stage_pass_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
+    if stage_score_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
       tlog "  Stage '$label' already PASS with matching frontmatter artifacts (crash resume). Skipping."
       return 0
     fi
     tlog "  Stage '$label' ledger says PASS but frontmatter artifacts are missing or drifted; rerunning."
+  elif [ "$existing_status" = "fail" ] && [ "$GP_SCORE_ONLY" = 1 ] &&
+       [ "$WRITE_FRONTMATTER" -eq 1 ] && [ -n "$fm_judge_key" ]; then
+    if stage_score_artifacts_present "$post_file" "$stage_key" "$fm_judge_key"; then
+      tlog "  Stage '$label' already FAIL with its score in the frontmatter (GP, crash resume). Not re-judging."
+      return 1
+    fi
+    tlog "  Stage '$label' ledger says FAIL but its frontmatter score is missing or drifted; rerunning."
   fi
 
   tlog "=== Stage $label ($runner_label) | max_loops=$max_loops ==="

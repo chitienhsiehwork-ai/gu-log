@@ -76,7 +76,8 @@ const EN_GP_POST = withValidStamp(
 );
 
 // A fake Codex judge: it answers for the agent named in the prompt, writes the
-// score where the prompt asks, and scores FAKE_FAILING_JUDGE below the bar.
+// score where the prompt asks, and gives FAKE_FAILING_JUDGE the failing score
+// FAKE_FAIL_SCORE.
 const FAKE_CODEX = `#!/usr/bin/env bash
 if [ "\${1:-}" = "--version" ]; then echo "codex-cli 0.128.0"; exit 0; fi
 if [ "\${1:-}" = "exec" ] && [ "\${2:-}" = "--help" ]; then exit 0; fi
@@ -87,7 +88,7 @@ score_path="$(printf '%s\\n' "$prompt" | sed -n 's/^Write your JSON result to: /
 [ -n "$agent" ] && [ -n "$score_path" ] || exit 72
 printf '%s\\n' "$agent" >> "$FAKE_JUDGE_LOG"
 n=9; verdict=PASS
-if [ "$agent" = "$FAKE_FAILING_JUDGE" ]; then n=6; verdict=FAIL; fi
+if [ "$agent" = "$FAKE_FAILING_JUDGE" ]; then n="$FAKE_FAIL_SCORE"; verdict=FAIL; fi
 case "$agent" in
   fact-checker) judge=factCheck; dims="accuracy fidelity consistency sourceBoundary commentarySeparation" ;;
   librarian) judge=librarian; dims="glossary crossRef sourceAlign attribution" ;;
@@ -140,8 +141,11 @@ function makeRepo() {
   return { root, bin };
 }
 
-function runTribunal(failingJudge: string) {
-  const { root, bin } = makeRepo();
+function runTribunal(
+  { root, bin }: ReturnType<typeof makeRepo>,
+  failingJudge: string,
+  failScore = 6
+) {
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of [
     'GP_WRITER_MODE',
@@ -170,6 +174,7 @@ function runTribunal(failingJudge: string) {
       TRIBUNAL_CODEX_IDLE_TIMEOUT_SEC: '30',
       TRIBUNAL_CODEX_IDLE_POLL_SEC: '1',
       FAKE_FAILING_JUDGE: failingJudge,
+      FAKE_FAIL_SCORE: String(failScore),
       FAKE_JUDGE_LOG: path.join(root, 'judges.log'),
       FAKE_CLAUDE_LOG: path.join(root, 'claude.log'),
     },
@@ -194,7 +199,7 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
   ])(
     'records all four scores in both languages when %s fails, and the GP still validates',
     (failingJudge, failingKey, failingStage) => {
-      const run = runTribunal(failingJudge);
+      const run = runTribunal(makeRepo(), failingJudge);
 
       expect(run.result.error, run.output).toBeUndefined();
       expect(run.result.status, run.output).toBe(1);
@@ -222,6 +227,44 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
       expect(entry?.status).toBe('FAILED');
       expect(entry?.failedStage).toBe(failingStage);
       expect(run.output).toContain('GP is score-only');
+    },
+    120_000
+  );
+
+  linuxIt(
+    'a re-run does not re-judge a FAIL whose score is still in the frontmatter',
+    () => {
+      const repo = makeRepo();
+      const first = runTribunal(repo, 'librarian');
+      expect(first.result.status, first.output).toBe(1);
+      expect(first.judges, first.output).toEqual(JUDGES);
+      const recorded = fs.readFileSync(first.postPath, 'utf8');
+
+      // Judged again, the failing judge would now score 5.
+      const rerun = runTribunal(repo, 'librarian', 5);
+      expect(rerun.result.status, rerun.output).toBe(1);
+      expect(rerun.judges, 'no judge runs again').toEqual(JUDGES);
+      expect(fs.readFileSync(rerun.postPath, 'utf8')).toBe(recorded);
+      expect(rerun.progress[POST_FILE]?.status).toBe('FAILED');
+      expect(rerun.output).toContain('Not re-judging');
+
+      // Once the frontmatter no longer holds the recorded score, the stage is judged again.
+      const deleted = spawnSync(
+        process.execPath,
+        [
+          path.join(repo.root, 'scripts/frontmatter-scores.mjs'),
+          'delete',
+          first.postPath,
+          'librarian',
+        ],
+        { encoding: 'utf8' }
+      );
+      expect(deleted.status, deleted.stderr).toBe(0);
+      const drifted = runTribunal(repo, 'librarian', 5);
+      expect(drifted.result.status, drifted.output).toBe(1);
+      expect(drifted.judges, drifted.output).toEqual([...JUDGES, 'librarian']);
+      const scores = matter(fs.readFileSync(drifted.postPath, 'utf8')).data.scores;
+      expect(scores?.librarian?.score, drifted.output).toBe(5);
     },
     120_000
   );
