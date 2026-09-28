@@ -6,7 +6,7 @@ GP 在 Tribunal 只評分、不改寫（`gp-source-preservation`），但 `tribu
 
 - GP 的每一關評審判定後，不論 PASS 或 FAIL 都寫入分數；前一關沒過，其餘評審照樣評分。GP 最後帶著四個分數，交給兩層品質門檻決定能不能上線，而不是要求四關全過。
 - 非 GP 文章維持原規則：只在 PASS 後寫入，中途失敗只留已通過的分數。
-- 兩個 Tribunal 入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）行為一致；GP 仍然不改正文、不動來源距離章。
+- 兩個 Tribunal 入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）對 GP 都跑完每一關並寫入每一關的分數；GP 仍然不改正文、不動來源距離章。
 
 ## Capabilities
 
