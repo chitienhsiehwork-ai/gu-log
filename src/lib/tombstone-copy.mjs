@@ -186,7 +186,8 @@ export function getTombstonePageTitle({ title, lang }) {
 }
 
 /**
- * 視覺隱藏 h1（也是墓碑 Markdown 的 H1）。
+ * 墓碑頁的視覺隱藏 h1。墓碑 Markdown 不用它：exporter 照 post-markdown-representation
+ * 的規則，H1 一律是文章原標題。
  * @param {{ ticketId: string, lang: 'zh-tw' | 'en', title: string }} options
  */
 export function getTombstoneHeading({ ticketId, lang, title }) {
