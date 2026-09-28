@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { getGpPausedNotice } from '../src/lib/gp-series-pause.mjs';
+import { getGpEmptyNotice } from '../src/lib/gp-listing.mjs';
 import {
   getSourceByline,
   getTombstoneCopy,
@@ -243,19 +243,21 @@ test.describe('Tombstone resilience', () => {
   }
 });
 
-test.describe('Paused Gu-log Picks listing', () => {
-  test('GIVEN GP is paused WHEN the listing opens THEN it shows the rebuild notice and no post', async ({
+test.describe('Gu-log Picks listing', () => {
+  test('GIVEN only tombstones and the GP-1 demo WHEN the listing opens THEN it shows the neutral empty state and no post', async ({
     page,
     request,
   }) => {
-    await page.goto('/gu-log-picks');
-    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(getGpPausedNotice('zh-tw'));
+    // openspec editorial-charter〈讀者開啟 GP 系列頁〉: no tombstone and no GP-1.
+    const response = await page.goto('/gu-log-picks');
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('zh-tw'));
     await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
     await expect(page.locator('nav.pagination')).toHaveCount(0);
     expect((await request.get('/gu-log-picks/2')).status()).toBe(404);
 
     await page.goto('/en/gu-log-picks');
-    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(getGpPausedNotice('en'));
+    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('en'));
     await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
   });
 });

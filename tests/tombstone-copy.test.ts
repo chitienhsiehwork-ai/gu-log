@@ -18,7 +18,7 @@ import {
   getTombstonePageTitle,
   getTombstoneStoneLines,
 } from '../src/lib/tombstone-copy.mjs';
-import { GP_PAUSED_NOTICE, getGpPausedNotice } from '../src/lib/gp-series-pause.mjs';
+import { GP_EMPTY_NOTICE, getGpEmptyNotice, isListedGpTicket } from '../src/lib/gp-listing.mjs';
 
 describe('tombstone copy SSOT（post-takedown design D5）', () => {
   it('GP 繁中照 owner 定稿逐字輸出', () => {
@@ -166,13 +166,21 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
   });
 });
 
-describe('GP 暫停空狀態（editorial-charter／design D6）', () => {
-  it('空狀態文字是定稿句', () => {
-    expect(getGpPausedNotice('zh-tw')).toBe('GP 正在改版：以後這裡會是 ShroomDog 精選的導讀');
-    expect(getGpPausedNotice('en')).toBe(
-      "Gu-log Picks is being rebuilt: this page will become ShroomDog's curated reading guides."
-    );
-    expect(Object.keys(GP_PAUSED_NOTICE).sort()).toEqual(['en', 'zh-tw']);
-    expect(() => getGpPausedNotice('ja' as unknown as 'en')).toThrow(/不支援語言/);
+describe('GP 列表（editorial-charter〈讀者開啟 GP 系列頁〉）', () => {
+  it('空狀態是中性句，不說暫停或改版', () => {
+    expect(getGpEmptyNotice('zh-tw')).toBe('這裡還沒有公開的導讀。');
+    expect(getGpEmptyNotice('en')).toBe('No reading guides here yet.');
+    expect(Object.keys(GP_EMPTY_NOTICE).sort()).toEqual(['en', 'zh-tw']);
+    for (const notice of Object.values(GP_EMPTY_NOTICE)) {
+      expect(notice).not.toMatch(/暫停|改版|paused|rebuilt|rebuilding/i);
+    }
+    expect(() => getGpEmptyNotice('ja' as unknown as 'en')).toThrow(/不支援語言/);
+  });
+
+  it('只列 GP 導讀，GP-1 示範文不列', () => {
+    expect(isListedGpTicket('GP-2')).toBe(true);
+    expect(isListedGpTicket('GP-1')).toBe(false);
+    expect(isListedGpTicket('MP-1')).toBe(false);
+    expect(isListedGpTicket(undefined)).toBe(false);
   });
 });

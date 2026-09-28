@@ -247,10 +247,6 @@ jobs:
         if: github.event.deployment_status.state == 'success'
         run: |
           FAILED=0
-          # GP pause flag SSOT: src/lib/gp-series-pause.mjs. While paused the
-          # GP listing shows the rebuild notice and lists no post at all.
-          GP_PAUSED=$(node --input-type=module -e \
-            "const m = await import('./src/lib/gp-series-pause.mjs'); process.stdout.write(String(m.GP_SERIES_PAUSED));")
           for series in gp mp; do
             case "$series" in
               gp) route="gu-log-picks" ;;
@@ -261,11 +257,13 @@ jobs:
             BODY=$(curl -s "https://gu-log.vercel.app/$route")
             LIVE_COUNT=$(printf '%s' "$BODY" | grep -o 'href="/posts/' | wc -l | tr -d ' ' || true)
 
-            if [ "$series" = "gp" ] && [ "$GP_PAUSED" = "true" ]; then
-              if printf '%s' "$BODY" | grep -q 'data-gp-paused-notice' && [ "$LIVE_COUNT" -eq 0 ]; then
-                echo "✅ gp listing shows the paused notice and lists no post"
+            # GP lists only public reading guides (src/lib/gp-listing.mjs):
+            # either it has posts, or it shows the neutral empty state.
+            if [ "$series" = "gp" ]; then
+              if [ "$LIVE_COUNT" -gt 0 ] || printf '%s' "$BODY" | grep -q 'data-gp-empty-notice'; then
+                echo "✅ gp listing shows reading guides or the empty state: live-first-page=$LIVE_COUNT"
               else
-                echo "::error::🚨 paused gp listing must show the notice and no post: live=$LIVE_COUNT"
+                echo "::error::🚨 gp listing has neither posts nor the empty state"
                 FAILED=$((FAILED + 1))
               fi
               continue
