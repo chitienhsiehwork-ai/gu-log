@@ -8,6 +8,7 @@ const WORKFLOW_URL = new URL('ci.yml', WORKFLOWS_URL);
 
 type WorkflowStep = {
   if?: string;
+  'continue-on-error'?: boolean | string;
   uses?: string;
   run?: string;
   with?: Record<string, string>;
@@ -17,6 +18,7 @@ type WorkflowStep = {
 
 type WorkflowJob = {
   if?: string;
+  'continue-on-error'?: boolean | string;
   needs?: string[];
   steps?: WorkflowStep[];
   'timeout-minutes'?: number;
@@ -67,9 +69,15 @@ describe('gp-pipeline Go test leaf', () => {
   });
 
   it('gates ci-passed, which only accepts a literal success result', async () => {
-    const ciPassed = (await readWorkflow(WORKFLOW_URL)).jobs['ci-passed'];
+    const { jobs } = await readWorkflow(WORKFLOW_URL);
+    const ciPassed = jobs['ci-passed'];
     expect(ciPassed.needs).toContain(GO_JOB);
     expect(ciPassed.steps?.[0].run).toContain('.result == "success"');
+    // continue-on-error would report a failed Go suite to ci-passed as success.
+    expect(jobs[GO_JOB]['continue-on-error']).toBeUndefined();
+    for (const step of jobs[GO_JOB].steps ?? []) {
+      expect(step['continue-on-error']).toBeUndefined();
+    }
   });
 
   it('is the only place any workflow runs Go tests', async () => {

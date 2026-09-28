@@ -297,10 +297,10 @@ jobs:
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 
-  # gp-pipeline 的 Go 測試會呼叫 repo 的 Node 腳本（dedup-gate、check-jingjing
-  # 等），所以先用 setup-pnpm 裝好 Node 與 node_modules，否則這些測試會被略過
-  # 或失敗。-count=1 停用測試快取：setup-go 會還原 GOCACHE，而子行程讀的 repo
-  # 檔案改了 Go 也看不出來，可能沿用過期的通過結果（openspec:
+  # gp-pipeline 的 Go 測試會呼叫 repo 的 Node 腳本（例如 dedup-gate 要用
+  # gray-matter），所以先用 setup-pnpm 裝好 Node 與 node_modules，否則這些測試
+  # 會被略過或失敗。-count=1 停用測試快取：setup-go 會還原 GOCACHE，而子行程
+  # 讀的 repo 檔案改了 Go 也看不出來，可能沿用過期的通過結果（openspec:
   # gp-pipeline-publish-integrity）。
   gp-pipeline-go-tests:
     runs-on: ubuntu-latest
