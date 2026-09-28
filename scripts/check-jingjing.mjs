@@ -955,8 +955,17 @@ function checkText(raw, filePath = '') {
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
     const mLine = maskedLines[i];
-    // Match English words: latin letters with optional digits/hyphens/dots/apostrophes
-    const matches = [...mLine.matchAll(/[A-Za-z][A-Za-z0-9'-]*\.?[A-Za-z0-9]*/g)];
+    // Match English words: latin letters with optional digits/hyphens/dots/apostrophes.
+    // A number glued to a short unit (13px, 16ms, 4KB, 60fps) is a measured
+    // value, not decorative English, so it is matched whole and passes like any
+    // digit-and-letter token (GPT-5.4, K2.5); matching from the first letter
+    // used to split it and flag the bare unit. A unit on its own (「px 很重要」)
+    // or a word glued to a number (5minutes) is still checked.
+    const matches = [
+      ...mLine.matchAll(
+        /\d+(?:\.\d+)?[A-Za-z]{1,4}(?![A-Za-z0-9'-])|[A-Za-z][A-Za-z0-9'-]*\.?[A-Za-z0-9]*/g
+      ),
+    ];
     for (const m of matches) {
       const word = m[0];
       if (!isAllowed(word)) {
