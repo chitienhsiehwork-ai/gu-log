@@ -33,5 +33,5 @@ GP 不會被改寫，沒過的那一關重評也只會拿到同一版正文的�
 
 ## Risks / Trade-offs
 
-- [重跑時重評已經沒過的關卡] GP 不會被 Tribunal 改寫，同一版正文一直重評，等於重骰到過關為止，還多花額度。所以重跑時（不論是中斷後、額度迴圈還是 daemon 重撿），已記錄 FAIL、frontmatter 分數對得上、而且正文跟評分當時相同的 GP 關卡視為已完成，不再重評。正文改過（例如人工修改後重新蓋章），每一關都重評，避免留下舊正文的分數。明確指定只跑某一關時照樣重評。
+- [重跑時會重評已經沒過的關卡] GP 不會被 Tribunal 改寫，同一版正文重跑會再評一次，多花額度，也可能評出不同分數。本 change 不處理：試過「正文沒變就跳過已記錄的 FAIL」，但要可靠判斷「評審看到的內容有沒有變」，不能只看正文（FactChecker 也會評 title 與 summary）。之後要做，應該直接沿用 pre-commit 判斷分數是否過期的內容指紋（`scripts/reader-revision-of-stdin.mjs`），不要另寫一套。
 - [Tribunal v2 的 `factCheck` 缺維度] 走 v2 的文章仍過不了 `validate-posts`；這是既有問題，本 change 不處理。
