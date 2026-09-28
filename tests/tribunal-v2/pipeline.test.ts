@@ -1310,3 +1310,99 @@ describe('pipeline — Stage 4 degraded frontmatter shape', () => {
     expect(s4?.clarity).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// GP is score-only (openspec gp-source-preservation〈Tribunal v2 評 GP〉): a
+// failing GP gets its scores recorded, while no writer, FactCorrector or
+// Librarian ever runs, and the body and source-distance stamp stay unchanged.
+// ---------------------------------------------------------------------------
+
+describe('pipeline — GP is score-only', () => {
+  let tmpDir: string;
+  let articlePath: string;
+
+  const GP_ARTICLE = MINIMAL_ARTICLE.replace('ticketId: MP-999', 'ticketId: GP-999').replace(
+    'tags:\n  - test\n',
+    "tags:\n  - test\nsourceDistance:\n  policy: 'source-distance/v1'\n  verdict: 'PASS'\n  subjectSha256: 'abc'\n"
+  );
+
+  const forbidden = (role: string) => ({
+    run: async (): Promise<never> => {
+      throw new Error(`${role} must never run on a GP`);
+    },
+  });
+
+  function scoreOnlyConfig(overrides: Partial<PipelineConfig['runners']>): PipelineConfig {
+    const base = passThroughConfig();
+    return {
+      ...base,
+      runners: {
+        ...base.runners,
+        stage1Writer: forbidden('stage1Writer'),
+        stage2Writer: forbidden('stage2Writer'),
+        stage3FactCorrector: forbidden('FactCorrector'),
+        stage3Librarian: forbidden('Librarian'),
+        stage4Judge: forbidden('stage4Judge'),
+        stage4Writer: forbidden('stage4Writer'),
+        ...overrides,
+      },
+    };
+  }
+
+  const bodyAndStamp = (raw: string) => {
+    const parsed = matter(raw);
+    return { body: parsed.content, stamp: parsed.data.sourceDistance };
+  };
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-gp-score-only-'));
+    articlePath = join(tmpDir, 'gp-999-test.mdx');
+    await writeFile(articlePath, GP_ARTICLE, 'utf-8');
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('records a failing Vibe score and never calls the writer', async () => {
+    const state = await runPipeline(
+      articlePath,
+      scoreOnlyConfig({ stage1Judge: { run: async () => vibe(false, FAILING_SCORES) } })
+    );
+    expect(state.status).toBe('failed');
+    expect(state.stages.stage1.loops).toBe(1);
+    const after = await readFile(articlePath, 'utf-8');
+    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(matter(after).data.scores?.vibe?.persona).toBe(7);
+  });
+
+  it('runs only the Stage 3 judge: no FactCorrector rewrite, no Librarian links', async () => {
+    const failingFactLib: FactLibJudgeOutput = {
+      ...factLibPass(),
+      pass: false,
+      scores: {
+        factAccuracy: 5,
+        sourceFidelity: 5,
+        linkCoverage: 8,
+        linkRelevance: 8,
+        dupCheck: 10,
+      },
+    };
+    const state = await runPipeline(
+      articlePath,
+      scoreOnlyConfig({ stage3Judge: { run: async () => failingFactLib } })
+    );
+    expect(state.status).toBe('failed');
+    expect(state.stages.stage3.loops).toBe(1);
+    const after = await readFile(articlePath, 'utf-8');
+    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(matter(after).data.scores?.factCheck?.accuracy).toBe(5);
+  });
+
+  it('a passing GP skips Final Vibe and its writer', async () => {
+    const state = await runPipeline(articlePath, scoreOnlyConfig({}));
+    expect(state.status).toBe('passed');
+    expect(state.stages.stage4.status).toBe('skipped');
+    expect(bodyAndStamp(await readFile(articlePath, 'utf-8'))).toEqual(bodyAndStamp(GP_ARTICLE));
+  });
+});
