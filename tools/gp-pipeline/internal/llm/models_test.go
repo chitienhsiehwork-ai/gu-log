@@ -40,11 +40,10 @@ func TestHarnessNameWholeNumberReleases(t *testing.T) {
 	}
 }
 
-// TestAliasDisplayMatchesOpusAliasCurrent keeps the display fallback for the
-// bare `opus` alias on the build scripts/detect-model.mjs records for it
-// (OPUS_ALIAS_CURRENT, the SSOT), so a run that never learns the concrete
-// build is not stamped with an older Opus.
-func TestAliasDisplayMatchesOpusAliasCurrent(t *testing.T) {
+// opusAliasCurrent reads OPUS_ALIAS_CURRENT from scripts/detect-model.mjs, the
+// SSOT for the build the floating `opus` alias is recorded as.
+func opusAliasCurrent(t *testing.T) ModelID {
+	t.Helper()
 	src, err := os.ReadFile(filepath.Join(repoRootForRoutingTest(t), "scripts", "detect-model.mjs"))
 	if err != nil {
 		t.Fatal(err)
@@ -53,10 +52,19 @@ func TestAliasDisplayMatchesOpusAliasCurrent(t *testing.T) {
 	if m == nil {
 		t.Fatal("OPUS_ALIAS_CURRENT not found in scripts/detect-model.mjs")
 	}
-	want := DisplayName(ModelID(m[1]))
+	return ModelID(m[1])
+}
+
+// TestAliasDisplayMatchesOpusAliasCurrent keeps the display fallback for the
+// bare `opus` alias on the build scripts/detect-model.mjs records for it
+// (OPUS_ALIAS_CURRENT, the SSOT), so a run that never learns the concrete
+// build is not stamped with an older Opus.
+func TestAliasDisplayMatchesOpusAliasCurrent(t *testing.T) {
+	current := opusAliasCurrent(t)
+	want := DisplayName(current)
 	for _, alias := range []ModelID{ModelClaudeOpus, "opus", "anthropic/opus"} {
 		if got := DisplayName(alias); got != want {
-			t.Errorf("DisplayName(%q) = %q, want %q (OPUS_ALIAS_CURRENT %s)", alias, got, want, m[1])
+			t.Errorf("DisplayName(%q) = %q, want %q (OPUS_ALIAS_CURRENT %s)", alias, got, want, current)
 		}
 	}
 }
