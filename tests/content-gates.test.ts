@@ -236,21 +236,15 @@ describe('check-jingjing.checkFile', () => {
     expect(r.violations).toEqual([]);
   });
 
-  it('reports exact UTF-8 byte boundaries for deterministic correction', () => {
-    const filepath = tmpPath('jj-byte-boundary.mdx');
-    const raw = `---\nlang: zh-tw\n---\n系統的 traces 要逐筆檢查。\n`;
-    fs.writeFileSync(filepath, raw);
-    const [violation] = jj.checkFile(filepath).violations;
-    const start = Buffer.byteLength(raw.slice(0, raw.indexOf('traces')));
-    expect(violation).toMatchObject({
-      word: 'traces',
-      line: 4,
-      startByte: start,
-      endByte: start + Buffer.byteLength('traces'),
+  it('prints the line, word, and containing sentence in the text report', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const filepath = tmpPath('jj-text-report.mdx');
+    fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n開頭一句。系統的 traces 要逐筆檢查。\n`);
+    const result = spawnSync(process.execPath, [CLI, '--baseline-ref=HEAD', filepath], {
+      encoding: 'utf8',
     });
-    expect(Buffer.from(raw).subarray(violation.startByte, violation.endByte).toString()).toBe(
-      'traces'
-    );
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('  L4: traces\n    │ 系統的 traces 要逐筆檢查。\n');
   });
 });
 

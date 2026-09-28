@@ -33,7 +33,6 @@
 //   1 — violations found; see stderr
 //   2 — a file could not be read or scanned
 
-import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -952,7 +951,6 @@ function checkText(raw, filePath = '') {
   const masked = maskContent(raw);
   const lines = raw.split('\n');
   const maskedLines = masked.split('\n');
-  let lineStartByte = 0;
 
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
@@ -966,15 +964,11 @@ function checkText(raw, filePath = '') {
         violations.push({
           line: i + 1,
           word,
-          startByte: lineStartByte + Buffer.byteLength(lines[i].slice(0, m.index ?? 0)),
-          endByte:
-            lineStartByte + Buffer.byteLength(lines[i].slice(0, (m.index ?? 0) + word.length)),
           context: comparisonContext.slice(0, 140),
           comparisonContext,
         });
       }
     }
-    lineStartByte += Buffer.byteLength(lines[i]) + (i < lines.length - 1 ? 1 : 0);
   }
 
   return { violations };
