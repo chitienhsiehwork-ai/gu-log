@@ -343,7 +343,7 @@ for (const entry of MANIFEST) {
     ? {
         ...entry,
         fg: resolveThemeColor(entry.fgVar, entry.theme),
-        bg: entry.bgVar ? resolveThemeColor(entry.bgVar, entry.theme) : entry.bg,
+        bg: resolveThemeColor(entry.bgVar, entry.theme),
       }
     : entry;
   allPairs.push({
