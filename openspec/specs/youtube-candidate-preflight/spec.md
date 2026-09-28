@@ -6,7 +6,7 @@
 
 ### Requirement: 候選預審 SHALL 僅供審閱且限制副作用
 
-系統 SHALL 提供明確的 `gp-pipeline candidate <youtube-url>` 預審入口，只接受單一 YouTube 影片，並只在解析後位於 repo 外的工作目錄建立來源證據與有版本的 `candidate-manifest.json`。該入口 SHALL NOT 呼叫任何 LLM、編輯或發布階段，SHALL NOT 建立 MDX、配置票號、修改計數器、Git 索引、Git 歷史或 `src/content/posts/`，也 SHALL NOT 將預審成功視為 ShroomDog 核准。只有另一次明確執行標準 `gp-pipeline run <youtube-url>`，才能進入正式寫作與發布。
+系統 SHALL 提供明確的 `gp-pipeline candidate <youtube-url>` 預審入口，只接受單一 YouTube 影片，並只在解析後位於 repo 外的工作目錄建立來源證據與有版本的 `candidate-manifest.json`。該入口 SHALL NOT 呼叫任何 LLM、編輯或發布階段，SHALL NOT 建立 MDX、配置票號、修改計數器、Git 索引、Git 歷史或 `src/content/posts/`，也 SHALL NOT 將預審成功視為 ShroomDog 核准。只有另一次明確執行標準 `gp-pipeline run <youtube-url> --prefix <系列>`，才能進入正式寫作與發布。
 
 #### Scenario: 完整來源只產生預審 artifacts
 
@@ -41,7 +41,7 @@
 
 #### Scenario: 正式 run 缺少 yt-dlp
 
-- **WHEN** 操作者對 YouTube URL 執行 canonical `gp-pipeline run <youtube-url>`，但執行環境找不到 `yt-dlp`
+- **WHEN** 操作者對 YouTube URL 執行 canonical `gp-pipeline run <youtube-url> --prefix <系列>`，但執行環境找不到 `yt-dlp`
 - **THEN** 共用來源路由 SHALL 封閉失敗
 - **AND** SHALL NOT 呼叫通用 HTML 擷取器或讓 JS shell 進入正式寫作
 
@@ -151,4 +151,4 @@ Doctor 與 agent-facing help SHALL 明示 YouTube 候選預審依賴 `yt-dlp`，
 
 - **WHEN** 操作者執行 `gp-pipeline candidate --help`
 - **THEN** help SHALL 清楚列出輸出產物、YouTube 相依工具、僅供審閱邊界與不會執行的異動階段
-- **AND** SHALL 指示核准後另行執行標準 `gp-pipeline run <url>`
+- **AND** SHALL 指示核准後另行執行標準 `gp-pipeline run <url> --prefix <系列>`

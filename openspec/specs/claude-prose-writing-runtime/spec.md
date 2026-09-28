@@ -7,18 +7,18 @@
 
 ### Requirement: Mogu 撰寫與改寫文章 SHALL 一律使用 Claude 模型
 
-gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。凡是會產生或改寫讀者可見文章字句的自動化步驟，SHALL 一律呼叫 Claude 模型。範圍包含 GP 正文翻譯、GP bounded corrector、MoguNote commentary 候選、英文 sidecar 翻譯、MP write 與 refine，以及 Tribunal 評審不過後的背景改寫與 final-build 修復；同時會審查又會改字的步驟也屬於寫作步驟。
+gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。凡是會產生或改寫讀者可見文章字句的自動化步驟，SHALL 一律呼叫 Claude 模型。範圍包含英文 sidecar 翻譯、MP write 與 refine，以及 Tribunal 評審不過後的背景改寫與 final-build 修復；同時會審查又會改字的步驟也屬於寫作步驟。
 
 寫作步驟的 model SHALL 只來自 owner pin 的 Claude 模型 SSOT：gp-pipeline 的 `ClaudeOpusPinned` 與 `.claude/agents/tribunal-writer.md` 的 `model:` frontmatter，兩者 SHALL 保持一致。Runtime 設定檔 SHALL NOT 為寫作步驟另存 model 或 reasoning 副本。
 
-寫作步驟 SHALL NOT 使用 Codex、Grok 或其他模型，也 SHALL NOT 在 Claude 不可用、登入失效、額度不足或 pin 不一致時靜默改用其他模型或供應端；這些情況 SHALL 在寫入文章前明確失敗並保留可行動的錯誤。只打分或審查、不寫文章字句的評審（Tribunal 評審、eval、review、GP source reviewer、natural-zh vibe gate）不受本 requirement 約束。
+寫作步驟 SHALL NOT 使用 Codex、Grok 或其他模型，也 SHALL NOT 在 Claude 不可用、登入失效、額度不足或 pin 不一致時靜默改用其他模型或供應端；這些情況 SHALL 在寫入文章前明確失敗並保留可行動的錯誤。只打分或審查、不寫文章字句的評審（Tribunal 評審、eval、review）不受本 requirement 約束。
 
 #### Scenario: VM runtime profile 為寫作步驟選用 Claude 模型
 
-- **WHEN** VM runtime profile 解析 writer、translator、corrector 或 commentary 步驟
+- **WHEN** VM runtime profile 解析 writer 步驟
 - **THEN** provider SHALL 是 Claude，model SHALL 是 Claude 模型 pin
-- **AND** 設定檔 SHALL NOT 為這些步驟宣告 model 或 reasoning effort
-- **AND** 若設定把任一寫作步驟指向其他供應端，routing SHALL 在派送前封閉失敗
+- **AND** 設定檔 SHALL NOT 為寫作步驟宣告 model 或 reasoning effort
+- **AND** 若設定把寫作步驟指向其他供應端，routing SHALL 在派送前封閉失敗
 
 #### Scenario: 本機或 CCC 的寫作 chain 不退回 Codex
 
@@ -51,25 +51,18 @@ gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。�
 
 #### Scenario: 評審與審查維持原本的模型
 
-- **WHEN** Tribunal 評審、eval、review、GP source reviewer 或 natural-zh vibe gate 執行
+- **WHEN** Tribunal 評審、eval 或 review 執行
 - **THEN** 它們 SHALL 維持各自既有的模型路由
 - **AND** 本 requirement SHALL NOT 要求這些評審改用 Claude 模型
 
-### Requirement: 呼叫 Claude 模型撰寫文章 SHALL 以最小權限執行並擷取乾淨輸出
+### Requirement: Claude 寫作呼叫 SHALL 以最小權限執行並擷取乾淨輸出
 
 Runtime profile 與 Tribunal 部署路徑呼叫 Claude 模型撰寫文章時，SHALL 使用非互動、最小權限的呼叫方式，且 SHALL NOT 使用 bypass permissions 或同等的「全部放行」模式：
 
-- 只回傳 JSON artifact 的寫作步驟（GP translator、corrector、commentary）SHALL 不提供任何工具，並 SHALL 以 structured output 取得符合該步驟 schema 的 JSON。
 - 需要寫檔的寫作步驟（MP write／refine、英文 sidecar、Tribunal 改寫與寫入 canary）SHALL 只提供檔案讀寫工具；讀取 MAY 涵蓋 repo 參考文件，編修 SHALL 只在該步驟的私有工作目錄內被自動核准，SHALL NOT 提供執行指令或網路工具。
 - 部署版 Tribunal 改寫與寫入 canary SHALL 共用同一個 Claude 執行器，並在暫態 systemd service 內執行。
-- Pipeline SHALL 從 Claude CLI 的 JSON 結果擷取最終回覆或 structured output，SHALL NOT 把 CLI 雜訊、錯誤訊息或空的 structured output 當成文章內容。
+- Pipeline SHALL 從 Claude CLI 的 JSON 結果擷取最終回覆，SHALL NOT 把 CLI 雜訊或錯誤訊息當成文章內容。
 - Claude 寫作呼叫 SHALL NOT 載入主機的使用者設定、權限規則或 MCP server，也 SHALL NOT 帶入 API key 或會改變計費端點的環境變數（例如 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL`、`CLAUDE_CODE_USE_BEDROCK`），讓權限與計費都不受主機設定影響。
-
-#### Scenario: JSON 寫作步驟沒有工具可用
-
-- **WHEN** GP translator、corrector 或 commentary 透過 runtime profile 呼叫 Claude 模型
-- **THEN** 該呼叫 SHALL 不提供任何工具，並帶上該步驟的 JSON schema
-- **AND** Claude 結果缺少 structured output 時 SHALL 失敗，SHALL NOT 改讀一般文字回覆
 
 #### Scenario: 注入的來源試圖寫出工作目錄
 
