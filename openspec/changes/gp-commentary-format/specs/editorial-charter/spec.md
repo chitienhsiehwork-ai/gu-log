@@ -219,9 +219,9 @@ Tribunal SHALL 以 MP 的評分規則評 GP 導讀，只有兩個差異：GP 正
 
 #### Scenario: 導讀帶讀者回原文
 
-- **WHEN** 一篇 GP 導讀發布
-- **THEN** 開頭 SHALL 交代來源與值得讀的理由
-- **AND** 結尾 SHALL 帶讀者回原文
+- **WHEN** pipeline 組裝 GP 的 write 或 refine prompt
+- **THEN** prompt SHALL 要求開頭交代來源與值得讀的理由
+- **AND** prompt SHALL 要求結尾帶讀者回原文
 
 #### Scenario: 照順序轉述不算導讀
 

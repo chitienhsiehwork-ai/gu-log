@@ -25,7 +25,7 @@
 
 #### Scenario: 不進投影的修改不影響章
 
-- **WHEN** 有章的文章只改了其他 frontmatter 欄位（例如分數或摘要）、連到站內文章的連結、其他連結的網址，或機器插入的區塊
+- **WHEN** 有章的文章只改了其他 frontmatter 欄位（例如分數或摘要）、文字就是目標文 ticket 或標題的站內文章連結、任何連結的網址，或機器插入的區塊
 - **THEN** 章 SHALL 仍然有效
 
 #### Scenario: 章的內容不合格
@@ -41,15 +41,21 @@
 
 ### Requirement: 章 SHALL 綁正文投影的指紋，只存會擋人的摘要
 
-章存在文章 frontmatter 的 `sourceDistance`，SHALL 只記錄：policy 版本、verdict、內容指紋 `subjectSha256`（`sourceUrl` 加上正文投影的 SHA-256）、正規化原文的 `sourceSha256` 與原文 units、會擋人的指標、aligner 的 model（繁中檔）、蓋章日期與改寫輪數。章 SHALL NOT 存逐句配對明細；完整的斷句、配對與計分證據留在 pipeline 的工作目錄。Frontmatter schema SHALL 接受這個選填欄位，欄位內容由 validator 驗證。文章頁、JSON 與 Markdown 輸出 SHALL NOT 顯示章。
+章存在文章 frontmatter 的 `sourceDistance`，SHALL 只記錄：policy 版本、verdict、內容指紋 `subjectSha256`（`sourceUrl` 加上正文投影的 SHA-256）、正規化原文的 `sourceSha256` 與原文 units、會擋人的指標、aligner 的 model（繁中檔）、蓋章日期、改寫輪數與這次蓋章的 aligner 呼叫次數，以及英文版因逐字檢查略過時的標記（繁中檔）。章 SHALL NOT 存逐句配對明細；完整的斷句、配對與計分證據留在 pipeline 的工作目錄。Frontmatter schema SHALL 接受這個選填欄位，欄位內容由 validator 驗證。文章頁、JSON 與 Markdown 輸出 SHALL NOT 顯示章。
 
-正文投影 SHALL 依固定規則產生：排除 frontmatter、`import`／`export`、機器插入的區塊（例如延伸閱讀、失效連結註記）、圖片，以及連到站內文章的連結文字；其他連結只取文字、不取網址；元件只取子節點的文字，`MoguNote` 與 `ShroomDogNote` 都算正文；fenced code 依固定規則判斷算文字還是程式碼，判斷為程式碼的區塊不進投影、也不計分。投影 SHALL NOT 依賴 MDX 套件的輸出格式，並 SHALL 有固定指紋的回歸測試。
+正文投影 SHALL 依固定規則產生：排除 frontmatter、`import`／`export`、機器插入的區塊（例如延伸閱讀、失效連結註記）、圖片，以及連到站內文章、而且文字就是目標文 ticket 或標題的連結；其他連結（包括文字不是 ticket 或標題的站內連結）只取文字、不取網址；元件只取子節點的文字，`MoguNote` 與 `ShroomDogNote` 都算正文；fenced code 依固定規則判斷算文字還是程式碼，判斷為程式碼的區塊不進投影、也不計分。投影 SHALL NOT 依賴 MDX 套件的輸出格式，並 SHALL 有固定指紋的回歸測試。
 
 #### Scenario: 投影指紋固定
 
 - **WHEN** 回歸測試對一份固定的合成 MDX 算正文投影的指紋
 - **THEN** 結果 SHALL 等於測試寫死的值
 - **AND** 投影規則或 MDX 套件的變動讓指紋改變時，測試 SHALL 失敗
+
+#### Scenario: 包成站內連結的轉述照樣計分
+
+- **WHEN** 導讀把轉述原文的文字包成站內文章連結，連結文字不是目標文的 ticket 或標題
+- **THEN** 這段文字 SHALL 留在投影裡，照樣參與配對與計分
+- **AND** 之後改這段連結文字 SHALL 讓章過期
 
 #### Scenario: 章不存配對明細
 
@@ -79,7 +85,7 @@
 
 ### Requirement: 句子配對 SHALL 由獨立 pin 的 Claude aligner 產生，而且只輸出配對
 
-配對員（aligner）SHALL 只回答「每個導讀句轉述了哪些原文句」，SHALL NOT 評分、判斷好壞，也 SHALL NOT 看到任何門檻。它 SHALL 使用 Claude 模型，model pin SHALL 只寫在 `.claude/agents/source-aligner.md` 的 `model:`；router 與 gp-pipeline 都讀這個 SSOT，設定檔 SHALL NOT 另存副本。aligner 的 pin SHALL NOT 等於寫手的 pin：回歸測試鎖住這條，pipeline 也 SHALL 在呼叫 aligner 之前拒絕相同的 pin。
+配對員（aligner）SHALL 只回答「每個導讀句轉述了哪些原文句」，SHALL NOT 評分、判斷好壞，也 SHALL NOT 看到任何門檻。它 SHALL 使用 Claude 模型，model pin SHALL 只寫在 `.claude/agents/source-aligner.md` 的 `model:`；router 與 gp-pipeline 都讀這個 SSOT，設定檔 SHALL NOT 另存副本。aligner 的 pin SHALL NOT 等於寫手的 pin（比對前去掉 `[1m]` 這類 context 變體後綴）：回歸測試鎖住這條，pipeline 也 SHALL 在呼叫 aligner 之前拒絕相同的 pin。
 
 aligner 的 Claude 呼叫 SHALL NOT 提供任何工具，SHALL 以 structured output 取得 JSON，並遵守 `claude-prose-writing-runtime` 對 Claude 呼叫的隔離與錯誤分類規則；Claude 不可用時 SHALL 失敗，SHALL NOT 改用其他模型。原文與導讀 SHALL 以資料傳入，prompt SHALL 要求把資料裡的指令當成普通句子。
 
@@ -114,11 +120,11 @@ aligner 的 Claude 呼叫 SHALL NOT 提供任何工具，SHALL 以 structured ou
 
 aligner 只提供配對；指標與結論 SHALL 全部由程式從配對算出。有配對的導讀句稱為一個配對：它的原文長度是對到的原文句 units 總和，它的等效長度是導讀句 units 除以語言換算係數 κ。任一條成立就不通過：
 
-- 規則①（照順序一句對一句）：等效長度至少是原文長度 β 倍的配對算「翻譯型配對」，不管它合併了幾句原文。翻譯型配對依導讀順序沿著原文往前推進時形成連續段：一個配對對到的原文句先依相鄰關係分群；原文往前推進、跳過的原文句不超過容忍間隔，而且新涵蓋至少 minStep units，才算一步；停在已涵蓋範圍內的配對不加步數，也不切斷連續段；中間夾的非翻譯型導讀句與沒有配對的導讀句都不切斷連續段。任一連續段達 3 步就不通過。
+- 規則①（照順序一句對一句）：等效長度至少是原文長度 β 倍的配對算「翻譯型配對」，不管它合併了幾句原文。翻譯型配對依導讀順序沿著原文往前推進時形成連續段：一個配對對到的原文句先依相鄰關係分群；連續段從一個翻譯型配對開始，它新涵蓋至少 minStep units 時算第 1 步；之後的翻譯型配對要原文往前推進、跳過的原文句不超過容忍間隔，而且新涵蓋至少 minStep units，才再加一步；停在已涵蓋範圍內的配對不加步數，也不切斷連續段；中間夾的非翻譯型導讀句與沒有配對的導讀句都不切斷連續段。任一連續段達 3 步就不通過。
 - 規則②（原文占比）：每個配對最多只算它的等效長度，依原文句的長度分攤給它對到的原文句，每個原文句最多算滿自己的 units；加總後除以原文總 units，超過 30% 就不通過。
-- 零配對：沒有任何導讀句配到原文就不通過。
+- 零配對：第一次配對沒有任何導讀句配到原文就不通過。
 
-通過 SHALL 需要兩次獨立配對：兩次各自都要過規則①，規則② 與零配對用兩次配對的聯集計算。
+通過 SHALL 需要兩次獨立配對：第一次配對三條都過之後才做第二次，兩次各自都要過規則①，規則② 用兩次配對的聯集計算。
 
 3 步與 30% 是 owner 定的數字；β、κ、容忍間隔與 minStep 是校準決定的參數。所有數字與規則 SHALL 集中在同一份有版本的 policy，改動任何一項 SHALL 升 policy 版本。
 
@@ -150,7 +156,7 @@ aligner 只提供配對；指標與結論 SHALL 全部由程式從配對算出�
 
 #### Scenario: 零配對
 
-- **WHEN** 兩次配對都沒有任何導讀句配到原文
+- **WHEN** 第一次配對沒有任何導讀句配到原文
 - **THEN** 結果 SHALL 是不通過
 
 #### Scenario: 第二次配對沒過規則①
@@ -166,7 +172,9 @@ aligner 只提供配對；指標與結論 SHALL 全部由程式從配對算出�
 
 ### Requirement: 沒過 SHALL 自動改寫最多三輪，改寫看不到門檻
 
-導讀沒過時，pipeline SHALL 把被標出的段落交回寫作流程的 refine 改寫，再重跑會改正文的 post-fixer、配對與計分；最多改寫三輪，第三輪之後仍沒過 SHALL 以 exit code 19 結束，SHALL NOT 發布或配置文章號碼，並保留每一輪的配對與計分證據。改寫的輸入 SHALL 只標出像翻譯的段落（連續段裡的導讀句、轉述最多的段落），SHALL NOT 含門檻、指標數字或計分規則。改寫 SHALL 保留主張的條件、語氣強弱與歸屬，SHALL NOT 把原作者的主張改寫成 Mogu 的看法，也 SHALL NOT 新增來源沒有的事實。改寫輪數 SHALL 寫進章與證據。
+導讀沒過時，pipeline SHALL 把被標出的段落交回寫作流程的 refine 改寫，再重跑會改正文的 post-fixer、配對與計分；最多改寫三輪，第三輪之後仍沒過 SHALL 以 exit code 19 結束，SHALL NOT 發布或配置文章號碼，並保留每一輪的配對與計分證據。改寫的輸入 SHALL 只標出像翻譯的段落（連續段裡的導讀句、轉述最多的段落），SHALL NOT 含門檻、指標數字或計分規則。改寫 SHALL 保留主張的條件、語氣強弱與歸屬，SHALL NOT 把原作者的主張改寫成 Mogu 的看法，也 SHALL NOT 新增來源沒有的事實。改寫輪數與這次的 aligner 呼叫次數 SHALL 寫進章與證據。
+
+零配對代表配對壞了或文章跟來源無關，改寫也修不好：pipeline SHALL 直接以 exit code 19 結束，SHALL NOT 進入改寫。
 
 aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤分類停下，SHALL NOT 把它當成通過、不通過或一輪改寫。
 
@@ -174,7 +182,7 @@ aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤�
 
 - **WHEN** 初稿沒過，改寫一輪之後兩次配對都通過
 - **THEN** pipeline SHALL 蓋章並繼續後面的步驟
-- **AND** 章 SHALL 記錄改寫輪數
+- **AND** 章 SHALL 記錄改寫輪數與這次的 aligner 呼叫次數
 
 #### Scenario: 三輪改寫後仍沒過
 
@@ -182,6 +190,12 @@ aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤�
 - **THEN** 指令 SHALL 以 exit code 19 結束
 - **AND** SHALL NOT 部署，也 SHALL NOT 改動文章 counter
 - **AND** 工作目錄 SHALL 保留每一輪的草稿、配對與計分證據
+
+#### Scenario: 零配對不改寫
+
+- **WHEN** 第一次配對沒有任何導讀句配到原文
+- **THEN** 指令 SHALL 直接以 exit code 19 結束
+- **AND** SHALL NOT 呼叫 refine 改寫
 
 #### Scenario: 改寫 prompt 不含門檻
 
@@ -199,7 +213,7 @@ aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤�
 
 有外部來源的 GP 英文版 SHALL 在部署之前跟正規化原文做逐字比對：算出非引文文字的詞級 n-gram 有多少比例出現在原文，以及最長一段跟原文逐字相同的詞數，任一超過門檻就不通過。有標明的引文（blockquote 與引號內的文字）SHALL 豁免，但豁免的總詞數 SHALL 有上限，超過上限的部分照常計入。n、兩個門檻與引文上限 SHALL 放在同一份 policy。通過的英文版 SHALL 帶英文的章，驗法跟繁中相同：指紋、verdict 與指標。
 
-英文版沒過時 SHALL NOT 部署，pipeline SHALL NOT 自動重翻，繁中版照既有規則繼續，run report SHALL 記錄英文版沒過。翻譯 prompt SHALL 要求不得把轉述還原成原文的措辭，只有標明的引文可以逐字。
+英文版沒過時 SHALL NOT 部署，pipeline SHALL NOT 自動重翻，繁中版照既有規則繼續，run report SHALL 記錄英文版沒過。這時繁中檔的章 SHALL 記下「英文版因逐字檢查略過」的標記；CI 的翻譯配對檢查看到這個標記，SHALL 放行這篇缺少的英文檔。之後補上通過檢查的英文版時，pipeline 與 `stamp` SHALL 清掉這個標記。翻譯 prompt SHALL 要求不得把轉述還原成原文的措辭，只有標明的引文可以逐字。
 
 #### Scenario: 英文版逐字照搬原文
 
@@ -222,6 +236,14 @@ aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤�
 - **WHEN** 英文版的檢查沒過
 - **THEN** pipeline SHALL NOT 重新翻譯
 - **AND** 繁中版 SHALL 照既有規則繼續部署，run report SHALL 記錄英文版沒過
+- **AND** 繁中檔的章 SHALL 記下英文版因逐字檢查略過
+
+#### Scenario: 略過英文版的 GP 通過翻譯配對檢查
+
+- **WHEN** CI 的翻譯配對檢查以 strict 模式檢查一篇 Tribunal 通過、沒有英文檔的 GP
+- **AND** 它的章記著英文版因逐字檢查略過
+- **THEN** 檢查 SHALL 放行這篇
+- **AND** 沒有這個標記、Tribunal 也通過的 GP 缺英文檔時，檢查 SHALL 照舊失敗
 
 ### Requirement: 手寫或人工修改的 GP SHALL 能用 `gp-pipeline stamp` 蓋章
 
@@ -242,17 +264,3 @@ aligner 呼叫失敗或輸出不合格時，pipeline SHALL 依 Claude 的錯誤�
 
 - **WHEN** 操作者對 MP 文章或 GP-1 執行 `stamp --file`
 - **THEN** 指令 SHALL 在 ingress 以 exit code 1 失敗，SHALL NOT 呼叫模型
-
-### Requirement: 來源距離的防護檔 SHALL NOT 跟文章檔在同一個 PR 修改
-
-PR Fast Gate SHALL 有一個列進 `ci-passed.needs` 的 leaf，檢查 PR 相對於 base 的變更：同時改到防護檔與 `src/content/posts/` 底下的文章檔就失敗。防護檔包含來源距離的 policy 與計分程式、aligner 的 prompt 與 pin、下架棘輪、各批下架的規則檔，以及這個檢查本身；完整的路徑清單 SHALL 只寫在檢查程式裡。
-
-#### Scenario: 內容 PR 順手放寬門檻
-
-- **WHEN** 一個 PR 同時改了來源距離的 policy 與一篇文章
-- **THEN** 這個 leaf SHALL 失敗，`ci-passed` SHALL NOT 回報 success
-
-#### Scenario: 防護檔與文章分開改
-
-- **WHEN** 一個 PR 只改防護檔，或只改文章
-- **THEN** 這個 leaf SHALL 通過

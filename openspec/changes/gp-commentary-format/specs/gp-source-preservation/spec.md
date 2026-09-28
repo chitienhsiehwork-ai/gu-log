@@ -19,7 +19,7 @@ GP 正文 SHALL NOT 進入 `restructure` 或 `rebuild`。任何通用 editorial 
 #### Scenario: Tribunal v2 評 GP
 
 - **WHEN** `pnpm tribunal:run` 評一篇 GP，而且有評審沒過
-- **THEN** 它 SHALL 只寫入分數，SHALL NOT 進入評審與寫手的改寫迴圈，也 SHALL NOT 讓其他角色改寫正文
+- **THEN** 它 SHALL 只寫入分數，SHALL NOT 進入評審與寫手的改寫迴圈，也 SHALL NOT 讓其他會改動文章檔的角色（例如事實修正或加連結的 Librarian）執行
 - **AND** GP 正文與來源距離章 SHALL 維持不變
 
 #### Scenario: 明確要求改寫 GP
