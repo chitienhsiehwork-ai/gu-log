@@ -2,9 +2,10 @@
  * 從 src/content/posts 的 MDX frontmatter 讀出已下架（status: taken-down）的文章
  * （openspec: post-takedown）。
  *
- * 給拿不到 astro:content 的地方共用：astro.config 的 sitemap filter、postbuild
- * 洩漏檢查、CI 棘輪、dedup gate 與 Tribunal 候選選取。判斷只看 frontmatter 的
- * `status`，不看檔名、系列或任何清單。
+ * 給拿不到 astro:content 的 Node 腳本共用，例如 astro.config 的 sitemap filter、
+ * postbuild 洩漏檢查、CI 棘輪、下架工具、validator 與內容 gates，以及
+ * tribunal-v2-run 的單篇守門。判斷只看 frontmatter 的 `status`，不看檔名、
+ * 系列或任何清單。
  */
 import fs from 'node:fs';
 import path from 'node:path';
