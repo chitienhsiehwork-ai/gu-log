@@ -1360,7 +1360,7 @@ function projectTombstoneArticle({
       `taken-down article must render exactly one tombstone, found ${tombstones.length}`
     );
   }
-  if (findElements(article, (candidate) => hasClass(candidate, 'post-content')).length !== 0) {
+  if (findElements(tree, (candidate) => hasClass(candidate, 'post-content')).length !== 0) {
     fail(sourceName, 'taken-down HTML must not render post-content');
   }
   const robots = findElements(

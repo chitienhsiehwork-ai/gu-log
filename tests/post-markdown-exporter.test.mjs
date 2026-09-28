@@ -606,6 +606,7 @@ function tombstoneHtml({
   series = 'GP',
   tombstones = 1,
   extra = '',
+  afterArticle = '',
   sourceTitle = 'The human is the loop',
   robots = '<meta name="robots" content="noindex">',
 } = {}) {
@@ -634,6 +635,7 @@ function tombstoneHtml({
       ${tombstone.repeat(tombstones)}
       ${extra}
     </article>
+    ${afterArticle}
   </body>
 </html>`;
 }
@@ -745,10 +747,12 @@ test('taken-down export fails closed when frontmatter, marker and tombstone disa
   }, /taken-down status disagrees/);
   assert.throws(() => run({ html: tombstoneHtml({ tombstones: 0 }) }), /exactly one tombstone/);
   assert.throws(() => run({ html: tombstoneHtml({ tombstones: 2 }) }), /exactly one tombstone/);
-  assert.throws(
-    () => run({ html: tombstoneHtml({ extra: '<div class="post-content"><p>leak</p></div>' }) }),
-    /must not render post-content/
-  );
+  for (const leak of [
+    { extra: '<div class="post-content"><p>leak</p></div>' },
+    { afterArticle: '<div class="post-content"><p>leak</p></div>' },
+  ]) {
+    assert.throws(() => run({ html: tombstoneHtml(leak) }), /must not render post-content/);
+  }
   assert.throws(
     () =>
       run({
