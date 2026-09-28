@@ -182,16 +182,9 @@ func copyFile(t *testing.T, from, to string) {
 // ×2 first, then writer) and the aligner.
 func makeGPRunHarness(t *testing.T, aligner *scriptedAligner, writer ...llm.FakeResponse) (*State, *llm.FakeProvider, string) {
 	t.Helper()
-	if _, err := exec.LookPath("node"); err != nil {
-		t.Skip("node unavailable")
-	}
 	s, tmp := makeRunHarnessForPrefix(t, "GP")
+	installSourceDistanceCLI(t, tmp, filepath.Join(tmp, "scripts"))
 	real := realRepoRoot(t)
-	copyFile(t, filepath.Join(real, "scripts", "source-distance.mjs"), filepath.Join(tmp, "scripts", "source-distance.mjs"))
-	copyFile(t, filepath.Join(real, "scripts", "lib", "source-distance.mjs"), filepath.Join(tmp, "scripts", "lib", "source-distance.mjs"))
-	if err := os.Symlink(filepath.Join(real, "node_modules"), filepath.Join(tmp, "node_modules")); err != nil {
-		t.Fatal(err)
-	}
 	if err := os.WriteFile(filepath.Join(tmp, "scripts", "add-kaomoji.mjs"), []byte(`import fs from 'node:fs';
 const file = process.argv[process.argv.length - 1];
 fs.writeFileSync(file, fs.readFileSync(file, 'utf8').trimEnd() + '\n\n`+fixerLine+`\n');
@@ -224,6 +217,21 @@ fs.writeFileSync(file, fs.readFileSync(file, 'utf8').trimEnd() + '\n\n`+fixerLin
 	}
 	s.AlignerDispatcher = alignerDisp
 	return s, fake, tmp
+}
+
+// installSourceDistanceCLI puts the real scripts/source-distance.mjs and its
+// lib under scriptsDir, with the repo's node_modules linked at root.
+func installSourceDistanceCLI(t *testing.T, root, scriptsDir string) {
+	t.Helper()
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node unavailable")
+	}
+	real := realRepoRoot(t)
+	copyFile(t, filepath.Join(real, "scripts", "source-distance.mjs"), filepath.Join(scriptsDir, "source-distance.mjs"))
+	copyFile(t, filepath.Join(real, "scripts", "lib", "source-distance.mjs"), filepath.Join(scriptsDir, "lib", "source-distance.mjs"))
+	if err := os.Symlink(filepath.Join(real, "node_modules"), filepath.Join(root, "node_modules")); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func writeAlignerPin(t *testing.T, repo, model string) {
@@ -278,10 +286,11 @@ func verifyStamp(t *testing.T, repo, file string) (ok bool, errs []string) {
 }
 
 type stampFields struct {
-	Verdict      string `json:"verdict"`
-	Aligner      string `json:"aligner"`
-	Rewrites     int    `json:"rewrites"`
-	AlignerCalls int    `json:"alignerCalls"`
+	Verdict        string `json:"verdict"`
+	Aligner        string `json:"aligner"`
+	Rewrites       int    `json:"rewrites"`
+	AlignerCalls   int    `json:"alignerCalls"`
+	EnglishSkipped string `json:"englishSkipped"`
 }
 
 func readStamp(t *testing.T, repo, file string) *stampFields {
@@ -584,4 +593,105 @@ func mustRead(t *testing.T, path string) string {
 		t.Fatal(err)
 	}
 	return string(data)
+}
+
+// gpEnglish is a synthetic English version of the GP; body is its MDX body.
+func gpEnglish(body string) string {
+	return `---
+title: "What a lighthouse logbook teaches on-call"
+ticketId: "GP-PENDING"
+sourceUrl: "` + gpSourceURL + `"
+lang: "en"
+summary: "Mara Quill moves the lighthouse logbook into on-call handoffs."
+tags: ["operations"]
+---
+
+` + body
+}
+
+const (
+	gpENOwnWords = "Mara Quill uses an old lighthouse habit to talk about on-call handoffs. Mogu's take: a missing line is itself the alarm, and cheaper than any monitor.\n"
+	// gpENVerbatim carries two source sentences word for word, unquoted.
+	gpENVerbatim = "Mara Quill opens with this: The lighthouse logbook was the first on-call runbook I ever trusted. Every keeper wrote the weather, the passing ships, and the state of the lamp before midnight. That is the whole idea.\n"
+)
+
+// TestRun_GPEnglishVerbatimCheck covers〈英文版逐字照搬原文〉,〈英文版沒過不重翻〉
+// and clearing englishSkipped once a passing English version is added later.
+func TestRun_GPEnglishVerbatimCheck(t *testing.T) {
+	t.Run("pass", func(t *testing.T) {
+		aligner := &scriptedAligner{modes: []string{"guide", "guide"}}
+		s, _, tmp := makeGPRunHarness(t, aligner, gpWriter(llm.FakeResponse{Output: gpEnglish(gpENOwnWords), WriteFile: "translated-en.mdx"})...)
+		_, _ = SetupWorkDir(s)
+		if err := Run(context.Background(), s); err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+		if s.EnglishCheck != EnglishCheckPass || s.ENFilename == "" {
+			t.Fatalf("English check = %q, deployed en = %q", s.EnglishCheck, s.ENFilename)
+		}
+		if ok, errs := verifyStamp(t, tmp, filepath.Join(s.Cfg.PostsDir, s.ENFilename)); !ok {
+			t.Fatalf("English version fails stamp verification: %v", errs)
+		}
+	})
+
+	t.Run("verbatim then a passing retry", func(t *testing.T) {
+		aligner := &scriptedAligner{modes: []string{"guide", "guide"}}
+		s, fake, tmp := makeGPRunHarness(t, aligner, gpWriter(llm.FakeResponse{Output: gpEnglish(gpENVerbatim), WriteFile: "translated-en.mdx"})...)
+		_, _ = SetupWorkDir(s)
+		if err := Run(context.Background(), s); err != nil {
+			t.Fatalf("Run: %v", err)
+		}
+		if s.EnglishCheck != EnglishCheckSkippedVerbatim {
+			t.Fatalf("English check = %q, want %s", s.EnglishCheck, EnglishCheckSkippedVerbatim)
+		}
+		if len(fake.Called) != 6 {
+			t.Fatalf("writer calls = %d, want 6: a failing English version is not retranslated", len(fake.Called))
+		}
+		if s.ENFilename != "" {
+			t.Fatalf("the verbatim English version was deployed as %s", s.ENFilename)
+		}
+		entries, _ := os.ReadDir(s.Cfg.PostsDir)
+		for _, entry := range entries {
+			if strings.HasPrefix(entry.Name(), "en-") {
+				t.Fatalf("posts/ still has %s", entry.Name())
+			}
+		}
+		zh := filepath.Join(s.Cfg.PostsDir, s.Filename)
+		if stamp := readStamp(t, tmp, zh); stamp.EnglishSkipped != "verbatim" {
+			t.Fatalf("zh-tw stamp = %+v, want englishSkipped verbatim", stamp)
+		}
+		if ok, errs := verifyStamp(t, tmp, zh); !ok {
+			t.Fatalf("marking englishSkipped broke the zh-tw stamp: %v", errs)
+		}
+
+		// A later run adds a passing English version and clears the mark.
+		retry := NewState()
+		retry.Cfg, retry.Log, retry.Counter = s.Cfg, s.Log, s.Counter
+		retry.Prefix, retry.PromptTicketID = "GP", "GP-PENDING"
+		retry.WorkDir = s.WorkDir
+		retry.FromStepInt = StepTranslate
+		retry.ExistingFile = s.Filename
+		retry.SkipBuild, retry.SkipPush, retry.SkipValidate = true, true, true
+		retryFake := llm.NewFakeClaude().WithResponses(llm.FakeResponse{Output: strings.ReplaceAll(gpEnglish(gpENOwnWords), "GP-PENDING", s.PromptTicketID), WriteFile: "translated-en.mdx"})
+		disp, err := llm.NewDispatcher(logx.New(), retryFake)
+		if err != nil {
+			t.Fatal(err)
+		}
+		retry.Dispatcher = disp
+		if err := Run(context.Background(), retry); err != nil {
+			t.Fatalf("recovery Run: %v", err)
+		}
+		if retry.EnglishCheck != EnglishCheckPass {
+			t.Fatalf("recovery English check = %q", retry.EnglishCheck)
+		}
+		if stamp := readStamp(t, tmp, zh); stamp.EnglishSkipped != "" {
+			t.Fatalf("zh-tw stamp still marks englishSkipped after a passing English version: %+v", stamp)
+		}
+		if ok, errs := verifyStamp(t, tmp, zh); !ok {
+			t.Fatalf("zh-tw stamp broke when the mark was cleared: %v", errs)
+		}
+		en := filepath.Join(s.Cfg.PostsDir, "en-"+s.Filename)
+		if ok, errs := verifyStamp(t, tmp, en); !ok {
+			t.Fatalf("recovered English version fails stamp verification: %v", errs)
+		}
+	})
 }

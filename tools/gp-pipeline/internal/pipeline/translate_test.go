@@ -54,9 +54,14 @@ zh-tw body
 		t.Fatal(err)
 	}
 
+	// A GP English version goes through the verbatim check, which asks the
+	// real source-distance CLI whether the post needs a stamp.
+	scriptsDir := filepath.Join(tmp, "scripts")
+	installSourceDistanceCLI(t, tmp, scriptsDir)
+
 	s := NewState()
 	s.Log = logx.New()
-	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir}
+	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir, ScriptsDir: scriptsDir}
 	s.WorkDir = workDir
 	s.WriterDispatcher = disp
 	s.Dispatcher = disp
@@ -642,5 +647,38 @@ Read [Agent](/glossary#agent), not ` + "`/glossary#inline`" + `.
 	}
 	if strings.Contains(string(sidecar), `[Agent](/glossary#agent)`) {
 		t.Fatalf("sidecar kept the zh-tw glossary target:\n%s", sidecar)
+	}
+}
+
+// TestTranslate_DropsCopiedSourceDistanceStamp: the zh-tw stamp describes the
+// zh-tw body only; an English version never inherits it from the model.
+func TestTranslate_DropsCopiedSourceDistanceStamp(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+	fake.WithResponses(llm.FakeResponse{Output: `---
+title: "Fake Title"
+ticketId: "GP-252"
+lang: "en"
+sourceUrl: "https://example.com/post"
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  metrics:
+    maxRun: 1
+---
+English body
+`})
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(sidecar), "sourceDistance") || strings.Contains(string(sidecar), "maxRun") {
+		t.Fatalf("English sidecar kept the copied zh-tw stamp:\n%s", sidecar)
+	}
+	if !strings.Contains(string(sidecar), "English body") {
+		t.Fatalf("sidecar lost its body:\n%s", sidecar)
 	}
 }

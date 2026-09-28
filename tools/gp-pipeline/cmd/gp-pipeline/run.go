@@ -31,14 +31,17 @@ type runReport struct {
 	RalphPassed         bool   `json:"ralphPassed,omitempty"`
 	// SourceDistance is the GP source-distance outcome (verdict, rewrite
 	// rounds, aligner calls and the evidence directory in the work dir).
-	SourceDistance   *pipeline.SourceDistanceOutcome `json:"sourceDistance,omitempty"`
-	TranslateModel   string                          `json:"translateModel,omitempty"`
-	TranslateHarness string                          `json:"translateHarness,omitempty"`
-	Timings          map[string]int                  `json:"timings,omitempty"`
-	ElapsedMs        int64                           `json:"elapsedMs"`
-	ErrorCode        int                             `json:"errorCode,omitempty"`
-	Error            string                          `json:"error,omitempty"`
-	DryRun           bool                            `json:"dryRun,omitempty"`
+	SourceDistance *pipeline.SourceDistanceOutcome `json:"sourceDistance,omitempty"`
+	// EnglishCheck is the GP English verbatim check: PASS, or
+	// SKIPPED_VERBATIM when the English version was dropped.
+	EnglishCheck     string         `json:"englishCheck,omitempty"`
+	TranslateModel   string         `json:"translateModel,omitempty"`
+	TranslateHarness string         `json:"translateHarness,omitempty"`
+	Timings          map[string]int `json:"timings,omitempty"`
+	ElapsedMs        int64          `json:"elapsedMs"`
+	ErrorCode        int            `json:"errorCode,omitempty"`
+	Error            string         `json:"error,omitempty"`
+	DryRun           bool           `json:"dryRun,omitempty"`
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
@@ -281,6 +284,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		DedupVerdict:        s.DedupVerdict,
 		RalphPassed:         s.RalphPassed,
 		SourceDistance:      s.SourceDistanceResult,
+		EnglishCheck:        s.EnglishCheck,
 		TranslateModel:      s.TranslateModel,
 		TranslateHarness:    s.TranslateHarness,
 		Timings:             s.Timings,

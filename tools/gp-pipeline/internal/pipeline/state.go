@@ -168,6 +168,9 @@ type State struct {
 	// SourceDistanceResult is the GP source-distance outcome for the run report;
 	// nil when the step did not run.
 	SourceDistanceResult *SourceDistanceOutcome
+	// EnglishCheck is the GP English verbatim check result (PASS or
+	// SKIPPED_VERBATIM); empty when no English version was checked.
+	EnglishCheck string
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int

@@ -266,5 +266,6 @@ func PrintSummary(w io.Writer, s *State) {
 	}
 	if s.Prefix == "GP" {
 		fmt.Fprintf(w, "Source distance: %s\n", sourceDistanceSummary(s.SourceDistanceResult))
+		fmt.Fprintf(w, "English check  : %s\n", nonEmpty(s.EnglishCheck, "not run"))
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
@@ -31,6 +32,16 @@ const (
 
 	sourceDistanceEvidenceDir = "source-distance"
 	rewriteDraftFile          = "rewrite-draft.mdx"
+	// sourceDistanceField is the stamp's frontmatter key.
+	sourceDistanceField = "sourceDistance"
+)
+
+// English verbatim check results, as the run report shows them.
+const (
+	EnglishCheckPass            = "PASS"
+	EnglishCheckSkippedVerbatim = "SKIPPED_VERBATIM"
+	// englishSkippedVerbatim is the zh-tw stamp's englishSkipped value.
+	englishSkippedVerbatim = "verbatim"
 )
 
 // Source-distance verdicts, as scripts/source-distance.mjs reports them.
@@ -317,6 +328,85 @@ func (s *State) stampSourceDistance(ctx context.Context, finalPath, scorePath st
 		return NewStepError(14, fmt.Errorf("source-distance: stamp: %w", err))
 	}
 	return nil
+}
+
+// checkEnglishVerbatim is the GP English check (openspec source-distance-stamp
+// 〈英文版 SHALL 通過逐字 n-gram 檢查〉). A passing English version gets its own
+// stamp and clears a zh-tw englishSkipped mark left by an earlier run. A
+// failing one is removed and never retranslated: the zh-tw stamp records
+// englishSkipped: verbatim, the run report says so, and zh-tw deploys alone.
+func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string) error {
+	required, err := s.sourceDistanceRequired(ctx, enPath)
+	if err != nil {
+		return err
+	}
+	if !required {
+		s.Log.Info("  English version has no external source to check against")
+		return nil
+	}
+	capture, err := s.sourceDistanceCapture(ctx, zhPath)
+	if err != nil {
+		return err
+	}
+	evidence := filepath.Join(s.WorkDir, sourceDistanceEvidenceDir)
+	if err := os.MkdirAll(evidence, 0o755); err != nil {
+		return fmt.Errorf("english check: %w", err)
+	}
+	resultPath := filepath.Join(evidence, "en-check.json")
+	out, err := s.sourceDistanceCLI(ctx, "ngram", "--file", enPath, "--source", capture, "--posts-dir", s.Cfg.PostsDir)
+	if err != nil {
+		return NewStepError(14, fmt.Errorf("english check: %w", err))
+	}
+	if err := os.WriteFile(resultPath, out, 0o644); err != nil {
+		return fmt.Errorf("english check: keep result: %w", err)
+	}
+	var result struct {
+		Verdict string `json:"verdict"`
+	}
+	if err := json.Unmarshal(out, &result); err != nil {
+		return fmt.Errorf("english check: parse result: %w", err)
+	}
+
+	switch result.Verdict {
+	case SourceDistancePass:
+		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", enPath, "--result", resultPath, "--posts-dir", s.Cfg.PostsDir); err != nil {
+			return NewStepError(14, fmt.Errorf("english check: stamp the English version: %w", err))
+		}
+		if zhSkippedEnglish(zhPath) {
+			if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--clear-english-skipped"); err != nil {
+				return NewStepError(14, fmt.Errorf("english check: clear englishSkipped: %w", err))
+			}
+		}
+		s.EnglishCheck = EnglishCheckPass
+		s.Log.OK("  English verbatim check PASS")
+		return nil
+	case SourceDistanceFail:
+		if err := os.Remove(enPath); err != nil {
+			return fmt.Errorf("english check: remove the failing English version: %w", err)
+		}
+		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--english-skipped", englishSkippedVerbatim); err != nil {
+			return NewStepError(14, fmt.Errorf("english check: mark the zh-tw stamp englishSkipped: %w", err))
+		}
+		s.EnglishCheck = EnglishCheckSkippedVerbatim
+		s.Log.Warn("  English version copies the source verbatim; it is removed without a retranslation and zh-tw deploys alone (evidence: %s)", resultPath)
+		return nil
+	default:
+		return NewStepError(14, fmt.Errorf("english check: unexpected verdict %q", result.Verdict))
+	}
+}
+
+// zhSkippedEnglish reports whether a zh-tw stamp carries englishSkipped.
+func zhSkippedEnglish(path string) bool {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return false
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return false
+	}
+	block, ok := f.GetBlock(sourceDistanceField)
+	return ok && strings.Contains(block, "\n  englishSkipped:")
 }
 
 // sourceDistanceRequired asks the Node side whether final.mdx needs a stamp

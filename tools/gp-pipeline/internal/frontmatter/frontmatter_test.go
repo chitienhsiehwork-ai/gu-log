@@ -648,3 +648,30 @@ func TestRepairSingleQuotedScalars_LeavesValidBlockAlone(t *testing.T) {
 		t.Fatalf("bytes changed: %q", f.Bytes())
 	}
 }
+
+func TestRemoveBlock(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+sourceDistance:
+  policy: 'source-distance/v1'
+  metrics:
+    maxRun: 2
+lang: "en"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if !f.RemoveBlock("sourceDistance") {
+		t.Fatal("RemoveBlock reported the block missing")
+	}
+	want := "---\ntitle: \"Hello\"\nlang: \"en\"\n---\nbody\n"
+	if got := string(f.Bytes()); got != want {
+		t.Fatalf("after RemoveBlock:\n%s\nwant:\n%s", got, want)
+	}
+	if f.RemoveBlock("sourceDistance") {
+		t.Fatal("RemoveBlock reported a removed block as present")
+	}
+}
