@@ -77,3 +77,18 @@
 - [ ] 12.1 遠端舊分支（例如 `backup/main-pre-squash`）HEAD 上的全文：CCC 刪 remote branch 會 403，併入 issue #1111
 - [ ] 12.2 舊 Vercel deployment 網址的 Deployment Protection 或保留期限
 - [ ] 12.3 VM 更新：延到導讀新格式上線後；在那之前 CI 棘輪會擋下 VM 寫回墓碑的 PR
+
+## 13. 實作審查第 1 輪修正
+
+- [x] 13.1 Tribunal 碰到下架文章改回一般失敗碼 1（`tribunal.sh`、`tribunal-v2-run.ts` 一致），batch 與 quota loop 記一筆失敗就繼續、不停機也不查 ledger；runbook 的 exit code 說明同步，shell 測試補 stale `QUOTA_SUSPENDED` 與 loop 不 drain 的情境
+- [x] 13.2 下架工具刪掉連網查 metadata 的程式、`--cache`、`--prune-assets` 與預設規則檔路徑，`--list` 必填；`sourceTitle` 退路改成既有值 → `source` → 網域，不補也不改 `author`
+- [x] 13.3 修正下架時補錯的 `author`：GP-59～62、GP-185 改成「DeepLearning.AI」，GP-190 改成「@MindOS_Lisa」，GP-248 改成「张鑫旭」，繁中與英文一致
+- [x] 13.4 sitemap、RSS、JSON feed、搜尋索引改以「項目」判斷下架文章（RSS 看每個 item 的 link／guid，JSON 條目看 slug／url／id），公開文章正文連到墓碑頁不算；補「公開文章連到下架文章」測試
+- [x] 13.5 下架文章的逐篇檢查只留在 exporter（新增 `noindex` 與 JSON `body` 必須是空字串），postbuild 驗證只管機器輸出、列表與導覽
+- [x] 13.6 棘輪的來源封鎖改用 dedup 的 `layer1Match`（補上 YouTube）；`normalizeUrl` 去掉 `smid`、`fbclid`、`gclid`、`mc_cid`、`mc_eid`
+- [x] 13.7 JS 的下架判斷統一用 `isTakenDownData`／`isTakenDownSource`，不相容欄位清單只留一份
+- [x] 13.8 `BaseLayout` 的 robots meta 只留 `robots` 一個參數
+- [x] 13.9 定稿文案的逐字比對只留在 `tests/tombstone-copy.test.ts`，E2E 改從文案模組與 frontmatter 算預期值，刪掉拿常數測常數的斷言
+- [x] 13.10 墓碑頁：石碑圖載入失敗時墊石頭色碑身（`--color-tombstone-stone`，兩主題碑文 5.63:1）；對話框改成中文只在標點處換行、各行平衡，390／360px 都沒有孤行；uiux-auditor 深淺主題、390px 與桌機重跑
+- [x] 13.11 publisher 碰到在 origin/main 已下架的 PASS 文章就跳過，不開 PR
+- [x] 13.12 更正 `getTombstoneHeading` 的註解：墓碑 Markdown 的 H1 用原標題
