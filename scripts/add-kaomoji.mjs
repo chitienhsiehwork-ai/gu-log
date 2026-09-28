@@ -7,6 +7,9 @@
  *   node scripts/add-kaomoji.mjs              # dry-run (show what would change)
  *   node scripts/add-kaomoji.mjs --write      # actually write changes
  *   node scripts/add-kaomoji.mjs --write file1.mdx file2.mdx  # specific files only
+ *
+ * A path that exists is used as is, inside or outside src/content/posts/ (the gp-pipeline
+ * runs this on its work-dir final.mdx); a bare filename falls back to src/content/posts/.
  */
 
 import fs from 'fs';
@@ -136,7 +139,7 @@ function main() {
   let files;
   if (specificFiles.length > 0) {
     files = specificFiles.map((f) => {
-      if (fs.existsSync(f)) return f;
+      if (fs.existsSync(f)) return path.resolve(f);
       const full = path.join(POSTS_DIR, path.basename(f));
       if (fs.existsSync(full)) return full;
       console.error(`File not found: ${f}`);

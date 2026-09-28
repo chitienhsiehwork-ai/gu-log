@@ -8,21 +8,21 @@
  * Usage:
  *   node scripts/suggest-crosslinks.mjs                  # stdout JSON
  *   node scripts/suggest-crosslinks.mjs > suggestions.json
- *   node scripts/suggest-crosslinks.mjs --verbose        # include scores
+ *
+ * inject-related-posts.mjs 直接 import 這裡的函式，替 posts/ 以外的檔案找相關文章。
  */
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const POSTS_DIR = path.join(__dirname, '../src/content/posts');
+export const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
-const VERBOSE = process.argv.includes('--verbose');
 const TOP_N = 3;
 
 // ─── Frontmatter parser (reused from validate-posts.mjs) ───────────
-function parseFrontmatter(content) {
+export function parseFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return null;
 
@@ -115,75 +115,77 @@ function relevance(postA, postB) {
 }
 
 // ─── Load all posts ─────────────────────────────────────────────────
-function loadPosts() {
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx'));
+/** 把一篇文章的 frontmatter 整理成比對用的資料；檔名決定 slug。 */
+export function postInfo(filename, content) {
+  const fm = parseFrontmatter(content);
+  if (!fm) return null;
+
+  const slug = filename.replace(/\.mdx$/, '');
+  const lang = fm.lang || (filename.startsWith('en-') ? 'en' : 'zh-tw');
+
+  return {
+    file: filename,
+    slug,
+    ticketId: fm.ticketId || null,
+    title: fm.title || slug,
+    lang,
+    tags: fm.tags || [],
+  };
+}
+
+export function loadPosts(postsDir = POSTS_DIR) {
+  const files = fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx'));
   const posts = [];
 
   for (const filename of files) {
-    const filepath = path.join(POSTS_DIR, filename);
-    const content = fs.readFileSync(filepath, 'utf-8');
-    const fm = parseFrontmatter(content);
-
-    if (!fm) continue;
-
-    const slug = filename.replace(/\.mdx$/, '');
-    const lang = fm.lang || (filename.startsWith('en-') ? 'en' : 'zh-tw');
-
-    posts.push({
-      file: filename,
-      slug,
-      ticketId: fm.ticketId || null,
-      title: fm.title || slug,
-      lang,
-      tags: fm.tags || [],
-    });
+    const post = postInfo(filename, fs.readFileSync(path.join(postsDir, filename), 'utf-8'));
+    if (post) posts.push(post);
   }
 
   return posts;
 }
 
-// ─── Main ───────────────────────────────────────────────────────────
-const posts = loadPosts();
-process.stderr.write(`Loaded ${posts.length} posts\n`);
-
-// Group by lang for efficient lookup
-const byLang = {};
-for (const post of posts) {
-  if (!byLang[post.lang]) byLang[post.lang] = [];
-  byLang[post.lang].push(post);
-}
-
-const suggestions = [];
-
-for (const post of posts) {
-  const candidates = (byLang[post.lang] || []).filter((p) => p.slug !== post.slug);
+/**
+ * 一篇文章的前 N 篇相關文章（同語言）。文章本身不算候選：同 slug，或在 posts/ 以外
+ * （例如 pipeline 工作目錄裡的草稿）但 ticket 已配號、跟語料裡的某篇是同一篇。
+ */
+export function suggestFor(post, posts) {
+  const allocated = post.ticketId && !/-PENDING$/.test(post.ticketId) ? post.ticketId : null;
+  const candidates = posts.filter(
+    (p) => p.lang === post.lang && p.slug !== post.slug && !(allocated && p.ticketId === allocated)
+  );
 
   // Score all candidates
-  const scored = candidates.map((candidate) => {
-    const score = relevance(post, candidate);
-    return {
-      ticketId: candidate.ticketId,
-      title: candidate.title,
-      slug: candidate.slug,
-      ...(VERBOSE
-        ? { relevance: Math.round(score * 1000) / 1000 }
-        : { relevance: Math.round(score * 1000) / 1000 }),
-    };
-  });
+  const scored = candidates.map((candidate) => ({
+    ticketId: candidate.ticketId,
+    title: candidate.title,
+    slug: candidate.slug,
+    relevance: Math.round(relevance(post, candidate) * 1000) / 1000,
+  }));
 
   // Sort descending, take top N with score > 0
   scored.sort((a, b) => b.relevance - a.relevance);
-  const top = scored.filter((s) => s.relevance > 0).slice(0, TOP_N);
+  return scored.filter((s) => s.relevance > 0).slice(0, TOP_N);
+}
 
-  suggestions.push({
+// ─── Main ───────────────────────────────────────────────────────────
+function main() {
+  const posts = loadPosts();
+  process.stderr.write(`Loaded ${posts.length} posts\n`);
+
+  const suggestions = posts.map((post) => ({
     file: post.file,
     slug: post.slug,
     lang: post.lang,
-    suggestedLinks: top,
-  });
+    suggestedLinks: suggestFor(post, posts),
+  }));
+
+  process.stdout.write(JSON.stringify(suggestions, null, 2) + '\n');
+  process.stderr.write(
+    `Done. ${suggestions.filter((s) => s.suggestedLinks.length > 0).length} posts have suggestions.\n`
+  );
 }
 
-process.stdout.write(JSON.stringify(suggestions, null, 2) + '\n');
-process.stderr.write(
-  `Done. ${suggestions.filter((s) => s.suggestedLinks.length > 0).length} posts have suggestions.\n`
-);
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main();
+}
