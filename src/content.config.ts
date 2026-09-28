@@ -91,22 +91,6 @@ const vibeScoreSchema = z.object({
   clawdNote: retiredClawdNoteKey.optional(),
 });
 
-// 來源距離章（openspec: source-distance-stamp）：schema 只驗型別，policy 版本、
-// 指紋與指標由 scripts/validate-posts.mjs 驗；讀者看得到的輸出都不帶這個欄位。
-const sourceDistanceSchema = z.object({
-  policy: z.string(),
-  verdict: z.string(),
-  subjectSha256: z.string(),
-  sourceSha256: z.string(),
-  sourceUnits: z.number(),
-  metrics: z.record(z.string(), z.number()),
-  aligner: z.string().optional(),
-  rewrites: z.number().optional(),
-  alignerCalls: z.number().optional(),
-  englishSkipped: z.string().optional(),
-  checkedAt: z.string(),
-});
-
 const dedupSchema = z
   .object({
     independentDiff: z.string().optional(),
@@ -176,7 +160,9 @@ const postsCollection = defineCollection({
         .optional(),
       // 來源自己的標題（墓碑卡片第一行）；不得等於 gu-log 自己的標題。
       sourceTitle: z.string().optional(),
-      sourceDistance: sourceDistanceSchema.optional(),
+      // `sourceDistance`（來源距離章，openspec source-distance-stamp）刻意不宣告：站內沒有
+      // 程式讀它，Zod 預設丟掉沒宣告的欄位，post.data 與讀者看得到的輸出就不會帶到；
+      // 內容由 scripts/validate-posts.mjs 驗。
       series: z
         .object({
           name: z.string(),
