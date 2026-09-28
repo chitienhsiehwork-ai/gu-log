@@ -114,6 +114,26 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
     }
   });
 
+  it('收尾的 MoguNote 之前才插延伸閱讀；後面還有正文時放文末，不插進文章中間', () => {
+    const closing = draft(
+      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '導讀正文第一句。\n\n<MoguNote>\nMogu 收尾的吐槽。\n</MoguNote>'
+    );
+    run('inject-related-posts.mjs', ['--file', closing]);
+    const closed = fs.readFileSync(closing, 'utf8');
+    expect(closed.indexOf('## 延伸閱讀')).toBeGreaterThan(-1);
+    expect(closed.indexOf('## 延伸閱讀')).toBeLessThan(closed.indexOf('<MoguNote>'));
+
+    const guide = draft(
+      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>\n\n## 回原文看什麼\n\n去讀原文。'
+    );
+    run('inject-related-posts.mjs', ['--file', guide]);
+    const after = fs.readFileSync(guide, 'utf8');
+    expect(after.indexOf('## 延伸閱讀')).toBeGreaterThan(after.indexOf('去讀原文。'));
+    expect(after.indexOf('</MoguNote>')).toBeLessThan(after.indexOf('## 回原文看什麼'));
+  });
+
   it('never suggests the allocated post the draft will replace', () => {
     const self = posts.find((p) => p.lang === 'zh-tw' && p.ticketId && p.tags.includes(commonTag))!;
     const file = draft(
@@ -122,6 +142,22 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
     );
     const links = suggestFor(postInfo('final.mdx', fs.readFileSync(file, 'utf8'))!, posts);
     expect(links.map((l: { ticketId: string | null }) => l.ticketId)).not.toContain(self.ticketId);
+  });
+});
+
+describe('suggest-crosslinks.mjs 的候選語料', () => {
+  it('不把已下架的墓碑當成延伸閱讀候選（openspec post-takedown）', () => {
+    const corpus = path.join(dir, 'posts');
+    fs.mkdirSync(corpus);
+    fs.writeFileSync(
+      path.join(corpus, 'gp-1-20260101-live.mdx'),
+      '---\nticketId: "GP-1"\ntitle: "還在的文章"\nlang: "zh-tw"\ntags: ["ui"]\n---\n\n正文。\n'
+    );
+    fs.writeFileSync(
+      path.join(corpus, 'gp-2-20260101-gone.mdx'),
+      '---\nticketId: "GP-2"\ntitle: "下架的文章"\nlang: "zh-tw"\nstatus: "taken-down"\ntags: ["ui"]\n---\n'
+    );
+    expect(loadPosts(corpus).map((p: { ticketId: string | null }) => p.ticketId)).toEqual(['GP-1']);
   });
 });
 

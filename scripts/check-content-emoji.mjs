@@ -1,6 +1,12 @@
 #!/usr/bin/env node
+// Reader-visible emoji ratchet. Usage:
+//   node scripts/check-content-emoji.mjs --staged            # pre-commit
+//   node scripts/check-content-emoji.mjs --base=<commit>     # CI, a PR's changes
+//   node scripts/check-content-emoji.mjs <file>...           # a draft outside git
+// Exit codes: 0 no unapproved emoji, 1 findings, 2 the check could not finish.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, normalize, sep } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -315,9 +321,24 @@ function loadGitChanges(repoRoot, mode) {
   }));
 }
 
+// A draft outside git (e.g. a gp-pipeline work dir) has no diff: every
+// reader-visible line counts as added, and no approval applies, since an
+// approval binds a committed post's path and source line.
+function loadDraftChanges(files) {
+  return files.map((file) => {
+    const content = readFileSync(file, 'utf8');
+    return {
+      path: file,
+      content,
+      addedSourceLines: new Set(content.split('\n').map((_, index) => index + 1)),
+    };
+  });
+}
+
 function parseCLI(argv) {
   let mode = null;
   let repoRoot = DEFAULT_REPO_ROOT;
+  const files = [];
   for (const arg of argv) {
     if (arg === '--staged') {
       if (mode) throw new Error('--staged 與 --base 只能擇一');
@@ -326,9 +347,14 @@ function parseCLI(argv) {
       if (mode) throw new Error('--staged 與 --base 只能擇一');
       mode = { kind: 'base', base: arg.slice('--base='.length) };
     } else if (arg.startsWith('--repo-root=')) repoRoot = arg.slice('--repo-root='.length);
+    else if (!arg.startsWith('-')) files.push(arg);
     else throw new Error(`未知參數：${arg}`);
   }
-  if (!mode) throw new Error('必須指定 --staged 或 --base=<commit>');
+  if (files.length > 0) {
+    if (mode) throw new Error('指定檔案時不能再加 --staged 或 --base');
+    return { mode: { kind: 'files', files }, repoRoot };
+  }
+  if (!mode) throw new Error('必須指定 --staged、--base=<commit> 或要檢查的檔案');
   repoRoot = normalize(repoRoot);
   if (mode.kind === 'base') {
     if (!mode.base) throw new Error('--base 不得為空');
@@ -340,17 +366,29 @@ function parseCLI(argv) {
 function runCLI() {
   try {
     const { mode, repoRoot } = parseCLI(process.argv.slice(2));
-    const allowlist = JSON.parse(readSnapshotFile(repoRoot, mode, ALLOWLIST_PATH));
-    const approvalCorpus = readSnapshotFile(repoRoot, mode, APPROVAL_CORPUS_PATH);
-    const changes = loadGitChanges(repoRoot, mode);
-    const readCurrentPost = (postPath) => {
-      try {
-        return readSnapshotFile(repoRoot, mode, postPath);
-      } catch {
-        return null;
-      }
-    };
-    const result = checkContentChanges({ changes, allowlist, approvalCorpus, readCurrentPost });
+    let changes;
+    let result;
+    if (mode.kind === 'files') {
+      changes = loadDraftChanges(mode.files);
+      result = checkContentChanges({
+        changes,
+        allowlist: { version: 1, entries: [] },
+        approvalCorpus: '',
+        readCurrentPost: () => null,
+      });
+    } else {
+      const allowlist = JSON.parse(readSnapshotFile(repoRoot, mode, ALLOWLIST_PATH));
+      const approvalCorpus = readSnapshotFile(repoRoot, mode, APPROVAL_CORPUS_PATH);
+      changes = loadGitChanges(repoRoot, mode);
+      const readCurrentPost = (postPath) => {
+        try {
+          return readSnapshotFile(repoRoot, mode, postPath);
+        } catch {
+          return null;
+        }
+      };
+      result = checkContentChanges({ changes, allowlist, approvalCorpus, readCurrentPost });
+    }
     if (result.errors.length > 0) {
       for (const error of result.errors) console.error(`❌ ${error}`);
       process.exitCode = 1;
@@ -361,7 +399,7 @@ function runCLI() {
     console.error(
       `❌ content emoji policy 無法完成：${error instanceof Error ? error.message : error}`
     );
-    process.exitCode = 1;
+    process.exitCode = 2;
   }
 }
 

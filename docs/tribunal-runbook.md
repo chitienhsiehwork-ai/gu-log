@@ -6,7 +6,7 @@
 
 ## GP source-preservation boundary
 
-`gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。理由是 GP 導讀帶來源距離章：正文一改，章就失效，只有 gp-pipeline 的導讀流程與 `stamp` 能重新蓋章。所以所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕，`pnpm tribunal:run`（Tribunal v2）對 GP 也只評分，不跑寫手、FactCorrector 與 Librarian 的改動。persona／narrative 低分可以誠實記錄，但不得觸發改寫；要改 GP 正文就回 gp-pipeline，改完重新蓋章。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
+`gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。理由是 GP 導讀帶來源距離章：正文一改，章就失效，只有 gp-pipeline 的導讀流程與 `stamp` 能重新蓋章。所以所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕，`pnpm tribunal:run`（Tribunal v2）對 GP 也只評分，不跑寫手、FactCorrector 與 Librarian 的改動。GP 某一關沒過時分數怎麼寫、其餘評審照不照跑，見 openspec `tribunal-score-persistence`。persona／narrative 低分可以誠實記錄，但不得觸發改寫；要改 GP 正文就回 gp-pipeline，改完重新蓋章。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
 ## Writer candidate 的 frontmatter 邊界
 

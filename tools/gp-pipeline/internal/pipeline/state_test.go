@@ -70,8 +70,11 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	s.SourceIsX = true
 	s.OriginalDate = "2026-04-11"
 	s.TranslatedDate = "2026-04-11"
+	// A GP refine runs the content checks; stubs stand in for them.
+	installContentLintStubs(t, filepath.Join(tmp, "scripts"))
 	s.Cfg = &config.Config{
 		RepoRoot:     tmp,
+		ScriptsDir:   filepath.Join(tmp, "scripts"),
 		WritingGuide: styleGuide,
 		PostsDir:     filepath.Join(tmp, "posts"),
 	}

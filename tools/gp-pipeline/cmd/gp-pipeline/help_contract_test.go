@@ -236,6 +236,7 @@ func TestGPReadingGuideHelpContract(t *testing.T) {
 			"post-fixer", "source-distance", "reading guide", "--from-step source-distance", "englishSkipped: verbatim",
 			fmt.Sprintf("most %d rewrites", pipeline.MaxSourceDistanceRewrites),
 			fmt.Sprintf("%d GP source distance did not pass", pipeline.SourceDistanceExitCode),
+			"content checks", fmt.Sprintf("at most %d times", pipeline.MaxContentLintFixes),
 		},
 		"stamp": {
 			"--file", "--source", "the body is never changed", "outside the repo", "exit 1",

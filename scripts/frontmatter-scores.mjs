@@ -320,7 +320,7 @@ function opWrite() {
 
   entry.date = today;
   // Never record the floating `opus` alias verbatim — resolve it to the
-  // concrete build (claude-opus-4-8) so scores.*.model is a real version. A
+  // concrete build (OPUS_ALIAS_CURRENT) so scores.*.model is a real version. A
   // direct CCC subagent write could otherwise stamp the literal "opus".
   if (scoreData.model) entry.model = resolveRecordedModelId(scoreData.model);
 

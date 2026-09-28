@@ -1,0 +1,136 @@
+package pipeline
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/prompts"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
+)
+
+// A GP body has to pass the content checks the pre-commit hook runs on a post
+// (contentLintScripts) before the source-distance stamp: the stamp binds the
+// body, so a fix that the pre-commit hook forces after stamping means pairing
+// it all over again. Refine feeds what the checks flag back to the writer; the
+// stamp step refuses a body that still fails them.
+
+const (
+	// MaxContentLintFixes caps the refine calls that fix what the content
+	// checks flag in one refine.
+	MaxContentLintFixes  = 2
+	contentLintDraftFile = "lint-draft.mdx"
+	contentLintDir       = "content-lint"
+	// contentLintCrashExit is what a check that crashes, or is missing, exits
+	// with instead of node's default 1, which the checks use for findings.
+	contentLintCrashExit = 70
+)
+
+// contentLintCrashHook makes node exit contentLintCrashExit on an uncaught
+// exception or rejection, including a check script that does not exist, so a
+// crash is never sent to refine as findings.
+var contentLintCrashHook = fmt.Sprintf(
+	"--import=data:text/javascript,process.on('uncaughtException',(e)=>{console.error(e);process.exit(%d)})",
+	contentLintCrashExit)
+
+// contentLintScripts are the checks the pre-commit hook
+// (scripts/hooks/pre-commit) runs on the text of staged zh-tw posts, plus the
+// reader-visible emoji check it runs on every staged post, and the only list
+// of them outside the hook: TestContentLintScriptsMatchPreCommitHook fails when
+// the hook adds or drops a zh-tw check, or stops running the emoji check.
+var contentLintScripts = []string{
+	"check-pronoun-clarity.mjs",
+	"check-jingjing.mjs",
+	"check-ai-tells.mjs",
+	"check-content-emoji.mjs",
+}
+
+// contentLintReport runs the content checks on file and returns what they
+// flagged (exit 1), or "" when every check passes. A check that is missing,
+// cannot run or crashes stops the step: it is neither a finding to fix nor a
+// pass.
+func (s *State) contentLintReport(ctx context.Context, file string) (string, error) {
+	var report strings.Builder
+	for _, name := range contentLintScripts {
+		res, err := runner.RunWithOptions(ctx, runner.Options{
+			Name:    "node",
+			Args:    []string{contentLintCrashHook, filepath.Join(s.Cfg.ScriptsDir, name), file},
+			WorkDir: s.Cfg.RepoRoot,
+		})
+		if err == nil {
+			continue
+		}
+		if res == nil || res.ExitCode != 1 {
+			return "", NewStepError(14, fmt.Errorf("content check %s could not run or crashed: %w", name, err))
+		}
+		fmt.Fprintf(&report, "### %s\n%s\n\n", name, strings.TrimSpace(string(res.Stdout)+"\n"+string(res.Stderr)))
+	}
+	return strings.TrimSpace(report.String()), nil
+}
+
+// fixContentLint sends what the content checks flag in final.mdx back to
+// refine, at most MaxContentLintFixes times, and stops the step when the
+// checks still fail after that.
+func (s *State) fixContentLint(ctx context.Context) error {
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	for fix := 1; ; fix++ {
+		report, err := s.contentLintReport(ctx, finalPath)
+		if err != nil {
+			return err
+		}
+		if report == "" {
+			return nil
+		}
+		evidence := s.keepContentLintReport(report)
+		if fix > MaxContentLintFixes {
+			return NewStepError(14, fmt.Errorf("refine: final.mdx still fails the content checks after %d fixes; nothing was paired, stamped or deployed. A flagged proper noun needs an accepted-English decision from ShroomDog, not a translation (report: %s)", MaxContentLintFixes, evidence))
+		}
+		s.Log.Info("  content checks flagged final.mdx; sending the report back to refine (%d/%d)", fix, MaxContentLintFixes)
+		if err := s.refineFrom(ctx, contentLintDraftFile, func(ctx context.Context) error {
+			return s.runRefine(ctx, prompts.RefineData{Draft: contentLintDraftFile, LintReport: report})
+		}); err != nil {
+			return err
+		}
+	}
+}
+
+// requireContentLintClean refuses to pair or stamp a body the content checks
+// flag. Refine already fixes what they flag; this catches a body that did not
+// come out of refine, such as a work dir resumed with --from-step
+// source-distance.
+func (s *State) requireContentLintClean(ctx context.Context, finalPath string) error {
+	report, err := s.contentLintReport(ctx, finalPath)
+	if err != nil {
+		return err
+	}
+	if report == "" {
+		return nil
+	}
+	return NewStepError(14, fmt.Errorf("source-distance: final.mdx fails the content checks, so it is not paired or stamped; fix it in the work dir and resume with --from-step source-distance (report: %s)", s.keepContentLintReport(report)))
+}
+
+// keepContentLintReport saves a report in the work dir and returns its path.
+func (s *State) keepContentLintReport(report string) string {
+	dir := filepath.Join(s.WorkDir, contentLintDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		s.Log.Warn("content checks: %v", err)
+		return report
+	}
+	for n := 1; ; n++ {
+		path := filepath.Join(dir, fmt.Sprintf("report-%d.txt", n))
+		_, err := os.Stat(path)
+		if err == nil {
+			continue
+		}
+		if os.IsNotExist(err) {
+			err = os.WriteFile(path, []byte(report+"\n"), 0o644)
+		}
+		if err != nil {
+			s.Log.Warn("content checks: %v", err)
+			return report
+		}
+		return path
+	}
+}

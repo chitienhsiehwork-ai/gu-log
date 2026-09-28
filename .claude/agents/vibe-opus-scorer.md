@@ -72,6 +72,8 @@ Does the post have genuine narrative structure, or is it a linear report with de
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. If it starts with "原作者這篇..." / "This article discusses..." / source metadata the page already shows, cap narrative at 7 and usually cap vibe at 7 unless the rest immediately recovers.
 
+**GP ending:** a GP must close by sending the reader back to the original (`editorial-charter`). That pointer is required format: judge the ending by the close right before it, and never lower narrative just because the article ends on the pointer (see `scripts/vibe-scoring-standard.md`).
+
 ## Scoring Anchors
 - **10** = MP-85 (AI Vampire) — storytelling you can't stop
 - **9** = MP-30 (Anthropic Misalignment) — great analogies, natural oral feel

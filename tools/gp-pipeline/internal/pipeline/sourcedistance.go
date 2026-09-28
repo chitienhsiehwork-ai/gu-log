@@ -125,6 +125,9 @@ func (s *State) SourceDistance(ctx context.Context) error {
 		s.SourceDistanceResult = &SourceDistanceOutcome{Verdict: SourceDistanceNotRequired}
 		return nil
 	}
+	if err := s.requireContentLintClean(ctx, finalPath); err != nil {
+		return err
+	}
 	capture, err := s.sourceDistanceCapture(ctx, finalPath)
 	if err != nil {
 		return err
@@ -283,34 +286,19 @@ func (s *State) alignSourceDistance(ctx context.Context, prompt, outPath string,
 }
 
 // rewriteForSourceDistance sends a failing final.mdx back through refine with
-// the flagged passages, then reruns the post-fixers. Review does not run
-// again; the Tribunal Fact Checker catches a claim the rewrite bent.
+// the flagged passages (refine also fixes what the content checks flag), then
+// reruns the post-fixers. Review does not run again; the Tribunal Fact Checker
+// catches a claim the rewrite bent.
 func (s *State) rewriteForSourceDistance(ctx context.Context, round int, report string) error {
-	finalPath := filepath.Join(s.WorkDir, "final.mdx")
-	draftPath := filepath.Join(s.WorkDir, rewriteDraftFile)
-	article, err := os.ReadFile(finalPath)
-	if err != nil {
-		return fmt.Errorf("source-distance: read final.mdx: %w", err)
-	}
-	if err := os.WriteFile(draftPath, article, 0o644); err != nil {
-		return fmt.Errorf("source-distance: stage rewrite draft: %w", err)
-	}
-	// Refine falls back to stdout only when final.mdx is absent, so a writer
-	// that returns without writing cannot pass the old article off as a rewrite.
-	if err := os.Remove(finalPath); err != nil {
-		return fmt.Errorf("source-distance: clear final.mdx before the rewrite: %w", err)
-	}
 	s.Log.Info("  rewrite %d/%d: sending the flagged passages back to refine", round, MaxSourceDistanceRewrites)
-	if err := s.refine(ctx, prompts.RefineData{Draft: rewriteDraftFile, RewriteReport: report}); err != nil {
-		// Keep the last scored article as final.mdx so --from-step
-		// source-distance resumes from it instead of the unrefined draft.
-		if _, statErr := os.Stat(finalPath); os.IsNotExist(statErr) {
-			_ = os.WriteFile(finalPath, article, 0o644)
-		}
+	if err := s.refineFrom(ctx, rewriteDraftFile, func(ctx context.Context) error {
+		return s.refine(ctx, prompts.RefineData{Draft: rewriteDraftFile, RewriteReport: report})
+	}); err != nil {
 		return err
 	}
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	s.runPostFixers(ctx, finalPath)
-	return nil
+	return s.requireContentLintClean(ctx, finalPath)
 }
 
 func (s *State) stampSourceDistance(ctx context.Context, finalPath, scorePath string, outcome *SourceDistanceOutcome) error {

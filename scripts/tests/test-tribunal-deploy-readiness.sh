@@ -1210,7 +1210,11 @@ for failure in quota transient login config; do
   printf '{}\n' > "$writer_progress"
   rm -f "$TMP/judge-count" "$TMP/writer-calls" "$TMP/writer-args" "$claude_pause_file"
   set +e
-  FAKE_WRITER_FAILURE="$failure" run_factchecker_fixture "$TMP/writer-$failure.out"
+  # The fake quota message says "resets 5pm (UTC)". Pin "now" to 12:00 UTC so
+  # that reset is five hours out whatever the wall clock says; unpinned, a run
+  # within half an hour of 17:00 UTC saw the reset as due now and paused briefly.
+  FAKE_WRITER_FAILURE="$failure" TRIBUNAL_QUOTA_NOW_EPOCH=1767268800 \
+    run_factchecker_fixture "$TMP/writer-$failure.out"
   failure_rc=$?
   set -e
   case "$failure" in

@@ -107,6 +107,9 @@ type RefineData struct {
 	// lists only the flagged passages, never a threshold, metric or rule
 	// (openspec source-distance-stamp〈改寫 prompt 不含門檻〉).
 	RewriteReport string
+	// LintReport switches a refine into fixing what the content checks the
+	// pre-commit hook runs flagged; it carries their report.
+	LintReport string
 }
 
 // DraftFile is the refine input file name.

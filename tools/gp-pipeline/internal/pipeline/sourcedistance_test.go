@@ -185,6 +185,7 @@ func makeGPRunHarness(t *testing.T, aligner *scriptedAligner, writer ...llm.Fake
 	t.Helper()
 	s, tmp := makeRunHarnessForPrefix(t, "GP")
 	installSourceDistanceCLI(t, tmp, filepath.Join(tmp, "scripts"))
+	installContentLintStubs(t, filepath.Join(tmp, "scripts"))
 	real := realRepoRoot(t)
 	if err := os.WriteFile(filepath.Join(tmp, "scripts", "add-kaomoji.mjs"), []byte(`import fs from 'node:fs';
 const file = process.argv[process.argv.length - 1];

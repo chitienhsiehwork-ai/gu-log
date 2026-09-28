@@ -1,4 +1,22 @@
-{{if .RewriteReport}}Rewrite the {{.TicketID}} reading guide in {{.DraftFile}}. Some of its passages still read like a translation of the source; they are listed under "Flagged passages".
+{{if .LintReport}}Fix the {{.TicketID}} article in {{.DraftFile}}. The repo's content checks flagged some of its lines; their report is under "Check report".
+
+Inputs:
+- {{.DraftFile}}
+- GU-LOG_WRITER_PROMPT.md
+- CONTRIBUTING.md
+
+Check report:
+{{.LintReport}}
+
+Task:
+- Fix every flagged line and keep the rest of the article, including its frontmatter, as it is.
+- Decorative English (晶晶體): say it in natural zh-tw. Keep proper nouns, model names, code identifiers and glossary terms as they are; never translate a model name to pass the check.
+- AI-translationese tells: use the natural wording the report suggests.
+- Ambiguous 你/我: name who is meant (讀者, Mogu, ShroomDog or the source author), or rephrase.
+- Emoji: remove it, or say it in words.
+- Keep every claim's speaker, conditions, hedges and attribution, and add no facts, quotes or numbers.
+- Never write `<ShroomDogNote>`: only ShroomDog adds it, and output that contains one is rejected.
+{{else if .RewriteReport}}Rewrite the {{.TicketID}} reading guide in {{.DraftFile}}. Some of its passages still read like a translation of the source; they are listed under "Flagged passages".
 
 Inputs:
 - {{.DraftFile}}
