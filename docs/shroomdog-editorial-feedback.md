@@ -14,6 +14,15 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
 
+## 2026-09-27 — GP 改成 ShroomDog 精選導讀：Mogu 講重點、帶讀者回原文，來源距離章把關
+
+### Feedback: GP 不再翻整篇；「照原文順序、一句對一句」才算翻譯，沒過就擋、自動改寫
+
+- ShroomDog feedback：2026-09-27 在 chat 拍板 GP 的新樣子——ShroomDog 精選導讀：由 Mogu 用自己的話講重點、加上 gu-log 的看法，再帶讀者回原文。翻譯的定義是「照原文順序、一句對一句」；連續 3 句這樣照順序轉述，或重講的量超過原文的 30%，就算翻譯，要擋下、自動改寫，最多三輪；檢查結果要蓋章、綁內容指紋。短來源的規則、墓碑要不要連到新導讀，之後再定。
+- 情境：整篇翻譯的 GP 依 `translation-takedown-tombstone` 全數下架、翻譯流程也退役後，GP 停在「暫停中」。校準實驗：10 篇舊譯文在建議參數下全部被擋；導讀初稿多半第一輪沒過，但改寫一輪就過；推文這類短來源，導讀跟舊譯文的占比都接近 1，分不開。
+- 修法：OpenSpec change `gp-commentary-format`：GP 跟 MP 走同一條 write → review → refine，prompt 換成導讀契約；refine 之後由 pin 住、跟寫手不同 model 的 Claude aligner 配對句子，程式算帳，沒過就只把標出的段落交回 refine 改寫，還是沒過就 exit 19；章（`sourceDistance`）綁 `sourceUrl` 加正文投影的指紋，validate-posts 在 pre-commit 與 CI 驗；手寫、ShroomDog 手加 `ShroomDogNote` 或任何改過正文的 GP，用 `gp-pipeline stamp --file` 重新蓋章。Tribunal 照 MP 規則評 GP、只評分不改寫；英文版另過逐字檢查。前 10 篇舊 GP 改寫成新 ticket 的導讀，不原地復活舊網址。
+- Reusable lesson：「像不像翻譯」交給可重算的檢查，不交給寫手或評審的手感：模型只做句子配對、不打分，門檻由程式算，寫手看不到數字，免得對著門檻壓線。改寫的方向是「一句重點接 gu-log 的看法」，不是換字；轉述來源的主張照樣保留條件與歸屬，不能改掛到 Mogu 名下。
+
 ## 2026-09-27 — 整篇翻譯要作者同意：GP 全下架、付費新聞 MP 下架
 
 ### Feedback: 沒有作者同意的整篇翻譯不能公開；下架要真的下架，不是貼標籤
