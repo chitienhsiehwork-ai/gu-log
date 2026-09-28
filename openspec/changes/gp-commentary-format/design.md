@@ -130,7 +130,7 @@ sourceDistance:            # 繁中檔
 英文檔同樣有 `policy`、`verdict`、`subjectSha256`（英文正文投影）、`sourceSha256`、`sourceUnits`、`checkedAt`，`metrics` 換成 `{ ngramContainment, maxVerbatimWords, quotedWords }`，沒有 `aligner`、`rewrites`、`alignerCalls` 與 `englishSkipped`。
 
 - **指紋綁 `sourceUrl`＋正文投影**，不綁其他 frontmatter：Tribunal 寫分數、Fact Checker 修摘要、deploy 配號改名、清掉 `englishSkipped` 都不會讓章失效；換來源一定失效。
-- **投影**（2a 交接第 3 項，不沿用已刪的 `gp-body-projection.mjs`）：自己的 MDX AST 走訪，排除 frontmatter、`import`／`export`、圖片、機器插入的區塊（延伸閱讀、失效連結註記，以各腳本插入時的固定標記辨識，實際標記以腳本為準），以及「連到站內文章（`/posts/`、`/en/posts/` 與站內絕對網址）、文字就是目標文 ticket 或標題」的連結——這是 taxonomy 與標籤維護唯一會機械式改寫的形式。其他連結一律只取文字，包括文字不是 ticket 或標題的站內連結：不這樣做的話，把轉述包成站內連結就能躲過配對，蓋章後改連結文字章也不會過期。glossary 連結只是把既有的字包成連結，文字不變，不影響指紋。元件取子節點文字；fenced code 依決策 4 的門檻分成文字或程式碼，程式碼不進投影。投影輸出正規化成「一行一句」的純文字再算 hash，不依賴 MDX 套件的序列化格式；固定指紋測試鎖住結果。
+- **投影**（2a 交接第 3 項，不沿用已刪的 `gp-body-projection.mjs`）：自己的 MDX AST 走訪，排除 frontmatter、`import`／`export`、圖片、機器插入的區塊（延伸閱讀、失效連結註記，以各腳本插入時的固定形狀辨識，實際形狀以腳本為準：延伸閱讀是固定標題加上一份每項都是 `ticket: 標題` 站內連結的清單），以及「連到站內文章（`/posts/`、`/en/posts/` 與站內絕對網址）、文字剛好就是一個 ticket 編號」的連結——這是 taxonomy 與標籤維護會機械式改寫的形式。投影只看這篇文章自己的內容，不查其他文章的標題、狀態或是否存在：要是查了，被連結的文章一改標題或被刪，這篇沒動章就失效，讓不相干的 PR 紅燈。其他連結一律只取文字，包括文字不只是 ticket 編號的站內連結：不這樣做的話，把轉述包成站內連結就能躲過配對，蓋章後改連結文字章也不會過期。glossary 連結只是把既有的字包成連結，文字不變，不影響指紋。元件取子節點文字；fenced code 依決策 4 的門檻分成文字或程式碼，程式碼不進投影。投影輸出正規化成「一行一句」的純文字再算 hash，不依賴 MDX 套件的序列化格式；固定指紋測試鎖住結果。
 - **驗章**（`validate-posts.mjs`，pre-commit 與 CI 同一份）：需要章的文章缺章、policy 版本不等於目前版本、verdict 不是 PASS、指紋不符、指標超過目前門檻，一律失敗；非 GP 文章帶章也失敗。錯誤訊息直接給 `tools/gp-pipeline/gp-pipeline stamp --file <檔名>`。
 - **policy 版本只收目前這一版**：改門檻或規則就升版，同一個 PR 重蓋全部 GP（決策 4），換來不用維護接受清單。
 - **嘗試次數**：`rewrites` 與 `alignerCalls` 只算這一次蓋章。用 `stamp --file` 或 `--from-step source-distance` 重跑到過為止時，之前幾次沒過的呼叫不會計入（沒過時不寫檔，也沒有跨次的紀錄）。這是已知限制，靠兩次配對各自過規則① 壓低「重跑到過」的機率；完整證據留在各次的工作目錄。
@@ -219,7 +219,7 @@ sourceDistance:            # 繁中檔
 - [濃縮再重排擋不住] 舊 GP-257／259 的占比本來就在 30% 以下，把連續轉述打散就兩條都過；改寫 prompt 的「依論點重排」也正好往這個方向推 → 依 owner 對翻譯的定義這算合格，要讓 owner 知道；在連續段中間插一句「回頭講前文」也能切斷連續段，同樣列為已知限制。
 - [配對在門檻邊緣會跳] 同篇重跑 maxRun 差 0–2 → 兩次配對各自過規則①；`alignerCalls` 只記這一次、跨次重跑不計入（決策 6）。
 - [內容 PR 順手把門檻調鬆] CI 牆延後，policy 或棘輪可以跟文章在同一個 PR 改 → 靠 PR 審查擋；2c 再評估牆，屆時要放行只改 `sourceDistance` 的重蓋。
-- [章大批過期] glossary 禁用詞、kaomoji 等全站機械式改字會改到投影 → 站內文章的 ticket／標題連結文字與機器插入區塊已排除；其餘情況 validator 會擋，照錯誤訊息跑 `stamp --file`。第一版 GP 數量少，成本可控；MP 納入前（2c）要重新評估 `stamp --rehash`。
+- [章大批過期] glossary 禁用詞、kaomoji 等全站機械式改字會改到投影 → 只是 ticket 編號的站內連結文字與機器插入區塊已排除；其餘情況 validator 會擋，照錯誤訊息跑 `stamp --file`。第一版 GP 數量少，成本可控；MP 納入前（2c）要重新評估 `stamp --rehash`。
 - [外框規則漏剪] 分母變大、判定變寬 → 停止標題寧可多剪；`sourceUnits` 記在章上可稽核。
 - [英文門檻未校準] 誤擋時只會少了英文版，不影響繁中 → 用前 10 篇校準，調整走獨立 PR 升版。
 - [`--prefix` 必填是 CLI 契約變動] 沒帶系列的舊指令會在 ingress 失敗 → 錯誤訊息列出可用系列；文件與範例同步改。

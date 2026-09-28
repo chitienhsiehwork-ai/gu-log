@@ -37,10 +37,9 @@ const GUIDE = fs.readFileSync(path.join(FIXTURES, 'guide.mdx'), 'utf8');
 const CAPTURE = fs.readFileSync(path.join(FIXTURES, 'capture.txt'), 'utf8');
 const SOURCE_URL = 'https://keeper-notes.test/posts/logbook-on-call';
 const MP12 = 'mp-12-20260101-pager-basics';
-const POST_INDEX = new Map([[MP12, { ticketId: 'MP-12', title: '告警疲勞是設計問題' }]]);
 
 function fingerprintOf(content: string, url = SOURCE_URL) {
-  return subjectFingerprint(url, segmentGuide(content, { postIndex: POST_INDEX }));
+  return subjectFingerprint(url, segmentGuide(content));
 }
 
 describe('units 與斷句', () => {
@@ -92,7 +91,7 @@ describe('units 與斷句', () => {
 });
 
 describe('正文投影', () => {
-  const guide = segmentGuide(GUIDE, { postIndex: POST_INDEX });
+  const guide = segmentGuide(GUIDE);
   const texts = guide.map((s) => s.text);
   const joined = texts.join('\n');
 
@@ -119,17 +118,20 @@ describe('正文投影', () => {
     expect(joined).not.toContain('確認失效');
   });
 
-  it('連結只取文字；ticket／標題型站內連結整段不進投影', () => {
+  it('連結只取文字；只有文字剛好是 ticket 編號的站內連結不進投影', () => {
     expect(joined).not.toMatch(/https?:|\/posts\/|\/glossary/);
     expect(joined).toContain('外部參考可以看 NOAA 的燈塔資料，名詞可以查 交接。');
-    expect(joined).toContain('之前 講過告警疲勞， 也可以一起看。');
-    expect(joined).not.toContain('MP-12');
+    expect(joined).toContain('之前 講過告警疲勞，MP-12: 告警疲勞是設計問題 也可以一起看。');
   });
 
-  it('包成站內連結的轉述照樣進投影，改連結文字會讓指紋改變', () => {
+  it('包成站內連結的轉述照樣進投影，連結文字不只是 ticket 時改字會讓指紋改變', () => {
     expect(joined).toContain('燈塔守則其實是在講交接');
-    const edited = GUIDE.replace('[燈塔守則其實是在講交接]', '[燈塔守則其實在講值班交接]');
-    expect(fingerprintOf(edited)).not.toBe(fingerprintOf(GUIDE));
+    for (const [from, to] of [
+      ['[燈塔守則其實是在講交接]', '[燈塔守則其實在講值班交接]'],
+      ['[MP-12: 告警疲勞是設計問題]', '[MP-12: 告警疲勞其實是設計問題]'],
+    ]) {
+      expect(fingerprintOf(GUIDE.replace(from, to))).not.toBe(fingerprintOf(GUIDE));
+    }
   });
 
   it('以 CJK 為主的 fenced code 算文字，其餘 code 不進投影', () => {
@@ -138,7 +140,7 @@ describe('正文投影', () => {
 
   it('投影指紋固定', () => {
     expect(subjectFingerprint(SOURCE_URL, guide)).toBe(
-      'af2140e4c44d031973faa2aa59178b6a6c1216cd1706137603ac1e9bee561fbf'
+      '5657191342e9e1adecd22a9fb0572c6e0a064f844b1111b47ba8d34e6fd21a72'
     );
   });
 });
@@ -452,7 +454,7 @@ describe('英文版的逐字 n-gram 檢查', () => {
 });
 
 describe('章的序列化與驗證', () => {
-  const guide = segmentGuide(GUIDE, { postIndex: POST_INDEX });
+  const guide = segmentGuide(GUIDE);
   const stamp = {
     policy: POLICY.version,
     verdict: 'PASS',
@@ -471,7 +473,6 @@ describe('章的序列化與驗證', () => {
       content,
       data: parseFrontmatter(content),
       file: 'src/content/posts/gp-pending-20260928-logbook.mdx',
-      postIndex: POST_INDEX,
     });
 
   it('寫入後重讀驗證通過，正文與其他欄位一字不動', () => {
@@ -518,11 +519,11 @@ describe('章的序列化與驗證', () => {
     expect(check(edited).errors.join('\n')).toMatch(/stale/);
   });
 
-  it('只改 ticket／標題型站內連結、連結網址、機器插入區塊或其他 frontmatter，章仍有效', () => {
+  it('只改 ticket 編號型站內連結、連結網址、機器插入區塊或其他 frontmatter，章仍有效', () => {
     const edits = [
       stamped.replace(
         `[MP-12](/posts/${MP12}/)`,
-        `[告警疲勞是設計問題](https://gu-log.vercel.app/posts/${MP12}/)`
+        '[MP-13](https://gu-log.vercel.app/en/posts/mp-13-20260102-other/)'
       ),
       stamped.replace('https://www.noaa.test/lighthouses', 'https://lights.noaa.test/list'),
       stamped.replace(
@@ -534,7 +535,8 @@ describe('章的序列化與驗證', () => {
         '(/glossary#shift-handoff) [⚠️ 此連結已於 2026-09-20 確認失效]'
       ),
       stamped.replace("tags: ['operations']", "tags: ['operations', 'on-call']"),
-      `${stamped}\n## 延伸閱讀\n\n- [MP-12: 告警疲勞是設計問題](/posts/${MP12}/)\n`,
+      // inject-related-posts 的格式；清單只看形狀，不查目標文存不存在、標題對不對。
+      `${stamped}\n## 延伸閱讀\n\n- [MP-12: 告警疲勞是設計問題](/posts/${MP12}/)\n- [GP-999: 沒有這篇](/posts/gp-999-20260101-missing/)\n`,
     ];
     for (const edited of edits) {
       expect(edited).not.toBe(stamped);
@@ -612,17 +614,11 @@ describe('scripts/source-distance.mjs CLI', () => {
 
   it('segment → score（兩次）→ stamp → verify 走完一輪，配對不合格時 exit 2', () => {
     const dir = makeTempDirectory('source-distance-cli-');
-    const posts = path.join(dir, 'posts');
-    fs.mkdirSync(posts);
-    fs.writeFileSync(
-      path.join(posts, `${MP12}.mdx`),
-      "---\nticketId: 'MP-12'\ntitle: '告警疲勞是設計問題'\n---\n"
-    );
     const file = path.join(dir, 'final.mdx');
     fs.writeFileSync(file, GUIDE);
     const capture = path.join(FIXTURES, 'capture.txt');
 
-    const segmented = run(['segment', '--file', file, '--source', capture, '--posts-dir', posts]);
+    const segmented = run(['segment', '--file', file, '--source', capture]);
     expect(segmented.code).toBe(0);
     const segments = JSON.parse(segmented.out);
     expect(segments.subjectSha256).toBe(fingerprintOf(GUIDE));
@@ -675,12 +671,10 @@ describe('scripts/source-distance.mjs CLI', () => {
       '2',
       '--checked-at',
       '2026-09-28',
-      '--posts-dir',
-      posts,
     ]);
     expect(stampedRun.code).toBe(0);
     expect(fs.readFileSync(file, 'utf8').split('\n---\n')[1]).toBe(GUIDE.split('\n---\n')[1]);
-    const verified = run(['verify', '--file', file, '--posts-dir', posts]);
+    const verified = run(['verify', '--file', file]);
     expect(verified.code).toBe(0);
     expect(JSON.parse(verified.out).results[0]).toMatchObject({ required: true, ok: true });
 
@@ -697,9 +691,7 @@ describe('scripts/source-distance.mjs CLI', () => {
     expect(run(['score', '--segments', segFile, '--alignment', align]).code).toBe(2);
 
     fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('值班交接', '值班的交接'));
-    expect(run(['verify', '--file', file, '--posts-dir', posts]).code).toBe(5);
-    expect(
-      run([...stampArgs, '--rewrites', '0', '--aligner-calls', '2', '--posts-dir', posts]).code
-    ).toBe(4);
+    expect(run(['verify', '--file', file]).code).toBe(5);
+    expect(run([...stampArgs, '--rewrites', '0', '--aligner-calls', '2']).code).toBe(4);
   });
 });

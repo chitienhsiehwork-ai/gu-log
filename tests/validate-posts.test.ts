@@ -10,7 +10,6 @@ import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
 import {
   POLICY,
-  loadPostIndex,
   segmentGuide,
   subjectFingerprint,
   writeStamp,
@@ -728,10 +727,7 @@ describe('validatePost — source-distance stamp', () => {
   const stampFor = (content: string, sourceUrl = EXTERNAL) => ({
     policy: POLICY.version,
     verdict: 'PASS',
-    subjectSha256: subjectFingerprint(
-      sourceUrl,
-      segmentGuide(content, { postIndex: loadPostIndex() })
-    ),
+    subjectSha256: subjectFingerprint(sourceUrl, segmentGuide(content)),
     sourceSha256: 'a'.repeat(64),
     sourceUnits: 2000,
     metrics: { maxRun: 2, sourceRatio: 0.2, alignedSentences: 30 },
@@ -806,6 +802,37 @@ describe('validatePost — source-distance stamp', () => {
     const withStamp = writeStamp(tombstone, stampFor(makePost(guideFm('GP-274', 'zh-tw'))));
     const r = validatePost(write('gp-274-20260813-logbook.mdx', withStamp), []);
     expect(r.errors).toEqual(['sourceDistance must be removed when status is taken-down']);
+  });
+
+  it('被連結的文章改標題、被下架或被刪，GP 的章仍有效', () => {
+    const target = 'mp-41-20260928-pager.mdx';
+    const url = '/posts/mp-41-20260928-pager/';
+    const writeTarget = (title: string, extra: string[] = []) =>
+      write(
+        target,
+        makePost([
+          ...guideFm('MP-41', 'zh-tw').map((l) =>
+            l.startsWith('title:') ? `title: "${title}"` : l
+          ),
+          ...extra,
+        ])
+      );
+    writeTarget('告警疲勞是設計問題');
+    const post = makePost(
+      guideFm('GP-PENDING', 'zh-tw'),
+      `之前 [MP-41](${url}) 講過，[MP-41: 告警疲勞是設計問題](${url}) 也值得看 ${KAOMOJI}.\n\n## 延伸閱讀\n\n- [MP-41: 告警疲勞是設計問題](${url})`
+    );
+    const gp = write('gp-pending-20260928-logbook.mdx', writeStamp(post, stampFor(post)));
+    const stampStillValid = () => expect(stampErrors(validatePost(gp, []))).toEqual([]);
+
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題');
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題', ['status: "taken-down"', 'takenDownAt: "2026-09-27"']);
+    stampStillValid();
+    fs.rmSync(tmpPath(target));
+    stampStillValid();
+    expect(fs.readFileSync(gp, 'utf8')).toBe(writeStamp(post, stampFor(post)));
   });
 
   it('非 GP 文章帶章失敗', () => {

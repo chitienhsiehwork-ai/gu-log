@@ -267,7 +267,7 @@ func translateResponse() llm.FakeResponse {
 // verifyStamp runs the real verifier on an article and returns its result.
 func verifyStamp(t *testing.T, repo, file string) (ok bool, errs []string) {
 	t.Helper()
-	cmd := exec.Command("node", filepath.Join(repo, "scripts", "source-distance.mjs"), "verify", "--file", file, "--posts-dir", filepath.Join(repo, "src", "content", "posts"))
+	cmd := exec.Command("node", filepath.Join(repo, "scripts", "source-distance.mjs"), "verify", "--file", file)
 	cmd.Dir = repo
 	out, _ := cmd.Output()
 	var res struct {

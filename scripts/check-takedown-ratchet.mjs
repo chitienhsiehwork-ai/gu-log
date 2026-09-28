@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { layer1Match, sourceIdentity } from './dedup-gate.mjs';
-import { isGpTicket, loadPostIndex, verifyStamp } from './lib/source-distance.mjs';
+import { isGpTicket, verifyStamp } from './lib/source-distance.mjs';
 import { TAKEN_DOWN_STATUS, isTakenDownData, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
@@ -52,7 +52,6 @@ function ticketOf(data) {
  * @param {Array<{ path: string, content: string }>} [input.changedSourcePosts]  改了 sourceUrl 的既有文章（新版本內容）
  * @param {Array<{ path: string, content: string }>} input.headTakenDown  新版本的下架文章
  * @param {string[]} input.addedSourcePaths  sources/ 底下新增的檔案
- * @param {Map<string, object>} [input.postIndex]  驗章用的站內文章索引（預設讀工作目錄的 posts/）
  */
 export function evaluateTakedownRatchet({
   baseTakenDown,
@@ -61,7 +60,6 @@ export function evaluateTakedownRatchet({
   changedSourcePosts = [],
   headTakenDown,
   addedSourcePaths,
-  postIndex = null,
 }) {
   const errors = [];
 
@@ -97,15 +95,8 @@ export function evaluateTakedownRatchet({
     });
   }
 
-  let index = postIndex;
   const hasValidStamp = (content, data, file) => {
-    index ??= loadPostIndex();
-    const { required, errors: stampErrors } = verifyStamp({
-      content,
-      data,
-      file,
-      postIndex: index,
-    });
+    const { required, errors: stampErrors } = verifyStamp({ content, data, file });
     return required && stampErrors.length === 0;
   };
 

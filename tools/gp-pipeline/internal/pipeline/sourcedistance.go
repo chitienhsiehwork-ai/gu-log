@@ -198,7 +198,7 @@ func (s *State) scoreSourceDistanceRound(ctx context.Context, roundDir, finalPat
 	}
 
 	segmentsPath := filepath.Join(roundDir, "segments.json")
-	raw, err := s.sourceDistanceCLI(ctx, "segment", "--file", finalPath, "--source", capture, "--posts-dir", s.Cfg.PostsDir)
+	raw, err := s.sourceDistanceCLI(ctx, "segment", "--file", finalPath, "--source", capture)
 	if err != nil {
 		return nil, NewStepError(14, err)
 	}
@@ -322,7 +322,6 @@ func (s *State) stampSourceDistance(ctx context.Context, finalPath, scorePath st
 		"--aligner", outcome.Aligner,
 		"--rewrites", strconv.Itoa(outcome.Rewrites),
 		"--aligner-calls", strconv.Itoa(outcome.AlignerCalls),
-		"--posts-dir", s.Cfg.PostsDir,
 	)
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("source-distance: stamp: %w", err))
@@ -355,7 +354,7 @@ func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string)
 
 	switch result.Verdict {
 	case SourceDistancePass:
-		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", enPath, "--result", resultPath, "--posts-dir", s.Cfg.PostsDir); err != nil {
+		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", enPath, "--result", resultPath); err != nil {
 			return NewStepError(14, fmt.Errorf("english check: stamp the English version: %w", err))
 		}
 		if zhSkippedEnglish(zhPath) {
@@ -397,7 +396,7 @@ func (s *State) englishNgram(ctx context.Context, enPath, capture string) (strin
 		return "", nil, fmt.Errorf("english check: %w", err)
 	}
 	resultPath := filepath.Join(evidence, "en-check.json")
-	out, err := s.sourceDistanceCLI(ctx, "ngram", "--file", enPath, "--source", capture, "--posts-dir", s.Cfg.PostsDir)
+	out, err := s.sourceDistanceCLI(ctx, "ngram", "--file", enPath, "--source", capture)
 	if err != nil {
 		return "", nil, NewStepError(14, fmt.Errorf("english check: %w", err))
 	}
@@ -497,7 +496,7 @@ func (s *State) stampEnglishPost(ctx context.Context, file, capture string) (*St
 	if result.Verdict != SourceDistancePass {
 		return res, nil
 	}
-	if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", file, "--result", resultPath, "--posts-dir", s.Cfg.PostsDir); err != nil {
+	if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", file, "--result", resultPath); err != nil {
 		return nil, NewStepError(14, fmt.Errorf("english check: stamp: %w", err))
 	}
 	zh := filepath.Join(filepath.Dir(file), strings.TrimPrefix(filepath.Base(file), "en-"))
@@ -536,7 +535,7 @@ type StampTarget struct {
 // InspectStampTarget asks the Node side whether a post needs a stamp, so Go
 // keeps no copy of that rule.
 func (s *State) InspectStampTarget(ctx context.Context, file string) (StampTarget, error) {
-	out, err := s.sourceDistanceCLIAllowing(ctx, []int{5}, "verify", "--file", file, "--posts-dir", s.Cfg.PostsDir)
+	out, err := s.sourceDistanceCLIAllowing(ctx, []int{5}, "verify", "--file", file)
 	if err != nil {
 		return StampTarget{}, err
 	}

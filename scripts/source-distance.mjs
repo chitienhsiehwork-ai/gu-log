@@ -6,22 +6,22 @@
  *
  * 用法（輸出一律是 stdout 上的一份 JSON；錯誤訊息寫 stderr）：
  *
- *   segment --file <文章.mdx> --source <擷取檔> [--posts-dir <dir>]
+ *   segment --file <文章.mdx> --source <擷取檔>
  *       正文投影與原文正規化後的斷句、指紋、units 與 κ，以及給配對 prompt 用的
  *       「編號<TAB>句子」文字（區塊之間空一行）。
  *   score --segments <segment.json> --alignment <第一次.json> [--alignment <第二次.json>]
  *       驗證配對、計分並判定：ZERO（第一次零配對）、FAIL（附改寫報告）、
  *       NEEDS_SECOND（第一次三條都過，要做第二次配對）或 PASS（附章要記的指標）。
- *   ngram --file <英文.mdx> --source <擷取檔> [--posts-dir <dir>]
+ *   ngram --file <英文.mdx> --source <擷取檔>
  *       英文版的逐字 n-gram 檢查，verdict 為 PASS 或 FAIL。
  *   stamp --file <文章.mdx> --result <score 或 ngram 的輸出> [--aligner <model>
- *         --rewrites <n> --aligner-calls <n>] [--checked-at <YYYY-MM-DD>] [--posts-dir <dir>]
+ *         --rewrites <n> --aligner-calls <n>] [--checked-at <YYYY-MM-DD>]
  *       把通過的結果寫成章（只改 frontmatter 的 sourceDistance，正文一字不動）。結果記錄的
  *       指紋跟檔案目前的正文不同時拒絕（檔案在計分之後被改過）。繁中檔既有的
  *       englishSkipped 標記保留。
  *   stamp --file <繁中.mdx> --english-skipped verbatim | --clear-english-skipped
  *       在既有的繁中章上加上或清掉「英文版因逐字檢查略過」的標記（不影響指紋）。
- *   verify --file <文章.mdx> [--file ...] [--posts-dir <dir>]
+ *   verify --file <文章.mdx> [--file ...]
  *       驗章，並回報這篇需不需要章（GP、外部來源、沒下架）。
  *
  * 結束碼：
@@ -33,18 +33,15 @@
  *   5  verify 發現章有問題
  */
 import fs from 'node:fs';
-import path from 'node:path';
 import process from 'node:process';
 import {
   ENGLISH_SKIPPED_VERBATIM,
   POLICY,
-  POSTS_DIR,
   STAMP_FIELD,
   decide,
   englishVerbatim,
   isExternalSource,
   isGpTicket,
-  loadPostIndex,
   parseFrontmatter,
   requiresStamp,
   segmentGuide,
@@ -109,10 +106,6 @@ function readJson(file) {
   }
 }
 
-function postIndex(options) {
-  return loadPostIndex(options['--posts-dir'] ? path.resolve(options['--posts-dir']) : POSTS_DIR);
-}
-
 function frontmatterOf(file, content) {
   let data;
   try {
@@ -124,9 +117,9 @@ function frontmatterOf(file, content) {
   return data;
 }
 
-function guideSentences(file, content, index) {
+function guideSentences(file, content) {
   try {
-    return segmentGuide(content, { postIndex: index });
+    return segmentGuide(content);
   } catch (error) {
     throw new CliError(`${file}: cannot parse MDX: ${error.message}`, 1);
   }
@@ -147,7 +140,7 @@ function segment(options) {
   const file = need(options, '--file');
   const content = read(file);
   const data = frontmatterOf(file, content);
-  const guide = guideSentences(file, content, postIndex(options));
+  const guide = guideSentences(file, content);
   const source = segmentSource(read(need(options, '--source')));
   if (!guide.length) throw new CliError(`${file}: the body has no sentences to align`, 3);
   if (!source.length)
@@ -211,13 +204,12 @@ function ngram(options) {
   const file = need(options, '--file');
   const content = read(file);
   const data = frontmatterOf(file, content);
-  const index = postIndex(options);
-  const guide = guideSentences(file, content, index);
+  const guide = guideSentences(file, content);
   const source = segmentSource(read(need(options, '--source')));
   if (!source.length)
     throw new CliError('the source capture has no sentences after normalization', 3);
   const { sourceSha256, sourceUnits } = sourceSummary(source);
-  const result = englishVerbatim(content, source, { postIndex: index });
+  const result = englishVerbatim(content, source);
   return {
     policy: POLICY.version,
     kind: 'english',
@@ -276,7 +268,7 @@ function stamp(options) {
   if ((result.kind === 'english') !== english) {
     throw new CliError(`${file} is ${data.lang}; the result is a ${result.kind} check`, 1);
   }
-  const guide = guideSentences(file, content, postIndex(options));
+  const guide = guideSentences(file, content);
   if (subjectFingerprint(data.sourceUrl ?? '', guide) !== result.subjectSha256) {
     throw new CliError(`${file} changed after it was scored; score it again before stamping`, 4);
   }
@@ -307,11 +299,10 @@ function stamp(options) {
 function verify(options) {
   const files = options['--file'] || [];
   if (!files.length) throw new CliError('verify needs at least one --file', 1);
-  const index = postIndex(options);
   const results = files.map((file) => {
     const content = read(file);
     const data = frontmatterOf(file, content);
-    const { required, errors } = verifyStamp({ content, data, file, postIndex: index });
+    const { required, errors } = verifyStamp({ content, data, file });
     return {
       file,
       lang: data.lang ?? null,

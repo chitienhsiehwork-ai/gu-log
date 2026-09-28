@@ -23,7 +23,6 @@ import { getNeutralSummary, getTakedownSeries } from '../src/lib/tombstone-copy.
 import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-down-posts.mjs';
 import {
   STAMP_FIELD,
-  loadPostIndex,
   parseFrontmatter as parseStampFrontmatter,
   requiresStamp,
   verifyStamp,
@@ -391,7 +390,7 @@ function validateSourceDistance({ content, fm, filepath }) {
   const absolute = path.resolve(filepath);
   const relative = path.relative(REPO_ROOT, absolute);
   const file = relative.startsWith('..') || path.isAbsolute(relative) ? absolute : relative;
-  return verifyStamp({ content, data: data ?? {}, file, postIndex: loadPostIndex() }).errors;
+  return verifyStamp({ content, data: data ?? {}, file }).errors;
 }
 
 function validatePost(filepath, allPosts, options = {}) {

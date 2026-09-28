@@ -47,7 +47,6 @@ const livePost = (ticketId: string, sourceUrl: string, extra: string[] = []) =>
 
 const GP35 = 'src/content/posts/gp-35-20260206-agent-teams.mdx';
 const GP35_URL = 'https://code.claude.com/docs/en/agent-teams';
-const NO_LINKS = new Map();
 
 /** A post with a valid source-distance stamp (openspec source-distance-stamp). */
 function stamped(content: string) {
@@ -56,10 +55,7 @@ function stamped(content: string) {
   return writeStamp(content, {
     policy: POLICY.version,
     verdict: 'PASS',
-    subjectSha256: subjectFingerprint(
-      data.sourceUrl,
-      segmentGuide(content, { postIndex: NO_LINKS })
-    ),
+    subjectSha256: subjectFingerprint(data.sourceUrl, segmentGuide(content)),
     sourceSha256: 'a'.repeat(64),
     sourceUnits: 120,
     metrics: english
@@ -77,7 +73,6 @@ function baseInput(overrides: Partial<Parameters<typeof evaluateTakedownRatchet>
     addedPosts: [],
     headTakenDown: [{ path: GP35, content: tombstone('GP-35', GP35_URL) }],
     addedSourcePaths: [],
-    postIndex: NO_LINKS,
     ...overrides,
   };
 }
@@ -299,7 +294,7 @@ describe('takedown ratchet — git adapter', () => {
 
     const input = collectRatchetInput({ mode: 'staged', cwd });
     expect(input.baseTakenDown.map((post: { path: string }) => post.path)).toEqual([GP35]);
-    const errors = evaluateTakedownRatchet({ ...input, postIndex: NO_LINKS });
+    const errors = evaluateTakedownRatchet(input);
     expect(errors.join('\n')).toMatch(
       /gp-35-20260206-agent-teams\.mdx: taken-down post body must stay empty/
     );
@@ -324,7 +319,7 @@ describe('takedown ratchet — git adapter', () => {
     expect(input.changedSourcePosts.map((post: { path: string }) => post.path)).toEqual([
       'src/content/posts/gp-1-demo.mdx',
     ]);
-    const errors = evaluateTakedownRatchet({ ...input, postIndex: NO_LINKS });
+    const errors = evaluateTakedownRatchet(input);
     expect(errors.join('\n')).toMatch(
       /gp-35-20260206-agent-teams\.mdx: taken-down post was deleted/
     );

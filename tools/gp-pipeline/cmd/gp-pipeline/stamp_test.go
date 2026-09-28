@@ -83,7 +83,7 @@ func makeStampRepo(t *testing.T) (root, capture string) {
 // pairs every guide sentence with the source sentence of the same index.
 func alignerFake(t *testing.T, root, post, capture string, modes ...string) string {
 	t.Helper()
-	cmd := exec.Command("node", filepath.Join(root, "scripts", "source-distance.mjs"), "segment", "--file", post, "--source", capture, "--posts-dir", filepath.Join(root, "src", "content", "posts"))
+	cmd := exec.Command("node", filepath.Join(root, "scripts", "source-distance.mjs"), "segment", "--file", post, "--source", capture)
 	out, err := cmd.Output()
 	if err != nil {
 		t.Fatalf("segment: %v", err)

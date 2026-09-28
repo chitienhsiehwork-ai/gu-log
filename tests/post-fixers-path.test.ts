@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { POSTS_DIR, loadPosts, postInfo, suggestFor } from '../scripts/suggest-crosslinks.mjs';
+import { segmentGuide } from '../scripts/lib/source-distance.mjs';
 
 // gp-pipeline 對 GP 在工作目錄的 final.mdx 跑 post-fixer，再蓋來源距離章（openspec
 // gp-pipeline-publish-integrity）。這兩支 fixer 要能改 posts/ 以外的檔，語料照舊從
@@ -94,6 +95,23 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
       '## 延伸閱讀'
     );
     expect(fs.readFileSync(fresh, 'utf8')).toBe(untouched);
+  });
+
+  it('插入的延伸閱讀整段不進來源距離章的投影（openspec source-distance-stamp）', () => {
+    for (const [lang, heading] of [
+      ['zh-tw', '## 延伸閱讀'],
+      ['en', '## Related Reading'],
+    ]) {
+      const file = draft(
+        `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "${lang}"\ntags: ["${commonTag}"]`,
+        '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>'
+      );
+      const before = segmentGuide(fs.readFileSync(file, 'utf8'));
+      run('inject-related-posts.mjs', ['--file', file]);
+      const after = fs.readFileSync(file, 'utf8');
+      expect(after).toContain(heading);
+      expect(segmentGuide(after)).toEqual(before);
+    }
   });
 
   it('never suggests the allocated post the draft will replace', () => {

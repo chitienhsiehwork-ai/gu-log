@@ -11,9 +11,6 @@
  * import。這個檔案只能用純 Node 相依（不 import Astro 專屬模組），pre-commit 要能跑。
  */
 import { createHash } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
@@ -49,8 +46,6 @@ export const ENGLISH_SKIPPED_VERBATIM = 'verbatim';
 const STAMP_COMMAND = 'tools/gp-pipeline/gp-pipeline stamp --file';
 
 const SITE_ORIGIN = 'https://gu-log.vercel.app';
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-export const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 
 // ─── units ──────────────────────────────────────────────────────────────
 
@@ -186,45 +181,35 @@ function textOfJsxAttribute(node, name) {
   return attr && typeof attr.value === 'string' ? attr.value : null;
 }
 
-/** 站內文章連結的小寫 slug；不是站內文章連結就回 null。 */
-function inSitePostSlug(href) {
-  if (typeof href !== 'string' || !href) return null;
+// 文章 ticket 編號的形狀（含已退役的 SP／CP，舊文章的連結文字還看得到）。
+const TICKET_ID = /^(?:GP|MP|SD|Lv|SP|CP)-(?:\d+|PENDING)$/u;
+
+/** 連到站內文章（`/posts/`、`/en/posts/` 與站內絕對網址）的連結。 */
+function isInSitePostLink(href) {
+  if (typeof href !== 'string' || !href) return false;
   let url;
   try {
     url = new URL(href, `${SITE_ORIGIN}/`);
   } catch {
-    return null;
+    return false;
   }
-  if (url.origin !== SITE_ORIGIN) return null;
-  const match = url.pathname.match(/^\/(?:en\/)?posts\/([^/]+)\/?$/u);
-  if (!match) return null;
-  try {
-    return decodeURIComponent(match[1]).toLowerCase();
-  } catch {
-    return null;
-  }
+  return url.origin === SITE_ORIGIN && /^\/(?:en\/)?posts\/[^/]+\/?$/u.test(url.pathname);
 }
 
 /**
- * 連到站內文章、而且文字就是目標文 ticket 或標題的連結（taxonomy 與標籤維護唯一會
- * 機械式改寫的形式）不進投影。`ticket: 標題` 是站內連結維護的標準標籤，一併視為
- * 「ticket 或標題」。
+ * 連到站內文章、文字剛好就是一個 ticket 編號（例如 `GP-12`）的連結不進投影：taxonomy 與
+ * 標籤維護會機械式改寫這種連結。判斷只看這篇文章自己的內容，不查目標文的標題、狀態或
+ * 是否存在，別篇改標題、下架或被刪都不會讓這篇的章過期。
  */
-function isTicketOrTitleLink(href, text, postIndex) {
-  const slug = inSitePostSlug(href);
-  if (!slug || !postIndex) return false;
-  const target = postIndex.get(slug);
-  if (!target) return false;
-  const label = normalizeSentence(text);
-  const { ticketId, title } = target;
-  return Boolean(
-    (ticketId && label === ticketId) ||
-    (title && label === normalizeSentence(title)) ||
-    (ticketId && title && label === `${ticketId}: ${normalizeSentence(title)}`)
-  );
+function isTicketLink(href, text) {
+  return isInSitePostLink(href) && TICKET_ID.test(normalizeSentence(text));
 }
 
-function inlineText(node, ctx) {
+function childrenText(node) {
+  return (node.children || []).map((c) => inlineText(c)).join('');
+}
+
+function inlineText(node) {
   if (!node) return '';
   switch (node.type) {
     case 'text':
@@ -239,55 +224,48 @@ function inlineText(node, ctx) {
     case 'html':
       return '';
     case 'link': {
-      const text = (node.children || []).map((c) => inlineText(c, ctx)).join('');
-      return isTicketOrTitleLink(node.url, text, ctx.postIndex) ? '' : text;
+      const text = childrenText(node);
+      return isTicketLink(node.url, text) ? '' : text;
     }
     case 'mdxJsxTextElement': {
       if (node.name === 'br') return '\n';
       if (node.name === 'img') return '';
-      const text = (node.children || []).map((c) => inlineText(c, ctx)).join('');
-      if (
-        node.name === 'a' &&
-        isTicketOrTitleLink(textOfJsxAttribute(node, 'href'), text, ctx.postIndex)
-      ) {
-        return '';
-      }
-      return text;
+      const text = childrenText(node);
+      return node.name === 'a' && isTicketLink(textOfJsxAttribute(node, 'href'), text) ? '' : text;
     }
     default:
-      return (node.children || []).map((c) => inlineText(c, ctx)).join('');
+      return childrenText(node);
   }
 }
 
-function blockText(node, ctx) {
-  return inlineText(node, ctx).replace(BROKEN_LINK_NOTE, '');
+function blockText(node) {
+  return inlineText(node).replace(BROKEN_LINK_NOTE, '');
 }
 
-function isOnlyTicketOrTitleLink(item, ctx) {
+/** 延伸閱讀的一項：只有一個站內文章連結，連結文字以 ticket 編號開頭（`GP-12: 標題`）。 */
+function isRelatedReadingItem(item) {
   const [paragraph, ...rest] = item.children || [];
   if (rest.length || paragraph?.type !== 'paragraph') return false;
   const [link, ...others] = paragraph.children || [];
-  return (
-    !others.length &&
-    link?.type === 'link' &&
-    isTicketOrTitleLink(link.url, inlineText(link, { ...ctx, postIndex: null }), ctx.postIndex)
-  );
+  if (others.length || link?.type !== 'link' || !isInSitePostLink(link.url)) return false;
+  const [ticket] = normalizeSentence(childrenText(link)).split(': ', 1);
+  return TICKET_ID.test(ticket);
 }
 
 /**
- * scripts/inject-related-posts.mjs 插入的延伸閱讀：固定的標題，緊接一份每項都只有一個
- * ticket／標題型站內連結的清單。只認這個形狀，手寫的延伸閱讀照樣進投影。
+ * scripts/inject-related-posts.mjs 插入的延伸閱讀：固定的標題，緊接一份每項都是
+ * `- [ticket: 標題](/posts/slug/)` 的清單。只認這個形狀、不查目標文，手寫的延伸閱讀照樣進投影。
  */
-function isRelatedReadingBlock(heading, next, ctx) {
+function isRelatedReadingBlock(heading, next) {
   return (
-    RELATED_READING_HEADINGS.has(normalizeSentence(blockText(heading, ctx))) &&
+    RELATED_READING_HEADINGS.has(normalizeSentence(blockText(heading))) &&
     next?.type === 'list' &&
     next.children.length > 0 &&
-    next.children.every((item) => isOnlyTicketOrTitleLink(item, ctx))
+    next.children.every(isRelatedReadingItem)
   );
 }
 
-function collectBlocks(node, blocks, ctx, kind = null) {
+function collectBlocks(node, blocks, machineBlocks, kind = null) {
   const children = node.children || [];
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
@@ -300,26 +278,26 @@ function collectBlocks(node, blocks, ctx, kind = null) {
       case 'toml':
         break;
       case 'heading':
-        if (ctx.machineBlocks && isRelatedReadingBlock(child, children[i + 1], ctx)) {
+        if (machineBlocks && isRelatedReadingBlock(child, children[i + 1])) {
           i++;
           break;
         }
-        blocks.push({ kind: 'heading', text: blockText(child, ctx) });
+        blocks.push({ kind: 'heading', text: blockText(child) });
         break;
       case 'paragraph':
-        blocks.push({ kind: kind || 'paragraph', text: blockText(child, ctx) });
+        blocks.push({ kind: kind || 'paragraph', text: blockText(child) });
         break;
       case 'list':
         for (const item of child.children) {
-          collectBlocks(item, blocks, ctx, kind === 'quote' ? 'quote' : 'list');
+          collectBlocks(item, blocks, machineBlocks, kind === 'quote' ? 'quote' : 'list');
         }
         break;
       case 'blockquote':
-        collectBlocks(child, blocks, ctx, 'quote');
+        collectBlocks(child, blocks, machineBlocks, 'quote');
         break;
       case 'table':
         for (const row of child.children) {
-          const cells = row.children.map((cell) => blockText(cell, ctx).trim()).filter(Boolean);
+          const cells = row.children.map((cell) => blockText(cell).trim()).filter(Boolean);
           blocks.push({ kind: 'table-row', noSplit: true, text: cells.join(' | ') });
         }
         break;
@@ -333,7 +311,7 @@ function collectBlocks(node, blocks, ctx, kind = null) {
         blocks.push({ kind: kind || 'html', text: child.value.replace(/<[^>]+>/g, ' ') });
         break;
       default:
-        if (child.children) collectBlocks(child, blocks, ctx, kind);
+        if (child.children) collectBlocks(child, blocks, machineBlocks, kind);
     }
   }
 }
@@ -371,22 +349,12 @@ function parseMdx(body) {
   return unified().use(remarkParse).use(remarkGfm).use(remarkMdx).parse(body);
 }
 
-/**
- * 站內文章索引：小寫 slug → { ticketId, title }。
- * @typedef {Map<string, { ticketId: string | null, title: string | null }>} PostIndex
- */
-
-/**
- * 導讀（文章）的正文投影與斷句。postIndex：小寫 slug → { ticketId, title }，
- * 用來判斷「文字就是目標文 ticket 或標題」的站內連結；沒給就所有連結都只取文字。
- * @param {string} content
- * @param {{ postIndex?: PostIndex | null }} [options]
- */
-export function segmentGuide(content, { postIndex = null } = {}) {
+/** 導讀（文章）的正文投影與斷句，只看這篇文章自己的內容。 */
+export function segmentGuide(content) {
   const { body } = splitFrontmatter(content);
   const tree = parseMdx(body);
   const blocks = [];
-  collectBlocks(tree, blocks, { postIndex, machineBlocks: true });
+  collectBlocks(tree, blocks, true);
   return toSentences(blocks, 'C');
 }
 
@@ -506,7 +474,7 @@ export function segmentSource(capture) {
   const text = trimFrame(lines).join('\n');
   const tree = unified().use(remarkParse).use(remarkGfm).parse(text);
   const blocks = [];
-  collectBlocks(tree, blocks, { postIndex: null, machineBlocks: false });
+  collectBlocks(tree, blocks, false);
   return toSentences(blocks, 'S');
 }
 
@@ -837,16 +805,11 @@ const QUOTE_SPANS = /“[^”]*”|"[^"\n]*"/gu;
  * 最長一段跟原文逐字相同的詞數。blockquote 與雙引號內的文字是標明的引文，依文件順序
  * 豁免到上限（原文詞數的比例），超過上限的部分照常計入。
  */
-/**
- * @param {string} content
- * @param {Array<object>} source
- * @param {{ postIndex?: PostIndex | null }} [options]
- */
-export function englishVerbatim(content, source, { postIndex = null } = {}) {
+export function englishVerbatim(content, source) {
   const { n, containmentLimit, verbatimWordLimit, quoteAllowanceRatio } = POLICY.ngram;
   const { body } = splitFrontmatter(content);
   const blocks = [];
-  collectBlocks(parseMdx(body), blocks, { postIndex, machineBlocks: true });
+  collectBlocks(parseMdx(body), blocks, true);
 
   const sourceWords = words(projectionText(source));
   const vocabulary = new Map();
@@ -1025,31 +988,6 @@ export function parseFrontmatter(content) {
 
 // ─── 驗章 ───────────────────────────────────────────────────────────────
 
-let cachedPostIndex = null;
-
-/**
- * 站內文章索引（小寫 slug → { ticketId, title }），給投影判斷 ticket／標題型站內連結。
- * 讀不到或解析失敗的檔案略過（它們會由 validate-posts 的其他規則報錯）。
- */
-export function loadPostIndex(postsDir = POSTS_DIR) {
-  if (postsDir === POSTS_DIR && cachedPostIndex) return cachedPostIndex;
-  const index = new Map();
-  for (const file of fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx'))) {
-    try {
-      const data = parseFrontmatter(fs.readFileSync(path.join(postsDir, file), 'utf8'));
-      if (!data) continue;
-      index.set(file.replace(/\.mdx$/, '').toLowerCase(), {
-        ticketId: typeof data.ticketId === 'string' ? data.ticketId : null,
-        title: typeof data.title === 'string' ? data.title : null,
-      });
-    } catch {
-      // 由 validate-posts 報 frontmatter 錯誤。
-    }
-  }
-  if (postsDir === POSTS_DIR) cachedPostIndex = index;
-  return index;
-}
-
 function isHex64(value) {
   return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
 }
@@ -1066,10 +1004,7 @@ function isRatio(value) {
  * 驗一篇文章的章。回傳 { required, errors }；errors 為空代表這篇在章這件事上合格。
  * content 是整份檔案（含 frontmatter）；data 是解析過的 frontmatter。
  */
-/**
- * @param {{ content: string, data: any, file: string, postIndex?: PostIndex | null }} input
- */
-export function verifyStamp({ content, data, file, postIndex = null }) {
+export function verifyStamp({ content, data, file }) {
   const errors = [];
   const required = requiresStamp(data);
   const stamp = data ? data[STAMP_FIELD] : undefined;
@@ -1159,13 +1094,13 @@ export function verifyStamp({ content, data, file, postIndex = null }) {
   if (isHex64(stamp.subjectSha256)) {
     let actual;
     try {
-      actual = subjectFingerprint(data.sourceUrl, segmentGuide(content, { postIndex }));
+      actual = subjectFingerprint(data.sourceUrl, segmentGuide(content));
     } catch (error) {
       errors.push(`cannot compute the body projection for ${STAMP_FIELD}: ${error.message}`);
     }
     if (actual && actual !== stamp.subjectSha256) {
       errors.push(
-        `${STAMP_FIELD} is stale: the body or sourceUrl changed after stamping — re-stamp: ${fix}`
+        `${STAMP_FIELD} is stale: the body projection or sourceUrl no longer matches subjectSha256 — re-stamp: ${fix}`
       );
     }
   }

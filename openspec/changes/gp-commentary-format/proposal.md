@@ -12,7 +12,7 @@
 - **新 capability `source-distance-stamp`**：Claude aligner 只配句子、程式算帳；規則①（照順序一句對一句，翻譯型配對用壓縮比判定）、規則②（原文占比 > 30% 就擋，分母是原文）、零配對直接 exit 19；兩次獨立配對各自過規則①、規則② 用聯集；參數用校準值（β 0.4、κ 1.6、容忍間隔 1、minStep 6），未校準的初值與設計選擇在 design 標明來源與調法。
 - **章**：frontmatter `sourceDistance` 只存 policy 版本、verdict、內容指紋、原文指紋與 units、會擋人的指標、aligner model、日期、改寫輪數與這次的 aligner 呼叫次數，不存配對明細；validate-posts 在 pre-commit 與 CI 驗章（繁中、英文都驗）；寫進「任何會改有章文章正文的路徑都要重新蓋章」的通用不變式，第一版只對 GP 強制；下架時清掉章。
 - **aligner**：pin 寫在新的 `.claude/agents/source-aligner.md`（`claude-sonnet-5`），router 與 pipeline 都讀它；測試與 pipeline 都鎖住「aligner pin ≠ 寫手 pin」（`retire-gp-translation-pipeline` 交接的不變式）。
-- **防洗稿**：改寫 prompt 只標段落、不給門檻數字；aligner 規定轉述來源內容就要配，不管用誰的口吻；站內連結只有文字是目標文 ticket 或標題時才不進投影；改寫輪數與 aligner 呼叫次數記進章。
+- **防洗稿**：改寫 prompt 只標段落、不給門檻數字；aligner 規定轉述來源內容就要配，不管用誰的口吻；站內連結只有文字剛好是一個 ticket 編號時才不進投影；改寫輪數與 aligner 呼叫次數記進章。
 - **英文版**：非引文的逐字 n-gram 檢查，標明的引文豁免但有上限；沒過就不部署英文版、不重翻，繁中的章記下「英文因逐字檢查略過」，CI 的翻譯配對檢查看到就放行。
 - **手寫路徑**：新增 `gp-pipeline stamp --file`。
 - **前 10 篇走新 ticket**：棘輪與 dedup 的「來源已封鎖」開一個只給 GP 的例外，三個條件都要成立：新文章是 GP、撞到的下架文章全部是 GP、帶有效章；撞到任何一篇下架的 MP 照樣封鎖。比對改成找出所有命中，封鎖檢查擴大到改了 `sourceUrl` 的既有文章；不做 relist 機制。
