@@ -114,6 +114,7 @@ process.exit(0);
 		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
 		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
 		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+		"src/data/glossary.json":                   testGlossary,
 	} {
 		path := filepath.Join(tmp, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -407,49 +408,40 @@ func TestRun_DryRunSkipsDeploy(t *testing.T) {
 	}
 }
 
-// TestRunAndDeployRejectGPBeforeAnyStep covers gp-pipeline-publish-integrity
-// 「繞過 CLI 直接執行 pipeline」: a dry run, a Deploy with every slot filled,
-// and a deploy-step resume whose MP Prefix disagrees with its GP existing file
-// all refuse GP before any step, snapshot, counter, file, or git change.
-func TestRunAndDeployRejectGPBeforeAnyStep(t *testing.T) {
+// TestRunAndDeployRejectSeriesMismatchBeforeAnyStep: bypassing the CLI, an
+// existing post's filename still decides its series. Run and Deploy refuse a
+// Prefix that names another series before any step, snapshot, counter, file,
+// or git change, so an existing GP post cannot skip its source-distance stamp
+// under an MP Prefix, and an MP post is not stamped under a GP Prefix.
+func TestRunAndDeployRejectSeriesMismatchBeforeAnyStep(t *testing.T) {
 	deploy := func(ctx context.Context, s *State) error { return s.Deploy(ctx) }
+	runFromDeploy := func(ctx context.Context, s *State) error {
+		s.FromStepInt = StepDeploy
+		return Run(ctx, s)
+	}
+	gpPost := "gp-10-20260723-fakeauthor-fake-title.mdx"
+	mpPost := "mp-10-20260723-fakeauthor-fake-title.mdx"
 	for _, tc := range []struct {
-		name string
-		// existing resumes an uncommitted GP post as ExistingFile under an MP
-		// Prefix; otherwise a GP run carries a GP-PENDING active file.
-		existing bool
-		call     func(context.Context, *State) error
+		name, prefix, existing string
+		call                   func(context.Context, *State) error
 	}{
-		{name: "Run dry-run", call: func(ctx context.Context, s *State) error {
-			s.DryRun = true
-			return Run(ctx, s)
-		}},
-		{name: "Deploy", call: deploy},
-		{name: "Run from deploy, MP prefix, GP existing file", existing: true, call: func(ctx context.Context, s *State) error {
-			s.FromStepInt = StepDeploy
-			return Run(ctx, s)
-		}},
-		{name: "Deploy, MP prefix, GP existing file", existing: true, call: deploy},
+		{name: "Run from deploy, MP prefix, GP existing file", prefix: "MP", existing: gpPost, call: runFromDeploy},
+		{name: "Deploy, MP prefix, GP existing file", prefix: "MP", existing: gpPost, call: deploy},
+		{name: "Run from deploy, GP prefix, MP existing file", prefix: "GP", existing: mpPost, call: runFromDeploy},
+		{name: "Deploy, GP prefix, MP existing file", prefix: "GP", existing: mpPost, call: deploy},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			prefix, pending, ticketID := "GP", "gp-pending-20260723-fakeauthor-fake-title.mdx", "GP-PENDING"
-			if tc.existing {
-				prefix, pending, ticketID = "MP", "gp-10-20260723-fakeauthor-fake-title.mdx", "GP-10"
-			}
-			s, tmp := makeRunHarnessForPrefix(t, prefix)
+			post := tc.existing
+			ticketID := strings.ToUpper(post[:2]) + "-10"
+			s, tmp := makeRunHarnessForPrefix(t, tc.prefix)
 			if _, err := SetupWorkDir(s); err != nil {
 				t.Fatal(err)
 			}
-			pendingBody := "---\ntitle: \"Fake Title\"\nticketId: \"" + ticketID + "\"\nlang: \"zh-tw\"\n---\nbody\n"
-			if err := os.WriteFile(filepath.Join(s.Cfg.PostsDir, pending), []byte(pendingBody), 0o644); err != nil {
+			postBody := "---\ntitle: \"Fake Title\"\nticketId: \"" + ticketID + "\"\nlang: \"zh-tw\"\n---\nbody\n"
+			if err := os.WriteFile(filepath.Join(s.Cfg.PostsDir, post), []byte(postBody), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			if tc.existing {
-				s.ExistingFile = pending
-			} else {
-				s.ActiveFilename = pending
-				s.DateStamp, s.AuthorSlug, s.TitleSlug = "20260723", "fakeauthor", "fake-title"
-			}
+			s.ExistingFile = post
 			counterBefore, err := os.ReadFile(s.Cfg.CounterFile)
 			if err != nil {
 				t.Fatal(err)
@@ -458,42 +450,42 @@ func TestRunAndDeployRejectGPBeforeAnyStep(t *testing.T) {
 			statusBefore := runGitForTest(t, tmp, "status", "--porcelain")
 
 			err = tc.call(context.Background(), s)
-			if !errors.Is(err, ErrGPPaused) {
-				t.Fatalf("error = %v, want ErrGPPaused", err)
+			if err == nil || !strings.Contains(err.Error(), "does not match series") {
+				t.Fatalf("error = %v, want the series mismatch", err)
 			}
 			for _, provider := range s.Dispatcher.Providers() {
 				if fake, ok := provider.(*llm.FakeProvider); ok && len(fake.Called) != 0 {
-					t.Fatalf("GP rejection still called the model %d time(s)", len(fake.Called))
+					t.Fatalf("series mismatch still called the model %d time(s)", len(fake.Called))
 				}
 			}
 			if len(s.Timings) != 0 {
-				t.Fatalf("GP rejection ran steps: %v", s.Timings)
+				t.Fatalf("series mismatch ran steps: %v", s.Timings)
 			}
 			if _, statErr := os.Stat(filepath.Join(s.WorkDir, "pipeline-status.json")); !os.IsNotExist(statErr) {
-				t.Fatalf("GP rejection wrote a run snapshot: %v", statErr)
+				t.Fatalf("series mismatch wrote a run snapshot: %v", statErr)
 			}
 			counterAfter, err := os.ReadFile(s.Cfg.CounterFile)
 			if err != nil {
 				t.Fatal(err)
 			}
 			if !bytes.Equal(counterAfter, counterBefore) {
-				t.Fatal("GP rejection changed the article counter")
+				t.Fatal("series mismatch changed the article counter")
 			}
 			entries, err := os.ReadDir(s.Cfg.PostsDir)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(entries) != 1 || entries[0].Name() != pending {
-				t.Fatalf("GP rejection changed the posts dir: %v", entries)
+			if len(entries) != 1 || entries[0].Name() != post {
+				t.Fatalf("series mismatch changed the posts dir: %v", entries)
 			}
-			if got, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, pending)); err != nil || string(got) != pendingBody {
-				t.Fatalf("GP rejection changed the pending post: %q, %v", got, err)
+			if got, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, post)); err != nil || string(got) != postBody {
+				t.Fatalf("series mismatch changed the existing post: %q, %v", got, err)
 			}
 			if got := runGitForTest(t, tmp, "rev-parse", "HEAD"); got != headBefore {
-				t.Fatalf("GP rejection committed: HEAD %s -> %s", headBefore, got)
+				t.Fatalf("series mismatch committed: HEAD %s -> %s", headBefore, got)
 			}
 			if got := runGitForTest(t, tmp, "status", "--porcelain"); got != statusBefore {
-				t.Fatalf("GP rejection changed git status:\n%s\n->\n%s", statusBefore, got)
+				t.Fatalf("series mismatch changed git status:\n%s\n->\n%s", statusBefore, got)
 			}
 		})
 	}

@@ -5,7 +5,7 @@ import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 import PostStatusLabel from '../components/PostStatusLabel.astro';
 import { getIndexPosts, getPostStatus, type PostStatus } from '../utils/post-status';
-import { GP_SERIES_PAUSED } from '../lib/gp-series-pause.mjs';
+import { getGpEmptyNotice, isListedGpTicket } from '../lib/gp-listing.mjs';
 
 const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
@@ -30,53 +30,59 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-// GP 暫停收文期間首頁不顯示 GP 區塊（editorial-charter、post-takedown design D6）。
-const gpPosts = GP_SERIES_PAUSED
-  ? []
-  : allPosts.filter((p) => p.data.ticketId?.startsWith('GP-')).sort(sortByTicketNumber);
+// 只列公開的 GP 導讀；一篇都沒有時顯示中性的空狀態（src/lib/gp-listing.mjs）。
+const gpPosts = allPosts.filter((p) => isListedGpTicket(p.data.ticketId)).sort(sortByTicketNumber);
 
 const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(sortByTicketNumber);
 ---
 
 <BaseLayout title="ShroomDog">
   {/* GP: Gu-log Picks — 最頻繁更新 */}
-  {
-    gpPosts.length > 0 && (
-      <section class="posts-section gp-section">
-        <h2>
-          <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
-        </h2>
-        <p class="section-subtitle">ShroomDog 精選長文翻譯</p>
+  <section class="posts-section gp-section">
+    <h2>
+      <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
+    </h2>
+    <p class="section-subtitle">ShroomDog 精選導讀</p>
 
-        {gpPosts.slice(0, 3).map((post) => {
-          const status = getPostStatus(post, allPostsFull);
-          return (
-            <article class="post-preview" style={getTimelineStyle(status)}>
-              <h3>
-                <a href={`/posts/${post.id}`}>
-                  {post.data.title}
-                  {status !== 'published' && <PostStatusLabel status={status} />}
-                </a>
-              </h3>
-              <p class="post-meta">
-                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-                {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
-              </p>
-              <Toggle title="摘要預覽">
-                <p>{post.data.summary}</p>
-              </Toggle>
-            </article>
-          );
-        })}
+    {
+      gpPosts.length === 0 && (
+        <p class="gp-empty-notice" data-gp-empty-notice>
+          {getGpEmptyNotice('zh-tw')}
+        </p>
+      )
+    }
 
-        {gpPosts.length > 3 && (
-          <p class="view-all">
-            <a href="/gu-log-picks">查看全部 →</a>
-          </p>
-        )}
-      </section>
-    )
-  }
+    {
+      gpPosts.slice(0, 3).map((post) => {
+        const status = getPostStatus(post, allPostsFull);
+        return (
+          <article class="post-preview" style={getTimelineStyle(status)}>
+            <h3>
+              <a href={`/posts/${post.id}`}>
+                {post.data.title}
+                {status !== 'published' && <PostStatusLabel status={status} />}
+              </a>
+            </h3>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              {post.data.translatedDate || post.data.originalDate} · 原文：{post.data.source}
+            </p>
+            <Toggle title="摘要預覽">
+              <p>{post.data.summary}</p>
+            </Toggle>
+          </article>
+        );
+      })
+    }
+
+    {
+      gpPosts.length > 3 && (
+        <p class="view-all">
+          <a href="/gu-log-picks">查看全部 →</a>
+        </p>
+      )
+    }
+  </section>
 
   {/* MP: Mogu Picks */}
   {
@@ -320,5 +326,15 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
 
   .view-all a:hover {
     text-decoration: underline;
+  }
+
+  .gp-empty-notice {
+    margin: 0.5rem 0 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-mogu-note-text);
+    line-height: 1.7;
   }
 </style>

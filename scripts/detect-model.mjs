@@ -51,6 +51,10 @@ export const MODEL_MAP = {
   // Claude 5 generation drops the decimal minor version (whole-number release
   // names), unlike the 4.x Opus/Sonnet line above — see validate-posts.mjs
   // Rule 15, which treats every MODEL_MAP value as a complete display name.
+  // Point releases (claude-opus-5-5) must come before their whole-number
+  // family: formatModelName's partial match takes the first key the id
+  // contains, so 'claude-opus-5' listed first would display 5-5 as "Opus 5".
+  'claude-opus-5-5': 'Opus 5.5',
   'claude-opus-5': 'Opus 5',
   'claude-sonnet-5': 'Sonnet 5',
   'claude-fable-5': 'Fable 5',

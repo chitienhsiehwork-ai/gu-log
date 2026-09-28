@@ -32,6 +32,65 @@ afterEach(() => {
   }
 });
 
+describe('picks listing smoke check', () => {
+  // openspec editorial-charter〈讀者開啟 GP 系列頁〉: the GP listing passes with
+  // reading guides or with the neutral empty state, never with neither.
+  async function runListingStep(gpBody: string) {
+    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
+    const job = workflow.jobs['smoke-test'] as Job;
+    const step = job.steps.find(
+      (candidate) => candidate.name === 'Smoke test — check picks listings contain canonical posts'
+    );
+    expect(step?.run).toBeDefined();
+    expect(step?.run).not.toContain('gp-series-pause');
+
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'gu-log-listing-smoke-'));
+    temporaryDirectories.push(fixtureRoot);
+    const postsDirectory = path.join(fixtureRoot, 'src/content/posts');
+    const binDirectory = path.join(fixtureRoot, 'bin');
+    mkdirSync(postsDirectory, { recursive: true });
+    mkdirSync(binDirectory);
+    writeFileSync(path.join(postsDirectory, 'mp-1-live.mdx'), '---\n---\n');
+    writeFileSync(path.join(fixtureRoot, 'gp-body.html'), gpBody);
+    const fakeCurl = path.join(binDirectory, 'curl');
+    writeFileSync(
+      fakeCurl,
+      `#!/bin/sh
+for argument in "$@"; do
+  case "$argument" in
+    */gu-log-picks) cat "$FIXTURE_ROOT/gp-body.html"; exit 0 ;;
+    */mogu-picks) printf '<a href="/posts/mp-1-live">MP</a>'; exit 0 ;;
+  esac
+done
+exit 1
+`
+    );
+    chmodSync(fakeCurl, 0o755);
+    return spawnSync('bash', ['-e', '-o', 'pipefail', '-c', step?.run ?? 'exit 1'], {
+      cwd: fixtureRoot,
+      env: {
+        ...process.env,
+        FIXTURE_ROOT: fixtureRoot,
+        PATH: `${binDirectory}:${process.env.PATH}`,
+      },
+      stdio: 'pipe',
+    });
+  }
+
+  it('accepts a GP listing with reading guides or with the empty state', async () => {
+    const empty = await runListingStep('<p class="gp-empty-notice" data-gp-empty-notice>x</p>');
+    expect(empty.status, empty.stdout.toString()).toBe(0);
+    const listed = await runListingStep('<a href="/posts/gp-2-guide">Guide</a>');
+    expect(listed.status, listed.stdout.toString()).toBe(0);
+  });
+
+  it('fails a GP listing that has neither posts nor the empty state', async () => {
+    const broken = await runListingStep('<main></main>');
+    expect(broken.status).not.toBe(0);
+    expect(broken.stdout.toString()).toContain('gp listing has neither posts nor the empty state');
+  });
+});
+
 describe('post-deploy smoke workflow hardening', () => {
   it('runs only terminal Production states and fails closed on deployment errors', async () => {
     const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));

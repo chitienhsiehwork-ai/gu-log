@@ -8,7 +8,7 @@ import PostStatusLabel from '../../../components/PostStatusLabel.astro';
 import Pagination from '../../../components/Pagination.astro';
 import { getListablePosts, getPostStatus } from '../../../utils/post-status';
 import type { PostStatus } from '../../../utils/post-status';
-import { GP_SERIES_PAUSED, getGpPausedNotice } from '../../../lib/gp-series-pause.mjs';
+import { getGpEmptyNotice, isListedGpTicket } from '../../../lib/gp-listing.mjs';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const getTicketNumber = (ticketId: string | undefined) => {
@@ -17,13 +17,10 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     return match ? parseInt(match[0]) : 0;
   };
   const allPostsFull = await getCollection('posts');
-  // GP 暫停收文期間（editorial-charter、post-takedown design D6）不列任何文章，
-  // 只產生第 1 頁的改版空狀態；GP-1 示範文照舊可用網址、RSS 與搜尋讀到。
-  const gpPosts = GP_SERIES_PAUSED
-    ? []
-    : getListablePosts(allPostsFull, 'en')
-        .filter((post) => post.data.ticketId?.startsWith('GP-'))
-        .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  // 只列公開的 GP 導讀（src/lib/gp-listing.mjs）；一篇都沒有時只產生第 1 頁的空狀態。
+  const gpPosts = getListablePosts(allPostsFull, 'en')
+    .filter((post) => isListedGpTicket(post.data.ticketId))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
   return paginate(gpPosts, { pageSize: 20, props: { allPostsFull } });
 }
 
@@ -34,16 +31,14 @@ const getTimelineStyle = (status: PostStatus) =>
 
 <BaseLayout title="Gu-log Picks - All Posts" lang="en">
   <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> Gu-log Picks</h1>
+  <p class="page-subtitle">ShroomDog's curated reading guides</p>
   {
-    GP_SERIES_PAUSED ? (
-      <p class="gp-paused-notice" data-gp-paused-notice>
-        {getGpPausedNotice('en')}
-      </p>
+    page.total > 0 ? (
+      <p class="post-count">{page.total} posts</p>
     ) : (
-      <Fragment>
-        <p class="page-subtitle">Long-form articles, translated and explained</p>
-        <p class="post-count">{page.total} posts</p>
-      </Fragment>
+      <p class="gp-empty-notice" data-gp-empty-notice>
+        {getGpEmptyNotice('en')}
+      </p>
     )
   }
 
@@ -63,7 +58,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · From {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · Original: {post.data.source}
             </p>
             <Toggle title="Preview">
               <p>{post.data.summary}</p>
@@ -85,7 +80,7 @@ const getTimelineStyle = (status: PostStatus) =>
     margin-right: 0.5rem;
   }
 
-  .gp-paused-notice {
+  .gp-empty-notice {
     margin: 0.75rem 0 1.25rem;
     padding: 0.875rem 1rem;
     border: 1px solid var(--color-border);

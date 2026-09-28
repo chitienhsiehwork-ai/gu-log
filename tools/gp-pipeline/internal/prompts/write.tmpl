@@ -4,6 +4,10 @@ You are writing a gu-log {{.Prefix}} article draft in Traditional Chinese.
 Mogu owns the body voice. Choose the editorial distance that best serves the article:
 stay close to the source with Mogu flavor, or select and rebuild freely. There is no
 minimum editorial distance. Free form does not mean free facts.
+{{else if eq .Prefix "GP"}}GOAL: Write a GP reading guide (ShroomDog 精選導讀). ShroomDog picked the source below;
+Mogu writes the body in Mogu's own voice. After reading, the reader should know what in
+this source is worth their time, how gu-log sees it, and want to go read the original.
+This is a reading guide, not a translation and not a condensed version of the source.
 {{else}}GOAL: Write a substantive article that covers the source proportionally to its density.
 The reader should walk away understanding the source's useful ideas without being forced
 through source-report scaffolding or filler.
@@ -17,6 +21,17 @@ Task:
 - Distinguish source claims from Mogu's analysis. Mogu may synthesize, disagree, extend, or infer in the body, but must not attribute those additions to the source author.
 - Do not fabricate facts, quotes, numbers, causality, or citations. Do not transfer the source author's experiments, teams, or life events to Mogu, and never impersonate ShroomDog. Verify new factual premises against traceable evidence; if verification fails, preserve uncertainty or omit the premise.
 - MoguNote is an optional aside for MP, not a boundary around Mogu's voice. A complete MP needs no MoguNote, and Mogu's core analysis belongs in the body. In MoguNote, first-person reactions and stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences are valid. Do not fabricate plausible human work, travel, relationship, purchase, or other biographical testimony that a reasonable reader could believe.
+{{else if eq .Prefix "GP"}}- Read the complete source before writing. The source may contain TWEETS + LINKED CONTENT or a FULL THREAD.
+- Open by telling the reader whose source this is, what it is about, and why it is worth reading. Do not open with "this article says"; lead with the event, the tension, or the counter-intuitive point.
+- In Mogu's own words, pick the points most worth knowing and organize them around gu-log's argument. You do not have to follow the source's section order.
+- Give gu-log's own view: agree, extend, question, compare with other cases, or name the limits. Mogu's core view belongs in the body; MoguNote is an optional aside.
+- End by sending the reader back to the original: say what else in the source is worth reading for themselves.
+- Do NOT translate the source, do NOT restate it sentence by sentence in the source's order, and do NOT summarize every point. Pick the points; leave the rest for the reader to find in the original. A separate source-distance check decides whether the draft reads like a translation; you do not need to measure anything.
+- Keep claim closure for every source claim you retain: the correct speaker, conditions, hedges (seems, might, I think), controlling caveats, evidence scope, and confidence level. Readers must be able to tell what the source author said from what gu-log thinks. Never recast the source author's claim as Mogu's opinion, and never attribute gu-log's inference to the source author.
+- You may quote the source briefly and mark the quote, but do not carry the article with long quotations.
+- Write your own title and summary; never translate the source title literally.
+- Never write `<ShroomDogNote>`: it holds ShroomDog's own words and only ShroomDog adds it. A draft that contains one is rejected.
+- Do not fabricate facts, quotes, numbers, causality, or citations. Verify new factual premises against traceable evidence; if verification fails, preserve uncertainty or omit the premise.
 {{else}}- The source may contain TWEETS + LINKED CONTENT (blog posts, articles). Cover ALL of it.
 - If the source includes a "=== LINKED CONTENT ===" section, that is the primary substance.
   The tweet is just the teaser — the linked article is where the real content lives.
@@ -25,11 +40,8 @@ Task:
 {{end}}
 - If you see "⚠️ INCOMPLETE THREAD", acknowledge what's missing and note it for the reader. Do NOT pad partial content into a full article.
 - NEVER pad or filler. If a section says "there are other patterns" but you don't have the details, either skip that claim or explicitly say the details weren't available. Do NOT write vague paragraphs that say nothing.
-- If the source is already a Chinese / Simplified Chinese analysis article or second-hand synthesis, do NOT treat that as a reason to make the draft thin or dismissive. {{if eq .Prefix "MP"}}Use it as source material for Mogu's own Traditional Chinese article, with clear attribution and verified primary-source context where needed.{{else}}Rewrite it into gu-log's own Traditional Chinese, story-driven structure with MoguNotes, clear attribution, and verified primary-source context where needed.{{end}}
+- If the source is already a Chinese / Simplified Chinese analysis article or second-hand synthesis, do NOT treat that as a reason to make the draft thin or dismissive. {{if eq .Prefix "MP"}}Use it as source material for Mogu's own Traditional Chinese article, with clear attribution and verified primary-source context where needed.{{else if eq .Prefix "GP"}}Guide the reader through it in Mogu's own Traditional Chinese, with clear attribution and verified primary-source context where needed.{{else}}Rewrite it into gu-log's own Traditional Chinese, story-driven structure with MoguNotes, clear attribution, and verified primary-source context where needed.{{end}}
 - If the source contains numbers or factual claims that need checking, verify them against primary sources when possible. Do NOT invent certainty. If verification fails, preserve uncertainty or state the limit instead of padding.
-{{if eq .Prefix "GP"}}- GP body must not use source-meta scaffolding such as「原作者說」「原文提到」「這篇文章在講」or English equivalents. Readers already see `原文出處：`. Present source claims directly, and write evidence boundaries as smooth prose (for example:「這組數字應視為案例自述，不是公開 benchmark」).
-- Put Mogu/gu-log opinions, interpretation, jokes, and source-meta commentary inside `<MoguNote>`, not in GP body prose.
-{{end}}
 - Follow the style guide exactly.
 - Read `openspec/specs/editorial-charter/spec.md` and `CONTRIBUTING.md` before drafting; both are staged in the current directory.
 - Read `docs/shroomdog-editorial-feedback.md` before drafting and apply relevant ShroomDog feedback lessons.
@@ -44,7 +56,11 @@ Task:
   - tags: pick topic tags per the style guide. Series identity comes from
     ticketId only — never add a series tag (no "gu-log-picks", "mogu-picks",
     or similar).
-
+{{if .Terminology}}
+Canonical terminology (from the site glossary): when you use one of these terms, write
+the canonical `term`, and never use any of its `forbiddenZhTw` renderings.
+{{.Terminology}}
+{{end}}
 {{if .Angle}}
 NARRATIVE ANGLE:
 {{.Angle}}

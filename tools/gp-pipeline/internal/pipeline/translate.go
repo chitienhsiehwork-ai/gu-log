@@ -94,6 +94,7 @@ func (s *State) Translate(ctx context.Context) error {
 		return fmt.Errorf("translate: writer dispatcher is nil")
 	}
 	prompt, err := prompts.Render("translate", prompts.TranslateData{
+		Prefix:   prefix,
 		TicketID: s.PromptTicketID,
 		Source:   string(source),
 	})
@@ -143,6 +144,23 @@ func (s *State) Translate(ctx context.Context) error {
 	if err := translatedFile.ValidateYAML(); err != nil {
 		return fmt.Errorf("translate: generated English frontmatter is not valid YAML: %w", err)
 	}
+	// The zh-tw source-distance stamp describes the zh-tw body only. Drop any
+	// copy the model made; a GP English version gets its own stamp after the
+	// verbatim check below.
+	translatedFile.RemoveBlock(sourceDistanceField)
+	translatedFile.StripLinesMatching(func(line string) bool {
+		return strings.HasPrefix(line, sourceDistanceField+":")
+	})
+	// sourceUrl decides whether a GP English version takes the verbatim check
+	// and goes into its stamp's fingerprint, so it is the zh-tw value, never
+	// whatever the model wrote.
+	if raw, ok := sourceFile.GetScalar("sourceUrl"); ok {
+		translatedFile.SetScalar("sourceUrl", raw)
+	} else {
+		translatedFile.StripLinesMatching(func(line string) bool {
+			return strings.HasPrefix(line, "sourceUrl:")
+		})
+	}
 	// The model is not authoritative for provenance. Restore the canonical
 	// nested history from the zh-tw source, then stamp only this invocation's
 	// direct translator fields and date.
@@ -162,6 +180,14 @@ func (s *State) Translate(ctx context.Context) error {
 	enPath := filepath.Join(postsDir, s.ActiveENFilename)
 	if err := os.WriteFile(enPath, translated, 0o644); err != nil {
 		return fmt.Errorf("translate: write %s: %w", enPath, err)
+	}
+	if prefix == "GP" {
+		if err := s.checkEnglishVerbatim(ctx, sourcePath, enPath); err != nil {
+			return err
+		}
+		if s.EnglishCheck == EnglishCheckSkippedVerbatim {
+			return nil
+		}
 	}
 
 	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, s.TranslateModel)

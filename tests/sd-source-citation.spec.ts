@@ -19,8 +19,8 @@ test.describe('SD Posts: Source Citation', () => {
   test('GIVEN a GP (Gu-log Picks) post WHEN viewing THEN source citation SHOULD be shown', async ({
     page,
   }) => {
-    // GP-1 is the self-written demo that stays public while GP translations are
-    // taken down (openspec: post-takedown).
+    // GP-1 is the self-written demo that stays public after the GP
+    // translations were taken down (openspec: post-takedown).
     await page.goto(BASE + '/posts/gp-1-20260128-demo');
     await page.waitForLoadState('domcontentloaded');
 

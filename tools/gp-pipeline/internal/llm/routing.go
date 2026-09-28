@@ -16,6 +16,9 @@ type RuntimeRole string
 const (
 	RuntimeReviewer RuntimeRole = "reviewer"
 	RuntimeWriter   RuntimeRole = "writer"
+	// RuntimeAligner is the source-distance aligner: a Claude call with its
+	// own pin (.claude/agents/source-aligner.md), no tools, structured output.
+	RuntimeAligner RuntimeRole = "aligner"
 )
 
 type ResolvedRuntime struct {
@@ -67,10 +70,11 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 }
 
 // claudeRuntimeTools is the least-privilege tool set of a Claude route. The
-// router only routes article-writing steps to Claude (the single list lives in
-// scripts/tribunal-model-router.sh). The writer drafts files inside its own
-// work dir; any other role that reaches Claude fails closed with no tools at
-// all, so an injected source cannot touch the work dir's files.
+// router routes only article-writing steps and the source aligner to Claude
+// (the single list lives in scripts/tribunal-model-router.sh). The writer
+// drafts files inside its own work dir; any other role that reaches Claude,
+// including the aligner, gets no tools at all, so an injected source cannot
+// touch the work dir's files.
 func claudeRuntimeTools(role RuntimeRole) []string {
 	if role == RuntimeWriter {
 		return []string{"Read", "Grep", "Glob", "Edit", "Write"}
@@ -92,16 +96,26 @@ func ProvidersForRuntime(
 	}
 	switch runtime.Provider {
 	case "claude":
-		// The router reads the pin from .claude/agents/tribunal-writer.md; the
-		// Go side pins ClaudeOpusPinned. Refuse to pick one when they disagree.
-		if runtime.Model != ClaudeOpusPinned {
+		model := ClaudeOpusPinned
+		if role == RuntimeAligner {
+			// The router and AlignerPin read the same agent file, so there is
+			// no drift to compare; AlignerPin still refuses the writer's pin.
+			pin, err := AlignerPin(repoRoot)
+			if err != nil {
+				return nil, true, err
+			}
+			model = pin
+		} else if runtime.Model != ClaudeOpusPinned {
+			// The router reads the writer pin from
+			// .claude/agents/tribunal-writer.md; the Go side pins
+			// ClaudeOpusPinned. Refuse to pick one when they disagree.
 			return nil, true, fmt.Errorf(
-				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline pins %q; update both pins together",
+				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline expects %q; update both pins together",
 				runtime.Model, ClaudeOpusPinned,
 			)
 		}
 		return []Provider{&ClaudeProvider{
-			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: claudeRuntimeTools(role),
+			ModelFlag: model, Contained: true, Tools: claudeRuntimeTools(role),
 		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{

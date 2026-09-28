@@ -1,5 +1,5 @@
-// Command gp-pipeline is gu-log's MP/SD/Lv source-grounded writing pipeline CLI
-// (GP is paused); the canonical entrypoint is the self-compiling wrapper
+// Command gp-pipeline is gu-log's GP/MP/SD/Lv source-grounded writing pipeline
+// CLI; the canonical entrypoint is the self-compiling wrapper
 // tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
@@ -55,16 +55,13 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log source-grounded writing pipeline (GP paused)",
+		Short: "gu-log source-grounded writing pipeline",
 		Long: `gp-pipeline is the Go implementation of gu-log's source-grounded writing
-flow for MP, SD, and Lv. The canonical entrypoint is
+flow for GP, MP, SD, and Lv. The canonical entrypoint is
 tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP/SD/Lv and post
 filename slugs are gp-/mp-/sd-/lv- (existing Lv posts keep levelup-).
-
-GP 暫停中: the whole-article GP translation flow is retired, and GP writing,
-publishing, and ticket allocation are rejected until the commentary format
-ships (openspec: editorial-charter). ralph still scores existing GP posts
-without rewriting them.
+Commands that start without a file require --prefix: no command picks a
+series on its own.
 
 It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
@@ -72,16 +69,18 @@ one step at a time without inheriting the whole pipeline's side effects:
   fetch      capture a tweet / article into a work directory
   candidate  preflight one YouTube video without entering the writing pipeline
   status     inspect an active/recent run from work-dir + repo artifacts
-  eval       decide whether a source is GP-worthy
+  eval       decide whether a source is worth an article
   dedup      check whether the source is already covered
-  write      draft an MP/SD/Lv article
-  review     review an MP/SD/Lv draft
-  refine     refine an MP/SD/Lv draft into final.mdx
+  write      draft an article
+  review     review a draft
+  refine     refine a draft into final.mdx
   ralph      run the 4-judge tribunal (GP is score-only)
   translate  produce the en sidecar, but only after ralph passed
              (zh-tw-first: never translates an unstable draft)
   deploy     validate, build, commit, push
   run        run the whole pipeline end-to-end
+  stamp      check an existing GP post against its source and write its
+             source-distance stamp (the body is never changed)
   doctor     check that every external dependency is reachable
   counter    read / bump the ticket counter
 
@@ -145,6 +144,7 @@ for the migration history and current operational notes.`,
 	root.AddCommand(newTranslateCmd(state))
 	root.AddCommand(newDeployCmd(state))
 	root.AddCommand(newRunCmd(state))
+	root.AddCommand(newStampCmd(state))
 
 	return root
 }
@@ -176,8 +176,8 @@ func newExitError(code int, err error) *ExitError {
 	return &ExitError{Code: code, Err: err}
 }
 
-// exitCodeFor maps known error types to documented exit codes. See
-// SKILL.md for the full exit code contract.
+// exitCodeFor maps known error types to documented exit codes. `run --help`
+// lists the full exit code contract.
 func exitCodeFor(err error) int {
 	if err == nil {
 		return 0

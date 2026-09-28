@@ -160,6 +160,9 @@ const postsCollection = defineCollection({
         .optional(),
       // 來源自己的標題（墓碑卡片第一行）；不得等於 gu-log 自己的標題。
       sourceTitle: z.string().optional(),
+      // `sourceDistance`（來源距離章，openspec source-distance-stamp）刻意不宣告：站內沒有
+      // 程式讀它，Zod 預設丟掉沒宣告的欄位，post.data 與讀者看得到的輸出就不會帶到；
+      // 內容由 scripts/validate-posts.mjs 驗。
       series: z
         .object({
           name: z.string(),
@@ -285,14 +288,13 @@ const postsCollection = defineCollection({
     })
     .refine(
       (data) => {
-        // Every post carries a model signature (translatedBy = model + harness).
-        // GP translation renders it as "translated by"; MP/SD/Lv writing renders
-        // it as "written by" (post page picks wording by ticketId prefix).
+        // Every post carries a model signature (translatedBy = model + harness);
+        // the post page shows it with the pipeline label of the post's series.
         return !!data.translatedBy;
       },
       {
         message:
-          'Every post requires translatedBy (model + harness) — the model signature is mandatory (GP translation: "translated by", MP/SD/Lv writing: "written by")',
+          'Every post requires translatedBy (model + harness) — the model signature is mandatory',
         path: ['translatedBy'],
       }
     ),

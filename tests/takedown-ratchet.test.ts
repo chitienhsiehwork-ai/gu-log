@@ -7,6 +7,7 @@ import {
   collectRatchetInput,
   evaluateTakedownRatchet,
 } from '../scripts/check-takedown-ratchet.mjs';
+import { withValidStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -48,8 +49,6 @@ function baseInput(overrides: Partial<Parameters<typeof evaluateTakedownRatchet>
     addedPosts: [],
     headTakenDown: [{ path: GP35, content: tombstone('GP-35', GP35_URL) }],
     addedSourcePaths: [],
-    baseTicketIds: new Set(['GP-1', 'GP-35', 'MP-7']),
-    gpPaused: true,
     ...overrides,
   };
 }
@@ -80,8 +79,8 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
     expect(deleted.join('\n')).toMatch(/was deleted or renamed/);
   });
 
-  it('blocks new GP posts while GP is paused, but not renames of existing tickets', () => {
-    const newGp = evaluateTakedownRatchet(
+  it('no longer refuses new GP posts for being GP', () => {
+    const errors = evaluateTakedownRatchet(
       baseInput({
         addedPosts: [
           {
@@ -95,32 +94,7 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
         ],
       })
     );
-    expect(newGp.filter((error) => error.includes('new GP posts are paused'))).toHaveLength(2);
-
-    const existingTicket = evaluateTakedownRatchet(
-      baseInput({
-        addedPosts: [
-          {
-            path: 'src/content/posts/gp-1-renamed.mdx',
-            content: livePost('GP-1', 'https://example.com/demo'),
-          },
-        ],
-      })
-    );
-    expect(existingTicket).toEqual([]);
-
-    const unpaused = evaluateTakedownRatchet(
-      baseInput({
-        gpPaused: false,
-        addedPosts: [
-          {
-            path: 'src/content/posts/gp-400-x.mdx',
-            content: livePost('GP-400', 'https://a.example/2'),
-          },
-        ],
-      })
-    );
-    expect(unpaused).toEqual([]);
+    expect(errors).toEqual([]);
   });
 
   it('blocks a new post that reuses a taken-down source (URL, share link, tweet or video ID)', () => {
@@ -178,6 +152,79 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
     expect(errors[3]).toMatch(/mp-504-e\.mdx: source is blocked .* taken down as MP-114/);
   });
 
+  it('lets a stamped GP reading guide and its English version reuse a source taken down only as GP', () => {
+    const zh = withValidStamp(livePost('GP-400', `${GP35_URL}/`));
+    const en = withValidStamp(livePost('GP-400', GP35_URL, ['lang: "en"']));
+    const input = baseInput({
+      addedPosts: [
+        { path: 'src/content/posts/gp-400-guide.mdx', content: zh },
+        { path: 'src/content/posts/en-gp-400-guide.mdx', content: en },
+      ],
+    });
+    expect(evaluateTakedownRatchet(input)).toEqual([]);
+    // 那篇下架文章維持原狀，棘輪照樣守著它。
+    expect(input.headContents.get(GP35)).toBe(tombstone('GP-35', GP35_URL));
+
+    // 沒帶章、章過期、或不是 GP，都照樣封鎖。
+    const unstamped = evaluateTakedownRatchet(
+      baseInput({
+        addedPosts: [
+          { path: 'src/content/posts/gp-401-guide.mdx', content: livePost('GP-401', GP35_URL) },
+          {
+            path: 'src/content/posts/gp-402-guide.mdx',
+            content: zh.replace('正文 (◕‿◕)', '改過的正文'),
+          },
+          {
+            path: 'src/content/posts/mp-400-guide.mdx',
+            content: livePost('MP-400', GP35_URL),
+          },
+        ],
+      })
+    );
+    expect(unstamped).toHaveLength(3);
+    expect(unstamped[0]).toMatch(
+      /gp-401-guide\.mdx: source is blocked .*only with a valid sourceDistance stamp/
+    );
+    expect(unstamped[1]).toMatch(/gp-402-guide\.mdx: source is blocked/);
+    expect(unstamped[2]).toMatch(/mp-400-guide\.mdx: source is blocked .* taken down as GP-35/);
+  });
+
+  it('blocks a stamped GP reading guide when the source was also taken down as MP', () => {
+    const MP114 = 'src/content/posts/mp-114-agent-teams.mdx';
+    const errors = evaluateTakedownRatchet(
+      baseInput({
+        headTakenDown: [
+          { path: GP35, content: tombstone('GP-35', GP35_URL) },
+          { path: MP114, content: tombstone('MP-114', `${GP35_URL}?ref=feed`) },
+        ],
+        addedPosts: [
+          {
+            path: 'src/content/posts/gp-400-guide.mdx',
+            content: withValidStamp(livePost('GP-400', GP35_URL)),
+          },
+        ],
+      })
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/gp-400-guide\.mdx: source is blocked .* taken down as MP-114/);
+    expect(errors[0]).not.toMatch(/GP-35/);
+  });
+
+  it('blocks an existing post whose sourceUrl moves to a taken-down source', () => {
+    const errors = evaluateTakedownRatchet(
+      baseInput({
+        changedSourcePosts: [
+          {
+            path: 'src/content/posts/mp-7-existing.mdx',
+            content: livePost('MP-7', `${GP35_URL}?utm_medium=share`),
+          },
+        ],
+      })
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatch(/mp-7-existing\.mdx: source is blocked .* taken down as GP-35/);
+  });
+
   it('only lets sources/chatgpt/ grow', () => {
     const errors = evaluateTakedownRatchet(
       baseInput({
@@ -223,8 +270,7 @@ describe('takedown ratchet — git adapter', () => {
 
     const input = collectRatchetInput({ mode: 'staged', cwd });
     expect(input.baseTakenDown.map((post: { path: string }) => post.path)).toEqual([GP35]);
-    expect([...input.baseTicketIds].sort()).toEqual(['GP-1', 'GP-35']);
-    const errors = evaluateTakedownRatchet({ ...input, gpPaused: true });
+    const errors = evaluateTakedownRatchet(input);
     expect(errors.join('\n')).toMatch(
       /gp-35-20260206-agent-teams\.mdx: taken-down post body must stay empty/
     );
@@ -240,16 +286,31 @@ describe('takedown ratchet — git adapter', () => {
       path.join(cwd, 'src/content/posts/gp-400-new.mdx'),
       livePost('GP-400', 'https://fresh.example/new')
     );
+    // 既有文章改用下架文章的來源；只改正文、不動 sourceUrl 的不算。
+    fs.writeFileSync(path.join(cwd, 'src/content/posts/gp-1-demo.mdx'), livePost('GP-1', GP35_URL));
     run(cwd, ['add', '-A']);
     run(cwd, ['commit', '-q', '-m', 'head']);
 
-    const errors = evaluateTakedownRatchet({
-      ...collectRatchetInput({ mode: 'range', base, cwd }),
-      gpPaused: true,
-    });
+    const input = collectRatchetInput({ mode: 'range', base, cwd });
+    expect(input.changedSourcePosts.map((post: { path: string }) => post.path)).toEqual([
+      'src/content/posts/gp-1-demo.mdx',
+    ]);
+    const errors = evaluateTakedownRatchet(input);
     expect(errors.join('\n')).toMatch(
       /gp-35-20260206-agent-teams\.mdx: taken-down post was deleted/
     );
-    expect(errors.join('\n')).toMatch(/gp-400-new\.mdx: new GP posts are paused/);
+    expect(errors.join('\n')).not.toMatch(/gp-400-new\.mdx/);
+  });
+
+  it('does not re-check an existing post whose sourceUrl stayed the same', () => {
+    const cwd = repoWithTombstone();
+    const base = run(cwd, ['rev-parse', 'HEAD']).trim();
+    fs.writeFileSync(
+      path.join(cwd, 'src/content/posts/gp-1-demo.mdx'),
+      livePost('GP-1', 'https://example.com/demo').replace('正文', '改過的正文')
+    );
+    run(cwd, ['add', '-A']);
+    run(cwd, ['commit', '-q', '-m', 'body edit']);
+    expect(collectRatchetInput({ mode: 'range', base, cwd }).changedSourcePosts).toEqual([]);
   });
 });

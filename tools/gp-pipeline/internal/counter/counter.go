@@ -9,7 +9,7 @@
 //	  "GP": {
 //	    "next": 171,
 //	    "label": "Gu-log Picks",
-//	    "description": "Articles picked by ShroomDog, translated by Mogu"
+//	    "description": "Reading guides picked by ShroomDog and written by Mogu"
 //	  },
 //	  "MP": { ... },
 //	  "SD": { ... },
@@ -64,6 +64,23 @@ func ValidatePrefix(p string) error {
 		return fmt.Errorf("counter: prefix %q was retired by the Mogu/GP/MP rebrand — use %q", p, canonical)
 	}
 	return fmt.Errorf("counter: invalid prefix %q (want one of %v)", p, ValidPrefixes)
+}
+
+// RequirePrefix rejects a missing series: the caller must choose one
+// explicitly. No command picks a series on the caller's behalf.
+func RequirePrefix(command, prefix string) error {
+	if prefix == "" {
+		return fmt.Errorf("%s: --prefix is required; choose one of %v", command, ValidPrefixes)
+	}
+	return ValidatePrefix(prefix)
+}
+
+// PrefixOfTicketID returns the series of a canonical ticket ID.
+func PrefixOfTicketID(ticketID string) (string, error) {
+	if err := ValidateTicketID(ticketID); err != nil {
+		return "", err
+	}
+	return ticketIDPattern.FindStringSubmatch(ticketID)[1], nil
 }
 
 // PendingTicketID returns the canonical pending ticket for prefix.

@@ -1,11 +1,11 @@
 ---
 name: x-source-fetch
-description: Fetch the full focal body of an X/Twitter post or X Article for MP source-grounded writing before gp-pipeline runs; fail loudly when that focal source is incomplete.
+description: Fetch the full focal body of an X/Twitter post or X Article for GP reading guides or MP source-grounded writing before gp-pipeline runs; fail loudly when that focal source is incomplete.
 ---
 
 # x-source-fetch
 
-Fetch an X URL's full translatable body, or fail loud. One script, one contract.
+Fetch an X URL's full focal body, or fail loud. One script, one contract.
 
 ## When to use
 
@@ -66,7 +66,7 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
 
 ## Quick sanity checks after fetching
 
-Before piping the output into a GP translation or MP writing prompt, verify:
+Before piping the output into a GP reading-guide or MP writing prompt, verify:
 
 ```bash
 OUT=$(bash scripts/fetch-x-article.sh "$URL")

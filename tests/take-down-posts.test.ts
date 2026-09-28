@@ -44,7 +44,7 @@ const LIST = {
 };
 
 function post(fields: Record<string, unknown>, body = '正文 (◕‿◕)\n') {
-  const fm = Object.entries(fields)
+  const fm = Object.entries({ translatedDate: '2026-02-14', ...fields })
     .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
     .join('\n');
   return `---\n${fm}\n---\n${body}`;
@@ -136,6 +136,41 @@ describe('takedown rules and plan', () => {
     });
   });
 
+  it('never selects a post first published after the authorization date', () => {
+    // openspec post-takedown〈授權之後才發布的文章〉
+    const dir = writeCorpus({
+      'gp-63-20260214-benson.mdx': post({
+        ticketId: 'GP-63',
+        sourceUrl: 'https://x.com/benson/status/1',
+      }),
+      'gp-300-20260927-guide.mdx': post({
+        ticketId: 'GP-300',
+        translatedDate: '2026-09-27',
+        sourceUrl: 'https://a.example/1',
+      }),
+      'gp-301-20261001-guide.mdx': post({
+        ticketId: 'GP-301',
+        translatedDate: '2026-10-01',
+        sourceUrl: 'https://a.example/2',
+      }),
+    });
+    const plan = planTakedown({ list: LIST, posts: readPostIndex(dir) });
+    expect(plan.posts.map((entry: { ticketId: string }) => entry.ticketId).sort()).toEqual([
+      'GP-300',
+      'GP-63',
+    ]);
+    expect(plan.publishedAfterAuthorization).toEqual([
+      { ticketId: 'GP-301', file: 'gp-301-20261001-guide.mdx', translatedDate: '2026-10-01' },
+    ]);
+
+    const undated = writeCorpus({
+      'gp-302-x.mdx': post({ ticketId: 'GP-302', translatedDate: 'soon' }),
+    });
+    expect(() => planTakedown({ list: LIST, posts: readPostIndex(undated) })).toThrow(
+      /translatedDate must be YYYY-MM-DD/
+    );
+  });
+
   it('fails when a recorded boundary case would be taken down by a rule', () => {
     const dir = writeCorpus({
       'mp-72-x.mdx': post({ ticketId: 'MP-72', sourceUrl: 'https://www.bloomberg.com/a' }),
@@ -206,6 +241,29 @@ describe('takeDownSource', () => {
     expect(fm.author).toBeUndefined();
     expect(fm.deprecatedBy).toBeUndefined();
     expect(fm.deprecatedReason).toBeUndefined();
+  });
+
+  it('removes the source-distance stamp together with the body', () => {
+    const stamped = original.replace(
+      'authorCanonical: anthropic',
+      [
+        'authorCanonical: anthropic',
+        'sourceDistance:',
+        "  policy: 'source-distance/v1'",
+        "  verdict: 'PASS'",
+        '  metrics:',
+        '    maxRun: 1',
+        "  checkedAt: '2026-09-28'",
+      ].join('\n')
+    );
+    const result = takeDownSource(stamped, {
+      file: 'gp-35.mdx',
+      date: '2026-09-27',
+      sourceTitle: 'Orchestrate teams of Claude Code sessions',
+    });
+    const fm = parse(result.content.split('---\n')[1]);
+    expect(fm.sourceDistance).toBeUndefined();
+    expect(fm).toMatchObject({ authorCanonical: 'anthropic', scores: { vibe: { score: 8 } } });
   });
 
   it('never adds or changes author; an existing author stays as written', () => {

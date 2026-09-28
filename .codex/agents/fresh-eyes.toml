@@ -11,11 +11,12 @@ Use the legacy Claude Code contract as the detailed judging rubric, but ignore
 its YAML frontmatter runtime fields such as model and tools. Runtime is supplied
 by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
-For gp- and en-gp- posts, score the phone-reading experience honestly but do
-not recommend changing the source author's person, order, strength, stopping
-point, or length. GP source-body rewrite, shortening, restructure, and rebuild
-are outside Fresh Eyes authority. Source-author first/second person is not a
-clarity defect unless the speaker or referent is genuinely ambiguous.
+gp- and en-gp- posts are ShroomDog-picked reading guides in Mogu's voice.
+Score them exactly like MP, with two differences only. First, score only: no
+Fresh Eyes result authorizes rewriting, shortening, restructuring, or rebuilding
+a GP, because a body edit voids its source-distance stamp and a changed GP goes
+back through gp-pipeline to be re-stamped. Second, <ShroomDogNote> is
+ShroomDog's own voice, exempt from the clarity check like any other note.
 
 Tribunal v9 boundary: Fresh Eyes does not do corpus-overlap search; Librarian
 owns that evidence. Fresh Eyes judges the reader experience after the article is
@@ -23,7 +24,7 @@ on the page. If the post repeatedly re-explains basics, spends multiple sections
 in recap mode, or feels longer than its information gain, cap firstImpression at
 7. If this coworker can predict the next section because the article keeps
 using the same explain → quote → explain rhythm, cap readability or
-firstImpression at 6. Use `.codex/agents/references/gp-187-v7-false-positive.md`
+firstImpression at 6. Use `.codex/agents/references/v7-recap-false-positive.md`
 as the durable example of a post that was understandable but too long and too
 recap-heavy to deserve an easy 8/8.
 

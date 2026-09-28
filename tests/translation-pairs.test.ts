@@ -170,6 +170,43 @@ scores:
     }
   });
 
+  it('lets a Tribunal-passed GP ship zh-tw alone only when its stamp skipped English for verbatim copying', () => {
+    // openspec source-distance-stamp〈略過英文版的 GP 通過翻譯配對檢查〉: --strict fails
+    // exactly when findMissingPairs reports something.
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-gp-english-skipped-'));
+    const passed = `
+scores:
+  tribunalVersion: 9
+  librarian: { glossary: 8, crossRef: 8, sourceAlign: 8, attribution: 8, score: 8 }
+  factCheck: { accuracy: 8, fidelity: 8, consistency: 8, sourceBoundary: 8, commentarySeparation: 8, score: 8 }
+  freshEyes: { readability: 8, firstImpression: 8, payoffDensity: 8, lengthFit: 8, clarity: 8, score: 8 }
+  vibe: { persona: 9, moguNote: 8, vibe: 8, narrative: 8, score: 8 }`;
+    const stamp = (extra: string) => `
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'${extra}`;
+    const writePost = (name: string, ticketId: string, frontmatter: string) =>
+      fs.writeFileSync(
+        path.join(postsDir, name),
+        `---\nticketId: ${ticketId}\nstatus: published${frontmatter}\n---\n\nBody\n`
+      );
+
+    try {
+      writePost('gp-910-skipped.mdx', 'GP-910', passed + stamp("\n  englishSkipped: 'verbatim'"));
+      writePost('gp-911-unmarked.mdx', 'GP-911', passed + stamp(''));
+      writePost('gp-912-other-mark.mdx', 'GP-912', passed + stamp("\n  englishSkipped: 'other'"));
+
+      expect(
+        findMissingPairs(loadPostMap(postsDir)).sort((a, b) => a.ticketId.localeCompare(b.ticketId))
+      ).toEqual([
+        { ticketId: 'GP-911', file: 'gp-911-unmarked.mdx', missingLang: 'en' },
+        { ticketId: 'GP-912', file: 'gp-912-other-mark.mdx', missingLang: 'en' },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
   it('does not classify a rename set above diff.renameLimit as added posts', () => {
     const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-'));
 

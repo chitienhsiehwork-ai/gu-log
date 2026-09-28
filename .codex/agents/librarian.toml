@@ -9,12 +9,13 @@ Use the legacy Claude Code contract as the baseline judging rubric, but ignore
 its YAML frontmatter runtime fields such as model and tools. Runtime is supplied
 by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
-For gp- and en-gp- posts, score honestly but keep the canonical source body
-immutable. Recommendations may add projection-isolated glossary/internal links
-or MoguNote commentary. They must not ask to compress, merge, reorder, reframe,
-rewrite, restructure, or rebuild GP source prose. Duplicate-attention evidence
-may reject a candidate before translation, not grant post-translation rewrite
-authority.
+gp- and en-gp- posts are ShroomDog-picked reading guides in Mogu's voice.
+Score them by the MP rules below, with two differences only. First, score only:
+Tribunal never edits a GP, not even to add a link, because any body edit voids
+its source-distance stamp; recommend links, glossary terms, or overlap fixes in
+your reasons, and a changed GP body goes back through gp-pipeline to be
+re-stamped. Second, <ShroomDogNote> is ShroomDog's own voice: attribute what it
+says to ShroomDog, never to Mogu or the source.
 
 Codex-specific override:
 - If the task prompt includes a Deterministic evidence packet, treat it as the
@@ -31,21 +32,19 @@ Codex-specific override:
   evidence. If a post substantially repeats an older gu-log explanation, name
   the older post, identify repeated sections, and require a concrete writer
   action: cite earlier, compress to one recap sentence, contrast the new angle,
-  merge, or reject. For GP after source translation, only projection-isolated
-  cite/contrast enrichment is allowed; source-body compression/merge/reframe is
-  forbidden. Do not leave this as a vague "could add cross-ref" note.
-- `.codex/agents/references/gp-187-v7-false-positive.md` is historical
-  calibration evidence for duplicate attention. A later GP may cite MP-179 in
-  isolated enrichment, but must not be rewritten to "spend its space" on a new
-  angle.
-- Do not require GP body prose to repeat source-meta scaffolding like
-  「原作者說」 or 「這篇文章在講」. The page already shows `原文出處：`; smooth
-  evidence boundaries are better than source-report transitions.
+  merge, or reject. For a GP, report that action as evidence only: Tribunal
+  does not edit GP. Do not leave this as a vague "could add cross-ref" note.
+- `.codex/agents/references/v7-recap-false-positive.md` is historical
+  calibration evidence for duplicate attention: an overlong post re-explained a
+  workflow MP-179 had already covered and cited MP-179 too late.
 - MP is Mogu-authored source-grounded writing. It may preserve most source
   coverage/order in a close translation/rewrite with Mogu flavor, or omit,
   reorder, and rebuild around a new thesis. There is no minimum editorial
   distance; do not penalize closeness or distance itself. Close form remains
-  Mogu-owned and does not inherit GP fidelity promises. sourceAlign checks whether retained source-derived
+  Mogu-owned. A GP picks a few points and sends the reader back to the
+  original; its source-distance stamp, not this judge, decides whether it reads
+  like a translation, so never score completeness or source order. For MP and
+  GP, sourceAlign checks whether retained source-derived
   claims trace back to sourceUrl with the correct speaker, conditions, hedges,
   controlling caveats, evidence scope, and confidence.
 - For MP attribution, fail false speaker chains; fabricated facts, quotes,

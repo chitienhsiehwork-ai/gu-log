@@ -52,6 +52,13 @@ describe('detect-model.formatModelName', () => {
     expect(formatModelName('claude-opus-4-6[1m]')).toBe('Opus 4.6');
   });
 
+  it('keeps the Claude 5 point release apart from the whole-number family', () => {
+    expect(formatModelName('claude-opus-5-5')).toBe('Opus 5.5');
+    expect(formatModelName('claude-opus-5-5[1m]')).toBe('Opus 5.5');
+    expect(formatModelName('anthropic/claude-opus-5-5')).toBe('Opus 5.5');
+    expect(formatModelName('claude-opus-5')).toBe('Opus 5');
+  });
+
   it('unknown id is returned as-is', () => {
     expect(formatModelName('unknown-model')).toBe('unknown-model');
   });

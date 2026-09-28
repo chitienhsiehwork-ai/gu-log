@@ -36,9 +36,10 @@ echo ""
 
 # ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
 # A taken-down post must stay a tombstone (still present, still taken-down,
-# empty body); new GP posts are paused; a new post may not reuse a
-# taken-down source; sources/ only grows under sources/chatgpt/. CI runs the
-# same script with the PR base SHA.
+# empty body); a new post may not reuse a taken-down source, except a GP
+# with a valid source-distance stamp whose matching takedowns are all GP;
+# sources/ only grows under sources/chatgpt/. CI runs the same script with
+# the PR base SHA.
 echo "🪦 Takedown ratchet: checking staged changes against HEAD..."
 node "$REPO_ROOT/scripts/check-takedown-ratchet.mjs" --staged
 echo ""
@@ -730,6 +731,29 @@ else
         echo "❌ Post validation FAILED. Fix errors above before committing."
         exit 1
     fi
+fi
+echo ""
+
+# ─── Step 1.2: Source-distance stamp on every staged post (blocking) ─
+# openspec source-distance-stamp. The content gate above skips terminology-,
+# link- and backend-frontmatter-only edits, but those can still move the body
+# projection or sourceUrl away from a GP's stamp, so every staged post is
+# verified here. Posts that take no stamp (non-GP, demo sources, taken down)
+# pass unless they carry one. Errors go to stderr; the JSON report is dropped.
+STAMP_ARGS=()
+for file in "${STAGED_MDX[@]}"; do
+    if [ -f "$REPO_ROOT/$file" ]; then
+        STAMP_ARGS+=(--file "$REPO_ROOT/$file")
+    fi
+done
+if [ "${#STAMP_ARGS[@]}" -gt 0 ]; then
+    if ! node "$REPO_ROOT/scripts/source-distance.mjs" verify "${STAMP_ARGS[@]}" >/dev/null; then
+        echo ""
+        echo "❌ Source-distance stamp check FAILED. Re-stamp with the command above:"
+        echo "   tools/gp-pipeline/gp-pipeline stamp --file <post>"
+        exit 1
+    fi
+    echo "✓ Source-distance stamps checked"
 fi
 echo ""
 

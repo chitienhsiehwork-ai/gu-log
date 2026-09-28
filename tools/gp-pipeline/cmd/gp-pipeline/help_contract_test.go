@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func TestCandidateHelpContract(t *testing.T) {
@@ -183,26 +185,83 @@ func TestSkillRecoveryContract(t *testing.T) {
 		"--work-dir <original> run --from-step <step> --file <existing>.mdx",
 		"deploy --active-file <mp-pending-*.mdx>",
 		"--date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>",
-		"GP 暫停中",
+		"--from-step source-distance",
+		"stamp --file",
 		"以檔名系列為準",
 		"AGENTS.md",
 		"detect-env.sh --runtime <codex|claude-code>",
+		"gp-pipeline run --help",
 	} {
 		if !strings.Contains(skill, want) {
 			t.Errorf("skill missing recovery contract %q", want)
 		}
 	}
-	// The GP translation flow is retired (openspec: gp-source-preservation);
-	// the skill must not route agents back to it.
-	for _, retired := range []string{"legacy-shadow", "source-translate", "source-preservation", "gp-publish-gate", "--prefix GP"} {
+	// The exit code list lives in `run --help` (built from the constants); the
+	// skill points there instead of keeping a second table.
+	if strings.Contains(skill, "| Code |") {
+		t.Error("skill still keeps its own exit code table; point to `run --help` instead")
+	}
+	// The GP translation flow is retired (openspec: gp-source-preservation) and
+	// GP is no longer paused: the skill must not route agents back to either.
+	for _, retired := range []string{"legacy-shadow", "source-translate", "source-preservation", "gp-publish-gate", "GP 暫停中"} {
 		if strings.Contains(skill, retired) {
-			t.Errorf("skill still documents the retired GP translation flow: %q", retired)
+			t.Errorf("skill still documents the retired GP translation flow or the GP pause: %q", retired)
 		}
 	}
 
 	for _, line := range strings.Split(skill, "\n") {
 		if strings.HasPrefix(line, "|") && strings.Contains(line, "恢復") && strings.Contains(line, "`gp-pipeline deploy") {
 			t.Errorf("recovery table row must not route through standalone deploy: %s", line)
+		}
+	}
+}
+
+// TestGPReadingGuideHelpContract: the help describes the GP reading-guide
+// flow, the stamp command and exit code 19, and no longer says GP is paused.
+func TestGPReadingGuideHelpContract(t *testing.T) {
+	help := func(args ...string) string {
+		resetGlobals()
+		cmd := buildRoot()
+		var out bytes.Buffer
+		cmd.SetOut(&out)
+		cmd.SetErr(&out)
+		cmd.SetArgs(append(args, "--help"))
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("%v --help: %v", args, err)
+		}
+		return out.String()
+	}
+	for args, phrases := range map[string][]string{
+		"run": {
+			"post-fixer", "source-distance", "reading guide", "--from-step source-distance", "englishSkipped: verbatim",
+			fmt.Sprintf("most %d rewrites", pipeline.MaxSourceDistanceRewrites),
+			fmt.Sprintf("%d GP source distance did not pass", pipeline.SourceDistanceExitCode),
+		},
+		"stamp": {
+			"--file", "--source", "the body is never changed", "outside the repo", "exit 1",
+			fmt.Sprintf("exits %d", pipeline.SourceDistanceExitCode),
+			fmt.Sprintf("%d did not pass", pipeline.SourceDistanceExitCode),
+		},
+		"": {"stamp"},
+	} {
+		var out string
+		if args == "" {
+			out = help()
+		} else {
+			out = help(args)
+		}
+		for _, phrase := range phrases {
+			if !strings.Contains(out, phrase) {
+				t.Errorf("%q help missing %q", args, phrase)
+			}
+		}
+	}
+	for _, args := range [][]string{{}, {"run"}, {"counter"}, {"write"}, {"review"}, {"refine"}, {"deploy"}, {"stamp"}} {
+		out := help(args...)
+		for _, stale := range []string{"暫停", "paused", "default GP", "defaults to GP"} {
+			if strings.Contains(out, stale) {
+				t.Errorf("%v help still says %q", args, stale)
+			}
 		}
 	}
 }

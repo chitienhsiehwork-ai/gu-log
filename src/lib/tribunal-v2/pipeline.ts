@@ -334,6 +334,17 @@ async function persistScoreToFrontmatter(
   }
 }
 
+/**
+ * GP is score-only (openspec gp-source-preservation): any body edit voids its
+ * source-distance stamp, and only gp-pipeline re-stamps a GP. Tribunal v2 only
+ * runs the judges on GP — no judge→writer loop, no FactCorrector rewrite, no
+ * Librarian link insertion, no Final Vibe rewrite — and records the scores.
+ */
+export function isScoreOnlyArticle(articlePath: string): boolean {
+  const basename = articlePath.substring(articlePath.lastIndexOf('/') + 1);
+  return /^(?:en-)?gp-/.test(basename);
+}
+
 function makeStageResult<T>(maxLoops: number): StageResult<T> {
   return { status: 'pending', loops: 0, maxLoops, history: [] };
 }
@@ -484,9 +495,26 @@ async function runJudgeWriterLoop<
     dims: readonly string[];
     tribunalVersion: number;
   },
-  verifyPassBar?: (output: TJudge) => VerifiedPassBar
+  verifyPassBar?: (output: TJudge) => VerifiedPassBar,
+  scoreOnly = false
 ): Promise<boolean> {
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
+
+  const persistScores = async (judgeOutput: TJudge): Promise<void> => {
+    if (!fmPersist || !judgeOutput.scores) return;
+    const entry = buildFrontmatterScore(
+      judgeOutput.scores,
+      fmPersist.dims,
+      judgeOutput.judge_model ?? `stage${stageNum}`
+    );
+    await persistScoreToFrontmatter(
+      config,
+      state.articlePath,
+      fmPersist.fmKey,
+      entry,
+      fmPersist.tribunalVersion
+    );
+  };
 
   stage.status = 'running';
   stage.startedAt = now();
@@ -513,21 +541,7 @@ async function runJudgeWriterLoop<
     if (judgeOutput.pass) {
       stage.status = 'passed';
       stage.completedAt = now();
-
-      if (fmPersist && judgeOutput.scores) {
-        const entry = buildFrontmatterScore(
-          judgeOutput.scores,
-          fmPersist.dims,
-          judgeOutput.judge_model ?? `stage${stageNum}`
-        );
-        await persistScoreToFrontmatter(
-          config,
-          state.articlePath,
-          fmPersist.fmKey,
-          entry,
-          fmPersist.tribunalVersion
-        );
-      }
+      await persistScores(judgeOutput);
 
       await config.git.commit(
         `tribunal(stage${stageNum}): ${stageLabel} — PASS @ loop ${loop}/${stage.maxLoops}`,
@@ -535,6 +549,20 @@ async function runJudgeWriterLoop<
       );
       await config.onProgress?.(state);
       return true;
+    }
+
+    if (scoreOnly) {
+      // GP: record the failing scores and stop. Re-judging an unchanged
+      // article is pointless, and no writer may touch a GP.
+      stage.status = 'failed';
+      stage.completedAt = now();
+      await persistScores(judgeOutput);
+      await config.git.commit(
+        `tribunal(stage${stageNum}): ${stageLabel} — FAIL (GP is score-only; no rewrite)`,
+        fmPersist ? [state.articlePath] : undefined
+      );
+      await config.onProgress?.(state);
+      return false;
     }
 
     // FAIL — if more loops available, run writer
@@ -585,13 +613,87 @@ async function runJudgeWriterLoop<
 }
 
 /**
+ * Stage 3 workers: FactCorrector, then Librarian. Each worker's edits are
+ * checked against the writer constraints and reverted on a violation.
+ */
+async function runStage3Workers(
+  state: PipelineState,
+  config: PipelineConfig,
+  loop: number,
+  sourceUrl: string
+): Promise<void> {
+  const stage = state.stages.stage3;
+  const articleContent = await config.io.readArticle(state.articlePath);
+
+  // Session 1: FactCorrector
+  const factOutput = await config.runners.stage3FactCorrector.run({
+    articleContent,
+    sourceUrl,
+  });
+  stage.factCorrectorOutput = factOutput;
+
+  // Enforce writer-constraints after FactCorrector — it has scope to rewrite
+  // body prose and MUST NOT touch frontmatter/URLs/headings/pronouns.
+  {
+    const afterFact = await config.io.readArticle(state.articlePath);
+    const constraints = await enforceWriterConstraints(
+      articleContent,
+      afterFact,
+      state.articlePath
+    );
+    if (!constraints.pass) {
+      // Revert FactCorrector's changes — treat as worker failure.
+      await config.io.writeArticle(state.articlePath, articleContent);
+      await config.git.commit(
+        `tribunal(stage3): FactCorrector rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+      );
+      // Fall through: Librarian + Judge run on the unmodified article.
+    } else {
+      await config.git.commit(`tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`, [
+        state.articlePath,
+      ]);
+    }
+  }
+
+  // Session 2: Librarian (runs on current article state — may or may not
+  // include FactCorrector's changes depending on whether they passed)
+  const articleBeforeLib = await config.io.readArticle(state.articlePath);
+  const libOutput = await config.runners.stage3Librarian.run({
+    articleContent: articleBeforeLib,
+  });
+  stage.librarianOutput = libOutput;
+
+  // Librarian should only add links, never change text/frontmatter/URLs/etc.
+  {
+    const afterLib = await config.io.readArticle(state.articlePath);
+    const constraints = await enforceWriterConstraints(
+      articleBeforeLib,
+      afterLib,
+      state.articlePath
+    );
+    if (!constraints.pass) {
+      await config.io.writeArticle(state.articlePath, articleBeforeLib);
+      await config.git.commit(
+        `tribunal(stage3): Librarian rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
+      );
+    } else {
+      await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`, [
+        state.articlePath,
+      ]);
+    }
+  }
+}
+
+/**
  * Stage 3: FactLib — Worker-first pattern.
  * FactCorrector → Librarian → Combined Judge. Loop back to workers on fail.
+ * A score-only GP runs the combined judge once, with no workers.
  */
 async function runStage3(
   state: PipelineState,
   config: PipelineConfig,
-  tribunalVersion: number
+  tribunalVersion: number,
+  scoreOnly = false
 ): Promise<boolean> {
   const stage = state.stages.stage3;
   if (stage.status === 'passed' || stage.status === 'skipped') return true;
@@ -606,67 +708,9 @@ async function runStage3(
   for (let loop = 1; loop <= stage.maxLoops; loop++) {
     stage.loops = loop;
 
-    // Worker-first: FactCorrector → Librarian → Judge
-    const articleContent = await config.io.readArticle(state.articlePath);
-
-    // Session 1: FactCorrector
-    const factOutput = await config.runners.stage3FactCorrector.run({
-      articleContent,
-      sourceUrl,
-    });
-    stage.factCorrectorOutput = factOutput;
-
-    // Enforce writer-constraints after FactCorrector — it has scope to rewrite
-    // body prose and MUST NOT touch frontmatter/URLs/headings/pronouns.
-    {
-      const afterFact = await config.io.readArticle(state.articlePath);
-      const constraints = await enforceWriterConstraints(
-        articleContent,
-        afterFact,
-        state.articlePath
-      );
-      if (!constraints.pass) {
-        // Revert FactCorrector's changes — treat as worker failure.
-        await config.io.writeArticle(state.articlePath, articleContent);
-        await config.git.commit(
-          `tribunal(stage3): FactCorrector rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
-        );
-        // Fall through: Librarian + Judge run on the unmodified article.
-      } else {
-        await config.git.commit(
-          `tribunal(stage3): FactCorrector — loop ${loop}/${stage.maxLoops}`,
-          [state.articlePath]
-        );
-      }
-    }
-
-    // Session 2: Librarian (runs on current article state — may or may not
-    // include FactCorrector's changes depending on whether they passed)
-    const articleBeforeLib = await config.io.readArticle(state.articlePath);
-    const libOutput = await config.runners.stage3Librarian.run({
-      articleContent: articleBeforeLib,
-    });
-    stage.librarianOutput = libOutput;
-
-    // Librarian should only add links, never change text/frontmatter/URLs/etc.
-    {
-      const afterLib = await config.io.readArticle(state.articlePath);
-      const constraints = await enforceWriterConstraints(
-        articleBeforeLib,
-        afterLib,
-        state.articlePath
-      );
-      if (!constraints.pass) {
-        await config.io.writeArticle(state.articlePath, articleBeforeLib);
-        await config.git.commit(
-          `tribunal(stage3): Librarian rejected (constraint violations) — loop ${loop}/${stage.maxLoops}`
-        );
-      } else {
-        await config.git.commit(`tribunal(stage3): Librarian — loop ${loop}/${stage.maxLoops}`, [
-          state.articlePath,
-        ]);
-      }
-    }
+    // Worker-first: FactCorrector → Librarian → Judge. A GP skips both
+    // workers: they edit the article, and a GP is score-only.
+    if (!scoreOnly) await runStage3Workers(state, config, loop, sourceUrl);
 
     // Combined Judge — must be read-only.
     const articleAfterWorkers = await config.io.readArticle(state.articlePath);
@@ -684,10 +728,7 @@ async function runStage3(
     stage.output = judgeOutput;
     stage.history.push(judgeOutput);
 
-    if (judgeOutput.pass) {
-      stage.status = 'passed';
-      stage.completedAt = now();
-
+    const persistFactLibScores = async (): Promise<void> => {
       const model = judgeOutput.judge_model ?? 'stage3';
       const { dims: factDims, fmKey: factKey } = FRONTMATTER_DIM_MAP.stage3fact;
       const factEntry = buildFrontmatterScore(
@@ -707,6 +748,12 @@ async function runStage3(
       const { dims: libDims, fmKey: libKey } = FRONTMATTER_DIM_MAP.stage3lib;
       const libEntry = buildFrontmatterScore(judgeOutput.scores, libDims, model, STAGE3_LIB_RENAME);
       await persistScoreToFrontmatter(config, state.articlePath, libKey, libEntry, tribunalVersion);
+    };
+
+    if (judgeOutput.pass) {
+      stage.status = 'passed';
+      stage.completedAt = now();
+      await persistFactLibScores();
 
       await config.git.commit(`tribunal(stage3): FactLib — PASS @ loop ${loop}/${stage.maxLoops}`, [
         state.articlePath,
@@ -765,6 +812,18 @@ async function runStage3(
       return false;
     }
 
+    if (scoreOnly) {
+      // GP: record the failing scores and stop; no worker may edit a GP.
+      stage.status = 'failed';
+      stage.completedAt = now();
+      await persistFactLibScores();
+      await config.git.commit(`tribunal(stage3): FactLib — FAIL (GP is score-only; no rewrite)`, [
+        state.articlePath,
+      ]);
+      await config.onProgress?.(state);
+      return false;
+    }
+
     // General FAIL (fact or library failed) — if more loops, workers will re-run
     if (loop < stage.maxLoops) {
       await config.git.commit(`tribunal(stage3): FactLib judge — FAIL, looping back to workers`);
@@ -785,10 +844,20 @@ async function runStage3(
 async function runStage4(
   state: PipelineState,
   config: PipelineConfig,
-  version: number
+  version: number,
+  scoreOnly = false
 ): Promise<void> {
   const stage = state.stages.stage4;
   if (stage.status === 'passed' || stage.status === 'skipped') return;
+
+  if (scoreOnly) {
+    // Final Vibe guards against degradation from earlier rewrites, and a GP
+    // was never rewritten; its writer must not run on a GP either.
+    stage.status = 'skipped';
+    stage.completedAt = now();
+    await config.onProgress?.(state);
+    return;
+  }
 
   stage.status = 'running';
   stage.startedAt = now();
@@ -968,6 +1037,7 @@ export async function runPipeline(
   // Resolve the post's tribunalVersion once — gates the clarity-move (v9) rules
   // for every downstream pass-bar / persistence decision in this run.
   const version = readTribunalVersion(await config.io.readArticle(articlePath));
+  const scoreOnly = isScoreOnlyArticle(articlePath);
 
   // --- Stage 0: Worthiness Gate (WARN mode, always continues) ---
   await runStage0(state, config);
@@ -982,7 +1052,8 @@ export async function runPipeline(
     (content) => config.runners.stage1Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage1Writer.run({ articleContent: content, feedback }),
     { ...vibeFmEntry(version), tribunalVersion: version },
-    (output) => verifyVibePassBar(output, version)
+    (output) => verifyVibePassBar(output, version),
+    scoreOnly
   );
 
   if (!stage1Passed) {
@@ -1002,7 +1073,8 @@ export async function runPipeline(
     (content) => config.runners.stage2Judge.run({ articleContent: content }),
     (content, feedback) => config.runners.stage2Writer.run({ articleContent: content, feedback }),
     { ...freshEyesFmEntry(version), tribunalVersion: version },
-    (output) => verifyFreshEyesPassBar(output, version)
+    (output) => verifyFreshEyesPassBar(output, version),
+    scoreOnly
   );
 
   if (!stage2Passed) {
@@ -1013,7 +1085,7 @@ export async function runPipeline(
   }
 
   // --- Stage 3: FactLib (worker-first) ---
-  const stage3Passed = await runStage3(state, config, version);
+  const stage3Passed = await runStage3(state, config, version, scoreOnly);
 
   if (!stage3Passed) {
     // Propagate stage-level status: 'needs_review' (dupCheck-only FAIL) vs
@@ -1027,7 +1099,7 @@ export async function runPipeline(
   }
 
   // --- Stage 4: Final Vibe (relative pass bar, non-blocking) ---
-  await runStage4(state, config, version);
+  await runStage4(state, config, version, scoreOnly);
 
   // --- All stages complete ---
   // Determine final status

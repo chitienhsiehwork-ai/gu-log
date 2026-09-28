@@ -63,9 +63,9 @@ const MARKDOWN_HEADERS = Object.freeze([
 // other legacy namespace intentionally have no entry here and stay unmapped.
 //
 // `keepPage`: Mogu Picks still paginates, so its old numeric pages keep their
-// page number. Gu-log Picks is paused (src/lib/gp-series-pause.mjs) and only
-// has its first page; the old numeric pages only ever listed translations that
-// are now taken down, so they all land on the GP listing root instead of a
+// page number. The old Gu-log Picks numeric pages only ever listed translations
+// that are now taken down, and the reading guides that replace them start over
+// from the first page, so they all land on the GP listing root instead of a
 // 404 (openspec: brand-taxonomy, post-takedown design D7).
 export const LISTING_SERIES = [
   { oldBase: 'shroomdog-picks', newBase: 'gu-log-picks', keepPage: false },

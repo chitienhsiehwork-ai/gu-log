@@ -39,7 +39,10 @@ func newDedupCmd(state *rootState) *cobra.Command {
 		Use:   "dedup",
 		Short: "Check the dedup gate against an existing URL / title",
 		Long: `dedup wraps scripts/dedup-gate.mjs and returns a PASS / WARN / BLOCK
-verdict plus the list of existing posts that match.
+verdict plus the list of existing posts that match. --series is required: a
+GP candidate whose source was taken down only as GP gets a WARN (a new GP
+reading guide may reuse it with a valid source-distance stamp), every other
+taken-down or live match is a BLOCK.
 
 The underlying Node script is the source of truth for dedup logic — it
 shares normalisation primitives with scripts/validate-posts.mjs (URL
@@ -56,12 +59,15 @@ Exit codes:
 	}
 	cmd.Flags().StringVar(&url, "url", "", "source URL to check (X URL or article URL)")
 	cmd.Flags().StringVar(&title, "title", "", "proposed title to check for similarity")
-	cmd.Flags().StringVar(&series, "series", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&series, "series", "", "ticket prefix (GP / MP / SD / Lv); required, no default")
 	return cmd
 }
 
 func runDedup(ctx context.Context, state *rootState, url, title, series string) error {
 	start := time.Now()
+	if series == "" {
+		return fmt.Errorf("dedup: --series is required; choose one of %v", counter.ValidPrefixes)
+	}
 	if err := counter.ValidatePrefix(series); err != nil {
 		return err
 	}

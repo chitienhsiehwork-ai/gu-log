@@ -169,9 +169,10 @@ jobs:
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
       - name: Takedown ratchet (PR only — tombstones stay tombstones)
         # Same executable as pre-commit step -3.5, but PR base → head: a
-        # taken-down post must stay taken-down with an empty body, new GP
-        # posts are paused, new posts may not reuse a taken-down source, and
-        # sources/ only grows under sources/chatgpt/ (openspec: post-takedown).
+        # taken-down post must stay taken-down with an empty body, new posts
+        # may not reuse a taken-down source (except a stamped GP whose
+        # matching takedowns are all GP), and sources/ only grows under
+        # sources/chatgpt/ (openspec: post-takedown).
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

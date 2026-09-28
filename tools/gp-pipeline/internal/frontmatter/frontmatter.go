@@ -302,6 +302,17 @@ func (f *File) GetBlock(indentedKey string) (string, bool) {
 	return strings.Join(f.lines[start:end], "\n"), true
 }
 
+// RemoveBlock deletes a block header and its more-deeply-indented children,
+// and reports whether the block was present.
+func (f *File) RemoveBlock(indentedKey string) bool {
+	start, end, ok := f.blockRange(indentedKey)
+	if !ok {
+		return false
+	}
+	f.lines = append(f.lines[:start], f.lines[end:]...)
+	return true
+}
+
 // SetNestedBlock replaces (or inserts) a nested block child of parentKey.
 //
 // Use this when the block being inserted is a child of another mapping —

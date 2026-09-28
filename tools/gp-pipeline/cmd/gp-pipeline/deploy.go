@@ -54,8 +54,7 @@ Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
 The series comes from the --active-file pending filename, and an explicit
---prefix must match it. GP 暫停中: GP pending files are rejected before any
-slot check or mutation (openspec: editorial-charter).
+--prefix must match it.
 
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.
@@ -87,7 +86,7 @@ before either stage is reached.`,
 	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename (required for fresh PENDING deploy)")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv); the --active-file series wins, and GP is paused")
+	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); optional, must match the --active-file series")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate CLI inputs only; run no validator or mutations")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "testing only; rejected by normal standalone deploy")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "testing only; rejected by normal standalone deploy")
@@ -118,8 +117,10 @@ type deployCmdOpts struct {
 func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) error {
 	start := time.Now()
 	report := deployReport{Step: "deploy", DryRun: opts.DryRun}
-	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
-		return err
+	if opts.PrefixSet {
+		if err := counter.ValidatePrefix(opts.Prefix); err != nil {
+			return err
+		}
 	}
 	if err := deploypkg.ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
 		return newExitError(1, err)
@@ -127,11 +128,6 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	prefix, err := resolveSeries("deploy", opts.Prefix, opts.PrefixSet, "--active-file", opts.ActiveFilename)
 	if err != nil {
 		return newExitError(1, err)
-	}
-	// GP is rejected before slot validation and any counter, rename, or git
-	// side effect (openspec: gp-pipeline-publish-integrity).
-	if prefix == "GP" {
-		return newExitError(1, fmt.Errorf("deploy: %w", pipeline.ErrGPPaused))
 	}
 	opts.Prefix = prefix
 	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{

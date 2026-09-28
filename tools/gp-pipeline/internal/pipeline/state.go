@@ -16,17 +16,22 @@ import (
 
 // Step integer encoding — kept aligned with the retired bash pipeline's step_to_int.
 const (
-	StepSetup     = 0
-	StepFetch     = 10
-	StepDedupURL  = 12
-	StepEval      = 15
-	StepDedup     = 17
-	StepWrite     = 20
-	StepReview    = 30
-	StepRefine    = 40
-	StepRalph     = 47
-	StepTranslate = 48 // Go-only step, no bash equivalent (gu-log #546)
-	StepDeploy    = 50
+	StepSetup    = 0
+	StepFetch    = 10
+	StepDedupURL = 12
+	StepEval     = 15
+	StepDedup    = 17
+	StepWrite    = 20
+	StepReview   = 30
+	StepRefine   = 40
+	// StepPostFix and StepSourceDistance run for GP only: the deterministic
+	// post-fixers edit final.mdx in the work dir, then the source-distance
+	// check stamps it (openspec gp-pipeline-publish-integrity).
+	StepPostFix        = 42
+	StepSourceDistance = 44
+	StepRalph          = 47
+	StepTranslate      = 48 // Go-only step, no bash equivalent (gu-log #546)
+	StepDeploy         = 50
 )
 
 // State is the mutable snapshot of an in-flight pipeline run. Each step
@@ -96,7 +101,9 @@ type State struct {
 	Dispatcher       *llm.Dispatcher
 	WriterDispatcher *llm.Dispatcher
 	JudgeDispatcher  *llm.Dispatcher
-	Counter          *counter.Counter
+	// AlignerDispatcher runs the source-distance aligner (GP only).
+	AlignerDispatcher *llm.Dispatcher
+	Counter           *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -158,6 +165,12 @@ type State struct {
 	CodexVerdict        string
 	DedupVerdict        string
 	RalphPassed         bool
+	// SourceDistanceResult is the GP source-distance outcome for the run report;
+	// nil when the step did not run.
+	SourceDistanceResult *SourceDistanceOutcome
+	// EnglishCheck is the GP English verbatim check result (PASS or
+	// SKIPPED_VERBATIM); empty when no English version was checked.
+	EnglishCheck string
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int
@@ -178,17 +191,15 @@ func (s *State) judgeDispatcher() *llm.Dispatcher {
 }
 
 // NewState constructs a State with sensible defaults. Fields left empty
-// by the caller are filled in: Timings is always non-nil; Prefix defaults
-// to "GP", so a caller that forgets to set the series fails loudly on the GP
-// pause instead of silently running another series; RalphBar defaults to 8;
-// TranslatedDate defaults to empty and should be populated before the Write
-// step runs.
+// by the caller are filled in: Timings is always non-nil and RalphBar
+// defaults to 8. Prefix and PromptTicketID have no default: a caller that
+// forgets to name the series fails at the first step that needs it instead of
+// silently running a series nobody chose. TranslatedDate defaults to empty and
+// should be populated before the Write step runs.
 func NewState() *State {
 	return &State{
-		Prefix:         "GP",
-		RalphBar:       8,
-		PromptTicketID: "GP-PENDING",
-		Timings:        map[string]int{},
+		RalphBar: 8,
+		Timings:  map[string]int{},
 	}
 }
 

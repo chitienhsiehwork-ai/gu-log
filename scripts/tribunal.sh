@@ -141,7 +141,7 @@ fi
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
 if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
   if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
-    echo "ERROR: GP source-preservation contract forbids --allow-rewrite" >&2
+    echo "ERROR: GP is score-only in Tribunal, so --allow-rewrite is refused: a changed GP body voids its source-distance stamp and must go back through gp-pipeline to be re-stamped (tools/gp-pipeline/gp-pipeline stamp --file $POST_FILE)" >&2
     exit 1
   fi
   ALLOW_REWRITE=0
@@ -1321,7 +1321,7 @@ run_stage() {
     judge_task="Score this post: $ROOT_DIR/src/content/posts/$post_file
 Write your JSON result to: SCORE_PATH_PLACEHOLDER"
     local calibration_ref
-    calibration_ref="$ROOT_DIR/.codex/agents/references/gp-187-v7-false-positive.md"
+    calibration_ref="$ROOT_DIR/.codex/agents/references/v7-recap-false-positive.md"
     if [ -f "$calibration_ref" ]; then
       judge_task="$(cat <<PROMPT
 $judge_task
@@ -1330,7 +1330,7 @@ $judge_task
 Read this if the current stage is Librarian, FreshEyes, Vibe, or Writer-adjacent reasoning:
 $calibration_ref
 
-It records the exact git commit/blob for the rejected GP-187 false-positive sample and MP-179 overlap target. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
+It describes the v7 false positive: a readable but overlong post that re-explained a workflow MP-179 had already covered. Use it to calibrate responsibility boundaries; do not treat it as a request to rewrite unless the runner explicitly enables rewrite.
 PROMPT
 )"
     fi

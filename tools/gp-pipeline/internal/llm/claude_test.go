@@ -21,8 +21,8 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 	if got := w.Model(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("writer Model() = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.Model()); got != "Opus 4.6" {
-		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 4.6")
+	if got := DisplayName(w.Model()); got != "Opus 5.5" {
+		t.Fatalf("writer DisplayName = %q, want %q", got, "Opus 5.5")
 	}
 	if got := w.Name(); got != string(ModelClaudeOpus) {
 		t.Fatalf("writer Name() = %q, want %q", got, ModelClaudeOpus)
@@ -46,6 +46,8 @@ func TestClaudeWriterModelPreservesPinnedVersion(t *testing.T) {
 func TestDisplayNameWholeNumberClaudeGeneration(t *testing.T) {
 	cases := map[ModelID]string{
 		"claude-opus-5":             "Opus 5",
+		"claude-opus-5-5":           "Opus 5.5",
+		"claude-opus-5-5[1m]":       "Opus 5.5",
 		"claude-sonnet-5":           "Sonnet 5",
 		"claude-opus-4-5":           "Opus 4.5",
 		"claude-haiku-4-5-20251001": "Haiku 4.5",
@@ -113,8 +115,8 @@ printf '{"result":"ok","modelUsage":{"%s":{"outputTokens":7}}}\n' "$model"
 	if got := w.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel after run = %q, want %q", got, ClaudeOpusPinned)
 	}
-	if got := DisplayName(w.ActualModel()); got != "Opus 4.6" {
-		t.Fatalf("stamped DisplayName = %q, want Opus 4.6", got)
+	if got := DisplayName(w.ActualModel()); got != "Opus 5.5" {
+		t.Fatalf("stamped DisplayName = %q, want Opus 5.5", got)
 	}
 }
 
@@ -207,6 +209,58 @@ func TestClaudeContainedWriterUsesLeastPrivilege(t *testing.T) {
 	}
 }
 
+// TestClaudeContainedJSONRoleReturnsStructuredOutput covers the aligner's
+// call shape: no tools at all, the schema on the CLI, and structured_output as
+// the returned artifact instead of free text.
+func TestClaudeContainedJSONRoleReturnsStructuredOutput(t *testing.T) {
+	argsPath, _ := writeFakeClaude(t, `{"result":"prose that must be ignored","structured_output":{"alignments":[{"c":"C1","s":["S2"]}]},"modelUsage":{"claude-sonnet-5":{"outputTokens":3}}}`, 0)
+	schema := `{"type":"object"}`
+	p := &ClaudeProvider{ModelFlag: "claude-sonnet-5", Contained: true, Tools: []string{}}
+	out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: schema})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if out != `{"alignments":[{"c":"C1","s":["S2"]}]}` {
+		t.Fatalf("structured output = %q", out)
+	}
+	args := readLines(t, argsPath)
+	if got, ok := flagValue(args, "--json-schema"); !ok || got != schema {
+		t.Fatalf("--json-schema = %q (present=%v), want %q", got, ok, schema)
+	}
+	if got, ok := flagValue(args, "--tools"); !ok || got != "" {
+		t.Fatalf("--tools = %q (present=%v), want empty (no tools)", got, ok)
+	}
+	if _, ok := flagValue(args, "--allowed-tools"); ok {
+		t.Fatalf("JSON role must not pre-approve tools: %q", args)
+	}
+	if got := p.ActualModel(); got != "claude-sonnet-5" {
+		t.Fatalf("ActualModel = %q, want claude-sonnet-5", got)
+	}
+}
+
+func TestClaudeStructuredOutputMissingFailsClosed(t *testing.T) {
+	for name, stdout := range map[string]string{
+		"no structured_output": `{"result":"{\"alignments\":[]}","modelUsage":{"claude-sonnet-5":{"outputTokens":3}}}`,
+		"not JSON":             `plain text`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			writeFakeClaude(t, stdout, 0)
+			p := &ClaudeProvider{ModelFlag: "claude-sonnet-5", Contained: true, Tools: []string{}}
+			out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`})
+			if err == nil || !strings.Contains(err.Error(), "structured") {
+				t.Fatalf("Run = (%q, %v), want a structured output error", out, err)
+			}
+		})
+	}
+}
+
+func TestCodexRefusesStructuredOutput(t *testing.T) {
+	p := &CodexProvider{ModelName: "gpt-5.5"}
+	if _, err := p.Run(context.Background(), "json only", RunOptions{JSONSchema: `{"type":"object"}`}); err == nil {
+		t.Fatal("Codex Run accepted a JSON schema it cannot enforce")
+	}
+}
+
 // TestClaudeContainedToollessRoleGetsNoTools covers the fail-closed default for
 // a contained role without tools: the session gets no tools, pre-approves
 // nothing, and loads no host settings or MCP servers.
@@ -273,13 +327,18 @@ func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			writeFakeClaude(t, tc.stdout, tc.rc)
-			p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
-			out, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()})
-			if err == nil || out != "" {
-				t.Fatalf("Run = (%q, %v), want an error and no output", out, err)
-			}
-			if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
-				t.Fatalf("Run error = %v, want the errors[] detail", err)
+			for _, opts := range []RunOptions{
+				{WorkDir: t.TempDir()},
+				{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`},
+			} {
+				p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
+				out, err := p.Run(context.Background(), "hi", opts)
+				if err == nil || out != "" {
+					t.Fatalf("Run(schema=%t) = (%q, %v), want an error and no output", opts.JSONSchema != "", out, err)
+				}
+				if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
+					t.Fatalf("Run(schema=%t) error = %v, want the errors[] detail", opts.JSONSchema != "", err)
+				}
 			}
 		})
 	}
@@ -323,30 +382,32 @@ func TestClaudeContainedCallStartsFromCleanEnvironment(t *testing.T) {
 	}
 }
 
+// agentPin reads a .claude/agents/<name>.md pin with the parser gp-pipeline
+// uses at run time.
+func agentPin(t *testing.T, name string) string {
+	t.Helper()
+	model, err := AgentModelPin(repoRootForRoutingTest(t), filepath.Join(".claude", "agents", name+".md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return model
+}
+
 // TestClaudeWriterPinMatchesTribunalWriterFrontmatter guards the two SSOTs of
 // the Claude model pin. Runtime-profile routing reads the frontmatter through
 // the shell router and refuses to dispatch when it disagrees with this
 // constant, so a drift must fail here first.
 func TestClaudeWriterPinMatchesTribunalWriterFrontmatter(t *testing.T) {
-	path := filepath.Join(repoRootForRoutingTest(t), ".claude", "agents", "tribunal-writer.md")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read writer agent: %v", err)
-	}
-	lines := strings.Split(string(data), "\n")
-	if len(lines) == 0 || strings.TrimSpace(lines[0]) != "---" {
-		t.Fatalf("%s does not start with YAML frontmatter", path)
-	}
-	model := ""
-	for _, line := range lines[1:] {
-		if strings.TrimSpace(line) == "---" {
-			break
-		}
-		if value, ok := strings.CutPrefix(line, "model:"); ok {
-			model = strings.Trim(strings.TrimSpace(value), `"'`)
-		}
-	}
-	if model != ClaudeOpusPinned {
+	if model := agentPin(t, "tribunal-writer"); model != ClaudeOpusPinned {
 		t.Fatalf("tribunal-writer frontmatter model = %q, ClaudeOpusPinned = %q; update both pins together", model, ClaudeOpusPinned)
+	}
+}
+
+// TestClaudeWriterPinMatchesVibeScorerFrontmatter locks the one-taste-loop
+// rule: the owner moves the writer and the Vibe scorer to a new Opus
+// generation together, so generating and grading share one taste.
+func TestClaudeWriterPinMatchesVibeScorerFrontmatter(t *testing.T) {
+	if model := agentPin(t, "vibe-opus-scorer"); model != ClaudeOpusPinned {
+		t.Fatalf("vibe-opus-scorer frontmatter model = %q, ClaudeOpusPinned = %q; the writer and the Vibe scorer move together", model, ClaudeOpusPinned)
 	}
 }

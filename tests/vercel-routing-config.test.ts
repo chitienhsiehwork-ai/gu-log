@@ -38,8 +38,9 @@ function refreshManifestCounts(value: typeof manifest) {
   return value;
 }
 
-// GP is paused with a single listing page, so old GP numeric pages land on the
-// GP listing root; Mogu Picks keeps the page (post-takedown design D7).
+// Old GP numeric pages only listed translations that are now taken down, so
+// they land on the GP listing root; Mogu Picks keeps the page (openspec:
+// brand-taxonomy, post-takedown design D7).
 const EXPECTED_LISTING_REDIRECTS: Array<[string, string]> = [
   ['/shroomdog-picks', '/gu-log-picks'],
   ['/shroomdog-picks/:page(\\d+)', '/gu-log-picks'],

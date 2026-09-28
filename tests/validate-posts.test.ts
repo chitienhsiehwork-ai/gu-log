@@ -8,7 +8,9 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { writeStamp } from '../scripts/lib/source-distance.mjs';
 import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
+import { validStamp, withValidStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
@@ -689,6 +691,138 @@ describe('validatePost — canonical filename gate (GP/MP)', () => {
   it('rejects a GP/MP filename whose number disagrees with the ticketId', () => {
     const r = runNamed('gp-259-20260401-x.mdx', 'GP-258');
     expect(r.errors.some((e: string) => e.includes('gp-258-'))).toBe(true);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 來源距離章（openspec: source-distance-stamp）：有外部來源、沒下架的 GP 繁中與
+// 英文檔都要帶有效的章；GP-1 這類示範來源、下架文章與非 GP 不需要，非 GP 帶章失敗。
+// ════════════════════════════════════════════════════════════════════════════
+describe('validatePost — source-distance stamp', () => {
+  const EXTERNAL = 'https://keeper-notes.test/posts/logbook-on-call';
+  const guideFm = (ticketId: string, lang: 'zh-tw' | 'en', sourceUrl = EXTERNAL) => [
+    `ticketId: "${ticketId}"`,
+    'title: "燈塔日誌教會值班的一件事"',
+    'originalDate: "2026-08-30"',
+    'translatedDate: "2026-09-28"',
+    'source: "Mara Quill"',
+    `sourceUrl: "${sourceUrl}"`,
+    'summary: "沒事也要寫一行"',
+    `lang: ${lang}`,
+    'translatedBy:',
+    '  model: Opus 5.5',
+    '  harness: Claude Code',
+  ];
+  const write = (name: string, content: string) => {
+    const filepath = tmpPath(name);
+    fs.writeFileSync(filepath, content);
+    return filepath;
+  };
+  const stampErrors = (r: { errors: string[] }) =>
+    r.errors.filter((e) => e.includes('sourceDistance'));
+
+  it('GP 缺章：繁中與英文檔都失敗，訊息指出蓋章指令', () => {
+    for (const [name, lang] of [
+      ['gp-pending-20260928-logbook.mdx', 'zh-tw'],
+      ['en-gp-pending-20260928-logbook.mdx', 'en'],
+    ] as const) {
+      const r = validatePost(write(name, makePost(guideFm('GP-PENDING', lang))), []);
+      const errors = stampErrors(r);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('gp-pipeline stamp --file');
+      expect(errors[0]).toContain(name);
+    }
+  });
+
+  it('帶有效章的 GP 通過，改了正文就過期', () => {
+    const post = makePost(guideFm('GP-PENDING', 'zh-tw'));
+    const stamped = withValidStamp(post);
+    const r = validatePost(write('gp-pending-20260928-logbook.mdx', stamped), []);
+    expect(r.errors).toEqual([]);
+
+    const edited = stamped.replace('Body content with kaomoji', 'Edited body with kaomoji');
+    const stale = validatePost(write('gp-pending-20260928-logbook.mdx', edited), []);
+    expect(stampErrors(stale).join('\n')).toMatch(/stale/);
+  });
+
+  it('不需要章的文章：GP-1 這類示範來源、下架文章與 MP', () => {
+    const demo = makePost(guideFm('GP-1', 'zh-tw', 'https://example.com/original-article'));
+    expect(stampErrors(validatePost(write('gp-1-20260128-demo.mdx', demo), []))).toEqual([]);
+
+    const mp = makePost(guideFm('MP-40', 'zh-tw'));
+    expect(stampErrors(validatePost(write('mp-40-20260928-logbook.mdx', mp), []))).toEqual([]);
+
+    const tombstone = [
+      '---',
+      ...guideFm('GP-273', 'zh-tw').map((line) =>
+        line.startsWith('summary:')
+          ? `summary: ${JSON.stringify(getNeutralSummary({ ticketId: 'GP-273', lang: 'zh-tw' }))}`
+          : line
+      ),
+      'status: "taken-down"',
+      'takenDownAt: "2026-09-27"',
+      'sourceTitle: "The logbook on call"',
+      '---',
+      '',
+    ].join('\n');
+    const r = validatePost(write('gp-273-20260813-logbook.mdx', tombstone), []);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('下架文章留著章：由下架欄位規則擋下', () => {
+    const tombstone = [
+      '---',
+      ...guideFm('GP-274', 'zh-tw').map((line) =>
+        line.startsWith('summary:')
+          ? `summary: ${JSON.stringify(getNeutralSummary({ ticketId: 'GP-274', lang: 'zh-tw' }))}`
+          : line
+      ),
+      'status: "taken-down"',
+      'takenDownAt: "2026-09-27"',
+      'sourceTitle: "The logbook on call"',
+      '---',
+      '',
+    ].join('\n');
+    const withStamp = writeStamp(tombstone, validStamp(makePost(guideFm('GP-274', 'zh-tw'))));
+    const r = validatePost(write('gp-274-20260813-logbook.mdx', withStamp), []);
+    expect(r.errors).toEqual(['sourceDistance must be removed when status is taken-down']);
+  });
+
+  it('被連結的文章改標題、被下架或被刪，GP 的章仍有效', () => {
+    const target = 'mp-41-20260928-pager.mdx';
+    const url = '/posts/mp-41-20260928-pager/';
+    const writeTarget = (title: string, extra: string[] = []) =>
+      write(
+        target,
+        makePost([
+          ...guideFm('MP-41', 'zh-tw').map((l) =>
+            l.startsWith('title:') ? `title: "${title}"` : l
+          ),
+          ...extra,
+        ])
+      );
+    writeTarget('告警疲勞是設計問題');
+    const post = makePost(
+      guideFm('GP-PENDING', 'zh-tw'),
+      `之前 [MP-41](${url}) 講過，[MP-41: 告警疲勞是設計問題](${url}) 也值得看 ${KAOMOJI}.\n\n## 延伸閱讀\n\n- [MP-41: 告警疲勞是設計問題](${url})`
+    );
+    const gp = write('gp-pending-20260928-logbook.mdx', withValidStamp(post));
+    const stampStillValid = () => expect(stampErrors(validatePost(gp, []))).toEqual([]);
+
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題');
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題', ['status: "taken-down"', 'takenDownAt: "2026-09-27"']);
+    stampStillValid();
+    fs.rmSync(tmpPath(target));
+    stampStillValid();
+    expect(fs.readFileSync(gp, 'utf8')).toBe(withValidStamp(post));
+  });
+
+  it('非 GP 文章帶章失敗', () => {
+    const mp = makePost(guideFm('MP-40', 'zh-tw'));
+    const r = validatePost(write('mp-40-20260928-logbook.mdx', withValidStamp(mp)), []);
+    expect(stampErrors(r).join('\n')).toMatch(/only allowed on GP/);
   });
 });
 

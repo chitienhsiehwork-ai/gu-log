@@ -101,6 +101,55 @@ describe('MP editorial contract', () => {
     }
   });
 
+  it('judges a GP reading guide by the MP rules, score-only, with ShroomDogNote as ShroomDog', () => {
+    // openspec editorial-charter〈Tribunal 評 GP 導讀〉
+    for (const file of [
+      '.claude/agents/fact-checker.md',
+      '.codex/agents/fact-checker.toml',
+      '.claude/agents/librarian.md',
+      '.codex/agents/librarian.toml',
+      '.claude/agents/fresh-eyes.md',
+      '.codex/agents/fresh-eyes.toml',
+      '.claude/agents/vibe-opus-scorer.md',
+      '.codex/agents/vibe-opus-scorer.toml',
+      'scripts/vibe-scoring-standard.md',
+    ]) {
+      const contract = read(file);
+      expect(contract, file).toMatch(/reading\s+guides?/);
+      expect(contract, file).toMatch(/by the (?:same )?MP rules?|exactly like MP|same test as MP/);
+      expect(contract, file).toMatch(/source-distance\s+stamp/);
+      expect(contract, file).toMatch(/ShroomDog's own\s+voice/);
+      // The retired translation contract must not come back.
+      expect(contract, file).not.toMatch(
+        /complete translation|translation fidelity|complete-coverage|source-author-voice|inherit GP|原文出處|calibration-only/
+      );
+    }
+    for (const file of [
+      '.claude/agents/tribunal-writer.md',
+      '.codex/agents/tribunal-writer.toml',
+    ]) {
+      const writer = read(file);
+      expect(writer, file).toContain('REWRITE REFUSED: GP source body');
+      expect(writer, file).toMatch(/re-stamped/);
+    }
+  });
+
+  it('keeps taken-down GP posts out of the calibration anchors', () => {
+    for (const file of [
+      '.claude/agents/fact-checker.md',
+      '.claude/agents/vibe-opus-scorer.md',
+      '.claude/agents/tribunal-writer.md',
+      '.codex/agents/librarian.toml',
+      '.codex/agents/fresh-eyes.toml',
+      '.codex/agents/vibe-opus-scorer.toml',
+      '.codex/agents/tribunal-writer.toml',
+      'scripts/vibe-scoring-standard.md',
+      '.codex/agents/references/v7-recap-false-positive.md',
+    ]) {
+      expect(read(file), file).not.toMatch(/\bGP-\d+|gp-\d+-/);
+    }
+  });
+
   it('does not add MP rewrite/original submodes to operator-facing surfaces', () => {
     for (const file of [
       'CONTRIBUTING.md',

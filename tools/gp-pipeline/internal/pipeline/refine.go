@@ -28,15 +28,31 @@ func (s *State) Refine(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 4: refine")
+	if err := s.refine(ctx, prompts.RefineData{}); err != nil {
+		return err
+	}
+	s.Log.OK("Step 4: final.mdx written by %s", s.RefineModel)
+	return nil
+}
+
+// refine runs the writer with the refine prompt and leaves its output in
+// final.mdx. data.Draft names the input (draft-v1.mdx when empty); a GP
+// source-distance rewrite also sets data.RewriteReport.
+func (s *State) refine(ctx context.Context, data prompts.RefineData) error {
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	if err := s.stageEditorialContext(); err != nil {
 		return fmt.Errorf("refine: %w", err)
 	}
 
-	prompt, err := prompts.Render("refine", prompts.RefineData{
-		Prefix:   s.Prefix,
-		TicketID: s.PromptTicketID,
-		Angle:    s.Angle,
-	})
+	terms, err := s.gpTerminology()
+	if err != nil {
+		return fmt.Errorf("refine: %w", err)
+	}
+	data.Prefix = s.Prefix
+	data.TicketID = s.PromptTicketID
+	data.Angle = s.Angle
+	data.Terminology = terms
+	prompt, err := prompts.Render("refine", data)
 	if err != nil {
 		return fmt.Errorf("refine: render prompt: %w", err)
 	}
@@ -59,10 +75,12 @@ func (s *State) Refine(ctx context.Context) error {
 			return fmt.Errorf("refine: write fallback final.mdx: %w", err)
 		}
 	}
+	if err := s.rejectShroomDogNote("refine", finalPath); err != nil {
+		return err
+	}
 
 	s.RefineModel = llm.DisplayName(res.ActualModel)
 	s.RefineHarness = llm.HarnessName(res.Model)
-	s.Log.OK("Step 4: final.mdx written by %s", s.RefineModel)
 	return nil
 }
 

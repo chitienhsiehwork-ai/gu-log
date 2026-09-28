@@ -51,6 +51,9 @@ func Render(name string, data any) (string, error) {
 // The bash pipeline passes TWEET_LINE_COUNT as a dynamic value, and
 // embeds the source-tweet.md contents verbatim via $(cat …).
 type EvalData struct {
+	// Prefix picks the series contract (GP asks whether a reading guide is
+	// worth writing).
+	Prefix string
 	// LineCount is the number of lines in Source, matching bash's
 	// wc -l < source-tweet.md.
 	LineCount int
@@ -80,6 +83,9 @@ type WriteData struct {
 	Harness    string // frontmatter translatedBy.harness
 	StyleGuide string // full contents of GU-LOG_WRITER_PROMPT.md
 	Source     string // full contents of source-tweet.md
+	// Terminology is the glossary's canonical-term JSON
+	// (terminology.LoadCanonicalContext); set for GP only.
+	Terminology string
 }
 
 // ReviewData is the template data for review.tmpl.
@@ -93,10 +99,38 @@ type RefineData struct {
 	Prefix   string
 	TicketID string
 	Angle    string
+	// Terminology is the glossary's canonical-term JSON; set for GP only.
+	Terminology string
+	// Draft is the work-dir file to refine; empty means draft-v1.mdx.
+	Draft string
+	// RewriteReport switches a GP refine into a source-distance rewrite: it
+	// lists only the flagged passages, never a threshold, metric or rule
+	// (openspec source-distance-stamp〈改寫 prompt 不含門檻〉).
+	RewriteReport string
+}
+
+// DraftFile is the refine input file name.
+func (d RefineData) DraftFile() string {
+	if d.Draft == "" {
+		return "draft-v1.mdx"
+	}
+	return d.Draft
+}
+
+// AlignData is the template data for align.tmpl, the source-distance
+// aligner prompt. Source and Guide are the "id<TAB>sentence" lines that
+// scripts/source-distance.mjs segment renders (a blank line between blocks).
+// The prompt carries no thresholds, metrics or rule names.
+type AlignData struct {
+	SourceCount int
+	Source      string
+	GuideCount  int
+	Guide       string
 }
 
 // TranslateData is the template data for translate.tmpl.
 type TranslateData struct {
+	Prefix   string // series of TicketID; GP keeps paraphrase out of the source's wording
 	TicketID string // e.g. "GP-252"
 	// Source is the full contents of the tribunal-passed zh-tw MDX file
 	// (frontmatter + body) to be translated into the en sidecar.
