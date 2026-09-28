@@ -2,7 +2,7 @@
 
 ## Purpose
 
-定義 gu-log 的 editorial north star、系列身份、翻譯忠實邊界、Lv 模式與 startup routing，讓所有內容角色共享同一套可測試的寫作憲章。
+定義 gu-log 的 editorial north star、系列身份、GP 導讀與來源之間的邊界（導讀不是翻譯）、Lv 模式與 startup routing，讓所有內容角色共享同一套可測試的寫作憲章。
 
 ## Requirements
 
