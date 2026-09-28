@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -13,7 +15,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
-// A GP body passes the zh-tw content checks before the source-distance stamp:
+// A GP body passes the content checks before the source-distance stamp:
 // refine gets back what they flag, and a body that still fails is neither
 // paired nor stamped. The checks are stubs here; the real scripts are covered
 // by tests/content-gates.test.ts.
@@ -200,14 +202,22 @@ func TestRun_GPContentCheckThatCannotRunStopsTheStep(t *testing.T) {
 	}
 }
 
-// TestContentLintScriptsMatchPreCommitHook keeps the checks run before the
-// stamp on the zh-tw content checks the pre-commit hook runs.
+// TestContentLintScriptsMatchPreCommitHook keeps contentLintScripts equal to
+// the checks the pre-commit hook runs on staged zh-tw posts ("${ZH_FILES[@]}"),
+// so the hook adding or dropping one fails here.
 func TestContentLintScriptsMatchPreCommitHook(t *testing.T) {
 	hook := mustRead(t, filepath.Join(realRepoRoot(t), "scripts", "hooks", "pre-commit"))
-	for _, name := range contentLintScripts {
-		if !strings.Contains(hook, `node "$REPO_ROOT/scripts/`+name+`"`) {
-			t.Errorf("the pre-commit hook does not run %s; update contentLintScripts with the hook", name)
-		}
+	zhChecks := regexp.MustCompile(`node "\$REPO_ROOT/scripts/([\w.-]+\.mjs)"[^\n]*"\$\{ZH_FILES\[@\]\}"`)
+	var hookChecks []string
+	for _, m := range zhChecks.FindAllStringSubmatch(hook, -1) {
+		hookChecks = append(hookChecks, m[1])
+	}
+	if len(hookChecks) == 0 {
+		t.Fatal("found no check the pre-commit hook runs on ZH_FILES; update this test with the hook")
+	}
+	got, want := slices.Sorted(slices.Values(contentLintScripts)), slices.Sorted(slices.Values(hookChecks))
+	if !slices.Equal(got, want) {
+		t.Fatalf("contentLintScripts = %v, but the pre-commit hook runs %v on staged zh-tw posts; keep them the same", got, want)
 	}
 }
 

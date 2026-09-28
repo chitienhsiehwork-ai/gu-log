@@ -11,11 +11,11 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
 
-// A GP body has to pass the repo's zh-tw content checks (晶晶體, AI tells,
-// pronouns) before the source-distance stamp: the stamp binds the body, so a
-// fix that the pre-commit hook forces after stamping means pairing it all over
-// again. Refine feeds what the checks flag back to the writer; the stamp step
-// refuses a body that still fails them.
+// A GP body has to pass the content checks the pre-commit hook runs on a post
+// (contentLintScripts) before the source-distance stamp: the stamp binds the
+// body, so a fix that the pre-commit hook forces after stamping means pairing
+// it all over again. Refine feeds what the checks flag back to the writer; the
+// stamp step refuses a body that still fails them.
 
 const (
 	// MaxContentLintFixes caps the refine calls that fix what the content
@@ -35,9 +35,10 @@ var contentLintCrashHook = fmt.Sprintf(
 	"--import=data:text/javascript,process.on('uncaughtException',(e)=>{console.error(e);process.exit(%d)})",
 	contentLintCrashExit)
 
-// contentLintScripts are the zh-tw content checks the pre-commit hook runs on
-// a post (scripts/hooks/pre-commit); TestContentLintScriptsMatchPreCommitHook
-// keeps the two lists together.
+// contentLintScripts are the checks the pre-commit hook
+// (scripts/hooks/pre-commit) runs on the text of staged zh-tw posts, and the
+// only list of them outside the hook: TestContentLintScriptsMatchPreCommitHook
+// fails when the hook adds or drops one.
 var contentLintScripts = []string{
 	"check-pronoun-clarity.mjs",
 	"check-jingjing.mjs",

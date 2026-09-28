@@ -326,7 +326,7 @@ func TestRender_GPReadingGuideContract(t *testing.T) {
 }
 
 // TestRender_RefineLintReportFixesOnlyTheFlaggedLines covers the refine that
-// fixes what the zh-tw content checks flagged before a GP is stamped.
+// fixes what the content checks flagged before a GP is stamped.
 func TestRender_RefineLintReportFixesOnlyTheFlaggedLines(t *testing.T) {
 	const report = "### check-jingjing.mjs\nL20: approach\n    │ 這個 approach 很好用。"
 	out, err := Render("refine", RefineData{Prefix: "GP", TicketID: "GP-PENDING", Draft: "lint-draft.mdx", LintReport: report})

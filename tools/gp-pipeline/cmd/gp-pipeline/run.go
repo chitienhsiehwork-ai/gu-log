@@ -101,10 +101,10 @@ Steps, in order:
   5     deploy           allocate ticket ID, rename, validate, build, commit, push
 
 GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀),
-not a translation. Every GP refine output must pass the zh-tw content checks
-the pre-commit hook runs (晶晶體, AI tells, pronouns): what they flag goes back
-to refine, at most %[3]d times, and a body that still fails them is never
-paired or stamped (exit 14). After the post-fixer, source-distance asks a
+not a translation. Every GP refine output must pass the content checks the
+pre-commit hook runs on a post: what they flag goes back to refine,
+at most %[3]d times, and a body that still fails them is never paired or
+stamped (exit 14). After the post-fixer, source-distance asks a
 pinned Claude aligner which guide sentences restate which source sentences,
 and the program scores that: a draft that reads like a translation goes back
 to refine with only the flagged passages, then through the post-fixer again,
