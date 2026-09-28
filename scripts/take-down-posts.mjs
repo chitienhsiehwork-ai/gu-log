@@ -3,6 +3,8 @@
  * take-down-posts.mjs — 依規則把文章下架成墓碑（openspec: post-takedown，design D10）
  *
  * 下架清單不另存快照：每次都依規則檔（takedown-list.json）的授權與規則，從當下語料算出。
+ * 規則只選首次發布日期（translatedDate）不晚於授權日的文章：授權之後重跑同一份規則，
+ * 也不會選中之後才發布的新文章（例如以導讀格式重新上線的 GP）。
  *
  *   --list <path> --plan                   依規則列出下架清單與統計（JSON），controller 用它對帳
  *   --list <path> --apply --date YYYY-MM-DD 改 frontmatter、清空正文；已下架的檔案不再變動（可重跑）
@@ -93,10 +95,30 @@ export function matchRule(rules, data) {
  * @param {{ list: object, posts: Array<{ file: string, id: string, data: object }> }} input
  */
 export function planTakedown({ list, posts }) {
+  const authorizedOn = list.authorization?.date;
+  if (!DATE_PATTERN.test(authorizedOn ?? '')) {
+    throw new Error(`takedown authorization date must be YYYY-MM-DD: ${authorizedOn}`);
+  }
   const selected = [];
+  const publishedAfterAuthorization = [];
   for (const post of posts) {
     const rule = matchRule(list.rules, post.data);
     if (!rule) continue;
+    const publishedOn = post.data.translatedDate;
+    if (typeof publishedOn !== 'string' || !DATE_PATTERN.test(publishedOn)) {
+      throw new Error(
+        `${post.file}: translatedDate must be YYYY-MM-DD to tell whether it was published by the authorization date`
+      );
+    }
+    // 授權只涵蓋授權日當下已發布的文章。
+    if (publishedOn > authorizedOn) {
+      publishedAfterAuthorization.push({
+        ticketId: post.data.ticketId,
+        file: post.file,
+        translatedDate: publishedOn,
+      });
+      continue;
+    }
     selected.push({
       ticketId: post.data.ticketId,
       lang: post.data.lang === 'en' ? 'en' : 'zh-tw',
@@ -142,6 +164,7 @@ export function planTakedown({ list, posts }) {
       category,
     })),
     posts: selected,
+    ...(publishedAfterAuthorization.length > 0 ? { publishedAfterAuthorization } : {}),
   };
 }
 
