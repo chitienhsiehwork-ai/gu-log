@@ -372,8 +372,15 @@ function parseMdx(body) {
 }
 
 /**
+ * 站內文章索引：小寫 slug → { ticketId, title }。
+ * @typedef {Map<string, { ticketId: string | null, title: string | null }>} PostIndex
+ */
+
+/**
  * 導讀（文章）的正文投影與斷句。postIndex：小寫 slug → { ticketId, title }，
  * 用來判斷「文字就是目標文 ticket 或標題」的站內連結；沒給就所有連結都只取文字。
+ * @param {string} content
+ * @param {{ postIndex?: PostIndex | null, policy?: typeof POLICY }} [options]
  */
 export function segmentGuide(content, { postIndex = null, policy = POLICY } = {}) {
   const { body } = splitFrontmatter(content);
@@ -833,6 +840,11 @@ const QUOTE_SPANS = /“[^”]*”|"[^"\n]*"/gu;
  * 最長一段跟原文逐字相同的詞數。blockquote 與雙引號內的文字是標明的引文，依文件順序
  * 豁免到上限（原文詞數的比例），超過上限的部分照常計入。
  */
+/**
+ * @param {string} content
+ * @param {Array<object>} source
+ * @param {{ postIndex?: PostIndex | null, policy?: typeof POLICY }} [options]
+ */
 export function englishVerbatim(content, source, { postIndex = null, policy = POLICY } = {}) {
   const { n, containmentLimit, verbatimWordLimit, quoteAllowanceRatio } = policy.ngram;
   const { body } = splitFrontmatter(content);
@@ -1056,6 +1068,9 @@ function isRatio(value) {
 /**
  * 驗一篇文章的章。回傳 { required, errors }；errors 為空代表這篇在章這件事上合格。
  * content 是整份檔案（含 frontmatter）；data 是解析過的 frontmatter。
+ */
+/**
+ * @param {{ content: string, data: any, file: string, postIndex?: PostIndex | null, policy?: typeof POLICY }} input
  */
 export function verifyStamp({ content, data, file, postIndex = null, policy = POLICY }) {
   const errors = [];

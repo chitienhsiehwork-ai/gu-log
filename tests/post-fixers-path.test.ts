@@ -103,7 +103,7 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
       '正文。'
     );
     const links = suggestFor(postInfo('final.mdx', fs.readFileSync(file, 'utf8'))!, posts);
-    expect(links.map((l) => l.ticketId)).not.toContain(self.ticketId);
+    expect(links.map((l: { ticketId: string | null }) => l.ticketId)).not.toContain(self.ticketId);
   });
 });
 

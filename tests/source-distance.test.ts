@@ -301,7 +301,7 @@ describe('擋下條件由程式依固定參數計算', () => {
       summary
     );
     const score = scoreAlignment(summary, source30, withSummary);
-    expect(score.pairs.find((p: { c: string }) => p.c === 'C3').translation).toBe(false);
+    expect(score.pairs.find((p: { c: string }) => p.c === 'C3')!.translation).toBe(false);
     expect(score.maxRun).toBe(3);
   });
 
@@ -360,7 +360,7 @@ describe('擋下條件由程式依固定參數計算', () => {
     const result = decide(guide, source30, [first, second]);
     expect(result.scores.map((s: { sourceRatio: number }) => s.sourceRatio)).toEqual([0.2, 0.2]);
     expect(result).toMatchObject({ verdict: 'FAIL', fails: ['ratio'] });
-    expect(result.metrics.sourceRatio).toBeCloseTo(0.4, 10);
+    expect(result.metrics!.sourceRatio).toBeCloseTo(0.4, 10);
   });
 
   it('一句對到 S4＋S103 時先依相鄰關係分群，進度不會直接跳到尾', () => {
