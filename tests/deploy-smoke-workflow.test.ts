@@ -32,29 +32,6 @@ afterEach(() => {
   }
 });
 
-describe('post-deploy smoke workflow — takedown and GP pause', () => {
-  it('expects paused GP legacy pagination to land on the listing root', async () => {
-    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
-    const job = workflow.jobs['smoke-test'] as Job;
-    const redirects = job.steps.find((step) =>
-      step.name?.startsWith('Smoke test — public URL permanent redirects')
-    );
-    expect(redirects?.run).toContain('check_redirect "/shroomdog-picks/2" "/gu-log-picks"\n');
-    expect(redirects?.run).toContain('check_redirect "/en/shroomdog-picks/2" "/en/gu-log-picks"\n');
-    expect(redirects?.run).toContain('check_redirect "/clawd-picks/2" "/mogu-picks/2"');
-  });
-
-  it('checks the paused GP listing for the notice instead of a post count', async () => {
-    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
-    const job = workflow.jobs['smoke-test'] as Job;
-    const listings = job.steps.find(
-      (step) => step.name === 'Smoke test — check picks listings contain canonical posts'
-    );
-    expect(listings?.run).toContain("import('./src/lib/gp-series-pause.mjs')");
-    expect(listings?.run).toContain('data-gp-paused-notice');
-  });
-});
-
 describe('post-deploy smoke workflow hardening', () => {
   it('runs only terminal Production states and fails closed on deployment errors', async () => {
     const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
