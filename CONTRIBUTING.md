@@ -442,7 +442,7 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ### 新增翻譯文章（GP）
 
-> **GP 暫停中，導讀格式另案**：整篇翻譯要先取得來源作者同意（[`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)），既有 GP 已下架，GP 系列頁顯示改版空狀態。GP 整篇翻譯流程也已從 gp-pipeline 刪除：GP 的寫作、發布與配號入口都會以「GP 暫停中」拒絕，pre-commit 與 CI 的下架棘輪另外擋下新增的 GP 文章。導讀格式由另一個 change 定義，在那之前沒有 GP 發文流程；使用者要求寫成 GP 時先說明暫停，要不要改寫成別的系列由使用者依 `editorial-charter` 決定。
+> **GP 暫停中，導讀格式另案**：整篇翻譯要先取得來源作者同意（[`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)），既有 GP 已下架，GP 系列頁顯示改版空狀態。GP 整篇翻譯流程也已從 gp-pipeline 刪除，gp-pipeline 會以「GP 暫停中」拒絕 GP（哪些入口擋見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)），pre-commit 與 CI 的下架棘輪另外擋下新增的 GP 文章。導讀格式由另一個 change 定義，在那之前沒有 GP 發文流程；使用者要求寫成 GP 時先說明暫停，要不要改寫成別的系列由使用者依 `editorial-charter` 決定，agent 不自行換系列。
 
 ### 新增 Mogu 來源文章（MP）
 

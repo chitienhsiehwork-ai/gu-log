@@ -18,7 +18,7 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 
 ## 預設用法
 
-> **GP 暫停中，導讀格式另案。** 整篇翻譯要先取得來源作者同意，以 [`editorial-charter` spec](../../openspec/specs/editorial-charter/spec.md) 為準；GP 整篇翻譯流程已從 pipeline 刪除。`run` 與 standalone `deploy` 處理 GP、`counter bump` 的 GP，以及 `write`／`review`／`refine` 收到 GP，都會在 ingress 以 exit 1「GP 暫停中」結束，不建工作目錄、不呼叫模型。使用者要求寫成 GP 時先說明暫停；要不要改寫成別的系列由 user 依 `editorial-charter` 決定，agent 不自行換系列。`ralph` 仍可替既有 GP 文章評分，固定不改寫。
+> **GP 暫停中，導讀格式另案。** 整篇翻譯要先取得來源作者同意，以 [`editorial-charter` spec](../../openspec/specs/editorial-charter/spec.md) 為準；GP 整篇翻譯流程已從 pipeline 刪除。`run` 與 standalone `deploy` 處理 GP、`counter bump` 的 GP、`write`／`review`／`refine` 收到 GP，以及 standalone `credits` 碰到 GP 檔（`gp-` 檔名或 `GP-` ticketId），都會在 ingress 以 exit 1「GP 暫停中」結束，不建工作目錄、不呼叫模型；繞過 CLI 直接呼叫 pipeline 的 `Run`／`Deploy` 會再擋一次，有既有檔時一樣以檔名系列為準。`ralph` 仍可替既有 GP 文章評分，固定不改寫。user 要 GP 時怎麼回應，照 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增翻譯文章（GP）〉。
 
 `--prefix` 預設仍是 GP，所以沒帶 `--file` 的 `run` 一定要明確指定系列。帶 `--file`（`run`）或 `--active-file`（standalone `deploy`）時以檔名系列為準（`gp-`、`mp-`、`sd-`、`lv-`、既有 Lv 的 `levelup-`）；明確帶的 `--prefix` 跟檔名對不上就在 ingress 失敗。
 

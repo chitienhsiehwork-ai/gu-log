@@ -17,7 +17,7 @@ tools/gp-pipeline/gp-pipeline --help
 
 非 canonical prefix、舊檔名 slug、舊 tool path 與 shell wrapper 都已退役。CLI 會針對非 canonical prefix 回傳可採取行動的錯誤，不提供 compatibility alias。
 
-GP 整篇翻譯流程已退役：整篇翻譯要先取得來源作者同意（`openspec/specs/editorial-charter/`），GP 暫停收文，導讀格式另案。GP 的寫作、發布與配號入口都在 ingress 以 exit 1「GP 暫停中」拒絕，pipeline 層也會再擋一次；`ralph` 仍可替既有 GP 文章評分，不改寫正文。
+GP 整篇翻譯流程已退役、GP 暫停中；哪些入口擋 GP、怎麼擋，以 [`SKILL.md`](SKILL.md) 為準。
 
 ## Why Go
 

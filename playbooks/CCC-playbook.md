@@ -166,7 +166,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；GP 暫停中，`--prefix` 預設的 GP 會在 ingress 被拒絕，所以一定要明確帶系列，user 要 GP 時先說明暫停、由 user 決定要不要換系列。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選，一定要明確帶 `--prefix`（預設的 GP 暫停中，會被拒絕）；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增翻譯文章（GP）〉處理。
 
 ### pipeline 內建的 eval gate
 
