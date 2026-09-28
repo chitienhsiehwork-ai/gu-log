@@ -712,3 +712,33 @@ translated
 		t.Fatal("existing-file recovery must not bump the article counter")
 	}
 }
+
+func TestWriteJSONIndentsTwoSpacesAndEndsWithNewline(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "artifact.json")
+	value := map[string]any{"role": "writer", "nested": map[string]int{"attempt": 1}}
+	if err := writeJSON(path, value); err != nil {
+		t.Fatalf("writeJSON: %v", err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "{\n  \"nested\": {\n    \"attempt\": 1\n  },\n  \"role\": \"writer\"\n}\n"
+	if string(got) != want {
+		t.Fatalf("writeJSON output = %q, want %q", got, want)
+	}
+}
+
+func TestWriteJSONReportsWriteFailure(t *testing.T) {
+	// A regular file as the parent fails for root too, unlike a chmod-based
+	// read-only directory.
+	parent := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(parent, []byte("file"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(parent, "artifact.json")
+	err := writeJSON(path, map[string]string{"role": "writer"})
+	if err == nil || !strings.Contains(err.Error(), path) {
+		t.Fatalf("writeJSON error = %v, want a write failure naming %s", err, path)
+	}
+}

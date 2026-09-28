@@ -770,17 +770,3 @@ func ensureMoguNoteImport(document []byte) []byte {
 func bytesContains(haystack, needle []byte) bool {
 	return strings.Contains(string(haystack), string(needle))
 }
-
-// RecordRoleFailure persists provider/profile failures before returning so a
-// resumed run has durable evidence instead of only ephemeral stderr.
-func (s *State) RecordRoleFailure(role string, runErr error) {
-	if s == nil || s.WorkDir == "" || runErr == nil {
-		return
-	}
-	_ = preservation.WriteJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
-		"version":      preservation.ContractVersion,
-		"role":         role,
-		"error":        runErr.Error(),
-		"completed_at": time.Now().UTC(),
-	})
-}

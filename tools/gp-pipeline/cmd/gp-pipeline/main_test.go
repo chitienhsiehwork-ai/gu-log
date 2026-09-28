@@ -356,6 +356,56 @@ func TestGPProviderPreflightFailurePersistsReportAndRecoveryState(t *testing.T) 
 	}
 }
 
+func TestMPProviderPreflightFailurePersistsReportAndRecoveryState(t *testing.T) {
+	resetGlobals()
+	workDir := t.TempDir()
+	fakePath := filepath.Join(t.TempDir(), "judge-only-profile.json")
+	mustWrite(t, fakePath, `{
+  "roles": {
+    "judge": {"provider": "fake-judge", "responses": []}
+  }
+}`)
+
+	cmd := buildRoot()
+	cmd.SetArgs([]string{
+		"--json", "--fake-provider", fakePath, "--work-dir", workDir,
+		"run", "https://example.com/source", "--prefix", "MP", "--dry-run",
+	})
+	out, runErr := captureProcessStdout(t, func() error {
+		return cmd.ExecuteContext(context.Background())
+	})
+	if runErr == nil || !strings.Contains(runErr.Error(), "missing role writer") {
+		t.Fatalf("preflight error = %v, want missing writer role", runErr)
+	}
+	var report runReport
+	if err := json.Unmarshal(out, &report); err != nil {
+		t.Fatalf("decode preflight report %q: %v", out, err)
+	}
+	if report.OK || report.ErrorCode != 1 || report.WorkDir != workDir || !strings.Contains(report.Error, "missing role writer") {
+		t.Fatalf("preflight report = %#v", report)
+	}
+	for _, artifact := range []string{"writer-failure.json", "pipeline-status.json"} {
+		data, err := os.ReadFile(filepath.Join(workDir, artifact))
+		if err != nil {
+			t.Fatalf("read durable %s: %v", artifact, err)
+		}
+		if !bytes.Contains(data, []byte("missing role writer")) {
+			t.Fatalf("%s missing failed role evidence: %s", artifact, data)
+		}
+	}
+	var failure map[string]any
+	data, err := os.ReadFile(filepath.Join(workDir, "writer-failure.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &failure); err != nil {
+		t.Fatalf("decode writer-failure.json: %v", err)
+	}
+	if failure["role"] != "writer" || failure["version"] != "gp-pipeline-role-failure/v1" {
+		t.Fatalf("writer-failure.json = %#v", failure)
+	}
+}
+
 func TestBuildDispatcherForRole_JudgeAllowClaudeToggle(t *testing.T) {
 	resetGlobals()
 	state := &rootState{log: logx.New()}

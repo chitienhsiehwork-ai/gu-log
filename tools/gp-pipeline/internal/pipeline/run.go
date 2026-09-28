@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -190,6 +191,36 @@ func (s *State) RecordRunFailure(step string, runErr error) {
 		errText = runErr.Error()
 	}
 	writeSnapshotBestEffort(s, step, "", "failed", errText)
+}
+
+// roleFailureVersion labels <role>-failure.json for humans; no tool parses it.
+const roleFailureVersion = "gp-pipeline-role-failure/v1"
+
+// RecordRoleFailure persists provider/profile failures before returning so a
+// resumed run has durable evidence instead of only ephemeral stderr.
+func (s *State) RecordRoleFailure(role string, runErr error) {
+	if s == nil || s.WorkDir == "" || runErr == nil {
+		return
+	}
+	_ = writeJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
+		"version":      roleFailureVersion,
+		"role":         role,
+		"error":        runErr.Error(),
+		"completed_at": time.Now().UTC(),
+	})
+}
+
+// writeJSON writes value as two-space indented JSON ending in a newline.
+func writeJSON(path string, value any) error {
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
 }
 
 // PrintSummary writes a human-readable pipeline summary to w, matching
