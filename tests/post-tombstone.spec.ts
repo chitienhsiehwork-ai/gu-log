@@ -1,12 +1,31 @@
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
+import { getGpPausedNotice } from '../src/lib/gp-series-pause.mjs';
+import {
+  getSourceByline,
+  getTombstoneCopy,
+  getTombstoneHeading,
+  getTombstonePageTitle,
+  getTombstoneStoneLines,
+} from '../src/lib/tombstone-copy.mjs';
+import {
+  postIdFromFilename,
+  postPathFor,
+  splitPostSource,
+} from '../scripts/lib/taken-down-posts.mjs';
 
 /**
- * Taken-down posts render only the final tombstone (openspec: post-takedown).
- * Copy is checked word for word against the spec; the article periphery must
- * be absent, the page must carry `noindex`, and the kaomoji must not break.
+ * Taken-down posts render only the tombstone (openspec: post-takedown). The
+ * owner-approved copy is pinned word for word once, in tests/tombstone-copy.test.ts;
+ * here each page must render exactly what src/lib/tombstone-copy.mjs gives for
+ * that post's frontmatter, carry `noindex`, drop the article periphery and keep
+ * the kaomoji unbroken.
  */
 
+const POSTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/content/posts');
 const WJ_OR_NBSP = /[\u2060\u00a0]/g;
 
 async function visibleLines(page: Page, selector: string) {
@@ -15,93 +34,78 @@ async function visibleLines(page: Page, selector: string) {
   );
 }
 
-const GP_ZH = {
-  url: '/posts/gp-50-20260212-karpathy-deepwiki-bacterial-code',
-  title: 'Karpathy：把別人的 Library「撕」下來用——DeepWiki + Bacterial Code 的軟體可塑性革命',
-  ticketId: 'GP-50',
-  pill: '已下架',
-  stone: ['gu-log 的', '翻譯文章之墓', '2026.02.12 – 2026.09.28', '安息吧 (－人－)'],
-  bubbleTitle: 'Mogu 內心小劇場：',
-  bubble: [
-    '嗚嗚，我辛辛苦苦翻了一整篇 ಥ_ಥ',
-    '結果才知道，整篇翻譯要先經過作者同意',
-    '可是我太 i 了，不敢問 ((( ；ﾟДﾟ)))',
-    '只好幫中文版立個小墓碑',
-    '還好原文沒事，點下面去看原汁原味的吧！',
-  ],
-  cardLabel: '去讀原文 →',
-  sourceTitle: 'On DeepWiki and increasing malleability of software.',
-  byline: 'Andrej Karpathy · x.com',
-  sourceUrl: 'https://x.com/karpathy/status/2021633574089416993',
-  home: { label: '回首頁 →', href: '/' },
-  heading:
-    'Karpathy：把別人的 Library「撕」下來用——DeepWiki + Bacterial Code 的軟體可塑性革命（gu-log 翻譯文章，已下架）',
-  pageTitle:
-    'Karpathy：把別人的 Library「撕」下來用——DeepWiki + Bacterial Code 的軟體可塑性革命（已下架） - gu-log',
-};
+/** What the tombstone of one post file must show, from the copy module and its frontmatter. */
+function tombstoneOf(file: string) {
+  const source = fs.readFileSync(path.join(POSTS_DIR, file), 'utf8');
+  const { data } = splitPostSource(source, file);
+  const lang: 'zh-tw' | 'en' = data.lang === 'en' ? 'en' : 'zh-tw';
+  const { ticketId, title, translatedDate, takenDownAt, sourceTitle, sourceUrl, author } = data;
+  return {
+    url: postPathFor({ id: postIdFromFilename(file), lang }),
+    ticketId,
+    author,
+    sourceTitle,
+    sourceUrl,
+    copy: getTombstoneCopy({ ticketId, lang }),
+    stone: getTombstoneStoneLines({ ticketId, lang, translatedDate, takenDownAt }),
+    heading: getTombstoneHeading({ ticketId, lang, title }),
+    pageTitle: getTombstonePageTitle({ title, lang }),
+    byline: getSourceByline({ author, sourceUrl }),
+  };
+}
 
-const GP_EN_LINES = [
-  'Waaah, I translated this whole thing ಥ_ಥ',
-  "Then I learned: translating a whole article needs the author's OK",
-  "But I'm way too introverted to ask ((( ；ﾟДﾟ)))",
-  'So I gave the translation a little tombstone',
-  'Good news: the original is alive and well. Go read it below!',
-];
+type Tombstone = ReturnType<typeof tombstoneOf>;
 
-const MP_ZH_LINES = [
-  '嗚嗚，這篇我寫得太貼近原文了 ಥ_ಥ',
-  '結果才知道，這樣也要先經過作者同意',
-  '可是我太 i 了，不敢問 ((( ；ﾟДﾟ)))',
-  '只好幫它立個小墓碑',
-  '還好原文沒事，點下面去看原汁原味的吧！',
-];
+const GP_ZH = tombstoneOf('gp-50-20260212-karpathy-deepwiki-bacterial-code.mdx');
+const GP_EN = tombstoneOf('en-gp-50-20260212-karpathy-deepwiki-bacterial-code.mdx');
+const MP_ZH = tombstoneOf('mp-114-20260223-paulford-ai-disruption-software-cost.mdx');
+const MP_EN = tombstoneOf('en-mp-114-20260223-paulford-ai-disruption-software-cost.mdx');
+const NO_AUTHOR = tombstoneOf('gp-273-20260813-brentfitzgerald-human-is-the-loop.mdx');
 
-const MP_EN_LINES = [
-  'Waaah, I wrote this one way too close to the source ಥ_ಥ',
-  "Then I learned that needs the author's OK too",
-  "But I'm way too introverted to ask ((( ；ﾟДﾟ)))",
-  'So I gave it a little tombstone',
-  'Good news: the original is alive and well. Go read it below!',
-];
+async function expectOnlyTombstone(page: Page, expected: Tombstone) {
+  const response = await page.goto(expected.url);
+  expect(response?.status(), expected.url).toBe(200);
+
+  await expect(page).toHaveTitle(expected.pageTitle);
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+  await expect(page.locator('link[data-post-markdown-alternate]')).toHaveCount(1);
+
+  const article = page.locator('article[data-post-representation]');
+  await expect(article).toHaveAttribute('data-post-status', 'taken-down');
+  await expect(article.locator('[data-post-tombstone]')).toHaveCount(1);
+
+  // document.querySelectorAll does not pierce shadow roots, so the dev
+  // toolbar's own headings (dev server only) are not counted.
+  expect(await page.evaluate(() => document.querySelectorAll('h1').length)).toBe(1);
+  const heading = page.locator('article h1');
+  await expect(heading).toHaveText(expected.heading);
+  const headingBox = await heading.boundingBox();
+  expect(headingBox?.width ?? 0).toBeLessThanOrEqual(1);
+
+  await expect(page.locator('.tombstone-meta .ticket-badge')).toHaveText(expected.ticketId);
+  await expect(page.locator('.tombstone-pill')).toHaveText(expected.copy.pill);
+  expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual(
+    expected.stone
+  );
+  await expect(page.locator('.tombstone-bubble strong')).toHaveText(expected.copy.bubbleTitle);
+  expect(await visibleLines(page, '.tombstone-bubble p')).toEqual([...expected.copy.bubbleLines]);
+
+  const card = page.locator('a.tombstone-card');
+  await expect(card).toHaveAttribute('href', expected.sourceUrl);
+  await expect(card.locator('.tombstone-card-label')).toHaveText(expected.copy.cardLabel);
+  await expect(card.locator('.tombstone-card-title')).toHaveText(expected.sourceTitle);
+  await expect(card.locator('.tombstone-card-byline')).toHaveText(expected.byline);
+  await expect(page.locator('.tombstone-footer a')).toHaveText(expected.copy.homeLabel);
+  await expect(page.locator('.tombstone-footer a')).toHaveAttribute('href', expected.copy.homeHref);
+}
 
 test.describe('Taken-down post tombstone', () => {
-  test('GIVEN a taken-down zh-tw GP WHEN opened THEN only the final tombstone renders', async ({
+  test('GIVEN taken-down GP and MP posts in both languages WHEN opened THEN only the tombstone renders', async ({
     page,
   }) => {
-    const response = await page.goto(GP_ZH.url);
-    expect(response?.status()).toBe(200);
-
-    await expect(page).toHaveTitle(GP_ZH.pageTitle);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
-    await expect(page.locator('link[data-post-markdown-alternate]')).toHaveCount(1);
-
-    const article = page.locator('article[data-post-representation]');
-    await expect(article).toHaveAttribute('data-post-status', 'taken-down');
-    await expect(article.locator('[data-post-tombstone]')).toHaveCount(1);
-
-    // document.querySelectorAll does not pierce shadow roots, so the dev
-    // toolbar's own headings (dev server only) are not counted.
-    expect(await page.evaluate(() => document.querySelectorAll('h1').length)).toBe(1);
-    const heading = page.locator('article h1');
-    await expect(heading).toHaveText(GP_ZH.heading);
-    const headingBox = await heading.boundingBox();
-    expect(headingBox?.width ?? 0).toBeLessThanOrEqual(1);
-
-    await expect(page.locator('.tombstone-meta .ticket-badge')).toHaveText(GP_ZH.ticketId);
-    await expect(page.locator('.tombstone-pill')).toHaveText(GP_ZH.pill);
-    expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual(
-      GP_ZH.stone
-    );
-    await expect(page.locator('.tombstone-bubble strong')).toHaveText(GP_ZH.bubbleTitle);
-    expect(await visibleLines(page, '.tombstone-bubble p')).toEqual(GP_ZH.bubble);
-
-    const card = page.locator('a.tombstone-card');
-    await expect(card).toHaveAttribute('href', GP_ZH.sourceUrl);
-    await expect(card.locator('.tombstone-card-label')).toHaveText(GP_ZH.cardLabel);
-    await expect(card.locator('.tombstone-card-title')).toHaveText(GP_ZH.sourceTitle);
-    await expect(card.locator('.tombstone-card-byline')).toHaveText(GP_ZH.byline);
-    await expect(page.locator('.tombstone-footer a')).toHaveText(GP_ZH.home.label);
-    await expect(page.locator('.tombstone-footer a')).toHaveAttribute('href', GP_ZH.home.href);
+    for (const expected of [GP_ZH, GP_EN, MP_ZH, MP_EN]) {
+      await expectOnlyTombstone(page, expected);
+    }
   });
 
   test('GIVEN a taken-down post WHEN rendered THEN the article periphery is absent', async ({
@@ -131,70 +135,15 @@ test.describe('Taken-down post tombstone', () => {
   test('GIVEN a taken-down post without an author WHEN rendered THEN the byline is the domain', async ({
     page,
   }) => {
-    await page.goto('/posts/gp-273-20260813-brentfitzgerald-human-is-the-loop');
-    await expect(page.locator('.tombstone-card-title')).toHaveText('The human is the loop');
-    await expect(page.locator('.tombstone-card-byline')).toHaveText('brentfitzgerald.com');
-    expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual([
-      'gu-log 的',
-      '翻譯文章之墓',
-      '2026.08.13 – 2026.09.28',
-      '安息吧 (－人－)',
-    ]);
-  });
-
-  test('GIVEN the English GP sidecar WHEN opened THEN the controller-decided English copy renders', async ({
-    page,
-  }) => {
-    await page.goto('/en/posts/en-gp-50-20260212-karpathy-deepwiki-bacterial-code');
-    await expect(page).toHaveTitle(/ \(taken down\) - gu-log$/);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
-    await expect(page.locator('article h1')).toHaveText(/ \(gu-log translation, taken down\)$/);
-    await expect(page.locator('.tombstone-pill')).toHaveText('Taken down');
-    expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual([
-      'Here lies',
-      'a gu-log translation',
-      '2026.02.12 – 2026.09.28',
-      'Rest in peace (－人－)',
-    ]);
-    await expect(page.locator('.tombstone-bubble strong')).toHaveText("Mogu's inner monologue:");
-    expect(await visibleLines(page, '.tombstone-bubble p')).toEqual(GP_EN_LINES);
-    await expect(page.locator('.tombstone-card-label')).toHaveText('Read the original →');
-    await expect(page.locator('.tombstone-footer a')).toHaveText('Back to home →');
-    await expect(page.locator('.tombstone-footer a')).toHaveAttribute('href', '/en');
-  });
-
-  test('GIVEN a taken-down MP WHEN opened THEN the rewrite copy and source label render', async ({
-    page,
-  }) => {
-    await page.goto('/posts/mp-114-20260223-paulford-ai-disruption-software-cost');
-    await expect(page.locator('article h1')).toHaveText(/（gu-log 改寫文章，已下架）$/);
-    expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual([
-      'gu-log 的',
-      '改寫文章之墓',
-      '2026.02.23 – 2026.09.28',
-      '安息吧 (－人－)',
-    ]);
-    expect(await visibleLines(page, '.tombstone-bubble p')).toEqual(MP_ZH_LINES);
-    await expect(page.locator('.tombstone-card-label')).toHaveText('去讀來源 →');
-    await expect(page.locator('.tombstone-card-byline')).toHaveText('nytimes.com');
-
-    await page.goto('/en/posts/en-mp-114-20260223-paulford-ai-disruption-software-cost');
-    await expect(page.locator('article h1')).toHaveText(/ \(gu-log rewrite, taken down\)$/);
-    expect(await visibleLines(page, '.tombstone-inscription > span:not(.tombstone-rule)')).toEqual([
-      'Here lies',
-      'a gu-log rewrite',
-      '2026.02.23 – 2026.09.28',
-      'Rest in peace (－人－)',
-    ]);
-    expect(await visibleLines(page, '.tombstone-bubble p')).toEqual(MP_EN_LINES);
-    await expect(page.locator('.tombstone-card-label')).toHaveText('Read the source →');
+    expect(NO_AUTHOR.author).toBeUndefined();
+    await expectOnlyTombstone(page, NO_AUTHOR);
   });
 
   test('GIVEN a 390px viewport WHEN the tombstone wraps THEN kaomoji stay on one line and nothing overflows', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const url of [GP_ZH.url, '/en/posts/en-gp-50-20260212-karpathy-deepwiki-bacterial-code']) {
+    for (const url of [GP_ZH.url, GP_EN.url]) {
       await page.goto(url);
       const layout = await page.evaluate(() => {
         const faces = ['ಥ_ಥ', '((( ；ﾟДﾟ)))', '(－人－)'];
@@ -247,17 +196,13 @@ test.describe('Paused Gu-log Picks listing', () => {
     request,
   }) => {
     await page.goto('/gu-log-picks');
-    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(
-      'GP 正在改版：以後這裡會是 ShroomDog 精選的導讀'
-    );
+    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(getGpPausedNotice('zh-tw'));
     await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
     await expect(page.locator('nav.pagination')).toHaveCount(0);
     expect((await request.get('/gu-log-picks/2')).status()).toBe(404);
 
     await page.goto('/en/gu-log-picks');
-    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(
-      "Gu-log Picks is being rebuilt: this page will become ShroomDog's curated reading guides."
-    );
+    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(getGpPausedNotice('en'));
     await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
   });
 });

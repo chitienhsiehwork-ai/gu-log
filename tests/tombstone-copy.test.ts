@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+/**
+ * The owner-approved tombstone copy is pinned word for word here, and only
+ * here: components, the Markdown exporter and the E2E spec all read it from
+ * src/lib/tombstone-copy.mjs instead of repeating it.
+ */
 import {
-  TAKEN_DOWN_STATUS,
   formatTombstoneDate,
   formatTombstoneDateRange,
   getNeutralSummary,
@@ -13,11 +17,7 @@ import {
   getTombstonePageTitle,
   getTombstoneStoneLines,
 } from '../src/lib/tombstone-copy.mjs';
-import {
-  GP_PAUSED_NOTICE,
-  GP_SERIES_PAUSED,
-  getGpPausedNotice,
-} from '../src/lib/gp-series-pause.mjs';
+import { GP_PAUSED_NOTICE, getGpPausedNotice } from '../src/lib/gp-series-pause.mjs';
 
 describe('tombstone copy SSOT（post-takedown design D5）', () => {
   it('GP 繁中照 owner 定稿逐字輸出', () => {
@@ -37,7 +37,7 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
       '還好原文沒事，點下面去看原汁原味的吧！',
     ]);
     expect(copy.cardLabel).toBe('去讀原文 →');
-    expect(copy.homeLabel).toBe('回首頁 →');
+    expect([copy.homeLabel, copy.homeHref]).toEqual(['回首頁 →', '/']);
     expect(copy.neutralSummary).toBe('這篇翻譯已下架。');
   });
 
@@ -58,7 +58,7 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
       'Good news: the original is alive and well. Go read it below!',
     ]);
     expect(copy.cardLabel).toBe('Read the original →');
-    expect(copy.homeLabel).toBe('Back to home →');
+    expect([copy.homeLabel, copy.homeHref]).toEqual(['Back to home →', '/en']);
     expect(copy.neutralSummary).toBe('This translation has been taken down.');
   });
 
@@ -107,7 +107,6 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
   });
 
   it('只有 GP 與 MP 有墓碑文案', () => {
-    expect(TAKEN_DOWN_STATUS).toBe('taken-down');
     expect(getTakedownSeries('GP-63')).toBe('GP');
     expect(getTakedownSeries('MP-PENDING')).toBe('MP');
     expect(getTakedownSeries('SD-1')).toBeNull();
@@ -166,9 +165,8 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
   });
 });
 
-describe('GP 暫停旗標（editorial-charter／design D6）', () => {
-  it('暫停中，空狀態文字是定稿句', () => {
-    expect(GP_SERIES_PAUSED).toBe(true);
+describe('GP 暫停空狀態（editorial-charter／design D6）', () => {
+  it('空狀態文字是定稿句', () => {
     expect(getGpPausedNotice('zh-tw')).toBe('GP 正在改版：以後這裡會是 ShroomDog 精選的導讀');
     expect(getGpPausedNotice('en')).toBe(
       "Gu-log Picks is being rebuilt: this page will become ShroomDog's curated reading guides."
