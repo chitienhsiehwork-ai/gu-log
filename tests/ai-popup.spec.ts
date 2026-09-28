@@ -15,7 +15,7 @@ import {
  * Run with: npx playwright test tests/ai-popup.spec.ts
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 const AUTH_RETURN_KEY = 'gu-log-return-url';
 const AUTH_JWT_KEY = 'gu-log-jwt';
 const AUTH_STORAGE_URL_KEY = 'gu-log-auth-storage-url';
@@ -907,12 +907,12 @@ test.describe('Auth Callback', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.removeItem('gu-log-jwt');
-      localStorage.setItem('gu-log-return-url', '/posts/gp-24-20260204-claude-is-a-space-to-think');
+      localStorage.setItem('gu-log-return-url', '/posts/mp-25-20260204-cursor-vibe-coding-lies');
     });
 
     await page.goto('/auth/callback?token=redirect-test-token');
 
-    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
+    await page.waitForURL('**/posts/mp-25-20260204-cursor-vibe-coding-lies', { timeout: 5000 });
 
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('redirect-test-token');

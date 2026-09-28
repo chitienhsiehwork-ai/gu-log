@@ -5,6 +5,7 @@ import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 import PostStatusLabel from '../components/PostStatusLabel.astro';
 import { getIndexPosts, getPostStatus, type PostStatus } from '../utils/post-status';
+import { GP_SERIES_PAUSED } from '../lib/gp-series-pause.mjs';
 
 const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
@@ -29,7 +30,10 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-const gpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('GP-')).sort(sortByTicketNumber);
+// GP 暫停收文期間首頁不顯示 GP 區塊（editorial-charter、post-takedown design D6）。
+const gpPosts = GP_SERIES_PAUSED
+  ? []
+  : allPosts.filter((p) => p.data.ticketId?.startsWith('GP-')).sort(sortByTicketNumber);
 
 const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(sortByTicketNumber);
 ---

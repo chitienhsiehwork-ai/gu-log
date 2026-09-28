@@ -7,6 +7,7 @@ import Toggle from '../../components/Toggle.astro';
 import PostStatusLabel from '../../components/PostStatusLabel.astro';
 import Pagination from '../../components/Pagination.astro';
 import { getListablePosts, getPostStatus, type PostStatus } from '../../utils/post-status';
+import { GP_SERIES_PAUSED, getGpPausedNotice } from '../../lib/gp-series-pause.mjs';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const getTicketNumber = (ticketId: string | undefined) => {
@@ -15,9 +16,13 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     return match ? parseInt(match[0]) : 0;
   };
   const allPostsFull = await getCollection('posts');
-  const gpPosts = getListablePosts(allPostsFull, 'zh-tw')
-    .filter((post) => post.data.ticketId?.startsWith('GP-'))
-    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  // GP 暫停收文期間（editorial-charter、post-takedown design D6）不列任何文章，
+  // 只產生第 1 頁的改版空狀態；GP-1 示範文照舊可用網址、RSS 與搜尋讀到。
+  const gpPosts = GP_SERIES_PAUSED
+    ? []
+    : getListablePosts(allPostsFull, 'zh-tw')
+        .filter((post) => post.data.ticketId?.startsWith('GP-'))
+        .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
   return paginate(gpPosts, { pageSize: 20, props: { allPostsFull } });
 }
 
@@ -28,8 +33,18 @@ const getTimelineStyle = (status: PostStatus) =>
 
 <BaseLayout title="Gu-log Picks 全部文章">
   <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> Gu-log Picks</h1>
-  <p class="page-subtitle">ShroomDog 精選長文翻譯</p>
-  <p class="post-count">共 {page.total} 篇</p>
+  {
+    GP_SERIES_PAUSED ? (
+      <p class="gp-paused-notice" data-gp-paused-notice>
+        {getGpPausedNotice('zh-tw')}
+      </p>
+    ) : (
+      <Fragment>
+        <p class="page-subtitle">ShroomDog 精選長文翻譯</p>
+        <p class="post-count">共 {page.total} 篇</p>
+      </Fragment>
+    )
+  }
 
   <a href="/" class="back-link">← 返回首頁</a>
 
@@ -67,6 +82,16 @@ const getTimelineStyle = (status: PostStatus) =>
     height: 44px;
     vertical-align: middle;
     margin-right: 0.5rem;
+  }
+
+  .gp-paused-notice {
+    margin: 0.75rem 0 1.25rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-mogu-note-text);
+    line-height: 1.7;
   }
 
   .page-subtitle {

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LISTING_SERIES, LANG_PREFIXES } from '../vercel.mjs';
+import { listTakenDownPosts, postPathFor } from './lib/taken-down-posts.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const MANIFEST_PATH = path.join(ROOT, 'quality/brand-taxonomy-post-migration.json');
@@ -249,6 +250,124 @@ export function validateArtifactContracts({ sitemaps, rss, searchIndexes }) {
   return errors;
 }
 
+// ─── Taken-down posts (openspec: post-takedown) ─────────────────────
+// Ground truth comes from the MDX frontmatter (status: taken-down), not from
+// the build. Sitemap / RSS / search indexes / JSON feed are judged by entry:
+// a taken-down post must not have an entry of its own, while a public post's
+// text that links to a tombstone is left alone. Listing pages and onward
+// navigation must not link to a tombstone either. The tombstone's own HTML,
+// JSON and Markdown are checked once, by the Markdown exporter that runs just
+// before this gate (scripts/lib/post-markdown-exporter.mjs).
+const LISTING_PAGE_PATTERN =
+  /^(?:en\/)?(?:index\.html|(?:gu-log-picks|mogu-picks|shroomdog-originals|level-up|tags|glossary|reading-tracker)\/.*index\.html)$/;
+const ONWARD_ZONE_START = 'class="post-onward-zone"';
+const ONWARD_ZONE_END = '<footer class="post-footer"';
+
+/** Listing pages (home, series, tags, glossary, reading tracker) by dist-relative path. */
+export function isListingPage(distRelativePath) {
+  return LISTING_PAGE_PATTERN.test(distRelativePath.split(path.sep).join('/'));
+}
+
+const RSS_ITEM_RE = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+const RSS_ITEM_TEXT_RE = /<(description|content:encoded)\b[^>]*>[\s\S]*?<\/\1>/gi;
+
+/** Site URLs that identify each RSS item: its own <link> and <guid>, never its text. */
+export function rssItemUrls(content) {
+  const urls = [];
+  RSS_ITEM_RE.lastIndex = 0;
+  let item;
+  while ((item = RSS_ITEM_RE.exec(content)) !== null) {
+    urls.push(...scanXmlLike(item[1].replace(RSS_ITEM_TEXT_RE, ''), [LINK_RE, GUID_RE]));
+  }
+  return urls;
+}
+
+/** The onward navigation (series / related / prev-next) slice of a post page. */
+export function onwardNavigationHtml(html) {
+  const start = html.indexOf(ONWARD_ZONE_START);
+  if (start === -1) return '';
+  const end = html.indexOf(ONWARD_ZONE_END, start);
+  return html.slice(start, end === -1 ? undefined : end);
+}
+
+/**
+ * No machine output, listing or onward navigation may list a taken-down post.
+ * @param {{
+ *   takenDownPosts: Array<{ id: string, lang: string, path: string, ticketId?: string }>,
+ *   sitemaps?: Array<{ name: string, content: string }>,
+ *   rss?: { content: string },
+ *   searchIndexes?: Array<{ name: string, content: string }>,
+ *   feed?: { content: string } | null,
+ *   navigationPages?: Array<{ name: string, content: string }>,
+ * }} input
+ * @returns {string[]}
+ */
+export function validateTakedownOutputs({
+  takenDownPosts,
+  sitemaps = [],
+  rss = { content: '' },
+  searchIndexes = [],
+  feed = null,
+  navigationPages = [],
+}) {
+  const errors = [];
+  const byPath = new Map(takenDownPosts.map((post) => [post.path, post]));
+  const describe = (post) => `${post.ticketId || '?'} ${post.path}`;
+  const flagUrl = (surface, value) => {
+    const urlPath = toPath(value);
+    const post = urlPath ? byPath.get(urlPath) : undefined;
+    if (post) errors.push(`${surface}: lists taken-down post ${describe(post)}`);
+  };
+  // One JSON entry (search index item / feed article) is identified by its
+  // slug, url and id — never by its summary or body text.
+  const flagJsonEntry = (surface, entry) => {
+    if (typeof entry?.slug === 'string') {
+      flagUrl(surface, postPathFor({ id: entry.slug, lang: entry.lang }));
+    }
+    for (const field of ['url', 'id']) {
+      if (typeof entry?.[field] === 'string') flagUrl(surface, entry[field]);
+    }
+  };
+  const jsonEntries = (surface, content, pick) => {
+    try {
+      const entries = pick(JSON.parse(content));
+      return Array.isArray(entries) ? entries : [];
+    } catch {
+      errors.push(`${surface}: invalid JSON`);
+      return [];
+    }
+  };
+
+  for (const { name, content } of sitemaps) {
+    for (const url of scanXmlLike(content, [LOC_RE])) flagUrl(name, url);
+  }
+  for (const url of rssItemUrls(rss.content)) flagUrl('rss.xml', url);
+  for (const { name, content } of searchIndexes) {
+    for (const item of jsonEntries(name, content, (items) => items)) flagJsonEntry(name, item);
+  }
+  if (feed) {
+    const surface = 'api/feed.json';
+    for (const article of jsonEntries(surface, feed.content, (data) => data?.articles)) {
+      flagJsonEntry(surface, article);
+    }
+  }
+  for (const { name, content } of navigationPages) {
+    const seen = new Set();
+    for (const url of scanHtmlAttrs(content)) {
+      const urlPath = toPath(url);
+      if (!urlPath || seen.has(urlPath)) continue;
+      seen.add(urlPath);
+      flagUrl(name, url);
+    }
+  }
+
+  return [...new Set(errors)];
+}
+
+function readIfExists(file) {
+  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : undefined;
+}
+
 function scanXmlLike(content, patterns) {
   const urls = [];
   for (const re of patterns) {
@@ -355,11 +474,39 @@ function main() {
     }
   }
 
+  const navigationPages = [];
   for (const file of htmlFiles) {
     const content = fs.readFileSync(file, 'utf8');
     checkUrls(scanHtmlAttrs(content), legacy, path.relative(ROOT, file), violations);
+    const distRelative = path.relative(DIST_DIR, file);
+    if (isListingPage(distRelative)) {
+      navigationPages.push({ name: `dist/${distRelative}`, content });
+    } else {
+      const onward = onwardNavigationHtml(content);
+      if (onward) navigationPages.push({ name: `dist/${distRelative}#onward`, content: onward });
+    }
   }
 
+  const takenDownPosts = listTakenDownPosts();
+  const takedownErrors = validateTakedownOutputs({
+    takenDownPosts,
+    sitemaps: sitemapFiles.map((file) => ({
+      name: path.relative(ROOT, file),
+      content: fs.readFileSync(file, 'utf8'),
+    })),
+    rss: { content: fs.readFileSync(rssPath, 'utf8') },
+    searchIndexes: searchIndexFiles.map((file) => ({
+      name: path.relative(ROOT, file),
+      content: fs.readFileSync(file, 'utf8'),
+    })),
+    feed: { content: readIfExists(path.join(DIST_DIR, 'api/feed.json')) ?? '{"articles":[]}' },
+    navigationPages,
+  });
+  if (!navigationPages.some((page) => page.name.endsWith('#onward'))) {
+    takedownErrors.push(
+      `no post page contains ${ONWARD_ZONE_START}; the onward-navigation takedown check would pass without checking anything`
+    );
+  }
   if (violations.length > 0) {
     console.error(`FAIL: ${violations.length} legacy public URL(s) found in build output:`);
     for (const violation of violations.slice(0, 50)) {
@@ -369,11 +516,19 @@ function main() {
       console.error(`  ... ${violations.length - 50} more`);
     }
     process.exitCode = 1;
-    return;
   }
 
+  if (takedownErrors.length > 0) {
+    console.error(`FAIL: ${takedownErrors.length} taken-down post leak(s) in build output:`);
+    for (const error of takedownErrors.slice(0, 50)) console.error(`  ${error}`);
+    if (takedownErrors.length > 50) console.error(`  ... ${takedownErrors.length - 50} more`);
+    process.exitCode = 1;
+  }
+
+  if (process.exitCode === 1) return;
+
   console.log(
-    `OK: public artifact contracts + canonical URLs -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found.`
+    `OK: public artifact contracts + canonical URLs -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found, ${takenDownPosts.length} taken-down post(s) kept out of machine outputs and navigation.`
   );
 }
 

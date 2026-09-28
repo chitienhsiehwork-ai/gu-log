@@ -1,6 +1,7 @@
 import { test, expect } from './fixtures';
 
-const TEST_URL = '/posts/gp-275-20260817-article-qwen-3-8-27b/';
+const TEST_URL = '/posts/mp-61-20260211-simonw-showboat-rodney/';
+const LONG_CLI_TEXT = 'api.github.com/repos/simonw/rodney';
 
 test.describe('Article code block reading contract', () => {
   test('GIVEN a long CLI command WHEN it renders THEN every line is numbered and wraps without horizontal scrolling', async ({
@@ -11,11 +12,11 @@ test.describe('Article code block reading contract', () => {
 
     const cli = page
       .locator('.post-content pre[data-language="bash"] > code')
-      .filter({ hasText: 'static.inaturalist.org/photos/714731804/large.jpg' });
+      .filter({ hasText: LONG_CLI_TEXT });
     await expect(cli).toHaveCount(1);
 
     const lines = cli.locator(':scope > .line');
-    await expect(lines).toHaveCount(3);
+    await expect(lines).toHaveCount(5);
 
     const layout = await cli.evaluate((code) => {
       const pre = code.closest('pre');
@@ -47,13 +48,15 @@ test.describe('Article code block reading contract', () => {
       };
     });
 
-    expect(layout.codeText).toContain('為這張照片裡的鵜鶘回傳 JSON 邊界框，每個維度用 0-1000 尺度');
-    expect(layout.codeText).not.toContain('Return JSON bounding boxes');
-    expect(layout.lineNumberStyles).toEqual([
-      { content: 'counter(code-line)', counterIncrement: 'code-line 1' },
-      { content: 'counter(code-line)', counterIncrement: 'code-line 1' },
-      { content: 'counter(code-line)', counterIncrement: 'code-line 1' },
-    ]);
+    expect(layout.codeText).toContain(
+      "showboat exec demo.md bash 'curl -s https://api.github.com/repos/simonw/rodney | jq .description'"
+    );
+    expect(layout.lineNumberStyles).toEqual(
+      Array.from({ length: 5 }, () => ({
+        content: 'counter(code-line)',
+        counterIncrement: 'code-line 1',
+      }))
+    );
     expect(layout.lineWhiteSpace).toBe('pre-wrap');
     expect(Number.parseFloat(layout.linePaddingInlineStart)).toBeLessThanOrEqual(32);
     expect(layout.codeDisplay).toBe('flex');
@@ -76,7 +79,7 @@ test.describe('Article code block reading contract', () => {
 
     const cli = page
       .locator('.post-content pre[data-language="bash"] > code')
-      .filter({ hasText: 'static.inaturalist.org/photos/714731804/large.jpg' });
+      .filter({ hasText: LONG_CLI_TEXT });
     await expect(cli).toHaveCount(1);
 
     for (const theme of ['dark', 'light'] as const) {

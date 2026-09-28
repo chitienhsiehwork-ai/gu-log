@@ -11,11 +11,15 @@ interface Props {
   description?: string;
   lang?: 'zh-tw' | 'en';
   image?: string;
-  noindex?: boolean;
+  /**
+   * `<meta name="robots">` content; omitted when unset. Tombstones pass
+   * `noindex`; the 404 page and test fixtures pass `noindex, nofollow`.
+   */
+  robots?: string;
   markdownUrl?: string;
 }
 
-const { title, description, lang = 'zh-tw', image, noindex = false, markdownUrl } = Astro.props;
+const { title, description, lang = 'zh-tw', image, robots, markdownUrl } = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
@@ -76,7 +80,7 @@ const finalDescription = description || t.defaultDescription;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={finalDescription} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {robots && <meta name="robots" content={robots} />}
     <meta name="apple-mobile-web-app-title" content="ShroomDog" />
 
     <!-- Open Graph / Facebook -->

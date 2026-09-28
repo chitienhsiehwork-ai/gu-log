@@ -124,6 +124,12 @@ describe('post-deploy smoke workflow hardening', () => {
         `---\ntranslatedDate: ${quote}${translatedDate}${quote}\n---\n`
       );
     }
+    // A taken-down post is a tombstone, not a live article (post-takedown):
+    // even the newest one must not take a latest-article slot.
+    writeFileSync(
+      path.join(postsDirectory, 'gp-0-taken-down-newest.mdx'),
+      '---\ntranslatedDate: "2026-07-30"\nstatus: "taken-down"\n---\n'
+    );
 
     const fakeCurl = path.join(binDirectory, 'curl');
     writeFileSync(
@@ -166,6 +172,7 @@ printf '200'
     expect(requestedUrls).not.toContain(
       'https://gu-log.vercel.app/posts/sd-99-filename-sorts-first'
     );
+    expect(requestedUrls).not.toContain('https://gu-log.vercel.app/posts/gp-0-taken-down-newest');
 
     const invalidFixtureRoot = mkdtempSync(path.join(tmpdir(), 'gu-log-deploy-smoke-invalid-'));
     temporaryDirectories.push(invalidFixtureRoot);

@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 2,
+  "purpose": "翻譯下架批次的授權、規則與邊界案例。下架清單由 scripts/take-down-posts.mjs 依 rules 從當下語料產生（slug 用正式網址的小寫 post.id），本檔不存逐篇快照。",
+  "authorization": {
+    "by": "ShroomDog（owner）",
+    "date": "2026-09-27",
+    "channel": "chat",
+    "scope": "依本檔規則產生的清單直接下架（墓碑頁），不需要 owner 逐篇確認；由 controller 對帳確認清單符合規則"
+  },
+  "rules": [
+    {
+      "id": "gp-all",
+      "series": "GP",
+      "description": "所有 GP 文章，繁中與英文 sidecar 都下架",
+      "excludeTickets": [
+        {
+          "ticketId": "GP-1",
+          "reason": "自寫的示範文，來源是 example.com，不是第三方文章的翻譯；保留公開，部署 smoke 也用它當 sentinel"
+        }
+      ]
+    },
+    {
+      "id": "mp-paid-news-domain",
+      "series": "MP",
+      "description": "只下架 sourceUrl 明確來自付費新聞媒體網域的 MP（繁中與英文 sidecar）；判斷不確定的一律不下架，留給之後的 MP 防翻譯檢查",
+      "matching": "sourceUrl 的 hostname 轉小寫、去掉開頭的 www. 後，等於清單網域或是清單網域的子網域（host === domain 或 host 以 \".\" + domain 結尾）。只看 sourceUrl，不看 source 欄文字",
+      "inclusionCriteria": "以新聞報導或新聞評論為主業的媒體，且一般文章預設在訂閱付費牆或計量付費牆後面（只有加值產品收費的不算）",
+      "domains": [
+        {
+          "domain": "nytimes.com",
+          "name": "The New York Times",
+          "basis": "訂閱付費牆（計量）"
+        },
+        {
+          "domain": "wsj.com",
+          "name": "The Wall Street Journal",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "bloomberg.com",
+          "name": "Bloomberg",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "ft.com",
+          "name": "Financial Times",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "economist.com",
+          "name": "The Economist",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "theinformation.com",
+          "name": "The Information",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "washingtonpost.com",
+          "name": "The Washington Post",
+          "basis": "訂閱付費牆（計量）"
+        },
+        {
+          "domain": "reuters.com",
+          "name": "Reuters",
+          "basis": "訂閱付費牆"
+        },
+        {
+          "domain": "theatlantic.com",
+          "name": "The Atlantic",
+          "basis": "訂閱付費牆（計量）"
+        },
+        {
+          "domain": "newyorker.com",
+          "name": "The New Yorker",
+          "basis": "訂閱付費牆（計量）"
+        },
+        {
+          "domain": "wired.com",
+          "name": "WIRED",
+          "basis": "訂閱付費牆（計量）"
+        }
+      ]
+    }
+  ],
+  "boundaryCasesSnapshot": {
+    "commit": "847d1f67",
+    "date": "2026-09-27"
+  },
+  "boundaryCases": [
+    {
+      "ticketId": "MP-14",
+      "sourceHost": "legaltechnology.com",
+      "sourceLabel": "Legal IT Insider & Industry News",
+      "category": "免費商業新聞網站",
+      "reason": "產業新聞網站（Legal IT Insider），沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-24",
+      "sourceHost": "siliconangle.com",
+      "sourceLabel": "SiliconANGLE",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-34",
+      "sourceHost": "infoq.com",
+      "sourceLabel": "Vercel & @rauchg",
+      "category": "免費商業新聞網站",
+      "reason": "技術新聞網站，沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-35",
+      "sourceHost": "cnbc.com",
+      "sourceLabel": "Anthropic & CNBC",
+      "category": "免費商業新聞網站",
+      "reason": "一般新聞免費，只有 CNBC Pro 另外收費",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-41",
+      "sourceHost": "newsletter.semianalysis.com",
+      "sourceLabel": "SemiAnalysis",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "SemiAnalysis 是產業研究電子報，常見前段免費、後段付費，需要逐篇判斷",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-53",
+      "sourceHost": "hbr.org",
+      "sourceLabel": "Simon Willison (@simonw) + HBR (Aruna Ranganathan & Xingqi Maggie Ye)",
+      "category": "付費雜誌，非新聞媒體",
+      "reason": "Harvard Business Review 是計量付費牆的管理雜誌，不是新聞媒體；本篇另以 Simon Willison 為來源",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-59",
+      "sourceHost": "x.com",
+      "sourceLabel": "SemiAnalysis (@SemiAnalysis_)",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-72",
+      "sourceHost": "anthropic.com",
+      "sourceLabel": "Anthropic Blog + Reuters + NBC News",
+      "category": "source 欄提到付費新聞，但 sourceUrl 不在網域清單",
+      "reason": "主要來源網域是 anthropic.com；付費新聞只出現在 source 欄的輔助來源",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-75",
+      "sourceHost": "anthropic.com",
+      "sourceLabel": "Anthropic Blog + CNBC + Axios + Bloomberg",
+      "category": "source 欄提到付費新聞，但 sourceUrl 不在網域清單",
+      "reason": "主要來源網域是 anthropic.com；付費新聞只出現在 source 欄的輔助來源",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-77",
+      "sourceHost": "techcrunch.com",
+      "sourceLabel": "TechCrunch",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-87",
+      "sourceHost": "techcrunch.com",
+      "sourceLabel": "Axios / Reuters / TechCrunch / CNBC / PCMag / Bloomberg（多源綜合）",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-93",
+      "sourceHost": "businessinsider.com",
+      "sourceLabel": "Business Insider (Tim Paradis)",
+      "category": "新聞媒體，付費狀態不確定",
+      "reason": "Business Insider 曾有付費牆，但 2025-11 起大部分文章撤掉付費牆，無法確定本篇在付費牆後",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-104",
+      "sourceHost": "nature.com",
+      "sourceLabel": "Nature Medicine",
+      "category": "學術期刊，非新聞媒體",
+      "reason": "來源是 Nature Medicine 論文頁，不是新聞報導",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-113",
+      "sourceHost": "theverge.com",
+      "sourceLabel": "Financial Times / The Verge",
+      "category": "新聞媒體，付費狀態不確定",
+      "reason": "The Verge 2024-12 起只有原創報導、評測與專題走計量付費牆，一般新聞免費；本篇是轉述 Financial Times 報導的新聞",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-115",
+      "sourceHost": "lennysnewsletter.com",
+      "sourceLabel": "Boris Cherny (Lenny's Podcast / Business Insider)",
+      "category": "付費電子報網域，本篇為免費內容",
+      "reason": "本篇來源是免費收聽的 podcast 節目頁",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-130",
+      "sourceHost": "anthropic.com",
+      "sourceLabel": "Anthropic / TIME",
+      "category": "source 欄提到付費新聞，但 sourceUrl 不在網域清單",
+      "reason": "主要來源網域是 anthropic.com；付費新聞只出現在 source 欄的輔助來源",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-138",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-139",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-155",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-165",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-185",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-188",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-198",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-207",
+      "sourceHost": "xda-developers.com",
+      "sourceLabel": "Adam Conway / XDA",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-210",
+      "sourceHost": "venturebeat.com",
+      "sourceLabel": "VentureBeat",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-211",
+      "sourceHost": "tomsguide.com",
+      "sourceLabel": "Tom's Guide",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-212",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-213",
+      "sourceHost": "newsletter.semianalysis.com",
+      "sourceLabel": "Dylan Patel, Myron Xie, Daniel Nishball, et al. at SemiAnalysis",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "SemiAnalysis 是產業研究電子報，常見前段免費、後段付費，需要逐篇判斷",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-214",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-217",
+      "sourceHost": "newsletter.semianalysis.com",
+      "sourceLabel": "SemiAnalysis (Dylan Patel, Myron Xie, Daniel Nishball, et al.)",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "SemiAnalysis 是產業研究電子報，常見前段免費、後段付費，需要逐篇判斷",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-219",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-258",
+      "sourceHost": "winbuzzer.com",
+      "sourceLabel": "WinBuzzer",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-265",
+      "sourceHost": "newsletter.semianalysis.com",
+      "sourceLabel": "SemiAnalysis Newsletter",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "SemiAnalysis 是產業研究電子報，常見前段免費、後段付費，需要逐篇判斷",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-270",
+      "sourceHost": "newsletter.pragmaticengineer.com",
+      "sourceLabel": "Gergely Orosz / The Pragmatic Engineer",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "The Pragmatic Engineer 是付費電子報，需要逐篇判斷是否為付費內容",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-272",
+      "sourceHost": "x.com",
+      "sourceLabel": "@SemiAnalysis_ on X",
+      "category": "付費電子報在 X 上的公開貼文",
+      "reason": "sourceUrl 是 x.com 的公開貼文，不在網域清單",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-282",
+      "sourceHost": "techcrunch.com",
+      "sourceLabel": "TechCrunch",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-296",
+      "sourceHost": "newsletter.semianalysis.com",
+      "sourceLabel": "SemiAnalysis Newsletter",
+      "category": "付費電子報，非新聞媒體",
+      "reason": "SemiAnalysis 是產業研究電子報，常見前段免費、後段付費，需要逐篇判斷",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-298",
+      "sourceHost": "techcrunch.com",
+      "sourceLabel": "TechCrunch",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    },
+    {
+      "ticketId": "MP-299",
+      "sourceHost": "siliconangle.com",
+      "sourceLabel": "@siliconangle on X",
+      "category": "免費商業新聞網站",
+      "reason": "廣告支撐、沒有一般付費牆",
+      "decision": "本次不下架，留給之後的 MP 防翻譯檢查"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import {
   getPublishedPosts,
   getTranslationPair,
   isPostNonPublished,
+  isPostTakenDown,
   resolvePostStatus,
 } from '../src/utils/post-status';
 import { getLocalizedPostUrl } from '../src/utils/post-urls';
@@ -29,7 +30,7 @@ type FakePost = {
     ticketId: string;
     lang: 'zh-tw' | 'en';
     originalDate: string;
-    status?: 'published' | 'deprecated' | 'retired';
+    status?: 'published' | 'deprecated' | 'retired' | 'taken-down';
     deprecatedBy?: string;
     deprecatedReason?: string;
     retiredReason?: string;
@@ -259,6 +260,61 @@ describe('getIndexPosts (publish-bar visibility)', () => {
     });
     const ids = getIndexPosts(cast([...all, deprecated]), 'zh-tw').map((post: any) => post.id);
     expect(ids).not.toContain('gp-4-dep');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// taken-down（spec: post-takedown）：下架文章不在任何列表、feed 或導覽裡；
+// 它和 deprecated／retired 不同，不是「公開全文加標籤」。
+// ════════════════════════════════════════════════════════════════════════════
+describe('taken-down status', () => {
+  const liveZh = p('gp-1-demo', 'GP-1', 'zh-tw');
+  const liveEn = p('en-gp-1-demo', 'GP-1', 'en');
+  const downZh = p('gp-63-20260214-gp63-x', 'GP-63', 'zh-tw', {
+    status: 'taken-down',
+    scores: { tribunalVersion: 9 },
+  });
+  const downEn = p('en-gp-63-20260214-gp63-x', 'GP-63', 'en', { status: 'taken-down' });
+  const retiredZh = p('mp-5-r', 'MP-5', 'zh-tw', { status: 'retired' });
+  const all = [liveZh, liveEn, downZh, downEn, retiredZh];
+
+  it('keeps taken-down as its own status without replacement or reason', () => {
+    expect(getPostStatus(downZh as any)).toBe('taken-down');
+    const resolved = resolvePostStatus(downEn as any, cast(all));
+    expect(resolved.status).toBe('taken-down');
+    expect(resolved.sourcePost?.id).toBe('gp-63-20260214-gp63-x');
+    expect(resolved.replacementTicketId).toBeUndefined();
+    expect(resolved.replacementPost).toBeUndefined();
+    expect(resolved.reason).toBeUndefined();
+    expect(resolved.retiredAt).toBeUndefined();
+    expect(isPostTakenDown(downEn as any, cast(all))).toBe(true);
+    expect(isPostTakenDown(retiredZh as any, cast(all))).toBe(false);
+    expect(isPostNonPublished(downZh as any, cast(all))).toBe(true);
+  });
+
+  it('is excluded from published, listable, index and navigation surfaces', () => {
+    for (const lang of ['zh-tw', 'en'] as const) {
+      const published = getPublishedPosts(cast(all), lang).map((post: any) => post.id);
+      const listable = getListablePosts(cast(all), lang).map((post: any) => post.id);
+      const index = getIndexPosts(cast(all), lang).map((post: any) => post.id);
+      const baseline = createPostNavigationBaseline(cast(all), lang).publishedPosts.map(
+        (post: any) => post.id
+      );
+      for (const ids of [published, listable, index, baseline]) {
+        expect(ids).not.toContain('gp-63-20260214-gp63-x');
+        expect(ids).not.toContain('en-gp-63-20260214-gp63-x');
+      }
+    }
+    // retired 仍是公開全文加標籤：照樣可列。
+    expect(getListablePosts(cast(all), 'zh-tw').map((post: any) => post.id)).toContain('mp-5-r');
+  });
+
+  it('en sidecar inherits taken-down from its zh-tw pair when listing', () => {
+    const enStillPublished = p('en-gp-63-20260214-gp63-x', 'GP-63', 'en');
+    const posts = [liveZh, liveEn, downZh, enStillPublished];
+    expect(getListablePosts(cast(posts), 'en').map((post: any) => post.id)).toEqual([
+      'en-gp-1-demo',
+    ]);
   });
 });
 

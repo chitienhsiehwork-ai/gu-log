@@ -2,18 +2,20 @@ import { test, expect } from './fixtures';
 
 const zhMP = '/posts/mp-291-20260414-anthropic-';
 const enMP = '/en/posts/en-mp-291-20260414-anthropic-';
-const zhGP = '/posts/gp-24-20260204-claude-is-a-space-to-think';
-const enGP = '/en/posts/en-gp-24-20260204-claude-is-a-space-to-think';
+// GP-1 is the self-written demo that stays public while GP translations are
+// taken down and the GP series is paused (openspec: post-takedown).
+const zhGP = '/posts/gp-1-20260128-demo';
+const enGP = '/en/posts/en-gp-1-20260128-demo';
 
 test.describe('GP translation and MP source-grounded identity', () => {
-  test('GIVEN the zh-TW listings WHEN comparing GP and MP THEN only GP uses translation labels', async ({
+  test('GIVEN the zh-TW listings WHEN comparing GP and MP THEN MP never uses translation labels', async ({
     page,
   }) => {
     await page.goto('/');
 
-    const gp = page.locator('section.gp-section');
-    await expect(gp.locator('.section-subtitle')).toHaveText('ShroomDog 精選長文翻譯');
-    await expect(gp.locator('.post-meta').first()).toContainText('翻譯自');
+    // GP is paused: the homepage has no GP section and the GP listing shows
+    // only the rebuild notice (src/lib/gp-series-pause.mjs).
+    await expect(page.locator('section.gp-section')).toHaveCount(0);
 
     const mp = page.locator('section.mogu-picks-section');
     await expect(mp.locator('.section-subtitle')).toHaveText('Mogu 消化來源後寫成的文章');
@@ -23,6 +25,12 @@ test.describe('GP translation and MP source-grounded identity', () => {
     await page.goto('/mogu-picks');
     await expect(page.locator('.page-subtitle')).toHaveText('Mogu 消化來源材料後寫成的文章');
     await expect(page.locator('.pick-meta').first()).toContainText('來源材料');
+
+    await page.goto('/gu-log-picks');
+    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(
+      'GP 正在改版：以後這裡會是 ShroomDog 精選的導讀'
+    );
+    await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
   });
 
   test('GIVEN the English listings WHEN comparing GP and MP THEN MP uses source-material labels', async ({
@@ -30,8 +38,7 @@ test.describe('GP translation and MP source-grounded identity', () => {
   }) => {
     await page.goto('/en');
 
-    const gp = page.locator('section.gp-section');
-    await expect(gp.locator('.section-subtitle')).toContainText('translated');
+    await expect(page.locator('section.gp-section')).toHaveCount(0);
 
     const mp = page.locator('section.mogu-picks-section');
     await expect(mp.locator('.section-subtitle')).toHaveText(
@@ -45,6 +52,12 @@ test.describe('GP translation and MP source-grounded identity', () => {
       'Articles written by Mogu from source material'
     );
     await expect(page.locator('.pick-meta').first()).toContainText('Source material:');
+
+    await page.goto('/en/gu-log-picks');
+    await expect(page.locator('[data-gp-paused-notice]')).toHaveText(
+      "Gu-log Picks is being rebuilt: this page will become ShroomDog's curated reading guides."
+    );
+    await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
   });
 
   test('GIVEN the bilingual About pages WHEN explaining the series THEN GP and MP keep distinct writing contracts', async ({

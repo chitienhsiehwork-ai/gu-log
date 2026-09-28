@@ -101,6 +101,27 @@ const MANIFEST = [
     file: 'src/components/MoguNote.astro',
     name: 'light-mogu-prefix-on-surface',
   },
+  // Tombstone inscription (openspec: post-takedown): the stone art is beige in
+  // both themes; --color-tombstone-stone is the average of its inscription face
+  // in src/assets/tombstone/tombstone.webp and also paints the stone when the
+  // art fails to load. Resolve both tokens per theme so a theme-specific
+  // override cannot slip past this gate.
+  {
+    fgVar: '--color-tombstone-ink',
+    bgVar: '--color-tombstone-stone',
+    theme: 'dark',
+    context: 'dark tombstone ink on the stone face',
+    file: 'src/components/PostTombstone.astro',
+    name: 'dark-tombstone-ink-on-stone',
+  },
+  {
+    fgVar: '--color-tombstone-ink',
+    bgVar: '--color-tombstone-stone',
+    theme: 'light',
+    context: 'light tombstone ink on the stone face',
+    file: 'src/components/PostTombstone.astro',
+    name: 'light-tombstone-ink-on-stone',
+  },
   {
     fgVar: '--color-on-accent',
     bgVar: '--color-accent',
@@ -222,6 +243,8 @@ const NAMED_PAIR_MINIMUMS = {
   'light-post-link-external-on-surface': 5,
   'dark-toc-focus-on-surface': 3,
   'light-toc-focus-on-surface': 3,
+  'dark-tombstone-ink-on-stone': 5,
+  'light-tombstone-ink-on-stone': 5,
 };
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────

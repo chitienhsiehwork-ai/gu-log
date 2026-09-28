@@ -3,11 +3,20 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import MoguNote from '../../components/MoguNote.astro';
 import '../../styles/glossary.css';
 import glossaryData from '../../data/glossary.json';
+import { getCollection } from 'astro:content';
 import { parseGlossaryUrl, type ParsedGlossaryUrl } from '../../config/glossary';
+import { isPostTakenDown } from '../../utils/post-status';
+
+// 詞條的「文章」連結不列已下架的文章（openspec: post-takedown）。
+const allPosts = await getCollection('posts');
+const takenDownPostIds = new Set(
+  allPosts.filter((post) => isPostTakenDown(post, allPosts)).map((post) => post.id)
+);
 
 const glossary = [...glossaryData]
   .map((item) => ({
     ...item,
+    definedIn: item.definedIn?.filter((post) => !takenDownPostIds.has(`en-${post.slug}`)),
     safeUrl:
       item.url !== undefined
         ? parseGlossaryUrl(item.url, { allowInternal: true, field: `${item.term}.url` })

@@ -18,6 +18,8 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 
 ## 預設用法
 
+> GP 暫停收新文：整篇翻譯要先取得來源作者同意，以 [`editorial-charter` spec](../../openspec/specs/editorial-charter/spec.md) 為準；暫停期間 `--prefix GP` 產出的新文章會被 pre-commit 與 CI 的下架棘輪擋下，不要用它發 GP。
+
 使用者明確要求把 URL 寫成／發布為 GP，或在 `AGENTS.md` 的 URL intake 後明確叫 agent 繼續時，除非有明確 blocker，跑完整 pipeline：
 
 ```bash

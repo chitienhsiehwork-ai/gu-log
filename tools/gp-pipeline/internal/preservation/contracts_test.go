@@ -151,7 +151,7 @@ func TestDeterministicNaturalFindings(t *testing.T) {
 	if got := DeterministicNaturalFindings(source, direct); len(got) != 0 {
 		t.Fatalf("direct translation findings: %v", got)
 	}
-	rewritten := []byte("Brent Fitzgerald 放了假。寫這篇文章的人看到演算法動態，形容這是生產力銜尾蛇。")
+	rewritten := []byte("Rin Example 放了假。寫這篇文章的人看到演算法動態，形容這是生產力銜尾蛇。")
 	if got := DeterministicNaturalFindings(source, rewritten); len(got) < 3 {
 		t.Fatalf("rewritten findings = %v, want voice + two terms", got)
 	}
@@ -185,10 +185,13 @@ func TestCanonicalizeFindingAnchorsUsesUniqueExactText(t *testing.T) {
 	}
 }
 
-func TestGP273RegressionPrefersSourceAlignedFirstPersonTranslation(t *testing.T) {
+// The fixture is a self-written synthetic pair modelled on the GP-273 incident
+// (gp-source-preservation: synthetic regression pair); it must never hold a
+// third-party article or a taken-down gu-log translation.
+func TestSyntheticRegressionPrefersSourceAlignedFirstPersonTranslation(t *testing.T) {
 	fixture := func(name string) []byte {
 		t.Helper()
-		data, err := os.ReadFile(filepath.Join("testdata", "gp-273", name))
+		data, err := os.ReadFile(filepath.Join("testdata", "synthetic-first-person", name))
 		if err != nil {
 			t.Fatal(err)
 		}

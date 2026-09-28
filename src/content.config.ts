@@ -147,11 +147,19 @@ const postsCollection = defineCollection({
       summary: z.string(), // for index page preview
       lang: z.enum(['zh-tw', 'en']).default('zh-tw'),
       tags: z.array(z.string()).optional(),
-      status: z.enum(['published', 'deprecated', 'retired']).default('published'),
+      // `taken-down`：下架成墓碑頁（openspec: post-takedown）。其他欄位保留，
+      // 正文清空；`deprecated`／`retired` 仍是公開全文加狀態標籤。
+      status: z.enum(['published', 'deprecated', 'retired', 'taken-down']).default('published'),
       deprecatedBy: canonicalTicketId.optional(),
       deprecatedReason: z.string().optional(),
       retiredReason: z.string().optional(),
       retiredAt: z.string().optional(),
+      takenDownAt: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'takenDownAt must be YYYY-MM-DD')
+        .optional(),
+      // 來源自己的標題（墓碑卡片第一行）；不得等於 gu-log 自己的標題。
+      sourceTitle: z.string().optional(),
       series: z
         .object({
           name: z.string(),
@@ -215,6 +223,27 @@ const postsCollection = defineCollection({
         ctx.addIssue({
           code: 'custom',
           message: 'status must be deprecated when deprecatedBy is present',
+          path: ['status'],
+        });
+      }
+      if (data.status === 'taken-down' && !data.takenDownAt) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'takenDownAt is required when status is taken-down',
+          path: ['takenDownAt'],
+        });
+      }
+      if (data.status === 'taken-down' && !data.sourceTitle?.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'sourceTitle is required when status is taken-down',
+          path: ['sourceTitle'],
+        });
+      }
+      if (data.status !== 'taken-down' && data.takenDownAt) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'status must be taken-down when takenDownAt is present',
           path: ['status'],
         });
       }

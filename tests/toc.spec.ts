@@ -10,7 +10,7 @@ import type { Page } from '@playwright/test';
 
 test.describe('Table of Contents', () => {
   // Use a post that definitely has TOC (multiple h2 headings)
-  const testPostUrl = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+  const testPostUrl = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
   test('GIVEN a post with TOC WHEN the page loads THEN one shared external runtime owns the behavior', async ({
     page,

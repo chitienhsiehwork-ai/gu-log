@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { validateArtifactContracts } from '../scripts/verify-canonical-public-output.mjs';
+import {
+  isListingPage,
+  onwardNavigationHtml,
+  validateArtifactContracts,
+  validateTakedownOutputs,
+} from '../scripts/verify-canonical-public-output.mjs';
 
 const zhTwItem = {
   slug: 'gp-1-example',
@@ -172,5 +177,127 @@ describe('generated public artifact contracts', () => {
         'search-index.zh-tw.json[0].ticketId must be a string or null',
       ])
     );
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// taken-down（openspec: post-takedown）：下架文章不得出現在任何機器輸出與列表，
+// 自己的三種輸出只剩墓碑。
+// ════════════════════════════════════════════════════════════════════════════
+describe('taken-down post leak checks', () => {
+  const post = {
+    id: 'gp-273-20260813-human-loop',
+    lang: 'zh-tw',
+    path: '/posts/gp-273-20260813-human-loop',
+    ticketId: 'GP-273',
+  };
+  const clean = () => ({
+    takenDownPosts: [post],
+    sitemaps: [
+      {
+        name: 'sitemap-0.xml',
+        content: '<urlset><loc>https://gu-log.vercel.app/posts/live</loc></urlset>',
+      },
+    ],
+    rss: {
+      content:
+        '<rss><channel><item><link>https://gu-log.vercel.app/posts/live</link></item></channel></rss>',
+    },
+    searchIndexes: [
+      { name: 'search-index.json', content: JSON.stringify([{ slug: 'live', lang: 'zh-tw' }]) },
+    ],
+    feed: {
+      content: JSON.stringify({ articles: [{ slug: 'live', lang: 'zh-tw', url: '/posts/live' }] }),
+    },
+    navigationPages: [{ name: 'dist/index.html', content: '<a href="/posts/live">live</a>' }],
+  });
+
+  it('passes when the tombstone is only reachable by its own URL', () => {
+    expect(validateTakedownOutputs(clean())).toEqual([]);
+  });
+
+  it('names the post and the surface when a tombstone URL leaks', () => {
+    const input = clean();
+    input.sitemaps[0].content = `<urlset><loc>https://gu-log.vercel.app${post.path}/</loc></urlset>`;
+    input.rss.content = `<rss><channel><item><link>https://gu-log.vercel.app${post.path}</link></item></channel></rss>`;
+    input.searchIndexes[0].content = JSON.stringify([{ slug: post.id, lang: 'zh-tw' }]);
+    input.feed = {
+      content: JSON.stringify({ articles: [{ slug: post.id, lang: 'zh-tw', url: post.path }] }),
+    };
+    input.navigationPages = [
+      { name: 'dist/tags/agents/index.html', content: `<a href="${post.path}">x</a>` },
+      { name: 'dist/posts/other/index.html#onward', content: `<a href="${post.path}/">x</a>` },
+    ];
+    const errors = validateTakedownOutputs(input);
+    for (const surface of [
+      'sitemap-0.xml',
+      'rss.xml',
+      'search-index.json',
+      'api/feed.json',
+      'dist/tags/agents/index.html',
+      'dist/posts/other/index.html#onward',
+    ]) {
+      expect(errors).toContain(`${surface}: lists taken-down post GP-273 ${post.path}`);
+    }
+  });
+
+  it('keeps public posts whose text links to a tombstone: only entries count', () => {
+    const input = clean();
+    const tombstoneUrl = `https://gu-log.vercel.app${post.path}/`;
+    input.searchIndexes[0].content = JSON.stringify([
+      {
+        slug: 'live',
+        lang: 'zh-tw',
+        summary: `延伸閱讀 ${tombstoneUrl}`,
+        body: `之前寫過 ${post.path} 這篇`,
+      },
+    ]);
+    input.rss.content = [
+      '<rss><channel><link>https://gu-log.vercel.app/</link><item>',
+      '<link>https://gu-log.vercel.app/posts/live</link>',
+      '<guid isPermaLink="true">https://gu-log.vercel.app/posts/live</guid>',
+      `<description>延伸閱讀 &lt;a href="${post.path}"&gt;舊文&lt;/a&gt;</description>`,
+      `<content:encoded><![CDATA[<p><link>${tombstoneUrl}</link></p>]]></content:encoded>`,
+      '</item></channel></rss>',
+    ].join('');
+    input.feed = {
+      content: JSON.stringify({
+        articles: [{ slug: 'live', lang: 'zh-tw', url: '/posts/live', summary: tombstoneUrl }],
+      }),
+    };
+    expect(validateTakedownOutputs(input)).toEqual([]);
+  });
+
+  it('judges RSS items by their own link and guid', () => {
+    const input = clean();
+    input.rss.content = [
+      '<rss><channel><item><link>https://gu-log.vercel.app/posts/live</link>',
+      `<guid isPermaLink="true">https://gu-log.vercel.app${post.path}</guid></item></channel></rss>`,
+    ].join('');
+    expect(validateTakedownOutputs(input)).toEqual([
+      `rss.xml: lists taken-down post GP-273 ${post.path}`,
+    ]);
+  });
+
+  it('classifies listing pages and slices onward navigation from post pages', () => {
+    for (const page of [
+      'index.html',
+      'en/index.html',
+      'gu-log-picks/index.html',
+      'mogu-picks/2/index.html',
+      'en/tags/agents/index.html',
+      'glossary/index.html',
+      'reading-tracker/index.html',
+    ]) {
+      expect(isListingPage(page), page).toBe(true);
+    }
+    expect(isListingPage('posts/gp-1-demo/index.html')).toBe(false);
+    const page =
+      '<p><a href="/posts/in-body">body link</a></p><section class="post-onward-zone">' +
+      '<a href="/posts/next">next</a></section><footer class="post-footer"><a href="/">home</a></footer>';
+    expect(onwardNavigationHtml(page)).toContain('/posts/next');
+    expect(onwardNavigationHtml(page)).not.toContain('/posts/in-body');
+    expect(onwardNavigationHtml(page)).not.toContain('post-footer');
+    expect(onwardNavigationHtml('<p>no onward zone</p>')).toBe('');
   });
 });

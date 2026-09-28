@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
+import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 
@@ -141,6 +142,13 @@ function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
   return JSON.stringify(removed) === JSON.stringify(added);
 }
 
+// Taken-down posts have no reader content left to lint (openspec:
+// post-takedown); frontmatter validation still covers them.
+function isTakenDown(currentFile) {
+  if (!fs.existsSync(currentFile)) return false;
+  return isTakenDownSource(fs.readFileSync(currentFile, 'utf8'), currentFile);
+}
+
 function isExistingTicketAddition(baseRef, baseFile, currentFile) {
   if (existsAt(baseRef, baseFile)) return false;
   return ticketExistsAt(baseRef, readTicketId(currentFile), currentFile);
@@ -207,6 +215,7 @@ const changed = git([
 const files = parseNameStatus(changed)
   .filter(({ currentFile }) => !path.basename(currentFile).startsWith('en-'))
   .filter(({ currentFile }) => fs.existsSync(currentFile))
+  .filter(({ currentFile }) => !isTakenDown(currentFile))
   .filter(
     ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
   )

@@ -1,7 +1,7 @@
 import { test, expect } from './fixtures';
 import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-popup';
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
 const malformedTokens = [
   'not-a-jwt',

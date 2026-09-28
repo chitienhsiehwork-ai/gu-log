@@ -103,6 +103,32 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     }
   });
 
+  it('skips a post that became a taken-down tombstone (openspec: post-takedown)', () => {
+    const repo = makeRepo();
+
+    try {
+      const takenDown = 'src/content/posts/gp-3-taken-down.mdx';
+      const edited = 'src/content/posts/mp-4-edited.mdx';
+      fs.writeFileSync(path.join(repo, takenDown), post('GP-3', 'translated-body'));
+      fs.writeFileSync(path.join(repo, edited), post('MP-4', 'mogu-body'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed baseline']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(
+        path.join(repo, takenDown),
+        '---\nticketId: "GP-3"\nstatus: "taken-down"\ntakenDownAt: "2026-09-27"\n---\n'
+      );
+      fs.writeFileSync(path.join(repo, edited), post('MP-4', 'rewritten-mogu-body'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'take down GP-3 and edit MP-4']);
+
+      expect(runGate(repo)).toEqual([edited]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it('still gates reader prose whose lines start with a metadata key', () => {
     const repo = makeRepo();
 

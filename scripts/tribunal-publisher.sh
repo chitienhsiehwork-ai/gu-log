@@ -91,6 +91,20 @@ post_relpaths_for_article() {
   fi
 }
 
+# A PASS earned before a takedown must never be published: the PR would write
+# the article back over its tombstone and the takedown ratchet rejects it
+# anyway (openspec: post-takedown). Judged on the freshly fetched origin/main,
+# because the runtime checkout may still hold the pre-takedown text.
+article_taken_down_on_main() {
+  local article="$1" rel
+  while IFS= read -r rel; do
+    if [ "$(tribunal_post_status <(git -C "$ROOT_DIR" show "origin/main:$rel" 2>/dev/null))" = "taken-down" ]; then
+      return 0
+    fi
+  done < <(post_relpaths_for_article "$article")
+  return 1
+}
+
 current_batch_id() {
   local article="$1"
   jq -r --arg a "$article" '.entries[$a].batchId // ""' "$PUBLISHER_STATE_FILE"
@@ -501,13 +515,14 @@ remove_reused_dependency_link() {
 
 render_report() {
   refresh_conflict_events
-  local publishable failed exhausted runner_error batched published conflicted validation_blocked
+  local publishable failed exhausted runner_error batched published taken_down conflicted validation_blocked
   mapfile -t publishable < <(collect_publishable_passes)
   mapfile -t failed < <(collect_articles_by_status "FAILED")
   mapfile -t exhausted < <(collect_articles_by_status "EXHAUSTED")
   mapfile -t runner_error < <(collect_articles_by_status "RUNNER_ERROR")
   mapfile -t batched < <(collect_state_articles "batch_selected")
   mapfile -t published < <(collect_state_articles "published")
+  mapfile -t taken_down < <(collect_state_articles "taken_down")
   mapfile -t conflicted < <(collect_blocking_event_articles "conflict")
   mapfile -t validation_blocked < <(collect_blocking_event_articles "validation_blocked")
 
@@ -522,6 +537,7 @@ render_report() {
   tlog "RUNNER_ERROR metadata: ${#runner_error[@]}"
   tlog "already batched: ${#batched[@]}"
   tlog "already published: ${#published[@]}"
+  tlog "skipped as taken down: ${#taken_down[@]}"
 }
 
 reserve_batch_state() {
@@ -659,6 +675,21 @@ apply_batch() {
     echo "ERROR: unable to refresh origin/main; refusing to publish from a cached ref" >&2
     return 1
   fi
+
+  local live=()
+  for article in "${validated[@]}"; do
+    if article_taken_down_on_main "$article"; then
+      mark_entry_publish_state "$article" "taken_down"
+      tlog "  skipped $article — taken down on origin/main; its PASS is never published"
+    else
+      live+=("$article")
+    fi
+  done
+  if [ "${#live[@]}" -eq 0 ]; then
+    tlog "No publishable PASS artifacts after skipping taken-down posts."
+    return 0
+  fi
+  validated=("${live[@]}")
 
   if git show-ref --verify --quiet "refs/heads/$branch_name"; then
     echo "ERROR: branch already exists locally: $branch_name" >&2

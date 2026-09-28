@@ -85,6 +85,19 @@ describe('protectKaomoji', () => {
     assert.ok(result.includes(`)${WJ}／`), 'second kaomoji arm should be joined');
   });
 
+  // --- Praying face (post-takedown tombstone) ---
+
+  it('should protect the praying face (－人－) as a whole shape', () => {
+    const result = protectKaomoji('安息吧 (－人－)');
+    assert.equal(withoutWordJoiners(result), '安息吧 (－人－)');
+    assert.ok(result.includes(`－${WJ}人${WJ}－`), `expected WJ around 人, got: ${JSON.stringify(result)}`);
+  });
+
+  it('should not treat a bare 人 in a parenthetical as a kaomoji', () => {
+    const input = '分組（三人一組）進行';
+    assert.equal(protectKaomoji(input), input);
+  });
+
   // --- Idempotency ---
 
   it('should be idempotent (running twice gives same result)', () => {

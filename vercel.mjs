@@ -61,9 +61,15 @@ const MARKDOWN_HEADERS = Object.freeze([
 // The only two retired public listing namespaces that ever actually existed.
 // Deep/arbitrary listing paths, the never-published `/shroom-picks`, and any
 // other legacy namespace intentionally have no entry here and stay unmapped.
+//
+// `keepPage`: Mogu Picks still paginates, so its old numeric pages keep their
+// page number. Gu-log Picks is paused (src/lib/gp-series-pause.mjs) and only
+// has its first page; the old numeric pages only ever listed translations that
+// are now taken down, so they all land on the GP listing root instead of a
+// 404 (openspec: brand-taxonomy, post-takedown design D7).
 export const LISTING_SERIES = [
-  { oldBase: 'shroomdog-picks', newBase: 'gu-log-picks' },
-  { oldBase: 'clawd-picks', newBase: 'mogu-picks' },
+  { oldBase: 'shroomdog-picks', newBase: 'gu-log-picks', keepPage: false },
+  { oldBase: 'clawd-picks', newBase: 'mogu-picks', keepPage: true },
 ];
 export const LANG_PREFIXES = ['', '/en'];
 
@@ -336,10 +342,13 @@ export function buildRedirectConfig(manifest) {
 
   assertManifestCounts(manifest.counts, deriveManifestCounts(entries));
 
-  for (const { oldBase, newBase } of LISTING_SERIES) {
+  for (const { oldBase, newBase, keepPage } of LISTING_SERIES) {
     for (const prefix of LANG_PREFIXES) {
       registry.add(`${prefix}/${oldBase}`, `${prefix}/${newBase}`);
-      registry.add(`${prefix}/${oldBase}/:page(\\d+)`, `${prefix}/${newBase}/:page`);
+      registry.add(
+        `${prefix}/${oldBase}/:page(\\d+)`,
+        keepPage ? `${prefix}/${newBase}/:page` : `${prefix}/${newBase}`
+      );
     }
   }
 

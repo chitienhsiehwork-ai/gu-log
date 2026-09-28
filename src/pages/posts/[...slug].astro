@@ -16,6 +16,7 @@ import Giscus from '../../components/Giscus.astro';
 import AiPopup from '../../components/AiPopup.astro';
 import ArticleActionArea from '../../components/ArticleActionArea.astro';
 import ArticleTechnicalDetails from '../../components/ArticleTechnicalDetails.astro';
+import PostTombstone from '../../components/PostTombstone.astro';
 import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import {
   createPostNavigationBaseline,
@@ -23,6 +24,7 @@ import {
   resolvePostStatus,
 } from '../../utils/post-status';
 import { getLocalizedPostUrl } from '../../utils/post-urls';
+import { getTombstonePageTitle } from '../../lib/tombstone-copy.mjs';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
@@ -80,6 +82,12 @@ const postVersion = getPostVersion(post.id);
 const postReaderRevision = getPostReaderRevision(post.id);
 const authorshipNote = getPostAuthorshipNote(post.id, 'zh-tw');
 const postStatus = resolvePostStatus(post, allPosts);
+// 下架文章（openspec: post-takedown）只渲染墓碑：保留網址與 article marker，
+// 不輸出正文與任何文章周邊元件，並以 noindex 讓搜尋引擎除名。
+const isTakenDown = postStatus.status === 'taken-down';
+const pageTitle = isTakenDown
+  ? getTombstonePageTitle({ title: post.data.title, lang: 'zh-tw' })
+  : `${post.data.title} - gu-log`;
 const canonicalPostUrl = new URL(getLocalizedPostUrl(post), Astro.site).href;
 const markdownUrl = `${canonicalPostUrl}.md`;
 const replacementUrl = postStatus.replacementPost
@@ -94,9 +102,13 @@ const ticketLabels: Record<string, string> = {
 const ticketLabel = ticketLabels[ticketPrefix] || '';
 ---
 
-<BaseLayout title={`${post.data.title} - gu-log`} markdownUrl={markdownUrl}>
+<BaseLayout
+  title={pageTitle}
+  markdownUrl={markdownUrl}
+  robots={isTakenDown ? 'noindex' : undefined}
+>
   <article
-    class="post"
+    class={isTakenDown ? 'post-tombstone' : 'post'}
     data-post-representation
     data-post-slug={post.id}
     data-post-lang={post.data.lang}
@@ -104,180 +116,178 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     data-replacement-ticket-id={postStatus.replacementTicketId ?? ''}
     data-replacement-url={replacementUrl ?? ''}
   >
-    <header class="post-header">
-      <h1>{post.data.title}</h1>
-      <div class="post-meta-row">
-        <span class="post-meta-left">
-          {ticketId && <TicketBadge ticketId={ticketId} />}
-          <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
-          {
-            isMoguPicks && (
-              <span class="mogu-picks-badge">
-                <img src="/mogu-picks-icon.png" alt="Mogu Picks" class="mogu-icon" />
+    {
+      isTakenDown ? (
+        <PostTombstone post={post} lang="zh-tw" />
+      ) : (
+        <Fragment>
+          <header class="post-header">
+            <h1>{post.data.title}</h1>
+            <div class="post-meta-row">
+              <span class="post-meta-left">
+                {ticketId && <TicketBadge ticketId={ticketId} />}
+                <span class="meta-date">{post.data.translatedDate || post.data.originalDate}</span>
+                {isMoguPicks && (
+                  <span class="mogu-picks-badge">
+                    <img src="/mogu-picks-icon.png" alt="Mogu Picks" class="mogu-icon" />
+                  </span>
+                )}
               </span>
-            )
-          }
-        </span>
-        {
-          ticketLabel && (
-            <span class={`post-meta-label label-${ticketPrefix.toLowerCase()}`}>{ticketLabel}</span>
-          )
-        }
-      </div>
-      {
-        showSourceCitation && (
-          <a
-            class="source-citation"
-            href={post.data.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="source-citation-icon" aria-hidden="true">
-              <svg
-                viewBox="0 0 24 24"
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              {ticketLabel && (
+                <span class={`post-meta-label label-${ticketPrefix.toLowerCase()}`}>
+                  {ticketLabel}
+                </span>
+              )}
+            </div>
+            {showSourceCitation && (
+              <a
+                class="source-citation"
+                href={post.data.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
-                <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
-              </svg>
-            </span>
-            <strong>{sourceCitationLabel}：</strong>
-            <span class="source-citation-link-text">{sourceCitationText}</span>
-          </a>
-        )
-      }
-    </header>
-
-    {
-      postStatus.status !== 'published' && (
-        <PostStatusBanner
-          type={postStatus.status}
-          lang="zh-tw"
-          replacementHref={
-            postStatus.replacementPost ? getLocalizedPostUrl(postStatus.replacementPost) : undefined
-          }
-          replacementUrl={replacementUrl ?? undefined}
-          replacementTitle={postStatus.replacementPost?.data.title}
-          replacementTicketId={postStatus.replacementTicketId}
-        />
-      )
-    }
-
-    {
-      post.data.warnedByStage0 && post.data.warnReason && (
-        <Stage0WarnBanner
-          reason={post.data.warnReason}
-          overrideComment={post.data.warnOverrideComment}
-          lang="zh-tw"
-        />
-      )
-    }
-
-    {
-      post.data.stage4Scores?.isDegraded && (
-        <Stage4DegradedBanner stage4Scores={post.data.stage4Scores} lang="zh-tw" />
-      )
-    }
-
-    {
-      isBelowPublishBar(post.data.scores) && (
-        <Sub8RefiningBanner
-          composite={computeOverallComposite(post.data.scores) ?? 0}
-          lang="zh-tw"
-        />
-      )
-    }
-
-    <TableOfContents lang="zh-tw" headings={headings} maxDepth={isLevelUp ? 2 : 3} />
-
-    <div class="post-content">
-      <Content />
-    </div>
-
-    {
-      post.data.tags && post.data.tags.length > 0 && (
-        <div class="post-tags-section">
-          <span class="tags-label">
-            <svg
-              viewBox="0 0 24 24"
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M20 13 13 20l-9-9V4h7l9 9Z" />
-              <circle cx="8.5" cy="8.5" r="1.25" />
-            </svg>
-            Tags
-          </span>
-          <div class="post-tags">
-            {post.data.tags.map((tag) => (
-              <a href={`/tags/${tag}`} class="tag-chip">
-                {tag}
+                <span class="source-citation-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="17"
+                    height="17"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1" />
+                    <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1" />
+                  </svg>
+                </span>
+                <strong>{sourceCitationLabel}：</strong>
+                <span class="source-citation-link-text">{sourceCitationText}</span>
               </a>
-            ))}
+            )}
+          </header>
+
+          {postStatus.status !== 'published' && postStatus.status !== 'taken-down' && (
+            <PostStatusBanner
+              type={postStatus.status}
+              lang="zh-tw"
+              replacementHref={
+                postStatus.replacementPost
+                  ? getLocalizedPostUrl(postStatus.replacementPost)
+                  : undefined
+              }
+              replacementUrl={replacementUrl ?? undefined}
+              replacementTitle={postStatus.replacementPost?.data.title}
+              replacementTicketId={postStatus.replacementTicketId}
+            />
+          )}
+
+          {post.data.warnedByStage0 && post.data.warnReason && (
+            <Stage0WarnBanner
+              reason={post.data.warnReason}
+              overrideComment={post.data.warnOverrideComment}
+              lang="zh-tw"
+            />
+          )}
+
+          {post.data.stage4Scores?.isDegraded && (
+            <Stage4DegradedBanner stage4Scores={post.data.stage4Scores} lang="zh-tw" />
+          )}
+
+          {isBelowPublishBar(post.data.scores) && (
+            <Sub8RefiningBanner
+              composite={computeOverallComposite(post.data.scores) ?? 0}
+              lang="zh-tw"
+            />
+          )}
+
+          <TableOfContents lang="zh-tw" headings={headings} maxDepth={isLevelUp ? 2 : 3} />
+
+          <div class="post-content">
+            <Content />
           </div>
-        </div>
-      )
-    }
 
-    <ArticleActionArea
-      title={post.data.title}
-      slug={post.id}
-      lang="zh-tw"
-      postId={legacyPostId}
-      ticketId={post.data.ticketId}
-      postVersion={Number(postVersion)}
-      readerRevision={postReaderRevision}
-      pathname={Astro.url.pathname}
-    />
+          {post.data.tags && post.data.tags.length > 0 && (
+            <div class="post-tags-section">
+              <span class="tags-label">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M20 13 13 20l-9-9V4h7l9 9Z" />
+                  <circle cx="8.5" cy="8.5" r="1.25" />
+                </svg>
+                Tags
+              </span>
+              <div class="post-tags">
+                {post.data.tags.map((tag) => (
+                  <a href={`/tags/${tag}`} class="tag-chip">
+                    {tag}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
-    <section class="post-onward-zone" aria-label="繼續閱讀">
-      {
-        post.data.series ? (
-          <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
-        ) : (
-          <RelatedArticles
-            currentSlug={post.id}
-            currentTags={post.data.tags ?? []}
-            allPosts={navigablePosts}
+          <ArticleActionArea
+            title={post.data.title}
+            slug={post.id}
+            lang="zh-tw"
+            postId={legacyPostId}
+            ticketId={post.data.ticketId}
+            postVersion={Number(postVersion)}
+            readerRevision={postReaderRevision}
+            pathname={Astro.url.pathname}
+          />
+
+          <section class="post-onward-zone" aria-label="繼續閱讀">
+            {post.data.series ? (
+              <SeriesNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
+            ) : (
+              <RelatedArticles
+                currentSlug={post.id}
+                currentTags={post.data.tags ?? []}
+                allPosts={navigablePosts}
+                lang="zh-tw"
+              />
+            )}
+
+            <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
+          </section>
+
+          <ArticleTechnicalDetails
+            translatedDate={post.data.translatedDate}
+            translatedBy={post.data.translatedBy}
+            scores={post.data.scores}
+            authorshipNote={authorshipNote}
+            contentMode={contentMode}
+            postVersion={Number(postVersion)}
+            historyHref={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
             lang="zh-tw"
           />
-        )
-      }
 
-      <PrevNextNav currentSlug={post.id} allPosts={navigablePosts} lang="zh-tw" />
-    </section>
+          <Giscus lang="zh-tw" />
 
-    <ArticleTechnicalDetails
-      translatedDate={post.data.translatedDate}
-      translatedBy={post.data.translatedBy}
-      scores={post.data.scores}
-      authorshipNote={authorshipNote}
-      contentMode={contentMode}
-      postVersion={Number(postVersion)}
-      historyHref={`https://github.com/chitienhsiehwork-ai/gu-log/commits/main/${post.filePath}`}
-      lang="zh-tw"
-    />
-
-    <Giscus lang="zh-tw" />
-
-    <footer class="post-footer">
-      <a href="/">← 返回首頁</a>
-    </footer>
+          <footer class="post-footer">
+            <a href="/">← 返回首頁</a>
+          </footer>
+        </Fragment>
+      )
+    }
   </article>
 
-  <AiPopup filePath={`${post.filePath}`} postTitle={post.data.title} lang="zh-tw" />
+  {
+    !isTakenDown && (
+      <AiPopup filePath={`${post.filePath}`} postTitle={post.data.title} lang="zh-tw" />
+    )
+  }
 </BaseLayout>
 
 <style>

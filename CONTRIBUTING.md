@@ -166,6 +166,11 @@ tags: ["tag1", "tag2"]  # 用於分類和過濾
 
 **選填欄位**: tags
 
+**`status`（選填，預設 `published`）**：欄位與跨欄位規則以 `src/content.config.ts` 的 schema 為準，這裡只講語意：
+
+- `deprecated`／`retired`：編輯標籤（重複、過時、退役）。文章**仍公開全文**，只多一條狀態橫幅、不進列表，不等於下架。
+- `taken-down`：下架。正文清空、摘要換成中性句，原網址只剩墓碑（200 加 `noindex`），HTML、JSON、`.md`、feed、搜尋與 sitemap 都不再有正文；下架後不能改回其他狀態，也不再跑 Tribunal。下架契約見 [`post-takedown` spec](openspec/specs/post-takedown/spec.md)；批次下架一律用 `scripts/take-down-posts.mjs` 依規則產生清單，不要手改 frontmatter。
+
 ### Ticket ID 編號系統
 
 正式 prefix 是 **SD**、**GP**、**MP**、**Lv**；各系列的編輯身份與 fidelity 義務以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，本節只定義編號 mechanics。
@@ -369,6 +374,7 @@ gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewr
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
 2. 非 GP 沒過 → **Rewriter agent** 依 judge evidence 改寫 → 再跑 → 最多 3 次。GP 一律以 `--no-rewrite` 跑 Tribunal；低分只記錄校準證據，不得修改來源正文。
+3. `status: taken-down` 的文章不在 Tribunal 範圍內：不評分、不改寫，下架那一次改動也不用跑（見 `post-takedown` spec）。
 
 ### 工具
 
@@ -435,6 +441,8 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 **例外**：如果你已經確定稿子不會再動（例如從別的過分數的稿子搬過來），可以一次兩版。這是權衡後的例外，不是預設。
 
 ### 新增翻譯文章（GP）
+
+> **GP 暫停收新文**：整篇翻譯要先取得來源作者同意（[`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)），既有 GP 已下架，新的 GP 會被 pre-commit 與 CI 的下架棘輪擋下，GP 系列頁顯示改版空狀態。以下流程留給之後的導讀新格式 change 參考，在那之前不要用它發 GP。
 
 1. 抓原文：X/Twitter 用 `x-source-fetch` skill；一般 blog/docs 用 `curl -sL -A "Mozilla/5.0..." <url>` 抓原始 HTML 再解析，不用 `WebFetch` 當翻譯依據
 2. 用 `gp-pipeline run <url> --prefix GP` 走 `source-translate`，保留來源作者、人稱、內容、順序、強弱與停點

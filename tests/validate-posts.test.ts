@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
@@ -28,6 +29,8 @@ const {
   getFrontmatterBlock,
   getFrontmatterFingerprint,
   validatePost,
+  loadActiveZhTwArticles,
+  findDuplicateGroups,
   CJK_GRANDFATHERED_LINES,
 } = v;
 
@@ -768,5 +771,212 @@ describe('validatePost — cross-file rules', () => {
     expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(
       true
     );
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// taken-down（openspec: post-takedown）：保留原 frontmatter、清空正文，
+// 只檢查下架欄位與翻譯配對一致，跳過只對正文有意義的規則。
+// ════════════════════════════════════════════════════════════════════════════
+describe('validatePost — taken-down posts', () => {
+  const ZH_FILE = 'gp-273-20260813-human-loop.mdx';
+  const EN_FILE = `en-${ZH_FILE}`;
+  const takenDownFm = (lang: 'zh-tw' | 'en', overrides: Record<string, string | null> = {}) => {
+    const fields: Record<string, string | null> = {
+      ticketId: '"GP-273"',
+      title: lang === 'en' ? '"The human is the loop, explained"' : '"人，才是那個迴圈"',
+      originalDate: '"2026-08-10"',
+      translatedDate: '"2026-08-13"',
+      source: '"Brent Fitzgerald"',
+      sourceUrl: '"https://brentfitzgerald.com/posts/the-human-is-the-loop/"',
+      summary: JSON.stringify(getNeutralSummary({ ticketId: 'GP-273', lang })),
+      lang: lang === 'en' ? 'en' : 'zh-tw',
+      tags: '["agents"]',
+      status: '"taken-down"',
+      takenDownAt: '"2026-09-27"',
+      sourceTitle: '"The human is the loop"',
+      ...overrides,
+    };
+    return [
+      ...Object.entries(fields)
+        .filter(([, value]) => value !== null)
+        .map(([key, value]) => `${key}: ${value}`),
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ];
+  };
+  const pairEntry = (overrides: Record<string, string> = {}) => ({
+    filename: EN_FILE,
+    ticketId: 'GP-273',
+    status: 'taken-down',
+    takenDownAt: '2026-09-27',
+    sourceUrl: 'https://brentfitzgerald.com/posts/the-human-is-the-loop/',
+    sourceTitle: 'The human is the loop',
+    ...overrides,
+  });
+  const write = (name: string, fmLines: string[], body = '') => {
+    const filepath = tmpPath(name);
+    fs.writeFileSync(filepath, `---\n${fmLines.join('\n')}\n---\n${body}`);
+    return filepath;
+  };
+
+  it('passes an empty-body tombstone without body rules (length, kaomoji)', () => {
+    const filepath = write(ZH_FILE, takenDownFm('zh-tw'), '\n');
+    const r = validatePost(filepath, [{ filename: ZH_FILE, ticketId: 'GP-273' }, pairEntry()]);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('passes the en sidecar with the English neutral summary', () => {
+    const filepath = write(EN_FILE, takenDownFm('en'));
+    const r = validatePost(filepath, [
+      { ...pairEntry(), filename: ZH_FILE },
+      { filename: EN_FILE, ticketId: 'GP-273' },
+    ]);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('rejects any leftover body, including import lines', () => {
+    for (const body of [
+      '殘留的譯文段落 (◕‿◕)\n',
+      "import MoguNote from '../../components/MoguNote.astro';\n",
+    ]) {
+      const filepath = write(ZH_FILE, takenDownFm('zh-tw'), body);
+      const r = validatePost(filepath, [pairEntry()]);
+      expect(r.errors.some((e: string) => e.includes('body must be empty'))).toBe(true);
+    }
+  });
+
+  it('rejects a summary that is not the neutral sentence', () => {
+    const filepath = write(ZH_FILE, takenDownFm('zh-tw', { summary: '"原本的譯文摘要"' }));
+    const r = validatePost(filepath, [pairEntry()]);
+    expect(r.errors.some((e: string) => e.includes('neutral sentence'))).toBe(true);
+  });
+
+  it('rejects missing takenDownAt / sourceTitle and a sourceTitle equal to the gu-log title', () => {
+    const noDate = validatePost(write(ZH_FILE, takenDownFm('zh-tw', { takenDownAt: null })), []);
+    expect(noDate.errors.some((e: string) => e.includes('requires takenDownAt'))).toBe(true);
+
+    const noTitle = validatePost(write(ZH_FILE, takenDownFm('zh-tw', { sourceTitle: null })), []);
+    expect(noTitle.errors.some((e: string) => e.includes('non-empty sourceTitle'))).toBe(true);
+
+    const sameTitle = validatePost(
+      write(ZH_FILE, takenDownFm('zh-tw', { sourceTitle: '"人，才是那個迴圈"' })),
+      []
+    );
+    expect(sameTitle.errors.some((e: string) => e.includes('not the gu-log title'))).toBe(true);
+  });
+
+  it('rejects fields that conflict with taken-down', () => {
+    const filepath = write(
+      ZH_FILE,
+      takenDownFm('zh-tw', { deprecatedBy: '"GP-105"', deprecatedReason: '"dup"' })
+    );
+    const r = validatePost(filepath, [pairEntry()]);
+    expect(r.errors).toContain('deprecatedBy must be removed when status is taken-down');
+    expect(r.errors).toContain('deprecatedReason must be removed when status is taken-down');
+  });
+
+  it('rejects a translation pair taken down on one side only or with different fields', () => {
+    const zh = write(ZH_FILE, takenDownFm('zh-tw'));
+    const oneSided = validatePost(zh, [pairEntry({ status: 'published' })]);
+    expect(oneSided.errors.some((e: string) => e.includes('must also be taken-down'))).toBe(true);
+
+    const differentDate = validatePost(zh, [pairEntry({ takenDownAt: '2026-09-28' })]);
+    expect(differentDate.errors.some((e: string) => e.includes('different takenDownAt'))).toBe(
+      true
+    );
+
+    const livePair = write(
+      EN_FILE,
+      [
+        ...validFm.map((line) =>
+          line.startsWith('ticketId:')
+            ? 'ticketId: GP-273'
+            : line.replace('lang: zh-tw', 'lang: en')
+        ),
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ],
+      `${'Plenty of body text. '.repeat(20)} (◕‿◕)\n`
+    );
+    const reverse = validatePost(livePair, [
+      { ...pairEntry(), filename: ZH_FILE },
+      { filename: EN_FILE, ticketId: 'GP-273' },
+    ]);
+    expect(
+      reverse.errors.some((e: string) => e.includes('is taken-down but this post is not'))
+    ).toBe(true);
+  });
+
+  it('only supports GP/MP takedowns and rejects takenDownAt on live posts', () => {
+    const sd = write('sd-9-20260401-x.mdx', takenDownFm('zh-tw', { ticketId: '"SD-9"' }));
+    const sdResult = validatePost(sd, []);
+    expect(sdResult.errors.some((e: string) => e.includes('only supported for GP/MP'))).toBe(true);
+
+    const live = tmpPath('gp-1-20260401-x.mdx');
+    fs.writeFileSync(
+      live,
+      makePost([
+        ...validFm,
+        'takenDownAt: "2026-09-27"',
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ])
+    );
+    const liveResult = validatePost(live, []);
+    expect(liveResult.errors).toContain('takenDownAt is only allowed when status is taken-down');
+  });
+});
+
+describe('duplicate scan — taken-down posts are blocked sources, not duplicates', () => {
+  const makeDupDir = useTestTempDirectories({ cleanup: 'afterAll' });
+  const SHARED_URL = 'https://code.claude.com/docs/en/agent-teams';
+  const post = (ticketId: string, title: string, extra: string[] = []) =>
+    [
+      '---',
+      `ticketId: "${ticketId}"`,
+      `title: "${title}"`,
+      'lang: zh-tw',
+      `sourceUrl: "${SHARED_URL}"`,
+      'tags: ["claude-code", "agent-teams"]',
+      ...extra,
+      '---',
+      '',
+    ].join('\n');
+  const writePair = (gp35Extra: string[], gp105Extra: string[]) => {
+    const dir = makeDupDir('guvp-dup-');
+    fs.writeFileSync(
+      path.join(dir, 'gp-35-20260206-anthropic-agent-teams-deep-dive.mdx'),
+      post('GP-35', 'Claude Code Agent Teams 官方文件深入解析：什麼時候用、怎麼用', gp35Extra)
+    );
+    fs.writeFileSync(
+      path.join(dir, 'gp-105-20260305-claude-code-agent-teams.mdx'),
+      post('GP-105', 'Claude Code Agent Teams：當 AI 自己開公司、自己上班', gp105Extra)
+    );
+    return dir;
+  };
+
+  it('flags the same pair while both are live (control)', () => {
+    const dir = writePair([], []);
+    const groups = findDuplicateGroups(loadActiveZhTwArticles(dir));
+    expect(groups).toHaveLength(1);
+  });
+
+  it('does not flag GP-35 (formerly deprecated → GP-105) once both are taken down', () => {
+    const takenDown = ['status: "taken-down"', 'takenDownAt: "2026-09-27"'];
+    const dir = writePair(takenDown, takenDown);
+    const articles = loadActiveZhTwArticles(dir);
+    expect(articles).toEqual([]);
+    expect(findDuplicateGroups(articles)).toEqual([]);
+  });
+
+  it('does not treat a taken-down post as a live duplicate of a published one', () => {
+    const dir = writePair(['status: "taken-down"', 'takenDownAt: "2026-09-27"'], []);
+    const articles = loadActiveZhTwArticles(dir);
+    expect(articles.map((article: { ticketId: string }) => article.ticketId)).toEqual(['GP-105']);
+    expect(findDuplicateGroups(articles)).toEqual([]);
   });
 });

@@ -153,6 +153,14 @@ if [ ! -f "$POST_PATH" ]; then
   exit 1
 fi
 
+# A taken-down post is outside Tribunal scope (openspec: post-takedown,
+# tribunal-verification-scope): refuse before any judge runs or writes back,
+# with plain rc 1 (why not 75/78: docs/tribunal-runbook.md, exit codes).
+if [ "$(tribunal_post_status "$POST_PATH")" = "taken-down" ]; then
+  echo "ERROR: $POST_FILE is taken-down; it is outside Tribunal scope. No judge ran (rc=1)." >&2
+  exit 1
+fi
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 mkdir -p "$LOG_DIR"

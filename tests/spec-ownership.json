@@ -14,12 +14,17 @@
     "tests/post-video.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "Source demo videos in GP articles must remain playable, lazy-loading, accessible, and free of mobile horizontal overflow."
+      "reason": "Inline post videos must remain playable, lazy-loading, accessible, and free of mobile horizontal overflow; checked on a dedicated noindex fixture page because no public post embeds a video after the GP takedown."
     },
     "tests/post-code-blocks.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
       "reason": "Article code blocks must keep visible line numbers and wrap long commands without horizontal scrolling on mobile or desktop."
+    },
+    "tests/post-tombstone.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "Taken-down posts must render only the tombstone (exactly the text src/lib/tombstone-copy.mjs gives for the post, noindex, no article periphery, unbreakable kaomoji at 390px) and the paused Gu-log Picks listing must stay empty; a regression would republish removed translations or break the owner-approved copy."
     },
     "tests/ios-dynamic-type.spec.ts": {
       "class": "blocking",

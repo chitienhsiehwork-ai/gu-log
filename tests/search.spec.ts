@@ -41,7 +41,7 @@ test.describe('Search Bar', () => {
     const input = page.locator('[data-search-input]');
 
     for (const [ticketId, translatedDate] of [
-      ['GP-260', '2026-07-21'],
+      ['SD-5', '2026-03-02'],
       ['MP-314', '2026-07-15'],
     ] as const) {
       await input.fill(ticketId);

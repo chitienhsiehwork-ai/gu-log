@@ -42,6 +42,20 @@ func (s *State) Ralph(ctx context.Context) error {
 
 	s.Log.Info("Step 4.7: ralph tribunal")
 
+	// Tribunal scope is decided by status (openspec: post-takedown,
+	// tribunal-verification-scope): a taken-down post has no article body
+	// left, so refuse before any judge runs or anything is written back.
+	if s.ExistingFile != "" {
+		existingPath := filepath.Join(s.Cfg.PostsDir, s.ExistingFile)
+		takenDown, err := postIsTakenDown(existingPath)
+		if err != nil {
+			return fmt.Errorf("ralph: read %s: %w", existingPath, err)
+		}
+		if takenDown {
+			return fmt.Errorf("ralph: %s is taken-down (openspec: post-takedown); it is outside Tribunal scope", s.ExistingFile)
+		}
+	}
+
 	// final.mdx is authoritative whenever a preceding refine/recovery step
 	// produced it. Standalone ralph and late recovery are still allowed to use
 	// the existing posts/ file when no final artifact is present.
@@ -497,4 +511,25 @@ func extractTitle(path string) (string, error) {
 	}
 	// Strip surrounding quotes if present.
 	return strings.Trim(val, `"`), nil
+}
+
+// postIsTakenDown reports whether the post's frontmatter status is
+// `taken-down`. A missing file is not taken down (callers report it).
+func postIsTakenDown(path string) (bool, error) {
+	content, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	fm, err := frontmatter.Parse(content)
+	if err != nil {
+		return false, nil
+	}
+	status, ok := fm.GetScalar("status")
+	if !ok {
+		return false, nil
+	}
+	return strings.Trim(status, `"'`) == "taken-down", nil
 }

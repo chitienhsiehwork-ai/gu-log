@@ -100,4 +100,4 @@ User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓�
 
 ## Quality: Vibe Scoring + Tribunal
 
-品質管理用 4-judge tribunal（Vibe Scorer / Fact Checker / Librarian / Fresh Eyes）；任何新增或實質改寫文章都要跑、結果寫回 frontmatter。**不在 Tier-0 複述維度 / 分數門檻 / model 版本（複述 = drift 源）**——judge model SSOT = `.claude/agents/*.md` 的 `model:` frontmatter，評分標準 = `scripts/vibe-scoring-standard.md`，兩層門檻（floor ≥3 ship / PASS ≥8 上首頁）見 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉，跑法 / daemon / worker worktree 見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)（特別是 worker worktree 不會跟 main 自動更新、要手動 sync 的雷）。
+品質管理用 4-judge tribunal（Vibe Scorer / Fact Checker / Librarian / Fresh Eyes）；任何新增或實質改寫文章都要跑、結果寫回 frontmatter（`status: taken-down` 的下架文章不在範圍內，見 `post-takedown` spec）。**不在 Tier-0 複述維度 / 分數門檻 / model 版本（複述 = drift 源）**——judge model SSOT = `.claude/agents/*.md` 的 `model:` frontmatter，評分標準 = `scripts/vibe-scoring-standard.md`，兩層門檻（floor ≥3 ship / PASS ≥8 上首頁）見 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉，跑法 / daemon / worker worktree 見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)（特別是 worker worktree 不會跟 main 自動更新、要手動 sync 的雷）。

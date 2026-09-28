@@ -48,8 +48,10 @@ export async function GET(_context: APIContext) {
       authorshipNote: getPostAuthorshipNote(post.id, post.data.lang),
       translatedBy: post.data.translatedBy || null,
       headings,
-      // Raw body: everything after the frontmatter closing ---
-      body: post.body,
+      // Raw body: everything after the frontmatter closing ---. A taken-down
+      // post has no body at all (Astro then leaves post.body undefined), but the
+      // v2 contract keeps the key: an empty string (openspec: post-takedown).
+      body: post.body ?? '',
     }),
     {
       headers: {

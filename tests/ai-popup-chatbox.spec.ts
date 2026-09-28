@@ -13,7 +13,7 @@ import { selectPostTextAndShowPopup } from './helpers/ai-popup';
  * - Input has helpful placeholder text
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
 /** Helper: set up logged-in state, select text, get popup */
 async function setupAndSelectText(page: import('@playwright/test').Page) {
