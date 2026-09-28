@@ -26,7 +26,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 **所以「把 FAIL score 寫進 frontmatter」現在是 OK 的**——只要 ≥3。它不再等於「假裝完成」，因為 badge + 首頁隔離會誠實地把它標成「還沒到 featured 水準」。Tribunal 仍然是 reviewer 不是 logger：**有 quota 就該把 sub-8 往 ≥8 推**，但這是背景精修的工作，不是 ship 的硬前提。
 
-**GP 例外**：GP 暫停收文（見〈新增翻譯文章（GP）〉）。GP 在 Tribunal 只評分：persona／narrative／vibe 分數是校準證據，不是改寫授權；即使 sub-8，也不得交給 `tribunal-writer` 重排、restructure 或 rebuild（openspec `gp-source-preservation`）。背景精修 loop 只適用於非 GP。
+**GP 例外**：GP 在 Tribunal 只評分：正文一改，來源距離章就失效，只有 gp-pipeline 能重新蓋章，所以即使 sub-8，也不得交給 `tribunal-writer` 重排、restructure 或 rebuild（openspec `gp-source-preservation`）。要拉高 GP 的分數，回 gp-pipeline 重寫，或人工修改後跑 `gp-pipeline stamp --file` 重新蓋章（見〈新增 GP 導讀（GP）〉）。背景精修 loop 只適用於非 GP。
 
 **還是要做的事（只是不再 block ship）**：
 
@@ -59,14 +59,14 @@ ShroomDog 丟外部連結時，先判斷它能不能做成 gu-log；Go 之前一
 1. **這次的新東西是什麼**：source 有哪些 gu-log 還沒寫過的事實、結構、平台訊號、產品變化、案例、數字、方法或觀點。
 2. **哪些已經被 gu-log 寫過**：搜尋既有 GP/MP/SD/Lv、glossary、MoguNote/ShroomDogNote，標出已覆蓋內容與對應文章。
 3. **這篇應該避開什麼**：不要重講既有解釋、比喻、背景知識或結論；必要時只用一句話 recap 並內鏈舊文。
-4. **最後才決定是否值得做**：GP 一旦採用就翻譯來源本身，不另定 angle；只有 MP／SD／Lv 才能把新增資訊建立成新的 framing。
+4. **最後才決定是否值得做**：每個系列都要有新的資訊、判斷或敘事增量。GP 導讀的增量是 gu-log 的看法，以及「為什麼值得回去讀原文」；MP／SD／Lv 把新增資訊建立成自己的 framing。
 
 Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是 attention waste。gu-log 的文章不是資料庫去重失敗的備份檔；每篇都要有新的資訊增量、判斷增量或敘事增量。
 
-- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文與可選的 MoguNote／讀者脈絡。GP 保留來源作者與順序；重新編排只屬於具備該編輯權限的非 GP 系列。
-- **「二手整理」不是 No-go 理由**：GP 可忠實翻譯，MP 由 Mogu 消化來源後寫成自己的 source-grounded article，SD／Lv 依各自編輯身份寫作；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
+- **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、Mogu／gu-log 的看法與讀者脈絡；每個系列都依自己的編輯身份寫，不是轉貼。
+- **「二手整理」不是 No-go 理由**：GP 是 Mogu 帶讀者看重點、再帶回原文的導讀，MP 由 Mogu 消化來源後寫成自己的 source-grounded article，SD／Lv 依各自編輯身份寫作；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
 - **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
-- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → GP Go 就走 source-preserving pipeline；非 GP 再依該系列權限重寫並 cite。No-go 要講真正原因。
+- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → Go 就依選定的系列走 gp-pipeline（GP 會多蓋一個來源距離章）並 cite。No-go 要講真正原因。
 
 這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`CONTRIBUTING.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
 
@@ -281,9 +281,9 @@ import MoguNote from '../../components/MoguNote.astro';
 - 吐槽原作者
 - 用台灣讀者熟悉的比喻解釋概念
 - 加入幽默感
-- 承接 GP body 不該放的 source-meta commentary 或 Mogu/gu-log opinion
+- 放不進正文論點、但值得一提的 aside（例如對來源本身的評論）
 
-GP 的 MoguNote 是來源作者正文與 Mogu commentary 的 provenance boundary。MP 正文本來就由 Mogu 擁有聲音；核心分析可直接放在 body，MoguNote 只是選配 aside。first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是 style guidance。
+GP 與 MP 的正文都由 Mogu 擁有聲音；核心分析可直接放在 body，MoguNote 只是選配 aside。first-principles 邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準；下列只是 style guidance。
 
 MoguNote 可以用 Mogu 第一人稱表達反應與立場、描述實際發生的 editorial／tool interaction，或講一眼就能辨識為虛構的奇幻 persona 經歷。任何 reader-visible prose 都不得把來源作者的實驗、團隊或人生事件移植成 Mogu 親歷，也不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言。這條限制的是可信假履歷，不是禁止 Mogu 有自己的聲音。
 
@@ -332,8 +332,8 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
-- 讀者可見內容預設不用 Unicode emoji；kaomoji 保留。逐次授權邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，deterministic enforcement 以 `scripts/check-content-emoji.mjs` 為準；沒有 writer 自行開啟的整篇旗標。例外是 top-level editorial `MAY` 能力，不保證每條 pipeline 都支援；目前 automated GP／英文翻譯一律省略裝飾字形或用自然文字保留語意，不保留 glyph。
-- GP body 不用「原作者說 / 原文提到 / 這篇文章在講」這類 source-meta scaffolding；讀者已經看得到 `原文出處：`。必要 evidence boundary 要寫成自然句，Mogu/gu-log commentary 放 `<MoguNote>`。
+- 讀者可見內容預設不用 Unicode emoji；kaomoji 保留。逐次授權邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，deterministic enforcement 以 `scripts/check-content-emoji.mjs` 為準；沒有 writer 自行開啟的整篇旗標。例外是 top-level editorial `MAY` 能力，不保證每條 pipeline 都支援；目前 gp-pipeline 的自動寫作與英文翻譯一律省略裝飾字形或用自然文字保留語意，不保留 glyph。
+- 正文不要每段都用「原作者說 / 原文提到 / 這篇文章在講」起手；讀者已經看得到原文出處。來源主張的歸屬與必要的 evidence boundary 寫成自然句，讓讀者分得出哪些是來源作者說的、哪些是 Mogu 的看法。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
 ### 術語處理
@@ -373,7 +373,7 @@ gu-log 使用 tribunal 進行品質管理——一個 multi-agent scoring + rewr
 > ⚠️ 評審維度 / pass bar / model routing 都是 **derived view**，會 drift——權威端：`docs/tribunal-runbook.md`（跑法 + daemon）、`scripts/vibe-scoring-standard.md`（評分標準）、tribunal runtime config（Codex model）與 `.claude/agents/*.md` 的 `model:` frontmatter（Claude role selector）。現行是 **v9 四維 Vibe（Persona / MoguNote / Vibe / Narrative）+ Fact / Librarian / Fresh Eyes 多 judge**；完整 pass bar 見 `AGENTS.md`〈Quality〉摘要或 tribunal-runbook 全文。
 
 1. **Scorer + 多 judge** 讀文章 + 評分標準 → 給分。
-2. 非 GP 沒過 → **Rewriter agent** 依 judge evidence 改寫 → 再跑 → 最多 3 次。GP 一律以 `--no-rewrite` 跑 Tribunal；低分只記錄校準證據，不得修改來源正文。
+2. 非 GP 沒過 → **Rewriter agent** 依 judge evidence 改寫 → 再跑 → 最多 3 次。GP 一律以 `--no-rewrite` 跑 Tribunal，只記分數、不改正文（正文一改，來源距離章就失效）。
 3. `status: taken-down` 的文章不在 Tribunal 範圍內：不評分、不改寫，下架那一次改動也不用跑（見 `post-takedown` spec）。
 
 ### 工具
@@ -388,7 +388,7 @@ bash scripts/tribunal-batch-runner.sh
 
 ### Fact Checker（來源與事實驗證）
 
-GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker。GP 檢查 translation fidelity、完整 caveat 與 commentary separation；MP 不檢查全文翻譯完整度，也不把貼近或遠離來源當成分數，而是檢查每個被保留 claim 的 speaker、條件、hedge、controlling caveat、證據範圍與歸因，以及是否捏造事實、挪用來源作者經歷、冒充 ShroomDog 或杜撰可信的人類假履歷。MoguNote 裡的第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona 不應被誤判。通用 Fact Checker／Tribunal 分數不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
+GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker，兩者用同一套規則：不檢查全文翻譯完整度，也不把貼近或遠離來源當成分數（GP 離原文多近由來源距離章判定），而是檢查每個被保留 claim 的 speaker、條件、hedge、controlling caveat、證據範圍與歸因，以及是否捏造事實、挪用來源作者經歷、冒充 ShroomDog 或杜撰可信的人類假履歷。MoguNote 裡的第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona 不應被誤判。通用 Fact Checker／Tribunal 分數不授權 GP 全文改寫。Fact Checker contract 以 `.claude/agents/fact-checker.md` 為準；model routing 依上節列出的 provider-specific 來源，本節不複製會 drift 的值。
 
 ## BDD Testing
 
@@ -440,9 +440,19 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 **例外**：如果你已經確定稿子不會再動（例如從別的過分數的稿子搬過來），可以一次兩版。這是權衡後的例外，不是預設。
 
-### 新增翻譯文章（GP）
+### 新增 GP 導讀（GP）
 
-> **GP 暫停中，導讀格式另案**：整篇翻譯要先取得來源作者同意（[`editorial-charter` spec](openspec/specs/editorial-charter/spec.md)），既有 GP 已下架，GP 系列頁顯示改版空狀態。GP 整篇翻譯流程也已從 gp-pipeline 刪除，gp-pipeline 會以「GP 暫停中」拒絕 GP（哪些入口擋見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)），pre-commit 與 CI 的下架棘輪另外擋下新增的 GP 文章。導讀格式由另一個 change 定義，在那之前沒有 GP 發文流程；使用者要求寫成 GP 時先說明暫停，要不要改寫成別的系列由使用者依 `editorial-charter` 決定，agent 不自行換系列。
+GP 是 ShroomDog 精選導讀：Mogu 替 ShroomDog 挑的單一來源寫導讀，讓讀者知道這篇有什麼值得看、gu-log 怎麼看，再回去讀原文。正文聲音 owner 是 Mogu，契約以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，寫法見 `GU-LOG_WRITER_PROMPT.md`。整篇翻譯仍要先取得來源作者同意，gp-pipeline 沒有整篇翻譯流程。
+
+1. 抓完整原文，做 overlap evaluation 與 dedup（`--series GP`）。來源跟下架文章相同時，只有「相同來源的下架文章全是 GP」而且新文章帶有效章才放行；撞到下架的 MP 一律擋（`post-takedown`）
+2. 跑 `tools/gp-pipeline/gp-pipeline run <url> --prefix GP`：`write → review → refine` 之後，post-fixer 改完正文，再由 `source-distance` 配對、計分、蓋章；沒過會自動改寫，還是沒過就以 exit 19 停下。流程、恢復與 exit code 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)
+3. 導讀開頭交代來源與值得讀的理由，用 Mogu 自己的話講重點、加上 gu-log 的看法，結尾帶讀者回原文；標題與摘要由 Mogu 自己寫，不直譯原文標題。保留的來源主張照 MP 的規則處理：保留 speaker、條件、hedge、controlling caveat 與證據範圍，Mogu 的推論不掛到原作者名下
+4. `<ShroomDogNote>` 只放 ShroomDog 本人的看法；自動化不產生、不代寫
+5. 有外部來源的 GP 必須帶有效的來源距離章（frontmatter `sourceDistance`，見 `source-distance-stamp` spec），pre-commit 與 CI 的 `validate-posts.mjs` 都會驗。手寫的 GP，或 ShroomDog 加了 `ShroomDogNote`、任何人工或機械修改過正文的 GP，跑 `tools/gp-pipeline/gp-pipeline stamp --file <檔名>` 重新蓋章；不要手寫或手改章
+6. Tribunal 用 MP 的規則評 GP，只評分、不改寫
+7. 英文版要過逐字檢查；沒過就不部署英文版，繁中章記 `englishSkipped: verbatim`，繁中照常上線
+
+user 要把 URL 寫成 GP 時，照上面的流程跑 `--prefix GP`。系列依 `editorial-charter` 判斷，agent 不自行換系列。exit 19 代表導讀離原文太近、自動改寫也救不回來（推文這類短來源常見）：不要手改章、不要繞過檢查，也不要自己改成別的系列，停下來回報 user。
 
 ### 新增 Mogu 來源文章（MP）
 
@@ -468,10 +478,10 @@ Pipeline agents：如果無法取得完整 source，output `INCOMPLETE_SOURCE: <
 
 ```bash
 # Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
-tools/gp-pipeline/gp-pipeline run <tweet_url> --prefix <MP|SD|Lv>
+tools/gp-pipeline/gp-pipeline run <tweet_url> --prefix <GP|MP|SD|Lv>
 ```
 
-自動流程（MP／SD／Lv）：抓完整原文 → 評估 → dedup → write → review → refine → credits → Ralph／Tribunal → **translate（產出 en sidecar）** → deploy → commit。GP 暫停中，`--prefix` 預設的 GP 會被拒絕，所以沒帶 `--file` 時要明確指定系列。
+自動流程：抓完整原文 → 評估 → dedup → write → review → refine →（GP：post-fixer → 來源距離配對、計分與蓋章）→ credits → Ralph／Tribunal → **translate（產出 en sidecar；GP 另過英文逐字檢查）** → deploy → commit。沒帶 `--file` 時 `--prefix` 必填，pipeline 不替你選系列。
 
 `fetch`／`eval`／`dedup` 可單獨呼叫，每個 subcommand 都支援 `--json` 輸出。完整 recovery、exit code 與 flag 對照見 `tools/gp-pipeline/SKILL.md`。
 
