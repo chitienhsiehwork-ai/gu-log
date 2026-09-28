@@ -789,7 +789,7 @@ func TestStampPost(t *testing.T) {
 		if _, err := s.StampPost(context.Background(), zh, StampTarget{Lang: "zh-tw", Required: true}); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := s.sourceDistanceCLI(context.Background(), "stamp", "--file", zh, "--english-skipped", "verbatim"); err != nil {
+		if _, err := s.sourceDistanceCLI(context.Background(), "stamp", "--file", zh, "--english-skipped"); err != nil {
 			t.Fatal(err)
 		}
 		en := filepath.Join(filepath.Dir(zh), "en-"+filepath.Base(zh))

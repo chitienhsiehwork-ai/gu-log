@@ -668,14 +668,25 @@ describe('scripts/source-distance.mjs CLI', () => {
     expect(verified.code).toBe(0);
     expect(JSON.parse(verified.out).results[0]).toMatchObject({ required: true, ok: true });
 
-    expect(run(['stamp', '--file', file, '--english-skipped', 'verbatim']).code).toBe(0);
+    expect(run(['stamp', '--file', file, '--english-skipped']).code).toBe(0);
     expect(parseFrontmatter(fs.readFileSync(file, 'utf8')).sourceDistance.englishSkipped).toBe(
       'verbatim'
     );
-    expect(run(['stamp', '--file', file, '--clear-english-skipped']).code).toBe(0);
-    expect(parseFrontmatter(fs.readFileSync(file, 'utf8')).sourceDistance.englishSkipped).toBe(
-      undefined
-    );
+    const clear = () => run(['stamp', '--file', file, '--clear-english-skipped']);
+    const cleared = clear();
+    expect(cleared.code).toBe(0);
+    expect(JSON.parse(cleared.out).cleared).toBe(true);
+    const cleanStamp = fs.readFileSync(file, 'utf8');
+    expect(parseFrontmatter(cleanStamp).sourceDistance.englishSkipped).toBe(undefined);
+    // 重跑安全：沒有標記（或沒有章）時不改檔。
+    const again = clear();
+    expect(again.code).toBe(0);
+    expect(JSON.parse(again.out).cleared).toBe(false);
+    expect(fs.readFileSync(file, 'utf8')).toBe(cleanStamp);
+    const unstamped = path.join(dir, 'unstamped.mdx');
+    fs.writeFileSync(unstamped, GUIDE);
+    expect(run(['stamp', '--file', unstamped, '--clear-english-skipped']).code).toBe(0);
+    expect(fs.readFileSync(unstamped, 'utf8')).toBe(GUIDE);
 
     fs.writeFileSync(align, JSON.stringify({ alignments: [{ c: 'C1', s: [] }] }));
     expect(run(['score', '--segments', segFile, '--alignment', align]).code).toBe(2);

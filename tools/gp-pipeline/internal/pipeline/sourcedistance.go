@@ -40,8 +40,6 @@ const (
 const (
 	EnglishCheckPass            = "PASS"
 	EnglishCheckSkippedVerbatim = "SKIPPED_VERBATIM"
-	// englishSkippedVerbatim is the zh-tw stamp's englishSkipped value.
-	englishSkippedVerbatim = "verbatim"
 )
 
 // Source-distance verdicts, as scripts/source-distance.mjs reports them.
@@ -357,10 +355,8 @@ func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string)
 		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", enPath, "--result", resultPath); err != nil {
 			return NewStepError(14, fmt.Errorf("english check: stamp the English version: %w", err))
 		}
-		if zhSkippedEnglish(zhPath) {
-			if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--clear-english-skipped"); err != nil {
-				return NewStepError(14, fmt.Errorf("english check: clear englishSkipped: %w", err))
-			}
+		if _, err := s.clearEnglishSkipped(ctx, zhPath); err != nil {
+			return NewStepError(14, fmt.Errorf("english check: clear englishSkipped: %w", err))
 		}
 		s.EnglishCheck = EnglishCheckPass
 		s.Log.OK("  English verbatim check PASS")
@@ -369,7 +365,7 @@ func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string)
 		if err := os.Remove(enPath); err != nil {
 			return fmt.Errorf("english check: remove the failing English version: %w", err)
 		}
-		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--english-skipped", englishSkippedVerbatim); err != nil {
+		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--english-skipped"); err != nil {
 			return NewStepError(14, fmt.Errorf("english check: mark the zh-tw stamp englishSkipped: %w", err))
 		}
 		s.EnglishCheck = EnglishCheckSkippedVerbatim
@@ -500,27 +496,31 @@ func (s *State) stampEnglishPost(ctx context.Context, file, capture string) (*St
 		return nil, NewStepError(14, fmt.Errorf("english check: stamp: %w", err))
 	}
 	zh := filepath.Join(filepath.Dir(file), strings.TrimPrefix(filepath.Base(file), "en-"))
-	if zh != file && zhSkippedEnglish(zh) {
-		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zh, "--clear-english-skipped"); err != nil {
+	if _, statErr := os.Stat(zh); zh != file && statErr == nil {
+		cleared, err := s.clearEnglishSkipped(ctx, zh)
+		if err != nil {
 			return nil, NewStepError(14, fmt.Errorf("english check: clear englishSkipped on %s: %w", filepath.Base(zh), err))
 		}
-		res.EnglishSkippedCleared = true
+		res.EnglishSkippedCleared = cleared
 	}
 	return res, nil
 }
 
-// zhSkippedEnglish reports whether a zh-tw stamp carries englishSkipped.
-func zhSkippedEnglish(path string) bool {
-	data, err := os.ReadFile(path)
+// clearEnglishSkipped drops the zh-tw stamp's englishSkipped mark. The CLI
+// leaves a post without the mark (or without a stamp) untouched, so every
+// passing English version calls it; it reports whether a mark was cleared.
+func (s *State) clearEnglishSkipped(ctx context.Context, zhPath string) (bool, error) {
+	out, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zhPath, "--clear-english-skipped")
 	if err != nil {
-		return false
+		return false, err
 	}
-	f, err := frontmatter.Parse(data)
-	if err != nil {
-		return false
+	var res struct {
+		Cleared bool `json:"cleared"`
 	}
-	block, ok := f.GetBlock(sourceDistanceField)
-	return ok && strings.Contains(block, "\n  englishSkipped:")
+	if err := json.Unmarshal(out, &res); err != nil {
+		return false, fmt.Errorf("source-distance: parse stamp output: %v", err)
+	}
+	return res.Cleared, nil
 }
 
 // StampTarget is what the source-distance CLI reports about one post.

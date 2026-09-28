@@ -19,8 +19,10 @@
  *       把通過的結果寫成章（只改 frontmatter 的 sourceDistance，正文一字不動）。結果記錄的
  *       指紋跟檔案目前的正文不同時拒絕（檔案在計分之後被改過）。繁中檔既有的
  *       englishSkipped 標記保留。
- *   stamp --file <繁中.mdx> --english-skipped verbatim | --clear-english-skipped
- *       在既有的繁中章上加上或清掉「英文版因逐字檢查略過」的標記（不影響指紋）。
+ *   stamp --file <繁中.mdx> --english-skipped | --clear-english-skipped
+ *       在既有的繁中章上加上「英文版因逐字檢查略過」的標記（值固定是 verbatim），或清掉
+ *       它；都不影響指紋。清除可以重跑：沒有標記或沒有章時不改檔，JSON 的 cleared 說
+ *       這次有沒有清掉。
  *   verify --file <文章.mdx> [--file ...]
  *       驗章，並回報這篇需不需要章（GP、外部來源、沒下架）。
  *
@@ -58,7 +60,7 @@ class CliError extends Error {
 }
 
 const REPEATABLE = new Set(['--alignment', '--file']);
-const FLAGS = new Set(['--clear-english-skipped']);
+const FLAGS = new Set(['--english-skipped', '--clear-english-skipped']);
 
 function parseArgs(argv) {
   const [command, ...rest] = argv;
@@ -236,18 +238,21 @@ function stamp(options) {
   const data = frontmatterOf(file, content);
   const existing = data[STAMP_FIELD];
 
-  if (options['--english-skipped'] !== undefined || options['--clear-english-skipped']) {
+  const mark = options['--english-skipped'];
+  const clear = options['--clear-english-skipped'];
+  if (mark || clear) {
+    if (mark && clear)
+      throw new CliError('pick one of --english-skipped and --clear-english-skipped', 1);
     if (data.lang === 'en') throw new CliError('englishSkipped only belongs on the zh-tw stamp', 1);
-    if (!existing || typeof existing !== 'object') {
-      throw new CliError(`${file} has no ${STAMP_FIELD} stamp to mark`, 4);
+    const stamped = existing && typeof existing === 'object';
+    if (clear) {
+      if (!stamped || existing.englishSkipped === undefined) return { file, cleared: false };
+      const { englishSkipped: _dropped, ...next } = existing;
+      fs.writeFileSync(file, writeStamp(content, next));
+      return { file, cleared: true, stamp: next };
     }
-    const next = { ...existing };
-    if (options['--clear-english-skipped']) delete next.englishSkipped;
-    else if (options['--english-skipped'] === ENGLISH_SKIPPED_VERBATIM) {
-      next.englishSkipped = ENGLISH_SKIPPED_VERBATIM;
-    } else {
-      throw new CliError(`--english-skipped only accepts ${ENGLISH_SKIPPED_VERBATIM}`, 1);
-    }
+    if (!stamped) throw new CliError(`${file} has no ${STAMP_FIELD} stamp to mark`, 4);
+    const next = { ...existing, englishSkipped: ENGLISH_SKIPPED_VERBATIM };
     fs.writeFileSync(file, writeStamp(content, next));
     return { file, stamp: next };
   }
