@@ -181,8 +181,8 @@ function textOfJsxAttribute(node, name) {
   return attr && typeof attr.value === 'string' ? attr.value : null;
 }
 
-// 文章 ticket 編號的形狀（含已退役的 SP／CP，舊文章的連結文字還看得到）。
-const TICKET_ID = /^(?:GP|MP|SD|Lv|SP|CP)-(?:\d+|PENDING)$/u;
+// 文章 ticket 編號的形狀（canonical 系列，同 content.config.ts 的 ticketId 規則）。
+const TICKET_ID = /^(?:GP|MP|SD|Lv)-(?:\d+|PENDING)$/u;
 
 /** 連到站內文章（`/posts/`、`/en/posts/` 與站內絕對網址）的連結。 */
 function isInSitePostLink(href) {
