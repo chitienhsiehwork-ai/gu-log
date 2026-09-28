@@ -206,3 +206,45 @@ func TestSkillRecoveryContract(t *testing.T) {
 		}
 	}
 }
+
+// TestGPReadingGuideHelpContract: the help describes the GP reading-guide
+// flow, the stamp command and exit code 19, and no longer says GP is paused.
+func TestGPReadingGuideHelpContract(t *testing.T) {
+	help := func(args ...string) string {
+		resetGlobals()
+		cmd := buildRoot()
+		var out bytes.Buffer
+		cmd.SetOut(&out)
+		cmd.SetErr(&out)
+		cmd.SetArgs(append(args, "--help"))
+		if err := cmd.Execute(); err != nil {
+			t.Fatalf("%v --help: %v", args, err)
+		}
+		return out.String()
+	}
+	for args, phrases := range map[string][]string{
+		"run":   {"post-fixer", "source-distance", "reading guide", "most 3 rewrites", "19 GP source distance did not pass", "--from-step source-distance", "englishSkipped: verbatim"},
+		"stamp": {"--file", "--source", "the body is never changed", "exits 19", "outside the repo", "exit 1"},
+		"":      {"stamp"},
+	} {
+		var out string
+		if args == "" {
+			out = help()
+		} else {
+			out = help(args)
+		}
+		for _, phrase := range phrases {
+			if !strings.Contains(out, phrase) {
+				t.Errorf("%q help missing %q", args, phrase)
+			}
+		}
+	}
+	for _, args := range [][]string{{}, {"run"}, {"counter"}, {"write"}, {"review"}, {"refine"}, {"deploy"}, {"stamp"}} {
+		out := help(args...)
+		for _, stale := range []string{"暫停", "paused", "default GP", "defaults to GP"} {
+			if strings.Contains(out, stale) {
+				t.Errorf("%v help still says %q", args, stale)
+			}
+		}
+	}
+}

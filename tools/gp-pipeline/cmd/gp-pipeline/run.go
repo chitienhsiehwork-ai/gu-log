@@ -83,18 +83,34 @@ func newRunCmd(state *rootState) *cobra.Command {
 invocation covering the whole pipeline (step sequence, prompt templates,
 frontmatter shape, commit message, exit codes).
 
-Steps, in order (MP / SD / Lv):
-  1     fetch      capture the tweet into the work directory
-  1.5   eval       evaluate worthiness (skipped with --force)
-  1.7   dedup      check the dedup gate
-  2     write      draft the zh-tw article from the source
-  3     review     review the draft
-  4     refine     apply the review and write final.mdx
-  4.6   credits    stamp pipeline credits into the frontmatter
-  4.7   ralph      run the 4-stage tribunal
-  4.8   translate  produce the en sidecar (only when the tribunal passed;
-                   skipped otherwise — zh-tw deploys alone)
-  5     deploy     allocate ticket ID, rename, validate, build, commit, push
+Steps, in order:
+  1     fetch            capture the source into the work directory
+  1.5   eval             evaluate worthiness (skipped with --force)
+  1.7   dedup            check the dedup gate
+  2     write            draft the zh-tw article from the source
+  3     review           review the draft
+  4     refine           apply the review and write final.mdx
+  4.2   post-fixer       GP only: kaomoji, glossary links and related reading,
+                         applied to final.mdx in the work dir
+  4.4   source-distance  GP only: pair, score and stamp final.mdx (see below)
+  4.6   credits          stamp pipeline credits into the frontmatter
+  4.7   ralph            run the 4-stage tribunal (GP: scores only, never
+                         rewrites or re-fixes the stamped body)
+  4.8   translate        produce the en sidecar (only when the tribunal passed;
+                         skipped otherwise — zh-tw deploys alone)
+  5     deploy           allocate ticket ID, rename, validate, build, commit, push
+
+GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀),
+not a translation. After the post-fixer, source-distance asks a pinned Claude
+aligner which guide sentences restate which source sentences, and the
+program scores that: a draft that reads like a translation goes back to
+refine with only the flagged passages, then through the post-fixer again, at
+most 3 rewrites. Zero alignments, or a draft still failing after the third
+rewrite, stops with exit 19: nothing is deployed and the counter is untouched;
+every round's evidence stays in the work dir. A GP English version must pass a
+verbatim check against the source; one that does not is dropped without a
+retranslation, the zh-tw stamp records englishSkipped: verbatim, and zh-tw
+deploys alone.
 
 Without --file, --prefix is required: a run never picks a series on its own,
 and a missing --prefix fails before any work dir, fetch, or model call.
@@ -102,9 +118,15 @@ and a missing --prefix fails before any work dir, fetch, or model call.
 --from-step resumes partway through a previous run. --file is required
 when --from-step skips the fetch stage and no tweet URL is given. With
 --file, the file's series (gp-/mp-/sd-/lv-/levelup-) decides the run, and an
-explicit --prefix must match it.
+explicit --prefix must match it. --from-step source-distance (GP only)
+re-pairs and re-scores the work dir's final.mdx without rewriting the draft.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
+
+Exit codes: 1 ingress or usage error, 2 eval split, 10 fetch failed,
+11 incomplete capture, 12 eval SKIP, 13 dedup BLOCK, 14 a step or the aligner
+failed, 16 validate-posts rejected, 17 build failed, 18 push failed,
+19 GP source distance did not pass, 124 timeout.
 
 Use --fake-provider <json> only to test without spending credits or to pin
 canned responses for regression tests.`,
