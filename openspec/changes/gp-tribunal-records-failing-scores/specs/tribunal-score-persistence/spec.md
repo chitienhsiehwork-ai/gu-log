@@ -42,8 +42,14 @@ GP 在 Tribunal 只評分（`gp-source-preservation`），所以對 GP，每個 
 - **AND** GP 正文與來源距離章 SHALL NOT 改變
 - **AND** 該次 Tribunal SHALL 以失敗結束
 
-#### Scenario: GP 重跑不重評已記錄的 FAIL
+#### Scenario: GP 正文沒變時重跑不重評已記錄的 FAIL
 
-- **WHEN** 一篇 GP 的 `scripts/tribunal.sh` 中斷後以同一個指令重跑，而某一關已記錄 FAIL，frontmatter 也有那一次的分數
+- **WHEN** 一篇 GP 重跑 `scripts/tribunal.sh`（沒有指定只跑某一關），某一關已記錄 FAIL，frontmatter 也有那一次的分數，而且正文跟評分當時相同
 - **THEN** 該關 SHALL NOT 重新評分，frontmatter 的分數 SHALL 維持不變
 - **AND** 該次 Tribunal SHALL 仍以失敗結束
+
+#### Scenario: GP 正文改過後重跑會重評
+
+- **WHEN** 一篇 GP 的正文在評分之後改過（例如人工修改後以 `gp-pipeline stamp --file` 重新蓋章），再重跑 `scripts/tribunal.sh`
+- **THEN** 每一關 SHALL 重新評分，不論之前記錄的是 PASS 或 FAIL
+- **AND** frontmatter SHALL 換成這次的分數
