@@ -17,7 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LISTING_SERIES, LANG_PREFIXES } from '../vercel.mjs';
-import { listTakenDownPosts } from './lib/taken-down-posts.mjs';
+import { listTakenDownPosts, postPathFor } from './lib/taken-down-posts.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const MANIFEST_PATH = path.join(ROOT, 'quality/brand-taxonomy-post-migration.json');
@@ -318,11 +318,12 @@ export function validateTakedownOutputs({
     const post = urlPath ? byPath.get(urlPath) : undefined;
     if (post) errors.push(`${surface}: lists taken-down post ${describe(post)}`);
   };
-  const postPathOf = (lang, slug) => (lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`);
   // One JSON entry (search index item / feed article) is identified by its
   // slug, url and id — never by its summary or body text.
   const flagJsonEntry = (surface, entry) => {
-    if (typeof entry?.slug === 'string') flagUrl(surface, postPathOf(entry.lang, entry.slug));
+    if (typeof entry?.slug === 'string') {
+      flagUrl(surface, postPathFor({ id: entry.slug, lang: entry.lang }));
+    }
     for (const field of ['url', 'id']) {
       if (typeof entry?.[field] === 'string') flagUrl(surface, entry[field]);
     }
