@@ -166,7 +166,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選，一定要明確帶 `--prefix`（預設的 GP 暫停中，會被拒絕）；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增翻譯文章（GP）〉處理。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉處理。CCC 可以跑完整的 GP 導讀流程：寫手與來源距離的 aligner 都走 Claude CLI，不需要 GP 專屬的 runtime profile。
 
 ### pipeline 內建的 eval gate
 
@@ -191,14 +191,14 @@ intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，p
 
 ```bash
 # user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
-tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD|Lv>
+tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD|Lv>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
 tools/gp-pipeline/gp-pipeline fetch <url> --work-dir /tmp/gp-probe
 tools/gp-pipeline/gp-pipeline eval --source /tmp/gp-probe/source-tweet.md
 
 # Eval gate split/SKIP 但 user 堅持要寫 → 加 --force
-tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD|Lv> --force
+tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD|Lv> --force
 ```
 
 ### Sandbox 網路能力（2026-04-23 實測）
@@ -225,6 +225,7 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD|Lv> --force
 1. `gp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
 2. 單獨跑 prompt：`claude -p --model <writer pin 的完整 id>` 模擬 write / refine 階段（id = `tribunal-writer` agent frontmatter，**SSOT**；要打之前先讀 frontmatter）（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus，吃不到 writer pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走各自 runtime 的既定路由；只有 provider 路徑壞掉才用本節 fallback。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 judge role 平行跑（Vibe 用 exact-pin `claude -p`，其餘浮動 judge 用 `Agent`）
+4. GP 走手動 fallback 寫完，一樣要跑 `tools/gp-pipeline/gp-pipeline stamp --file <檔名>` 蓋來源距離章，validate-posts 才會放行
 
 **GP writer 鎖某一代 Opus**（Mac 與 Tribunal VM 都一樣；id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代，測試會擋兩邊不一致），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
