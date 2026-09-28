@@ -338,6 +338,7 @@ func TestRender_RefineLintReportFixesOnlyTheFlaggedLines(t *testing.T) {
 		"Check report:\n" + report,
 		"keep the rest of the article, including its frontmatter, as it is",
 		"never translate a model name",
+		"Emoji: remove it",
 		"`<ShroomDogNote>`",
 		"Write final output to final.mdx",
 	} {

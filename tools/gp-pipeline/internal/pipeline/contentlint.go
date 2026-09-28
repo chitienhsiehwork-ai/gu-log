@@ -36,13 +36,15 @@ var contentLintCrashHook = fmt.Sprintf(
 	contentLintCrashExit)
 
 // contentLintScripts are the checks the pre-commit hook
-// (scripts/hooks/pre-commit) runs on the text of staged zh-tw posts, and the
-// only list of them outside the hook: TestContentLintScriptsMatchPreCommitHook
-// fails when the hook adds or drops one.
+// (scripts/hooks/pre-commit) runs on the text of staged zh-tw posts, plus the
+// reader-visible emoji check it runs on every staged post, and the only list
+// of them outside the hook: TestContentLintScriptsMatchPreCommitHook fails when
+// the hook adds or drops a zh-tw check, or stops running the emoji check.
 var contentLintScripts = []string{
 	"check-pronoun-clarity.mjs",
 	"check-jingjing.mjs",
 	"check-ai-tells.mjs",
+	"check-content-emoji.mjs",
 }
 
 // contentLintReport runs the content checks on file and returns what they

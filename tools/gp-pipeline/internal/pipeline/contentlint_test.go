@@ -203,8 +203,9 @@ func TestRun_GPContentCheckThatCannotRunStopsTheStep(t *testing.T) {
 }
 
 // TestContentLintScriptsMatchPreCommitHook keeps contentLintScripts equal to
-// the checks the pre-commit hook runs on staged zh-tw posts ("${ZH_FILES[@]}"),
-// so the hook adding or dropping one fails here.
+// the checks the pre-commit hook runs on staged zh-tw posts ("${ZH_FILES[@]}")
+// plus its emoji check, which runs on every staged post, so the hook adding or
+// dropping a zh-tw check, or the emoji check, fails here.
 func TestContentLintScriptsMatchPreCommitHook(t *testing.T) {
 	hook := mustRead(t, filepath.Join(realRepoRoot(t), "scripts", "hooks", "pre-commit"))
 	zhChecks := regexp.MustCompile(`node "\$REPO_ROOT/scripts/([\w.-]+\.mjs)"[^\n]*"\$\{ZH_FILES\[@\]\}"`)
@@ -215,9 +216,13 @@ func TestContentLintScriptsMatchPreCommitHook(t *testing.T) {
 	if len(hookChecks) == 0 {
 		t.Fatal("found no check the pre-commit hook runs on ZH_FILES; update this test with the hook")
 	}
+	const emojiCheck = "check-content-emoji.mjs"
+	if strings.Contains(hook, `node "$REPO_ROOT/scripts/`+emojiCheck+`"`) {
+		hookChecks = append(hookChecks, emojiCheck)
+	}
 	got, want := slices.Sorted(slices.Values(contentLintScripts)), slices.Sorted(slices.Values(hookChecks))
 	if !slices.Equal(got, want) {
-		t.Fatalf("contentLintScripts = %v, but the pre-commit hook runs %v on staged zh-tw posts; keep them the same", got, want)
+		t.Fatalf("contentLintScripts = %v, but the pre-commit hook runs %v (its zh-tw checks and the emoji check); keep them the same", got, want)
 	}
 }
 
@@ -253,5 +258,8 @@ func TestContentLintReportRunsTheRealChecks(t *testing.T) {
 	}
 	if report := check(clean + lintFlaggedLine); !strings.Contains(report, "check-jingjing.mjs") || !strings.Contains(report, lintFlaggedWord) {
 		t.Fatalf("decorative English did not come back as a report:\n%s", report)
+	}
+	if report := check(clean + "值班的沉默也值得記下 🚀\n"); !strings.Contains(report, "check-content-emoji.mjs") || !strings.Contains(report, "🚀") {
+		t.Fatalf("an emoji did not come back as a report:\n%s", report)
 	}
 }
