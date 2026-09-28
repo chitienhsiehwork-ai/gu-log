@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -35,11 +34,11 @@ func newRefineCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "refine",
-		Short: "Apply non-GP review feedback and produce final.mdx",
-		Long: `refine applies review feedback to an MP, SD, or Lv draft; GP tickets are
-rejected while GP is paused (GP 暫停中). This command reads draft-v1.mdx and review.md
-from the work directory and asks the LLM to produce final.mdx with the
-review's issues fixed. The prompt does NOT embed the draft or review
+		Short: "Apply review feedback and produce final.mdx",
+		Long: `refine applies review feedback to a GP, MP, SD, or Lv draft; the
+--ticket-id series picks the prompt contract. This command reads draft-v1.mdx
+and review.md from the work directory and asks the LLM to produce final.mdx
+with the review's issues fixed. The prompt does NOT embed the draft or review
 contents — the LLM reads them from --work-dir.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, angle)
@@ -56,11 +55,9 @@ contents — the LLM reads them from --work-dir.`,
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	if err := counter.ValidateTicketID(ticketID); err != nil {
+	prefix, err := counter.PrefixOfTicketID(ticketID)
+	if err != nil {
 		return err
-	}
-	if strings.HasPrefix(ticketID, "GP-") {
-		return fmt.Errorf("refine: %w", pipeline.ErrGPPaused)
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
@@ -99,6 +96,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 	s.WriterDispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
+	s.Prefix = prefix
 	s.Angle = angle
 
 	stepCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)

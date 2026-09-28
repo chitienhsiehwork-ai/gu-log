@@ -14,7 +14,6 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -474,101 +473,136 @@ func TestDeployDryRunValidatesFilenameSlots(t *testing.T) {
 	}
 }
 
-// TestGPIngressRejectedBeforeSideEffects covers gp-pipeline-publish-integrity:
-// while GP is paused, every entry that would write, publish, or number a GP
-// post exits 1 with「GP 暫停中」before any work dir, fetch, runtime profile,
-// provider, counter, file, or git side effect. With a file, the filename
-// decides the series even when --prefix is left at its default.
-func TestGPIngressRejectedBeforeSideEffects(t *testing.T) {
+// TestMissingPrefixFailsAtIngress covers gp-pipeline-publish-integrity「沒帶
+// prefix 也沒有檔案」: without a file to name the series, run, counter, and write
+// exit 1 listing the canonical series before any work dir, fetch, provider,
+// counter, file, or git side effect. No command picks a series on its own.
+func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	const gpPost = "gp-10-20260723-author-title.mdx"
-	const gpPending = "gp-pending-20260723-author-title.mdx"
-	mustWrite(t, filepath.Join(postsDir, gpPost), "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
-	mustWrite(t, filepath.Join(postsDir, gpPending), "---\ntitle: \"GP\"\nticketId: GP-PENDING\nlang: zh-tw\n---\nbody\n")
+	source := filepath.Join(root, "source-tweet.md")
+	mustWrite(t, source, "source")
 	trapDir := t.TempDir()
 	for _, name := range []string{"bash", "curl", "yt-dlp", "python3", "node", "codex", "claude", "git", "pnpm"} {
 		writeExecutableFile(t, filepath.Join(trapDir, name), "#!/bin/sh\nprintf '%s\\n' \"$0 $*\" >> \"$GP_INGRESS_TRAP_LOG\"\nexit 99\n")
 	}
 	t.Setenv("GU_LOG_DIR", root)
 	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-
-	snapshot := func() map[string]string {
-		t.Helper()
-		state := map[string]string{}
-		for _, dir := range []string{postsDir, filepath.Join(root, "scripts")} {
-			entries, err := os.ReadDir(dir)
-			if err != nil {
-				t.Fatal(err)
-			}
-			for _, entry := range entries {
-				data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
-				if err != nil {
-					t.Fatal(err)
-				}
-				state[filepath.Join(dir, entry.Name())] = string(data)
-			}
-		}
-		return state
-	}
-	slots := []string{"--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title"}
+	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
 	for _, tc := range []struct {
 		name string
 		args []string
 	}{
-		{name: "run without prefix or file", args: []string{"run", "https://x.com/author/status/1"}},
-		{name: "run YouTube source before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}},
-		{name: "run resumes a GP file without prefix", args: []string{"run", "--from-step", "deploy", "--file", gpPost}},
-		{name: "run resumes a GP file with prefix", args: []string{"run", "--prefix", "GP", "--from-step", "translate", "--file", gpPost, "--dry-run"}},
-		{name: "deploy GP pending file before slot validation", args: []string{"deploy", "--active-file", gpPending}},
-		{name: "deploy GP pending file with prefix", args: append([]string{"deploy", "--prefix", "GP", "--active-file", gpPending}, slots...)},
-		{name: "counter bump default prefix", args: []string{"counter", "bump"}},
-		{name: "counter bump GP prefix", args: []string{"counter", "bump", "--prefix", "GP"}},
+		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}},
+		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}},
+		{name: "counter bump", args: []string{"counter", "bump"}},
+		{name: "counter next", args: []string{"counter", "next"}},
+		{name: "write", args: []string{"write", "--source", source}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resetGlobals()
 			trapLog := filepath.Join(t.TempDir(), "trap.log")
 			t.Setenv("GP_INGRESS_TRAP_LOG", trapLog)
-			before := snapshot()
+			counterBefore, err := os.ReadFile(counterFile)
+			if err != nil {
+				t.Fatal(err)
+			}
 			workDir := filepath.Join(t.TempDir(), "never-created")
 			// A missing fake-provider spec fails differently if a model route is built.
-			args := append([]string{"--json", "--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...)
+			args := append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...)
 			cmd := buildRoot()
 			cmd.SetArgs(args)
-			out, err := captureProcessStdout(t, func() error {
+			_, err = captureProcessStdout(t, func() error {
 				return cmd.ExecuteContext(context.Background())
 			})
-			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) {
-				t.Fatalf("error = %v (exit %d), want the exit-1 GP pause rejection", err, exitCodeFor(err))
+			if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "--prefix is required") {
+				t.Fatalf("error = %v (exit %d), want the exit-1 missing --prefix rejection", err, exitCodeFor(err))
 			}
-			for _, want := range []string{"GP 暫停中", "openspec: editorial-charter"} {
-				if !strings.Contains(err.Error(), want) {
-					t.Fatalf("error = %v, want %q", err, want)
-				}
-			}
-			if tc.args[0] != "counter" && len(out) != 0 {
-				t.Fatalf("ingress rejection emitted a report: %s", out)
+			if !strings.Contains(err.Error(), "[GP MP SD Lv]") {
+				t.Fatalf("error = %v, want the available series listed", err)
 			}
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
-				t.Fatalf("GP rejection created the work dir: %v", statErr)
+				t.Fatalf("missing --prefix created the work dir: %v", statErr)
 			}
 			if raw, readErr := os.ReadFile(trapLog); readErr == nil {
-				t.Fatalf("GP rejection ran external programs:\n%s", raw)
+				t.Fatalf("missing --prefix ran external programs:\n%s", raw)
 			}
-			after := snapshot()
-			if len(after) != len(before) {
-				t.Fatalf("GP rejection changed the repo files: %d -> %d", len(before), len(after))
-			}
-			for path, content := range before {
-				if after[path] != content {
-					t.Fatalf("GP rejection changed %s", path)
-				}
+			if counterAfter, err := os.ReadFile(counterFile); err != nil || !bytes.Equal(counterAfter, counterBefore) {
+				t.Fatalf("missing --prefix changed the counter: %v", err)
 			}
 		})
+	}
+}
+
+// TestGPPassesIngress covers the removal of the GP pause: GP reaches the same
+// provider setup, counter, and deploy preflight as every other series. A
+// missing fake-provider spec proves the command got past ingress to its model
+// route instead of being refused as GP.
+func TestGPPassesIngress(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const gpPending = "gp-pending-20260723-author-title.mdx"
+	mustWrite(t, filepath.Join(postsDir, gpPending), "---\ntitle: \"GP\"\nticketId: GP-PENDING\nlang: zh-tw\n---\nbody\n")
+	source := filepath.Join(root, "source-tweet.md")
+	draft := filepath.Join(root, "draft-v1.mdx")
+	mustWrite(t, source, "source")
+	mustWrite(t, draft, "draft")
+	t.Setenv("GU_LOG_DIR", root)
+	missingFake := filepath.Join(root, "missing.json")
+
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{name: "run", args: []string{"--fake-provider", missingFake, "run", "--prefix", "GP", "https://x.com/author/status/1"}},
+		{name: "write", args: []string{"--fake-provider", missingFake, "write", "--prefix", "GP", "--source", source}},
+		{name: "review default GP ticket", args: []string{"--fake-provider", missingFake, "review", "--draft", draft}},
+		{name: "refine GP ticket", args: []string{"--fake-provider", missingFake, "refine", "--draft", draft, "--ticket-id", "GP-12"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			cmd := buildRoot()
+			cmd.SetArgs(append([]string{"--work-dir", filepath.Join(t.TempDir(), "work")}, tc.args...))
+			_, err := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			})
+			if err == nil || !strings.Contains(err.Error(), "missing.json") {
+				t.Fatalf("error = %v, want GP to reach the provider route", err)
+			}
+			if strings.Contains(err.Error(), "暫停") {
+				t.Fatalf("GP was refused at ingress: %v", err)
+			}
+		})
+	}
+
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"counter", "bump", "--prefix", "GP"})
+	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
+		t.Fatalf("counter bump --prefix GP: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var counters map[string]struct {
+		Next int `json:"next"`
+	}
+	if err := json.Unmarshal(raw, &counters); err != nil {
+		t.Fatal(err)
+	}
+	if counters["GP"].Next != 11 {
+		t.Fatalf("GP counter next = %d, want 11 after one bump", counters["GP"].Next)
+	}
+
+	resetGlobals()
+	cmd = buildRoot()
+	cmd.SetArgs([]string{"deploy", "--active-file", gpPending, "--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title", "--dry-run"})
+	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
+		t.Fatalf("GP deploy dry-run preflight: %v", err)
 	}
 }
 
@@ -677,83 +711,41 @@ func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
 	}
 }
 
-// TestStandaloneLegacyTextCommandsRejectGP covers the
-// gp-pipeline-publish-integrity scenario「單步寫作指令收到 GP」, including the
-// GP defaults of write --prefix and review/refine --ticket-id.
-func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
+// TestStandaloneCreditsKeepsGPBody: GP is back as reading guides, so standalone
+// credits stamps a GP post or a work-dir final.mdx like any other series. It
+// only rewrites the credit fields in the frontmatter: the body and the
+// sourceDistance block stay byte-identical, so the source-distance stamp still
+// matches.
+func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
-	source := filepath.Join(root, "source-tweet.md")
-	draft := filepath.Join(root, "draft-v1.mdx")
-	mustWrite(t, source, "source")
-	mustWrite(t, draft, "draft")
-	for _, tc := range []struct {
-		name string
-		args []string
-	}{
-		{name: "write default prefix", args: []string{"write", "--source", source}},
-		{name: "write GP prefix", args: []string{"write", "--source", source, "--prefix", "GP"}},
-		{name: "review default ticket", args: []string{"review", "--draft", draft}},
-		{name: "refine GP ticket", args: []string{"refine", "--draft", draft, "--ticket-id", "GP-12"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			resetGlobals()
-			// A missing fake-provider spec fails differently if a model route is built.
-			cmd := buildRoot()
-			cmd.SetArgs(append([]string{"--fake-provider", filepath.Join(root, "missing.json")}, tc.args...))
-			err := cmd.ExecuteContext(context.Background())
-			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) {
-				t.Fatalf("error = %v (exit %d), want the exit-1 GP pause rejection", err, exitCodeFor(err))
-			}
-			if !strings.Contains(err.Error(), "GP 暫停中") || !strings.Contains(err.Error(), "editorial-charter") {
-				t.Fatalf("error = %v, want 「GP 暫停中」 and editorial-charter", err)
-			}
-		})
-	}
-}
-
-// TestStandaloneCreditsRejectsGP: stamping credits rewrites frontmatter, so a
-// GP post or a work-dir final.mdx with a GP ticket exits 1 with「GP 暫停中」
-// and stays untouched, while a non-GP final.mdx still gets stamped.
-func TestStandaloneCreditsRejectsGP(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
+	stamp := "sourceDistance:\n  policy: 'source-distance/v1'\n  verdict: 'PASS'\n  metrics:\n    maxRun: 1\n"
+	body := "\n這篇導讀的第一段。\n\n第二段。\n"
 	gpPost := filepath.Join(t.TempDir(), "gp-10-20260723-author-title.mdx")
 	gpFinal := filepath.Join(t.TempDir(), "final.mdx")
-	mpFinal := filepath.Join(t.TempDir(), "final.mdx")
-	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
-	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n")
-	mustWrite(t, mpFinal, "---\ntitle: \"MP\"\nticketId: \"MP-PENDING\"\nlang: zh-tw\n---\nbody\n")
-	credits := func(path string) error {
-		resetGlobals()
-		cmd := buildRoot()
-		cmd.SetArgs([]string{"credits", "--file", path})
-		return cmd.ExecuteContext(context.Background())
-	}
+	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n"+stamp+"---\n"+body)
+	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n"+stamp+"---\n"+body)
 
 	for name, path := range map[string]string{"GP post": gpPost, "GP final.mdx": gpFinal} {
 		t.Run(name, func(t *testing.T) {
-			before, err := os.ReadFile(path)
+			resetGlobals()
+			cmd := buildRoot()
+			cmd.SetArgs([]string{"credits", "--file", path})
+			if err := cmd.ExecuteContext(context.Background()); err != nil {
+				t.Fatalf("credits on a %s: %v", name, err)
+			}
+			got, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = credits(path)
-			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) || !strings.Contains(err.Error(), "GP 暫停中") {
-				t.Fatalf("error = %v (exit %d), want the exit-1「GP 暫停中」rejection", err, exitCodeFor(err))
+			if !strings.Contains(string(got), "pipelineUrl") {
+				t.Fatalf("%s was not stamped:\n%s", name, got)
 			}
-			if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, before) {
-				t.Fatalf("GP rejection changed %s: %q, %v", path, after, err)
+			if !strings.Contains(string(got), stamp) || !strings.HasSuffix(string(got), "---\n"+body) {
+				t.Fatalf("credits changed the body or the sourceDistance block:\n%s", got)
 			}
 		})
 	}
-	t.Run("MP final.mdx", func(t *testing.T) {
-		if err := credits(mpFinal); err != nil {
-			t.Fatalf("credits on an MP final.mdx: %v", err)
-		}
-		if got, err := os.ReadFile(mpFinal); err != nil || !strings.Contains(string(got), "pipelineUrl") {
-			t.Fatalf("MP final.mdx was not stamped: %q, %v", got, err)
-		}
-	})
 }
 
 // TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The

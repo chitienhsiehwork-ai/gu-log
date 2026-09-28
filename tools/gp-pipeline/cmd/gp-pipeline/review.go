@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,10 +32,11 @@ func newReviewCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "review",
-		Short: "Run the non-GP 12-point review checklist against a draft",
-		Long: `review runs the full-draft review for MP, SD, and Lv drafts; GP tickets are
-rejected while GP is paused (GP 暫停中). This command points the LLM at draft-v1.mdx
-and asks it to produce a review.md with blocker/major/minor findings.
+		Short: "Run the review checklist against a draft",
+		Long: `review runs the full-draft review for GP, MP, SD, and Lv drafts; the
+--ticket-id series picks the checklist. This command points the LLM at
+draft-v1.mdx and asks it to produce a review.md with blocker/major/minor
+findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM
 is expected to read draft-v1.mdx from --work-dir. This matches how the
@@ -54,11 +54,9 @@ pipeline runs ` + "`codex exec`" + ` in (cd $WORK_DIR && …).`,
 
 func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticketID string) error {
 	start := time.Now()
-	if err := counter.ValidateTicketID(ticketID); err != nil {
+	prefix, err := counter.PrefixOfTicketID(ticketID)
+	if err != nil {
 		return err
-	}
-	if strings.HasPrefix(ticketID, "GP-") {
-		return fmt.Errorf("review: %w", pipeline.ErrGPPaused)
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
@@ -87,6 +85,7 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 	s.JudgeDispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
+	s.Prefix = prefix
 
 	err = s.Review(ctx)
 

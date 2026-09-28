@@ -41,16 +41,17 @@ func newWriteCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "write",
-		Short: "Draft a non-GP zh-tw MDX article from a captured source",
-		Long: `write drafts an MP, SD, or Lv zh-tw article from a captured source. GP
-is paused (GP 暫停中) and rejected before any model call. It renders the write.tmpl prompt
-with the source-tweet.md contents and GU-LOG_WRITER_PROMPT.md embedded as
-template variables, then runs it through the LLM dispatcher. The prompt
-instructs the LLM to write draft-v1.mdx into the working directory.
+		Short: "Draft a zh-tw MDX article from a captured source",
+		Long: `write drafts a GP, MP, SD, or Lv zh-tw article from a captured source. It
+renders the write.tmpl prompt with the source-tweet.md contents and
+GU-LOG_WRITER_PROMPT.md embedded as template variables, then runs it through
+the LLM dispatcher. The prompt instructs the LLM to write draft-v1.mdx into
+the working directory.
 
-The --ticket-id, --original-date, --author-handle, --tweet-url, and
---prefix flags populate the article's frontmatter. Most callers will
-set these from the upstream fetch + counter steps.`,
+--prefix is required: write never picks a series. The --ticket-id,
+--original-date, --author-handle, --tweet-url, and --prefix flags populate
+the article's frontmatter. Most callers will set these from the upstream
+fetch + counter steps.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runWrite(cmd.Context(), state, writeOpts{
 				SourcePath:     sourcePath,
@@ -73,7 +74,7 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&originalDate, "original-date", "", "YYYY-MM-DD of the source publication")
 	cmd.Flags().StringVar(&authorHandle, "author", "", "author handle WITHOUT @ prefix")
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP is paused and rejected")
+	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
@@ -98,6 +99,15 @@ type writeOpts struct {
 
 func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 	start := time.Now()
+	if opts.TicketID != "" {
+		// A retired or malformed ticket gets its actionable hint first.
+		if err := counter.ValidateTicketID(opts.TicketID); err != nil {
+			return err
+		}
+	}
+	if err := counter.RequirePrefix("write", opts.Prefix); err != nil {
+		return err
+	}
 	if opts.TicketID == "" {
 		pending, err := counter.PendingTicketID(opts.Prefix)
 		if err != nil {
@@ -107,9 +117,6 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 	}
 	if err := counter.ValidateTicketIDForPrefix(opts.TicketID, opts.Prefix); err != nil {
 		return err
-	}
-	if opts.Prefix == "GP" {
-		return fmt.Errorf("write: %w", pipeline.ErrGPPaused)
 	}
 	absSource, err := filepath.Abs(opts.SourcePath)
 	if err != nil {

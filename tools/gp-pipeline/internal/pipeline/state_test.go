@@ -55,6 +55,8 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	}
 
 	s := NewState()
+	s.Prefix = "GP"
+	s.PromptTicketID = "GP-PENDING"
 	s.WorkDir = workDir
 	s.SourcePath = sourcePath
 	s.TweetURL = "https://x.com/fakeauthor/status/1"

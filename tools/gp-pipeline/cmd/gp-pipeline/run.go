@@ -89,9 +89,8 @@ Steps, in order (MP / SD / Lv):
                    skipped otherwise — zh-tw deploys alone)
   5     deploy     allocate ticket ID, rename, validate, build, commit, push
 
-GP 暫停中: a GP run is rejected before any work dir, fetch, or model call
-(openspec: editorial-charter). --prefix defaults to GP, so a run without
---file must name its series explicitly.
+Without --file, --prefix is required: a run never picks a series on its own,
+and a missing --prefix fails before any work dir, fetch, or model call.
 
 --from-step resumes partway through a previous run. --file is required
 when --from-step skips the fetch stage and no tweet URL is given. With
@@ -107,11 +106,6 @@ canned responses for regression tests.`,
 			var tweetURL string
 			if len(args) == 1 {
 				tweetURL = args[0]
-			}
-			// Fail at ingress: any non-canonical prefix must not reach the
-			// fetch, evaluation, or writing stages.
-			if err := counter.ValidatePrefix(prefix); err != nil {
-				return err
 			}
 			return runRun(cmd.Context(), state, runOpts{
 				TweetURL:     tweetURL,
@@ -136,7 +130,7 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
 	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing post in src/content/posts/; its filename sets the series")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv); with --file the file's series wins, and GP is paused")
+	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required without --file, and must match the --file series when given")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
@@ -167,14 +161,11 @@ type runOpts struct {
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	start := time.Now()
+	// Fail at ingress: a missing or non-canonical series must not reach the
+	// work dir, fetch, evaluation, or writing stages.
 	prefix, err := resolveSeries("run", opts.Prefix, opts.PrefixSet, "--file", opts.ExistingFile)
 	if err != nil {
 		return err
-	}
-	// GP is rejected before any work dir, fetch, runtime profile, provider,
-	// counter, or git side effect (openspec: gp-pipeline-publish-integrity).
-	if prefix == "GP" {
-		return fmt.Errorf("run: %w", pipeline.ErrGPPaused)
 	}
 	opts.Prefix = prefix
 
@@ -299,10 +290,21 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 
 // resolveSeries picks the series a run or standalone deploy works on, and the
 // article decides: with a file, its filename series wins and an explicitly set
-// --prefix must agree; without one, --prefix (default GP) applies.
+// --prefix must agree; without one, --prefix is required and has no default.
 func resolveSeries(command, prefix string, prefixSet bool, fileFlag, filename string) (string, error) {
 	if filename == "" {
+		if prefix == "" {
+			return "", fmt.Errorf("%s: --prefix is required without %s; choose one of %v", command, fileFlag, counter.ValidPrefixes)
+		}
+		if err := counter.ValidatePrefix(prefix); err != nil {
+			return "", err
+		}
 		return prefix, nil
+	}
+	if prefixSet {
+		if err := counter.ValidatePrefix(prefix); err != nil {
+			return "", err
+		}
 	}
 	series, err := pipeline.SeriesFromFilename(filename)
 	if err != nil {

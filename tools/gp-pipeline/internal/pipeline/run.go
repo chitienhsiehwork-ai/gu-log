@@ -3,7 +3,6 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -84,29 +83,23 @@ func (s *State) stageEditorialContext() error {
 	return nil
 }
 
-// ErrGPPaused rejects GP writing, publishing, and ticket allocation while the
-// series is paused (openspec: gp-pipeline-publish-integrity). It states a
-// structural fact of this binary — the whole-article translation flow is
-// retired and no GP flow replaces it yet — rather than copying the site's
-// GP_SERIES_PAUSED flag. The commentary-format change brings GP back.
-var ErrGPPaused = errors.New("GP 暫停中: new GP posts are paused — whole-article translations need the source author's consent first, so gp-pipeline has no GP writing or publishing flow until the commentary format ships (openspec: editorial-charter)")
-
-// refuseGP returns ErrGPPaused, wrapped for step, when s would write or
-// publish GP. As in the CLI's series resolution, an existing post's filename
-// decides its series and Prefix only applies to a fresh article, so a
-// mismatched Prefix cannot carry a GP post past the pause. It stays out of
-// prepareExistingPost, which standalone translate calls with the default GP
-// Prefix.
-func (s *State) refuseGP(step string) error {
-	series := s.Prefix
-	if s.ExistingFile != "" {
-		var err error
-		if series, err = SeriesFromFilename(s.ExistingFile); err != nil {
-			return fmt.Errorf("%s: %w", step, err)
-		}
+// checkExistingSeries fails, wrapped for step, when an existing post's
+// filename names another series than s.Prefix. As in the CLI's series
+// resolution, an existing post's filename decides its series and Prefix only
+// applies to a fresh article. The GP-only steps (post-fixer, source-distance)
+// follow Prefix, so a mismatched Prefix would carry a GP post past its
+// source-distance stamp, or stamp a post of another series. It stays out of
+// prepareExistingPost, which standalone translate calls without a Prefix.
+func (s *State) checkExistingSeries(step string) error {
+	if s.ExistingFile == "" {
+		return nil
 	}
-	if series == "GP" {
-		return fmt.Errorf("%s: %w", step, ErrGPPaused)
+	series, err := SeriesFromFilename(s.ExistingFile)
+	if err != nil {
+		return fmt.Errorf("%s: %w", step, err)
+	}
+	if series != s.Prefix {
+		return fmt.Errorf("%s: prefix %q does not match series %s of existing file %s", step, s.Prefix, series, s.ExistingFile)
 	}
 	return nil
 }
@@ -133,9 +126,9 @@ func stepsForState(s *State) []pipelineStep {
 }
 
 // Run executes the full write-review-refine pipeline end-to-end and honors
-// s.FromStepInt so callers can resume partway through. GP has no flow while
-// it is paused, so Run refuses it before any snapshot, recovery hydration, or
-// step — the CLI ingress is not the only guard.
+// s.FromStepInt so callers can resume partway through. An existing post whose
+// filename names another series than Prefix is refused before any snapshot,
+// recovery hydration, or step (see checkExistingSeries).
 //
 // Run is the single-invocation entrypoint of the pipeline. It
 // does NOT manage work-dir setup — call SetupWorkDir first — and does NOT
@@ -143,7 +136,7 @@ func stepsForState(s *State) []pipelineStep {
 // PrintSummary so the `run` subcommand can emit it in both human and
 // --json shapes.
 func Run(ctx context.Context, s *State) error {
-	if err := s.refuseGP("run"); err != nil {
+	if err := s.checkExistingSeries("run"); err != nil {
 		return err
 	}
 	// Hydrate and validate an existing post before any recovery prompt runs.

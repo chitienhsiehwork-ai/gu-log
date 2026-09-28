@@ -18,9 +18,10 @@ import (
 // caller starts later than StepDeploy, which never happens but is kept for
 // symmetry with other State methods). Existing-file recovery skips allocation
 // and rename, but still validates, builds, commits, and pushes owned changes.
-// GP is refused first: nothing publishes GP while it is paused.
+// An existing post whose filename names another series than Prefix is
+// refused first (see checkExistingSeries).
 func (s *State) Deploy(ctx context.Context) error {
-	if err := s.refuseGP("deploy"); err != nil {
+	if err := s.checkExistingSeries("deploy"); err != nil {
 		return err
 	}
 	if s.DryRun {

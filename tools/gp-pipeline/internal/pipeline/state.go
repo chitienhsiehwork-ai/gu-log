@@ -178,17 +178,15 @@ func (s *State) judgeDispatcher() *llm.Dispatcher {
 }
 
 // NewState constructs a State with sensible defaults. Fields left empty
-// by the caller are filled in: Timings is always non-nil; Prefix defaults
-// to "GP", so a caller that forgets to set the series fails loudly on the GP
-// pause instead of silently running another series; RalphBar defaults to 8;
-// TranslatedDate defaults to empty and should be populated before the Write
-// step runs.
+// by the caller are filled in: Timings is always non-nil and RalphBar
+// defaults to 8. Prefix and PromptTicketID have no default: a caller that
+// forgets to name the series fails at the first step that needs it instead of
+// silently running a series nobody chose. TranslatedDate defaults to empty and
+// should be populated before the Write step runs.
 func NewState() *State {
 	return &State{
-		Prefix:         "GP",
-		RalphBar:       8,
-		PromptTicketID: "GP-PENDING",
-		Timings:        map[string]int{},
+		RalphBar: 8,
+		Timings:  map[string]int{},
 	}
 }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // counterReport is the JSON shape emitted by `gp-pipeline counter --json`.
@@ -36,12 +35,12 @@ Two subcommands:
       Print the value that WILL be allocated next, without mutating the
       file. Useful for dry runs and dashboards.
 
-  gp-pipeline counter bump --prefix <MP|SD|Lv>
+  gp-pipeline counter bump --prefix <GP|MP|SD|Lv>
       Atomically advance the counter by 1 and print the value that WAS
       allocated (the ticketId the caller should use for their new post).
       This is the write-side primitive that the deploy step uses.
-      GP 暫停中: bump rejects GP, the default prefix, while GP is paused
-      (openspec: editorial-charter).`,
+
+--prefix is required for both: the counter never picks a series.`,
 	}
 
 	var prefix string
@@ -53,7 +52,7 @@ Two subcommands:
 			return runCounterNext(state, prefix)
 		},
 	}
-	nextCmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	nextCmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
 
 	var bumpPrefix string
 	bumpCmd := &cobra.Command{
@@ -63,13 +62,17 @@ Two subcommands:
 			return runCounterBump(state, bumpPrefix)
 		},
 	}
-	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP is paused and rejected")
+	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
 
 	root.AddCommand(nextCmd, bumpCmd)
 	return root
 }
 
 func runCounterNext(state *rootState, prefix string) error {
+	if err := counter.RequirePrefix("counter next", prefix); err != nil {
+		emitCounterReport(state, counterReport{Operation: "next", Prefix: prefix, Error: err.Error()})
+		return err
+	}
 	c := counter.New(state.cfg.CounterFile, "")
 	v, err := c.Next(prefix)
 	if err != nil {
@@ -92,10 +95,9 @@ func runCounterNext(state *rootState, prefix string) error {
 }
 
 func runCounterBump(state *rootState, prefix string) error {
-	// No GP number is allocated while GP is paused; checked before the
-	// counter lock (openspec: gp-pipeline-publish-integrity).
-	if prefix == "GP" {
-		err := fmt.Errorf("counter bump: %w", pipeline.ErrGPPaused)
+	// A missing series fails before the counter lock; nothing is allocated
+	// for a series nobody chose (openspec: gp-pipeline-publish-integrity).
+	if err := counter.RequirePrefix("counter bump", prefix); err != nil {
 		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
 		return err
 	}
