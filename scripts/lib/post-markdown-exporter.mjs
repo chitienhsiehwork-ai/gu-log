@@ -1319,9 +1319,20 @@ function tombstoneMarkdownBody({ copy, stoneLines, lang, sourceUrl, sourceTitle,
  * Taken-down posts (openspec: post-takedown) render a tombstone instead of an
  * article body. Cross-check frontmatter, route marker and the tombstone element,
  * then build the Markdown from the shared copy module and frontmatter only —
- * never from any former article content.
+ * never from any former article content. This is the build's one per-post
+ * tombstone gate: HTML marker, `noindex` and no body container; empty JSON
+ * body; tombstone Markdown. Machine outputs are checked by
+ * scripts/verify-canonical-public-output.mjs.
  */
-function projectTombstoneArticle({ article, rawMdx, rawData, postJson, context, markdownUrl }) {
+function projectTombstoneArticle({
+  tree,
+  article,
+  rawMdx,
+  rawData,
+  postJson,
+  context,
+  markdownUrl,
+}) {
   const { sourceName } = context;
   const markerStatus = markerValue(article, 'dataPostStatus');
   if (rawData.status !== TAKEN_DOWN_STATUS || markerStatus !== TAKEN_DOWN_STATUS) {
@@ -1350,7 +1361,14 @@ function projectTombstoneArticle({ article, rawMdx, rawData, postJson, context, 
     );
   }
   if (findElements(article, (candidate) => hasClass(candidate, 'post-content')).length !== 0) {
-    fail(sourceName, 'taken-down article must not render post-content');
+    fail(sourceName, 'taken-down HTML must not render post-content');
+  }
+  const robots = findElements(
+    tree,
+    (candidate) => candidate.tagName === 'meta' && candidate.properties?.name === 'robots'
+  );
+  if (robots.length !== 1 || robots[0].properties?.content !== 'noindex') {
+    fail(sourceName, 'taken-down HTML must carry <meta name="robots" content="noindex">');
   }
   if (
     findElements(article, (candidate) => candidate.properties?.dataPostStatusBanner !== undefined)
@@ -1358,6 +1376,7 @@ function projectTombstoneArticle({ article, rawMdx, rawData, postJson, context, 
   ) {
     fail(sourceName, 'taken-down article must not render a status banner');
   }
+  if (postJson.body !== '') fail(sourceName, 'taken-down post JSON body must be an empty string');
   if (!Array.isArray(postJson.headings) || postJson.headings.length !== 0) {
     fail(sourceName, 'taken-down post JSON headings must be empty');
   }
@@ -1462,6 +1481,7 @@ function projectRenderedArticle({
     markerValue(article, 'dataPostStatus') === TAKEN_DOWN_STATUS
   ) {
     return projectTombstoneArticle({
+      tree,
       article,
       rawMdx,
       rawData,

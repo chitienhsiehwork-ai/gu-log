@@ -191,13 +191,6 @@ describe('taken-down post leak checks', () => {
     path: '/posts/gp-273-20260813-human-loop',
     ticketId: 'GP-273',
   };
-  const tombstoneHtml =
-    '<html><head><meta name="robots" content="noindex"></head><body>' +
-    '<article data-post-representation data-post-status="taken-down">' +
-    '<div data-post-tombstone data-tombstone-series="GP"></div></article></body></html>';
-  const tombstoneJson = JSON.stringify({ body: '', headings: [], summary: '這篇翻譯已下架。' });
-  const tombstoneMarkdown =
-    '---\nstatus: taken-down\n---\n\n# T\n\ngu-log 的翻譯文章之墓\n\n[去讀原文 →](https://example.com)\n';
   const clean = () => ({
     takenDownPosts: [post],
     sitemaps: [
@@ -216,9 +209,6 @@ describe('taken-down post leak checks', () => {
     feed: {
       content: JSON.stringify({ articles: [{ slug: 'live', lang: 'zh-tw', url: '/posts/live' }] }),
     },
-    postArtifacts: new Map([
-      [post.path, { html: tombstoneHtml, json: tombstoneJson, markdown: tombstoneMarkdown }],
-    ]),
     navigationPages: [{ name: 'dist/index.html', content: '<a href="/posts/live">live</a>' }],
   });
 
@@ -287,41 +277,6 @@ describe('taken-down post leak checks', () => {
     expect(validateTakedownOutputs(input)).toEqual([
       `rss.xml: lists taken-down post GP-273 ${post.path}`,
     ]);
-  });
-
-  it('rejects a tombstone that still carries article content or misses noindex', () => {
-    const input = clean();
-    input.postArtifacts.set(post.path, {
-      html:
-        tombstoneHtml.replace('<meta name="robots" content="noindex">', '') +
-        '<div class="post-content"><p>leak</p></div>',
-      json: JSON.stringify({ body: 'leak', headings: [{ depth: 2 }], summary: '舊摘要' }),
-      markdown: '---\nstatus: published\n---\n# T\n\nleak\n',
-    });
-    const errors = validateTakedownOutputs(input);
-    expect(errors).toEqual(
-      expect.arrayContaining([
-        `GP-273 ${post.path}: HTML lacks <meta name="robots" content="noindex">`,
-        `GP-273 ${post.path}: HTML still renders the article body container`,
-        `GP-273 ${post.path}: post JSON body is not empty`,
-        `GP-273 ${post.path}: post JSON headings are not empty`,
-        `GP-273 ${post.path}: post JSON summary is not the neutral sentence`,
-        `GP-273 ${post.path}: Markdown metadata is not status: taken-down`,
-        `GP-273 ${post.path}: Markdown is not the tombstone content`,
-      ])
-    );
-  });
-
-  it('fails closed when a tombstone artifact is missing', () => {
-    const input = clean();
-    input.postArtifacts = new Map();
-    expect(validateTakedownOutputs(input)).toEqual(
-      expect.arrayContaining([
-        `GP-273 ${post.path}: tombstone HTML is missing`,
-        `GP-273 ${post.path}: post JSON is missing`,
-        `GP-273 ${post.path}: tombstone Markdown is missing`,
-      ])
-    );
   });
 
   it('classifies listing pages and slices onward navigation from post pages', () => {

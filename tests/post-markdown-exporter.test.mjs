@@ -607,6 +607,7 @@ function tombstoneHtml({
   tombstones = 1,
   extra = '',
   sourceTitle = 'The human is the loop',
+  robots = '<meta name="robots" content="noindex">',
 } = {}) {
   const prefix = lang === 'en' ? '/en/posts/' : '/posts/';
   const canonical = `https://gu-log.vercel.app${prefix}${slug}`;
@@ -618,7 +619,7 @@ function tombstoneHtml({
   return `<!doctype html>
 <html>
   <head>
-    <meta name="robots" content="noindex">
+    ${robots}
     <link rel="alternate" type="text/markdown" href="${canonical}.md" data-post-markdown-alternate>
   </head>
   <body>
@@ -754,6 +755,15 @@ test('taken-down export fails closed when frontmatter, marker and tombstone disa
         html: tombstoneHtml({ extra: '<div data-post-status-banner data-status="retired"></div>' }),
       }),
     /must not render a status banner/
+  );
+  assert.throws(() => run({ html: tombstoneHtml({ robots: '' }) }), /content="noindex"/);
+  assert.throws(
+    () => run({ html: tombstoneHtml({ robots: '<meta name="robots" content="index">' }) }),
+    /content="noindex"/
+  );
+  assert.throws(
+    () => run({ postJson: { ...json, body: '\n' }, html: tombstoneHtml() }),
+    /JSON body must be an empty string/
   );
   assert.throws(() => run({ html: tombstoneHtml({ series: 'MP' }) }), /series marker/);
   assert.throws(() => run({ html: tombstoneHtml({ sourceTitle: 'Other' }) }), /sourceTitle/);

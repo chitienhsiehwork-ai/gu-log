@@ -17,7 +17,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { LISTING_SERIES, LANG_PREFIXES } from '../vercel.mjs';
-import { getNeutralSummary, getTombstoneCopy } from '../src/lib/tombstone-copy.mjs';
 import { listTakenDownPosts } from './lib/taken-down-posts.mjs';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -257,7 +256,8 @@ export function validateArtifactContracts({ sitemaps, rss, searchIndexes }) {
 // a taken-down post must not have an entry of its own, while a public post's
 // text that links to a tombstone is left alone. Listing pages and onward
 // navigation must not link to a tombstone either. The tombstone's own HTML,
-// JSON and Markdown must carry only tombstone content.
+// JSON and Markdown are checked once, by the Markdown exporter that runs just
+// before this gate (scripts/lib/post-markdown-exporter.mjs).
 const LISTING_PAGE_PATTERN =
   /^(?:en\/)?(?:index\.html|(?:gu-log-picks|mogu-picks|shroomdog-originals|level-up|tags|glossary|reading-tracker)\/.*index\.html)$/;
 const ONWARD_ZONE_START = 'class="post-onward-zone"';
@@ -291,14 +291,13 @@ export function onwardNavigationHtml(html) {
 }
 
 /**
- * Every public output must treat taken-down posts as tombstones only.
+ * No machine output, listing or onward navigation may list a taken-down post.
  * @param {{
  *   takenDownPosts: Array<{ id: string, lang: string, path: string, ticketId?: string }>,
  *   sitemaps?: Array<{ name: string, content: string }>,
  *   rss?: { content: string },
  *   searchIndexes?: Array<{ name: string, content: string }>,
  *   feed?: { content: string } | null,
- *   postArtifacts?: Map<string, { html?: string | null, json?: string | null, markdown?: string | null }>,
  *   navigationPages?: Array<{ name: string, content: string }>,
  * }} input
  * @returns {string[]}
@@ -309,7 +308,6 @@ export function validateTakedownOutputs({
   rss = { content: '' },
   searchIndexes = [],
   feed = null,
-  postArtifacts = new Map(),
   navigationPages = [],
 }) {
   const errors = [];
@@ -359,66 +357,6 @@ export function validateTakedownOutputs({
       if (!urlPath || seen.has(urlPath)) continue;
       seen.add(urlPath);
       flagUrl(name, url);
-    }
-  }
-
-  for (const post of takenDownPosts) {
-    const label = describe(post);
-    const artifacts = postArtifacts.get(post.path) ?? {};
-    const { html, json, markdown } = artifacts;
-    let copy = null;
-    try {
-      copy = getTombstoneCopy({ ticketId: post.ticketId, lang: post.lang });
-    } catch (error) {
-      errors.push(`${label}: ${error.message}`);
-    }
-
-    if (typeof html !== 'string') {
-      errors.push(`${label}: tombstone HTML is missing`);
-    } else {
-      if (!html.includes('data-post-status="taken-down"')) {
-        errors.push(`${label}: HTML lacks the taken-down article marker`);
-      }
-      const tombstones = html.match(/\bdata-post-tombstone\b/g)?.length ?? 0;
-      if (tombstones !== 1)
-        errors.push(`${label}: HTML must render one tombstone, found ${tombstones}`);
-      if (!/<meta name="robots" content="noindex"\s*\/?>/.test(html)) {
-        errors.push(`${label}: HTML lacks <meta name="robots" content="noindex">`);
-      }
-      if (/class="[^"]*\bpost-content\b/.test(html)) {
-        errors.push(`${label}: HTML still renders the article body container`);
-      }
-    }
-
-    if (typeof json !== 'string') {
-      errors.push(`${label}: post JSON is missing`);
-    } else {
-      try {
-        const data = JSON.parse(json);
-        if (data.body !== '') errors.push(`${label}: post JSON body is not empty`);
-        if (!Array.isArray(data.headings) || data.headings.length !== 0) {
-          errors.push(`${label}: post JSON headings are not empty`);
-        }
-        if (
-          copy &&
-          data.summary !== getNeutralSummary({ ticketId: post.ticketId, lang: post.lang })
-        ) {
-          errors.push(`${label}: post JSON summary is not the neutral sentence`);
-        }
-      } catch {
-        errors.push(`${label}: post JSON is invalid`);
-      }
-    }
-
-    if (typeof markdown !== 'string') {
-      errors.push(`${label}: tombstone Markdown is missing`);
-    } else {
-      if (!/^status: taken-down$/m.test(markdown)) {
-        errors.push(`${label}: Markdown metadata is not status: taken-down`);
-      }
-      if (copy && (!markdown.includes(copy.cardLabel) || !markdown.includes(copy.stoneEpitaph))) {
-        errors.push(`${label}: Markdown is not the tombstone content`);
-      }
     }
   }
 
@@ -561,16 +499,6 @@ function main() {
       content: fs.readFileSync(file, 'utf8'),
     })),
     feed: { content: readIfExists(path.join(DIST_DIR, 'api/feed.json')) ?? '{"articles":[]}' },
-    postArtifacts: new Map(
-      takenDownPosts.map((post) => [
-        post.path,
-        {
-          html: readIfExists(path.join(DIST_DIR, post.path, 'index.html')),
-          json: readIfExists(path.join(DIST_DIR, 'api/posts', `${post.id}.json`)),
-          markdown: readIfExists(path.join(DIST_DIR, `${post.path}.md`)),
-        },
-      ])
-    ),
     navigationPages,
   });
   if (violations.length > 0) {
@@ -594,7 +522,7 @@ function main() {
   if (process.exitCode === 1) return;
 
   console.log(
-    `OK: public artifact contracts + canonical URLs -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found, ${takenDownPosts.length} taken-down post(s) verified as tombstones.`
+    `OK: public artifact contracts + canonical URLs -- ${sitemapFiles.length} sitemap file(s), rss.xml, ${searchIndexFiles.length} search-index file(s), ${htmlFiles.length} HTML file(s) checked, 0 legacy public URLs found, ${takenDownPosts.length} taken-down post(s) kept out of machine outputs and navigation.`
   );
 }
 

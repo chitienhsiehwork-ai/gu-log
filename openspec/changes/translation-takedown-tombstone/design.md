@@ -53,7 +53,7 @@
 - `.md`：exporter 對下架文章不投影正文，改產生墓碑 Markdown：同一套 frontmatter（`status: taken-down`），單一 H1、狀態提示、來源標示，最後是墓碑文案與原文連結。依 `post-markdown-representation`「每篇都要有 artifact」的規定一律成功產生；內容協商照舊，`Accept: text/markdown` 拿到的就是墓碑 Markdown。
 - Exporter 交叉驗證：frontmatter 是 `taken-down` ⇔ HTML marker 是 `taken-down` ⇔ 頁面有墓碑元素；原始 MDX 正文必須為空。
 - 排除：首頁、系列頁、tags、tags 索引、Level-Up、閱讀紀錄、glossary 的文章連結、相關文章、系列與上下篇導覽、RSS、JSON feed、三份搜尋索引、sitemap。
-- Postbuild 洩漏檢查擴充 `scripts/verify-canonical-public-output.mjs`：sitemap、RSS、搜尋索引、JSON feed 不得有下架文章的項目（看每個項目自己的網址：sitemap 的 `<loc>`、RSS item 的 link／guid、JSON 條目的 slug／url；其他公開文章正文裡連到墓碑頁的連結不算）；下架文章的 JSON `body` 必須為空；`.md` 必須是墓碑；HTML 必須有墓碑 marker 與 `noindex`、沒有 `.post-content`。另外 apply 時用一次性的檢查，拿下架前的正文片段比對整個 `dist/`，確認沒有殘留。
+- Postbuild 兩道檢查各管一段，同一件事只查一次。`scripts/verify-canonical-public-output.mjs` 查 sitemap、RSS、搜尋索引、JSON feed 不得有下架文章的項目（看每個項目自己的網址：sitemap 的 `<loc>`、RSS item 的 link／guid、JSON 條目的 slug／url；其他公開文章正文裡連到墓碑頁的連結不算），列表頁與文章底部導覽也不得連到墓碑。排在它前面的 exporter（`scripts/build-post-markdown.mjs`）逐篇查下架文章：JSON `body` 是空字串、HTML 有墓碑 marker 與 `noindex`、沒有 `.post-content`，`.md` 只由墓碑文案與 frontmatter 產生。另外 apply 時用一次性的檢查，拿下架前的正文片段比對整個 `dist/`，確認沒有殘留。
 
 ### D4. 墓碑頁版面
 

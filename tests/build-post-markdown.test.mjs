@@ -102,6 +102,7 @@ sourceTitle: Original fixture title
     body: '',
   };
   const html = `<!doctype html><html><head>
+<meta name="robots" content="noindex">
 <link rel="alternate" type="text/markdown" href="https://gu-log.vercel.app/posts/${slug}.md" data-post-markdown-alternate>
 </head><body>
 <article data-post-representation data-post-slug="${slug}" data-post-lang="zh-tw" data-post-status="taken-down" data-replacement-ticket-id="" data-replacement-url="">
