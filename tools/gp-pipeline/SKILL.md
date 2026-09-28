@@ -40,7 +40,7 @@ tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP   # Mogu Picks
 contract tests，不在 skill 複製快照。來源距離的 aligner 也用 Claude，pin 在
 `.claude/agents/source-aligner.md`；跟寫手 pin 相同時，pipeline 在呼叫前就失敗。
 
-MP 可貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可選材、省略、重排、綜合、反駁或從頭重建文章。MP 沒有最低改寫幅度；不得只因太近或太遠要求重寫。close-form MP 仍由 Mogu 擁有正文聲音，不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾。兩種距離共用同一個 MP contract，不新增子模式、schema 或 pipeline。一旦保留 source-derived claim，必須保留其 speaker、條件、hedge、controlling caveat、證據範圍與信心強度；不得捏造 facts、quotes、numbers、causality 或歸因。MoguNote 選配，核心分析直接放 body；MoguNote 可用第一人稱寫反應／立場、實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
+MP 可貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可選材、省略、重排、綜合、反駁或從頭重建文章。MP 沒有最低改寫幅度；不得只因太近或太遠要求重寫。close-form MP 仍由 Mogu 擁有正文聲音，不因貼近來源就承諾完整覆蓋、來源順序或原作者 voice fidelity。兩種距離共用同一個 MP contract，不新增子模式、schema 或 pipeline。一旦保留 source-derived claim，必須保留其 speaker、條件、hedge、controlling caveat、證據範圍與信心強度；不得捏造 facts、quotes、numbers、causality 或歸因。MoguNote 選配，核心分析直接放 body；MoguNote 可用第一人稱寫反應／立場、實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 只預審一支 YouTube 影片、讓人先看來源完整性與重複證據：
 

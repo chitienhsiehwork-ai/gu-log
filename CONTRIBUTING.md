@@ -457,9 +457,9 @@ user 要把 URL 寫成 GP 時，照上面的流程跑 `--prefix GP`。系列依 
 ### 新增 Mogu 來源文章（MP）
 
 1. 抓完整原文並完成 overlap evaluation
-2. 先定 Mogu 自己的 thesis，再選擇最適合文章的距離：可以貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可以選材、刪減、重排、綜合、反駁或從頭重建。MP 沒有最低改寫幅度；不得只為證明「不像 GP」硬改好用的來源骨架
+2. 先定 Mogu 自己的 thesis，再選擇最適合文章的距離：可以貼近來源翻譯／改寫、保留大部分覆蓋與順序並加入 Mogu flavor，也可以選材、刪減、重排、綜合、反駁或從頭重建。MP 沒有最低改寫幅度；不得只為了跟來源拉開距離硬改好用的來源骨架
 3. 寫 **zh-tw 版** `mp-pending-YYYYMMDD-<slug>.mdx`；每個保留的 source claim 都要保留 speaker、條件、hedge、controlling caveat 與證據範圍，Mogu 新增分析要歸給 Mogu
-4. close-form MP 仍由 Mogu 擁有正文聲音，不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾；close-form 與自由重建共用同一個 MP contract，不新增子模式、schema 或 pipeline
+4. close-form MP 仍由 Mogu 擁有正文聲音，不因貼近來源就承諾完整覆蓋、來源順序或原作者 voice fidelity；close-form 與自由重建共用同一個 MP contract，不新增子模式、schema 或 pipeline
 5. 不得捏造 facts、quote、number、causality，亦不得挪用來源作者經歷或杜撰看似真實的人類履歷。MoguNote 可寫第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona；可查證的新 premise 要有 inline citation。MoguNote 選配，沒有就不補
 6. `node scripts/validate-posts.mjs` 確認 frontmatter 合格，再丟 **vibe-opus-scorer** 與 Fact Checker 評分；不得只因文章貼近或遠離來源而扣分，真正的品質、claim closure、歸因與可查證性照常嚴格評審。沒過可依 MP 編輯身份改寫，最多 3 輪
 7. 過分數之後才翻 **en 版**

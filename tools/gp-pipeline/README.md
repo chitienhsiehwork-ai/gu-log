@@ -62,7 +62,7 @@ tools/gp-pipeline/gp-pipeline counter next --prefix MP
 tools/gp-pipeline/gp-pipeline stamp --file <gp-post>.mdx
 ```
 
-MP 走 `write → review → refine → Tribunal rewrite` 路徑；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 不取得 GP fidelity 承諾；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
+MP 走 `write → review → refine → Tribunal rewrite` 路徑；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 也不因貼近來源就承諾完整覆蓋、來源順序或原作者聲音；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 
