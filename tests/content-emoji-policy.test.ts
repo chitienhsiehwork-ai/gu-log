@@ -2477,6 +2477,34 @@ describe('staged and PR-base CLI use the same validator', () => {
     expect(pr.stderr).toContain('未授權 emoji');
   });
 
+  it('checks a draft outside git line by line, and exits 2 when it cannot finish', () => {
+    const root = makeTempDirectory('gu-log-emoji-draft-');
+    const draft = path.join(root, 'final.mdx');
+    const run = (file: string) =>
+      spawnSync(
+        process.execPath,
+        [path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'), file],
+        {
+          cwd: root,
+          encoding: 'utf8',
+        }
+      );
+    const clean = '---\ntitle: test\nlang: zh-tw\n---\nclean (◕‿◕)\n';
+
+    fs.writeFileSync(draft, `${clean}new ❤️\n`);
+    const flagged = run(draft);
+    expect(flagged.status, flagged.stdout + flagged.stderr).toBe(1);
+    expect(flagged.stderr).toContain(`${draft}:6 未授權 emoji`);
+
+    fs.writeFileSync(draft, clean);
+    const passed = run(draft);
+    expect(passed.status, passed.stdout + passed.stderr).toBe(0);
+
+    const unreadable = run(path.join(root, 'missing.mdx'));
+    expect(unreadable.status, unreadable.stdout + unreadable.stderr).toBe(2);
+    expect(unreadable.stderr).toContain('無法完成');
+  });
+
   it('wires pre-commit and CI to the same executable SSOT', () => {
     const hook = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'), 'utf8');
     const workflow = fs.readFileSync(
