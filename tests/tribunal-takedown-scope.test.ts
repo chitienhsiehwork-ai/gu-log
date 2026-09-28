@@ -1,11 +1,10 @@
 /**
  * Tribunal scope is decided by status (openspec: tribunal-verification-scope,
  * post-takedown): a taken-down post is refused before any judge runs, by every
- * entry point, with the plain failure code 1 — never 78 (the loops drain on
- * "needs operator action") or 75 (they consult the QUOTA_SUSPENDED ledger).
- * Candidate selection and the batch stop rule are covered by
- * scripts/tests/test-tribunal-batch-provider-quota.sh; gp-pipeline ralph by
- * tools/gp-pipeline/internal/pipeline/ralph_test.go.
+ * entry point, with the plain failure code 1 (why not 75/78:
+ * docs/tribunal-runbook.md). Candidate selection and the batch stop rule are
+ * covered by scripts/tests/test-tribunal-batch-provider-quota.sh; gp-pipeline
+ * ralph by tools/gp-pipeline/internal/pipeline/ralph_test.go.
  */
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';

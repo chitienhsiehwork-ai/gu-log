@@ -337,11 +337,15 @@ ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 
 Exit code conventions (from `tribunal-all-claude.sh`):
 - `0` — all 4 stages passed and final full-site build passed
-- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch). A run on a `status: taken-down` post also exits `1` before any judge runs or writes the ledger; candidate selection already skips those posts (`post-takedown` spec), so the batch and the loop just log it and move on
+- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch); also a refused `status: taken-down` post (see the note below)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
 - `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
+
+下架文章（`status: taken-down`）不在 Tribunal 範圍內：`tribunal.sh` 與 `tribunal-v2-run.ts` 在任何 judge 執行、寫 ledger 之前就以 `1` 結束。選文本來就排除下架文章（`post-takedown` spec），只有「選完文之後 HEAD 才前進」的那一輪會碰到，batch 與 loop 記一筆失敗就繼續下一篇。刻意不用 `78`：loop 會當成要 operator 處理而 drain、停止派工；也不用 `75`：batch 與 loop 看到 `75` 會去查 ledger，下架前留下的過期 `QUOTA_SUSPENDED` 會讓 batch 誤停。
+
+若 service 環境把 `TRIBUNAL_WORKER_SYNC_REF` 設成 `origin/main`，而 main repo 的 HEAD 不前進（只 fetch），選文（看 main repo 的工作樹）可能一直挑到已在 origin/main 下架的文章，每輪派工都選中、再被 worker 拒絕；預設的 `HEAD` 沒有這個問題。
 
 ## Worktree lifecycle cheat sheet
 

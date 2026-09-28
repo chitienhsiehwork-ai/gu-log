@@ -99,9 +99,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   // Tribunal scope is decided by status (openspec: post-takedown,
-  // tribunal-verification-scope): refuse a taken-down post before any judge.
-  // Same plain failure code as scripts/tribunal.sh, so no caller mistakes it
-  // for "needs operator action" (78) or a retry-later skip (75).
+  // tribunal-verification-scope): refuse a taken-down post before any judge,
+  // with the same rc 1 as scripts/tribunal.sh (why: docs/tribunal-runbook.md).
   if (isTakenDownData(splitPostSource(readFileSync(articlePath, 'utf8'), articlePath).data)) {
     console.error(`${articlePath} is taken-down; it is outside Tribunal scope. No judge ran.`);
     process.exit(1);
