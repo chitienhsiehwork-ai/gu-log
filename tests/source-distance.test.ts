@@ -28,6 +28,7 @@ import {
   verifyStamp,
   writeStamp,
 } from '../scripts/lib/source-distance.mjs';
+import { validStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -454,19 +455,7 @@ describe('英文版的逐字 n-gram 檢查', () => {
 });
 
 describe('章的序列化與驗證', () => {
-  const guide = segmentGuide(GUIDE);
-  const stamp = {
-    policy: POLICY.version,
-    verdict: 'PASS',
-    subjectSha256: subjectFingerprint(SOURCE_URL, guide),
-    sourceSha256: sourceSummary(segmentSource(CAPTURE)).sourceSha256,
-    sourceUnits: 215,
-    metrics: { maxRun: 2, sourceRatio: 0.22, alignedSentences: 9 },
-    aligner: 'claude-sonnet-5',
-    rewrites: 1,
-    alignerCalls: 3,
-    checkedAt: '2026-09-28',
-  };
+  const stamp = validStamp(GUIDE);
   const stamped = writeStamp(GUIDE, stamp);
   const check = (content: string) =>
     verifyStamp({
@@ -566,15 +555,7 @@ describe('章的序列化與驗證', () => {
 
   it('英文章驗逐字檢查的指標，而且不帶 aligner 欄位', () => {
     const english = GUIDE.replace("lang: 'zh-tw'", "lang: 'en'");
-    const base = {
-      policy: POLICY.version,
-      verdict: 'PASS',
-      subjectSha256: stamp.subjectSha256,
-      sourceSha256: stamp.sourceSha256,
-      sourceUnits: 215,
-      metrics: { ngramContainment: 0.02, maxVerbatimWords: 9, quotedWords: 7 },
-      checkedAt: '2026-09-28',
-    };
+    const base = validStamp(english);
     expect(check(writeStamp(english, base)).errors).toEqual([]);
     const tooClose = { ...base, metrics: { ...base.metrics, maxVerbatimWords: 30 } };
     expect(check(writeStamp(english, tooClose)).errors.join('\n')).toMatch(/exceed/);

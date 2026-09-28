@@ -8,13 +8,9 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
-import {
-  POLICY,
-  segmentGuide,
-  subjectFingerprint,
-  writeStamp,
-} from '../scripts/lib/source-distance.mjs';
+import { writeStamp } from '../scripts/lib/source-distance.mjs';
 import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
+import { validStamp, withValidStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
@@ -724,18 +720,6 @@ describe('validatePost — source-distance stamp', () => {
   };
   const stampErrors = (r: { errors: string[] }) =>
     r.errors.filter((e) => e.includes('sourceDistance'));
-  const stampFor = (content: string, sourceUrl = EXTERNAL) => ({
-    policy: POLICY.version,
-    verdict: 'PASS',
-    subjectSha256: subjectFingerprint(sourceUrl, segmentGuide(content)),
-    sourceSha256: 'a'.repeat(64),
-    sourceUnits: 2000,
-    metrics: { maxRun: 2, sourceRatio: 0.2, alignedSentences: 30 },
-    aligner: 'claude-sonnet-5',
-    rewrites: 0,
-    alignerCalls: 2,
-    checkedAt: '2026-09-28',
-  });
 
   it('GP 缺章：繁中與英文檔都失敗，訊息指出蓋章指令', () => {
     for (const [name, lang] of [
@@ -752,7 +736,7 @@ describe('validatePost — source-distance stamp', () => {
 
   it('帶有效章的 GP 通過，改了正文就過期', () => {
     const post = makePost(guideFm('GP-PENDING', 'zh-tw'));
-    const stamped = writeStamp(post, stampFor(post));
+    const stamped = withValidStamp(post);
     const r = validatePost(write('gp-pending-20260928-logbook.mdx', stamped), []);
     expect(r.errors).toEqual([]);
 
@@ -799,7 +783,7 @@ describe('validatePost — source-distance stamp', () => {
       '---',
       '',
     ].join('\n');
-    const withStamp = writeStamp(tombstone, stampFor(makePost(guideFm('GP-274', 'zh-tw'))));
+    const withStamp = writeStamp(tombstone, validStamp(makePost(guideFm('GP-274', 'zh-tw'))));
     const r = validatePost(write('gp-274-20260813-logbook.mdx', withStamp), []);
     expect(r.errors).toEqual(['sourceDistance must be removed when status is taken-down']);
   });
@@ -822,7 +806,7 @@ describe('validatePost — source-distance stamp', () => {
       guideFm('GP-PENDING', 'zh-tw'),
       `之前 [MP-41](${url}) 講過，[MP-41: 告警疲勞是設計問題](${url}) 也值得看 ${KAOMOJI}.\n\n## 延伸閱讀\n\n- [MP-41: 告警疲勞是設計問題](${url})`
     );
-    const gp = write('gp-pending-20260928-logbook.mdx', writeStamp(post, stampFor(post)));
+    const gp = write('gp-pending-20260928-logbook.mdx', withValidStamp(post));
     const stampStillValid = () => expect(stampErrors(validatePost(gp, []))).toEqual([]);
 
     stampStillValid();
@@ -832,12 +816,12 @@ describe('validatePost — source-distance stamp', () => {
     stampStillValid();
     fs.rmSync(tmpPath(target));
     stampStillValid();
-    expect(fs.readFileSync(gp, 'utf8')).toBe(writeStamp(post, stampFor(post)));
+    expect(fs.readFileSync(gp, 'utf8')).toBe(withValidStamp(post));
   });
 
   it('非 GP 文章帶章失敗', () => {
     const mp = makePost(guideFm('MP-40', 'zh-tw'));
-    const r = validatePost(write('mp-40-20260928-logbook.mdx', writeStamp(mp, stampFor(mp))), []);
+    const r = validatePost(write('mp-40-20260928-logbook.mdx', withValidStamp(mp)), []);
     expect(stampErrors(r).join('\n')).toMatch(/only allowed on GP/);
   });
 });

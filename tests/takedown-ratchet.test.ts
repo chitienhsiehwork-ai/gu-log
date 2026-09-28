@@ -7,13 +7,7 @@ import {
   collectRatchetInput,
   evaluateTakedownRatchet,
 } from '../scripts/check-takedown-ratchet.mjs';
-import {
-  POLICY,
-  parseFrontmatter,
-  segmentGuide,
-  subjectFingerprint,
-  writeStamp,
-} from '../scripts/lib/source-distance.mjs';
+import { withValidStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -47,24 +41,6 @@ const livePost = (ticketId: string, sourceUrl: string, extra: string[] = []) =>
 
 const GP35 = 'src/content/posts/gp-35-20260206-agent-teams.mdx';
 const GP35_URL = 'https://code.claude.com/docs/en/agent-teams';
-
-/** A post with a valid source-distance stamp (openspec source-distance-stamp). */
-function stamped(content: string) {
-  const data = parseFrontmatter(content);
-  const english = data.lang === 'en';
-  return writeStamp(content, {
-    policy: POLICY.version,
-    verdict: 'PASS',
-    subjectSha256: subjectFingerprint(data.sourceUrl, segmentGuide(content)),
-    sourceSha256: 'a'.repeat(64),
-    sourceUnits: 120,
-    metrics: english
-      ? { ngramContainment: 0, maxVerbatimWords: 0, quotedWords: 0 }
-      : { maxRun: 1, sourceRatio: 0.05, alignedSentences: 1 },
-    ...(english ? {} : { aligner: 'claude-sonnet-5', rewrites: 0, alignerCalls: 2 }),
-    checkedAt: '2026-09-28',
-  });
-}
 
 function baseInput(overrides: Partial<Parameters<typeof evaluateTakedownRatchet>[0]> = {}) {
   return {
@@ -177,8 +153,8 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
   });
 
   it('lets a stamped GP reading guide and its English version reuse a source taken down only as GP', () => {
-    const zh = stamped(livePost('GP-400', `${GP35_URL}/`));
-    const en = stamped(livePost('GP-400', GP35_URL, ['lang: "en"']));
+    const zh = withValidStamp(livePost('GP-400', `${GP35_URL}/`));
+    const en = withValidStamp(livePost('GP-400', GP35_URL, ['lang: "en"']));
     const input = baseInput({
       addedPosts: [
         { path: 'src/content/posts/gp-400-guide.mdx', content: zh },
@@ -224,7 +200,7 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
         addedPosts: [
           {
             path: 'src/content/posts/gp-400-guide.mdx',
-            content: stamped(livePost('GP-400', GP35_URL)),
+            content: withValidStamp(livePost('GP-400', GP35_URL)),
           },
         ],
       })
