@@ -1,23 +1,22 @@
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
 import {
-  cleanMetadataValue,
-  extractHtmlMetadata,
   findOrphanAssetDirs,
-  firstSentence,
   hostMatchesDomain,
   loadTakedownList,
   matchRule,
   planTakedown,
   readPosts,
-  resolveDefaultListPath,
+  sourceTitleForTicket,
   takeDownSource,
-  tweetMetadata,
 } from '../scripts/take-down-posts.mjs';
 import { useTestTempDirectories } from './helpers/temp-directories';
+
+const ROOT = path.resolve(__dirname, '..');
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
 
@@ -68,20 +67,14 @@ describe('takedown rules and plan', () => {
     expect(loadTakedownList(listPath).rules).toHaveLength(2);
   });
 
-  it('finds the rule file in the active change, then in the archived change', () => {
-    const root = makeTempDirectory('gu-log-takedown-root-');
-    const active = path.join(root, 'openspec/changes/translation-takedown-tombstone');
-    expect(resolveDefaultListPath(root)).toBe(path.join(active, 'takedown-list.json'));
-    const archived = path.join(
-      root,
-      'openspec/changes/archive/2026-09-28-translation-takedown-tombstone'
+  it('requires --list: the rule file moves with its OpenSpec change on archive', () => {
+    const result = spawnSync(
+      process.execPath,
+      [path.join(ROOT, 'scripts/take-down-posts.mjs'), '--plan'],
+      { cwd: ROOT, encoding: 'utf8' }
     );
-    fs.mkdirSync(archived, { recursive: true });
-    fs.writeFileSync(path.join(archived, 'takedown-list.json'), '{}');
-    expect(resolveDefaultListPath(root)).toBe(path.join(archived, 'takedown-list.json'));
-    fs.mkdirSync(active, { recursive: true });
-    fs.writeFileSync(path.join(active, 'takedown-list.json'), '{}');
-    expect(resolveDefaultListPath(root)).toBe(path.join(active, 'takedown-list.json'));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('--list <path> is required');
   });
 
   it('matches paid-news domains by sourceUrl host only, including subdomains', () => {
@@ -191,7 +184,6 @@ describe('takeDownSource', () => {
       file: 'gp-35.mdx',
       date: '2026-09-27',
       sourceTitle: 'Orchestrate teams of Claude Code sessions',
-      author: 'Anthropic',
     });
     expect(result.changed).toBe(true);
     expect(result.content.endsWith('---\n')).toBe(true);
@@ -209,10 +201,22 @@ describe('takeDownSource', () => {
       status: 'taken-down',
       takenDownAt: '2026-09-27',
       sourceTitle: 'Orchestrate teams of Claude Code sessions',
-      author: 'Anthropic',
     });
+    expect(fm.author).toBeUndefined();
     expect(fm.deprecatedBy).toBeUndefined();
     expect(fm.deprecatedReason).toBeUndefined();
+  });
+
+  it('never adds or changes author; an existing author stays as written', () => {
+    const withAuthor = original.replace('lang: "zh-tw"', 'lang: "zh-tw"\nauthor: "Anthropic"');
+    const fm = parse(
+      takeDownSource(withAuthor, {
+        file: 'gp-35.mdx',
+        date: '2026-09-27',
+        sourceTitle: 'S',
+      }).content.split('---\n')[1]
+    );
+    expect(fm.author).toBe('Anthropic');
   });
 
   it('uses the series and language neutral sentence and adds status when absent', () => {
@@ -259,44 +263,22 @@ describe('takeDownSource', () => {
   });
 });
 
-describe('source metadata helpers', () => {
-  it('prefers og:title, decodes entities and keeps author names', () => {
-    const html = `<html><head><title>Site | Page</title>
-      <meta property="og:title" content="The human &amp; the loop">
-      <meta name="author" content="Brent Fitzgerald"></head></html>`;
-    expect(extractHtmlMetadata(html)).toEqual({
-      title: 'The human & the loop',
-      author: 'Brent Fitzgerald',
-    });
-    expect(extractHtmlMetadata('<title> Only\n title </title>')).toEqual({
-      title: 'Only title',
-      author: null,
-    });
+describe('sourceTitleForTicket', () => {
+  const pair = (zh: Record<string, unknown>, en: Record<string, unknown> = {}) => [
+    { data: { lang: 'zh-tw', title: '中文標題', sourceUrl: 'https://www.example.com/a', ...zh } },
+    { data: { lang: 'en', title: 'English title', sourceUrl: 'https://www.example.com/a', ...en } },
+  ];
+
+  it('keeps an existing sourceTitle, then falls back to source, then the domain', () => {
+    expect(sourceTitleForTicket(pair({ source: 'Blog' }, { sourceTitle: 'Real title' }))).toBe(
+      'Real title'
+    );
+    expect(sourceTitleForTicket(pair({ source: ' Example Blog ' }))).toBe('Example Blog');
+    expect(sourceTitleForTicket(pair({}))).toBe('example.com');
   });
 
-  it('uses the X Article title, else the first sentence of the tweet', () => {
-    expect(
-      tweetMetadata({
-        tweet: { article: { title: 'Long-form post' }, text: 'x', author: { name: 'A' } },
-      })
-    ).toEqual({ title: 'Long-form post', author: 'A' });
-    expect(
-      tweetMetadata({
-        tweet: { text: 'Vibe coding is here. More below https://t.co/x', author: { name: 'K' } },
-      })
-    ).toEqual({ title: 'Vibe coding is here.', author: 'K' });
-    expect([...firstSentence('a'.repeat(200))]).toHaveLength(80);
-    expect(firstSentence('大家在服務器上部署。經常把它玩壞。')).toBe('大家在服務器上部署。');
-    expect(firstSentence('Ship v1.2 today. Then rest.')).toBe('Ship v1.2 today.');
-  });
-
-  it('strips emoji, collapses whitespace and rejects the gu-log title', () => {
-    expect(cleanMetadataValue('🚀 Ship   it 🎉 now')).toBe('Ship it now');
-    expect(cleanMetadataValue('前端 &laquo; 鑫空間')).toBe('前端 « 鑫空間');
-    expect(cleanMetadataValue('Introduction {#intro}')).toBe('Introduction');
-    expect(cleanMetadataValue('Same title', { forbid: ['Same title'] })).toBeNull();
-    expect(cleanMetadataValue('   ')).toBeNull();
-    expect([...(cleanMetadataValue('b'.repeat(300)) ?? '')]).toHaveLength(160);
+  it('never falls back to a gu-log title of either language', () => {
+    expect(sourceTitleForTicket(pair({ source: 'English title' }))).toBe('example.com');
   });
 });
 

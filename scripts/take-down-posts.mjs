@@ -2,15 +2,15 @@
 /**
  * take-down-posts.mjs — 依規則把文章下架成墓碑（openspec: post-takedown，design D10）
  *
- * 下架清單不另存快照：每次都依 takedown-list.json 的授權與規則，從當下語料算出。
+ * 下架清單不另存快照：每次都依規則檔（takedown-list.json）的授權與規則，從當下語料算出。
  *
- *   --plan                      依規則列出下架清單與統計（JSON），controller 用它對帳
- *   --resolve-source-metadata   替缺 sourceTitle／author 的文章查來源 metadata，寫進 --cache
- *   --apply --date YYYY-MM-DD   改 frontmatter、清空正文；已下架的檔案不再變動（可重跑）
- *   --prune-assets              搭配 --apply：刪除只被下架文章用到的 src/assets/posts/** 目錄
+ *   --list <path> --plan                   依規則列出下架清單與統計（JSON），controller 用它對帳
+ *   --list <path> --apply --date YYYY-MM-DD 改 frontmatter、清空正文；已下架的檔案不再變動（可重跑）
  *
- * 其他選項：--list <path>（規則檔）、--cache <path>（metadata cache，不 commit）、
- * --posts-dir／--assets-dir（測試用）。網路查詢需要 NODE_USE_ENV_PROXY=1（沙盒 proxy）。
+ * `--list` 必填：規則檔跟著該批的 OpenSpec change 走，archive 後路徑會變。
+ * 工具不連網：`sourceTitle` 依序取既有 `sourceTitle`、`source`、`sourceUrl` 的網域，
+ * 已經寫進文章的 `sourceTitle`／`author` 一律不動。`--apply` 最後會列出只剩下架文章
+ * 在用的 `src/assets/posts/**` 目錄，交給執行的人刪。`--posts-dir`／`--assets-dir` 給測試用。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,43 +22,18 @@ import {
   getNeutralSummary,
   getTakedownSeries,
 } from '../src/lib/tombstone-copy.mjs';
-import { findEmojiSequences } from './lib/emoji-sequences.mjs';
 import { postIdFromFilename, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const TAKEDOWN_CHANGE = 'translation-takedown-tombstone';
-
-/**
- * 規則檔跟著 OpenSpec change 走：change 還沒 archive 時在
- * openspec/changes/<change>/，archive 後搬到 openspec/changes/archive/<日期>-<change>/。
- */
-export function resolveDefaultListPath(root = REPO_ROOT) {
-  const active = path.join(root, 'openspec/changes', TAKEDOWN_CHANGE, 'takedown-list.json');
-  if (fs.existsSync(active)) return active;
-  const archiveDir = path.join(root, 'openspec/changes/archive');
-  const archived = fs.existsSync(archiveDir)
-    ? fs
-        .readdirSync(archiveDir)
-        .filter((name) => name.endsWith(`-${TAKEDOWN_CHANGE}`))
-        .sort()
-    : [];
-  return archived.length > 0
-    ? path.join(archiveDir, archived[archived.length - 1], 'takedown-list.json')
-    : active;
-}
-
-export const DEFAULT_LIST_PATH = resolveDefaultListPath();
 const DEFAULT_POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const DEFAULT_ASSETS_DIR = path.join(REPO_ROOT, 'src/assets/posts');
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const INCOMPATIBLE_FIELDS = ['deprecatedBy', 'deprecatedReason', 'retiredReason', 'retiredAt'];
-const MAX_SOURCE_TITLE = 160;
-const MAX_TWEET_TITLE = 80;
 
 // ─── Rules ─────────────────────────────────────────────────────────
 
 /** Load and validate the rules file; a batch without an owner authorization never runs. */
-export function loadTakedownList(listPath = DEFAULT_LIST_PATH) {
+export function loadTakedownList(listPath) {
   const list = JSON.parse(fs.readFileSync(listPath, 'utf8'));
   const auth = list.authorization ?? {};
   for (const field of ['by', 'date', 'channel', 'scope']) {
@@ -177,168 +152,6 @@ export function planTakedown({ list, posts }) {
   };
 }
 
-// ─── Source metadata ───────────────────────────────────────────────
-
-const NAMED_ENTITIES = Object.freeze({
-  amp: '&',
-  apos: "'",
-  quot: '"',
-  lt: '<',
-  gt: '>',
-  nbsp: ' ',
-  laquo: '«',
-  raquo: '»',
-  lsquo: '‘',
-  rsquo: '’',
-  ldquo: '“',
-  rdquo: '”',
-  ndash: '–',
-  mdash: '—',
-  hellip: '…',
-  middot: '·',
-  bull: '•',
-  copy: '©',
-  reg: '®',
-  trade: '™',
-});
-
-function decodeEntities(value) {
-  return value
-    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
-    .replace(/&([a-z]+);/gi, (entity, name) => NAMED_ENTITIES[name.toLowerCase()] ?? entity);
-}
-
-function metaContent(html, attribute, name) {
-  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
-  for (const tag of tags) {
-    const key = tag.match(new RegExp(`\\b${attribute}\\s*=\\s*["']([^"']+)["']`, 'i'))?.[1];
-    if (key?.toLowerCase() !== name) continue;
-    const content = tag.match(/\bcontent\s*=\s*"([^"]*)"|\bcontent\s*=\s*'([^']*)'/i);
-    const value = content?.[1] ?? content?.[2];
-    if (value && value.trim()) return decodeEntities(value).trim();
-  }
-  return null;
-}
-
-/** Title and author from a web page: og:title → twitter:title → <title>; author meta tags. */
-export function extractHtmlMetadata(html) {
-  const title =
-    metaContent(html, 'property', 'og:title') ??
-    metaContent(html, 'name', 'og:title') ??
-    metaContent(html, 'name', 'twitter:title') ??
-    metaContent(html, 'property', 'twitter:title') ??
-    (() => {
-      const raw = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
-      return raw ? decodeEntities(raw).replace(/\s+/g, ' ').trim() || null : null;
-    })();
-  const author =
-    metaContent(html, 'name', 'author') ??
-    metaContent(html, 'property', 'article:author') ??
-    metaContent(html, 'name', 'article:author') ??
-    null;
-  return { title, author: author && !/^https?:\/\//i.test(author) ? author : null };
-}
-
-/** First sentence of a tweet, at most MAX_TWEET_TITLE characters. */
-export function firstSentence(text, limit = MAX_TWEET_TITLE) {
-  const withoutUrls = text
-    .replace(/https?:\/\/\S+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  // Latin terminators need a following space ("v1.2" is not a sentence end);
-  // CJK terminators end a sentence on their own.
-  const sentence = withoutUrls.match(/^[\s\S]*?(?:[.!?](?=\s|$)|[。！？])/u)?.[0] ?? withoutUrls;
-  const chars = [...sentence.trim()];
-  return chars.length <= limit
-    ? chars.join('')
-    : `${chars
-        .slice(0, limit - 1)
-        .join('')
-        .trimEnd()}…`;
-}
-
-/** Title and author from an fxtwitter status payload: X Article title, else the tweet's first sentence. */
-export function tweetMetadata(payload) {
-  const tweet = payload?.tweet;
-  if (!tweet) return { title: null, author: null };
-  const articleTitle = tweet.article?.title;
-  const text = tweet.raw_text?.text ?? tweet.text ?? '';
-  return {
-    title: articleTitle?.trim() || (text.trim() ? firstSentence(text) : null),
-    author: tweet.author?.name?.trim() || null,
-  };
-}
-
-/**
- * Emoji-free, single-line, bounded value that is never the gu-log title.
- * @param {unknown} value
- * @param {{ forbid?: string[], max?: number }} [options]
- * @returns {string | null}
- */
-export function cleanMetadataValue(value, { forbid = [], max = MAX_SOURCE_TITLE } = {}) {
-  if (typeof value !== 'string') return null;
-  let cleaned = decodeEntities(value).replace(/\s*\{#[^}]*\}/g, '');
-  for (const { emoji } of findEmojiSequences(cleaned)) cleaned = cleaned.replaceAll(emoji, ' ');
-  cleaned = cleaned
-    .replace(/\u200d|\ufe0f|\u2060/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  if (!cleaned) return null;
-  const chars = [...cleaned];
-  if (chars.length > max)
-    cleaned = `${chars
-      .slice(0, max - 1)
-      .join('')
-      .trimEnd()}…`;
-  if (forbid.some((other) => typeof other === 'string' && other.trim() === cleaned)) return null;
-  return cleaned;
-}
-
-function tweetApiUrl(sourceUrl) {
-  const match = sourceUrl.match(
-    /^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/([^/?#]+)\/status(?:es)?\/(\d+)/i
-  );
-  return match ? `https://api.fxtwitter.com/${match[1]}/status/${match[2]}` : null;
-}
-
-async function fetchWithTimeout(url, { timeoutMs = 15000, ...init } = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url, {
-      ...init,
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        'user-agent': 'Mozilla/5.0 (compatible; gu-log-takedown/1.0; +https://gu-log.vercel.app)',
-        accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
-        ...init.headers,
-      },
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-export async function resolveSourceMetadata(sourceUrl, { fetchImpl = fetchWithTimeout } = {}) {
-  const api = tweetApiUrl(sourceUrl);
-  try {
-    if (api) {
-      const response = await fetchImpl(api);
-      if (!response.ok) return { title: null, author: null, via: `fxtwitter:${response.status}` };
-      return { ...tweetMetadata(await response.json()), via: 'fxtwitter' };
-    }
-    const response = await fetchImpl(sourceUrl);
-    if (!response.ok) return { title: null, author: null, via: `http:${response.status}` };
-    const type = response.headers.get('content-type') ?? '';
-    if (!type.includes('html')) return { title: null, author: null, via: `type:${type}` };
-    return { ...extractHtmlMetadata(await response.text()), via: 'html' };
-  } catch (error) {
-    return { title: null, author: null, via: `error:${error.name}` };
-  }
-}
-
 // ─── Frontmatter rewrite ───────────────────────────────────────────
 
 const TOP_LEVEL_KEY = /^([A-Za-z_][\w-]*):(?:\s|$)/;
@@ -365,10 +178,10 @@ function sameValue(left, right) {
  * Rewrite one post into a tombstone (pure). Keeps every original field except the
  * ones D1 changes, and verifies that by re-parsing the result.
  * @param {string} source
- * @param {{ file: string, date: string, sourceTitle: string, author?: string | null }} options
+ * @param {{ file: string, date: string, sourceTitle: string }} options
  * @returns {{ changed: boolean, content: string }}
  */
-export function takeDownSource(source, { file, date, sourceTitle, author }) {
+export function takeDownSource(source, { file, date, sourceTitle }) {
   if (!DATE_PATTERN.test(date ?? '')) throw new Error(`${file}: --date must be YYYY-MM-DD`);
   const { frontmatterText, data } = splitPostSource(source, file);
   if (data.status === TAKEN_DOWN_STATUS) return { changed: false, content: source };
@@ -405,9 +218,6 @@ export function takeDownSource(source, { file, date, sourceTitle, author }) {
   if (!hasStatus) kept.push(`status: ${yamlString(TAKEN_DOWN_STATUS)}`);
   kept.push(`takenDownAt: ${yamlString(date)}`);
   if (data.sourceTitle === undefined) kept.push(`sourceTitle: ${yamlString(resolvedTitle.trim())}`);
-  if (data.author === undefined && typeof author === 'string' && author.trim()) {
-    kept.push(`author: ${yamlString(author.trim())}`);
-  }
 
   const content = `---\n${kept.join('\n')}\n---\n`;
   const after = parseYaml(kept.join('\n'));
@@ -416,7 +226,6 @@ export function takeDownSource(source, { file, date, sourceTitle, author }) {
     'takenDownAt',
     'summary',
     'sourceTitle',
-    'author',
     ...INCOMPATIBLE_FIELDS,
   ]);
   for (const [key, value] of Object.entries(data)) {
@@ -434,8 +243,7 @@ export function takeDownSource(source, { file, date, sourceTitle, author }) {
     after.status !== TAKEN_DOWN_STATUS ||
     after.takenDownAt !== date ||
     after.summary !== summary ||
-    INCOMPATIBLE_FIELDS.some((field) => after[field] !== undefined) ||
-    (data.author !== undefined && !sameValue(after.author, data.author))
+    INCOMPATIBLE_FIELDS.some((field) => after[field] !== undefined)
   ) {
     throw new Error(`${file}: rewrite did not produce the expected takedown fields`);
   }
@@ -477,52 +285,40 @@ function listFiles(dir) {
 // ─── CLI ───────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-  const args = {
-    list: DEFAULT_LIST_PATH,
-    postsDir: DEFAULT_POSTS_DIR,
-    assetsDir: DEFAULT_ASSETS_DIR,
-  };
+  const args = { postsDir: DEFAULT_POSTS_DIR, assetsDir: DEFAULT_ASSETS_DIR };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     const next = () => argv[++index];
     if (arg === '--plan') args.plan = true;
     else if (arg === '--apply') args.apply = true;
-    else if (arg === '--resolve-source-metadata') args.resolve = true;
-    else if (arg === '--prune-assets') args.pruneAssets = true;
     else if (arg === '--list') args.list = path.resolve(next());
-    else if (arg === '--cache') args.cache = path.resolve(next());
     else if (arg === '--date') args.date = next();
     else if (arg === '--posts-dir') args.postsDir = path.resolve(next());
     else if (arg === '--assets-dir') args.assetsDir = path.resolve(next());
     else throw new Error(`unknown argument: ${arg}`);
   }
-  if ([args.plan, args.apply, args.resolve].filter(Boolean).length !== 1) {
-    throw new Error('choose exactly one of --plan, --resolve-source-metadata, --apply');
+  if (!args.list) throw new Error('--list <path> is required (the batch rule file)');
+  if (Boolean(args.plan) === Boolean(args.apply)) {
+    throw new Error('choose exactly one of --plan, --apply');
   }
   return args;
 }
 
-function readCache(cachePath) {
-  if (!cachePath || !fs.existsSync(cachePath)) return {};
-  return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
-}
-
-/** sourceTitle / author per ticket, so both languages of a pair share them. */
-function metadataForTicket(ticketPosts, cache) {
-  const primary = ticketPosts.find((post) => post.data.lang !== 'en') ?? ticketPosts[0];
-  const forbid = ticketPosts.map((post) => post.data.title);
-  const cached = cache[primary.data.sourceUrl] ?? {};
+/**
+ * sourceTitle per ticket, so both languages of a pair share it: an existing
+ * sourceTitle, else `source`, else the sourceUrl domain — never a gu-log title.
+ * @param {Array<{ data: Record<string, any> }>} ticketPosts
+ */
+export function sourceTitleForTicket(ticketPosts) {
   const existing = ticketPosts.find((post) => typeof post.data.sourceTitle === 'string');
-  const sourceTitle =
-    existing?.data.sourceTitle ??
-    cleanMetadataValue(cached.sourceTitle, { forbid }) ??
-    cleanMetadataValue(primary.data.source, { forbid }) ??
-    sourceHost(primary.data.sourceUrl);
-  const author = cleanMetadataValue(cached.author, { forbid, max: 80 });
-  return { sourceTitle, author };
+  if (existing) return existing.data.sourceTitle;
+  const primary = ticketPosts.find((post) => post.data.lang !== 'en') ?? ticketPosts[0];
+  const titles = new Set(ticketPosts.map((post) => String(post.data.title ?? '').trim()));
+  const source = typeof primary.data.source === 'string' ? primary.data.source.trim() : '';
+  return source && !titles.has(source) ? source : sourceHost(primary.data.sourceUrl);
 }
 
-async function main() {
+function main() {
   const args = parseArgs(process.argv.slice(2));
   const list = loadTakedownList(args.list);
   const posts = readPosts(args.postsDir);
@@ -533,6 +329,7 @@ async function main() {
     return;
   }
 
+  if (!DATE_PATTERN.test(args.date ?? '')) throw new Error('--apply needs --date YYYY-MM-DD');
   const planned = new Set(plan.posts.map((post) => post.file));
   const byTicket = new Map();
   for (const post of posts.filter((candidate) => planned.has(candidate.file))) {
@@ -541,44 +338,11 @@ async function main() {
     byTicket.set(post.data.ticketId, bucket);
   }
 
-  if (args.resolve) {
-    if (!args.cache) throw new Error('--resolve-source-metadata needs --cache <path>');
-    const cache = readCache(args.cache);
-    const pending = [...byTicket.values()]
-      .map((ticketPosts) => ticketPosts.find((post) => post.data.lang !== 'en') ?? ticketPosts[0])
-      .filter((post) => post.data.status !== TAKEN_DOWN_STATUS)
-      .filter((post) => post.data.sourceTitle === undefined || post.data.author === undefined)
-      .filter((post) => !cache[post.data.sourceUrl]);
-    let done = 0;
-    for (const post of pending) {
-      const result = await resolveSourceMetadata(post.data.sourceUrl);
-      cache[post.data.sourceUrl] = {
-        sourceTitle: result.title,
-        author: result.author,
-        via: result.via,
-      };
-      done += 1;
-      if (done % 20 === 0 || done === pending.length) {
-        fs.writeFileSync(args.cache, `${JSON.stringify(cache, null, 2)}\n`);
-        console.error(`resolved ${done}/${pending.length}`);
-      }
-    }
-    fs.writeFileSync(args.cache, `${JSON.stringify(cache, null, 2)}\n`);
-    return;
-  }
-
-  if (!DATE_PATTERN.test(args.date ?? '')) throw new Error('--apply needs --date YYYY-MM-DD');
-  const cache = readCache(args.cache);
   let changed = 0;
   for (const ticketPosts of byTicket.values()) {
-    const metadata = metadataForTicket(ticketPosts, cache);
+    const sourceTitle = sourceTitleForTicket(ticketPosts);
     for (const post of ticketPosts) {
-      const result = takeDownSource(post.source, {
-        file: post.file,
-        date: args.date,
-        sourceTitle: metadata.sourceTitle,
-        author: metadata.author,
-      });
+      const result = takeDownSource(post.source, { file: post.file, date: args.date, sourceTitle });
       if (!result.changed) continue;
       fs.writeFileSync(path.join(args.postsDir, post.file), result.content);
       post.source = result.content;
@@ -587,17 +351,12 @@ async function main() {
     }
   }
 
-  const orphans = findOrphanAssetDirs({ posts, assetsDir: args.assetsDir });
-  if (args.pruneAssets) {
-    for (const dir of orphans) fs.rmSync(path.join(args.assetsDir, dir), { recursive: true });
-  }
   console.log(
     JSON.stringify(
       {
         changedFiles: changed,
         planned: plan.counts,
-        orphanAssetDirs: orphans,
-        prunedAssets: Boolean(args.pruneAssets),
+        orphanAssetDirs: findOrphanAssetDirs({ posts, assetsDir: args.assetsDir }),
       },
       null,
       2
@@ -606,8 +365,10 @@ async function main() {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
-  main().catch((error) => {
+  try {
+    main();
+  } catch (error) {
     console.error(`take-down-posts: ${error.message}`);
     process.exit(1);
-  });
+  }
 }

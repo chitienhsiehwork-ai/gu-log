@@ -48,8 +48,8 @@
 
 ## 8. 下架工具與執行（工具與實際下架分開 commit）
 
-- [x] 8.1 `scripts/take-down-posts.mjs`：`--plan`、`--resolve-source-metadata`、`--apply`，slug 用小寫 `post.id`；以單元測試驗證規則、GP-1 排除、GP-63 大小寫、冪等、欄位保留與中性摘要
-- [x] 8.2 查來源 metadata（cache 不 commit），controller 用 `--plan` 對帳
+- [x] 8.1 `scripts/take-down-posts.mjs`：`--plan`、`--apply`（當時另有一次性的 `--resolve-source-metadata`，批次套用後已刪），slug 用小寫 `post.id`；以單元測試驗證規則、GP-1 排除、GP-63 大小寫、冪等、欄位保留與中性摘要
+- [x] 8.2 查來源 metadata（一次性，cache 不 commit），controller 用 `--plan` 對帳
 - [x] 8.3 下架 commit：套用規則（依 847d1f67 實算 547 檔）、刪除只被下架文章使用的 `src/assets/posts/**`；重跑 build、validator 與一次性洩漏檢查（拿下架前的正文片段比對 `dist/`）
 
 ## 9. Repo HEAD 副本清理
