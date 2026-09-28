@@ -5,6 +5,7 @@
  * plus the URL/keyword helpers that drive the thresholds.
  */
 import { describe, it, expect } from 'vitest';
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as dedupModule from '../scripts/dedup-gate.mjs';
@@ -24,6 +25,7 @@ const {
   jaccard,
   computeSimilarity,
   layer1Match,
+  layer1Verdict,
   formatLayer1Block,
   layer2Match,
   layer3QueueCheck,
@@ -427,9 +429,11 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['--series', series])).toThrow(hint);
   });
 
-  it('rejects unknown or missing series values', () => {
-    expect(() => parseArgs(['--series', 'SD'])).toThrow('expected GP or MP');
-    expect(() => parseArgs(['--series'])).toThrow('requires GP or MP');
+  it('accepts every canonical series and rejects unknown or missing values', () => {
+    expect(parseArgs(['--series', 'sd']).series).toBe('SD');
+    expect(parseArgs(['--series', 'LV']).series).toBe('Lv');
+    expect(() => parseArgs(['--series', 'XP'])).toThrow('expected GP, MP, SD or Lv');
+    expect(() => parseArgs(['--series'])).toThrow('requires GP, MP, SD or Lv');
   });
 
   it('parses --queue list of JSON strings', () => {
@@ -522,5 +526,99 @@ describe('taken-down posts are blocked sources', () => {
     );
     expect(result.article?.ticketId).not.toBe('GP-35');
     expect(result.verdict).toBe('PASS');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// GP 導讀例外（openspec: post-takedown〈自動化 SHALL 依狀態處理下架文章〉）：
+// 只有 GP 候選、相同來源的下架文章全部是 GP、沒有公開文章撞到時，才降成 WARN。
+// ════════════════════════════════════════════════════════════════════════════
+describe('Layer 1 verdict for a source taken down as GP', () => {
+  const article = (ticketId: string, sourceUrl: string, takenDown: boolean) => ({
+    file: `${ticketId.toLowerCase()}.mdx`,
+    ticketId,
+    title: `${ticketId} title`,
+    tags: [],
+    ...dedup.sourceIdentity(sourceUrl),
+    takenDown,
+    keywordText: '',
+  });
+  const URL = 'https://code.claude.com/docs/en/agent-teams';
+  const gp35 = article('GP-35', URL, true);
+  const gp36 = article('GP-36', `${URL}?ref=x`, true);
+  const mp114 = article('MP-114', URL, true);
+  const mp9 = article('MP-9', URL, false);
+
+  it('blocks a non-GP candidate from a source taken down as GP', () => {
+    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35]), 'MP');
+    expect(verdict).toBe('BLOCK');
+    expect(line).toMatch(/^BLOCK: Source blocked — GP-35 was taken down/);
+  });
+
+  it('warns a GP candidate whose source was taken down only as GP', () => {
+    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, gp36]), 'GP');
+    expect(verdict).toBe('WARN');
+    expect(line).toMatch(/^WARN: Source taken down as GP-35 \(URL match\), GP-36 \(URL match\)/);
+    expect(line).toMatch(/valid sourceDistance stamp/);
+  });
+
+  it('blocks a GP candidate when the source was also taken down as MP', () => {
+    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, mp114]), 'GP');
+    expect(verdict).toBe('BLOCK');
+    expect(line).toMatch(/^BLOCK: Source blocked — MP-114 was taken down/);
+  });
+
+  it('blocks a GP candidate that also duplicates a live post', () => {
+    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, mp9]), 'GP');
+    expect(verdict).toBe('BLOCK');
+    expect(line).toMatch(/^BLOCK: Duplicate of MP-9/);
+  });
+
+  const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+
+  it('keeps that contract through the CLI exit codes', () => {
+    const root = makeTempDirectory('gu-log-dedup-cli-');
+    fs.mkdirSync(path.join(root, 'scripts'));
+    fs.copyFileSync(
+      path.join(__dirname, '..', 'scripts', 'dedup-gate.mjs'),
+      path.join(root, 'scripts', 'dedup-gate.mjs')
+    );
+    fs.symlinkSync(path.join(__dirname, '..', 'node_modules'), path.join(root, 'node_modules'));
+    const postsDir = path.join(root, 'src', 'content', 'posts');
+    fs.mkdirSync(postsDir, { recursive: true });
+    const tombstone = (file: string, ticketId: string, url: string) =>
+      fs.writeFileSync(
+        path.join(postsDir, file),
+        `---\nticketId: "${ticketId}"\ntitle: "${ticketId}"\nsourceUrl: "${url}"\nstatus: "taken-down"\n---\n`
+      );
+    tombstone('gp-35-a.mdx', 'GP-35', URL);
+    tombstone('gp-40-b.mdx', 'GP-40', 'https://paid.example.org/story');
+    tombstone('mp-114-b.mdx', 'MP-114', 'https://paid.example.org/story');
+    const gate = (series: string, url: string) =>
+      spawnSync(
+        process.execPath,
+        [
+          path.join(root, 'scripts', 'dedup-gate.mjs'),
+          '--series',
+          series,
+          '--url',
+          url,
+          '--identity-only',
+        ],
+        { encoding: 'utf8' }
+      );
+
+    const mp = gate('MP', URL); // 〈Pipeline 用已下架的來源〉
+    expect(mp.status).toBe(1);
+    expect(mp.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
+    const gp = gate('GP', URL); // 〈GP 導讀用下架 GP 的來源〉
+    expect(gp.status).toBe(0);
+    expect(gp.stdout).toMatch(/^WARN: Source taken down as GP-35/);
+    const gpMp = gate('GP', 'https://paid.example.org/story'); // 〈GP 候選撞到下架的 MP〉
+    expect(gpMp.status).toBe(1);
+    expect(gpMp.stdout).toMatch(/^BLOCK: Source blocked — MP-114/);
+    const sd = gate('SD', URL);
+    expect(sd.status).toBe(1);
+    expect(sd.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
   });
 });

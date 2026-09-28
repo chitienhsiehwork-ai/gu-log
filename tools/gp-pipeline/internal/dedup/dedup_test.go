@@ -76,6 +76,11 @@ func TestCheckArgValidation(t *testing.T) {
 	if _, err := Check(ctx, Options{ScriptPath: "/x"}); err == nil {
 		t.Fatal("expected error when URL and Title are both empty")
 	}
+	// 〈沒給系列就失敗〉: no default series can hand out the GP-only exception.
+	_, err := Check(ctx, Options{ScriptPath: "/x", URL: "https://example.com/a"})
+	if err == nil || !strings.Contains(err.Error(), "Series is required") {
+		t.Fatalf("Check without Series = %v, want the required-series error", err)
+	}
 }
 
 func TestCheckLoadsSourceURLFrontmatterAndBlocksYouTubeAliases(t *testing.T) {
@@ -146,5 +151,66 @@ Existing body.
 			!strings.Contains(strings.ToLower(result.Matches[0]), "youtube video id match") {
 			t.Fatalf("Check(%s) did not preserve the YouTube identity match: %#v", rawURL, result.Matches)
 		}
+	}
+}
+
+// TestCheckTakenDownSourceBySeries covers openspec post-takedown〈Pipeline 用
+// 已下架的來源〉,〈GP 導讀用下架 GP 的來源〉and〈GP 候選撞到下架的 MP〉through the
+// real gate, plus the series-less candidate preflight.
+func TestCheckTakenDownSourceBySeries(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node unavailable")
+	}
+	repoRoot, err := filepath.Abs(filepath.Join("..", "..", "..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "dedup-gate.mjs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	scriptPath := filepath.Join(root, "scripts", "dedup-gate.mjs")
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	for _, dir := range []string{filepath.Dir(scriptPath), postsDir} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(scriptPath, script, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(repoRoot, "node_modules"), filepath.Join(root, "node_modules")); err != nil {
+		t.Fatal(err)
+	}
+	tombstone := func(file, ticket, url string) {
+		body := "---\nticketId: " + ticket + "\ntitle: " + ticket + "\nsourceUrl: " + url + "\nstatus: taken-down\n---\n"
+		if err := os.WriteFile(filepath.Join(postsDir, file), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	tombstone("gp-35-a.mdx", "GP-35", "https://gp-only.example.org/post")
+	tombstone("gp-40-b.mdx", "GP-40", "https://shared.example.org/post")
+	tombstone("mp-114-b.mdx", "MP-114", "https://shared.example.org/post")
+
+	for _, tc := range []struct {
+		name, series, url string
+		want              Verdict
+		reason            string
+	}{
+		{"MP from a source taken down as GP", "MP", "https://gp-only.example.org/post", VerdictBlock, "Source blocked — GP-35"},
+		{"GP from a source taken down only as GP", "GP", "https://gp-only.example.org/post", VerdictWarn, "sourceDistance stamp"},
+		{"GP from a source also taken down as MP", "GP", "https://shared.example.org/post", VerdictBlock, "Source blocked — MP-114"},
+		{"candidate preflight picks no series", AnySeries, "https://gp-only.example.org/post", VerdictBlock, "Source blocked — GP-35"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := Check(context.Background(), Options{ScriptPath: scriptPath, URL: tc.url, Series: tc.series, IdentityOnly: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Verdict != tc.want || !strings.Contains(result.Raw, tc.reason) {
+				t.Fatalf("verdict = %s, want %s with %q\n%s", result.Verdict, tc.want, tc.reason, result.Raw)
+			}
+		})
 	}
 }

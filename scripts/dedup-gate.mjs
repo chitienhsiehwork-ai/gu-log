@@ -10,20 +10,26 @@
  *   Layer 3: Intra-queue pairwise comparison (--queue flag)
  *
  * CLI:
- *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP]
+ *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP|SD|Lv]
  *   node scripts/dedup-gate.mjs --queue '{"url":...}' '{"url":...}'   (batch mode)
  *   node scripts/dedup-gate.mjs ... --dry-run
  *
  * Output (stdout):
  *   BLOCK: Duplicate of GP-127 (URL match)
  *   BLOCK: Source blocked — GP-35 was taken down (URL match): <title>
+ *   WARN: Source taken down as GP-35 (URL match) — a new GP reading guide needs ...
  *   WARN: Similar to MP-238 (score: 0.24)
  *   PASS
  *
  * Taken-down posts (openspec: post-takedown) are blocked sources, not live
  * articles: Layer 1 still matches their URL / tweet / YouTube identity and
  * blocks with "Source blocked", while Layer 2 never compares against them
- * because their content is gone. This file stays self-contained (the
+ * because their content is gone. Layer 1 looks at every article with the same
+ * source. The one exception is a --series GP candidate whose source was taken
+ * down only as GP and matches no live post: it gets a WARN, because a new GP
+ * reading guide may reuse that source with a valid sourceDistance stamp, which
+ * scripts/check-takedown-ratchet.mjs checks at commit. A source also taken down
+ * as MP stays blocked for GP too. This file stays self-contained (the
  * gp-pipeline Go tests run a lone copy of it), so the status is read inline.
  *
  * Exit codes:
@@ -378,6 +384,30 @@ function layer1Match(candidateUrl, articles) {
   return matches;
 }
 
+const GP_TICKET = /^GP-(?:\d+|PENDING)$/;
+
+/**
+ * The Layer 1 verdict over every article with the candidate's source. A live
+ * duplicate blocks as usual. A GP candidate whose source was taken down only
+ * as GP gets a WARN (the takedown ratchet requires a valid source-distance
+ * stamp at commit); any taken-down non-GP post keeps the source blocked.
+ */
+function layer1Verdict(matches, series) {
+  const live = matches.find(({ article }) => !article.takenDown);
+  if (live) return { verdict: 'BLOCK', line: formatLayer1Block(live) };
+  const nonGp = matches.find(({ article }) => !GP_TICKET.test(article.ticketId));
+  if (series !== 'GP' || nonGp) {
+    return { verdict: 'BLOCK', line: formatLayer1Block(nonGp ?? matches[0]) };
+  }
+  const takenDownAs = matches
+    .map(({ article, reason }) => `${article.ticketId} (${reason})`)
+    .join(', ');
+  return {
+    verdict: 'WARN',
+    line: `WARN: Source taken down as ${takenDownAs} — a new GP reading guide may use it only with a valid sourceDistance stamp (tools/gp-pipeline/gp-pipeline stamp); the takedown ratchet checks it at commit`,
+  };
+}
+
 /** The stdout line for a Layer 1 hit; a taken-down match is a blocked source. */
 function formatLayer1Block({ article, reason }) {
   if (article.takenDown) {
@@ -505,17 +535,18 @@ function parseArgs(argv) {
       i++;
     } else if (flag === '--series') {
       if (!next || next.startsWith('--')) {
-        throw new Error('--series requires GP or MP');
+        throw new Error('--series requires GP, MP, SD or Lv');
       }
-      const series = next.toUpperCase();
-      if (series === 'SP') {
+      const upper = next.toUpperCase();
+      if (upper === 'SP') {
         throw new Error('retired series "SP"; use "GP"');
       }
-      if (series === 'CP') {
+      if (upper === 'CP') {
         throw new Error('retired series "CP"; use "MP"');
       }
-      if (!['GP', 'MP'].includes(series)) {
-        throw new Error(`unsupported series "${next}"; expected GP or MP`);
+      const series = { GP: 'GP', MP: 'MP', SD: 'SD', LV: 'Lv' }[upper];
+      if (!series) {
+        throw new Error(`unsupported series "${next}"; expected GP, MP, SD or Lv`);
       }
       args.series = series;
       i++;
@@ -571,21 +602,26 @@ function main() {
   // ── Single candidate check ──
   if (!args.url && !args.title) {
     process.stderr.write(
-      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP] [--dry-run]\n'
+      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP|SD|Lv] [--dry-run]\n'
     );
     process.exit(2);
   }
 
   // Layer 1: URL
   const urlMatches = layer1Match(args.url, articles);
+  let sourceWarning = null;
   if (urlMatches.length > 0) {
-    process.stdout.write(formatLayer1Block(urlMatches[0]) + '\n');
-    if (!args.dryRun) process.exit(1);
-    process.exit(0);
+    const { verdict, line } = layer1Verdict(urlMatches, args.series);
+    if (verdict === 'BLOCK') {
+      process.stdout.write(line + '\n');
+      if (!args.dryRun) process.exit(1);
+      process.exit(0);
+    }
+    sourceWarning = line;
   }
 
   if (args.identityOnly) {
-    process.stdout.write('PASS\n');
+    process.stdout.write(`${sourceWarning ?? 'PASS'}\n`);
     process.exit(0);
   }
 
@@ -602,11 +638,11 @@ function main() {
   if (topicResult.verdict === 'WARN') {
     const { article, score } = topicResult;
     const msg = `WARN: Similar to ${article.ticketId} (score: ${score.toFixed(3)}): ${article.title}`;
-    process.stdout.write(msg + '\n');
+    process.stdout.write([sourceWarning, msg].filter(Boolean).join('\n') + '\n');
     process.exit(0);
   }
 
-  process.stdout.write('PASS\n');
+  process.stdout.write(`${sourceWarning ?? 'PASS'}\n`);
   process.exit(0);
 }
 
@@ -633,6 +669,7 @@ export {
   computeSimilarity,
   sourceIdentity,
   layer1Match,
+  layer1Verdict,
   formatLayer1Block,
   layer2Match,
   layer3QueueCheck,

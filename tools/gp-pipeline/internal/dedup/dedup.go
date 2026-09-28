@@ -36,14 +36,20 @@ type Result struct {
 	Matches []string
 }
 
-// Options controls the dedup check. All fields are required except
-// Series, which defaults to "GP" to match the bash pipeline's default
-// when the prefix is not explicitly set.
+// AnySeries marks a check made before any series is chosen (the YouTube
+// candidate preflight): the gate applies no series exception, so a source
+// taken down as GP stays blocked.
+const AnySeries = "any"
+
+// Options controls the dedup check. Series is required and has no default:
+// the gate lets only a GP candidate reuse a source taken down as GP (with a
+// valid source-distance stamp, which the takedown ratchet checks), so a
+// forgotten series must never fall into that exception.
 type Options struct {
 	ScriptPath   string // absolute path to scripts/dedup-gate.mjs
 	URL          string // source URL being checked
 	Title        string // proposed title
-	Series       string // ticket prefix (GP / MP / SD / Lv)
+	Series       string // ticket prefix (GP / MP / SD / Lv), or AnySeries
 	IdentityOnly bool   // stop after deterministic URL / source identity matching
 }
 
@@ -57,17 +63,17 @@ func Check(ctx context.Context, opts Options) (*Result, error) {
 	if opts.URL == "" && opts.Title == "" {
 		return nil, fmt.Errorf("dedup: URL or Title required")
 	}
-	series := opts.Series
-	if series == "" {
-		series = "GP"
-	}
-	if err := counter.ValidatePrefix(series); err != nil {
-		return nil, err
-	}
-
-	args := []string{
-		opts.ScriptPath,
-		"--series", series,
+	args := []string{opts.ScriptPath}
+	switch opts.Series {
+	case "":
+		return nil, fmt.Errorf("dedup: Series is required; choose one of %v, or AnySeries before a series is chosen", counter.ValidPrefixes)
+	case AnySeries:
+		// No --series: the gate grants no series exception.
+	default:
+		if err := counter.ValidatePrefix(opts.Series); err != nil {
+			return nil, err
+		}
+		args = append(args, "--series", opts.Series)
 	}
 	if opts.URL != "" {
 		args = append(args, "--url", opts.URL)
