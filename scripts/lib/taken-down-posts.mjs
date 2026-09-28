@@ -83,7 +83,7 @@ export function isTakenDownSource(source, sourceName) {
 }
 
 /**
- * 讀出目錄中所有 MDX 文章的 frontmatter 摘要。
+ * 讀出目錄中所有 MDX 文章：frontmatter 摘要，加上原始碼（`source`）與正文（`body`）。
  * @param {string} [postsDir]
  */
 export function readPostIndex(postsDir = DEFAULT_POSTS_DIR) {
@@ -104,6 +104,7 @@ export function readPostIndex(postsDir = DEFAULT_POSTS_DIR) {
         ticketId: typeof data.ticketId === 'string' ? data.ticketId : '',
         status: typeof data.status === 'string' ? data.status : 'published',
         data,
+        source,
         body,
       };
     });

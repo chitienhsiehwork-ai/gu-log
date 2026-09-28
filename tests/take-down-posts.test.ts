@@ -10,10 +10,10 @@ import {
   loadTakedownList,
   matchRule,
   planTakedown,
-  readPosts,
   sourceTitleForTicket,
   takeDownSource,
 } from '../scripts/take-down-posts.mjs';
+import { readPostIndex } from '../scripts/lib/taken-down-posts.mjs';
 import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
@@ -120,7 +120,7 @@ describe('takedown rules and plan', () => {
         sourceUrl: 'https://x.com/anthropic/status/2',
       }),
     });
-    const plan = planTakedown({ list: LIST, posts: readPosts(dir) });
+    const plan = planTakedown({ list: LIST, posts: readPostIndex(dir) });
     expect(plan.posts.map((entry: { id: string }) => entry.id).sort()).toEqual([
       'en-gp-63-20260214-gp63-benson',
       'gp-63-20260214-gp63-benson',
@@ -140,7 +140,7 @@ describe('takedown rules and plan', () => {
     const dir = writeCorpus({
       'mp-72-x.mdx': post({ ticketId: 'MP-72', sourceUrl: 'https://www.bloomberg.com/a' }),
     });
-    expect(() => planTakedown({ list: LIST, posts: readPosts(dir) })).toThrow(/boundary cases/);
+    expect(() => planTakedown({ list: LIST, posts: readPostIndex(dir) })).toThrow(/boundary cases/);
   });
 });
 

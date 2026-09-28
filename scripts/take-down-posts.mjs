@@ -24,14 +24,14 @@ import {
   getTakedownSeries,
 } from '../src/lib/tombstone-copy.mjs';
 import {
+  DEFAULT_POSTS_DIR,
   TAKEN_DOWN_INCOMPATIBLE_FIELDS as INCOMPATIBLE_FIELDS,
   isTakenDownData,
-  postIdFromFilename,
+  readPostIndex,
   splitPostSource,
 } from './lib/taken-down-posts.mjs';
 
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const DEFAULT_POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const DEFAULT_ASSETS_DIR = path.join(REPO_ROOT, 'src/assets/posts');
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -86,18 +86,6 @@ export function matchRule(rules, data) {
     return rule.id;
   }
   return null;
-}
-
-export function readPosts(postsDir = DEFAULT_POSTS_DIR) {
-  return fs
-    .readdirSync(postsDir)
-    .filter((file) => file.endsWith('.mdx'))
-    .sort()
-    .map((file) => {
-      const source = fs.readFileSync(path.join(postsDir, file), 'utf8');
-      const { data } = splitPostSource(source, file);
-      return { file, id: postIdFromFilename(file), source, data };
-    });
 }
 
 /**
@@ -333,7 +321,7 @@ export function sourceTitleForTicket(ticketPosts) {
 function main() {
   const args = parseArgs(process.argv.slice(2));
   const list = loadTakedownList(args.list);
-  const posts = readPosts(args.postsDir);
+  const posts = readPostIndex(args.postsDir);
   const plan = planTakedown({ list, posts });
 
   if (args.plan) {
