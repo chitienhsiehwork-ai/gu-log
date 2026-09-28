@@ -91,6 +91,26 @@ func (s *State) stageEditorialContext() error {
 // GP_SERIES_PAUSED flag. The commentary-format change brings GP back.
 var ErrGPPaused = errors.New("GP 暫停中: new GP posts are paused — whole-article translations need the source author's consent first, so gp-pipeline has no GP writing or publishing flow until the commentary format ships (openspec: editorial-charter)")
 
+// refuseGP returns ErrGPPaused, wrapped for step, when s would write or
+// publish GP. As in the CLI's series resolution, an existing post's filename
+// decides its series and Prefix only applies to a fresh article, so a
+// mismatched Prefix cannot carry a GP post past the pause. It stays out of
+// prepareExistingPost, which standalone translate calls with the default GP
+// Prefix.
+func (s *State) refuseGP(step string) error {
+	series := s.Prefix
+	if s.ExistingFile != "" {
+		var err error
+		if series, err = SeriesFromFilename(s.ExistingFile); err != nil {
+			return fmt.Errorf("%s: %w", step, err)
+		}
+	}
+	if series == "GP" {
+		return fmt.Errorf("%s: %w", step, ErrGPPaused)
+	}
+	return nil
+}
+
 type pipelineStep struct {
 	name string
 	fn   func(context.Context) error
@@ -123,8 +143,8 @@ func stepsForState(s *State) []pipelineStep {
 // PrintSummary so the `run` subcommand can emit it in both human and
 // --json shapes.
 func Run(ctx context.Context, s *State) error {
-	if s.Prefix == "GP" {
-		return fmt.Errorf("run: %w", ErrGPPaused)
+	if err := s.refuseGP("run"); err != nil {
+		return err
 	}
 	// Hydrate and validate an existing post before any recovery prompt runs.
 	// Otherwise review/refine would still see the fresh-run placeholder (for

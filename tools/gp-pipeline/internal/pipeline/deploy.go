@@ -20,8 +20,8 @@ import (
 // and rename, but still validates, builds, commits, and pushes owned changes.
 // GP is refused first: nothing publishes GP while it is paused.
 func (s *State) Deploy(ctx context.Context) error {
-	if s.Prefix == "GP" {
-		return fmt.Errorf("deploy: %w", ErrGPPaused)
+	if err := s.refuseGP("deploy"); err != nil {
+		return err
 	}
 	if s.DryRun {
 		s.Log.Warn("--dry-run enabled; skipping deploy step")

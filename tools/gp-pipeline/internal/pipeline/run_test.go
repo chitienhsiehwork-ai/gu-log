@@ -408,28 +408,48 @@ func TestRun_DryRunSkipsDeploy(t *testing.T) {
 }
 
 // TestRunAndDeployRejectGPBeforeAnyStep covers gp-pipeline-publish-integrity
-// 「繞過 CLI 直接執行 pipeline」: even a dry run, and a Deploy with every slot
-// filled, refuse GP before any step, snapshot, counter, file, or git change.
+// 「繞過 CLI 直接執行 pipeline」: a dry run, a Deploy with every slot filled,
+// and a deploy-step resume whose MP Prefix disagrees with its GP existing file
+// all refuse GP before any step, snapshot, counter, file, or git change.
 func TestRunAndDeployRejectGPBeforeAnyStep(t *testing.T) {
-	for name, call := range map[string]func(context.Context, *State) error{
-		"Run dry-run": func(ctx context.Context, s *State) error {
+	deploy := func(ctx context.Context, s *State) error { return s.Deploy(ctx) }
+	for _, tc := range []struct {
+		name string
+		// existing resumes an uncommitted GP post as ExistingFile under an MP
+		// Prefix; otherwise a GP run carries a GP-PENDING active file.
+		existing bool
+		call     func(context.Context, *State) error
+	}{
+		{name: "Run dry-run", call: func(ctx context.Context, s *State) error {
 			s.DryRun = true
 			return Run(ctx, s)
-		},
-		"Deploy": func(ctx context.Context, s *State) error { return s.Deploy(ctx) },
+		}},
+		{name: "Deploy", call: deploy},
+		{name: "Run from deploy, MP prefix, GP existing file", existing: true, call: func(ctx context.Context, s *State) error {
+			s.FromStepInt = StepDeploy
+			return Run(ctx, s)
+		}},
+		{name: "Deploy, MP prefix, GP existing file", existing: true, call: deploy},
 	} {
-		t.Run(name, func(t *testing.T) {
-			s, tmp := makeRunHarnessForPrefix(t, "GP")
+		t.Run(tc.name, func(t *testing.T) {
+			prefix, pending, ticketID := "GP", "gp-pending-20260723-fakeauthor-fake-title.mdx", "GP-PENDING"
+			if tc.existing {
+				prefix, pending, ticketID = "MP", "gp-10-20260723-fakeauthor-fake-title.mdx", "GP-10"
+			}
+			s, tmp := makeRunHarnessForPrefix(t, prefix)
 			if _, err := SetupWorkDir(s); err != nil {
 				t.Fatal(err)
 			}
-			pending := "gp-pending-20260723-fakeauthor-fake-title.mdx"
-			pendingBody := "---\ntitle: \"Fake Title\"\nticketId: \"GP-PENDING\"\nlang: \"zh-tw\"\n---\nbody\n"
+			pendingBody := "---\ntitle: \"Fake Title\"\nticketId: \"" + ticketID + "\"\nlang: \"zh-tw\"\n---\nbody\n"
 			if err := os.WriteFile(filepath.Join(s.Cfg.PostsDir, pending), []byte(pendingBody), 0o644); err != nil {
 				t.Fatal(err)
 			}
-			s.ActiveFilename = pending
-			s.DateStamp, s.AuthorSlug, s.TitleSlug = "20260723", "fakeauthor", "fake-title"
+			if tc.existing {
+				s.ExistingFile = pending
+			} else {
+				s.ActiveFilename = pending
+				s.DateStamp, s.AuthorSlug, s.TitleSlug = "20260723", "fakeauthor", "fake-title"
+			}
 			counterBefore, err := os.ReadFile(s.Cfg.CounterFile)
 			if err != nil {
 				t.Fatal(err)
@@ -437,7 +457,7 @@ func TestRunAndDeployRejectGPBeforeAnyStep(t *testing.T) {
 			headBefore := runGitForTest(t, tmp, "rev-parse", "HEAD")
 			statusBefore := runGitForTest(t, tmp, "status", "--porcelain")
 
-			err = call(context.Background(), s)
+			err = tc.call(context.Background(), s)
 			if !errors.Is(err, ErrGPPaused) {
 				t.Fatalf("error = %v, want ErrGPPaused", err)
 			}
