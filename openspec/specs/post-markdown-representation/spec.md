@@ -12,7 +12,7 @@
 
 每個 artifact SHALL 以 `schemaVersion: 1` 的 YAML frontmatter 開頭，固定包含 `slug`、`ticketId`、`lang`、`title`、`summary`、`originalDate`、`translatedDate`、`source`、`sourceUrl`、nullable `author`、`authorshipNote`、absolute `canonicalUrl`、effective `status`、nullable `replacementTicketId` 與 nullable absolute `replacementUrl`。欄位 SHALL 由安全 YAML serializer 輸出並逐欄對應既有 post schema、`getPostAuthorshipNote()`、`getLocalizedPostUrl()` 與 `resolvePostStatus()`；不得用 description、published date 或其他推測欄位取代現有 SSOT。
 
-Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published 時出現的 status／replacement blockquote、單一 source attribution blockquote，最後才是文章正文。正文 SHALL NOT 重複頁面 header 的 H1、日期或來源卡。
+Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published 時出現的 status／replacement blockquote、單一 source attribution blockquote，最後才是文章正文。正文 SHALL NOT 重複頁面 header 的 H1、日期或來源卡。已下架（`status: taken-down`）的文章 SHALL 照樣產生 artifact 並使用同一套 frontmatter，但正文 SHALL 換成簡短的墓碑內容與來源連結（見 `post-takedown`），SHALL NOT 含任何原本的正文。
 
 #### Scenario: 繁中與英文文章成功建置
 
@@ -33,9 +33,16 @@ Frontmatter 後的順序 SHALL 固定為單一 H1 title、只在非 published �
 - **THEN** YAML frontmatter SHALL 依固定 schema 將對應欄位輸出為 `null`
 - **AND** SHALL NOT 省略欄位、補猜測值或產生無法解析的 YAML
 
+#### Scenario: 文章已下架
+
+- **WHEN** 文章是 `status: taken-down`，原始 MDX 正文為空
+- **THEN** build SHALL 仍為它產生對應語系與 slug 的 `.md` artifact，slug set 照舊與 HTML、JSON 一致
+- **AND** artifact 的 frontmatter SHALL 記錄 `status: taken-down`
+- **AND** 正文 SHALL 只含墓碑文案與連到 `sourceUrl` 的來源連結
+
 ### Requirement: Markdown SHALL 忠實保留文章的閱讀語意
 
-Markdown artifact SHALL 保留文章 title、summary、originalDate、translatedDate、source／author attribution、canonical URL、有效 status／replacement、heading hierarchy、段落、清單、引用、連結、圖片 alt／URL、程式碼、表格，以及自訂文章元件的可閱讀語意。繁中與英文 SHALL 使用各自既有內容與 canonical path；英文文章的 effective status SHALL 沿用現有由繁中來源繼承的規則。
+Markdown artifact SHALL 保留文章 title、summary、originalDate、translatedDate、source／author attribution、canonical URL、有效 status／replacement、heading hierarchy、段落、清單、引用、連結、圖片 alt／URL、程式碼、表格，以及自訂文章元件的可閱讀語意。繁中與英文 SHALL 使用各自既有內容與 canonical path；英文文章的 effective status SHALL 沿用現有由繁中來源繼承的規則。已下架文章沒有文章內容可保留，artifact SHALL 只保留 metadata、墓碑文案與來源連結。
 
 系統 SHALL 明確投影目前 corpus 使用的 MoguNote、ShroomDogNote、Toggle、LevelUpProgress、LevelUpQuiz、AnalogyBox、Mermaid、PostImage、DiffBlock 與 CodexLearningMap，也 SHALL 明確投影既有 `a.artifact-callout` 原生 JSX 階層。輸出 SHALL NOT 含 MDX import、JSX、script、layout navigation、互動 control、純裝飾 markup、hidden duplicate、U+2060 或 U+00A0。站內連結與圖片 URL SHALL 可由不具頁面 base context 的外部 client 解析。
 
@@ -76,6 +83,12 @@ Markdown artifact SHALL 保留文章 title、summary、originalDate、translated
 - **AND** replacement 存在時 SHALL 提供可解析的 replacement URL
 - **AND** 英文 artifact SHALL 遵守目前由繁中來源繼承 status／replacement 的規則
 
+#### Scenario: 文章已下架的閱讀語意
+
+- **WHEN** 文章是 `status: taken-down`
+- **THEN** Markdown SHALL 保留 title、中性摘要、日期、source 標示與 canonical URL
+- **AND** SHALL NOT 輸出原本的 heading、段落、程式碼、圖片或自訂元件內容
+
 ### Requirement: Exporter SHALL 對未知或不完整投影封閉失敗
 
 系統 SHALL 在 raw MDX 層盤點 import、自訂元件、原生 JSX element、語意 class／attribute 與 expression form，並在 rendered article 層以明確、可測的 adapter 投影已登錄結構。Raw inventory、adapter registry 與 rendered markers SHALL 一致；遇到未知元件、未知原生 JSX 階層／語意屬性、未支援 expression、marker drift、殘留 MDX／script、無效 URL 或其他可能造成 silent data loss 的狀況時，整個 build SHALL 失敗，不得以 best-effort 純文字繼續 deploy。
@@ -105,7 +118,7 @@ Markdown artifact SHALL 保留文章 title、summary、originalDate、translated
 
 ### Requirement: Effective status SHALL 由每篇都存在的 route marker 封閉傳遞
 
-繁中與英文 post route SHALL 直接從 `resolvePostStatus(post, allPosts)` 在每個已渲染 `<article>` 輸出 machine-readable marker，至少包含 effective status、nullable replacement ticket 與 nullable absolute replacement URL。Marker SHALL 對 published、deprecated 與 retired 每篇都存在；匯出器 SHALL 與人類可見 `PostStatusBanner` 交叉驗證，且 SHALL NOT 以 banner 缺少推測 published。
+繁中與英文 post route SHALL 直接從 `resolvePostStatus(post, allPosts)` 在每個已渲染 `<article>` 輸出 machine-readable marker，至少包含 effective status、nullable replacement ticket 與 nullable absolute replacement URL。Marker SHALL 對 published、deprecated、retired 與 taken-down 每篇都存在；匯出器 SHALL 與人類可見 `PostStatusBanner` 交叉驗證，且 SHALL NOT 以 banner 缺少推測 published。`taken-down` 的 marker SHALL 沒有 replacement，頁面 SHALL 沒有 status banner、SHALL 有唯一的墓碑元素；匯出器 SHALL 確認 marker、墓碑元素與 frontmatter 的 `taken-down` 三者一致，並確認原始 MDX 正文為空。
 
 #### Scenario: Published 文章 marker 完整
 
@@ -125,6 +138,13 @@ Markdown artifact SHALL 保留文章 title、summary、originalDate、translated
 - **WHEN** article marker 缺少、enum／replacement contract 無效，或 marker 與 status banner 不一致
 - **THEN** exporter SHALL 使 build 失敗並指出文章與 mismatch
 - **AND** SHALL NOT 把 marker 遺失當成 published 或發布錯誤 status 的 Markdown
+
+#### Scenario: 下架文章的 marker
+
+- **WHEN** 文章是 `status: taken-down`
+- **THEN** article marker SHALL 記錄 `taken-down` 與 null replacement
+- **AND** 頁面 SHALL 有唯一的墓碑元素、沒有 status banner
+- **AND** marker、墓碑元素或 frontmatter 三者任一不一致時，匯出器 SHALL 使 build 失敗
 
 ### Requirement: Canonical HTML SHALL 可發現對應 Markdown
 

@@ -69,7 +69,7 @@
 
 - [x] 11.1 跑 `pnpm run lint`、`pnpm exec astro check`、`node scripts/validate-posts.mjs`、`pnpm exec vitest run`（沙盒已知失敗維持不變）、`go test ./...`、`pnpm exec openspec validate --all --strict`、`pnpm run build`，以及受影響的 Playwright spec
 - [x] 11.2 uiux-auditor：墓碑頁深淺雙主題、手機與桌面寬度，截圖存 scratchpad
-- [ ] 11.3 Archive 前移除 `quality/brand-taxonomy-residual-allowlist.json` 裡本 change delta 的 active-change exact exceptions（archive 後會變 stale）
+- [x] 11.3 Archive 前移除 `quality/brand-taxonomy-residual-allowlist.json` 裡本 change delta 的 active-change exact exceptions（archive 後會變 stale）
 - [ ] 11.4 Archive change、轉 ready、等 auto-review、掛 auto-merge；production smoke（墓碑 200 且 `noindex`、JSON 空正文、`.md` 墓碑、列表與 sitemap 已排除），在 chat 回報 production URL
 
 ## 12. 交給 owner（CCC 做不到）
