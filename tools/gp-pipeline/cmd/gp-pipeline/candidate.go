@@ -40,9 +40,10 @@ hashes, deterministic video-ID dedup, and writeEligible.
 This command is review-only. It never calls an LLM and never runs Eval, Write,
 Review, Refine, Credits, Ralph, Translate, Deploy, git, ticket allocation, or
 article mutation. writeEligible is not approval. After human approval, start a
-separate canonical run:
+separate canonical run that names the series chosen for the source (GP is
+paused; openspec: editorial-charter):
 
-  gp-pipeline run <youtube-url> --prefix GP
+  gp-pipeline run <youtube-url> --prefix <MP|SD|Lv>
 
 Use --work-dir only with an existing writable parent outside this repo;
 candidate always creates a new private leaf below it. Missing captions,

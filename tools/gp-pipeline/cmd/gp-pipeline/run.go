@@ -76,27 +76,27 @@ func newRunCmd(state *rootState) *cobra.Command {
 invocation covering the whole pipeline (step sequence, prompt templates,
 frontmatter shape, commit message, exit codes).
 
-GP steps, in order:
+Steps, in order (MP / SD / Lv):
   1     fetch      capture the tweet into the work directory
   1.5   eval       evaluate worthiness (skipped with --force)
   1.7   dedup      check the dedup gate
-  2     source-translate  translate the complete source without rebuilding it
-  3     source-preservation  source + natural-zh gates and bounded correction
-  4     enrich     navigation wrappers and optional isolated MoguNote
+  2     write      draft the zh-tw article from the source
+  3     review     review the draft
+  4     refine     apply the review and write final.mdx
   4.6   credits    stamp pipeline credits into the frontmatter
-  4.7   ralph      run the 4-stage tribunal without GP rewrite authority
+  4.7   ralph      run the 4-stage tribunal
   4.8   translate  produce the en sidecar (only when the tribunal passed;
                    skipped otherwise — zh-tw deploys alone)
   5     deploy     allocate ticket ID, rename, validate, build, commit, push
 
---from-step resumes partway through a previous run. --file is required
-when --from-step skips the fetch stage and no tweet URL is given.
-For GP, every recovery point at or after source-preservation revalidates the
-source and canonical-body hashes in gp-publish-gate.json. Use the original
---work-dir; stale or missing verdicts fail closed.
+GP 暫停中: a GP run is rejected before any work dir, fetch, or model call
+(openspec: editorial-charter). --prefix defaults to GP, so a run without
+--file must name its series explicitly.
 
-MP/SD/Lv retain write → review → refine. --legacy-shadow exposes that retired
-flow for GP comparison, always implies --dry-run, and can never deploy.
+--from-step resumes partway through a previous run. --file is required
+when --from-step skips the fetch stage and no tweet URL is given. With
+--file, the file's series (gp-/mp-/sd-/lv-/levelup-) decides the run, and an
+explicit --prefix must match it.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
@@ -135,8 +135,8 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
-	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file; GP also requires fresh source/gate artifacts in --work-dir")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing post in src/content/posts/; its filename sets the series")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv); with --file the file's series wins, and GP is paused")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")

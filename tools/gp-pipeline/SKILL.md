@@ -53,7 +53,7 @@ tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
 `candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿，以及來源完整時的
 source capture。它不呼叫 LLM、不建立 MDX、不配置 ticket、不修改 counter／Git，
 也不執行 Eval、Write、Review、Refine、Credits、Ralph、Translate 或 Deploy。
-`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url>`。
+`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（GP 暫停中，會在 ingress 被拒絕）。
 
 常用控制：
 

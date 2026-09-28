@@ -34,8 +34,8 @@ func newReviewCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "review",
 		Short: "Run the non-GP 12-point review checklist against a draft",
-		Long: `review is the legacy full-draft review command for non-GP series. GP uses
-the source reviewer in the canonical run command. This command points the LLM at draft-v1.mdx
+		Long: `review runs the full-draft review for MP, SD, and Lv drafts; GP tickets are
+rejected while GP is paused (GP 暫停中). This command points the LLM at draft-v1.mdx
 and asks it to produce a review.md with blocker/major/minor findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM

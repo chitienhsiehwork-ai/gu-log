@@ -53,8 +53,9 @@ node scripts/validate-posts.mjs.
 Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
-GP deploy additionally requires --work-dir with source-tweet.md and a fresh
-gp-publish-gate.json bound to the active article's canonical body projection.
+The series comes from the --active-file pending filename, and an explicit
+--prefix must match it. GP 暫停中: GP pending files are rejected before any
+slot check or mutation (openspec: editorial-charter).
 
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.
@@ -86,7 +87,7 @@ before either stage is reached.`,
 	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename (required for fresh PENDING deploy)")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv); the --active-file series wins, and GP is paused")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate CLI inputs only; run no validator or mutations")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "testing only; rejected by normal standalone deploy")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "testing only; rejected by normal standalone deploy")

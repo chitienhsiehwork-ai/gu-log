@@ -94,7 +94,7 @@ internal/runner/            external command boundary
 - `candidate` 不會呼叫 LLM、建立 MDX、配置 ticket、修改 Git／counter，或執行
   Eval、Write、Review、Refine、Credits、Ralph、Translate、Deploy。
 - `writeEligible: true` 只表示來源完整性與 video-ID dedup 允許人工考慮；
-  核准後仍須另跑 canonical `gp-pipeline run <youtube-url>`。
+  核准後仍須另跑 canonical `gp-pipeline run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（GP 暫停中）。
 - YouTube 擷取需要 `yt-dlp`。`candidate` 與正式 `run` 缺少它時都會封閉失敗，
   不會退回 generic HTML；`doctor` 會把這項能力列為 optional，不影響非 YouTube 流程。
 

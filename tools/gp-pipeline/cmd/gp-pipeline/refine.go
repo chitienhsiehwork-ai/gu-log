@@ -36,8 +36,8 @@ func newRefineCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "refine",
 		Short: "Apply non-GP review feedback and produce final.mdx",
-		Long: `refine is the legacy full-draft correction command for non-GP series. GP
-uses bounded patches in the canonical run command. This command reads draft-v1.mdx and review.md
+		Long: `refine applies review feedback to an MP, SD, or Lv draft; GP tickets are
+rejected while GP is paused (GP 暫停中). This command reads draft-v1.mdx and review.md
 from the work directory and asks the LLM to produce final.mdx with the
 review's issues fixed. The prompt does NOT embed the draft or review
 contents — the LLM reads them from --work-dir.`,

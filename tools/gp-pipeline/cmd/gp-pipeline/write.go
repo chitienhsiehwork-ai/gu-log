@@ -42,8 +42,8 @@ func newWriteCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "write",
 		Short: "Draft a non-GP zh-tw MDX article from a captured source",
-		Long: `write is the legacy generative drafting command for MP, SD, and Lv. GP
-must use the canonical run command and source-translate contract. It renders the write.tmpl prompt
+		Long: `write drafts an MP, SD, or Lv zh-tw article from a captured source. GP
+is paused (GP 暫停中) and rejected before any model call. It renders the write.tmpl prompt
 with the source-tweet.md contents and GU-LOG_WRITER_PROMPT.md embedded as
 template variables, then runs it through the LLM dispatcher. The prompt
 instructs the LLM to write draft-v1.mdx into the working directory.
@@ -73,7 +73,7 @@ set these from the upstream fetch + counter steps.`,
 	cmd.Flags().StringVar(&originalDate, "original-date", "", "YYYY-MM-DD of the source publication")
 	cmd.Flags().StringVar(&authorHandle, "author", "", "author handle WITHOUT @ prefix")
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP returns canonical run guidance")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP is paused and rejected")
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
