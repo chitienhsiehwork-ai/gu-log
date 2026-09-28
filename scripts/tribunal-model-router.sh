@@ -72,7 +72,7 @@ model_router_provider_compatible() {
 # article text" and gp-pipeline relies on that instead of keeping a copy.
 model_router_is_prose_role() {
   case "$1" in
-    writer|translator|corrector|commentary) return 0 ;;
+    writer) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -98,10 +98,6 @@ model_router_load_helpers() {
 model_router_role_key() {
   case "$1" in
     writer|tribunal-writer|refiner) printf 'writer\n' ;;
-    translator|source-translator) printf 'translator\n' ;;
-    sourceReviewer|source-reviewer) printf 'sourceReviewer\n' ;;
-    corrector|bounded-corrector) printf 'corrector\n' ;;
-    commentary|commentary-writer) printf 'commentary\n' ;;
     vibe|vibeScorer|vibe-opus-scorer) printf 'vibeScorer\n' ;;
     reviewer|evaluator|librarian|fact-checker|fresh-eyes) printf 'reviewer\n' ;;
     *) return 1 ;;
@@ -282,7 +278,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   role="${1:-}"
   format="${2:---text}"
   [ -n "$role" ] || {
-    printf 'Usage: %s <reviewer|writer|translator|sourceReviewer|corrector|commentary|vibeScorer> [--json]\n' "$0" >&2
+    printf 'Usage: %s <reviewer|writer|vibeScorer> [--json]\n' "$0" >&2
     exit 2
   }
   model_router_resolve "$role"

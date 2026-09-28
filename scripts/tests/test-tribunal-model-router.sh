@@ -78,10 +78,6 @@ assert_route "$({
 })" gpt-5.5 high normal
 assert_route "$({
   TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  TRIBUNAL_REVIEWER_REMAINING_PCT=50 bash "$ROUTER" sourceReviewer --json
-})" gpt-5.6-sol xhigh normal
-assert_route "$({
-  TRIBUNAL_RUNTIME_PROFILE=vm-codex \
   TRIBUNAL_REVIEWER_REMAINING_PCT=101 bash "$ROUTER" reviewer --json
 })" gpt-5.6-luna max lowQuota
 assert_route "$({
@@ -104,20 +100,45 @@ fi
 
 # Every article-writing role uses the Claude model pin from the tribunal-writer
 # frontmatter; config never carries a copy of it.
-for role in writer tribunal-writer refiner translator corrector commentary; do
+for role in writer tribunal-writer refiner; do
   payload="$(TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" "$role" --json)"
   jq -e '.provider == "claude"' <<<"$payload" >/dev/null ||
     fail "$role must route to Claude: $payload"
   assert_route "$payload" "$writer_pin" "" normal ||
     fail "$role must use the Claude model pin without an effort: $payload"
 done
-for role in writer translator corrector commentary; do
-  if jq -e --arg role "$role" \
-    '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
-    "$CONFIG" >/dev/null; then
-    fail "config must not copy the Claude model pin into $role"
-  fi
+if jq -e '.profiles["vm-codex"].writer | has("model") or has("reasoningEffort")' \
+  "$CONFIG" >/dev/null; then
+  fail "config must not copy the Claude model pin into writer"
+fi
+
+# The GP whole-article translation roles are retired
+# (openspec: gp-source-preservation): the router refuses them and their old
+# aliases as unknown before reading config, so no model CLI runs — even when a
+# config still carries the old role.
+RETIRED_BIN="$TMP_DIR/retired-bin"
+RETIRED_CALLS="$TMP_DIR/retired-calls"
+mkdir -p "$RETIRED_BIN"
+for cli in codex claude; do
+  printf '#!/usr/bin/env bash\nprintf "%%s %%s\\n" "%s" "$*" >> "%s"\nexit 0\n' \
+    "$cli" "$RETIRED_CALLS" > "$RETIRED_BIN/$cli"
+  chmod +x "$RETIRED_BIN/$cli"
 done
+stale_config="$TMP_DIR/config-with-retired-translator.json"
+jq '.profiles["vm-codex"].translator = {"provider":"claude"}' "$CONFIG" > "$stale_config"
+for config in "$CONFIG" "$stale_config"; do
+  for role in translator sourceReviewer corrector commentary \
+    source-translator source-reviewer bounded-corrector commentary-writer; do
+    if PATH="$RETIRED_BIN:/usr/bin:/bin" TRIBUNAL_MODEL_CONFIG="$config" \
+      TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+      bash "$ROUTER" "$role" --json >"$TMP_DIR/retired.out" 2>&1; then
+      fail "router resolved retired role $role with $config"
+    fi
+    grep -q "unknown model role: $role" "$TMP_DIR/retired.out" ||
+      fail "retired role $role lacked the unknown-role diagnostic: $(cat "$TMP_DIR/retired.out")"
+  done
+done
+[ ! -e "$RETIRED_CALLS" ] || fail "retired roles invoked a model CLI: $(cat "$RETIRED_CALLS")"
 
 # The login check sees only the CLI's own login state: it runs in the same
 # clean environment as every VM Claude call.
@@ -165,7 +186,7 @@ CODEX_ONLY="$TMP_DIR/codex-only"
 mkdir -p "$CODEX_ONLY"
 cp "$BIN_DIR/codex" "$CODEX_ONLY/codex"
 if PATH="$CODEX_ONLY:/usr/bin:/bin" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  bash "$ROUTER" translator --json >/dev/null 2>&1; then
+  bash "$ROUTER" writer --json >/dev/null 2>&1; then
   fail "article-writing routes must fail when the Claude CLI is unavailable"
 fi
 PATH="$CODEX_ONLY:/usr/bin:/bin" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
@@ -207,15 +228,12 @@ assert_config_rejected() {
 assert_config_rejected codex-writer \
   '.profiles["vm-codex"].writer = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh"}' \
   writer 'must use the Claude model'
-assert_config_rejected codex-corrector \
-  '.profiles["vm-codex"].corrector = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh","promptContract":"bounded-correct-v1","outputContract":"bounded-patch-v1"}' \
-  corrector 'must use the Claude model'
 assert_config_rejected claude-judge \
-  '.profiles["vm-codex"].vibeScorer = {"provider":"claude","promptContract":"vibe-gate-v1","outputContract":"gate-envelope-v1"}' \
+  '.profiles["vm-codex"].vibeScorer = {"provider":"claude"}' \
   vibeScorer 'only article-writing steps use the Claude model'
 assert_config_rejected copied-pin \
-  '.profiles["vm-codex"].translator.model = "claude-opus-copy"' \
-  translator 'remove model/reasoningEffort'
+  '.profiles["vm-codex"].writer.model = "claude-opus-copy"' \
+  writer 'remove model/reasoningEffort'
 
 # A Claude model pin the router cannot resolve blocks article writing before
 # any dispatch.
