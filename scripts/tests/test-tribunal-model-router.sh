@@ -58,8 +58,6 @@ aligner_pin="$(bash -c '
   tribunal_claude_frontmatter_model "$1/.claude/agents/source-aligner.md"
 ' _ "$ROOT_DIR")"
 [ -n "$aligner_pin" ] || fail "cannot read the Claude model pin from source-aligner frontmatter"
-[ "${aligner_pin%\[1m\]}" != "${writer_pin%\[1m\]}" ] ||
-  fail "the source aligner pin must differ from the writer pin"
 
 assert_route() {
   local payload="$1" model="$2" effort="$3" tier="$4"
@@ -122,13 +120,11 @@ fi
 # The source-distance aligner is a Claude call with its own pin from
 # .claude/agents/source-aligner.md (openspec source-distance-stamp); config
 # declares only its provider.
-for role in aligner source-aligner; do
-  payload="$(TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" "$role" --json)"
-  jq -e '.provider == "claude" and .role == "aligner"' <<<"$payload" >/dev/null ||
-    fail "$role must route to Claude: $payload"
-  assert_route "$payload" "$aligner_pin" "" normal ||
-    fail "$role must use the source-aligner pin without an effort: $payload"
-done
+payload="$(TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" aligner --json)"
+jq -e '.provider == "claude" and .role == "aligner"' <<<"$payload" >/dev/null ||
+  fail "aligner must route to Claude: $payload"
+assert_route "$payload" "$aligner_pin" "" normal ||
+  fail "aligner must use the source-aligner pin without an effort: $payload"
 if jq -e '.profiles["vm-codex"].aligner | has("model") or has("reasoningEffort")' \
   "$CONFIG" >/dev/null; then
   fail "config must not copy the source-aligner pin into aligner"
@@ -276,8 +272,9 @@ fi
 grep -q 'requires a valid Claude model pin' "$TMP_DIR/broken-pin.out" ||
   fail "unresolvable Claude model pin lacked a diagnostic: $(cat "$TMP_DIR/broken-pin.out")"
 
-# The aligner never borrows another agent's pin: a missing source-aligner.md,
-# or one equal to the writer pin (context-variant suffix ignored), fails closed.
+# The aligner never borrows another agent's pin: a missing source-aligner.md
+# fails closed even when the writer pin is there. (gp-pipeline's llm.AlignerPin
+# owns the "must differ from the writer pin" check.)
 aligner_root="$TMP_DIR/aligner-pin"
 mkdir -p "$aligner_root/.claude/agents"
 printf '%s\n' '---' 'name: tribunal-writer' 'model: claude-writer-fixture' '---' \
@@ -289,16 +286,6 @@ fi
 grep -q 'requires a valid Claude model pin in .claude/agents/source-aligner.md' \
   "$TMP_DIR/aligner-missing.out" ||
   fail "missing aligner pin lacked a diagnostic: $(cat "$TMP_DIR/aligner-missing.out")"
-for same_pin in claude-writer-fixture 'claude-writer-fixture[1m]'; do
-  printf '%s\n' '---' 'name: source-aligner' "model: $same_pin" '---' \
-    > "$aligner_root/.claude/agents/source-aligner.md"
-  if REPO_ROOT="$aligner_root" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-    bash "$ROUTER" aligner --json >"$TMP_DIR/aligner-same.out" 2>&1; then
-    fail "aligner routing accepted the writer pin ($same_pin)"
-  fi
-  grep -q 'must differ from the writer pin' "$TMP_DIR/aligner-same.out" ||
-    fail "equal aligner pin lacked a diagnostic: $(cat "$TMP_DIR/aligner-same.out")"
-done
 
 # Sourced callers resolve several roles in one shell; a Claude writer route
 # must not leak its empty effort into the following Codex vibe route.

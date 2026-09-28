@@ -96,25 +96,26 @@ func ProvidersForRuntime(
 	}
 	switch runtime.Provider {
 	case "claude":
-		// The router reads the writer pin from .claude/agents/tribunal-writer.md;
-		// the Go side pins ClaudeOpusPinned. Refuse to pick one when they
-		// disagree. The aligner's pin has a single SSOT that both sides read.
-		want, source := ClaudeOpusPinned, ".claude/agents/tribunal-writer.md"
+		model := ClaudeOpusPinned
 		if role == RuntimeAligner {
+			// The router and AlignerPin read the same agent file, so there is
+			// no drift to compare; AlignerPin still refuses the writer's pin.
 			pin, err := AlignerPin(repoRoot)
 			if err != nil {
 				return nil, true, err
 			}
-			want, source = pin, AlignerAgentPath
-		}
-		if runtime.Model != want {
+			model = pin
+		} else if runtime.Model != ClaudeOpusPinned {
+			// The router reads the writer pin from
+			// .claude/agents/tribunal-writer.md; the Go side pins
+			// ClaudeOpusPinned. Refuse to pick one when they disagree.
 			return nil, true, fmt.Errorf(
-				"Claude model pin drift: the router resolved %q from %s but gp-pipeline expects %q; update both pins together",
-				runtime.Model, source, want,
+				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline expects %q; update both pins together",
+				runtime.Model, ClaudeOpusPinned,
 			)
 		}
 		return []Provider{&ClaudeProvider{
-			ModelFlag: want, Contained: true, Tools: claudeRuntimeTools(role),
+			ModelFlag: model, Contained: true, Tools: claudeRuntimeTools(role),
 		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{

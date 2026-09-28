@@ -80,7 +80,8 @@ model_router_is_prose_role() {
 
 # The source-distance aligner only pairs sentences, but it is a Claude call too
 # (openspec source-distance-stamp): its pin lives in
-# .claude/agents/source-aligner.md and must differ from the writer pin.
+# .claude/agents/source-aligner.md. gp-pipeline (llm.AlignerPin) refuses a pin
+# equal to the writer pin before any aligner call.
 model_router_is_claude_role() {
   model_router_is_prose_role "$1" || [ "$1" = aligner ]
 }
@@ -114,7 +115,7 @@ model_router_load_helpers() {
 model_router_role_key() {
   case "$1" in
     writer|tribunal-writer|refiner) printf 'writer\n' ;;
-    aligner|source-aligner) printf 'aligner\n' ;;
+    aligner) printf 'aligner\n' ;;
     vibe|vibeScorer|vibe-opus-scorer) printf 'vibeScorer\n' ;;
     reviewer|evaluator|librarian|fact-checker|fresh-eyes) printf 'reviewer\n' ;;
     *) return 1 ;;
@@ -228,7 +229,7 @@ model_router_resolve() {
   tier=fixed
   remaining=unknown
   if [ "$provider" = claude ]; then
-    local pin_file=.claude/agents/tribunal-writer.md writer_model
+    local pin_file=.claude/agents/tribunal-writer.md
     [ "$role" = aligner ] && pin_file=.claude/agents/source-aligner.md
     if jq -e --arg role "$role" \
       '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
@@ -237,24 +238,15 @@ model_router_resolve() {
         "$role" "$pin_file" "$MODEL_ROUTER_CONFIG" >&2
       return 2
     fi
-    writer_model="$(model_router_claude_writer_model)" || {
-      printf 'runtime profile %s requires a valid Claude model pin in .claude/agents/tribunal-writer.md\n' \
-        "$profile" >&2
+    if [ "$role" = aligner ]; then
+      model="$(model_router_claude_aligner_model)"
+    else
+      model="$(model_router_claude_writer_model)"
+    fi || {
+      printf 'runtime profile %s requires a valid Claude model pin in %s\n' \
+        "$profile" "$pin_file" >&2
       return 2
     }
-    model="$writer_model"
-    if [ "$role" = aligner ]; then
-      model="$(model_router_claude_aligner_model)" || {
-        printf 'runtime profile %s requires a valid Claude model pin in %s\n' \
-          "$profile" "$pin_file" >&2
-        return 2
-      }
-      if [ "${model%\[1m\]}" = "${writer_model%\[1m\]}" ]; then
-        printf 'the source aligner pin (%s) must differ from the writer pin (%s)\n' \
-          "$model" "$writer_model" >&2
-        return 2
-      fi
-    fi
     effort=""
     tier=normal
   elif [ "$role" = reviewer ]; then
