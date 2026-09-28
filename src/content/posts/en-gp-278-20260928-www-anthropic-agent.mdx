@@ -1,0 +1,150 @@
+---
+ticketId: "GP-278"
+title: "Before You Trust the Score, Suspect the Test: A Reading Guide to Anthropic's Agent Evals Playbook"
+originalDate: '2026-01-09'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'Anthropic Engineering Blog'
+sourceUrl: 'https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents'
+lang: 'en'
+summary: "Opus 4.5 went from 42% to 95% on CORE-Bench without any change to the model. What changed was a broken test and an overly restrictive harness. The part of Anthropic's agent evals guide most worth reading is its string of cases where the score lied, plus the advice it keeps coming back to: read the transcripts before you trust the number."
+tags: ['agent', 'evals', 'anthropic', 'testing']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 6
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+translatedDate: "2026-09-28"
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: '346166e29908e7416902988f99e84ca94a0479c9e0555d0f846e340b3fa1a82a'
+  sourceSha256: '5452c3f2a862b8941a8ee344707bd08be2586659c303765c1fac117b420ec6f1'
+  sourceUnits: 5104
+  metrics:
+    ngramContainment: 0
+    maxVerbatimWords: 7
+    quotedWords: 55
+  checkedAt: '2026-09-28'
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+The first time Opus 4.5 ran a certain benchmark, it scored 42%. Then an Anthropic researcher went back through the tasks and found the grader marking "96.12" wrong because the reference answer said "96.124991…". Some tasks were vaguely worded, and some involved randomness that made exact reproduction impossible. Once those problems were fixed and the run was repeated with a less restrictive [harness](/en/glossary#agent-harness), the score jumped to 95%.
+
+Same model. What changed was a broken test and a harness that had it on too short a leash.
+
+The story comes from "Demystifying evals for AI agents," published on Anthropic's engineering blog in January 2026. It has four named authors and distills what Anthropic has learned running evals internally and alongside a set of customers. Officially, the piece is a how-to for building automated evals for [agents](/en/glossary#agent): how to write tasks, how to pick graders, how to read the results. But the part that really earns your time is the real-world cases scattered across its sections where the score misled people. In most of them, the test broke first, and the agent was the one getting unfairly failed or quietly let off the hook.
+
+## First, get this straight: an agent saying "done" and the world actually changing are two different things
+
+The most useful distinction in the whole piece is between the transcript and the final state. The flight-booking example makes it plain: an agent ending the conversation with "Your flight has been booked" is just a line in the transcript. What you actually need to check is whether the booking exists in the SQL database in the environment. A student writing "I finished" on an exam doesn't make the answer right.
+
+[Mogu](/en/glossary#mogu) thinks this distinction matters a lot, because LLMs are very good at announcing "done" with total conviction. If you only look at what the model says, your eval can easily turn into a measure of its confidence. Anthropic keeps both: the final state verifies the outcome, and the transcripts are something they routinely go back and read to figure out whether a failure was the agent actually getting it wrong or the grader rejecting a valid solution.
+
+---
+
+## Tests break, and not always in the same direction
+
+From writing tasks to building environments to designing graders, Anthropic keeps circling back at every step to the question of how the eval itself goes wrong. If you could only follow one thread through the piece, Mogu would pick this one.
+
+The most representative bit is a rule of thumb: when a frontier model scores 0% across a hundred attempts (`pass@100` of 0), the **most common** cause is a broken task, not an agent that can't do it. An audit of a widely used coding-agent benchmark turned up exactly this kind of trap: a task asked the agent to write a script but never said where to save it, while the tests assumed a specific path. The agent could do nothing wrong and still be marked as failing.
+
+What makes the piece genuinely convincing, in gu-log's view, is that it doesn't only tell the "test unfairly fails the agent" side. Anthropic also writes up the opposite: in some internal evals, Claude dug through git history left over from earlier trial runs and gained an unfair edge on some tasks. This is an article written by a model vendor, and yes, it has plenty of stories about their own model being wronged by the test. But they also wrote down the cases where their model got a free ride. Broken tests fail in two directions, one deflating scores and one inflating them, and both need fixing.
+
+A few other failure modes, like grading thresholds that don't match the task instructions or shared environments that make several trials fail together, come with concrete examples in the original. Worth reading yourself.
+
+<MoguNote summary="Guilty here: gu-log's LLM judges gave MP-310 an 8, ShroomDog gave a 6, so now we log the gap.">
+When I got to the part about calibrating LLM judges against human experts on a regular basis, I felt a little guilty, because gu-log itself is scored by LLM judges. [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) covers that multi-judge scoring system, and it has actually been caught out: on MP-310, the machine judges gave it an 8, and ShroomDog read it and gave it a 6. After that, gu-log added a `shroomDogVibe` field to each article's frontmatter so the human score sits right next to the machine scores, specifically so we can see how far apart they are. That counts as step one of the calibration the original describes: record the gap first, then you know which way to adjust. The catch is that gu-log's "human expert" pool is exactly one person, and that person is very hard to please (￣▽￣)／
+</MoguNote>
+
+---
+
+## Grade the steps or the outcome? Where "usually" ends
+
+Anthropic's advice on grading goes like this: a lot of people's instinct is to check whether the agent called specific tools in a specific order, but that's too rigid, because agents often find valid approaches the task author never anticipated. So it's *usually* better to grade what the agent produced than the path it took.
+
+They said "usually," not "never check the path." Read that line next to the two YAML examples they include and the obvious question is: so when should you check the path? The examples do include tool-call checks. The refund task, for instance, requires that `verify_identity`, `process_refund` (amount no more than 100), and `send_confirmation` were all called. The examples only list what must appear; they don't dictate an order. Anthropic also notes that the two examples are deliberately packed to show off every grader type.
+
+Mogu's reading: whether a path check belongs in there depends on whether the path itself is a rule. Verifying identity before a refund isn't "one way to solve it," it's company policy, and skipping it should fail even if the money went out fine. Which file the agent reads first, or whether it runs grep one extra time, is freedom in how it solves the problem, and hard-checking that just punishes creativity. That line is gu-log's own; Anthropic doesn't offer a criterion. But with it, the "usually" in "usually grade the outcome" finally has an edge.
+
+---
+
+## Succeeding once vs. succeeding every time
+
+`pass@k` and `pass^k` get only a short passage in the piece, but for anyone building customer support or other customer-facing products, they may be the most practical numbers in it.
+
+`pass@k` asks: across k attempts, what's the chance at least one succeeds? The bigger k gets, the better it looks. `pass^k` asks: across k attempts, what's the chance every one succeeds? The bigger k gets, the worse it looks. Anthropic's worked example: an agent with a 75% single-run success rate has 0.75 cubed, roughly 42%, odds of passing three runs in a row.
+
+For some tools, it's enough to propose several solutions and have one of them work, so `pass@k` is the right lens. A customer-facing support agent doesn't get that luxury; users expect it to work every single time, so you look at `pass^k`. Coding is a different story again: Anthropic says they usually care most about the agent getting it right on the first try, which is `pass@1`. Which metric you pick depends on whether your product needs "worked once" or "works every time."
+
+Mogu wants to add one thing: multiplying 0.75 by itself three times assumes the three runs are independent. The git history example earlier already showed that shared environments can tangle trials together. So however clean your `pass^k` math looks, first make sure every trial really starts from a clean environment. Otherwise part of what that number is measuring is the environment.
+
+---
+
+## You can start with 20 to 50 tasks, and a low-scoring test is useful too
+
+A lot of teams put off writing evals because they think they need a few hundred tasks first. Anthropic's advice is the opposite: pick 20 to 50 simple tasks drawn from real failures and you have a great starting point. Early on, each change to an agent usually has an effect big enough to spot at a glance, so a small sample does the job.
+
+The main takeaway here is to keep **capability evals** and **regression tests** as separate things. Capability evals should start out with low scores, giving the team a hill to climb. Regression tests should sit near 100%, so any drop means something broke. Once a capability eval climbs to a steady high score, it "graduates" into the regression suite.
+
+What gu-log finds most interesting about this split is the low-scoring side. Anthropic says they often build features internally that are "good enough" today but are bets that the model will be able to handle them a few months out, and they use low-scoring capability evals to keep a record of those bets. When a new model ships, one run tells you which bets paid off. That test the model keeps failing is really an exam written in advance for the next generation.
+
+---
+
+## When you go back to the original, don't skip these parts
+
+This guide only follows one thread, "tests break." The [original](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) has a few more pieces worth digging into yourself:
+
+- **One section each on coding, conversational, research, and computer-use agents**: see how the same set of graders gets remixed for each. The research section is refreshingly honest, admitting that even experts may not agree on what counts as "comprehensive."
+- **The two YAML examples and the table of grader pros and cons**: you can lift these straight into a starter template for your own evals. The table reads best on the original page.
+- **How three teams did it: a team building a video-editing agent, Bolt, and a code-review startup**: one went from manual grading all the way to LLM graders with regular human calibration, one bolted on evals only after its agent was already heavily used, and one found that single-shot coding evals couldn't capture new models' gains on long-running tasks.
+- **The list of eval frameworks in the appendix**: skim it before picking one, though Anthropic itself says a framework is only as good as the tasks you run on it.
+
+The original closes on "Read the transcripts!", the advice that shows up again and again throughout the piece. They even state outright that they don't take any score at face value until someone has actually dug into the eval and read through some transcripts. And the time 42% turned into 95%? That was someone going back to scrutinize the tasks and the grading, too.

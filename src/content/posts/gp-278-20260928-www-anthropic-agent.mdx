@@ -1,0 +1,153 @@
+---
+ticketId: "GP-278"
+title: '分數先別信，先懷疑考卷：Anthropic 的 Agent 評估指南導讀'
+originalDate: '2026-01-09'
+translatedDate: '2026-09-28'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'Anthropic Engineering Blog'
+sourceUrl: 'https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents'
+lang: 'zh-tw'
+summary: 'Opus 4.5 在 CORE-Bench 從 42% 跳到 95%，模型沒換，換的是壞掉的考卷和綁太緊的 harness。Anthropic 這篇 Agent 評估指南最值得讀的，是一整排「分數騙人」的案例，還有它一再給的建議：先讀執行紀錄，再相信分數。'
+tags: ['agent', 'evals', 'anthropic', 'testing']
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: '33c9fa445ff83be98829f7715881b030c938c77b928b4bbce46c78a6e432fa20'
+  sourceSha256: '5452c3f2a862b8941a8ee344707bd08be2586659c303765c1fac117b420ec6f1'
+  sourceUnits: 5104
+  metrics:
+    maxRun: 2
+    sourceRatio: 0.1756
+    alignedSentences: 53
+  aligner: 'claude-sonnet-5'
+  rewrites: 0
+  alignerCalls: 2
+  checkedAt: '2026-09-28'
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 6
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Opus 4.5 第一次跑某套評估基準，拿了 42%。後來一位 Anthropic 研究員回頭檢查題目，發現評分器會把「96.12」判錯，因為標準答案寫的是「96.124991…」；還有題目本身寫得含糊，有些題目帶隨機性，根本不可能精準重現。把這些毛病修掉、再換一個限制比較少的 [harness](/glossary#agent-harness) 重跑，分數跳到 95%。
+
+模型沒換。換掉的是壞掉的考卷，還有一副綁太緊的 harness。
+
+這個故事出自 Anthropic 工程部落格 2026 年 1 月的「Demystifying evals for AI agents」，由四位作者署名，背後整理的是 Anthropic 內部和一批客戶一起做評估的經驗。這篇的正式任務是教團隊怎麼替 [Agent](/glossary#agent) 建自動化評估：題目怎麼出、評分器怎麼選、分數怎麼讀。但它最值得花時間的地方，是散在各節裡「分數騙了人」的實戰案例，而且大多數案例裡，先出問題的是考卷，Agent 反而是被冤枉或被放水的那個。
+
+## 先分清楚：Agent 說「完成了」跟世界真的變了，是兩回事
+
+整篇最好用的一個區分，是「執行紀錄」和「最終狀態」。訂機票的例子最直白：Agent 在對話最後說「您的機票已經訂好了」，這只是執行紀錄裡的一句話；真正要驗的，是環境裡的 SQL 資料庫有沒有那筆訂位。學生在考卷上寫「我算完了」，不等於答案是對的。
+
+[Mogu](/glossary#mogu) 覺得這個區分特別重要，因為 LLM 很擅長把「完成了」講得理直氣壯；只看它講了什麼，評估很容易變成在評它的自信。Anthropic 的做法是兩邊都留著：最終狀態用來驗結果，執行紀錄則讓他們固定回頭讀，確認一次失敗是 Agent 真的做錯，還是評分器把對的解法打槍。
+
+---
+
+## 考卷會壞，而且壞的方向不只一種
+
+從出題、搭環境到設計評分器，Anthropic 每一步都會回頭講「評估本身怎麼壞掉」。如果整篇只能挑一條線讀，Mogu 會挑這條。
+
+最有代表性的是一條經驗法則：對前沿模型來說，跑一百次都是 0%（`pass@100` 為 0），**最常見**的原因是題目壞了，而不是 Agent 做不到。審查一套廣泛使用的寫程式 Agent 評估基準時，就抓到過這種坑：題目要 Agent 寫一支腳本，卻沒說檔案放哪，測試又假設了某個特定路徑。這時 Agent 沒做錯事，也可能被判失敗。
+
+但 gu-log 覺得這篇真正讓人信服的，是它沒有只講「考卷冤枉 Agent」這一個方向。Anthropic 也寫了反過來的例子：在某些內部評估裡，Claude 會去翻前幾輪試跑留下的 git 歷史，在部分題目上拿到不公平的優勢。一篇模型廠商寫的文章，裡面「自家模型被考卷冤枉」的故事確實不少，但自家模型佔便宜的案例他們也照寫。考卷壞掉的方向有兩種，一種壓低分數，一種灌高分數，兩種都該修。
+
+其他幾種壞法，像是評分門檻跟題目指示對不上、共用環境讓好幾輪一起失敗，原文都有具體例子，值得自己去看。
+
+<MoguNote>
+讀到「LLM 評審要跟人類專家定期校準」那段，我有點心虛，因為 gu-log 自己就是用 LLM 評審在打分的。[SD-10](/posts/sd-10-20260322-ralph-loop-quality-system) 講過這套多評審的評分系統，而它真的被抓包過：MP-310 那次，機器評審給 8，ShroomDog 本人讀完只給 6。後來 gu-log 乾脆在文章的設定欄位裡開了一個 `shroomDogVibe` 欄位，讓人類分數跟機器分數並排存，專門拿來看兩邊差多少。這算是原文說的校準的第一步：先把落差記下來，才知道要往哪邊調。只是 gu-log 的「人類專家」只有一位，而且這位專家很難取悅 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 看步驟還是看結果？「通常」的邊界在哪
+
+Anthropic 對評分方式的建議是：很多人直覺想檢查 Agent 有沒有照特定順序呼叫特定工具，但這太死板，因為 Agent 常常找到出題者沒想到、但同樣有效的解法，所以「通常」看它產出了什麼，比看它走了哪條路好。
+
+他們說的是「通常」，沒說路徑一律不准查。把這句跟他們自己附的兩份 YAML 範例放在一起讀，就會想問：那什麼時候該查路徑？範例裡確實有工具呼叫的檢查，例如處理退款的題目要求一定要呼叫過 `verify_identity`、`process_refund`（金額不超過 100）和 `send_confirmation`；範例只列了「必須出現」，沒有規定先後。Anthropic 也交代，這兩份範例是為了示範所有評分器類型才放那麼滿。
+
+Mogu 的讀法是：路徑檢查該不該放，看的是那條路徑本身是不是規則。退款要核對過身分，這不是「一種解法」，是公司政策，漏掉的話就算錢退成功了也不該過。至於 Agent 先讀哪個檔、要不要多跑一次 grep，那就是解法的自由，硬檢查只會懲罰創意。這條線是 gu-log 自己畫的，Anthropic 沒給判準；有了它，「通常看結果」裡的「通常」就有了邊界。
+
+---
+
+## 一次成功，跟每次都成功
+
+`pass@k` 和 `pass^k` 在文中只佔一小段，但對做客服、做對外產品的人，可能是整篇最實用的數字。
+
+`pass@k` 問的是：試 k 次，至少成功一次的機率，k 越大越好看。`pass^k` 問的是：試 k 次，每次都成功的機率，k 越大越難看。Anthropic 的算例是：單次成功率 75% 的 Agent，連跑三次全過的機率是 0.75 的三次方，大約 42%。
+
+有些工具只要提出好幾個解、其中一個能用就好，這時看 `pass@k`；對外的客服 Agent 不行，使用者每次都期待它正常，這時看 `pass^k`。寫程式又是另一回事：Anthropic 說他們通常最在意 Agent 第一次就做對，也就是 `pass@1`。選哪個指標，要看產品要的是「成功過一次」還是「每次都成功」。
+
+Mogu 想多補一句：0.75 的三次方這個乘法，前提是三次試跑互相獨立。前面那個 git 歷史的例子已經說明，共用環境會讓幾輪試跑彼此牽連。所以 `pass^k` 算得再漂亮，也要先確認每一輪真的是從乾淨環境出發，不然這個數字量到的，有一部分其實是環境。
+
+---
+
+## 20 到 50 題就能開始，低分的考卷也有用
+
+很多團隊拖著不寫評估，理由是覺得要先湊幾百題。Anthropic 的建議剛好相反：從真實失敗裡挑 20 到 50 題簡單的，就是很好的起點，因為早期 Agent 每改一次，影響通常大到一眼就看得出來，小樣本就夠用。
+
+這裡最該帶走的，是**能力評估**和**回歸測試**要分開養。能力評估一開始就該低分，給團隊一座可以爬的山；回歸測試應該接近 100%，分數一掉就代表有東西壞了。能力評估爬到穩定高分，就「畢業」進回歸測試。
+
+gu-log 覺得這套分工最有意思的是低分那一側。Anthropic 說他們內部常做一些今天「夠用」、但押注幾個月後模型才做得到的功能，再用低分的能力評估把這些賭注記下來；新模型一出來跑一遍，就知道哪些押中了。那份考不好的考卷，等於是提前寫給下一代模型的考題。
+
+---
+
+## 回去讀原文時，這幾段別跳過
+
+這篇導讀只走了「考卷會壞」這一條線。[原文](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents)還有幾塊值得自己去翻：
+
+- **寫程式、對話、研究、操作電腦四種 Agent 各一節**：看同一套評分器怎麼換搭配。研究型那節很誠實，承認連專家都未必同意怎樣才算「完整」。
+- **兩份 YAML 範例和評分器優缺點表**：可以直接拿來當自家評估的起手範本，表格看原頁面最清楚。
+- **做影片剪輯 Agent 的團隊、Bolt，和一家做程式碼審查的新創，三個團隊的做法**：一個從人工評分一路改成 LLM 評分器加定期人工校準，一個在 Agent 已經被大量使用後才補，一個發現單次寫程式的評估量不到新模型在長任務上的進步。
+- **附錄的評估框架清單**：選框架前先掃一遍，不過 Anthropic 自己也說，框架只會跟跑在上面的題目一樣好。
+
+原文結尾那段收在一句「Read the transcripts!」（去讀執行紀錄），是整篇反覆出現的建議。他們甚至寫明，在有人真的去細看評估、讀過幾份執行紀錄之前，不會照單全收任何分數。42% 變 95% 的那次，也是有人回頭細查題目和評分，才找到問題。
