@@ -8,9 +8,10 @@
  *   --list <path> --apply --date YYYY-MM-DD 改 frontmatter、清空正文；已下架的檔案不再變動（可重跑）
  *
  * `--list` 必填：規則檔跟著該批的 OpenSpec change 走，archive 後路徑會變。
- * 工具不連網：`sourceTitle` 依序取既有 `sourceTitle`、`source`、`sourceUrl` 的網域，
- * 已經寫進文章的 `sourceTitle`／`author` 一律不動。`--apply` 最後會列出只剩下架文章
- * 在用的 `src/assets/posts/**` 目錄，交給執行的人刪。`--posts-dir`／`--assets-dir` 給測試用。
+ * 工具不連網：`sourceTitle` 先用既有值、再用 `source`；`source` 等於 gu-log 標題時停下，
+ * 請人手動補來源標題或開頭一句。已經寫進文章的 `sourceTitle`／`author` 一律不動。
+ * `--apply` 最後會列出只剩下架文章在用的 `src/assets/posts/**` 目錄，交給執行的人刪。
+ * `--posts-dir`／`--assets-dir` 給測試用。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -310,7 +311,9 @@ function parseArgs(argv) {
 
 /**
  * sourceTitle per ticket, so both languages of a pair share it: an existing
- * sourceTitle, else `source`, else the sourceUrl domain — never a gu-log title.
+ * sourceTitle, else `source` (required by the posts schema). The spec never
+ * allows a gu-log title, so a `source` equal to either language's title stops
+ * the tool before it writes that pair.
  * @param {Array<{ data: Record<string, any> }>} ticketPosts
  */
 export function sourceTitleForTicket(ticketPosts) {
@@ -319,7 +322,12 @@ export function sourceTitleForTicket(ticketPosts) {
   const primary = ticketPosts.find((post) => post.data.lang !== 'en') ?? ticketPosts[0];
   const titles = new Set(ticketPosts.map((post) => String(post.data.title ?? '').trim()));
   const source = typeof primary.data.source === 'string' ? primary.data.source.trim() : '';
-  return source && !titles.has(source) ? source : sourceHost(primary.data.sourceUrl);
+  if (!source || titles.has(source)) {
+    throw new Error(
+      `${primary.data.ticketId}: no sourceTitle and no usable source (empty or equal to a gu-log title); add sourceTitle by hand (the source's own title or its opening sentence), then rerun`
+    );
+  }
+  return source;
 }
 
 function main() {

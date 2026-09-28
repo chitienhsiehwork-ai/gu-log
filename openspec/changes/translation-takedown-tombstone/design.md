@@ -148,7 +148,7 @@
   - 邊界案例 39 篇（Business Insider、The Verge、HBR、付費電子報、期刊、免費新聞網站、只在 `source` 欄提到付費媒體、SemiAnalysis 在 X 上的貼文），本次不下架。
 - `scripts/take-down-posts.mjs`（`--list <path>` 必填：規則檔跟著該批的 change 走，archive 後路徑會變）：
   - `--plan`：依規則從當下語料算出下架清單（ticketId、語言、`post.id`、`sourceUrl`）與統計，輸出 JSON。Controller 靠它對帳。
-  - 這批的 `sourceTitle`／`author` 已在套用時一次補齊（當時查過來源的 metadata），工具不再連網。之後的批次，`sourceTitle` 依序取既有 `sourceTitle`、`source`、`sourceUrl` 的網域，不得等於 gu-log 標題；工具不補 `author`，已經寫進文章的 `sourceTitle`／`author` 一律不動。
+  - 這批的 `sourceTitle`／`author` 已在套用時一次補齊（當時查過來源的 metadata），工具不再連網。之後的批次，`sourceTitle` 先用既有值、再用 `source`（schema 必填），不得等於 gu-log 標題；`source` 等於標題時工具停下，由執行的人手動補來源標題或開頭一句。工具不補 `author`，已經寫進文章的 `sourceTitle`／`author` 一律不動。
   - `--apply --date YYYY-MM-DD`：依 D1 改 frontmatter、清空正文，最後列出只剩下架文章在用的 `src/assets/posts/**`，由執行的人刪。已下架的檔案不再變動（可重跑）。
 - Slug 一律用 `post.id`，也就是正式網址的小寫形式；GP-63 的檔名含大寫（`gp-63-20260214-GP63-…`），要有測試確認工具與清單都用小寫 id。
 - 依 main（847d1f67）實算：GP 繁中 270、英文 269（GP-275 沒有英文、GP-1 排除），MP 4 篇 8 檔（MP-114 nytimes.com、MP-118 theatlantic.com、MP-131 與 MP-284 bloomberg.com），共 547 檔。

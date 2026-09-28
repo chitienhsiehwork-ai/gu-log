@@ -265,20 +265,23 @@ describe('takeDownSource', () => {
 
 describe('sourceTitleForTicket', () => {
   const pair = (zh: Record<string, unknown>, en: Record<string, unknown> = {}) => [
-    { data: { lang: 'zh-tw', title: '中文標題', sourceUrl: 'https://www.example.com/a', ...zh } },
-    { data: { lang: 'en', title: 'English title', sourceUrl: 'https://www.example.com/a', ...en } },
+    { data: { ticketId: 'GP-9', lang: 'zh-tw', title: '中文標題', ...zh } },
+    { data: { ticketId: 'GP-9', lang: 'en', title: 'English title', ...en } },
   ];
 
-  it('keeps an existing sourceTitle, then falls back to source, then the domain', () => {
+  it('keeps an existing sourceTitle, then falls back to source', () => {
     expect(sourceTitleForTicket(pair({ source: 'Blog' }, { sourceTitle: 'Real title' }))).toBe(
       'Real title'
     );
     expect(sourceTitleForTicket(pair({ source: ' Example Blog ' }))).toBe('Example Blog');
-    expect(sourceTitleForTicket(pair({}))).toBe('example.com');
   });
 
-  it('never falls back to a gu-log title of either language', () => {
-    expect(sourceTitleForTicket(pair({ source: 'English title' }))).toBe('example.com');
+  it('stops instead of using a gu-log title of either language', () => {
+    for (const source of ['English title', '中文標題', '']) {
+      expect(() => sourceTitleForTicket(pair({ source }))).toThrow(
+        /GP-9: no sourceTitle .* add sourceTitle by hand/
+      );
+    }
   });
 });
 
