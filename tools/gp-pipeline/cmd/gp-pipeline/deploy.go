@@ -73,6 +73,7 @@ before either stage is reached.`,
 				AuthorSlug:       authorSlug,
 				TitleSlug:        titleSlug,
 				Prefix:           prefix,
+				PrefixSet:        cmd.Flags().Changed("prefix"),
 				DryRun:           dryRun,
 				SkipBuild:        skipBuild,
 				SkipValidate:     skipValidate,
@@ -105,9 +106,12 @@ type deployCmdOpts struct {
 	AuthorSlug       string
 	TitleSlug        string
 	Prefix           string
-	DryRun           bool
-	SkipBuild        bool
-	SkipValidate     bool
+	// PrefixSet reports an explicit --prefix; only then must it agree with
+	// the series named by --active-file.
+	PrefixSet    bool
+	DryRun       bool
+	SkipBuild    bool
+	SkipValidate bool
 }
 
 func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) error {
@@ -119,6 +123,11 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	if err := deploypkg.ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
 		return newExitError(1, err)
 	}
+	prefix, err := resolveSeries("deploy", opts.Prefix, opts.PrefixSet, "--active-file", opts.ActiveFilename)
+	if err != nil {
+		return newExitError(1, err)
+	}
+	opts.Prefix = prefix
 	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{
 		DateStamp:  opts.DateStamp,
 		AuthorSlug: opts.AuthorSlug,
@@ -164,7 +173,7 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 		return newExitError(1, fmt.Errorf("deploy: --skip-build / --skip-validate are currently only supported inside tests; the standalone subcommand always runs the full sequence. Use `run --dry-run` to exercise everything but push"))
 	}
 
-	err := s.Deploy(ctx)
+	err = s.Deploy(ctx)
 	report.ElapsedMs = time.Since(start).Milliseconds()
 	if err != nil {
 		var se *pipeline.StepError

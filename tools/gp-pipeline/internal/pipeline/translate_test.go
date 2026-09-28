@@ -165,18 +165,51 @@ func TestTranslate_FromStepTranslateRequiresExistingFile(t *testing.T) {
 	}
 }
 
+func TestSeriesFromFilename(t *testing.T) {
+	for filename, want := range map[string]string{
+		"gp-7-example.mdx":                       "GP",
+		"mp-pending-20260723-author-title.mdx":   "MP",
+		"en-sd-3-example.mdx":                    "SD",
+		"lv-2-example.mdx":                       "Lv",
+		"levelup-20260701-core-dump-anatomy.mdx": "Lv",
+		"en-levelup-20260701-core-dump.mdx":      "Lv",
+	} {
+		if got, err := SeriesFromFilename(filename); err != nil || got != want {
+			t.Errorf("SeriesFromFilename(%q) = %q, %v; want %q", filename, got, err, want)
+		}
+	}
+
+	for filename, wantErr := range map[string]string{
+		"../mp-9-example.mdx":                 "basename",
+		"":                                    "basename",
+		"readme.mdx":                          "missing a canonical series prefix",
+		"GP-7-example.mdx":                    "canonical lowercase slug",
+		strings.ToLower("S"+"P") + "-7-x.mdx": `use "GP"`,
+		"en-" + strings.ToLower("C"+"P") + "-9.mdx": `use "MP"`,
+		"blog-7-example.mdx":                        "invalid prefix",
+	} {
+		if got, err := SeriesFromFilename(filename); err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Errorf("SeriesFromFilename(%q) = %q, %v; want error containing %q", filename, got, err, wantErr)
+		}
+	}
+}
+
 func TestValidateTranslationFilenamesCanonicalFamiliesAndRetiredIngress(t *testing.T) {
-	for _, filename := range []string{
-		"gp-7-example.mdx",
-		"mp-9-example.mdx",
-		"sd-3-example.mdx",
-		"lv-2-example.mdx",
-		"levelup-20260213-01-oauth-complete-guide.mdx",
-		"levelup-20260701-core-dump-anatomy.mdx",
+	for filename, want := range map[string]string{
+		"gp-7-example.mdx": "GP",
+		"mp-9-example.mdx": "MP",
+		"sd-3-example.mdx": "SD",
+		"lv-2-example.mdx": "Lv",
+		"levelup-20260213-01-oauth-complete-guide.mdx": "Lv",
+		"levelup-20260701-core-dump-anatomy.mdx":       "Lv",
 	} {
 		t.Run(filename, func(t *testing.T) {
-			if _, err := ValidateTranslationFilenames(filename, "en-"+filename); err != nil {
+			got, err := ValidateTranslationFilenames(filename, "en-"+filename)
+			if err != nil {
 				t.Fatalf("canonical filename rejected: %v", err)
+			}
+			if got != want {
+				t.Fatalf("series = %q, want %q", got, want)
 			}
 		})
 	}

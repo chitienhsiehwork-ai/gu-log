@@ -128,6 +128,7 @@ canned responses for regression tests.`,
 				RalphBar:     ralphBar,
 				ExistingFile: existingFile,
 				Prefix:       prefix,
+				PrefixSet:    cmd.Flags().Changed("prefix"),
 				SkipBuild:    skipBuild,
 				SkipPush:     skipPush,
 				SkipValidate: skipValidate,
@@ -162,6 +163,9 @@ type runOpts struct {
 	RalphBar     int
 	ExistingFile string
 	Prefix       string
+	// PrefixSet reports an explicit --prefix; only then must it agree with
+	// the series named by --file.
+	PrefixSet    bool
 	SkipBuild    bool
 	SkipPush     bool
 	SkipValidate bool
@@ -173,6 +177,11 @@ type runOpts struct {
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	start := time.Now()
+	prefix, err := resolveSeries("run", opts.Prefix, opts.PrefixSet, "--file", opts.ExistingFile)
+	if err != nil {
+		return err
+	}
+	opts.Prefix = prefix
 
 	fromStepInt := 0
 	if opts.FromStep != "" {
@@ -328,6 +337,23 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	report.OK = true
 	emitRunReport(state, report, s)
 	return nil
+}
+
+// resolveSeries picks the series a run or standalone deploy works on, and the
+// article decides: with a file, its filename series wins and an explicitly set
+// --prefix must agree; without one, --prefix (default GP) applies.
+func resolveSeries(command, prefix string, prefixSet bool, fileFlag, filename string) (string, error) {
+	if filename == "" {
+		return prefix, nil
+	}
+	series, err := pipeline.SeriesFromFilename(filename)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s: %w", command, fileFlag, err)
+	}
+	if prefixSet && prefix != series {
+		return "", fmt.Errorf("%s: --prefix %s does not match %s %s (series %s); drop --prefix or pass the matching file", command, prefix, fileFlag, filename, series)
+	}
+	return series, nil
 }
 
 // selectRunReportENFilename reports only an English artifact that exists as

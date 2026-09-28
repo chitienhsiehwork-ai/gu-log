@@ -745,20 +745,98 @@ func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
 	}
 }
 
+// TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
+// series only changes whether Tribunal may rewrite (GP is score-only), and the
+// existing levelup- Lv corpus and en- sidecars must resolve instead of failing.
 func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
-	for filename, want := range map[string]string{
-		"gp-10-example.mdx":    "GP",
-		"mp-20-example.mdx":    "MP",
-		"en-sd-30-example.mdx": "SD",
-		"lv-40-example.mdx":    "Lv",
+	for filename, wantNoRewrite := range map[string]bool{
+		"gp-10-example.mdx":                      true,
+		"mp-20-example.mdx":                      false,
+		"en-sd-30-example.mdx":                   false,
+		"lv-40-example.mdx":                      false,
+		"levelup-20260701-core-dump-anatomy.mdx": false,
 	} {
-		got, err := postPrefixFromFilename(filename)
-		if err != nil || got != want {
-			t.Errorf("postPrefixFromFilename(%q) = %q, %v; want %q", filename, got, err, want)
-		}
+		t.Run(filename, func(t *testing.T) {
+			resetGlobals()
+			root := makeFakeRepo(t)
+			postsDir := filepath.Join(root, "src", "content", "posts")
+			if err := os.MkdirAll(postsDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			mustWrite(t, filepath.Join(postsDir, filename), "---\ntitle: \"Example\"\nlang: zh-tw\n---\nbody\n")
+			mustWrite(t, filepath.Join(root, "scripts", "tribunal.sh"), "printf 'tribunal args: %s\\n' \"$*\"\n")
+			for _, fixer := range []string{"add-kaomoji.mjs", "apply-glossary-links.mjs", "inject-related-posts.mjs"} {
+				mustWrite(t, filepath.Join(root, "scripts", fixer), "")
+			}
+			t.Setenv("GU_LOG_DIR", root)
+
+			workDir := t.TempDir()
+			cmd := buildRoot()
+			cmd.SetArgs([]string{"--json", "ralph", "--file", filename, "--work-dir", workDir})
+			if _, err := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			}); err != nil {
+				t.Fatalf("ralph --file %s: %v", filename, err)
+			}
+			args, err := os.ReadFile(filepath.Join(workDir, "tribunal-stdout.txt"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(args), "tribunal args: "+filename) {
+				t.Fatalf("tribunal did not receive %s: %q", filename, args)
+			}
+			if got := strings.Contains(string(args), "--no-rewrite"); got != wantNoRewrite {
+				t.Fatalf("tribunal args = %q, want --no-rewrite=%t", args, wantNoRewrite)
+			}
+		})
 	}
-	if _, err := postPrefixFromFilename("../mp-20-example.mdx"); err == nil {
-		t.Fatal("path traversal filename must fail")
+
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"ralph", "--file", "../mp-20-example.mdx"})
+	if err := cmd.ExecuteContext(context.Background()); err == nil || !strings.Contains(err.Error(), "basename") {
+		t.Fatalf("path traversal filename error = %v, want a basename rejection", err)
+	}
+}
+
+// TestRunAndDeployRejectPrefixThatContradictsFile covers the
+// gp-pipeline-publish-integrity scenario「prefix 與檔案系列不一致」.
+func TestRunAndDeployRejectPrefixThatContradictsFile(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	slots := []string{"--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title"}
+	for _, tc := range []struct {
+		name, prefix, fileSeries string
+		args                     []string
+	}{
+		{name: "run GP prefix with MP file", prefix: "GP", fileSeries: "MP",
+			args: []string{"run", "--prefix", "GP", "--from-step", "translate", "--file", "mp-10-20260723-example.mdx", "--dry-run"}},
+		{name: "run MP prefix with GP file", prefix: "MP", fileSeries: "GP",
+			args: []string{"run", "--prefix", "MP", "--from-step", "translate", "--file", "gp-10-20260723-example.mdx", "--dry-run"}},
+		{name: "deploy GP prefix with MP pending file", prefix: "GP", fileSeries: "MP",
+			args: append([]string{"deploy", "--prefix", "GP", "--active-file", "mp-pending-20260723-author-title.mdx"}, slots...)},
+		{name: "deploy MP prefix with GP pending file", prefix: "MP", fileSeries: "GP",
+			args: append([]string{"deploy", "--prefix", "MP", "--active-file", "gp-pending-20260723-author-title.mdx"}, slots...)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			workDir := filepath.Join(t.TempDir(), "never-created")
+			// A missing fake-provider spec fails loudly if a model route is built.
+			cmd := buildRoot()
+			cmd.SetArgs(append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...))
+			err := cmd.ExecuteContext(context.Background())
+			if err == nil || exitCodeFor(err) != 1 {
+				t.Fatalf("error = %v (exit %d), want an exit-1 ingress rejection", err, exitCodeFor(err))
+			}
+			for _, want := range []string{"--prefix " + tc.prefix, "(series " + tc.fileSeries + ")"} {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error = %v, want both series named (%q)", err, want)
+				}
+			}
+			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+				t.Fatalf("mismatched prefix created the work dir: %v", statErr)
+			}
+		})
 	}
 }
 
@@ -926,18 +1004,29 @@ func TestStandaloneGPDeployBindsFreshManifestProfile(t *testing.T) {
 	}
 }
 
+// TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations
+// resumes translation without --prefix: the file names the series (MP, and Lv
+// for the existing levelup- corpus) instead of the GP default
+// (openspec: gp-pipeline-publish-integrity「以既有非 GP 檔案恢復時沒帶 prefix」).
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
-	resetGlobals()
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	filename := "gp-10-20260723-recovery-roundtrip.mdx"
-	sourcePath := filepath.Join(postsDir, filename)
-	mustWrite(t, sourcePath, `---
+	for _, tc := range []struct {
+		filename string
+		ticketID string
+	}{
+		{filename: "mp-10-20260723-recovery-roundtrip.mdx", ticketID: "MP-10"},
+		{filename: "levelup-20260701-core-dump-anatomy.mdx", ticketID: "Lv-13"},
+	} {
+		t.Run(tc.filename, func(t *testing.T) {
+			resetGlobals()
+			root := makeFakeRepo(t)
+			postsDir := filepath.Join(root, "src", "content", "posts")
+			if err := os.MkdirAll(postsDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			sourcePath := filepath.Join(postsDir, tc.filename)
+			mustWrite(t, sourcePath, `---
 title: "Recovery roundtrip"
-ticketId: GP-10
+ticketId: `+tc.ticketID+`
 translatedDate: "2026-04-11"
 translatedBy:
   model: "Old Translator"
@@ -946,18 +1035,27 @@ lang: "zh-tw"
 ---
 中文內容。
 `)
-	sourceBefore, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fakePath := filepath.Join(root, "fake-provider.json")
-	mustWrite(t, fakePath, `{"model":"claude-opus-5","responses":[{"output":"---\ntitle: \"Recovery roundtrip\"\nticketId: GP-10\nlang: \"en\"\n---\nEnglish body.\n"}]}`)
-	t.Setenv("GU_LOG_DIR", root)
+			sourceBefore, err := os.ReadFile(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fakeSpec, err := json.Marshal(map[string]any{
+				"model": "claude-opus-5",
+				"responses": []map[string]string{{
+					"output": "---\ntitle: \"Recovery roundtrip\"\nticketId: " + tc.ticketID + "\nlang: \"en\"\n---\nEnglish body.\n",
+				}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			fakePath := filepath.Join(root, "fake-provider.json")
+			mustWrite(t, fakePath, string(fakeSpec))
+			t.Setenv("GU_LOG_DIR", root)
 
-	binDir := t.TempDir()
-	gitMarker := filepath.Join(t.TempDir(), "git-called")
-	gitPath := filepath.Join(binDir, "git")
-	gitStub := `#!/bin/sh
+			binDir := t.TempDir()
+			gitMarker := filepath.Join(t.TempDir(), "git-called")
+			gitPath := filepath.Join(binDir, "git")
+			gitStub := `#!/bin/sh
 set -eu
 for arg in "$@"; do
   case "$arg" in
@@ -969,69 +1067,74 @@ for arg in "$@"; do
 done
 exit 0
 `
-	if err := os.WriteFile(gitPath, []byte(gitStub), 0o755); err != nil {
-		t.Fatalf("write fake git: %v", err)
-	}
-	t.Setenv("GIT_MARKER", gitMarker)
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+			if err := os.WriteFile(gitPath, []byte(gitStub), 0o755); err != nil {
+				t.Fatalf("write fake git: %v", err)
+			}
+			t.Setenv("GIT_MARKER", gitMarker)
+			t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	cmd := buildRoot()
-	cmd.SetArgs([]string{
-		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
-		"run", "--from-step", "translate", "--file", filename, "--dry-run", "--legacy-shadow",
-	})
-	out, err := captureProcessStdout(t, func() error {
-		return cmd.ExecuteContext(context.Background())
-	})
-	if err != nil {
-		t.Fatalf("run command: %v", err)
-	}
-	var report runReport
-	if err := json.Unmarshal(out, &report); err != nil {
-		t.Fatalf("decode stdout JSON %q: %v", out, err)
-	}
-	want := "en-" + filename
-	if report.ENFilename != want {
-		t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
-	}
-	if report.TranslateModel != "Opus 5" {
-		t.Fatalf("translateModel = %q, want Opus 5", report.TranslateModel)
-	}
-	if report.TranslateHarness != "Claude Code CLI" {
-		t.Fatalf("translateHarness = %q, want Claude Code CLI", report.TranslateHarness)
-	}
-	if !report.DryRun {
-		t.Fatal("run report should preserve dryRun=true")
-	}
-	info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
-	if err != nil {
-		t.Fatalf("reported English file: %v", err)
-	}
-	if !info.Mode().IsRegular() {
-		t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
-	}
-	sidecar, err := os.ReadFile(filepath.Join(postsDir, report.ENFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{
-		`translatedBy:`,
-		`  model: "Opus 5"`,
-		`  harness: "Claude Code CLI"`,
-	} {
-		if !strings.Contains(string(sidecar), want) {
-			t.Errorf("sidecar missing %q:\n%s", want, sidecar)
-		}
-	}
-	sourceAfter, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(sourceAfter) != string(sourceBefore) {
-		t.Fatalf("dry-run translation mutated zh source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
-	}
-	if _, err := os.Stat(gitMarker); !os.IsNotExist(err) {
-		t.Fatalf("dry-run invoked git mutation (add/commit/push must remain unreachable): %v", err)
+			cmd := buildRoot()
+			cmd.SetArgs([]string{
+				"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
+				"run", "--from-step", "translate", "--file", tc.filename, "--dry-run",
+			})
+			out, err := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			})
+			if err != nil {
+				t.Fatalf("run command: %v", err)
+			}
+			var report runReport
+			if err := json.Unmarshal(out, &report); err != nil {
+				t.Fatalf("decode stdout JSON %q: %v", out, err)
+			}
+			if report.TicketID != tc.ticketID {
+				t.Fatalf("ticketId = %q, want %q from the resumed file", report.TicketID, tc.ticketID)
+			}
+			want := "en-" + tc.filename
+			if report.ENFilename != want {
+				t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
+			}
+			if report.TranslateModel != "Opus 5" {
+				t.Fatalf("translateModel = %q, want Opus 5", report.TranslateModel)
+			}
+			if report.TranslateHarness != "Claude Code CLI" {
+				t.Fatalf("translateHarness = %q, want Claude Code CLI", report.TranslateHarness)
+			}
+			if !report.DryRun {
+				t.Fatal("run report should preserve dryRun=true")
+			}
+			info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
+			if err != nil {
+				t.Fatalf("reported English file: %v", err)
+			}
+			if !info.Mode().IsRegular() {
+				t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
+			}
+			sidecar, err := os.ReadFile(filepath.Join(postsDir, report.ENFilename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range []string{
+				`translatedBy:`,
+				`  model: "Opus 5"`,
+				`  harness: "Claude Code CLI"`,
+			} {
+				if !strings.Contains(string(sidecar), want) {
+					t.Errorf("sidecar missing %q:\n%s", want, sidecar)
+				}
+			}
+			sourceAfter, err := os.ReadFile(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(sourceAfter) != string(sourceBefore) {
+				t.Fatalf("dry-run translation mutated zh source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
+			}
+			if _, err := os.Stat(gitMarker); !os.IsNotExist(err) {
+				t.Fatalf("dry-run invoked git mutation (add/commit/push must remain unreachable): %v", err)
+			}
+		})
 	}
 }
 
