@@ -942,7 +942,7 @@ function quote(value) {
 }
 
 /** 依固定順序輸出 `sourceDistance` 的 YAML 區塊（不含配對明細）。 */
-export function serializeStamp(stamp) {
+function serializeStamp(stamp) {
   const lines = [`${STAMP_FIELD}:`];
   lines.push(`  policy: ${quote(stamp.policy)}`);
   lines.push(`  verdict: ${quote(stamp.verdict)}`);

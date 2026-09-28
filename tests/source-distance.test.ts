@@ -19,7 +19,6 @@ import {
   scoreAlignment,
   segmentGuide,
   segmentSource,
-  serializeStamp,
   sourceSummary,
   splitSentences,
   subjectFingerprint,
@@ -472,7 +471,18 @@ describe('章的序列化與驗證', () => {
   });
 
   it('章只存摘要，不存配對明細', () => {
-    const data = parseFrontmatter(stamped);
+    // 餵完整的計分結果：兩次配對各自的 pairs 與 runs、聯集、fails 都在裡面。
+    const guide = synthetic('C', [16, 16, 16]);
+    const map = alignment({ C1: ['S1'], C2: ['S5'], C3: ['S9'] }, guide);
+    const result = decide(guide, synthetic('S', Array(30).fill(10)), [map, map]);
+    expect(result.verdict).toBe('PASS');
+    expect(result.scores[1].pairs).toHaveLength(3);
+    const content = writeStamp(GUIDE, { ...stamp, ...result });
+    const data = parseFrontmatter(content);
+    expect(data.sourceDistance.metrics).toEqual(result.metrics);
+    expect(content.split('\n---\n')[0]).not.toMatch(
+      /pairs|runs|scores|union|fails|alignments|\bS\d+\b|\bC\d+\b/
+    );
     expect(Object.keys(data.sourceDistance).sort()).toEqual(
       [
         'aligner',
@@ -487,7 +497,6 @@ describe('章的序列化與驗證', () => {
         'verdict',
       ].sort()
     );
-    expect(serializeStamp(stamp)).not.toMatch(/alignments|pairs|S\d+|C\d+/);
   });
 
   it('GP 缺章：失敗並指出蓋章指令', () => {
