@@ -209,6 +209,58 @@ func TestClaudeContainedWriterUsesLeastPrivilege(t *testing.T) {
 	}
 }
 
+// TestClaudeContainedJSONRoleReturnsStructuredOutput covers the aligner's
+// call shape: no tools at all, the schema on the CLI, and structured_output as
+// the returned artifact instead of free text.
+func TestClaudeContainedJSONRoleReturnsStructuredOutput(t *testing.T) {
+	argsPath, _ := writeFakeClaude(t, `{"result":"prose that must be ignored","structured_output":{"alignments":[{"c":"C1","s":["S2"]}]},"modelUsage":{"claude-sonnet-5":{"outputTokens":3}}}`, 0)
+	schema := `{"type":"object"}`
+	p := &ClaudeProvider{ModelFlag: "claude-sonnet-5", Contained: true, Tools: []string{}}
+	out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: schema})
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	if out != `{"alignments":[{"c":"C1","s":["S2"]}]}` {
+		t.Fatalf("structured output = %q", out)
+	}
+	args := readLines(t, argsPath)
+	if got, ok := flagValue(args, "--json-schema"); !ok || got != schema {
+		t.Fatalf("--json-schema = %q (present=%v), want %q", got, ok, schema)
+	}
+	if got, ok := flagValue(args, "--tools"); !ok || got != "" {
+		t.Fatalf("--tools = %q (present=%v), want empty (no tools)", got, ok)
+	}
+	if _, ok := flagValue(args, "--allowed-tools"); ok {
+		t.Fatalf("JSON role must not pre-approve tools: %q", args)
+	}
+	if got := p.ActualModel(); got != "claude-sonnet-5" {
+		t.Fatalf("ActualModel = %q, want claude-sonnet-5", got)
+	}
+}
+
+func TestClaudeStructuredOutputMissingFailsClosed(t *testing.T) {
+	for name, stdout := range map[string]string{
+		"no structured_output": `{"result":"{\"alignments\":[]}","modelUsage":{"claude-sonnet-5":{"outputTokens":3}}}`,
+		"not JSON":             `plain text`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			writeFakeClaude(t, stdout, 0)
+			p := &ClaudeProvider{ModelFlag: "claude-sonnet-5", Contained: true, Tools: []string{}}
+			out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`})
+			if err == nil || !strings.Contains(err.Error(), "structured") {
+				t.Fatalf("Run = (%q, %v), want a structured output error", out, err)
+			}
+		})
+	}
+}
+
+func TestCodexRefusesStructuredOutput(t *testing.T) {
+	p := &CodexProvider{ModelName: "gpt-5.5"}
+	if _, err := p.Run(context.Background(), "json only", RunOptions{JSONSchema: `{"type":"object"}`}); err == nil {
+		t.Fatal("Codex Run accepted a JSON schema it cannot enforce")
+	}
+}
+
 // TestClaudeContainedToollessRoleGetsNoTools covers the fail-closed default for
 // a contained role without tools: the session gets no tools, pre-approves
 // nothing, and loads no host settings or MCP servers.
@@ -275,13 +327,18 @@ func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			writeFakeClaude(t, tc.stdout, tc.rc)
-			p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
-			out, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()})
-			if err == nil || out != "" {
-				t.Fatalf("Run = (%q, %v), want an error and no output", out, err)
-			}
-			if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
-				t.Fatalf("Run error = %v, want the errors[] detail", err)
+			for _, opts := range []RunOptions{
+				{WorkDir: t.TempDir()},
+				{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`},
+			} {
+				p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
+				out, err := p.Run(context.Background(), "hi", opts)
+				if err == nil || out != "" {
+					t.Fatalf("Run(schema=%t) = (%q, %v), want an error and no output", opts.JSONSchema != "", out, err)
+				}
+				if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
+					t.Fatalf("Run(schema=%t) error = %v, want the errors[] detail", opts.JSONSchema != "", err)
+				}
 			}
 		})
 	}

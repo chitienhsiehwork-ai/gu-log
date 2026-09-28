@@ -35,6 +35,11 @@ type RunOptions struct {
 	// WorkDir is the child process working directory. When empty the
 	// child inherits the parent's CWD.
 	WorkDir string
+	// JSONSchema asks providers with native structured-output support to
+	// constrain the response to this schema and return the structured value
+	// instead of free text (the source-distance aligner). Providers without
+	// that support fail explicitly instead of silently ignoring the contract.
+	JSONSchema string
 }
 
 // RunResult describes what came back from a Dispatcher.Run call.
