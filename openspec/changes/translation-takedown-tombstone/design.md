@@ -57,7 +57,7 @@
 
 ### D4. 墓碑頁版面
 
-- 繁中與英文文章路由遇到下架文章時，在 `BaseLayout` 內只渲染墓碑元件（沿用站上的 header、主題切換、footer）。`BaseLayout` 新增 `robots` 參數，墓碑傳 `noindex`；`<title>` 為「<標題>（已下架） - gu-log」／「<title> (taken down) - gu-log」；meta description 用站台預設值。
+- 繁中與英文文章路由遇到下架文章時，在 `BaseLayout` 內只渲染墓碑元件（沿用站上的 header、主題切換、footer）。`BaseLayout` 的 robots meta 只由一個 `robots` 參數控制（原本的 `noindex` 布林併進來，404 與測試 fixture 改傳 `noindex, nofollow`），墓碑傳 `noindex`；`<title>` 為「<標題>（已下架） - gu-log」／「<title> (taken down) - gu-log」；meta description 用站台預設值。
 - 不渲染：目錄、tags、已讀／分享／登入、相關文章、系列與上下篇導覽、`ArticleTechnicalDetails`（版本號與 GitHub 修改歷史連結）、Giscus、AI popup、狀態 banner、原本的來源列。
 - 版面照 `design-ref/tombstone-c-v9.html`：石碑圖寬約 225px 靠右下、Mogu 約 150px 疊在左下，碑文用 HTML 疊在石面上。素材從 `design-ref/` 複製到 `src/assets/tombstone/`（450×507、280×320 的 2x 已裁切 webp），都是裝飾圖，`alt=""`。
 - 顏色用站上既有 token；碑文例外：石頭素材在兩個主題都是米色，新增兩個主題同值的 `--color-tombstone-ink`、`--color-tombstone-rule`。「已下架」標籤用暖橘（`--color-mogu-orange` 系列）。
