@@ -23,14 +23,14 @@ const (
 	MaxContentLintFixes  = 2
 	contentLintDraftFile = "lint-draft.mdx"
 	contentLintDir       = "content-lint"
-	// contentLintCrashExit is what a check that crashes exits with instead of
-	// node's default 1, which the checks use for findings.
+	// contentLintCrashExit is what a check that crashes, or is missing, exits
+	// with instead of node's default 1, which the checks use for findings.
 	contentLintCrashExit = 70
 )
 
 // contentLintCrashHook makes node exit contentLintCrashExit on an uncaught
-// exception or rejection, so a crashed check's stack trace is never sent to
-// refine as findings.
+// exception or rejection, including a check script that does not exist, so a
+// crash is never sent to refine as findings.
 var contentLintCrashHook = fmt.Sprintf(
 	"--import=data:text/javascript,process.on('uncaughtException',(e)=>{console.error(e);process.exit(%d)})",
 	contentLintCrashExit)
@@ -54,13 +54,9 @@ var contentLintScripts = []string{
 func (s *State) contentLintReport(ctx context.Context, file string) (string, error) {
 	var report strings.Builder
 	for _, name := range contentLintScripts {
-		script := filepath.Join(s.Cfg.ScriptsDir, name)
-		if _, err := os.Stat(script); err != nil {
-			return "", NewStepError(14, fmt.Errorf("content check %s: %w", name, err))
-		}
 		res, err := runner.RunWithOptions(ctx, runner.Options{
 			Name:    "node",
-			Args:    []string{contentLintCrashHook, script, file},
+			Args:    []string{contentLintCrashHook, filepath.Join(s.Cfg.ScriptsDir, name), file},
 			WorkDir: s.Cfg.RepoRoot,
 		})
 		if err == nil {

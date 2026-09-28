@@ -175,18 +175,26 @@ func TestRun_GPResumeRefusesABodyThatFailsTheContentChecks(t *testing.T) {
 
 // A check that cannot finish is neither a finding to fix nor a pass. Node exits
 // 1 on an uncaught exception, the same code the checks use for findings, so a
-// crash must not reach refine as a report.
+// crash, or a missing check script, must not reach refine as a report.
 func TestRun_GPContentCheckThatCannotRunStopsTheStep(t *testing.T) {
 	for name, script := range map[string]string{
 		"exits 2":           "process.exit(2);\n",
 		"throws":            "throw new Error('glossary snapshot is corrupt');\n",
 		"rejects a promise": "await Promise.reject(new Error('glossary snapshot is corrupt'));\n",
+		"is missing":        "",
 	} {
 		t.Run(name, func(t *testing.T) {
 			aligner := &scriptedAligner{modes: []string{"guide", "guide"}}
 			s, fake, tmp := makeGPRunHarness(t, aligner, gpWriter()...)
-			if err := os.WriteFile(filepath.Join(tmp, "scripts", "check-ai-tells.mjs"), []byte(script), 0o644); err != nil {
-				t.Fatal(err)
+			check := filepath.Join(tmp, "scripts", "check-ai-tells.mjs")
+			var setupErr error
+			if script == "" {
+				setupErr = os.Remove(check)
+			} else {
+				setupErr = os.WriteFile(check, []byte(script), 0o644)
+			}
+			if setupErr != nil {
+				t.Fatal(setupErr)
 			}
 			_, _ = SetupWorkDir(s)
 
