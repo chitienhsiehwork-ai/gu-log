@@ -31,7 +31,7 @@ const getTimelineStyle = (status: PostStatus) =>
 
 <BaseLayout title="Gu-log Picks - All Posts" lang="en">
   <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> Gu-log Picks</h1>
-  <p class="page-subtitle">Long-form articles, translated and explained</p>
+  <p class="page-subtitle">ShroomDog's curated reading guides</p>
   {
     page.total > 0 ? (
       <p class="post-count">{page.total} posts</p>
@@ -58,7 +58,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · From {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · Original: {post.data.source}
             </p>
             <Toggle title="Preview">
               <p>{post.data.summary}</p>

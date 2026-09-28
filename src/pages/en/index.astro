@@ -42,7 +42,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
     <h2>
       <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
     </h2>
-    <p class="section-subtitle">Long-form articles, translated and explained</p>
+    <p class="section-subtitle">ShroomDog's curated reading guides</p>
 
     {
       gpPosts.length === 0 && (
@@ -65,7 +65,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · From {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · Original: {post.data.source}
             </p>
             <Toggle title="Preview">
               <p>{post.data.summary}</p>

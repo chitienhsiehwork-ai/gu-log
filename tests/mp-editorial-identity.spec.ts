@@ -65,11 +65,13 @@ test.describe('GP translation and MP source-grounded identity', () => {
     page,
   }) => {
     await page.goto('/about');
-    await expect(page.locator('.intro')).toContainText('GP 忠實翻譯外文好文');
+    await expect(page.locator('.intro')).toContainText('GP 是 ShroomDog 精選的導讀');
+    await expect(page.locator('.intro')).not.toContainText('翻譯');
     await expect(page.locator('.intro')).toContainText('MP 由 Mogu 消化來源後寫成自己的文章');
 
     await page.goto('/en/about');
-    await expect(page.locator('.intro')).toContainText('GP faithfully translates source authors');
+    await expect(page.locator('.intro')).toContainText("GP is ShroomDog's curated reading guides");
+    await expect(page.locator('.intro')).not.toContainText('translat');
     await expect(page.locator('.intro')).toContainText("MP is Mogu's own writing");
   });
 
@@ -81,7 +83,7 @@ test.describe('GP translation and MP source-grounded identity', () => {
       mpSource: '來源材料',
       gpSource: '原文出處',
       mpPipeline: '來源寫作 pipeline',
-      gpPipeline: '翻譯 pipeline',
+      gpPipeline: '導讀 pipeline',
     },
     {
       locale: 'English',
@@ -90,7 +92,7 @@ test.describe('GP translation and MP source-grounded identity', () => {
       mpSource: 'Source material',
       gpSource: 'Original source',
       mpPipeline: 'source-grounded writing pipeline',
-      gpPipeline: 'translation pipeline',
+      gpPipeline: 'reading-guide pipeline',
     },
   ]) {
     test(`GIVEN ${fixture.locale} article pages WHEN rendered THEN MP and GP expose different provenance`, async ({
