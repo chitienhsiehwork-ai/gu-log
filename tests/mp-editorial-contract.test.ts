@@ -134,6 +134,17 @@ describe('MP editorial contract', () => {
     }
   });
 
+  it('does not mark a GP down for ending on its required pointer back to the original', () => {
+    // openspec editorial-charter〈GP body MUST be a Mogu-written reading guide〉 requires the
+    // pointer; narrative judges the close before it.
+    for (const file of ['.claude/agents/vibe-opus-scorer.md', 'scripts/vibe-scoring-standard.md']) {
+      const contract = read(file);
+      expect(contract, file).toMatch(/\*\*GP ending:\*\*[^\n]*editorial-charter/);
+      expect(contract, file).toMatch(/back to the original/);
+      expect(contract, file).toMatch(/never lower narrative just because the article ends/);
+    }
+  });
+
   it('keeps taken-down GP posts out of the calibration anchors', () => {
     for (const file of [
       '.claude/agents/fact-checker.md',

@@ -410,6 +410,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 **Ending deletion test:** Delete the final one or two paragraphs mentally. If the post becomes stronger or loses no supported insight, the original ending is over-explaining. A callback, question, challenge, or one-liner is optional and earns credit only when it changes the meaning of earlier material without crossing the source boundary.
 
+**GP ending:** `editorial-charter`〈GP body MUST be a Mogu-written reading guide〉 makes a GP close by sending the reader back to the original. That pointer is required format: run the ending tests on the close right before it, and never lower narrative just because the article ends on the pointer.
+
 **裝飾型 persona 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 
 ---
