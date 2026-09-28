@@ -196,7 +196,6 @@ translated body
 	}
 
 	s := NewState()
-	s.LegacyShadow = prefix == "GP"
 	s.Cfg = cfg
 	s.Log = logx.New()
 	s.Dispatcher = disp
@@ -261,41 +260,6 @@ func TestStageEditorialContext_CopiesCanonicalFiles(t *testing.T) {
 		}
 		if string(got) != want {
 			t.Errorf("staged %s = %q, want %q", name, got, want)
-		}
-	}
-}
-
-func TestStepsForStateKeepsGPAndMPRoutingDistinct(t *testing.T) {
-	stepNames := func(s *State) []string {
-		steps := stepsForState(s)
-		names := make([]string, 0, len(steps))
-		for _, step := range steps {
-			names = append(names, step.name)
-		}
-		return names
-	}
-
-	gp := strings.Join(stepNames(&State{Prefix: "GP"}), ",")
-	for _, want := range []string{"source-translate", "source-preservation", "enrich"} {
-		if !strings.Contains(gp, want) {
-			t.Errorf("GP route missing %s: %s", want, gp)
-		}
-	}
-	for _, forbidden := range []string{"write", "review", "refine"} {
-		if strings.Contains(gp, forbidden) {
-			t.Errorf("GP route unexpectedly contains %s: %s", forbidden, gp)
-		}
-	}
-
-	mp := strings.Join(stepNames(&State{Prefix: "MP"}), ",")
-	for _, want := range []string{"write", "review", "refine"} {
-		if !strings.Contains(mp, want) {
-			t.Errorf("MP route missing %s: %s", want, mp)
-		}
-	}
-	for _, forbidden := range []string{"source-translate", "source-preservation", "enrich"} {
-		if strings.Contains(mp, forbidden) {
-			t.Errorf("MP route unexpectedly contains %s: %s", forbidden, mp)
 		}
 	}
 }
@@ -431,17 +395,85 @@ func TestRun_EvalSkipExit12(t *testing.T) {
 }
 
 func TestRun_DryRunSkipsDeploy(t *testing.T) {
-	for _, prefix := range []string{"GP", "MP"} {
-		t.Run(prefix, func(t *testing.T) {
-			s, _ := makeRunHarnessForPrefix(t, prefix)
-			s.DryRun = true
-			_, _ = SetupWorkDir(s)
+	s, _ := makeRunHarness(t)
+	s.DryRun = true
+	_, _ = SetupWorkDir(s)
 
-			if err := Run(context.Background(), s); err != nil {
-				t.Fatalf("Run --dry-run: %v", err)
+	if err := Run(context.Background(), s); err != nil {
+		t.Fatalf("Run --dry-run: %v", err)
+	}
+	if s.PromptTicketID != "MP-PENDING" {
+		t.Errorf("dry-run should keep MP-PENDING without allocation: got %q", s.PromptTicketID)
+	}
+}
+
+// TestRunAndDeployRejectGPBeforeAnyStep covers gp-pipeline-publish-integrity
+// 「繞過 CLI 直接執行 pipeline」: even a dry run, and a Deploy with every slot
+// filled, refuse GP before any step, snapshot, counter, file, or git change.
+func TestRunAndDeployRejectGPBeforeAnyStep(t *testing.T) {
+	for name, call := range map[string]func(context.Context, *State) error{
+		"Run dry-run": func(ctx context.Context, s *State) error {
+			s.DryRun = true
+			return Run(ctx, s)
+		},
+		"Deploy": func(ctx context.Context, s *State) error { return s.Deploy(ctx) },
+	} {
+		t.Run(name, func(t *testing.T) {
+			s, tmp := makeRunHarnessForPrefix(t, "GP")
+			if _, err := SetupWorkDir(s); err != nil {
+				t.Fatal(err)
 			}
-			if want := prefix + "-PENDING"; s.PromptTicketID != want {
-				t.Errorf("dry-run should keep %s without allocation: got %q", want, s.PromptTicketID)
+			pending := "gp-pending-20260723-fakeauthor-fake-title.mdx"
+			pendingBody := "---\ntitle: \"Fake Title\"\nticketId: \"GP-PENDING\"\nlang: \"zh-tw\"\n---\nbody\n"
+			if err := os.WriteFile(filepath.Join(s.Cfg.PostsDir, pending), []byte(pendingBody), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			s.ActiveFilename = pending
+			s.DateStamp, s.AuthorSlug, s.TitleSlug = "20260723", "fakeauthor", "fake-title"
+			counterBefore, err := os.ReadFile(s.Cfg.CounterFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			headBefore := runGitForTest(t, tmp, "rev-parse", "HEAD")
+			statusBefore := runGitForTest(t, tmp, "status", "--porcelain")
+
+			err = call(context.Background(), s)
+			if !errors.Is(err, ErrGPPaused) {
+				t.Fatalf("error = %v, want ErrGPPaused", err)
+			}
+			for _, provider := range s.Dispatcher.Providers() {
+				if fake, ok := provider.(*llm.FakeProvider); ok && len(fake.Called) != 0 {
+					t.Fatalf("GP rejection still called the model %d time(s)", len(fake.Called))
+				}
+			}
+			if len(s.Timings) != 0 {
+				t.Fatalf("GP rejection ran steps: %v", s.Timings)
+			}
+			if _, statErr := os.Stat(filepath.Join(s.WorkDir, "pipeline-status.json")); !os.IsNotExist(statErr) {
+				t.Fatalf("GP rejection wrote a run snapshot: %v", statErr)
+			}
+			counterAfter, err := os.ReadFile(s.Cfg.CounterFile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(counterAfter, counterBefore) {
+				t.Fatal("GP rejection changed the article counter")
+			}
+			entries, err := os.ReadDir(s.Cfg.PostsDir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(entries) != 1 || entries[0].Name() != pending {
+				t.Fatalf("GP rejection changed the posts dir: %v", entries)
+			}
+			if got, err := os.ReadFile(filepath.Join(s.Cfg.PostsDir, pending)); err != nil || string(got) != pendingBody {
+				t.Fatalf("GP rejection changed the pending post: %q, %v", got, err)
+			}
+			if got := runGitForTest(t, tmp, "rev-parse", "HEAD"); got != headBefore {
+				t.Fatalf("GP rejection committed: HEAD %s -> %s", headBefore, got)
+			}
+			if got := runGitForTest(t, tmp, "status", "--porcelain"); got != statusBefore {
+				t.Fatalf("GP rejection changed git status:\n%s\n->\n%s", statusBefore, got)
 			}
 		})
 	}

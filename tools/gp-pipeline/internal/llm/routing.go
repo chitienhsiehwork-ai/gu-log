@@ -14,13 +14,8 @@ import (
 type RuntimeRole string
 
 const (
-	RuntimeReviewer       RuntimeRole = "reviewer"
-	RuntimeWriter         RuntimeRole = "writer"
-	RuntimeTranslator     RuntimeRole = "translator"
-	RuntimeSourceReviewer RuntimeRole = "sourceReviewer"
-	RuntimeCorrector      RuntimeRole = "corrector"
-	RuntimeCommentary     RuntimeRole = "commentary"
-	RuntimeVibeScorer     RuntimeRole = "vibeScorer"
+	RuntimeReviewer RuntimeRole = "reviewer"
+	RuntimeWriter   RuntimeRole = "writer"
 )
 
 type ResolvedRuntime struct {

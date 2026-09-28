@@ -19,26 +19,23 @@ import (
 
 // runReport is the JSON shape emitted by `gp-pipeline run --json`.
 type runReport struct {
-	OK                  bool                        `json:"ok"`
-	Step                string                      `json:"step"`
-	TicketID            string                      `json:"ticketId,omitempty"`
-	Filename            string                      `json:"filename,omitempty"`
-	ENFilename          string                      `json:"enFilename,omitempty"`
-	WorkDir             string                      `json:"workDir,omitempty"`
-	CodexPrimaryVerdict string                      `json:"codexPrimaryVerdict,omitempty"`
-	CodexVerdict        string                      `json:"codexVerdict,omitempty"`
-	DedupVerdict        string                      `json:"dedupVerdict,omitempty"`
-	RalphPassed         bool                        `json:"ralphPassed,omitempty"`
-	GPProfile           string                      `json:"gpProfile,omitempty"`
-	GateManifest        string                      `json:"gateManifest,omitempty"`
-	RoleRuns            map[string]pipeline.RoleRun `json:"roleRuns,omitempty"`
-	TranslateModel      string                      `json:"translateModel,omitempty"`
-	TranslateHarness    string                      `json:"translateHarness,omitempty"`
-	Timings             map[string]int              `json:"timings,omitempty"`
-	ElapsedMs           int64                       `json:"elapsedMs"`
-	ErrorCode           int                         `json:"errorCode,omitempty"`
-	Error               string                      `json:"error,omitempty"`
-	DryRun              bool                        `json:"dryRun,omitempty"`
+	OK                  bool           `json:"ok"`
+	Step                string         `json:"step"`
+	TicketID            string         `json:"ticketId,omitempty"`
+	Filename            string         `json:"filename,omitempty"`
+	ENFilename          string         `json:"enFilename,omitempty"`
+	WorkDir             string         `json:"workDir,omitempty"`
+	CodexPrimaryVerdict string         `json:"codexPrimaryVerdict,omitempty"`
+	CodexVerdict        string         `json:"codexVerdict,omitempty"`
+	DedupVerdict        string         `json:"dedupVerdict,omitempty"`
+	RalphPassed         bool           `json:"ralphPassed,omitempty"`
+	TranslateModel      string         `json:"translateModel,omitempty"`
+	TranslateHarness    string         `json:"translateHarness,omitempty"`
+	Timings             map[string]int `json:"timings,omitempty"`
+	ElapsedMs           int64          `json:"elapsedMs"`
+	ErrorCode           int            `json:"errorCode,omitempty"`
+	Error               string         `json:"error,omitempty"`
+	DryRun              bool           `json:"dryRun,omitempty"`
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
@@ -50,12 +47,9 @@ var stepNameToInt = map[string]int{
 	"1.5": pipeline.StepEval, "eval": pipeline.StepEval,
 	"1.7": pipeline.StepDedup, "dedup": pipeline.StepDedup,
 	"2": pipeline.StepWrite, "write": pipeline.StepWrite,
-	"source-translate": pipeline.StepSourceTranslate,
-	"3":                pipeline.StepReview, "review": pipeline.StepReview,
-	"source-preservation": pipeline.StepSourceGate, "source-gate": pipeline.StepSourceGate,
+	"3": pipeline.StepReview, "review": pipeline.StepReview,
 	"4": pipeline.StepRefine, "refine": pipeline.StepRefine,
-	"enrich": pipeline.StepEnrich,
-	"4.7":    pipeline.StepRalph, "ralph": pipeline.StepRalph,
+	"4.7": pipeline.StepRalph, "ralph": pipeline.StepRalph,
 	"4.8": pipeline.StepTranslate, "translate": pipeline.StepTranslate,
 	"5": pipeline.StepDeploy, "deploy": pipeline.StepDeploy,
 }
@@ -74,7 +68,6 @@ func newRunCmd(state *rootState) *cobra.Command {
 		skipDedup    bool
 		angle        string
 		sourceLabel  string
-		legacyShadow bool
 	)
 	cmd := &cobra.Command{
 		Use:   "run [tweet_url]",
@@ -135,11 +128,10 @@ canned responses for regression tests.`,
 				SkipDedup:    skipDedup,
 				Angle:        angle,
 				SourceLabel:  sourceLabel,
-				LegacyShadow: legacyShadow,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/source-translate/source-preservation/enrich/ralph/translate/deploy")
+	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/translate/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
@@ -149,9 +141,8 @@ canned responses for regression tests.`,
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipDedup, "skip-dedup", false, "bypass both dedup gates — only for confirmed false positives (e.g. same-author, different thesis)")
-	cmd.Flags().StringVar(&angle, "angle", "", "optional non-GP narrative angle; GP permits it only in --legacy-shadow")
+	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
-	cmd.Flags().BoolVar(&legacyShadow, "legacy-shadow", false, "compare the retired GP editorial flow without deploy")
 	return cmd
 }
 
@@ -172,7 +163,6 @@ type runOpts struct {
 	SkipDedup    bool
 	Angle        string
 	SourceLabel  string
-	LegacyShadow bool
 }
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
@@ -192,7 +182,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if opts.FromStep != "" {
 		v, ok := stepNameToInt[strings.ToLower(opts.FromStep)]
 		if !ok {
-			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / source-translate / source-preservation / enrich / ralph / translate / deploy", opts.FromStep)
+			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / translate / deploy", opts.FromStep)
 		}
 		fromStepInt = v
 	}
@@ -201,18 +191,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	}
 	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
 		return err
-	}
-	if opts.LegacyShadow && opts.Prefix != "GP" {
-		return fmt.Errorf("run: --legacy-shadow is GP-only")
-	}
-	if opts.Prefix == "GP" && !opts.LegacyShadow {
-		switch strings.ToLower(opts.FromStep) {
-		case "write", "review", "refine":
-			return fmt.Errorf("run: legacy GP step %q is unavailable; use source-translate, source-preservation, or enrich", opts.FromStep)
-		}
-	}
-	if opts.Prefix == "GP" && opts.Angle != "" && !opts.LegacyShadow {
-		return fmt.Errorf("run: --angle is available only in --legacy-shadow for GP")
 	}
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
@@ -238,7 +216,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	}
 	s.PromptTicketID = pendingTicketID
 	s.FromStepInt = fromStepInt
-	s.DryRun = opts.DryRun || opts.LegacyShadow
+	s.DryRun = opts.DryRun
 	s.Force = opts.Force
 	s.RalphBar = opts.RalphBar
 	s.ExistingFile = opts.ExistingFile
@@ -248,7 +226,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s.SkipDedup = opts.SkipDedup
 	s.Angle = opts.Angle
 	s.SourceLabel = opts.SourceLabel
-	s.LegacyShadow = opts.LegacyShadow
 	// Establish the durable workdir before provider/profile preflight so even a
 	// failure before the first content step leaves a report and recovery state.
 	if flagWorkDir != "" {
@@ -266,7 +243,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 			Step:      "run",
 			TicketID:  s.PromptTicketID,
 			WorkDir:   s.WorkDir,
-			GPProfile: s.GPProfile,
 			Timings:   s.Timings,
 			ElapsedMs: time.Since(start).Milliseconds(),
 			ErrorCode: 1,
@@ -281,31 +257,11 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return recordPreflightFailure(string(dispatcherJudge), err)
 	}
 	s.JudgeDispatcher = judgeDisp
-	if opts.Prefix == "GP" && !opts.LegacyShadow {
-		gp, failedRole, err := buildGPDispatchers(state)
-		if err != nil {
-			return recordPreflightFailure(string(failedRole), err)
-		}
-		// The English sidecar is outside the GP role profile. It writes
-		// translated-en.mdx, so it uses the writer route's file tools instead
-		// of the tool-less JSON translator.
-		sidecarWriter, err := buildDispatcherForRole(state, dispatcherWriter)
-		if err != nil {
-			return recordPreflightFailure(string(dispatcherWriter), err)
-		}
-		s.GPProfile = gp.Profile
-		s.GPProfileSHA256 = gp.ProfileSHA256
-		s.CanonicalTerminology = gp.CanonicalTerminology
-		s.Dispatcher, s.WriterDispatcher = gp.Translator, sidecarWriter
-		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
-		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
-	} else {
-		writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
-		if err != nil {
-			return recordPreflightFailure(string(dispatcherWriter), err)
-		}
-		s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
+	writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
+	if err != nil {
+		return recordPreflightFailure(string(dispatcherWriter), err)
 	}
+	s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
 
 	runErr := pipeline.Run(ctx, s)
 
@@ -319,9 +275,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		CodexVerdict:        s.CodexVerdict,
 		DedupVerdict:        s.DedupVerdict,
 		RalphPassed:         s.RalphPassed,
-		GPProfile:           s.GPProfile,
-		GateManifest:        s.GateManifestPath,
-		RoleRuns:            s.RoleRuns,
 		TranslateModel:      s.TranslateModel,
 		TranslateHarness:    s.TranslateHarness,
 		Timings:             s.Timings,

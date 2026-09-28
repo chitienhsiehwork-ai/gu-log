@@ -94,7 +94,6 @@ body
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{
 		RepoRoot:     tmp,
@@ -166,7 +165,7 @@ exit 0
 	// Seed a final.mdx in the work dir.
 	finalSeed := `---
 title: "Fake Title"
-ticketId: "GP-PENDING"
+ticketId: "MP-PENDING"
 originalDate: "2026-04-11"
 translatedDate: "2026-04-11"
 translatedBy:
@@ -185,7 +184,6 @@ body
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{
 		RepoRoot:   tmp,
@@ -193,7 +191,7 @@ body
 		PostsDir:   postsDir,
 	}
 	s.WorkDir = workDir
-	s.Prefix = "GP"
+	s.Prefix = "MP"
 	s.AuthorHandle = "fakeauthor"
 	s.Title = "Fake Title"
 	// Pin the stamp provider to Codex so the canonical-frontmatter assertions
@@ -211,7 +209,7 @@ body
 	if !s.RalphPassed {
 		t.Errorf("RalphPassed should be true with an exit-0 stub")
 	}
-	if s.ActiveFilename == "" || !strings.HasPrefix(s.ActiveFilename, "gp-pending-") {
+	if s.ActiveFilename == "" || !strings.HasPrefix(s.ActiveFilename, "mp-pending-") {
 		t.Errorf("ActiveFilename wrong: %q", s.ActiveFilename)
 	}
 	// Posts dir should now contain the pending file with normalised frontmatter.
@@ -253,10 +251,10 @@ func TestRalph_ExistingFileFallbackWithoutFinalArtifact(t *testing.T) {
 		}
 	}
 
-	existing := "gp-123-20260411-fake-resume.mdx"
+	existing := "mp-123-20260411-fake-resume.mdx"
 	existingBody := `---
 title: "Existing Fallback"
-ticketId: "GP-123"
+ticketId: "MP-123"
 translatedBy:
   model: "Opus 4.6"
   harness: "Claude Code CLI"
@@ -268,10 +266,10 @@ EXISTING FALLBACK BODY
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
 	s.WorkDir = workDir
+	s.Prefix = "MP"
 	s.ExistingFile = existing
 	disp, err := llm.NewDispatcher(s.Log, llm.NewFakeCodex())
 	if err != nil {
@@ -332,7 +330,6 @@ ORIGINAL POSTS BODY
 			}
 
 			s := NewState()
-			s.LegacyShadow = true
 			s.Log = logx.New()
 			s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir}
 			s.WorkDir = workDir
@@ -385,11 +382,10 @@ body
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir, PostsDir: postsDir}
 	s.WorkDir = workDir
-	s.Prefix = "GP"
+	s.Prefix = "MP"
 	s.AuthorHandle = "fake"
 	s.Title = "Fake"
 
@@ -427,7 +423,6 @@ exit 1
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
 	s.Log = logx.New()
 	s.Cfg = &config.Config{RepoRoot: tmp, ScriptsDir: scriptsDir}
 

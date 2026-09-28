@@ -50,10 +50,6 @@ func (s *State) Credits(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("credits: parse final.mdx: %w", err)
 	}
-	if s.Prefix == "GP" && !s.LegacyShadow {
-		return s.stampGPCredits(finalPath, f)
-	}
-
 	// Default skipped-stage metadata to each role's runtime provider.
 	writerModel, writerHarness, err := s.StampLabels()
 	if err != nil {
@@ -155,34 +151,6 @@ func renderPipelineBlock(indentedKey string, entries []PipelineEntry) string {
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
-}
-
-func (s *State) stampGPCredits(finalPath string, f *frontmatter.File) error {
-	translator, ok := s.RoleRuns["translator"]
-	if !ok {
-		return fmt.Errorf("credits: GP translator provenance missing")
-	}
-	f.SetNestedScalar("translatedBy", "model", quoted(translator.Model))
-	f.SetNestedScalar("translatedBy", "harness", quoted(translator.Harness))
-	order := []string{"translator", "source-reviewer", "corrector", "vibe-scorer", "commentary"}
-	entries := make([]PipelineEntry, 0, len(order))
-	for _, role := range order {
-		run, ok := s.RoleRuns[role]
-		if !ok {
-			if role == "corrector" {
-				continue
-			}
-			return fmt.Errorf("credits: GP %s provenance missing", role)
-		}
-		entries = append(entries, PipelineEntry{Role: run.Role, Provider: run.Provider, Model: run.Model, Harness: run.Harness, ArtifactSHA256: run.ArtifactSHA256, Verdict: run.Verdict})
-	}
-	f.SetNestedBlock("translatedBy", "pipeline", renderPipelineBlock("  pipeline", entries))
-	f.SetNestedScalar("translatedBy", "pipelineUrl", quoted(PipelineURL))
-	if err := os.WriteFile(finalPath, f.Bytes(), 0o644); err != nil {
-		return fmt.Errorf("credits: write GP final.mdx: %w", err)
-	}
-	s.Log.OK("Step 4.6: GP role provenance stamped")
-	return nil
 }
 
 func leadingWhitespace(s string) string {

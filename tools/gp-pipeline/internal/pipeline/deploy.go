@@ -18,10 +18,10 @@ import (
 // caller starts later than StepDeploy, which never happens but is kept for
 // symmetry with other State methods). Existing-file recovery skips allocation
 // and rename, but still validates, builds, commits, and pushes owned changes.
+// GP is refused first: nothing publishes GP while it is paused.
 func (s *State) Deploy(ctx context.Context) error {
-	if s.LegacyShadow {
-		s.Log.Warn("--legacy-shadow is comparison-only; skipping deploy step")
-		return nil
+	if s.Prefix == "GP" {
+		return fmt.Errorf("deploy: %w", ErrGPPaused)
 	}
 	if s.DryRun {
 		s.Log.Warn("--dry-run enabled; skipping deploy step")
@@ -33,15 +33,6 @@ func (s *State) Deploy(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 5: deploy")
-	if s.Prefix == "GP" && !s.LegacyShadow {
-		if s.ActiveFilename == "" {
-			return fmt.Errorf("deploy: GP active filename is empty")
-		}
-		if err := s.ValidateGPPublishManifest(ctx, filepath.Join(s.Cfg.PostsDir, s.ActiveFilename)); err != nil {
-			return fmt.Errorf("deploy: GP source-preservation gate rejected publication: %w", err)
-		}
-	}
-
 	if s.ExistingFile != "" {
 		if err := s.prepareExistingPost(); err != nil {
 			return err

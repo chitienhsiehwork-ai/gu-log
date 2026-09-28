@@ -640,9 +640,40 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
-func TestCanonicalGPStageNamesAreDistinct(t *testing.T) {
-	if stepNameToInt["source-translate"] != pipeline.StepSourceTranslate || stepNameToInt["translate"] != pipeline.StepTranslate {
-		t.Fatalf("source translation and English sidecar stages must remain distinct: %#v", stepNameToInt)
+// TestRunRejectsRetiredTranslationSteps covers the gp-source-preservation
+// scenario「以退役的翻譯步驟恢復 run」: the retired GP step names are unknown
+// steps, rejected before any fetch, model call, or file change.
+func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const existing = "mp-10-20260723-example.mdx"
+	body := "---\ntitle: \"MP\"\nticketId: MP-10\nlang: zh-tw\n---\nbody\n"
+	mustWrite(t, filepath.Join(postsDir, existing), body)
+	t.Setenv("GU_LOG_DIR", root)
+	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich"} {
+		for _, target := range [][]string{{"https://x.com/author/status/1"}, {"--file", existing}} {
+			t.Run(step+" "+target[0], func(t *testing.T) {
+				resetGlobals()
+				workDir := filepath.Join(t.TempDir(), "never-created")
+				args := append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
+					"run", "--prefix", "MP", "--from-step", step}, target...)
+				cmd := buildRoot()
+				cmd.SetArgs(args)
+				err := cmd.ExecuteContext(context.Background())
+				if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "unknown step") {
+					t.Fatalf("error = %v (exit %d), want an exit-1 unknown step rejection", err, exitCodeFor(err))
+				}
+				if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+					t.Fatalf("retired step created the work dir: %v", statErr)
+				}
+				if got, readErr := os.ReadFile(filepath.Join(postsDir, existing)); readErr != nil || string(got) != body {
+					t.Fatalf("retired step changed %s: %q, %v", existing, got, readErr)
+				}
+			})
+		}
 	}
 }
 
@@ -723,6 +754,15 @@ func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 			}
 			if got := strings.Contains(string(args), "--no-rewrite"); got != wantNoRewrite {
 				t.Fatalf("tribunal args = %q, want --no-rewrite=%t", args, wantNoRewrite)
+			}
+			// GP is score-only: the stamp normaliser must leave it untouched,
+			// while every other series gets the canonical pipeline block.
+			post, err := os.ReadFile(filepath.Join(postsDir, filename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stamped := strings.Contains(string(post), "pipelineUrl:"); stamped == wantNoRewrite {
+				t.Fatalf("pipeline stamp written = %t for %s, want %t:\n%s", stamped, filename, !wantNoRewrite, post)
 			}
 		})
 	}

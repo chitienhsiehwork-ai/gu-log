@@ -141,7 +141,11 @@ func (s *State) Ralph(ctx context.Context) error {
 		return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
 	}
 
-	if s.Prefix != "GP" || s.LegacyShadow {
+	// GP is score-only (openspec: gp-source-preservation): Tribunal may not
+	// rewrite it, and neither the post fixers nor the pipeline stamp
+	// normaliser touch its body or provenance.
+	scoreOnly := s.Prefix == "GP"
+	if !scoreOnly {
 		s.runPostFixers(ctx, activePath)
 	}
 
@@ -154,7 +158,7 @@ func (s *State) Ralph(ctx context.Context) error {
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
 		NoCommit:    true,
-		NoRewrite:   s.Prefix == "GP" && !s.LegacyShadow,
+		NoRewrite:   scoreOnly,
 	})
 	if err != nil {
 		// Ralph.Run only returns errors for misuse; bubble up.
@@ -163,16 +167,14 @@ func (s *State) Ralph(ctx context.Context) error {
 	s.RalphPassed = passed
 	if passed {
 		s.Log.OK("  Tribunal PASS: %s", s.ActiveFilename)
-	} else if s.Prefix == "GP" && !s.LegacyShadow {
-		// The source reviewer and cold-read vibe gate are the GP publication
-		// authority. Generic Tribunal dimensions such as persona/narrative are
-		// calibration evidence only and cannot re-authorize a rewrite or
-		// invalidate an otherwise faithful source translation.
-		s.Log.Warn("  Tribunal FAIL recorded as GP calibration evidence; source-preservation gates remain authoritative")
+	} else if scoreOnly {
+		// A low persona/narrative/vibe score is calibration evidence only; it
+		// never authorizes rewriting GP.
+		s.Log.Warn("  Tribunal FAIL recorded as GP calibration evidence; GP is score-only and is not rewritten")
 	} else {
 		s.Log.Warn("  Tribunal FAIL (see %s/tribunal-stdout.txt). Deploying best effort.", s.WorkDir)
 	}
-	if s.Prefix == "GP" && !s.LegacyShadow {
+	if scoreOnly {
 		return nil
 	}
 
