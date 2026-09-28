@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -82,6 +83,13 @@ func (s *State) stageEditorialContext() error {
 	}
 	return nil
 }
+
+// ErrGPPaused rejects GP writing, publishing, and ticket allocation while the
+// series is paused (openspec: gp-pipeline-publish-integrity). It states a
+// structural fact of this binary — the whole-article translation flow is
+// retired and no GP flow replaces it yet — rather than copying the site's
+// GP_SERIES_PAUSED flag. The commentary-format change brings GP back.
+var ErrGPPaused = errors.New("GP 暫停中: new GP posts are paused — whole-article translations need the source author's consent first, so gp-pipeline has no GP writing or publishing flow until the commentary format ships (openspec: editorial-charter)")
 
 type pipelineStep struct {
 	name string

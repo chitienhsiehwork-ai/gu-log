@@ -127,6 +127,11 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	if err != nil {
 		return newExitError(1, err)
 	}
+	// GP is rejected before slot validation and any counter, rename, or git
+	// side effect (openspec: gp-pipeline-publish-integrity).
+	if prefix == "GP" {
+		return newExitError(1, fmt.Errorf("deploy: %w", pipeline.ErrGPPaused))
+	}
 	opts.Prefix = prefix
 	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{
 		DateStamp:  opts.DateStamp,

@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // counterReport is the JSON shape emitted by `gp-pipeline counter --json`.
@@ -89,6 +90,13 @@ func runCounterNext(state *rootState, prefix string) error {
 }
 
 func runCounterBump(state *rootState, prefix string) error {
+	// No GP number is allocated while GP is paused; checked before the
+	// counter lock (openspec: gp-pipeline-publish-integrity).
+	if prefix == "GP" {
+		err := fmt.Errorf("counter bump: %w", pipeline.ErrGPPaused)
+		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
+		return err
+	}
 	c := counter.New(state.cfg.CounterFile, "")
 	allocated, err := c.Bump(prefix)
 	if err != nil {

@@ -181,6 +181,11 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if err != nil {
 		return err
 	}
+	// GP is rejected before any work dir, fetch, runtime profile, provider,
+	// counter, or git side effect (openspec: gp-pipeline-publish-integrity).
+	if prefix == "GP" {
+		return fmt.Errorf("run: %w", pipeline.ErrGPPaused)
+	}
 	opts.Prefix = prefix
 
 	fromStepInt := 0
