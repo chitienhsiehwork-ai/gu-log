@@ -157,9 +157,7 @@ describe('suggest-crosslinks.mjs 的候選語料', () => {
       path.join(corpus, 'gp-2-20260101-gone.mdx'),
       '---\nticketId: "GP-2"\ntitle: "下架的文章"\nlang: "zh-tw"\nstatus: "taken-down"\ntags: ["ui"]\n---\n'
     );
-    expect(loadPosts(corpus).map((p: { ticketId: string | null }) => p.ticketId)).toEqual([
-      'GP-1',
-    ]);
+    expect(loadPosts(corpus).map((p: { ticketId: string | null }) => p.ticketId)).toEqual(['GP-1']);
   });
 });
 
