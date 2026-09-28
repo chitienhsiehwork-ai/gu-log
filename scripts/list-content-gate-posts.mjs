@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
+import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 
@@ -145,8 +146,7 @@ function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
 // post-takedown); frontmatter validation still covers them.
 function isTakenDown(currentFile) {
   if (!fs.existsSync(currentFile)) return false;
-  const parts = splitFrontmatter(fs.readFileSync(currentFile, 'utf8'));
-  return /^status:\s*["']?taken-down["']?\s*$/m.test(parts?.frontmatter ?? '');
+  return isTakenDownSource(fs.readFileSync(currentFile, 'utf8'), currentFile);
 }
 
 function isExistingTicketAddition(baseRef, baseFile, currentFile) {

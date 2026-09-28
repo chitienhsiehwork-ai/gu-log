@@ -22,7 +22,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { GP_SERIES_PAUSED } from '../src/lib/gp-series-pause.mjs';
 import { layer1Match, sourceIdentity } from './dedup-gate.mjs';
-import { TAKEN_DOWN_STATUS, splitPostSource } from './lib/taken-down-posts.mjs';
+import { TAKEN_DOWN_STATUS, isTakenDownData, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 const SOURCES_DIR = 'sources';
@@ -75,7 +75,7 @@ export function evaluateTakedownRatchet({
       errors.push(`${file}: taken-down post frontmatter is unreadable`);
       continue;
     }
-    if (parsed.data.status !== TAKEN_DOWN_STATUS) {
+    if (!isTakenDownData(parsed.data)) {
       errors.push(
         `${file}: taken-down post cannot change status to ${JSON.stringify(parsed.data.status ?? 'published')}`
       );
@@ -88,7 +88,7 @@ export function evaluateTakedownRatchet({
   const blocked = [];
   for (const { path: file, content } of headTakenDown) {
     const parsed = parsePost(content, file);
-    if (!parsed || parsed.data.status !== TAKEN_DOWN_STATUS) continue;
+    if (!isTakenDownData(parsed?.data)) continue;
     blocked.push({
       file,
       ticketId: ticketOf(parsed.data),
@@ -100,7 +100,7 @@ export function evaluateTakedownRatchet({
     const parsed = parsePost(content, file);
     if (!parsed) continue; // validate-posts reports unreadable frontmatter
     const { data } = parsed;
-    if (data.status === TAKEN_DOWN_STATUS) continue;
+    if (isTakenDownData(data)) continue;
     const ticketId = ticketOf(data);
 
     if (
@@ -255,7 +255,7 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
       .filter(({ content }) => {
         // `git grep` matches the status line anywhere; confirm it is frontmatter.
         const parsed = content ? parsePost(content, 'base') : null;
-        return parsed?.data.status === TAKEN_DOWN_STATUS;
+        return isTakenDownData(parsed?.data);
       }),
     headContents: new Map(
       baseTakenDownPaths.map((file) => [file, headBlobs.get(headSpec(file)) ?? null])

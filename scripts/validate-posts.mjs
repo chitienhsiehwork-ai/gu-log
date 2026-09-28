@@ -19,11 +19,8 @@ import yaml from 'yaml';
 import { normalizeUrl, extractTweetId, computeSimilarity, FLAG_THRESHOLD } from './dedup-gate.mjs';
 import { loadPostMap, findMissingPairs, reminderText } from './check-translation-pairs.mjs';
 import { MODEL_MAP } from './detect-model.mjs';
-import {
-  TAKEN_DOWN_STATUS,
-  getNeutralSummary,
-  getTakedownSeries,
-} from '../src/lib/tombstone-copy.mjs';
+import { getNeutralSummary, getTakedownSeries } from '../src/lib/tombstone-copy.mjs';
+import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-down-posts.mjs';
 
 // Claude's 5-generation models (Sonnet 5, Fable 5, ...) ship as whole-number
 // release names with no minor version, unlike the 4.x Opus/Sonnet line. Rule
@@ -292,12 +289,6 @@ function extractMoguNotes(content) {
 // 下架文章保留原 frontmatter、清空正文，網址改顯示墓碑頁。這裡檢查下架
 // 專屬欄位與翻譯配對一致；只對正文有意義的規則（長度、kaomoji、MoguNote、
 // 英文正文 CJK…）在 validatePost 裡對下架文章跳過。
-const TAKEN_DOWN_INCOMPATIBLE_FIELDS = [
-  'deprecatedBy',
-  'deprecatedReason',
-  'retiredReason',
-  'retiredAt',
-];
 
 function findTranslationPair(filename, allPosts) {
   if (!allPosts) return null;
@@ -310,14 +301,14 @@ function findTranslationPair(filename, allPosts) {
 
 function validateTakedownState({ fm, body, filename, allPosts }) {
   const errors = [];
-  const isTakenDown = fm.status === TAKEN_DOWN_STATUS;
+  const isTakenDown = isTakenDownData(fm);
   const pair = findTranslationPair(filename, allPosts);
 
   if (!isTakenDown) {
     if (fm.takenDownAt) {
       errors.push('takenDownAt is only allowed when status is taken-down');
     }
-    if (pair?.status === TAKEN_DOWN_STATUS) {
+    if (isTakenDownData(pair)) {
       errors.push(
         `Translation pair ${pair.filename} is taken-down but this post is not; take down both languages together (openspec: post-takedown)`
       );
@@ -361,7 +352,7 @@ function validateTakedownState({ fm, body, filename, allPosts }) {
     }
   }
   if (pair) {
-    if (pair.status !== TAKEN_DOWN_STATUS) {
+    if (!isTakenDownData(pair)) {
       errors.push(
         `Translation pair ${pair.filename} must also be taken-down (take down both languages together)`
       );
@@ -410,7 +401,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 1.5: Taken-down state (openspec: post-takedown) ──
-  const isTakenDown = fm.status === TAKEN_DOWN_STATUS;
+  const isTakenDown = isTakenDownData(fm);
   errors.push(...validateTakedownState({ fm, body, filename, allPosts }));
 
   // ── Rule 2: Required fields ──
@@ -789,7 +780,7 @@ function loadActiveZhTwArticles(postsDir = POSTS_DIR) {
     }
     if (!fm || !fm.ticketId) continue;
     // Skip deprecated and taken-down articles
-    if (fm.status === 'deprecated' || fm.status === TAKEN_DOWN_STATUS) continue;
+    if (fm.status === 'deprecated' || isTakenDownData(fm)) continue;
     // Only zh-tw (no en- prefix, already filtered above, but double-check lang)
     if (fm.lang && fm.lang !== 'zh-tw') continue;
 

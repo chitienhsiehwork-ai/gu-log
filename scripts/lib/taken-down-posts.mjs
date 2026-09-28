@@ -56,8 +56,30 @@ export function postPathFor({ id, lang }) {
   return lang === 'en' ? `/en/posts/${id}` : `/posts/${id}`;
 }
 
+/** Frontmatter 欄位在下架後必須拿掉（和 taken-down 不相容），validator 與下架工具共用。 */
+export const TAKEN_DOWN_INCOMPATIBLE_FIELDS = Object.freeze([
+  'deprecatedBy',
+  'deprecatedReason',
+  'retiredReason',
+  'retiredAt',
+]);
+
+/** 這篇（frontmatter 資料）是不是下架文章。JS 這邊只用這個判斷，不各自比字串。 */
 export function isTakenDownData(data) {
   return data?.status === TAKEN_DOWN_STATUS;
+}
+
+/**
+ * 文章原始碼是不是下架文章。frontmatter 讀不出來時回 false，交給 validate-posts 報錯。
+ * @param {string} source
+ * @param {string} [sourceName]
+ */
+export function isTakenDownSource(source, sourceName) {
+  try {
+    return isTakenDownData(splitPostSource(source, sourceName).data);
+  } catch {
+    return false;
+  }
 }
 
 /**

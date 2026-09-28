@@ -28,6 +28,7 @@ import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { tsImport } from 'tsx/esm/api';
 import yaml from 'yaml';
+import { isTakenDownData } from './lib/taken-down-posts.mjs';
 
 const { classifyTribunalResult } = await tsImport(
   '../src/utils/tribunal-scores.ts',
@@ -126,7 +127,7 @@ export function findMissingPairs(byBase, scope = null) {
     if (prefix !== 'GP' && !PAIRED_PREFIXES.includes(prefix)) continue;
     // Taken-down posts are tombstones on both sides (openspec: post-takedown);
     // validate-posts checks that the pair is taken down together.
-    if (['deprecated', 'retired', 'taken-down'].includes(entry.status)) continue;
+    if (['deprecated', 'retired'].includes(entry.status) || isTakenDownData(entry)) continue;
     if (entry.ticketId.endsWith('-PENDING')) continue;
     if (scope && !scope.has(base)) continue;
     if (entry.zh && !entry.en) {

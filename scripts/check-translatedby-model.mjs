@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { formatModelName } from './detect-model.mjs';
+import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -73,8 +74,7 @@ if (!__isCli) {
     // A taken-down post keeps the signature of the model that wrote the
     // original article; the runtime that takes it down is not its author
     // (openspec: post-takedown).
-    const frontmatterBlock = content.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? '';
-    if (/^status:\s*["']?taken-down["']?\s*$/m.test(frontmatterBlock)) continue;
+    if (isTakenDownSource(content, file)) continue;
     const fm = parseFrontmatter(content);
     const actual = fm?.translatedBy?.model;
 

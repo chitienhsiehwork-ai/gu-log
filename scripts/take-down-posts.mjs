@@ -22,13 +22,17 @@ import {
   getNeutralSummary,
   getTakedownSeries,
 } from '../src/lib/tombstone-copy.mjs';
-import { postIdFromFilename, splitPostSource } from './lib/taken-down-posts.mjs';
+import {
+  TAKEN_DOWN_INCOMPATIBLE_FIELDS as INCOMPATIBLE_FIELDS,
+  isTakenDownData,
+  postIdFromFilename,
+  splitPostSource,
+} from './lib/taken-down-posts.mjs';
 
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const DEFAULT_POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const DEFAULT_ASSETS_DIR = path.join(REPO_ROOT, 'src/assets/posts');
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const INCOMPATIBLE_FIELDS = ['deprecatedBy', 'deprecatedReason', 'retiredReason', 'retiredAt'];
 
 // ─── Rules ─────────────────────────────────────────────────────────
 
@@ -112,7 +116,7 @@ export function planTakedown({ list, posts }) {
       rule,
       sourceUrl: post.data.sourceUrl,
       status: post.data.status ?? 'published',
-      alreadyTakenDown: post.data.status === TAKEN_DOWN_STATUS,
+      alreadyTakenDown: isTakenDownData(post.data),
     });
   }
 
@@ -184,7 +188,7 @@ function sameValue(left, right) {
 export function takeDownSource(source, { file, date, sourceTitle }) {
   if (!DATE_PATTERN.test(date ?? '')) throw new Error(`${file}: --date must be YYYY-MM-DD`);
   const { frontmatterText, data } = splitPostSource(source, file);
-  if (data.status === TAKEN_DOWN_STATUS) return { changed: false, content: source };
+  if (isTakenDownData(data)) return { changed: false, content: source };
 
   const series = getTakedownSeries(data.ticketId);
   if (!series) throw new Error(`${file}: only GP/MP posts can be taken down (${data.ticketId})`);
@@ -240,7 +244,7 @@ export function takeDownSource(source, { file, date, sourceTitle }) {
     }
   }
   if (
-    after.status !== TAKEN_DOWN_STATUS ||
+    !isTakenDownData(after) ||
     after.takenDownAt !== date ||
     after.summary !== summary ||
     INCOMPATIBLE_FIELDS.some((field) => after[field] !== undefined)
@@ -264,7 +268,7 @@ export function findOrphanAssetDirs({ posts, assetsDir = DEFAULT_ASSETS_DIR }) {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
   const liveSources = posts
-    .filter((post) => post.data.status !== TAKEN_DOWN_STATUS)
+    .filter((post) => !isTakenDownData(post.data))
     .map((post) => post.source);
   const repoSources = [path.join(REPO_ROOT, 'src/pages'), path.join(REPO_ROOT, 'src/components')]
     .filter((dir) => fs.existsSync(dir))
