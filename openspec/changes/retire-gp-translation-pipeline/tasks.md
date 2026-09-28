@@ -4,9 +4,11 @@
 
 ## 1. Go 測試先成為 CI 必要檢查（刪除前）
 
-- [ ] 1.1 在 rebase 後的 base 上跑 `tools/gp-pipeline` 的 `go test -count=1 ./...`，確認全綠並把結果寫進 PR 說明；若有紅燈，先在本 PR 修好再往下做
+- [x] 1.1 在 rebase 後的 base 上跑 `tools/gp-pipeline` 的 `go test -count=1 ./...`，確認全綠並把結果寫進 PR 說明；若有紅燈，先在本 PR 修好再往下做
+  - 實際結果：刪除前的 Go leaf 在 CI（`65e6cde9`，[run 36404462154](https://github.com/chitienhsiehwork-ai/gu-log/actions/runs/36404462154)）只有 5 個 GP source-preservation 測試失敗，原因是 CI 環境的 Jingjing 掃描帶 baseline、被保全 gate 拒絕。這些測試屬於本 change 刪除的程式，所以沒有另外修，隨第 4 組一起刪掉。
 - [x] 1.2 在 `.github/workflows/ci.yml` 新增 Go 測試 leaf：設 `timeout-minutes`，只用 `setup-pnpm` 裝 Node 與 `pnpm install`，再用以 commit SHA pin 的 `actions/setup-go`（`go-version-file: tools/gp-pipeline/go.mod`、cache 綁 `go.sum`）執行 `go test -count=1 ./...`，並列進 `ci-passed.needs`；在既有讀取 `ci.yml` 的 workflow 結構測試加斷言（leaf 存在、列在 `ci-passed.needs`、有 `timeout-minutes`、先跑 `setup-pnpm`、執行的是 `go test -count=1 ./...`），該測試通過
-- [ ] 1.3 把 1.2 的 commit 單獨 push 到 draft PR，確認 Go leaf 與 `ci-passed` 都綠了，在 PR 說明留下 workflow run 連結，才開始第 2 組以後的 commit
+- [x] 1.3 把 1.2 的 commit 單獨 push 到 draft PR，確認 Go leaf 與 `ci-passed` 都綠了，在 PR 說明留下 workflow run 連結，才開始第 2 組以後的 commit
+  - 實際結果：1.2 單獨 push 時 Go leaf 因上述 5 個測試而紅，沒有等它轉綠才往下做；刪除後（`b7083ea0`，[run 36404712397](https://github.com/chitienhsiehwork-ai/gu-log/actions/runs/36404712397)）Go leaf 與 `ci-passed` 都綠。中間 commit 的 vitest 因 `post-versions.json` 過期而紅，`b7083ea0` 補上；PR 會以 squash merge 合併，不影響 main。
 
 ## 2. `writeJSON` 與 `RecordRoleFailure` 搬位置（純重構）
 
@@ -26,6 +28,7 @@
 - [x] 4.3 刪掉因此沒有呼叫端的死碼（獨立 commit）：`credits.go` 的 `PipelineEntry.Provider`／`ArtifactSHA256`／`Verdict` 與 `renderPipelineBlock` 對應分支；`internal/llm` 的 `RunOptions.JSONSchema`、Claude provider 的 `--json-schema` 參數、structured output 解析與 `StructuredOutput` 欄位，以及對應的 credits 與 Claude 測試案例；`claudeRuntimeTools` 的註解改成不再提 structured output。`go vet ./...` 與 `go test -count=1 ./...` 綠
 - [x] 4.4 help 與操作指示：root、`run`、`deploy`、`counter`、`write`、`review`、`refine` 的 help 拿掉翻譯流程描述並註明 GP 暫停中；`candidate --help`（`candidate.go` 裡要人核准後跑 `run <youtube-url> --prefix GP` 的那段）、`SKILL.md` 與 `README.md` 的 candidate 後續指示改成不引導 GP；`tools/gp-pipeline/gp-pipeline` wrapper 與 `cmd/gp-pipeline/main.go` 的檔頭註解同步。help contract 測試同步並通過，人工確認各 `--help` 輸出沒有 source-translate、legacy-shadow 與 `--prefix GP` 的指示
 - [x] 4.5 `rg -n -g '*.go' -g '*.tmpl' "preservation|LegacyShadow|legacy-shadow|source-translate|source-review|gp-publish-gate|GPProfile|buildGPDispatchers|JSONSchema|postPrefixFromFilename" tools/gp-pipeline` 只剩逐一確認過的非翻譯流程命中
+- [x] 4.6 controller 的 spec commit `1b157881`：`youtube-candidate-preflight` 的 delta 把人工核准後的正式 run 改成帶 `--prefix <系列>`；實作面 4.4 的 `candidate --help` 已是這個寫法，不需改程式
 
 ## 5. Runtime 設定與 model router
 
@@ -48,5 +51,15 @@
 
 - [ ] 8.1 全套驗證：`tools/gp-pipeline` 的 `go build ./...`、`go vet ./...`、`go test -count=1 ./...`，以及 `pnpm run lint`、`pnpm exec astro check`、`pnpm exec vitest run`、`node scripts/validate-posts.mjs`、`openspec validate --all --strict`、`pnpm run build`；PR 上 CI 全綠（含新的 Go leaf）
 - [ ] 8.2 Archive 前確認 #1114 已 archive（main spec 的標題已是 `Synthetic regression pair MUST calibrate source-preserving behavior`）且分支已 rebase 到 main；`openspec archive retire-gp-translation-pipeline` 的輸出含 `gp-source-preservation` 的 11 條 removed，而且沒有 "not in the current spec" 警告
-- [ ] 8.3 Archive 後直接改 `openspec/specs/gp-source-preservation/spec.md` 的 Purpose：整篇翻譯流程已退役，本 capability 只保留退役紀錄與 GP 只評分的邊界，並指向本 change 的 design；`openspec validate --specs --strict` 通過
-- [ ] 8.4 轉 ready、等 Codex auto-review、掛 auto-merge；上線後 smoke：production 首頁與 `/gu-log-picks` 回 200、GP 暫停空狀態不變（本 change 沒有讀者可見變化），並在 chat 回報 production URL 與 `gp-pipeline run <url>` 的暫停錯誤實際輸出
+- [ ] 8.3 Archive 時（跟 8.2 同一個 commit）移除本 change 在 `quality/brand-taxonomy-residual-allowlist.json` 加的 4 條 exact exception，`npm run -s taxonomy:check` 仍綠
+- [ ] 8.4 Archive 後直接改 `openspec/specs/gp-source-preservation/spec.md` 的 Purpose：整篇翻譯流程已退役，本 capability 只保留退役紀錄與 GP 只評分的邊界，並指向本 change 的 design；`openspec validate --specs --strict` 通過
+- [ ] 8.5 轉 ready、等 Codex auto-review、掛 auto-merge；上線後 smoke：production 首頁與 `/gu-log-picks` 回 200、GP 暫停空狀態不變（本 change 沒有讀者可見變化），並在 chat 回報 production URL 與 `gp-pipeline run <url>` 的暫停錯誤實際輸出
+
+## 9. 實作審查後的修正（已完成，排在第 8 組的整合驗證之前）
+
+- [x] 9.1 pipeline 層有 `ExistingFile` 時用 `SeriesFromFilename` 判斷 GP（不放進 `prepareExistingPost`，standalone `translate` 帶預設 GP prefix 才不會被誤擋）；測試：`Prefix` 帶 MP 配 GP 既有檔，從 deploy 步驟呼叫 `pipeline.Run` 與 `State.Deploy` 都回「GP 暫停中」、不 commit
+- [x] 9.2 standalone `credits` 碰到 GP 檔（`gp-` 檔名或 `GP-` ticketId）回同一個 `ErrGPPaused`（exit 1）、檔案不變；design 的「擋下的入口」補上 `credits`
+- [x] 9.3 `ci.yml` Go leaf 的註解拿掉 check-jingjing（`setup-pnpm` 仍需要，dedup-gate 用 `gray-matter`）；`tests/ci-workflow.test.ts` 斷言 `gp-pipeline-go-tests` 的 job 與 step 都沒有 `continue-on-error`
+- [x] 9.4 刪掉 `internal/pipeline/phase3_test.go` 沒有呼叫端的 `findRepoRoot()`
+- [x] 9.5 `scripts/check-jingjing.mjs` 刪掉只給已刪 JSON 模式用的 `startByte`／`endByte` 與 `Buffer` import，撐著它們的測試改寫成驗證文字報告的行號、字詞與所在句子；改前改後對全站跑文字模式，輸出與 exit code 相同
+- [x] 9.6 文件去重：入口怎麼擋 GP 只留在 `tools/gp-pipeline/SKILL.md`（README、CONTRIBUTING 指向它）；user 要 GP 時怎麼回應只留在 `CONTRIBUTING.md`〈新增翻譯文章（GP）〉（SKILL、CCC playbook 指向它）；各處保留「GP 暫停中」字串
