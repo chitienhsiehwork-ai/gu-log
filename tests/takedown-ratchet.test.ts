@@ -123,7 +123,7 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
     expect(unpaused).toEqual([]);
   });
 
-  it('blocks a new post that reuses a taken-down source (URL or tweet ID)', () => {
+  it('blocks a new post that reuses a taken-down source (URL, share link, tweet or video ID)', () => {
     const tweetTombstone = 'src/content/posts/gp-50-x.mdx';
     const errors = evaluateTakedownRatchet(
       baseInput({
@@ -132,6 +132,14 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
           {
             path: tweetTombstone,
             content: tombstone('GP-50', 'https://x.com/karpathy/status/12345'),
+          },
+          {
+            path: 'src/content/posts/gp-88-video.mdx',
+            content: tombstone('GP-88', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+          },
+          {
+            path: 'src/content/posts/mp-114-nyt.mdx',
+            content: tombstone('MP-114', 'https://www.nytimes.com/2026/02/23/opinion/ai.html'),
           },
         ],
         addedPosts: [
@@ -147,12 +155,27 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
             path: 'src/content/posts/mp-502-c.mdx',
             content: livePost('MP-502', 'https://fresh.example/post'),
           },
+          {
+            path: 'src/content/posts/mp-503-d.mdx',
+            content: livePost('MP-503', 'https://youtu.be/dQw4w9WgXcQ'),
+          },
+          {
+            path: 'src/content/posts/mp-504-e.mdx',
+            content: livePost(
+              'MP-504',
+              'https://nytimes.com/2026/02/23/opinion/ai.html?smid=url-share'
+            ),
+          },
         ],
       })
     );
-    expect(errors).toHaveLength(2);
+    expect(errors).toHaveLength(4);
     expect(errors[0]).toMatch(/mp-500-a\.mdx: source is blocked .* taken down as GP-35/);
     expect(errors[1]).toMatch(/mp-501-b\.mdx: source is blocked .* taken down as GP-50/);
+    expect(errors[2]).toMatch(
+      /mp-503-d\.mdx: source is blocked .* taken down as GP-88 \(YouTube video ID match/
+    );
+    expect(errors[3]).toMatch(/mp-504-e\.mdx: source is blocked .* taken down as MP-114/);
   });
 
   it('only lets sources/chatgpt/ grow', () => {

@@ -290,6 +290,19 @@ function computeSimilarity(textA, textB) {
 
 // ─── Article loading ──────────────────────────────────────────────────────────
 
+/**
+ * The Layer 1 identity of a source URL: normalized URL, tweet ID and YouTube
+ * video ID. Anything compared with layer1Match() carries these three fields.
+ */
+function sourceIdentity(sourceUrl) {
+  return {
+    sourceUrl: sourceUrl ?? '',
+    normalizedUrl: normalizeUrl(sourceUrl),
+    tweetId: extractTweetId(sourceUrl),
+    youtubeVideoId: extractYouTubeVideoId(sourceUrl),
+  };
+}
+
 const TAKEN_DOWN_STATUS = 'taken-down';
 
 function loadPublishedArticles(postsDir = POSTS_DIR) {
@@ -310,20 +323,12 @@ function loadPublishedArticles(postsDir = POSTS_DIR) {
     // Skip deprecated articles (they're excluded from dedup comparisons)
     if (data.status === 'deprecated') continue;
 
-    const sourceUrl = data.sourceUrl ?? '';
-    const normalizedUrl = normalizeUrl(sourceUrl);
-    const tweetId = extractTweetId(sourceUrl);
-    const youtubeVideoId = extractYouTubeVideoId(sourceUrl);
-
     articles.push({
       file,
       ticketId: data.ticketId,
       title: data.title ?? '',
       tags: Array.isArray(data.tags) ? data.tags : [],
-      sourceUrl,
-      normalizedUrl,
-      tweetId,
-      youtubeVideoId,
+      ...sourceIdentity(data.sourceUrl),
       takenDown: data.status === TAKEN_DOWN_STATUS,
       keywordText: `${data.title ?? ''} ${data.summary ?? ''} ${Array.isArray(data.tags) ? data.tags.join(' ') : ''}`,
     });
@@ -607,7 +612,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   }
 }
 
-// ─── Exports (for use by validate-posts.mjs --check-duplicates) ───────────────
+// ─── Exports (validate-posts.mjs --check-duplicates, check-takedown-ratchet.mjs) ─
 export {
   normalizeUrl,
   extractTweetId,
@@ -618,6 +623,7 @@ export {
   meaningfulOverlap,
   jaccard,
   computeSimilarity,
+  sourceIdentity,
   layer1Match,
   formatLayer1Block,
   layer2Match,

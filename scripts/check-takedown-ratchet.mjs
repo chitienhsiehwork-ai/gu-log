@@ -8,7 +8,8 @@
  *   1. 基準版本已是 taken-down 的文章：新版本必須還在、仍是 taken-down、正文為空。
  *   2. GP 暫停期間（src/lib/gp-series-pause.mjs），新增的 GP 文章（含 GP-PENDING）
  *      一律失敗；既有 ticketId 的改名或配對不算新增。
- *   3. 新增文章的 sourceUrl（正規化網址或推文 ID）與任一下架文章相同 → 來源已封鎖。
+ *   3. 新增文章的 sourceUrl 與任一下架文章是同一個來源 → 來源已封鎖。比對直接用
+ *      dedup-gate 的 layer1Match（正規化網址、推文 ID、YouTube 影片 ID）。
  *   4. sources/ 底下只准新增 sources/chatgpt/（ShroomDog 自己的對話）。
  *
  * 用法：
@@ -20,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { GP_SERIES_PAUSED } from '../src/lib/gp-series-pause.mjs';
-import { extractTweetId, normalizeUrl } from './dedup-gate.mjs';
+import { layer1Match, sourceIdentity } from './dedup-gate.mjs';
 import { TAKEN_DOWN_STATUS, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
@@ -34,16 +35,6 @@ function parsePost(content, name) {
   } catch {
     return null;
   }
-}
-
-function sourceKeys(sourceUrl) {
-  if (typeof sourceUrl !== 'string' || sourceUrl.trim() === '') return [];
-  const keys = [];
-  const normalized = normalizeUrl(sourceUrl);
-  if (normalized) keys.push(`url:${normalized}`);
-  const tweetId = extractTweetId(sourceUrl);
-  if (tweetId) keys.push(`tweet:${tweetId}`);
-  return keys;
 }
 
 function ticketOf(data) {
@@ -94,13 +85,15 @@ export function evaluateTakedownRatchet({
     }
   }
 
-  const blocked = new Map();
+  const blocked = [];
   for (const { path: file, content } of headTakenDown) {
     const parsed = parsePost(content, file);
     if (!parsed || parsed.data.status !== TAKEN_DOWN_STATUS) continue;
-    for (const key of sourceKeys(parsed.data.sourceUrl)) {
-      if (!blocked.has(key)) blocked.set(key, { file, ticketId: ticketOf(parsed.data) });
-    }
+    blocked.push({
+      file,
+      ticketId: ticketOf(parsed.data),
+      ...sourceIdentity(parsed.data.sourceUrl),
+    });
   }
 
   for (const { path: file, content } of addedPosts) {
@@ -120,14 +113,11 @@ export function evaluateTakedownRatchet({
       );
     }
 
-    for (const key of sourceKeys(data.sourceUrl)) {
-      const match = blocked.get(key);
-      if (match) {
-        errors.push(
-          `${file}: source is blocked — ${data.sourceUrl} was taken down as ${match.ticketId || match.file} (openspec: post-takedown)`
-        );
-        break;
-      }
+    const match = typeof data.sourceUrl === 'string' ? layer1Match(data.sourceUrl, blocked) : null;
+    if (match) {
+      errors.push(
+        `${file}: source is blocked — ${data.sourceUrl} was taken down as ${match.article.ticketId || match.article.file} (${match.reason}; openspec: post-takedown)`
+      );
     }
   }
 
