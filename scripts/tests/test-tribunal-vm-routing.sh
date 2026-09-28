@@ -52,4 +52,13 @@ if tribunal_writer_provenance_complete codex gpt-5.6-sol codex-gpt-5.6-sol-xhigh
   exit 1
 fi
 
-printf 'ok VM routing: Codex judges and Claude-only writer provenance\n'
+# The source-distance aligner keeps its own pin; it never equals the writer pin
+# and resolving judges never reads it.
+aligner_pin="$(tribunal_claude_frontmatter_model "$ROOT_DIR/.claude/agents/source-aligner.md")"
+[ -n "$aligner_pin" ] && [ "${aligner_pin%\[1m\]}" != "${writer_pin%\[1m\]}" ] || {
+  printf 'source aligner pin %s must exist and differ from the writer pin %s\n' \
+    "$aligner_pin" "$writer_pin" >&2
+  exit 1
+}
+
+printf 'ok VM routing: Codex judges, Claude-only writer provenance, separate aligner pin\n'
