@@ -62,6 +62,10 @@ func (s *State) Write(ctx context.Context) error {
 	if disp == nil {
 		return fmt.Errorf("write: writer dispatcher is nil")
 	}
+	terms, err := s.gpTerminology()
+	if err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
 	prompt, err := prompts.Render("write", prompts.WriteData{
 		Prefix:         s.Prefix,
 		TicketID:       s.PromptTicketID,
@@ -75,6 +79,7 @@ func (s *State) Write(ctx context.Context) error {
 		Harness:        llm.HarnessName(disp.Providers()[0].Model()),
 		StyleGuide:     string(styleGuide),
 		Source:         string(source),
+		Terminology:    terms,
 	})
 	if err != nil {
 		return fmt.Errorf("write: render prompt: %w", err)
@@ -97,6 +102,9 @@ func (s *State) Write(ctx context.Context) error {
 		if err := os.WriteFile(draftPath, []byte(res.Output), 0o644); err != nil {
 			return fmt.Errorf("write: write fallback draft: %w", err)
 		}
+	}
+	if err := s.rejectShroomDogNote("write", draftPath); err != nil {
+		return err
 	}
 
 	s.WriteModel = llm.DisplayName(res.ActualModel)

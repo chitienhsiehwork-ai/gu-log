@@ -256,8 +256,14 @@ func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.
 	}
 }
 
-func TestRender_GPWriteContractKeepsTranslationCompleteness(t *testing.T) {
-	out, err := Render("write", WriteData{
+// TestRender_GPReadingGuideContract covers editorial-charter〈導讀帶讀者回原文〉
+// and gp-pipeline-publish-integrity〈寫手收到術語 context〉: the GP write and
+// refine prompts ask for the reading-guide shape, carry the glossary's
+// canonical terms, forbid ShroomDogNote, and never restore the retired
+// translation-completeness contract or any source-distance threshold.
+func TestRender_GPReadingGuideContract(t *testing.T) {
+	const terms = `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`
+	write, err := Render("write", WriteData{
 		Prefix:         "GP",
 		TicketID:       "GP-PENDING",
 		OriginalDate:   "2026-08-16",
@@ -266,21 +272,97 @@ func TestRender_GPWriteContractKeepsTranslationCompleteness(t *testing.T) {
 		TweetURL:       "https://example.com/source",
 		StyleGuide:     "GUIDE",
 		Source:         "SOURCE",
+		Terminology:    terms,
 	})
 	if err != nil {
-		t.Fatalf("Render: %v", err)
+		t.Fatalf("Render(write): %v", err)
 	}
-	for _, want := range []string{
-		"Cover ALL of it",
-		"Cover ALL tweets",
-		"Put Mogu/gu-log opinions",
-	} {
-		if !strings.Contains(out, want) {
-			t.Errorf("GP write prompt lost translation boundary %q", want)
+	refine, err := Render("refine", RefineData{Prefix: "GP", TicketID: "GP-PENDING", Terminology: terms})
+	if err != nil {
+		t.Fatalf("Render(refine): %v", err)
+	}
+	for name, out := range map[string]string{"write": write, "refine": refine} {
+		for _, want := range []string{
+			"whose source this is",
+			"why it is worth reading",
+			"back to the original",
+			"Mogu's own words",
+			"gu-log's own view",
+			"claim closure",
+			"`<ShroomDogNote>`",
+			terms,
+			"forbiddenZhTw",
+		} {
+			if !strings.Contains(out, want) {
+				t.Errorf("GP %s prompt missing reading-guide contract %q", name, want)
+			}
+		}
+		for _, retired := range []string{"Cover ALL of it", "Cover ALL tweets", "Put Mogu/gu-log opinions", "Coverage Completeness", "30%", "threshold"} {
+			if strings.Contains(out, retired) {
+				t.Errorf("GP %s prompt still carries %q", name, retired)
+			}
 		}
 	}
-	if strings.Contains(out, "MAY omit whole claims") {
-		t.Fatal("GP write prompt inherited MP selection freedom")
+	for _, want := range []string{"End by sending the reader back to the original", "Do NOT translate the source", "never translate the source title literally"} {
+		if !strings.Contains(write, want) {
+			t.Errorf("GP write prompt missing %q", want)
+		}
+	}
+	mp, err := Render("write", WriteData{Prefix: "MP", TicketID: "MP-PENDING", Terminology: ""})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(mp, "Canonical terminology") || strings.Contains(mp, "reading guide") {
+		t.Fatal("the GP-only terminology context or reading-guide contract leaked into MP")
+	}
+	// --angle is open to GP: the angle becomes the reading guide's spine.
+	angled, err := Render("write", WriteData{Prefix: "GP", TicketID: "GP-PENDING", Angle: "Lead with the on-call handoff."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(angled, "NARRATIVE ANGLE:\nLead with the on-call handoff.") {
+		t.Error("GP write prompt dropped --angle")
+	}
+}
+
+func TestRender_GPReviewEvalAndTranslateBranches(t *testing.T) {
+	review, err := Render("review", ReviewData{Prefix: "GP", TicketID: "GP-PENDING"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Reading-Guide Shape", "sends the reader back to the original", "Not a Translation", "Do not set or apply any numeric limit", "No ShroomDogNote"} {
+		if !strings.Contains(review, want) {
+			t.Errorf("GP review prompt missing %q", want)
+		}
+	}
+	if strings.Contains(review, "Coverage Completeness") {
+		t.Error("GP review still scores translation completeness")
+	}
+	for _, template := range []string{"eval-codex", "eval-gemini"} {
+		out, err := Render(template, EvalData{Prefix: "GP", LineCount: 1, Source: "SOURCE", OutputFilename: "eval.json"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(out, "GP reading guide") || strings.Contains(out, "worth translating") {
+			t.Errorf("%s GP prompt does not ask whether a reading guide is worth writing:\n%s", template, out)
+		}
+		mp, err := Render(template, EvalData{Prefix: "MP", LineCount: 1, Source: "SOURCE", OutputFilename: "eval.json"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(mp, "reading guide") {
+			t.Errorf("%s MP prompt picked up the GP branch", template)
+		}
+	}
+	translate, err := Render("translate", TranslateData{Prefix: "GP", TicketID: "GP-7", Source: "body"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(translate, "Do NOT restore a paraphrase to the source's original wording") {
+		t.Error("GP translate prompt does not keep paraphrase out of the source's wording")
+	}
+	if strings.Contains(translate, "quote it verbatim rather than back-translating") {
+		t.Error("GP translate prompt still asks for verbatim source English")
 	}
 }
 

@@ -32,10 +32,15 @@ func (s *State) Refine(ctx context.Context) error {
 		return fmt.Errorf("refine: %w", err)
 	}
 
+	terms, err := s.gpTerminology()
+	if err != nil {
+		return fmt.Errorf("refine: %w", err)
+	}
 	prompt, err := prompts.Render("refine", prompts.RefineData{
-		Prefix:   s.Prefix,
-		TicketID: s.PromptTicketID,
-		Angle:    s.Angle,
+		Prefix:      s.Prefix,
+		TicketID:    s.PromptTicketID,
+		Angle:       s.Angle,
+		Terminology: terms,
 	})
 	if err != nil {
 		return fmt.Errorf("refine: render prompt: %w", err)
@@ -58,6 +63,9 @@ func (s *State) Refine(ctx context.Context) error {
 		if err := os.WriteFile(finalPath, []byte(res.Output), 0o644); err != nil {
 			return fmt.Errorf("refine: write fallback final.mdx: %w", err)
 		}
+	}
+	if err := s.rejectShroomDogNote("refine", finalPath); err != nil {
+		return err
 	}
 
 	s.RefineModel = llm.DisplayName(res.ActualModel)

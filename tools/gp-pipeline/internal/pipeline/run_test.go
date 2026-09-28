@@ -114,6 +114,7 @@ process.exit(0);
 		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
 		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
 		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+		"src/data/glossary.json":                   testGlossary,
 	} {
 		path := filepath.Join(tmp, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {

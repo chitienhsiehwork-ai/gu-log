@@ -94,6 +94,7 @@ func (s *State) Translate(ctx context.Context) error {
 		return fmt.Errorf("translate: writer dispatcher is nil")
 	}
 	prompt, err := prompts.Render("translate", prompts.TranslateData{
+		Prefix:   prefix,
 		TicketID: s.PromptTicketID,
 		Source:   string(source),
 	})

@@ -10,10 +10,15 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
 - Translate idiomatically, not word-for-word. Read a sentence, understand the idea,
   write the natural English version of that idea.
 - Do NOT write like a textbook.
-- The en version's quoted source material SHOULD read as the original English (if the
+{{if eq .Prefix "GP"}}- This is a GP reading guide: its body is Mogu's own paraphrase of the source, not the
+  source. Do NOT restore a paraphrase to the source's original wording, even when the
+  source is English. Only passages the zh-tw article marks as quotes (blockquotes or text
+  in quotation marks) may use the source's exact words; translate everything else as
+  Mogu's own English.
+{{else}}- The en version's quoted source material SHOULD read as the original English (if the
   source was already English, quote it verbatim rather than back-translating a
   zh-tw paraphrase; if the source itself was non-English, translate naturally).
-- Preserve every MDX component usage (MoguNote, ShroomDogNote, images, etc.) as-is,
+{{end}}- Preserve every MDX component usage (MoguNote, ShroomDogNote, images, etc.) as-is,
   translating only their text content.
 - Keep code blocks, external URLs, and technical identifiers unchanged except for
   the reader-visible emoji rule below.

@@ -19,7 +19,17 @@ Task:
 - Keep Mogu's synthesis, disagreement, extensions, and explicit inferences in the body. Do not attribute them to the source author.
 - Remove fabricated facts, quotes, numbers, causality, citations, transferred source-author experience, ShroomDog impersonation, and plausible fabricated human biography/testimony. New factual premises require traceable evidence.
 - MoguNote is optional. Do not add one merely because the article has none, and do not move Mogu's core thesis into a note. Preserve valid first-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences in an existing MoguNote.
-{{else}}- Preserve Source Boundary: do not move Mogu/gu-log opinion or source-meta commentary into GP body. Remove「原作者說」「原文提到」「這篇文章在講」style scaffolding from GP body and rewrite evidence limits as natural prose.
+{{else if eq .Prefix "GP"}}- Keep the GP reading-guide shape: the opening says whose source this is and why it is worth reading; the key points are in Mogu's own words, organized around gu-log's argument; gu-log's own view is in the body; the ending sends the reader back to the original.
+- Where the draft restates the source sentence by sentence in the source's order, or summarizes point after point, compress it into one key point followed by gu-log's view, and leave the rest for the reader to find in the original. Do not just swap words.
+- Preserve claim closure for every retained source-derived claim: speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level. Keep source claims visibly attributed; never recast the source author's claim as Mogu's opinion or attribute gu-log's inference to the source author.
+- Remove fabricated facts, quotes, numbers, causality, and citations. New factual premises require traceable evidence.
+- Never write `<ShroomDogNote>`: only ShroomDog adds it, and output that contains one is rejected.
+- MoguNote is optional. Do not add one merely because the article has none.
+{{end}}
+{{if .Terminology}}
+Canonical terminology (from the site glossary): when you use one of these terms, write
+the canonical `term`, and never use any of its `forbiddenZhTw` renderings.
+{{.Terminology}}
 {{end}}
 {{if .Angle}}
 NARRATIVE ANGLE:
@@ -30,5 +40,5 @@ The angle-pivoted structure is intentional. Preserve it while applying review fe
 
 Output requirements:
 - Write final output to final.mdx in the current directory.
-- Only use MoguNote for optional asides (no CodexNote/GeminiNote). {{if eq .Prefix "MP"}}Do not add one solely for form or scoring.{{else}}Add MoguNotes wherever there's genuine insight — no fixed number, quality over quantity.{{end}}
+- Only use MoguNote for optional asides (no CodexNote/GeminiNote). {{if or (eq .Prefix "MP") (eq .Prefix "GP")}}Do not add one solely for form or scoring.{{else}}Add MoguNotes wherever there's genuine insight — no fixed number, quality over quantity.{{end}}
 - Only import MoguNote from '../../components/MoguNote.astro' — no other note components.

@@ -167,6 +167,7 @@ func ensureEvalOutputFile(path, output string) error {
 // current directory" instruction actually lands in the run's work dir.
 func (s *State) runEvalProvider(ctx context.Context, template string, lineCount int, source, outputFilename string) (*llm.RunResult, error) {
 	prompt, err := prompts.Render(template, prompts.EvalData{
+		Prefix:         s.Prefix,
 		LineCount:      lineCount,
 		Source:         source,
 		OutputFilename: outputFilename,

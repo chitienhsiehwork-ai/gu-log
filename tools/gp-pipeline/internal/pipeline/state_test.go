@@ -16,6 +16,11 @@ import (
 // newTestState returns a State + fake dispatcher wired up to a temp work
 // directory that already contains a plausible source-tweet.md and an
 // empty GU-LOG_WRITER_PROMPT.md pointer.
+// testGlossary is the canonical-term fixture GP write/refine prompts carry.
+const testGlossary = `[{"term":"Agent","definition":"must not leak","forbiddenZhTw":["代理人"]}]`
+
+const testTerminologyContext = `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`
+
 func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	t.Helper()
 	tmp := t.TempDir()
@@ -38,6 +43,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
 		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
 		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+		"src/data/glossary.json":                   testGlossary,
 	} {
 		path := filepath.Join(tmp, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -389,5 +395,75 @@ func TestRefine_ResumeFromDraft(t *testing.T) {
 	finalPath := filepath.Join(workDir, "final.mdx")
 	if _, err := os.Stat(finalPath); err != nil {
 		t.Errorf("final.mdx should have been copied from draft: %v", err)
+	}
+}
+
+// TestGPWriteAndRefineCarryCanonicalTerminology covers
+// gp-pipeline-publish-integrity〈寫手收到術語 context〉.
+func TestGPWriteAndRefineCarryCanonicalTerminology(t *testing.T) {
+	s, fake, workDir := newTestState(t)
+	fake.WithResponses(
+		llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\ndraft\n", WriteFile: "draft-v1.mdx"},
+		llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\nfinal\n", WriteFile: "final.mdx"},
+	)
+	if err := s.Write(context.Background()); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(workDir, "review.md"), []byte("ok"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Refine(context.Background()); err != nil {
+		t.Fatalf("Refine: %v", err)
+	}
+	for i, call := range fake.Called {
+		if !strings.Contains(call.Prompt, testTerminologyContext) {
+			t.Errorf("GP call %d prompt lacks the canonical terminology context", i)
+		}
+		if strings.Contains(call.Prompt, "must not leak") {
+			t.Errorf("GP call %d prompt leaked a glossary definition", i)
+		}
+	}
+
+	mp, mpFake, _ := newTestState(t)
+	mp.Prefix, mp.PromptTicketID = "MP", "MP-PENDING"
+	mpFake.WithResponses(llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\ndraft\n", WriteFile: "draft-v1.mdx"})
+	if err := mp.Write(context.Background()); err != nil {
+		t.Fatalf("MP Write: %v", err)
+	}
+	if strings.Contains(mpFake.Called[0].Prompt, testTerminologyContext) {
+		t.Error("MP write prompt picked up the GP-only terminology context")
+	}
+}
+
+// TestGPWriteAndRefineRejectShroomDogNote covers editorial-charter〈自動化輸出
+// ShroomDogNote〉: the step fails and the output never becomes the draft.
+func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
+	withNote := "---\ntitle: \"x\"\n---\nbody\n\n<ShroomDogNote>\n代寫的看法\n</ShroomDogNote>\n"
+	for _, step := range []string{"write", "refine"} {
+		t.Run(step, func(t *testing.T) {
+			s, fake, workDir := newTestState(t)
+			output := "draft-v1.mdx"
+			run := s.Write
+			if step == "refine" {
+				output = "final.mdx"
+				run = s.Refine
+				if err := os.WriteFile(filepath.Join(workDir, "draft-v1.mdx"), []byte("draft"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			fake.WithResponses(llm.FakeResponse{Output: withNote, WriteFile: output})
+			err := run(context.Background())
+			var stepErr *StepError
+			if !errors.As(err, &stepErr) || stepErr.Code != 14 || !strings.Contains(err.Error(), "ShroomDogNote") {
+				t.Fatalf("%s error = %v, want the step-14 ShroomDogNote rejection", step, err)
+			}
+			if _, statErr := os.Stat(filepath.Join(workDir, output)); !os.IsNotExist(statErr) {
+				t.Fatalf("%s left %s in place for later steps: %v", step, output, statErr)
+			}
+			rejected := strings.TrimSuffix(output, ".mdx") + ".rejected-shroomdognote.mdx"
+			if _, statErr := os.Stat(filepath.Join(workDir, rejected)); statErr != nil {
+				t.Fatalf("%s did not keep the rejected output as evidence: %v", step, statErr)
+			}
+		})
 	}
 }

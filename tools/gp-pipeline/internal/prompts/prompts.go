@@ -51,6 +51,9 @@ func Render(name string, data any) (string, error) {
 // The bash pipeline passes TWEET_LINE_COUNT as a dynamic value, and
 // embeds the source-tweet.md contents verbatim via $(cat …).
 type EvalData struct {
+	// Prefix picks the series contract (GP asks whether a reading guide is
+	// worth writing).
+	Prefix string
 	// LineCount is the number of lines in Source, matching bash's
 	// wc -l < source-tweet.md.
 	LineCount int
@@ -80,6 +83,9 @@ type WriteData struct {
 	Harness    string // frontmatter translatedBy.harness
 	StyleGuide string // full contents of GU-LOG_WRITER_PROMPT.md
 	Source     string // full contents of source-tweet.md
+	// Terminology is the glossary's canonical-term JSON
+	// (terminology.LoadCanonicalContext); set for GP only.
+	Terminology string
 }
 
 // ReviewData is the template data for review.tmpl.
@@ -93,6 +99,8 @@ type RefineData struct {
 	Prefix   string
 	TicketID string
 	Angle    string
+	// Terminology is the glossary's canonical-term JSON; set for GP only.
+	Terminology string
 }
 
 // AlignData is the template data for align.tmpl, the source-distance
@@ -108,6 +116,7 @@ type AlignData struct {
 
 // TranslateData is the template data for translate.tmpl.
 type TranslateData struct {
+	Prefix   string // series of TicketID; GP keeps paraphrase out of the source's wording
 	TicketID string // e.g. "GP-252"
 	// Source is the full contents of the tribunal-passed zh-tw MDX file
 	// (frontmatter + body) to be translated into the en sidecar.
