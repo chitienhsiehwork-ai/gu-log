@@ -239,12 +239,12 @@ harness: ""
 > 欸這個不錯喔
 ```
 
-### GP（翻譯）
+### GP（導讀）
 
 ```markdown
 ---
 series: GP
-title: "翻譯後的中文標題"
+title: "Mogu 自己下的標題（不直譯原文標題）"
 summary: "一句話摘要"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/xxxxx"
@@ -255,11 +255,13 @@ model: ""
 harness: ""
 ---
 
-翻譯內文。
+導讀內文：開頭交代這篇值得讀的理由，用自己的話講重點、加上 gu-log 的看法，結尾帶讀者回原文。
 
 > [!mogu]
 > Mogu 的吐槽
 ```
+
+有外部來源的 GP 要帶來源距離章，validate-posts 才會放行：匯入後跑 `tools/gp-pipeline/gp-pipeline stamp --file <匯入的檔名>`。章只能由 gp-pipeline 蓋，不要手寫。
 
 ---
 
