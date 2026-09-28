@@ -1068,3 +1068,22 @@ func keys(m map[string]bool) []string {
 	}
 	return out
 }
+
+// TestSourceDistanceStepIsGPOnly: --from-step source-distance resumes a GP
+// run; for another series it fails at ingress, before any work dir or model.
+func TestSourceDistanceStepIsGPOnly(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	resetGlobals()
+	workDir := filepath.Join(t.TempDir(), "never-created")
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
+		"run", "--prefix", "MP", "--from-step", "source-distance"})
+	_, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) })
+	if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "only applies to GP") {
+		t.Fatalf("error = %v (exit %d), want the exit-1 GP-only rejection", err, exitCodeFor(err))
+	}
+	if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+		t.Fatalf("work dir was created: %v", statErr)
+	}
+}

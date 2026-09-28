@@ -1,7 +1,26 @@
-Refine the {{.TicketID}} draft using review feedback.
+{{if .RewriteReport}}Rewrite the {{.TicketID}} reading guide in {{.DraftFile}}. Some of its passages still read like a translation of the source; they are listed under "Flagged passages".
 
 Inputs:
-- draft-v1.mdx
+- {{.DraftFile}}
+- openspec/specs/editorial-charter/spec.md
+- CONTRIBUTING.md
+- GU-LOG_WRITER_PROMPT.md
+- docs/shroomdog-editorial-feedback.md
+
+Flagged passages:
+{{.RewriteReport}}
+
+Task:
+- Rewrite the flagged passages and keep the rest of the article, including its frontmatter, as it is.
+- Where consecutive sentences restate the source in its order, turn them into one key point followed by gu-log's view.
+- Where a paragraph mainly retells the source, keep the point most worth knowing, give gu-log's view, and leave the rest for the reader to find in the original.
+- Organize around gu-log's argument, not the source's order. Do not just swap words.
+- Keep every retained claim's speaker, conditions, hedges, and attribution. Never recast the source author's claim as Mogu's opinion, and do not add facts, quotes, or numbers the source does not have.
+- Never write `<ShroomDogNote>`: only ShroomDog adds it, and output that contains one is rejected.
+{{else}}Refine the {{.TicketID}} draft using review feedback.
+
+Inputs:
+- {{.DraftFile}}
 - review.md
 - openspec/specs/editorial-charter/spec.md
 - CONTRIBUTING.md
@@ -25,7 +44,7 @@ Task:
 - Remove fabricated facts, quotes, numbers, causality, and citations. New factual premises require traceable evidence.
 - Never write `<ShroomDogNote>`: only ShroomDog adds it, and output that contains one is rejected.
 - MoguNote is optional. Do not add one merely because the article has none.
-{{end}}
+{{end}}{{end}}
 {{if .Terminology}}
 Canonical terminology (from the site glossary): when you use one of these terms, write
 the canonical `term`, and never use any of its `forbiddenZhTw` renderings.

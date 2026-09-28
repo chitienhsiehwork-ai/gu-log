@@ -101,6 +101,20 @@ type RefineData struct {
 	Angle    string
 	// Terminology is the glossary's canonical-term JSON; set for GP only.
 	Terminology string
+	// Draft is the work-dir file to refine; empty means draft-v1.mdx.
+	Draft string
+	// RewriteReport switches a GP refine into a source-distance rewrite: it
+	// lists only the flagged passages, never a threshold, metric or rule
+	// (openspec source-distance-stamp〈改寫 prompt 不含門檻〉).
+	RewriteReport string
+}
+
+// DraftFile is the refine input file name.
+func (d RefineData) DraftFile() string {
+	if d.Draft == "" {
+		return "draft-v1.mdx"
+	}
+	return d.Draft
 }
 
 // AlignData is the template data for align.tmpl, the source-distance

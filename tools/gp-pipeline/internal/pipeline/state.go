@@ -16,17 +16,22 @@ import (
 
 // Step integer encoding — kept aligned with the retired bash pipeline's step_to_int.
 const (
-	StepSetup     = 0
-	StepFetch     = 10
-	StepDedupURL  = 12
-	StepEval      = 15
-	StepDedup     = 17
-	StepWrite     = 20
-	StepReview    = 30
-	StepRefine    = 40
-	StepRalph     = 47
-	StepTranslate = 48 // Go-only step, no bash equivalent (gu-log #546)
-	StepDeploy    = 50
+	StepSetup    = 0
+	StepFetch    = 10
+	StepDedupURL = 12
+	StepEval     = 15
+	StepDedup    = 17
+	StepWrite    = 20
+	StepReview   = 30
+	StepRefine   = 40
+	// StepPostFix and StepSourceDistance run for GP only: the deterministic
+	// post-fixers edit final.mdx in the work dir, then the source-distance
+	// check stamps it (openspec gp-pipeline-publish-integrity).
+	StepPostFix        = 42
+	StepSourceDistance = 44
+	StepRalph          = 47
+	StepTranslate      = 48 // Go-only step, no bash equivalent (gu-log #546)
+	StepDeploy         = 50
 )
 
 // State is the mutable snapshot of an in-flight pipeline run. Each step
@@ -96,7 +101,9 @@ type State struct {
 	Dispatcher       *llm.Dispatcher
 	WriterDispatcher *llm.Dispatcher
 	JudgeDispatcher  *llm.Dispatcher
-	Counter          *counter.Counter
+	// AlignerDispatcher runs the source-distance aligner (GP only).
+	AlignerDispatcher *llm.Dispatcher
+	Counter           *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -158,6 +165,9 @@ type State struct {
 	CodexVerdict        string
 	DedupVerdict        string
 	RalphPassed         bool
+	// SourceDistanceResult is the GP source-distance outcome for the run report;
+	// nil when the step did not run.
+	SourceDistanceResult *SourceDistanceOutcome
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int

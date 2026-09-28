@@ -141,9 +141,10 @@ func (s *State) Ralph(ctx context.Context) error {
 		return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
 	}
 
-	// GP is score-only (openspec: gp-source-preservation): Tribunal may not
-	// rewrite it, and neither the post fixers nor the pipeline stamp
-	// normaliser touch its body or provenance.
+	// GP is score-only (openspec: gp-source-preservation): the post-fixers
+	// already ran on final.mdx before the source-distance stamp, and any body
+	// edit here would void that stamp. Tribunal only scores it, and neither
+	// the post fixers nor the pipeline stamp normaliser run again.
 	scoreOnly := s.Prefix == "GP"
 	if !scoreOnly {
 		s.runPostFixers(ctx, activePath)

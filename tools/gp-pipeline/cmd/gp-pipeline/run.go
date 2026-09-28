@@ -19,23 +19,26 @@ import (
 
 // runReport is the JSON shape emitted by `gp-pipeline run --json`.
 type runReport struct {
-	OK                  bool           `json:"ok"`
-	Step                string         `json:"step"`
-	TicketID            string         `json:"ticketId,omitempty"`
-	Filename            string         `json:"filename,omitempty"`
-	ENFilename          string         `json:"enFilename,omitempty"`
-	WorkDir             string         `json:"workDir,omitempty"`
-	CodexPrimaryVerdict string         `json:"codexPrimaryVerdict,omitempty"`
-	CodexVerdict        string         `json:"codexVerdict,omitempty"`
-	DedupVerdict        string         `json:"dedupVerdict,omitempty"`
-	RalphPassed         bool           `json:"ralphPassed,omitempty"`
-	TranslateModel      string         `json:"translateModel,omitempty"`
-	TranslateHarness    string         `json:"translateHarness,omitempty"`
-	Timings             map[string]int `json:"timings,omitempty"`
-	ElapsedMs           int64          `json:"elapsedMs"`
-	ErrorCode           int            `json:"errorCode,omitempty"`
-	Error               string         `json:"error,omitempty"`
-	DryRun              bool           `json:"dryRun,omitempty"`
+	OK                  bool   `json:"ok"`
+	Step                string `json:"step"`
+	TicketID            string `json:"ticketId,omitempty"`
+	Filename            string `json:"filename,omitempty"`
+	ENFilename          string `json:"enFilename,omitempty"`
+	WorkDir             string `json:"workDir,omitempty"`
+	CodexPrimaryVerdict string `json:"codexPrimaryVerdict,omitempty"`
+	CodexVerdict        string `json:"codexVerdict,omitempty"`
+	DedupVerdict        string `json:"dedupVerdict,omitempty"`
+	RalphPassed         bool   `json:"ralphPassed,omitempty"`
+	// SourceDistance is the GP source-distance outcome (verdict, rewrite
+	// rounds, aligner calls and the evidence directory in the work dir).
+	SourceDistance   *pipeline.SourceDistanceOutcome `json:"sourceDistance,omitempty"`
+	TranslateModel   string                          `json:"translateModel,omitempty"`
+	TranslateHarness string                          `json:"translateHarness,omitempty"`
+	Timings          map[string]int                  `json:"timings,omitempty"`
+	ElapsedMs        int64                           `json:"elapsedMs"`
+	ErrorCode        int                             `json:"errorCode,omitempty"`
+	Error            string                          `json:"error,omitempty"`
+	DryRun           bool                            `json:"dryRun,omitempty"`
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
@@ -49,7 +52,8 @@ var stepNameToInt = map[string]int{
 	"2": pipeline.StepWrite, "write": pipeline.StepWrite,
 	"3": pipeline.StepReview, "review": pipeline.StepReview,
 	"4": pipeline.StepRefine, "refine": pipeline.StepRefine,
-	"4.7": pipeline.StepRalph, "ralph": pipeline.StepRalph,
+	"source-distance": pipeline.StepSourceDistance,
+	"4.7":             pipeline.StepRalph, "ralph": pipeline.StepRalph,
 	"4.8": pipeline.StepTranslate, "translate": pipeline.StepTranslate,
 	"5": pipeline.StepDeploy, "deploy": pipeline.StepDeploy,
 }
@@ -125,7 +129,7 @@ canned responses for regression tests.`,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/ralph/translate/deploy")
+	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/source-distance (GP)/ralph/translate/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
@@ -173,9 +177,12 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if opts.FromStep != "" {
 		v, ok := stepNameToInt[strings.ToLower(opts.FromStep)]
 		if !ok {
-			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / ralph / translate / deploy", opts.FromStep)
+			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / source-distance / ralph / translate / deploy", opts.FromStep)
 		}
 		fromStepInt = v
+	}
+	if fromStepInt == pipeline.StepSourceDistance && opts.Prefix != "GP" {
+		return fmt.Errorf("run: --from-step source-distance only applies to GP; %s has no source-distance step", opts.Prefix)
 	}
 	if fromStepInt == pipeline.StepTranslate && opts.ExistingFile == "" {
 		return fmt.Errorf("run: --from-step translate requires --file <tribunal-passed zh-tw post>")
@@ -253,6 +260,13 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return recordPreflightFailure(string(dispatcherWriter), err)
 	}
 	s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
+	if s.Prefix == "GP" && fromStepInt <= pipeline.StepSourceDistance {
+		alignerDisp, err := buildAlignerDispatcher(ctx, state)
+		if err != nil {
+			return recordPreflightFailure(string(dispatcherAligner), err)
+		}
+		s.AlignerDispatcher = alignerDisp
+	}
 
 	runErr := pipeline.Run(ctx, s)
 
@@ -266,6 +280,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		CodexVerdict:        s.CodexVerdict,
 		DedupVerdict:        s.DedupVerdict,
 		RalphPassed:         s.RalphPassed,
+		SourceDistance:      s.SourceDistanceResult,
 		TranslateModel:      s.TranslateModel,
 		TranslateHarness:    s.TranslateHarness,
 		Timings:             s.Timings,
