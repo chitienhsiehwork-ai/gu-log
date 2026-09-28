@@ -95,6 +95,17 @@ type RefineData struct {
 	Angle    string
 }
 
+// AlignData is the template data for align.tmpl, the source-distance
+// aligner prompt. Source and Guide are the "id<TAB>sentence" lines that
+// scripts/source-distance.mjs segment renders (a blank line between blocks).
+// The prompt carries no thresholds, metrics or rule names.
+type AlignData struct {
+	SourceCount int
+	Source      string
+	GuideCount  int
+	Guide       string
+}
+
 // TranslateData is the template data for translate.tmpl.
 type TranslateData struct {
 	TicketID string // e.g. "GP-252"
