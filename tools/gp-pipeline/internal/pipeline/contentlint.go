@@ -23,7 +23,17 @@ const (
 	MaxContentLintFixes  = 2
 	contentLintDraftFile = "lint-draft.mdx"
 	contentLintDir       = "content-lint"
+	// contentLintCrashExit is what a check that crashes exits with instead of
+	// node's default 1, which the checks use for findings.
+	contentLintCrashExit = 70
 )
+
+// contentLintCrashHook makes node exit contentLintCrashExit on an uncaught
+// exception or rejection, so a crashed check's stack trace is never sent to
+// refine as findings.
+var contentLintCrashHook = fmt.Sprintf(
+	"--import=data:text/javascript,process.on('uncaughtException',(e)=>{console.error(e);process.exit(%d)})",
+	contentLintCrashExit)
 
 // contentLintScripts are the zh-tw content checks the pre-commit hook runs on
 // a post (scripts/hooks/pre-commit); TestContentLintScriptsMatchPreCommitHook
@@ -35,8 +45,9 @@ var contentLintScripts = []string{
 }
 
 // contentLintReport runs the content checks on file and returns what they
-// flagged, or "" when every check passes. A check that is missing or cannot
-// run stops the step: it never counts as a pass.
+// flagged (exit 1), or "" when every check passes. A check that is missing,
+// cannot run or crashes stops the step: it is neither a finding to fix nor a
+// pass.
 func (s *State) contentLintReport(ctx context.Context, file string) (string, error) {
 	var report strings.Builder
 	for _, name := range contentLintScripts {
@@ -46,14 +57,14 @@ func (s *State) contentLintReport(ctx context.Context, file string) (string, err
 		}
 		res, err := runner.RunWithOptions(ctx, runner.Options{
 			Name:    "node",
-			Args:    []string{script, file},
+			Args:    []string{contentLintCrashHook, script, file},
 			WorkDir: s.Cfg.RepoRoot,
 		})
 		if err == nil {
 			continue
 		}
 		if res == nil || res.ExitCode != 1 {
-			return "", NewStepError(14, fmt.Errorf("content check %s could not run: %w", name, err))
+			return "", NewStepError(14, fmt.Errorf("content check %s could not run or crashed: %w", name, err))
 		}
 		fmt.Fprintf(&report, "### %s\n%s\n\n", name, strings.TrimSpace(string(res.Stdout)+"\n"+string(res.Stderr)))
 	}
