@@ -109,9 +109,17 @@ function injectSection(content, lang, suggestedLinks) {
  */
 function processOutsideFile(filePath) {
   const resolved = path.resolve(filePath);
-  if (!fs.existsSync(resolved) || path.dirname(resolved) === path.resolve(POSTS_DIR)) return false;
+  if (path.dirname(resolved) === path.resolve(POSTS_DIR)) return false;
 
-  const content = fs.readFileSync(resolved, 'utf-8');
+  // Read directly instead of existsSync-then-read so the check and the write
+  // below act on the same file (no check-then-use race).
+  let content;
+  try {
+    content = fs.readFileSync(resolved, 'utf-8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
   const post = postInfo(path.basename(resolved), content);
   const label = path.basename(resolved);
   if (!post) {
