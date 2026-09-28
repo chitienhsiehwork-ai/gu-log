@@ -646,23 +646,36 @@ func TestCanonicalGPStageNamesAreDistinct(t *testing.T) {
 	}
 }
 
+// TestStandaloneLegacyTextCommandsRejectGP covers the
+// gp-pipeline-publish-integrity scenario「單步寫作指令收到 GP」, including the
+// GP defaults of write --prefix and review/refine --ticket-id.
 func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
-	tests := []struct {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	source := filepath.Join(root, "source-tweet.md")
+	draft := filepath.Join(root, "draft-v1.mdx")
+	mustWrite(t, source, "source")
+	mustWrite(t, draft, "draft")
+	for _, tc := range []struct {
 		name string
-		run  func() error
-		want string
+		args []string
 	}{
-		{name: "write", run: func() error { return runWrite(context.Background(), &rootState{}, writeOpts{Prefix: "GP"}) }, want: "canonical source-translate"},
-		{name: "review", run: func() error { return runReview(context.Background(), &rootState{}, "missing.mdx", "", "GP-PENDING") }, want: "standalone full-draft review"},
-		{name: "refine", run: func() error {
-			return runRefine(context.Background(), &rootState{}, "missing.mdx", "", "", "GP-PENDING", "")
-		}, want: "evidence-bounded patches"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.run()
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Fatalf("error = %v, want %q", err, tt.want)
+		{name: "write default prefix", args: []string{"write", "--source", source}},
+		{name: "write GP prefix", args: []string{"write", "--source", source, "--prefix", "GP"}},
+		{name: "review default ticket", args: []string{"review", "--draft", draft}},
+		{name: "refine GP ticket", args: []string{"refine", "--draft", draft, "--ticket-id", "GP-12"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			// A missing fake-provider spec fails differently if a model route is built.
+			cmd := buildRoot()
+			cmd.SetArgs(append([]string{"--fake-provider", filepath.Join(root, "missing.json")}, tc.args...))
+			err := cmd.ExecuteContext(context.Background())
+			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) {
+				t.Fatalf("error = %v (exit %d), want the exit-1 GP pause rejection", err, exitCodeFor(err))
+			}
+			if !strings.Contains(err.Error(), "GP 暫停中") || !strings.Contains(err.Error(), "editorial-charter") {
+				t.Fatalf("error = %v, want 「GP 暫停中」 and editorial-charter", err)
 			}
 		})
 	}

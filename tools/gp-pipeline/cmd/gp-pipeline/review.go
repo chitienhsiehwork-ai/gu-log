@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -59,7 +58,7 @@ func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticket
 		return err
 	}
 	if strings.HasPrefix(ticketID, "GP-") {
-		return errors.New("review: GP uses source-reviewer findings in the canonical pipeline; standalone full-draft review is forbidden")
+		return fmt.Errorf("review: %w", pipeline.ErrGPPaused)
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {

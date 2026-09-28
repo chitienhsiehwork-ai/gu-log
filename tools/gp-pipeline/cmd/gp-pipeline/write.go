@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -110,7 +109,7 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 		return err
 	}
 	if opts.Prefix == "GP" {
-		return errors.New("write: GP uses the canonical source-translate pipeline; run `gp-pipeline run` instead")
+		return fmt.Errorf("write: %w", pipeline.ErrGPPaused)
 	}
 	absSource, err := filepath.Abs(opts.SourcePath)
 	if err != nil {

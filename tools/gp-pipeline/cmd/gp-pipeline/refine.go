@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -61,7 +60,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 		return err
 	}
 	if strings.HasPrefix(ticketID, "GP-") {
-		return errors.New("refine: GP corrections must be evidence-bounded patches in the canonical pipeline; standalone full-draft refine is forbidden")
+		return fmt.Errorf("refine: %w", pipeline.ErrGPPaused)
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
