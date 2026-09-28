@@ -525,9 +525,7 @@ func zhSkippedEnglish(path string) bool {
 
 // StampTarget is what the source-distance CLI reports about one post.
 type StampTarget struct {
-	Lang     string `json:"lang"`
-	GP       bool   `json:"gp"`
-	External bool   `json:"external"`
+	Lang string `json:"lang"`
 	// Required: a GP post with an external source that is not taken down.
 	Required bool `json:"required"`
 }

@@ -40,10 +40,7 @@ import {
   STAMP_FIELD,
   decide,
   englishVerbatim,
-  isExternalSource,
-  isGpTicket,
   parseFrontmatter,
-  requiresStamp,
   segmentGuide,
   segmentSource,
   sourceSummary,
@@ -306,10 +303,7 @@ function verify(options) {
     return {
       file,
       lang: data.lang ?? null,
-      gp: isGpTicket(data.ticketId),
-      external: isExternalSource(data.sourceUrl),
-      required: required && requiresStamp(data),
-      stamped: data[STAMP_FIELD] !== undefined,
+      required,
       ok: errors.length === 0,
       errors,
     };
