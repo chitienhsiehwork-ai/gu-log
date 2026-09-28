@@ -18,11 +18,11 @@ const run = (script: string, args: string[]) =>
     maxBuffer: 64 * 1024 * 1024,
   });
 
+// fixer 寫錯地方時會在 posts/ 生出同檔名的新檔，所以比對檔名清單。不比 mtime 或內容：
+// 其他測試（例如 tribunal 的 shell 測試）會暫時改寫 posts/ 裡的真文章再還原，平行跑時
+// 會讓整個語料的快照對不上。
 function postsSnapshot() {
-  return fs
-    .readdirSync(POSTS_DIR)
-    .map((f) => `${f}:${fs.statSync(path.join(POSTS_DIR, f)).mtimeMs}`)
-    .join('\n');
+  return fs.readdirSync(POSTS_DIR).sort().join('\n');
 }
 
 const posts = loadPosts();
