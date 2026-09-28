@@ -2,10 +2,10 @@
  * GP is score-only in Tribunal (openspec gp-source-preservation; CONTRIBUTING.md
  * 〈兩層品質門檻〉): scripts/tribunal.sh runs all four judges on a GP even after
  * one fails, writes every judge's score — failing ones included — to the
- * frontmatter, and leaves the body and the source-distance stamp untouched, so
- * the post still validates and ships zh-tw on the floor rule. The judges are a
- * fake Codex CLI; no model is called. Tribunal v2 is covered in
- * tests/tribunal-v2/pipeline.test.ts.
+ * frontmatter of both language versions, and leaves the body and the
+ * source-distance stamp untouched, so the post still validates and ships zh-tw
+ * on the floor rule. The judges are a fake Codex CLI; no model is called.
+ * Tribunal v2 is covered in tests/tribunal-v2/pipeline.test.ts.
  */
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -27,7 +27,9 @@ const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
 const linuxIt = process.platform === 'linux' ? it : it.skip;
 
 const POST_FILE = 'gp-pending-20260928-logbook.mdx';
+const EN_POST_FILE = `en-${POST_FILE}`;
 const JUDGES = ['fact-checker', 'librarian', 'fresh-eyes', 'vibe-opus-scorer'];
+const SCORE_KEYS = ['factCheck', 'librarian', 'freshEyes', 'vibe'];
 
 const GP_POST = withValidStamp(
   [
@@ -47,6 +49,28 @@ const GP_POST = withValidStamp(
     '正文充足內容'.repeat(40),
     '',
     'Mara Quill 把燈塔日誌搬進值班交接，沒事也要寫一行 (◕‿◕)',
+    '',
+  ].join('\n')
+);
+
+const EN_GP_POST = withValidStamp(
+  [
+    '---',
+    'ticketId: "GP-PENDING"',
+    'title: "What a lighthouse logbook teaches on-call"',
+    'originalDate: "2026-08-30"',
+    'translatedDate: "2026-09-28"',
+    'source: "Mara Quill"',
+    'sourceUrl: "https://keeper-notes.test/posts/logbook-on-call"',
+    'summary: "Write a line even when nothing happens"',
+    'lang: en',
+    'translatedBy:',
+    '  model: Opus 5.5',
+    '  harness: Claude Code',
+    '---',
+    'Enough body text here. '.repeat(40),
+    '',
+    'Mara Quill moved the lighthouse logbook into the on-call handoff (◕‿◕)',
     '',
   ].join('\n')
 );
@@ -103,6 +127,7 @@ function makeRepo() {
   }
   fs.mkdirSync(path.join(root, 'src/content/posts'), { recursive: true });
   fs.writeFileSync(path.join(root, 'src/content/posts', POST_FILE), GP_POST);
+  fs.writeFileSync(path.join(root, 'src/content/posts', EN_POST_FILE), EN_GP_POST);
 
   const bin = path.join(root, 'fake-bin');
   fs.mkdirSync(bin);
@@ -155,6 +180,7 @@ function runTribunal(failingJudge: string) {
     result,
     output: result.stdout + result.stderr,
     postPath: path.join(root, 'src/content/posts', POST_FILE),
+    enPath: path.join(root, 'src/content/posts', EN_POST_FILE),
     judges: read('judges.log').trim().split('\n').filter(Boolean),
     claudeCalls: read('claude.log'),
     progress: JSON.parse(read('.score-loop/state/tribunal-progress.json') || '{}'),
@@ -163,11 +189,10 @@ function runTribunal(failingJudge: string) {
 
 describe('scripts/tribunal.sh scores a GP with every judge', () => {
   linuxIt.each([
-    ['fact-checker', 'factCheck', 'factChecker'],
-    ['librarian', 'librarian', 'librarian'],
-    ['vibe-opus-scorer', 'vibe', 'vibe'],
+    ['fact-checker', 'factCheck', 'factChecker'], // the first stage
+    ['vibe-opus-scorer', 'vibe', 'vibe'], // the last stage
   ])(
-    'records all four scores when %s fails, and the GP still validates',
+    'records all four scores in both languages when %s fails, and the GP still validates',
     (failingJudge, failingKey, failingStage) => {
       const run = runTribunal(failingJudge);
 
@@ -176,16 +201,22 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
       expect(run.judges, run.output).toEqual(JUDGES);
       expect(run.claudeCalls, 'no writer or Claude call may run on a GP').toBe('');
 
-      const after = fs.readFileSync(run.postPath, 'utf8');
-      const scores = matter(after).data.scores as Record<string, Record<string, number>>;
-      for (const key of ['factCheck', 'librarian', 'freshEyes', 'vibe']) {
+      const zh = matter(fs.readFileSync(run.postPath, 'utf8'));
+      const scores = zh.data.scores as Record<string, Record<string, number>>;
+      for (const key of SCORE_KEYS) {
         expect(scores?.[key]?.score, `${key}\n${run.output}`).toBe(key === failingKey ? 6 : 9);
       }
+      const en = matter(fs.readFileSync(run.enPath, 'utf8'));
+      expect(en.data.scores, 'the English version carries the same scores').toEqual(scores);
 
-      const before = matter(GP_POST);
-      expect(matter(after).content).toBe(before.content);
-      expect(matter(after).data.sourceDistance).toEqual(before.data.sourceDistance);
-      expect(validatePost(run.postPath, []).errors).toEqual([]);
+      for (const [file, after, before] of [
+        [run.postPath, zh, matter(GP_POST)],
+        [run.enPath, en, matter(EN_GP_POST)],
+      ] as const) {
+        expect(after.content, file).toBe(before.content);
+        expect(after.data.sourceDistance, file).toEqual(before.data.sourceDistance);
+        expect(validatePost(file, []).errors, file).toEqual([]);
+      }
 
       const entry = run.progress[POST_FILE];
       expect(entry?.status).toBe('FAILED');

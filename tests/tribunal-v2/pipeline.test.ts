@@ -1439,6 +1439,49 @@ describe('pipeline — GP is score-only', () => {
     expect(scores.vibe.persona).toBe(7);
   });
 
+  it('keeps scoring after a middle-stage FAIL: Stage 3 still runs and writes its scores', async () => {
+    const judged: string[] = [];
+    const state = await runPipeline(
+      articlePath,
+      scoreOnlyConfig({
+        stage1Judge: {
+          run: async () => {
+            judged.push('vibe');
+            return vibe(true, PASSING_SCORES);
+          },
+        },
+        stage2Judge: {
+          run: async () => {
+            judged.push('freshEyes');
+            return freshEyesOutput(false, {
+              readability: 6,
+              firstImpression: 6,
+              payoffDensity: 6,
+              lengthFit: 6,
+            });
+          },
+        },
+        stage3Judge: {
+          run: async () => {
+            judged.push('factLib');
+            return factLibPass();
+          },
+        },
+      })
+    );
+    expect(judged).toEqual(['vibe', 'freshEyes', 'factLib']);
+    expect(state.status).toBe('failed');
+    expect(state.stages.stage2.status).toBe('failed');
+    expect(state.stages.stage3.status).toBe('passed');
+    const after = await readFile(articlePath, 'utf-8');
+    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    const scores = matter(after).data.scores;
+    for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
+      expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
+    }
+    expect(scores.freshEyes.payoffDensity).toBe(6);
+  });
+
   it('records the Stage 3 scores of a dupCheck-only FAIL', async () => {
     const dupOnly: FactLibJudgeOutput = {
       ...factLibPass(),
