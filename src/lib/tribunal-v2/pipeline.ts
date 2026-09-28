@@ -339,7 +339,9 @@ async function persistScoreToFrontmatter(
  * source-distance stamp, and only gp-pipeline re-stamps a GP. Tribunal v2 only
  * runs the judges on GP — no judge→writer loop, no FactCorrector rewrite, no
  * Librarian link insertion, no Final Vibe rewrite. Every judge runs even after
- * another one fails, and each score, failing ones included, is recorded.
+ * another one fails, and each score, failing ones included, is recorded:
+ * whether a GP ships is the floor's call (CONTRIBUTING.md 〈兩層品質門檻〉),
+ * not these verdicts.
  */
 export function isScoreOnlyArticle(articlePath: string): boolean {
   const basename = articlePath.substring(articlePath.lastIndexOf('/') + 1);
@@ -1060,7 +1062,6 @@ export async function runPipeline(
     scoreOnly
   );
 
-  // A score-only GP runs every judge even after a FAIL (see below).
   if (!stage1Passed && !scoreOnly) {
     state.status = 'failed';
     state.completedAt = now();
@@ -1092,10 +1093,6 @@ export async function runPipeline(
   // --- Stage 3: FactLib (worker-first) ---
   const stage3Passed = await runStage3(state, config, version, scoreOnly);
 
-  // A score-only GP has now been scored by every judge, and every score,
-  // failing ones included, is in its frontmatter: whether it ships is the
-  // floor's call, not these verdicts. A failing GP ends here like any other
-  // failed run.
   if (scoreOnly && !(stage1Passed && stage2Passed && stage3Passed)) {
     const judged = [state.stages.stage1, state.stages.stage2, state.stages.stage3];
     state.status = judged.some((stage) => stage.status === 'failed') ? 'failed' : 'needs_review';

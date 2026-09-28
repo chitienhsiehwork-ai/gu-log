@@ -18,8 +18,10 @@
 # Single-stage mode is judge-only by default: it scores and may update progress,
 # but it will not invoke tribunal-writer unless --allow-rewrite is explicit.
 # --score-only is fully non-mutating: no rewrite, no frontmatter, no commit.
-# A GP (gp-*/en-gp-*) never rewrites: every stage runs even after a FAIL, and
-# each judge's score, passing or failing, is written to the frontmatter; the
+# A GP (gp-*/en-gp-*) is score-only (openspec gp-source-preservation): it is
+# never rewritten, every stage runs even after a FAIL, and each judge's score,
+# passing or failing, is written to the frontmatter, because whether a GP ships
+# is the floor's call (CONTRIBUTING.md 〈兩層品質門檻〉), not four PASSes. The
 # run exits 1 when any stage failed.
 # On crash resume: re-run same command; completed stages are skipped.
 
@@ -142,10 +144,6 @@ if [ -z "$ALLOW_REWRITE" ]; then
 fi
 
 POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
-# GP is score-only (openspec gp-source-preservation): no rewrite, every judge
-# scores it, and each judge's score, passing or failing, goes into the
-# frontmatter. Whether the GP ships is the floor's call (CONTRIBUTING.md
-# 〈兩層品質門檻〉), not four PASSes.
 GP_SCORE_ONLY=0
 if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
   if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
@@ -1264,8 +1262,7 @@ persist_stage_score() {
 
 # ─── Run One Tribunal Stage ───────────────────────────────────────────────────
 # Args: stage_key, agent_name, validate_name, label, max_loops, post_file
-# Returns: 0 = stage passed, 1 = stage failed (max loops exhausted, rewrite
-# disabled, or a score-only GP whose failing score was recorded)
+# Returns: 0 = stage passed, 1 = stage failed (max loops exhausted)
 run_stage() {
   local stage_key="$1"    # progress key: librarian, factChecker, freshEyes, vibe
   local agent_name="$2"   # agent name: librarian, fact-checker, fresh-eyes, vibe-opus-scorer
@@ -1540,19 +1537,13 @@ PROMPT
       echo "$reasons" | while IFS= read -r line; do tlog "$line"; done
     fi
 
-    # ── GP: record the failing score, never rewrite, never re-judge ──────────
-    # The caller runs the remaining judges, so the post ends up with all four
-    # scores; re-judging an unchanged article would only spend quota.
-    if [ "$GP_SCORE_ONLY" = 1 ]; then
-      if ! persist_stage_score "$post_path" "$post_file" "$stage_key" "$fm_judge_key" \
-        "$model_id" "$runner_label" "$attempt" "$score_tmp"; then
-        rm -f "$score_tmp"
-        return 70
-      fi
-      tlog "  GP is score-only: recorded the $label FAIL score without invoking tribunal-writer."
-      write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
+    # A GP's failing score is recorded too; with rewrite off, the branches
+    # below end the stage.
+    if [ "$GP_SCORE_ONLY" = 1 ] &&
+       ! persist_stage_score "$post_path" "$post_file" "$stage_key" "$fm_judge_key" \
+         "$model_id" "$runner_label" "$attempt" "$score_tmp"; then
       rm -f "$score_tmp"
-      return 1
+      return 70
     fi
 
     # ── Max loops exhausted — no more rewrites ────────────────────────────────
@@ -1564,7 +1555,7 @@ PROMPT
     fi
 
     if [ "$ALLOW_REWRITE" != "1" ]; then
-      tlog "  Rewrite disabled for this run (judge-only/--only-stage default). FAIL without invoking tribunal-writer."
+      tlog "  Rewrite disabled for this run (judge-only, --only-stage default or a GP). FAIL without invoking tribunal-writer."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
       rm -f "$score_tmp"
       return 1
@@ -1915,9 +1906,8 @@ declare -a STAGES=(
   "vibe:vibe-opus-scorer:vibe-opus-scorer:VibeScorer:3:vibe"
 )
 
-# A score-only GP keeps going after a FAIL; these collect what failed.
-GP_FAILED_STAGE_KEYS=()
-GP_FAILED_LABELS=()
+GP_FAILED_STAGE=""  # the first stage a GP failed
+GP_FAILED_LABELS=""
 for stage_def in "${STAGES[@]}"; do
   IFS=':' read -r stage_key agent_name validate_name label max_loops fm_judge_key <<< "$stage_def"
 
@@ -1947,8 +1937,8 @@ for stage_def in "${STAGES[@]}"; do
   elif [ "$stage_rc" -ne 0 ]; then
     if [ "$GP_SCORE_ONLY" = 1 ]; then
       tlog "  GP is score-only: $label FAIL is recorded; the remaining judges still score it."
-      GP_FAILED_STAGE_KEYS+=("$stage_key")
-      GP_FAILED_LABELS+=("$label")
+      GP_FAILED_STAGE="${GP_FAILED_STAGE:-$stage_key}"
+      GP_FAILED_LABELS="${GP_FAILED_LABELS:+$GP_FAILED_LABELS,}$label"
       continue
     fi
     tlog "=== FAILED at stage: $label ==="
@@ -1958,11 +1948,10 @@ for stage_def in "${STAGES[@]}"; do
   fi
 done
 
-if [ "${#GP_FAILED_LABELS[@]}" -gt 0 ]; then
-  GP_FAILED_SUMMARY="$(IFS=,; printf '%s' "${GP_FAILED_LABELS[*]}")"
-  tlog "=== FAILED at stage(s): $GP_FAILED_SUMMARY (GP score-only: every judge's score is in the frontmatter) ==="
-  mark_article_failed "$POST_FILE" "${GP_FAILED_STAGE_KEYS[0]}"
-  commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $GP_FAILED_SUMMARY (GP score-only)"
+if [ -n "$GP_FAILED_STAGE" ]; then
+  tlog "=== FAILED at stage(s): $GP_FAILED_LABELS (GP score-only: every judge's score is in the frontmatter) ==="
+  mark_article_failed "$POST_FILE" "$GP_FAILED_STAGE"
+  commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $GP_FAILED_LABELS (GP score-only)"
   exit 1
 fi
 
