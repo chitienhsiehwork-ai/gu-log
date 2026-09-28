@@ -348,23 +348,9 @@ func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string)
 	if err != nil {
 		return err
 	}
-	evidence := filepath.Join(s.WorkDir, sourceDistanceEvidenceDir)
-	if err := os.MkdirAll(evidence, 0o755); err != nil {
-		return fmt.Errorf("english check: %w", err)
-	}
-	resultPath := filepath.Join(evidence, "en-check.json")
-	out, err := s.sourceDistanceCLI(ctx, "ngram", "--file", enPath, "--source", capture, "--posts-dir", s.Cfg.PostsDir)
+	resultPath, result, err := s.englishNgram(ctx, enPath, capture)
 	if err != nil {
-		return NewStepError(14, fmt.Errorf("english check: %w", err))
-	}
-	if err := os.WriteFile(resultPath, out, 0o644); err != nil {
-		return fmt.Errorf("english check: keep result: %w", err)
-	}
-	var result struct {
-		Verdict string `json:"verdict"`
-	}
-	if err := json.Unmarshal(out, &result); err != nil {
-		return fmt.Errorf("english check: parse result: %w", err)
+		return err
 	}
 
 	switch result.Verdict {
@@ -395,6 +381,135 @@ func (s *State) checkEnglishVerbatim(ctx context.Context, zhPath, enPath string)
 	}
 }
 
+// englishNgramResult is the part of `source-distance.mjs ngram` output the
+// pipeline reads.
+type englishNgramResult struct {
+	Verdict string          `json:"verdict"`
+	Fails   []string        `json:"fails"`
+	Metrics json.RawMessage `json:"metrics"`
+}
+
+// englishNgram runs the verbatim n-gram check on an English version and keeps
+// the result in the work dir's evidence directory.
+func (s *State) englishNgram(ctx context.Context, enPath, capture string) (string, *englishNgramResult, error) {
+	evidence := filepath.Join(s.WorkDir, sourceDistanceEvidenceDir)
+	if err := os.MkdirAll(evidence, 0o755); err != nil {
+		return "", nil, fmt.Errorf("english check: %w", err)
+	}
+	resultPath := filepath.Join(evidence, "en-check.json")
+	out, err := s.sourceDistanceCLI(ctx, "ngram", "--file", enPath, "--source", capture, "--posts-dir", s.Cfg.PostsDir)
+	if err != nil {
+		return "", nil, NewStepError(14, fmt.Errorf("english check: %w", err))
+	}
+	if err := os.WriteFile(resultPath, out, 0o644); err != nil {
+		return "", nil, fmt.Errorf("english check: keep result: %w", err)
+	}
+	result := &englishNgramResult{}
+	if err := json.Unmarshal(out, result); err != nil {
+		return "", nil, fmt.Errorf("english check: parse result: %w", err)
+	}
+	return resultPath, result, nil
+}
+
+// StampOutcome is what `gp-pipeline stamp` reports about one post.
+type StampOutcome struct {
+	File         string `json:"file"`
+	Lang         string `json:"lang"`
+	Verdict      string `json:"verdict"`
+	Aligner      string `json:"aligner,omitempty"`
+	AlignerCalls int    `json:"alignerCalls,omitempty"`
+	// Evidence is the work-dir directory with the segments, alignments and
+	// scores; the capture stays in the work dir too, never in the repo.
+	Evidence string `json:"evidence,omitempty"`
+	// Report lists the flagged passages of a zh-tw post that did not pass.
+	Report string `json:"report,omitempty"`
+	// Fails and Metrics describe an English version that did not pass.
+	Fails   []string        `json:"fails,omitempty"`
+	Metrics json.RawMessage `json:"metrics,omitempty"`
+	// EnglishSkippedCleared: a passing English version cleared the zh-tw
+	// stamp's englishSkipped mark.
+	EnglishSkippedCleared bool `json:"englishSkippedCleared,omitempty"`
+}
+
+// StampPost checks one existing GP post the way the pipeline does — two
+// alignments and scoring for zh-tw, the verbatim check for English — and,
+// when it passes, writes only its stamp (openspec source-distance-stamp〈手寫
+// 或人工修改的 GP SHALL 能用 gp-pipeline stamp 蓋章〉). It never rewrites the
+// body: a post that does not pass is left unchanged, and the outcome carries
+// the flagged passages.
+func (s *State) StampPost(ctx context.Context, file string, target StampTarget) (*StampOutcome, error) {
+	capture, err := s.sourceDistanceCapture(ctx, file)
+	if err != nil {
+		return nil, err
+	}
+	if target.Lang == "en" {
+		return s.stampEnglishPost(ctx, file, capture)
+	}
+	pin, err := llm.AlignerPin(s.Cfg.RepoRoot)
+	if err != nil {
+		return nil, NewStepError(14, fmt.Errorf("source-distance: %w", err))
+	}
+	if s.AlignerDispatcher == nil {
+		return nil, fmt.Errorf("source-distance: aligner dispatcher is nil")
+	}
+	evidence, err := newSourceDistanceEvidenceDir(s.WorkDir)
+	if err != nil {
+		return nil, err
+	}
+	outcome := &SourceDistanceOutcome{Aligner: pin, Evidence: evidence}
+	roundDir := filepath.Join(s.WorkDir, evidence, "round-0")
+	result, err := s.scoreSourceDistanceRound(ctx, roundDir, file, capture, outcome)
+	if err != nil {
+		return nil, err
+	}
+	res := &StampOutcome{
+		File:         file,
+		Lang:         nonEmpty(target.Lang, "zh-tw"),
+		Verdict:      result.Verdict,
+		Aligner:      pin,
+		AlignerCalls: outcome.AlignerCalls,
+		Evidence:     filepath.Join(s.WorkDir, evidence),
+		Report:       result.Report,
+	}
+	outcome.Verdict = result.Verdict
+	if result.Verdict == SourceDistancePass {
+		if err := s.stampSourceDistance(ctx, file, filepath.Join(roundDir, "score.json"), outcome); err != nil {
+			return nil, err
+		}
+	}
+	s.writeSourceDistanceOutcome(outcome)
+	return res, nil
+}
+
+func (s *State) stampEnglishPost(ctx context.Context, file, capture string) (*StampOutcome, error) {
+	resultPath, result, err := s.englishNgram(ctx, file, capture)
+	if err != nil {
+		return nil, err
+	}
+	res := &StampOutcome{
+		File:     file,
+		Lang:     "en",
+		Verdict:  result.Verdict,
+		Evidence: filepath.Dir(resultPath),
+		Fails:    result.Fails,
+		Metrics:  result.Metrics,
+	}
+	if result.Verdict != SourceDistancePass {
+		return res, nil
+	}
+	if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", file, "--result", resultPath, "--posts-dir", s.Cfg.PostsDir); err != nil {
+		return nil, NewStepError(14, fmt.Errorf("english check: stamp: %w", err))
+	}
+	zh := filepath.Join(filepath.Dir(file), strings.TrimPrefix(filepath.Base(file), "en-"))
+	if zh != file && zhSkippedEnglish(zh) {
+		if _, err := s.sourceDistanceCLI(ctx, "stamp", "--file", zh, "--clear-english-skipped"); err != nil {
+			return nil, NewStepError(14, fmt.Errorf("english check: clear englishSkipped on %s: %w", filepath.Base(zh), err))
+		}
+		res.EnglishSkippedCleared = true
+	}
+	return res, nil
+}
+
 // zhSkippedEnglish reports whether a zh-tw stamp carries englishSkipped.
 func zhSkippedEnglish(path string) bool {
 	data, err := os.ReadFile(path)
@@ -409,23 +524,37 @@ func zhSkippedEnglish(path string) bool {
 	return ok && strings.Contains(block, "\n  englishSkipped:")
 }
 
-// sourceDistanceRequired asks the Node side whether final.mdx needs a stamp
-// (a GP with an external source that is not taken down), so Go keeps no copy
-// of that rule.
-func (s *State) sourceDistanceRequired(ctx context.Context, finalPath string) (bool, error) {
-	out, err := s.sourceDistanceCLIAllowing(ctx, []int{5}, "verify", "--file", finalPath, "--posts-dir", s.Cfg.PostsDir)
+// StampTarget is what the source-distance CLI reports about one post.
+type StampTarget struct {
+	Lang     string `json:"lang"`
+	GP       bool   `json:"gp"`
+	External bool   `json:"external"`
+	// Required: a GP post with an external source that is not taken down.
+	Required bool `json:"required"`
+}
+
+// InspectStampTarget asks the Node side whether a post needs a stamp, so Go
+// keeps no copy of that rule.
+func (s *State) InspectStampTarget(ctx context.Context, file string) (StampTarget, error) {
+	out, err := s.sourceDistanceCLIAllowing(ctx, []int{5}, "verify", "--file", file, "--posts-dir", s.Cfg.PostsDir)
+	if err != nil {
+		return StampTarget{}, err
+	}
+	var verdict struct {
+		Results []StampTarget `json:"results"`
+	}
+	if err := json.Unmarshal(out, &verdict); err != nil || len(verdict.Results) != 1 {
+		return StampTarget{}, fmt.Errorf("source-distance: parse verify output: %v", err)
+	}
+	return verdict.Results[0], nil
+}
+
+func (s *State) sourceDistanceRequired(ctx context.Context, file string) (bool, error) {
+	target, err := s.InspectStampTarget(ctx, file)
 	if err != nil {
 		return false, NewStepError(14, err)
 	}
-	var verdict struct {
-		Results []struct {
-			Required bool `json:"required"`
-		} `json:"results"`
-	}
-	if err := json.Unmarshal(out, &verdict); err != nil || len(verdict.Results) != 1 {
-		return false, fmt.Errorf("source-distance: parse verify output: %v", err)
-	}
-	return verdict.Results[0].Required, nil
+	return target.Required, nil
 }
 
 // sourceDistanceCapture returns the source capture to measure against: the

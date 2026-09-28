@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
@@ -692,6 +693,142 @@ func TestRun_GPEnglishVerbatimCheck(t *testing.T) {
 		en := filepath.Join(s.Cfg.PostsDir, "en-"+s.Filename)
 		if ok, errs := verifyStamp(t, tmp, en); !ok {
 			t.Fatalf("recovered English version fails stamp verification: %v", errs)
+		}
+	})
+}
+
+// makeStampHarness sets up `gp-pipeline stamp` on one hand-written GP post:
+// a repo with the real CLI and the aligner pin, the post in posts/, and the
+// synthetic capture in a directory outside the repo.
+func makeStampHarness(t *testing.T, aligner *scriptedAligner) (s *State, repo, post string) {
+	t.Helper()
+	repo = t.TempDir()
+	scriptsDir := filepath.Join(repo, "scripts")
+	installSourceDistanceCLI(t, repo, scriptsDir)
+	writeAlignerPin(t, repo, "claude-sonnet-5")
+	postsDir := filepath.Join(repo, "src", "content", "posts")
+	post = filepath.Join(postsDir, "gp-172-20260928-keeper-logbook.mdx")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(post, []byte(strings.Replace(gpArticle(gpDraftBody), "GP-PENDING", "GP-172", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	capture := filepath.Join(t.TempDir(), "capture.txt")
+	copyFile(t, filepath.Join(realRepoRoot(t), "tests", "fixtures", "source-distance", "capture.txt"), capture)
+
+	s = NewState()
+	s.Log = logx.New()
+	s.Cfg = &config.Config{RepoRoot: repo, ScriptsDir: scriptsDir, PostsDir: postsDir}
+	s.Prefix = "GP"
+	s.WorkDir = t.TempDir()
+	s.SourcePath = capture
+	disp, err := llm.NewDispatcher(logx.New(), aligner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.AlignerDispatcher = disp
+	return s, repo, post
+}
+
+func bodyOf(t *testing.T, path string) string {
+	t.Helper()
+	parts := strings.SplitN(mustRead(t, path), "\n---\n", 2)
+	if len(parts) != 2 {
+		t.Fatalf("%s has no frontmatter", path)
+	}
+	return parts[1]
+}
+
+// TestStampPost covers source-distance-stamp〈手寫的 GP 通過〉and〈手寫的 GP 沒過〉.
+func TestStampPost(t *testing.T) {
+	t.Run("a passing zh-tw post gets only its stamp", func(t *testing.T) {
+		aligner := &scriptedAligner{modes: []string{"guide", "guide"}}
+		s, repo, post := makeStampHarness(t, aligner)
+		before := bodyOf(t, post)
+		target, err := s.InspectStampTarget(context.Background(), post)
+		if err != nil || !target.Required || target.Lang != "zh-tw" {
+			t.Fatalf("target = %+v, %v", target, err)
+		}
+		outcome, err := s.StampPost(context.Background(), post, target)
+		if err != nil || outcome.Verdict != SourceDistancePass || outcome.AlignerCalls != 2 {
+			t.Fatalf("outcome = %+v, %v", outcome, err)
+		}
+		if bodyOf(t, post) != before {
+			t.Fatal("stamp changed the body")
+		}
+		if ok, errs := verifyStamp(t, repo, post); !ok {
+			t.Fatalf("stamped post fails verification: %v", errs)
+		}
+		if stamp := readStamp(t, repo, post); stamp.Rewrites != 0 || stamp.AlignerCalls != 2 {
+			t.Fatalf("stamp = %+v", stamp)
+		}
+	})
+
+	for _, tc := range []struct{ mode, verdict string }{{"translate", SourceDistanceFail}, {"zero", SourceDistanceZero}} {
+		t.Run("a "+tc.mode+" zh-tw post stays unchanged", func(t *testing.T) {
+			aligner := &scriptedAligner{modes: []string{tc.mode}}
+			s, _, post := makeStampHarness(t, aligner)
+			before := mustRead(t, post)
+			outcome, err := s.StampPost(context.Background(), post, StampTarget{Lang: "zh-tw", Required: true})
+			if err != nil || outcome.Verdict != tc.verdict {
+				t.Fatalf("outcome = %+v, %v", outcome, err)
+			}
+			if tc.verdict == SourceDistanceFail && !strings.Contains(outcome.Report, "她說好的日誌一行就夠") {
+				t.Fatalf("the outcome does not list the flagged passages:\n%s", outcome.Report)
+			}
+			if mustRead(t, post) != before {
+				t.Fatal("a post that did not pass was changed")
+			}
+		})
+	}
+
+	t.Run("English versions: verbatim fails, own words pass and clear the zh-tw mark", func(t *testing.T) {
+		aligner := &scriptedAligner{modes: []string{"guide", "guide"}}
+		s, repo, zh := makeStampHarness(t, aligner)
+		if _, err := s.StampPost(context.Background(), zh, StampTarget{Lang: "zh-tw", Required: true}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.sourceDistanceCLI(context.Background(), "stamp", "--file", zh, "--english-skipped", "verbatim"); err != nil {
+			t.Fatal(err)
+		}
+		en := filepath.Join(filepath.Dir(zh), "en-"+filepath.Base(zh))
+		writeEN := func(body string) {
+			if err := os.WriteFile(en, []byte(strings.Replace(gpEnglish(body), "GP-PENDING", "GP-172", 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		writeEN(gpENVerbatim)
+		before := mustRead(t, en)
+		target, err := s.InspectStampTarget(context.Background(), en)
+		if err != nil || target.Lang != "en" || !target.Required {
+			t.Fatalf("target = %+v, %v", target, err)
+		}
+		outcome, err := s.StampPost(context.Background(), en, target)
+		if err != nil || outcome.Verdict != SourceDistanceFail || len(outcome.Fails) == 0 {
+			t.Fatalf("outcome = %+v, %v", outcome, err)
+		}
+		if mustRead(t, en) != before {
+			t.Fatal("a failing English version was changed")
+		}
+		if readStamp(t, repo, zh).EnglishSkipped != "verbatim" {
+			t.Fatal("a failing English version cleared the zh-tw mark")
+		}
+
+		writeEN(gpENOwnWords)
+		outcome, err = s.StampPost(context.Background(), en, target)
+		if err != nil || outcome.Verdict != SourceDistancePass || !outcome.EnglishSkippedCleared {
+			t.Fatalf("outcome = %+v, %v", outcome, err)
+		}
+		if ok, errs := verifyStamp(t, repo, en); !ok {
+			t.Fatalf("stamped English version fails verification: %v", errs)
+		}
+		if stamp := readStamp(t, repo, zh); stamp.EnglishSkipped != "" {
+			t.Fatalf("zh-tw stamp still marks englishSkipped: %+v", stamp)
+		}
+		if ok, errs := verifyStamp(t, repo, zh); !ok {
+			t.Fatalf("clearing the mark broke the zh-tw stamp: %v", errs)
 		}
 	})
 }
