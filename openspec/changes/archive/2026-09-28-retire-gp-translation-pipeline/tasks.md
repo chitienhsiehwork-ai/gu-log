@@ -52,7 +52,7 @@
 - [ ] 8.1 全套驗證：`tools/gp-pipeline` 的 `go build ./...`、`go vet ./...`、`go test -count=1 ./...`，以及 `pnpm run lint`、`pnpm exec astro check`、`pnpm exec vitest run`、`node scripts/validate-posts.mjs`、`openspec validate --all --strict`、`pnpm run build`；PR 上 CI 全綠（含新的 Go leaf）
 - [x] 8.2 Archive 前確認 #1114 已 archive（main spec 的標題已是 `Synthetic regression pair MUST calibrate source-preserving behavior`）且分支已 rebase 到 main；`openspec archive retire-gp-translation-pipeline` 的輸出含 `gp-source-preservation` 的 11 條 removed，而且沒有 "not in the current spec" 警告
 - [x] 8.3 Archive 時（跟 8.2 同一個 commit）移除本 change 在 `quality/brand-taxonomy-residual-allowlist.json` 加的 4 條 exact exception，`npm run -s taxonomy:check` 仍綠
-- [ ] 8.4 Archive 後直接改 `openspec/specs/gp-source-preservation/spec.md` 的 Purpose：整篇翻譯流程已退役，本 capability 只保留退役紀錄與 GP 只評分的邊界，並指向本 change 的 design；`openspec validate --specs --strict` 通過
+- [x] 8.4 Archive 後直接改 `openspec/specs/gp-source-preservation/spec.md` 的 Purpose：整篇翻譯流程已退役，本 capability 只保留退役紀錄與 GP 只評分的邊界，並指向本 change 的 design；`openspec validate --specs --strict` 通過
 - [ ] 8.5 轉 ready、等 Codex auto-review、掛 auto-merge；上線後 smoke：production 首頁與 `/gu-log-picks` 回 200、GP 暫停空狀態不變（本 change 沒有讀者可見變化），並在 chat 回報 production URL 與 `gp-pipeline run <url>` 的暫停錯誤實際輸出
 
 ## 9. 實作審查後的修正（已完成，排在第 8 組的整合驗證之前）
