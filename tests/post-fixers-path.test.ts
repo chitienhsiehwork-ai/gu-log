@@ -114,6 +114,26 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
     }
   });
 
+  it('收尾的 MoguNote 之前才插延伸閱讀；後面還有正文時放文末，不插進文章中間', () => {
+    const closing = draft(
+      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '導讀正文第一句。\n\n<MoguNote>\nMogu 收尾的吐槽。\n</MoguNote>'
+    );
+    run('inject-related-posts.mjs', ['--file', closing]);
+    const closed = fs.readFileSync(closing, 'utf8');
+    expect(closed.indexOf('## 延伸閱讀')).toBeGreaterThan(-1);
+    expect(closed.indexOf('## 延伸閱讀')).toBeLessThan(closed.indexOf('<MoguNote>'));
+
+    const guide = draft(
+      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>\n\n## 回原文看什麼\n\n去讀原文。'
+    );
+    run('inject-related-posts.mjs', ['--file', guide]);
+    const after = fs.readFileSync(guide, 'utf8');
+    expect(after.indexOf('## 延伸閱讀')).toBeGreaterThan(after.indexOf('去讀原文。'));
+    expect(after.indexOf('</MoguNote>')).toBeLessThan(after.indexOf('## 回原文看什麼'));
+  });
+
   it('never suggests the allocated post the draft will replace', () => {
     const self = posts.find((p) => p.lang === 'zh-tw' && p.ticketId && p.tags.includes(commonTag))!;
     const file = draft(

@@ -66,8 +66,8 @@ function buildSection(lang, suggestedLinks) {
 
 // ─── Injection logic ─────────────────────────────────────────────────
 /**
- * Finds the position just before the LAST <MoguNote> block,
- * or falls back to the very end of the file.
+ * Finds the position just before the LAST <MoguNote> block when that note
+ * closes the article, or falls back to the very end of the file.
  */
 function findInsertionPoint(content) {
   // Find all <MoguNote> occurrences in the body
@@ -78,6 +78,12 @@ function findInsertionPoint(content) {
   const lastIdx = body.lastIndexOf('<MoguNote>');
   if (lastIdx === -1) {
     // No MoguNote — append at end
+    return content.length;
+  }
+  // 最後一則 MoguNote 後面還有正文（例如 GP 導讀收在「回原文」段落）時，插在它前面會把
+  // 延伸閱讀塞進文章中間，所以改放文末。
+  const closeIdx = body.indexOf('</MoguNote>', lastIdx);
+  if (closeIdx !== -1 && body.slice(closeIdx + '</MoguNote>'.length).trim()) {
     return content.length;
   }
 
