@@ -3,12 +3,12 @@ import { getGpEmptyNotice } from '../src/lib/gp-listing.mjs';
 
 const zhMP = '/posts/mp-291-20260414-anthropic-';
 const enMP = '/en/posts/en-mp-291-20260414-anthropic-';
-// GP-1 is the self-written demo that stays public while GP translations are
-// taken down; it is never listed (openspec: editorial-charter, post-takedown).
+// GP-1 is the self-written demo that stays public but is never listed
+// (openspec: editorial-charter, post-takedown).
 const zhGP = '/posts/gp-1-20260128-demo';
 const enGP = '/en/posts/en-gp-1-20260128-demo';
 
-test.describe('GP translation and MP source-grounded identity', () => {
+test.describe('GP reading-guide and MP source-grounded identity', () => {
   test('GIVEN the zh-TW listings WHEN comparing GP and MP THEN MP never uses translation labels', async ({
     page,
   }) => {

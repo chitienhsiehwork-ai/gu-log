@@ -9,7 +9,7 @@
 //	  "GP": {
 //	    "next": 171,
 //	    "label": "Gu-log Picks",
-//	    "description": "Articles picked by ShroomDog, translated by Mogu"
+//	    "description": "Reading guides picked by ShroomDog and written by Mogu"
 //	  },
 //	  "MP": { ... },
 //	  "SD": { ... },

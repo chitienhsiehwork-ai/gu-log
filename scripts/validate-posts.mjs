@@ -605,8 +605,7 @@ function validatePost(filepath, allPosts, options = {}) {
   }
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
-  // GP translation renders it as "translated by"; MP/SD/Lv writing as
-  // "written by". Either way, readers must see which model produced the post.
+  // Readers must see which model produced the post, whatever its series.
   if (!fm.translatedBy) {
     errors.push('Missing translatedBy (model signature) — every post needs model + harness');
   } else {
