@@ -3,6 +3,7 @@
  * 英文逐字檢查與章。所有原文、導讀與配對都是自寫的合成資料，不呼叫模型。
  */
 
+import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -12,17 +13,24 @@ import {
   decide,
   englishVerbatim,
   isExternalSource,
+  parseFrontmatter,
   requiresStamp,
   rewriteReport,
   scoreAlignment,
   segmentGuide,
   segmentSource,
+  serializeStamp,
   sourceSummary,
   splitSentences,
   subjectFingerprint,
   units,
   validateAlignment,
+  verifyStamp,
+  writeStamp,
 } from '../scripts/lib/source-distance.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
+
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
 
 const FIXTURES = path.join(__dirname, 'fixtures/source-distance');
 const GUIDE = fs.readFileSync(path.join(FIXTURES, 'guide.mdx'), 'utf8');
@@ -440,5 +448,258 @@ describe('英文版的逐字 n-gram 檢查', () => {
     const result = englishVerbatim(english(own), zh);
     expect(result.metrics.ngramContainment).toBe(0);
     expect(result.verdict).toBe('PASS');
+  });
+});
+
+describe('章的序列化與驗證', () => {
+  const guide = segmentGuide(GUIDE, { postIndex: POST_INDEX });
+  const stamp = {
+    policy: POLICY.version,
+    verdict: 'PASS',
+    subjectSha256: subjectFingerprint(SOURCE_URL, guide),
+    sourceSha256: sourceSummary(segmentSource(CAPTURE)).sourceSha256,
+    sourceUnits: 215,
+    metrics: { maxRun: 2, sourceRatio: 0.22, alignedSentences: 9 },
+    aligner: 'claude-sonnet-5',
+    rewrites: 1,
+    alignerCalls: 3,
+    checkedAt: '2026-09-28',
+  };
+  const stamped = writeStamp(GUIDE, stamp);
+  const check = (content: string) =>
+    verifyStamp({
+      content,
+      data: parseFrontmatter(content),
+      file: 'src/content/posts/gp-pending-20260928-logbook.mdx',
+      postIndex: POST_INDEX,
+    });
+
+  it('寫入後重讀驗證通過，正文與其他欄位一字不動', () => {
+    expect(check(stamped)).toEqual({ required: true, errors: [] });
+    expect(writeStamp(stamped, null)).toBe(GUIDE);
+    expect(stamped.split('\n---\n')[1]).toBe(GUIDE.split('\n---\n')[1]);
+    expect(writeStamp(stamped, stamp)).toBe(stamped);
+  });
+
+  it('章只存摘要，不存配對明細', () => {
+    const data = parseFrontmatter(stamped);
+    expect(Object.keys(data.sourceDistance).sort()).toEqual(
+      [
+        'aligner',
+        'alignerCalls',
+        'checkedAt',
+        'metrics',
+        'policy',
+        'rewrites',
+        'sourceSha256',
+        'sourceUnits',
+        'subjectSha256',
+        'verdict',
+      ].sort()
+    );
+    expect(serializeStamp(stamp)).not.toMatch(/alignments|pairs|S\d+|C\d+/);
+  });
+
+  it('GP 缺章：失敗並指出蓋章指令', () => {
+    const result = check(GUIDE);
+    expect(result.required).toBe(true);
+    expect(result.errors.join('\n')).toContain(
+      'tools/gp-pipeline/gp-pipeline stamp --file src/content/posts/gp-pending-20260928-logbook.mdx'
+    );
+  });
+
+  it('改正文一個字，章就過期', () => {
+    const edited = stamped.replace('真正的主角是值班交接', '真正的主角是值班的交接');
+    expect(check(edited).errors.join('\n')).toMatch(/stale/);
+  });
+
+  it('改 sourceUrl，章就過期', () => {
+    const edited = stamped.replace(`sourceUrl: '${SOURCE_URL}'`, `sourceUrl: '${SOURCE_URL}/'`);
+    expect(check(edited).errors.join('\n')).toMatch(/stale/);
+  });
+
+  it('只改 ticket／標題型站內連結、連結網址、機器插入區塊或其他 frontmatter，章仍有效', () => {
+    const edits = [
+      stamped.replace(
+        `[MP-12](/posts/${MP12}/)`,
+        `[告警疲勞是設計問題](https://gu-log.vercel.app/posts/${MP12}/)`
+      ),
+      stamped.replace('https://www.noaa.test/lighthouses', 'https://lights.noaa.test/list'),
+      stamped.replace(
+        `[燈塔守則其實是在講交接](/posts/${MP12}/)`,
+        '[燈塔守則其實是在講交接](/posts/mp-99-20260101-other/)'
+      ),
+      stamped.replace(
+        '(/glossary#handoff)',
+        '(/glossary#shift-handoff) [⚠️ 此連結已於 2026-09-20 確認失效]'
+      ),
+      stamped.replace("tags: ['operations']", "tags: ['operations', 'on-call']"),
+      `${stamped}\n## 延伸閱讀\n\n- [MP-12: 告警疲勞是設計問題](/posts/${MP12}/)\n`,
+    ];
+    for (const edited of edits) {
+      expect(edited).not.toBe(stamped);
+      expect(check(edited)).toEqual({ required: true, errors: [] });
+    }
+  });
+
+  it('加上或清掉 englishSkipped 不影響指紋', () => {
+    const skipped = writeStamp(stamped, { ...stamp, englishSkipped: 'verbatim' });
+    expect(parseFrontmatter(skipped).sourceDistance.englishSkipped).toBe('verbatim');
+    expect(check(skipped)).toEqual({ required: true, errors: [] });
+    const bogus = writeStamp(stamped, { ...stamp, englishSkipped: 'other' });
+    expect(check(bogus).errors.join('\n')).toMatch(/englishSkipped/);
+  });
+
+  it.each([
+    ['policy 版本不符', { policy: 'source-distance/v0' }, /current policy/],
+    ['verdict 不是 PASS', { verdict: 'FAIL' }, /verdict must be PASS/],
+    ['連續段超過門檻', { metrics: { ...stamp.metrics, maxRun: 3 } }, /exceed/],
+    ['占比超過門檻', { metrics: { ...stamp.metrics, sourceRatio: 0.31 } }, /exceed/],
+    ['零配對', { metrics: { ...stamp.metrics, alignedSentences: 0 } }, /exceed/],
+    ['少了呼叫次數', { alignerCalls: 1 }, /alignerCalls/],
+  ])('%s：驗證失敗', (_name, override, message) => {
+    const content = writeStamp(GUIDE, { ...stamp, ...override });
+    expect(check(content).errors.join('\n')).toMatch(message);
+  });
+
+  it('英文章驗逐字檢查的指標，而且不帶 aligner 欄位', () => {
+    const english = GUIDE.replace("lang: 'zh-tw'", "lang: 'en'");
+    const base = {
+      policy: POLICY.version,
+      verdict: 'PASS',
+      subjectSha256: stamp.subjectSha256,
+      sourceSha256: stamp.sourceSha256,
+      sourceUnits: 215,
+      metrics: { ngramContainment: 0.02, maxVerbatimWords: 9, quotedWords: 7 },
+      checkedAt: '2026-09-28',
+    };
+    expect(check(writeStamp(english, base)).errors).toEqual([]);
+    const tooClose = { ...base, metrics: { ...base.metrics, maxVerbatimWords: 30 } };
+    expect(check(writeStamp(english, tooClose)).errors.join('\n')).toMatch(/exceed/);
+    expect(check(writeStamp(english, { ...base, aligner: 'x' })).errors.join('\n')).toMatch(
+      /does not belong/
+    );
+  });
+
+  it('不需要章的文章：GP-1 這類示範來源、下架文章與非 GP 都不要求；非 GP 帶章失敗', () => {
+    const demo = GUIDE.replace(
+      `sourceUrl: '${SOURCE_URL}'`,
+      "sourceUrl: 'https://example.com/original-article'"
+    );
+    expect(check(demo)).toEqual({ required: false, errors: [] });
+    const mp = GUIDE.replace("ticketId: 'GP-PENDING'", "ticketId: 'MP-PENDING'");
+    expect(check(mp)).toEqual({ required: false, errors: [] });
+    expect(check(writeStamp(mp, stamp)).errors.join('\n')).toMatch(/only allowed on GP/);
+    const takenDown = GUIDE.replace("lang: 'zh-tw'", "lang: 'zh-tw'\nstatus: 'taken-down'");
+    expect(check(takenDown)).toEqual({ required: false, errors: [] });
+  });
+});
+
+describe('scripts/source-distance.mjs CLI', () => {
+  const CLI = path.join(__dirname, '../scripts/source-distance.mjs');
+  const run = (args: string[]) => {
+    try {
+      const out = execFileSync(process.execPath, [CLI, ...args], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      return { code: 0, out };
+    } catch (error) {
+      const failure = error as { status: number; stdout: string; stderr: string };
+      return { code: failure.status, out: failure.stdout, err: failure.stderr };
+    }
+  };
+
+  it('segment → score（兩次）→ stamp → verify 走完一輪，配對不合格時 exit 2', () => {
+    const dir = makeTempDirectory('source-distance-cli-');
+    const posts = path.join(dir, 'posts');
+    fs.mkdirSync(posts);
+    fs.writeFileSync(
+      path.join(posts, `${MP12}.mdx`),
+      "---\nticketId: 'MP-12'\ntitle: '告警疲勞是設計問題'\n---\n"
+    );
+    const file = path.join(dir, 'final.mdx');
+    fs.writeFileSync(file, GUIDE);
+    const capture = path.join(FIXTURES, 'capture.txt');
+
+    const segmented = run(['segment', '--file', file, '--source', capture, '--posts-dir', posts]);
+    expect(segmented.code).toBe(0);
+    const segments = JSON.parse(segmented.out);
+    expect(segments.subjectSha256).toBe(fingerprintOf(GUIDE));
+    expect(segments.prompt.guide.split('\n')[0]).toBe('C1\t為什麼這篇值得讀');
+    const segFile = path.join(dir, 'segments.json');
+    fs.writeFileSync(segFile, segmented.out);
+
+    const align = path.join(dir, 'align.json');
+    fs.writeFileSync(
+      align,
+      JSON.stringify({
+        alignments: segments.guide.map((c: Sentence) => ({
+          c: c.id,
+          s: c.id === 'C3' ? ['S4'] : c.id === 'C7' ? ['S9'] : [],
+        })),
+      })
+    );
+    const first = JSON.parse(run(['score', '--segments', segFile, '--alignment', align]).out);
+    expect(first.verdict).toBe('NEEDS_SECOND');
+    const scored = run([
+      'score',
+      '--segments',
+      segFile,
+      '--alignment',
+      align,
+      '--alignment',
+      align,
+    ]);
+    const resultFile = path.join(dir, 'result.json');
+    fs.writeFileSync(resultFile, scored.out);
+    expect(JSON.parse(scored.out)).toMatchObject({
+      verdict: 'PASS',
+      metrics: { alignedSentences: 2 },
+    });
+
+    const stampArgs = [
+      'stamp',
+      '--file',
+      file,
+      '--result',
+      resultFile,
+      '--aligner',
+      'claude-sonnet-5',
+    ];
+    const stampedRun = run([
+      ...stampArgs,
+      '--rewrites',
+      '0',
+      '--aligner-calls',
+      '2',
+      '--checked-at',
+      '2026-09-28',
+      '--posts-dir',
+      posts,
+    ]);
+    expect(stampedRun.code).toBe(0);
+    expect(fs.readFileSync(file, 'utf8').split('\n---\n')[1]).toBe(GUIDE.split('\n---\n')[1]);
+    const verified = run(['verify', '--file', file, '--posts-dir', posts]);
+    expect(verified.code).toBe(0);
+    expect(JSON.parse(verified.out).results[0]).toMatchObject({ required: true, ok: true });
+
+    expect(run(['stamp', '--file', file, '--english-skipped', 'verbatim']).code).toBe(0);
+    expect(parseFrontmatter(fs.readFileSync(file, 'utf8')).sourceDistance.englishSkipped).toBe(
+      'verbatim'
+    );
+    expect(run(['stamp', '--file', file, '--clear-english-skipped']).code).toBe(0);
+    expect(parseFrontmatter(fs.readFileSync(file, 'utf8')).sourceDistance.englishSkipped).toBe(
+      undefined
+    );
+
+    fs.writeFileSync(align, JSON.stringify({ alignments: [{ c: 'C1', s: [] }] }));
+    expect(run(['score', '--segments', segFile, '--alignment', align]).code).toBe(2);
+
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace('值班交接', '值班的交接'));
+    expect(run(['verify', '--file', file, '--posts-dir', posts]).code).toBe(5);
+    expect(
+      run([...stampArgs, '--rewrites', '0', '--aligner-calls', '2', '--posts-dir', posts]).code
+    ).toBe(4);
   });
 });

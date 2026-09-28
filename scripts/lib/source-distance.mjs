@@ -11,10 +11,14 @@
  * import。這個檔案只能用純 Node 相依（不 import Astro 專屬模組），pre-commit 要能跑。
  */
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
+import yaml from 'yaml';
 
 export const POLICY = Object.freeze({
   version: 'source-distance/v1',
@@ -40,7 +44,13 @@ export const POLICY = Object.freeze({
   }),
 });
 
+export const STAMP_FIELD = 'sourceDistance';
+export const ENGLISH_SKIPPED_VERBATIM = 'verbatim';
+export const STAMP_COMMAND = 'tools/gp-pipeline/gp-pipeline stamp --file';
+
 const SITE_ORIGIN = 'https://gu-log.vercel.app';
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+export const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 
 // ─── units ──────────────────────────────────────────────────────────────
 
@@ -951,4 +961,201 @@ export function requiresStamp(data) {
     data.status !== 'taken-down' &&
     isExternalSource(data.sourceUrl)
   );
+}
+
+// ─── 章的序列化 ─────────────────────────────────────────────────────────
+
+function quote(value) {
+  return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+/** 依固定順序輸出 `sourceDistance` 的 YAML 區塊（不含配對明細）。 */
+export function serializeStamp(stamp) {
+  const lines = [`${STAMP_FIELD}:`];
+  lines.push(`  policy: ${quote(stamp.policy)}`);
+  lines.push(`  verdict: ${quote(stamp.verdict)}`);
+  lines.push(`  subjectSha256: ${quote(stamp.subjectSha256)}`);
+  lines.push(`  sourceSha256: ${quote(stamp.sourceSha256)}`);
+  lines.push(`  sourceUnits: ${stamp.sourceUnits}`);
+  lines.push('  metrics:');
+  for (const [key, value] of Object.entries(stamp.metrics)) lines.push(`    ${key}: ${value}`);
+  if (stamp.aligner !== undefined) lines.push(`  aligner: ${quote(stamp.aligner)}`);
+  if (stamp.rewrites !== undefined) lines.push(`  rewrites: ${stamp.rewrites}`);
+  if (stamp.alignerCalls !== undefined) lines.push(`  alignerCalls: ${stamp.alignerCalls}`);
+  if (stamp.englishSkipped !== undefined) {
+    lines.push(`  englishSkipped: ${quote(stamp.englishSkipped)}`);
+  }
+  lines.push(`  checkedAt: ${quote(stamp.checkedAt)}`);
+  return lines.join('\n');
+}
+
+/** 把章寫進 frontmatter（取代既有的章），正文與其他欄位一個字都不動。 */
+export function writeStamp(content, stamp) {
+  const match = content.match(FRONTMATTER);
+  if (!match) throw new Error('file has no YAML frontmatter');
+  const lines = match[2].split(/\r?\n/);
+  const kept = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (new RegExp(`^${STAMP_FIELD}\\s*:`).test(lines[i])) {
+      while (i + 1 < lines.length && /^(?:\s|$)/.test(lines[i + 1])) i++;
+      continue;
+    }
+    kept.push(lines[i]);
+  }
+  while (kept.length && kept[kept.length - 1].trim() === '') kept.pop();
+  const frontmatter = stamp ? [...kept, serializeStamp(stamp)].join('\n') : kept.join('\n');
+  return `${match[1]}${frontmatter}${match[3]}${content.slice(match[0].length)}`;
+}
+
+export function parseFrontmatter(content) {
+  const { frontmatter } = splitFrontmatter(content);
+  if (frontmatter === null) return null;
+  const data = yaml.parse(frontmatter);
+  return data && typeof data === 'object' ? data : null;
+}
+
+// ─── 驗章 ───────────────────────────────────────────────────────────────
+
+let cachedPostIndex = null;
+
+/**
+ * 站內文章索引（小寫 slug → { ticketId, title }），給投影判斷 ticket／標題型站內連結。
+ * 讀不到或解析失敗的檔案略過（它們會由 validate-posts 的其他規則報錯）。
+ */
+export function loadPostIndex(postsDir = POSTS_DIR) {
+  if (postsDir === POSTS_DIR && cachedPostIndex) return cachedPostIndex;
+  const index = new Map();
+  for (const file of fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx'))) {
+    try {
+      const data = parseFrontmatter(fs.readFileSync(path.join(postsDir, file), 'utf8'));
+      if (!data) continue;
+      index.set(file.replace(/\.mdx$/, '').toLowerCase(), {
+        ticketId: typeof data.ticketId === 'string' ? data.ticketId : null,
+        title: typeof data.title === 'string' ? data.title : null,
+      });
+    } catch {
+      // 由 validate-posts 報 frontmatter 錯誤。
+    }
+  }
+  if (postsDir === POSTS_DIR) cachedPostIndex = index;
+  return index;
+}
+
+function isHex64(value) {
+  return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+}
+
+function isCount(value) {
+  return Number.isInteger(value) && value >= 0;
+}
+
+function isRatio(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+/**
+ * 驗一篇文章的章。回傳 { required, errors }；errors 為空代表這篇在章這件事上合格。
+ * content 是整份檔案（含 frontmatter）；data 是解析過的 frontmatter。
+ */
+export function verifyStamp({ content, data, file, postIndex = null, policy = POLICY }) {
+  const errors = [];
+  const required = requiresStamp(data);
+  const stamp = data ? data[STAMP_FIELD] : undefined;
+  const fix = `${STAMP_COMMAND} ${file}`;
+  if (!required) {
+    // 下架文章帶章由下架欄位規則報錯，這裡不重複。
+    if (stamp !== undefined && data?.status !== 'taken-down') {
+      errors.push(
+        isGpTicket(data?.ticketId)
+          ? `${STAMP_FIELD} only belongs on GP posts with an external sourceUrl; remove it`
+          : `${STAMP_FIELD} is only allowed on GP posts (the first version stamps GP only); remove it`
+      );
+    }
+    return { required, errors };
+  }
+  if (stamp === undefined || stamp === null) {
+    errors.push(`GP post with an external source has no ${STAMP_FIELD} stamp — run: ${fix}`);
+    return { required, errors };
+  }
+  if (typeof stamp !== 'object' || Array.isArray(stamp)) {
+    errors.push(`${STAMP_FIELD} must be a mapping — run: ${fix}`);
+    return { required, errors };
+  }
+  if (stamp.policy !== policy.version) {
+    errors.push(
+      `${STAMP_FIELD}.policy is ${JSON.stringify(stamp.policy)}, current policy is ${policy.version} — re-stamp: ${fix}`
+    );
+  }
+  if (stamp.verdict !== 'PASS') {
+    errors.push(`${STAMP_FIELD}.verdict must be PASS — re-stamp: ${fix}`);
+  }
+  if (!isHex64(stamp.subjectSha256) || !isHex64(stamp.sourceSha256)) {
+    errors.push(
+      `${STAMP_FIELD}.subjectSha256 and sourceSha256 must be SHA-256 hex digests — re-stamp: ${fix}`
+    );
+  }
+  if (!isCount(stamp.sourceUnits) || stamp.sourceUnits === 0) {
+    errors.push(`${STAMP_FIELD}.sourceUnits must be a positive integer — re-stamp: ${fix}`);
+  }
+  if (typeof stamp.checkedAt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(stamp.checkedAt)) {
+    errors.push(`${STAMP_FIELD}.checkedAt must be YYYY-MM-DD — re-stamp: ${fix}`);
+  }
+  const metrics = stamp.metrics && typeof stamp.metrics === 'object' ? stamp.metrics : {};
+  if (data.lang === 'en') {
+    const { ngramContainment, maxVerbatimWords, quotedWords } = metrics;
+    if (!isRatio(ngramContainment) || !isCount(maxVerbatimWords) || !isCount(quotedWords)) {
+      errors.push(
+        `${STAMP_FIELD}.metrics must record ngramContainment, maxVerbatimWords and quotedWords — re-stamp: ${fix}`
+      );
+    } else if (
+      ngramContainment >= policy.ngram.containmentLimit ||
+      maxVerbatimWords >= policy.ngram.verbatimWordLimit
+    ) {
+      errors.push(`${STAMP_FIELD}.metrics exceed the current verbatim limits — re-stamp: ${fix}`);
+    }
+    for (const key of ['aligner', 'rewrites', 'alignerCalls', 'englishSkipped']) {
+      if (stamp[key] !== undefined)
+        errors.push(`${STAMP_FIELD}.${key} does not belong on an English stamp`);
+    }
+  } else {
+    const { maxRun, sourceRatio, alignedSentences } = metrics;
+    if (!isCount(maxRun) || !isRatio(sourceRatio) || !isCount(alignedSentences)) {
+      errors.push(
+        `${STAMP_FIELD}.metrics must record maxRun, sourceRatio and alignedSentences — re-stamp: ${fix}`
+      );
+    } else if (
+      maxRun >= policy.runLimit ||
+      sourceRatio > policy.ratioLimit ||
+      alignedSentences === 0
+    ) {
+      errors.push(
+        `${STAMP_FIELD}.metrics exceed the current source-distance limits — re-stamp: ${fix}`
+      );
+    }
+    if (typeof stamp.aligner !== 'string' || !stamp.aligner) {
+      errors.push(`${STAMP_FIELD}.aligner must name the aligner model — re-stamp: ${fix}`);
+    }
+    if (!isCount(stamp.rewrites) || !isCount(stamp.alignerCalls) || stamp.alignerCalls < 2) {
+      errors.push(
+        `${STAMP_FIELD}.rewrites and alignerCalls must record this stamp's rewrite rounds and aligner calls — re-stamp: ${fix}`
+      );
+    }
+    if (stamp.englishSkipped !== undefined && stamp.englishSkipped !== ENGLISH_SKIPPED_VERBATIM) {
+      errors.push(`${STAMP_FIELD}.englishSkipped may only be ${ENGLISH_SKIPPED_VERBATIM}`);
+    }
+  }
+  if (isHex64(stamp.subjectSha256)) {
+    let actual;
+    try {
+      actual = subjectFingerprint(data.sourceUrl, segmentGuide(content, { postIndex, policy }));
+    } catch (error) {
+      errors.push(`cannot compute the body projection for ${STAMP_FIELD}: ${error.message}`);
+    }
+    if (actual && actual !== stamp.subjectSha256) {
+      errors.push(
+        `${STAMP_FIELD} is stale: the body or sourceUrl changed after stamping — re-stamp: ${fix}`
+      );
+    }
+  }
+  return { required, errors };
 }
