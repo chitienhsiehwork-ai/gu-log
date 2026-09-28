@@ -16,7 +16,7 @@ import { useTestTempDirectories } from './helpers/temp-directories';
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
 const TMP = makeTempDirectory('gucg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
-import { formatModelName } from '../scripts/detect-model.mjs';
+import { formatModelName, resolveRecordedModelId } from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
 import * as pronModule from '../scripts/check-pronoun-clarity.mjs';
 import * as tbmModule from '../scripts/check-translatedby-model.mjs';
@@ -57,6 +57,14 @@ describe('detect-model.formatModelName', () => {
     expect(formatModelName('claude-opus-5-5[1m]')).toBe('Opus 5.5');
     expect(formatModelName('anthropic/claude-opus-5-5')).toBe('Opus 5.5');
     expect(formatModelName('claude-opus-5')).toBe('Opus 5');
+  });
+
+  it('records the floating opus alias as the build it runs on today (Opus 5.5)', () => {
+    expect(resolveRecordedModelId('opus')).toBe('claude-opus-5-5');
+    expect(resolveRecordedModelId('anthropic/opus')).toBe('claude-opus-5-5');
+    expect(formatModelName('opus')).toBe('Opus 5.5');
+    // Concrete ids pass through: scores already stamped with an older build stay as they are.
+    expect(resolveRecordedModelId('claude-opus-5')).toBe('claude-opus-5');
   });
 
   it('unknown id is returned as-is', () => {

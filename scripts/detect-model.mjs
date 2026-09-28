@@ -24,9 +24,12 @@
  * exec writes its score to a file and only greps stdout for quota errors, so it
  * can't cheaply parse JSON metadata). It is used ONLY for recording.
  *
- * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it.
+ * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it; keep
+ * the display fallback for the bare alias in
+ * tools/gp-pipeline/internal/llm/models.go in step (a Go test compares them).
+ * Records already stamped with an older build stay as they are.
  */
-export const OPUS_ALIAS_CURRENT = 'claude-opus-5';
+export const OPUS_ALIAS_CURRENT = 'claude-opus-5-5';
 
 /**
  * Resolve a model selector to the concrete id used for RECORDING. The literal

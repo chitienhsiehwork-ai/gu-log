@@ -65,13 +65,14 @@ func DisplayName(m ModelID) string {
 	// Never display the floating `opus` alias verbatim. If a path ever stamps
 	// the bare alias (e.g. runtime JSON reporting "opus" instead of a concrete
 	// build), resolve it to the current concrete Opus — mirrors the JS SSOT
-	// OPUS_ALIAS_CURRENT in scripts/detect-model.mjs (keep both in sync).
+	// OPUS_ALIAS_CURRENT in scripts/detect-model.mjs;
+	// TestAliasDisplayMatchesOpusAliasCurrent fails when the two drift.
 	if normalized == "opus" {
 		return DisplayName(ModelClaudeOpus)
 	}
 	switch m {
 	case ModelClaudeOpus:
-		return "Opus 5"
+		return "Opus 5.5"
 	case ModelClaudeSonnet:
 		return "Sonnet 4.6"
 	case ModelClaudeHaiku:
