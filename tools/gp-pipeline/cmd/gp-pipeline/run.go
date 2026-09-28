@@ -101,11 +101,14 @@ Steps, in order:
   5     deploy           allocate ticket ID, rename, validate, build, commit, push
 
 GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀),
-not a translation. After the post-fixer, source-distance asks a pinned Claude
-aligner which guide sentences restate which source sentences, and the
-program scores that: a draft that reads like a translation goes back to
-refine with only the flagged passages, then through the post-fixer again, at
-most %[1]d rewrites. Zero alignments, or a draft still failing after the last
+not a translation. Every GP refine output must pass the zh-tw content checks
+the pre-commit hook runs (晶晶體, AI tells, pronouns): what they flag goes back
+to refine, at most %[3]d times, and a body that still fails them is never
+paired or stamped (exit 14). After the post-fixer, source-distance asks a
+pinned Claude aligner which guide sentences restate which source sentences,
+and the program scores that: a draft that reads like a translation goes back
+to refine with only the flagged passages, then through the post-fixer again,
+at most %[1]d rewrites. Zero alignments, or a draft still failing after the last
 rewrite, stops with exit %[2]d: nothing is deployed and the counter is untouched;
 every round's evidence stays in the work dir. A GP English version must pass a
 verbatim check against the source; one that does not is dropped without a
@@ -129,7 +132,7 @@ failed, 16 validate-posts rejected, 17 build failed, 18 push failed,
 %[2]d GP source distance did not pass, 124 timeout.
 
 Use --fake-provider <json> only to test without spending credits or to pin
-canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode),
+canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode, pipeline.MaxContentLintFixes),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tweetURL string

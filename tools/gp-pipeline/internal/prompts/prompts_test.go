@@ -325,6 +325,33 @@ func TestRender_GPReadingGuideContract(t *testing.T) {
 	}
 }
 
+// TestRender_RefineLintReportFixesOnlyTheFlaggedLines covers the refine that
+// fixes what the zh-tw content checks flagged before a GP is stamped.
+func TestRender_RefineLintReportFixesOnlyTheFlaggedLines(t *testing.T) {
+	const report = "### check-jingjing.mjs\nL20: approach\n    │ 這個 approach 很好用。"
+	out, err := Render("refine", RefineData{Prefix: "GP", TicketID: "GP-PENDING", Draft: "lint-draft.mdx", LintReport: report})
+	if err != nil {
+		t.Fatalf("Render(refine): %v", err)
+	}
+	for _, want := range []string{
+		"Fix the GP-PENDING article in lint-draft.mdx",
+		"Check report:\n" + report,
+		"keep the rest of the article, including its frontmatter, as it is",
+		"never translate a model name",
+		"`<ShroomDogNote>`",
+		"Write final output to final.mdx",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("content-check refine prompt missing %q", want)
+		}
+	}
+	for _, other := range []string{"Flagged passages", "review.md"} {
+		if strings.Contains(out, other) {
+			t.Errorf("content-check refine prompt carries %q from another refine", other)
+		}
+	}
+}
+
 func TestRender_GPReviewEvalAndTranslateBranches(t *testing.T) {
 	review, err := Render("review", ReviewData{Prefix: "GP", TicketID: "GP-PENDING"})
 	if err != nil {

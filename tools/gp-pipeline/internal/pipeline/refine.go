@@ -37,8 +37,22 @@ func (s *State) Refine(ctx context.Context) error {
 
 // refine runs the writer with the refine prompt and leaves its output in
 // final.mdx. data.Draft names the input (draft-v1.mdx when empty); a GP
-// source-distance rewrite also sets data.RewriteReport.
+// source-distance rewrite also sets data.RewriteReport. A GP's output must
+// then pass the content checks before anything stamps it (see
+// fixContentLint).
 func (s *State) refine(ctx context.Context, data prompts.RefineData) error {
+	if err := s.runRefine(ctx, data); err != nil {
+		return err
+	}
+	if s.Prefix != "GP" {
+		return nil
+	}
+	return s.fixContentLint(ctx)
+}
+
+// runRefine is one writer call with the refine prompt; its output lands in
+// final.mdx.
+func (s *State) runRefine(ctx context.Context, data prompts.RefineData) error {
 	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	if err := s.stageEditorialContext(); err != nil {
 		return fmt.Errorf("refine: %w", err)
@@ -81,6 +95,33 @@ func (s *State) refine(ctx context.Context, data prompts.RefineData) error {
 
 	s.RefineModel = llm.DisplayName(res.ActualModel)
 	s.RefineHarness = llm.HarnessName(res.Model)
+	return nil
+}
+
+// refineFrom copies final.mdx to draftFile and runs run, which refines that
+// draft into a new final.mdx. final.mdx is removed first: refine falls back to
+// the writer's stdout only when final.mdx is absent, so a writer that returns
+// without writing cannot pass the old article off as its output. When run
+// fails without writing, the old article goes back to final.mdx, so a resumed
+// run starts from it instead of an unrefined draft.
+func (s *State) refineFrom(ctx context.Context, draftFile string, run func(context.Context) error) error {
+	finalPath := filepath.Join(s.WorkDir, "final.mdx")
+	article, err := os.ReadFile(finalPath)
+	if err != nil {
+		return fmt.Errorf("refine: read final.mdx: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(s.WorkDir, draftFile), article, 0o644); err != nil {
+		return fmt.Errorf("refine: stage %s: %w", draftFile, err)
+	}
+	if err := os.Remove(finalPath); err != nil {
+		return fmt.Errorf("refine: clear final.mdx before refining %s: %w", draftFile, err)
+	}
+	if err := run(ctx); err != nil {
+		if _, statErr := os.Stat(finalPath); os.IsNotExist(statErr) {
+			_ = os.WriteFile(finalPath, article, 0o644)
+		}
+		return err
+	}
 	return nil
 }
 

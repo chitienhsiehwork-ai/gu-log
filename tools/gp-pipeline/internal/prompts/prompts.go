@@ -107,6 +107,9 @@ type RefineData struct {
 	// lists only the flagged passages, never a threshold, metric or rule
 	// (openspec source-distance-stamp〈改寫 prompt 不含門檻〉).
 	RewriteReport string
+	// LintReport switches a refine into fixing what the repo's zh-tw content
+	// checks (晶晶體, AI tells, pronouns) flagged; it carries their output.
+	LintReport string
 }
 
 // DraftFile is the refine input file name.

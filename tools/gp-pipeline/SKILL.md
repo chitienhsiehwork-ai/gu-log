@@ -18,7 +18,7 @@ wrapper 會在需要時把 Go CLI 編譯到忽略版控的 `bin/`。repo 不保�
 
 ## 預設用法
 
-> **GP 是 ShroomDog 精選導讀，不是翻譯。** 內容契約以 [`editorial-charter` spec](../../openspec/specs/editorial-charter/spec.md) 為準；user 要 GP 時怎麼做，照 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉。GP 跟 MP 走同一條 `write → review → refine`，prompt 換成導讀契約；寫手輸出含 `ShroomDogNote` 就讓該步驟失敗（exit 14），`ShroomDogNote` 只能由 ShroomDog 手加。refine 之後 GP 多兩步：
+> **GP 是 ShroomDog 精選導讀，不是翻譯。** 內容契約以 [`editorial-charter` spec](../../openspec/specs/editorial-charter/spec.md) 為準；user 要 GP 時怎麼做，照 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉。GP 跟 MP 走同一條 `write → review → refine`，prompt 換成導讀契約；寫手輸出含 `ShroomDogNote` 就讓該步驟失敗（exit 14），`ShroomDogNote` 只能由 ShroomDog 手加。GP 的 refine（含來源距離的改寫）產出後，要先過 pre-commit 會跑的繁中內容檢查（晶晶體、AI 腔、代名詞）：沒過就把檢查結果交回 refine 修，修到上限還沒過就 exit 14（被抓的若是專有名詞，要先跟 ShroomDog 定好可接受英文的邊界，不要翻掉）；配對前會再驗一次，所以沒過檢查的正文不會被配對或蓋章（例如從 source-distance 恢復的舊草稿），不用等蓋完章才被 pre-commit 擋下重配。refine 之後 GP 多兩步：
 >
 > - `post-fixer`：kaomoji、glossary 連結與延伸閱讀直接改工作目錄的 `final.mdx`，章才涵蓋得到這些改動。
 > - `source-distance`：pin 住的 Claude aligner 配對導讀句與原文句，由程式計分；過了才把章（frontmatter 的 `sourceDistance`）寫進 `final.mdx`。沒過就只把標出的段落交回 refine 改寫、再跑一次 post-fixer；零配對或改寫到上限還沒過就 exit 19：不部署、不動 counter，每輪證據留在工作目錄。
