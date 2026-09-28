@@ -253,9 +253,11 @@ export function validateArtifactContracts({ sitemaps, rss, searchIndexes }) {
 
 // ─── Taken-down posts (openspec: post-takedown) ─────────────────────
 // Ground truth comes from the MDX frontmatter (status: taken-down), not from
-// the build: a tombstone URL must not appear in sitemap / RSS / search / JSON
-// feed or in listing and onward navigation; its own HTML, JSON and Markdown
-// must carry only tombstone content.
+// the build. Sitemap / RSS / search indexes / JSON feed are judged by entry:
+// a taken-down post must not have an entry of its own, while a public post's
+// text that links to a tombstone is left alone. Listing pages and onward
+// navigation must not link to a tombstone either. The tombstone's own HTML,
+// JSON and Markdown must carry only tombstone content.
 const LISTING_PAGE_PATTERN =
   /^(?:en\/)?(?:index\.html|(?:gu-log-picks|mogu-picks|shroomdog-originals|level-up|tags|glossary|reading-tracker)\/.*index\.html)$/;
 const ONWARD_ZONE_START = 'class="post-onward-zone"';
@@ -264,6 +266,20 @@ const ONWARD_ZONE_END = '<footer class="post-footer"';
 /** Listing pages (home, series, tags, glossary, reading tracker) by dist-relative path. */
 export function isListingPage(distRelativePath) {
   return LISTING_PAGE_PATTERN.test(distRelativePath.split(path.sep).join('/'));
+}
+
+const RSS_ITEM_RE = /<item\b[^>]*>([\s\S]*?)<\/item>/gi;
+const RSS_ITEM_TEXT_RE = /<(description|content:encoded)\b[^>]*>[\s\S]*?<\/\1>/gi;
+
+/** Site URLs that identify each RSS item: its own <link> and <guid>, never its text. */
+export function rssItemUrls(content) {
+  const urls = [];
+  RSS_ITEM_RE.lastIndex = 0;
+  let item;
+  while ((item = RSS_ITEM_RE.exec(content)) !== null) {
+    urls.push(...scanXmlLike(item[1].replace(RSS_ITEM_TEXT_RE, ''), [LINK_RE, GUID_RE]));
+  }
+  return urls;
 }
 
 /** The onward navigation (series / related / prev-next) slice of a post page. */
@@ -305,35 +321,35 @@ export function validateTakedownOutputs({
     if (post) errors.push(`${surface}: lists taken-down post ${describe(post)}`);
   };
   const postPathOf = (lang, slug) => (lang === 'en' ? `/en/posts/${slug}` : `/posts/${slug}`);
+  // One JSON entry (search index item / feed article) is identified by its
+  // slug, url and id — never by its summary or body text.
+  const flagJsonEntry = (surface, entry) => {
+    if (typeof entry?.slug === 'string') flagUrl(surface, postPathOf(entry.lang, entry.slug));
+    for (const field of ['url', 'id']) {
+      if (typeof entry?.[field] === 'string') flagUrl(surface, entry[field]);
+    }
+  };
+  const jsonEntries = (surface, content, pick) => {
+    try {
+      const entries = pick(JSON.parse(content));
+      return Array.isArray(entries) ? entries : [];
+    } catch {
+      errors.push(`${surface}: invalid JSON`);
+      return [];
+    }
+  };
 
   for (const { name, content } of sitemaps) {
     for (const url of scanXmlLike(content, [LOC_RE])) flagUrl(name, url);
   }
-  for (const url of scanXmlLike(rss.content, [LINK_RE, GUID_RE])) flagUrl('rss.xml', url);
+  for (const url of rssItemUrls(rss.content)) flagUrl('rss.xml', url);
   for (const { name, content } of searchIndexes) {
-    let items;
-    try {
-      items = JSON.parse(content);
-    } catch {
-      errors.push(`${name}: invalid JSON`);
-      continue;
-    }
-    for (const item of Array.isArray(items) ? items : []) {
-      if (typeof item?.slug === 'string') flagUrl(name, postPathOf(item.lang, item.slug));
-    }
+    for (const item of jsonEntries(name, content, (items) => items)) flagJsonEntry(name, item);
   }
   if (feed) {
-    let articles = [];
-    try {
-      articles = JSON.parse(feed.content).articles ?? [];
-    } catch {
-      errors.push('api/feed.json: invalid JSON');
-    }
-    for (const article of articles) {
-      if (typeof article?.url === 'string') flagUrl('api/feed.json', article.url);
-      if (typeof article?.slug === 'string') {
-        flagUrl('api/feed.json', postPathOf(article.lang, article.slug));
-      }
+    const surface = 'api/feed.json';
+    for (const article of jsonEntries(surface, feed.content, (data) => data?.articles)) {
+      flagJsonEntry(surface, article);
     }
   }
   for (const { name, content } of navigationPages) {
@@ -406,7 +422,7 @@ export function validateTakedownOutputs({
     }
   }
 
-  return errors;
+  return [...new Set(errors)];
 }
 
 function readIfExists(file) {

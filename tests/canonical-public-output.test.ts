@@ -251,6 +251,44 @@ describe('taken-down post leak checks', () => {
     }
   });
 
+  it('keeps public posts whose text links to a tombstone: only entries count', () => {
+    const input = clean();
+    const tombstoneUrl = `https://gu-log.vercel.app${post.path}/`;
+    input.searchIndexes[0].content = JSON.stringify([
+      {
+        slug: 'live',
+        lang: 'zh-tw',
+        summary: `延伸閱讀 ${tombstoneUrl}`,
+        body: `之前寫過 ${post.path} 這篇`,
+      },
+    ]);
+    input.rss.content = [
+      '<rss><channel><link>https://gu-log.vercel.app/</link><item>',
+      '<link>https://gu-log.vercel.app/posts/live</link>',
+      '<guid isPermaLink="true">https://gu-log.vercel.app/posts/live</guid>',
+      `<description>延伸閱讀 &lt;a href="${post.path}"&gt;舊文&lt;/a&gt;</description>`,
+      `<content:encoded><![CDATA[<p><link>${tombstoneUrl}</link></p>]]></content:encoded>`,
+      '</item></channel></rss>',
+    ].join('');
+    input.feed = {
+      content: JSON.stringify({
+        articles: [{ slug: 'live', lang: 'zh-tw', url: '/posts/live', summary: tombstoneUrl }],
+      }),
+    };
+    expect(validateTakedownOutputs(input)).toEqual([]);
+  });
+
+  it('judges RSS items by their own link and guid', () => {
+    const input = clean();
+    input.rss.content = [
+      '<rss><channel><item><link>https://gu-log.vercel.app/posts/live</link>',
+      `<guid isPermaLink="true">https://gu-log.vercel.app${post.path}</guid></item></channel></rss>`,
+    ].join('');
+    expect(validateTakedownOutputs(input)).toEqual([
+      `rss.xml: lists taken-down post GP-273 ${post.path}`,
+    ]);
+  });
+
   it('rejects a tombstone that still carries article content or misses noindex', () => {
     const input = clean();
     input.postArtifacts.set(post.path, {
