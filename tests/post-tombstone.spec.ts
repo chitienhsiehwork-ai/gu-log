@@ -241,6 +241,47 @@ test.describe('Tombstone resilience', () => {
       expect(contrast(stone.ink, stone.face)).toBeGreaterThanOrEqual(4.5);
     });
   }
+
+  // 390px is the audited phone width; 360px is where an unbalanced CJK line
+  // first strands 「的吧！」 on its own, so it keeps this check honest.
+  test('GIVEN a phone viewport WHEN a bubble line wraps THEN no line is left with three characters or fewer', async ({
+    page,
+  }) => {
+    for (const width of [390, 360]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const expected of [GP_ZH, GP_EN, MP_ZH, MP_EN]) {
+        await page.goto(expected.url);
+        await page.evaluate(() => document.fonts.ready);
+        const lastLines = await page.evaluate(() =>
+          [...document.querySelectorAll('.tombstone-bubble p')].flatMap((paragraph) => {
+            const rows = new Map<number, string>();
+            const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT);
+            for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+              const text = node.textContent ?? '';
+              for (let index = 0; index < text.length; index += 1) {
+                if (/[\s\u2060\u00a0]/.test(text[index])) continue;
+                const range = document.createRange();
+                range.setStart(node, index);
+                range.setEnd(node, index + 1);
+                const rect = [...range.getClientRects()].find((box) => box.width > 0);
+                if (!rect) continue;
+                const top = Math.round(rect.top / 4);
+                rows.set(top, (rows.get(top) ?? '') + text[index]);
+              }
+            }
+            const lines = [...rows.values()];
+            return lines.length > 1 ? [lines[lines.length - 1]] : [];
+          })
+        );
+        for (const line of lastLines) {
+          expect(
+            [...line].length,
+            `${width}px ${expected.url}: last line "${line}"`
+          ).toBeGreaterThan(3);
+        }
+      }
+    }
+  });
 });
 
 test.describe('Paused Gu-log Picks listing', () => {

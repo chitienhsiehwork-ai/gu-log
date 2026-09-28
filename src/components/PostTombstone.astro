@@ -267,9 +267,13 @@ const byline = getSourceByline({ author, sourceUrl });
     color: var(--color-mogu-orange);
   }
 
+  /* 中文只在標點與空白處換行，各行再平衡長度，窄螢幕不會剩一兩個字掛在最後一行；
+     真的放不下時 overflow-wrap 照樣斷，不會撐破版面。 */
   .tombstone-bubble p {
     margin: 0;
-    text-wrap: pretty;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
   }
 
   .tombstone-card {
