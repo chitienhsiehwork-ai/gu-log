@@ -190,6 +190,59 @@ test.describe('Taken-down post tombstone', () => {
   });
 });
 
+function luminance(rgb: string) {
+  const channels = (rgb.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((value) => {
+    const channel = Number(value) / 255;
+    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrast(foreground: string, background: string) {
+  const [lighter, darker] = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+test.describe('Tombstone resilience', () => {
+  for (const theme of ['dark', 'light'] as const) {
+    test(`GIVEN the stone art fails to load WHEN the ${theme} theme renders THEN the inscription still sits on stone`, async ({
+      page,
+    }) => {
+      await page.addInitScript((selected) => localStorage.setItem('theme', selected), theme);
+      await page.route(/\/tombstone[^/?]*\.webp/, (route) => route.abort());
+      await page.goto(GP_ZH.url);
+
+      const stone = await page.evaluate(() => {
+        const box = document.querySelector('.tombstone-stone');
+        const art = box?.querySelector('img');
+        const inscription = document.querySelector('.tombstone-inscription');
+        if (!box || !art || !inscription) throw new Error('tombstone stone missing');
+        const rect = box.getBoundingClientRect();
+        const text = inscription.getBoundingClientRect();
+        return {
+          broken: art.complete && art.naturalWidth === 0,
+          artHeight: art.getBoundingClientRect().height,
+          keepsShape: rect.height > rect.width,
+          inscriptionOnStone:
+            text.top >= rect.top &&
+            text.bottom <= rect.bottom &&
+            text.left >= rect.left &&
+            text.right <= rect.right,
+          face: getComputedStyle(box, '::before').backgroundColor,
+          ink: getComputedStyle(inscription).color,
+        };
+      });
+      expect(stone).toMatchObject({
+        broken: true,
+        artHeight: 0,
+        keepsShape: true,
+        inscriptionOnStone: true,
+      });
+      expect(contrast(stone.ink, stone.face)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});
+
 test.describe('Paused Gu-log Picks listing', () => {
   test('GIVEN GP is paused WHEN the listing opens THEN it shows the rebuild notice and no post', async ({
     page,

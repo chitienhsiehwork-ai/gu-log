@@ -50,14 +50,11 @@ const byline = getSourceByline({ author, sourceUrl });
   </div>
 
   <div class="tombstone-scene">
-    <div class="tombstone-stone">
-      <img
-        src={tombstoneImage.src}
-        alt=""
-        width="225"
-        height={Math.round((225 * tombstoneImage.height) / tombstoneImage.width)}
-        decoding="async"
-      />
+    <div
+      class="tombstone-stone"
+      style={`aspect-ratio: ${tombstoneImage.width} / ${tombstoneImage.height}`}
+    >
+      <img src={tombstoneImage.src} alt="" decoding="async" />
       <p class="tombstone-inscription">
         <span class="tombstone-owner">{stoneOwner}</span>
         <span class="tombstone-epitaph">{stoneEpitaph}</span>
@@ -66,14 +63,7 @@ const byline = getSourceByline({ author, sourceUrl });
         <span class="tombstone-rest">{protectKaomoji(stoneRest)}</span>
       </p>
     </div>
-    <img
-      class="tombstone-mogu"
-      src={moguCryingImage.src}
-      alt=""
-      width="150"
-      height={Math.round((150 * moguCryingImage.height) / moguCryingImage.width)}
-      decoding="async"
-    />
+    <img class="tombstone-mogu" src={moguCryingImage.src} alt="" decoding="async" />
   </div>
 
   <div class="tombstone-bubble">
@@ -166,11 +156,26 @@ const byline = getSourceByline({ author, sourceUrl });
     );
   }
 
+  /* 石碑的大小由 aspect-ratio 決定，不靠圖片撐開；兩張圖都是裝飾、沒有 width／height
+     屬性，載入失敗時什麼都不畫（不會出現破圖框）。 */
   .tombstone-stone {
     position: absolute;
     right: 0;
     bottom: 0;
     width: 225px;
+    isolation: isolate;
+  }
+
+  /* 石碑圖載入前或載入失敗時的石頭色碑身：形狀貼著石碑圖的不透明範圍、再往內縮一點，
+     圖載入後會被完全蓋住（實測 1x–3x 截圖逐像素相同）；碑文最寬的日期行也落在裡面，
+     所以深淺主題的碑文都在同一個石頭色上。 */
+  .tombstone-stone::before {
+    content: '';
+    position: absolute;
+    inset: 3.5% 13.5% 26% 14.5%;
+    z-index: -1;
+    border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+    background: var(--color-tombstone-stone);
   }
 
   .tombstone-stone img {

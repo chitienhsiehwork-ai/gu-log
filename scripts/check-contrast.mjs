@@ -102,12 +102,13 @@ const MANIFEST = [
     name: 'light-mogu-prefix-on-surface',
   },
   // Tombstone inscription (openspec: post-takedown): the stone art is beige in
-  // both themes; #e4c6a2 is the average of its inscription face in
-  // src/assets/tombstone/tombstone.webp. Resolve the ink token per theme so a
-  // theme-specific override cannot slip past this gate.
+  // both themes; --color-tombstone-stone is the average of its inscription face
+  // in src/assets/tombstone/tombstone.webp and also paints the stone when the
+  // art fails to load. Resolve both tokens per theme so a theme-specific
+  // override cannot slip past this gate.
   {
     fgVar: '--color-tombstone-ink',
-    bg: '#e4c6a2',
+    bgVar: '--color-tombstone-stone',
     theme: 'dark',
     context: 'dark tombstone ink on the stone face',
     file: 'src/components/PostTombstone.astro',
@@ -115,7 +116,7 @@ const MANIFEST = [
   },
   {
     fgVar: '--color-tombstone-ink',
-    bg: '#e4c6a2',
+    bgVar: '--color-tombstone-stone',
     theme: 'light',
     context: 'light tombstone ink on the stone face',
     file: 'src/components/PostTombstone.astro',
