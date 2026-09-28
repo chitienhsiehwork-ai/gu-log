@@ -1,9 +1,4 @@
-# claude-prose-writing-runtime Specification
-
-## Purpose
-規範 Mogu 撰寫與改寫 gu-log 文章時一律使用 Claude 模型，Grok、Codex 不再用於產生或改寫文章內容，並定義呼叫 Claude 模型時的模型來源、最小權限與輸出擷取，讓其他模型不能回流到文章寫作。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Mogu 撰寫與改寫文章 SHALL 一律使用 Claude 模型
 
@@ -54,6 +49,16 @@ gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。�
 - **WHEN** Tribunal 評審、eval 或 review 執行
 - **THEN** 它們 SHALL 維持各自既有的模型路由
 - **AND** 本 requirement SHALL NOT 要求這些評審改用 Claude 模型
+
+## REMOVED Requirements
+
+### Requirement: 呼叫 Claude 模型撰寫文章 SHALL 以最小權限執行並擷取乾淨輸出
+
+**Reason**: 這條裡「只回傳 JSON artifact 的寫作步驟不給工具、以 structured output 取得 JSON」的條文與情境，對象是 GP translator、corrector、commentary；三者隨 GP 整篇翻譯流程退役後，Claude provider 的 JSON schema 與 structured output 路徑也沒有呼叫端而一併刪除。OpenSpec 不允許 MODIFIED 丟掉既有情境，所以其餘仍然有效的條文改以新名稱重新寫入。
+
+**Migration**: 最小權限、輸出擷取與錯誤處理的其餘條文與情境原樣移到「Claude 寫作呼叫 SHALL 以最小權限執行並擷取乾淨輸出」。日後若要新增只回傳 JSON 的 Claude 步驟，該 change 要自己定義 schema 驗證與工具權限，structured output 的實作可從 git 歷史取回。
+
+## ADDED Requirements
 
 ### Requirement: Claude 寫作呼叫 SHALL 以最小權限執行並擷取乾淨輸出
 

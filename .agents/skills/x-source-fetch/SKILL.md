@@ -1,6 +1,6 @@
 ---
 name: x-source-fetch
-description: Fetch the full focal body of an X/Twitter post or X Article for GP translation or MP source-grounded writing before gp-pipeline runs; fail loudly when that focal source is incomplete.
+description: Fetch the full focal body of an X/Twitter post or X Article for MP source-grounded writing before gp-pipeline runs; fail loudly when that focal source is incomplete.
 ---
 
 # x-source-fetch

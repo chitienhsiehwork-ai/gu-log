@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // counterReport is the JSON shape emitted by `gp-pipeline counter --json`.
@@ -31,14 +32,16 @@ Go-native atomic bump backed by syscall.Flock on /tmp/gu-log-counter.lock.
 
 Two subcommands:
 
-  gp-pipeline counter next --prefix GP
+  gp-pipeline counter next --prefix <GP|MP|SD|Lv>
       Print the value that WILL be allocated next, without mutating the
       file. Useful for dry runs and dashboards.
 
-  gp-pipeline counter bump --prefix GP
+  gp-pipeline counter bump --prefix <MP|SD|Lv>
       Atomically advance the counter by 1 and print the value that WAS
       allocated (the ticketId the caller should use for their new post).
-      This is the write-side primitive that the deploy step uses.`,
+      This is the write-side primitive that the deploy step uses.
+      GP 暫停中: bump rejects GP, the default prefix, while GP is paused
+      (openspec: editorial-charter).`,
 	}
 
 	var prefix string
@@ -60,7 +63,7 @@ Two subcommands:
 			return runCounterBump(state, bumpPrefix)
 		},
 	}
-	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "GP", "ticket prefix (MP / SD / Lv); GP is paused and rejected")
 
 	root.AddCommand(nextCmd, bumpCmd)
 	return root
@@ -89,6 +92,13 @@ func runCounterNext(state *rootState, prefix string) error {
 }
 
 func runCounterBump(state *rootState, prefix string) error {
+	// No GP number is allocated while GP is paused; checked before the
+	// counter lock (openspec: gp-pipeline-publish-integrity).
+	if prefix == "GP" {
+		err := fmt.Errorf("counter bump: %w", pipeline.ErrGPPaused)
+		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
+		return err
+	}
 	c := counter.New(state.cfg.CounterFile, "")
 	allocated, err := c.Bump(prefix)
 	if err != nil {

@@ -1,29 +1,31 @@
 ---
 name: gp-pipeline-sop
-description: Route gu-log SP draft, review, refine, translation, and publish work without re-pasting long prompts.
+description: Route gu-log MP, SD, and Lv draft, review, refine, translation, and publish work without re-pasting long prompts; GP is paused.
 ---
 
 # GP Pipeline SOP
 
 This SOP is an index and workflow contract. It does not replace the writing guide, contribution rules, pipeline CLI docs, or frontmatter schema.
 
+GP is paused (GP 暫停中; see `openspec/specs/editorial-charter/spec.md`): gp-pipeline rejects GP writing, publishing, and ticket allocation, so every mode below applies to MP, SD, and Lv.
+
 Read `tools/gp-pipeline/SKILL.md` before running commands. CLI flags and behavior are authoritative in the current binary (`gp-pipeline <subcommand> --help`) and Go implementation; prose docs are derived views.
 
 ## Mode Table
 
-| Mode           | Fixed inputs                                                                             | Fixed artifacts                                                         | Must read                                                                                                                                                                  |
-| -------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `draft`        | Full source capture, `ticketId` or `GP-PENDING`, source URL, optional angle/source label | `<work-dir>/source-tweet.md`, `<work-dir>/draft-v1.mdx`                 | `tools/gp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/write.tmpl`        |
-| `review`       | `<work-dir>/draft-v1.mdx`, source capture or source URL context                          | `<work-dir>/review.md`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/review.tmpl`, `scripts/vibe-scoring-standard.md` |
-| `refine`       | `<work-dir>/draft-v1.mdx`, `<work-dir>/review.md`, source capture                        | `<work-dir>/final.mdx`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/refine.tmpl`                                     |
-| `translate-en` | Stable zh-tw final article                                                               | `src/content/posts/en-<same-post-file>.mdx`                             | `tools/gp-pipeline/SKILL.md`, `scripts/en-translation-guide.md`, `CONTRIBUTING.md`                                                                                         |
-| `ship`         | Validated `final.mdx` or an existing post, tribunal result, en counterpart when required | Published post pair; counter update only for a fresh PENDING allocation | `tools/gp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `docs/tribunal-runbook.md`                                                                                                |
+| Mode           | Fixed inputs                                                                                   | Fixed artifacts                                                         | Must read                                                                                                                                                                  |
+| -------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `draft`        | Full source capture, `ticketId` or `<PREFIX>-PENDING`, source URL, optional angle/source label | `<work-dir>/source-tweet.md`, `<work-dir>/draft-v1.mdx`                 | `tools/gp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/write.tmpl`        |
+| `review`       | `<work-dir>/draft-v1.mdx`, source capture or source URL context                                | `<work-dir>/review.md`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/review.tmpl`, `scripts/vibe-scoring-standard.md` |
+| `refine`       | `<work-dir>/draft-v1.mdx`, `<work-dir>/review.md`, source capture                              | `<work-dir>/final.mdx`                                                  | `CONTRIBUTING.md`, `GU-LOG_WRITER_PROMPT.md`, `docs/shroomdog-editorial-feedback.md`, `tools/gp-pipeline/internal/prompts/refine.tmpl`                                     |
+| `translate-en` | Stable zh-tw final article                                                                     | `src/content/posts/en-<same-post-file>.mdx`                             | `tools/gp-pipeline/SKILL.md`, `scripts/en-translation-guide.md`, `CONTRIBUTING.md`                                                                                         |
+| `ship`         | Validated `final.mdx` or an existing post, tribunal result, en counterpart when required       | Published post pair; counter update only for a fresh PENDING allocation | `tools/gp-pipeline/SKILL.md`, `CONTRIBUTING.md`, `docs/tribunal-runbook.md`                                                                                                |
 
 ## Required Invariants
 
-- **Source completeness**: do not write from a truncated, contaminated, paywalled, or preview-only capture. Route X/Twitter sources through `.agents/skills/sp-source-fetch/SKILL.md` or `gp-pipeline fetch` and honor their fail-closed result.
+- **Source completeness**: do not write from a truncated, contaminated, paywalled, or preview-only capture. Route X/Twitter sources through `.agents/skills/x-source-fetch/SKILL.md` or `gp-pipeline fetch` and honor their fail-closed result.
 - **Commentary component**: resolve legacy `MoguNote` references through `GU-LOG_WRITER_PROMPT.md`; do not invent model-specific reader-facing personas.
-- **Frontmatter correctness**: schema authority lives in `src/content.config.ts`; contribution workflow lives in `CONTRIBUTING.md`. Use `GP-PENDING` while drafting unless the ship step is intentionally allocating the final number.
+- **Frontmatter correctness**: schema authority lives in `src/content.config.ts`; contribution workflow lives in `CONTRIBUTING.md`. Use `<PREFIX>-PENDING` while drafting unless the ship step is intentionally allocating the final number.
 - **zh-tw first**: zh-tw is the canonical article. Iterate, score, and stabilize zh-tw before producing or updating the English sidecar.
 - **Validation**: run the article and build gates required by the current repo playbook or pipeline step.
 - **Provenance honesty**: when content is regenerated by a different model or harness, update `translatedBy` / pipeline provenance in the same edit according to `CONTRIBUTING.md` and the pipeline helpers.
@@ -53,7 +55,7 @@ tools/gp-pipeline/gp-pipeline deploy \
   --title "<article title>"
 ```
 
-`--active-file` and optional `--active-en-file` are filenames inside `src/content/posts/`, not work-dir paths. Omit `--active-en-file` for a zh-tw-only publish; set `--prefix` only when the default GP prefix is wrong. Do not use testing-only skip flags for a real publish.
+`--active-file` and optional `--active-en-file` are filenames inside `src/content/posts/`, not work-dir paths. Omit `--active-en-file` for a zh-tw-only publish. The series comes from the `--active-file` name; `--prefix` is optional and must match it when given. Do not use testing-only skip flags for a real publish.
 
 Fresh deploy fails before allocation when filename inputs, the staged index, or pending-post validation are invalid. After allocation starts, a build, commit, or push error can leave partial state; inspect git status, the counter, and actual post filenames before recovery, and never blindly rerun standalone `deploy`.
 

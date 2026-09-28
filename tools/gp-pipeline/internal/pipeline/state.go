@@ -12,25 +12,21 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
-	"time"
 )
 
 // Step integer encoding — kept aligned with the retired bash pipeline's step_to_int.
 const (
-	StepSetup           = 0
-	StepFetch           = 10
-	StepDedupURL        = 12
-	StepEval            = 15
-	StepDedup           = 17
-	StepSourceTranslate = 20
-	StepWrite           = StepSourceTranslate
-	StepSourceGate      = 30
-	StepReview          = StepSourceGate
-	StepEnrich          = 40
-	StepRefine          = StepEnrich
-	StepRalph           = 47
-	StepTranslate       = 48 // Go-only step, no bash equivalent (gu-log #546)
-	StepDeploy          = 50
+	StepSetup     = 0
+	StepFetch     = 10
+	StepDedupURL  = 12
+	StepEval      = 15
+	StepDedup     = 17
+	StepWrite     = 20
+	StepReview    = 30
+	StepRefine    = 40
+	StepRalph     = 47
+	StepTranslate = 48 // Go-only step, no bash equivalent (gu-log #546)
+	StepDeploy    = 50
 )
 
 // State is the mutable snapshot of an in-flight pipeline run. Each step
@@ -82,9 +78,6 @@ type State struct {
 	// BLOCK against a same-author post on a genuinely different thesis. The
 	// override is logged loudly so it never happens silently.
 	SkipDedup bool
-	// LegacyShadow preserves the retired GP editorial flow for comparison only.
-	// It is always non-deploy and cannot be resumed as a production run.
-	LegacyShadow bool
 
 	// Angle is an optional narrative directive passed to the Write and
 	// Refine prompts. When non-empty, the article is structurally pivoted
@@ -98,20 +91,12 @@ type State struct {
 
 	// ── Dependencies injected by the caller ────────────────────────────
 
-	Cfg                      *config.Config
-	Log                      *logx.Logger
-	Dispatcher               *llm.Dispatcher
-	WriterDispatcher         *llm.Dispatcher
-	JudgeDispatcher          *llm.Dispatcher
-	TranslatorDispatcher     *llm.Dispatcher
-	SourceReviewerDispatcher *llm.Dispatcher
-	CorrectorDispatcher      *llm.Dispatcher
-	CommentaryDispatcher     *llm.Dispatcher
-	VibeScorerDispatcher     *llm.Dispatcher
-	Counter                  *counter.Counter
-	GPProfile                string
-	GPProfileSHA256          string
-	CanonicalTerminology     string
+	Cfg              *config.Config
+	Log              *logx.Logger
+	Dispatcher       *llm.Dispatcher
+	WriterDispatcher *llm.Dispatcher
+	JudgeDispatcher  *llm.Dispatcher
+	Counter          *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -167,8 +152,6 @@ type State struct {
 	RefineHarness    string
 	TranslateModel   string
 	TranslateHarness string
-	RoleRuns         map[string]RoleRun
-	GateManifestPath string
 
 	// Verdicts / outcomes.
 	CodexPrimaryVerdict string
@@ -178,16 +161,6 @@ type State struct {
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int
-}
-
-type RoleRun struct {
-	Role           string    `json:"role" yaml:"role"`
-	Provider       string    `json:"provider" yaml:"provider"`
-	Model          string    `json:"model" yaml:"model"`
-	Harness        string    `json:"harness" yaml:"harness"`
-	ArtifactSHA256 string    `json:"artifactSha256" yaml:"artifactSha256"`
-	Verdict        string    `json:"verdict,omitempty" yaml:"verdict,omitempty"`
-	CompletedAt    time.Time `json:"completedAt" yaml:"completedAt"`
 }
 
 func (s *State) writerDispatcher() *llm.Dispatcher {
@@ -206,15 +179,16 @@ func (s *State) judgeDispatcher() *llm.Dispatcher {
 
 // NewState constructs a State with sensible defaults. Fields left empty
 // by the caller are filled in: Timings is always non-nil; Prefix defaults
-// to "GP"; RalphBar defaults to 8; TranslatedDate defaults to empty and
-// should be populated before the Write step runs.
+// to "GP", so a caller that forgets to set the series fails loudly on the GP
+// pause instead of silently running another series; RalphBar defaults to 8;
+// TranslatedDate defaults to empty and should be populated before the Write
+// step runs.
 func NewState() *State {
 	return &State{
 		Prefix:         "GP",
 		RalphBar:       8,
 		PromptTicketID: "GP-PENDING",
 		Timings:        map[string]int{},
-		RoleRuns:       map[string]RoleRun{},
 	}
 }
 

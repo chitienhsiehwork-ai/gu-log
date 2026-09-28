@@ -49,27 +49,19 @@ func TestProvidersForRuntimeResolvesVMRoles(t *testing.T) {
 	installRuntimeFakes(t, true)
 	repoRoot := repoRootForRoutingTest(t)
 
-	fileTools := []string{"Read", "Grep", "Glob", "Edit", "Write"}
-	for role, wantTools := range map[RuntimeRole][]string{
-		RuntimeWriter:     fileTools,
-		RuntimeTranslator: {},
-		RuntimeCorrector:  {},
-		RuntimeCommentary: {},
-	} {
-		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
-		if err != nil || !active || len(providers) != 1 {
-			t.Fatalf("%s route = (%v, %v, %v), want one active Claude provider", role, providers, active, err)
-		}
-		claude, ok := providers[0].(*ClaudeProvider)
-		if !ok {
-			t.Fatalf("%s provider = %T, want *ClaudeProvider", role, providers[0])
-		}
-		if claude.ModelFlag != ClaudeOpusPinned || !claude.Contained {
-			t.Fatalf("%s provider = %+v, want the contained Claude model pin %q", role, claude, ClaudeOpusPinned)
-		}
-		if !reflect.DeepEqual(claude.Tools, wantTools) {
-			t.Fatalf("%s tools = %#v, want %#v", role, claude.Tools, wantTools)
-		}
+	providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, RuntimeWriter)
+	if err != nil || !active || len(providers) != 1 {
+		t.Fatalf("writer route = (%v, %v, %v), want one active Claude provider", providers, active, err)
+	}
+	claude, ok := providers[0].(*ClaudeProvider)
+	if !ok {
+		t.Fatalf("writer provider = %T, want *ClaudeProvider", providers[0])
+	}
+	if claude.ModelFlag != ClaudeOpusPinned || !claude.Contained {
+		t.Fatalf("writer provider = %+v, want the contained Claude model pin %q", claude, ClaudeOpusPinned)
+	}
+	if wantTools := []string{"Read", "Grep", "Glob", "Edit", "Write"}; !reflect.DeepEqual(claude.Tools, wantTools) {
+		t.Fatalf("writer tools = %#v, want %#v", claude.Tools, wantTools)
 	}
 
 	reviewers, active, err := ProvidersForRuntime(
@@ -88,14 +80,15 @@ func TestProvidersForRuntimeResolvesVMRoles(t *testing.T) {
 	if provider.sandboxMode() != "read-only" {
 		t.Fatalf("reviewer sandbox = %q, want read-only", provider.sandboxMode())
 	}
+}
 
-	for role, want := range map[RuntimeRole]string{
-		RuntimeSourceReviewer: "codex-gpt-5.6-sol",
-		RuntimeVibeScorer:     "codex-gpt-5.5",
-	} {
-		providers, active, err := ProvidersForRuntime(context.Background(), repoRoot, role)
-		if err != nil || !active || len(providers) != 1 || providers[0].Name() != want {
-			t.Errorf("%s route = (%v, %v, %v), want %s", role, providers, active, err, want)
+// TestClaudeRuntimeToolsFailsClosedForNonWriterRoles keeps the least-privilege
+// default: only the writer gets file tools, so any other role routed to Claude
+// runs with no tools at all.
+func TestClaudeRuntimeToolsFailsClosedForNonWriterRoles(t *testing.T) {
+	for _, role := range []RuntimeRole{RuntimeReviewer, RuntimeRole("unknown")} {
+		if got := claudeRuntimeTools(role); len(got) != 0 {
+			t.Errorf("claudeRuntimeTools(%q) = %#v, want no tools", role, got)
 		}
 	}
 }

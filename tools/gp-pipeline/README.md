@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log GP 翻譯／MP source-grounded writing 流程的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
+gu-log MP／SD／Lv source-grounded writing 流程的 Go CLI（GP 暫停中）。唯一受支援的執行入口是自編譯 wrapper：
 
 ```bash
 tools/gp-pipeline/gp-pipeline --help
@@ -10,12 +10,14 @@ tools/gp-pipeline/gp-pipeline --help
 
 | Series | 品牌 | Ticket | Filename slug |
 |---|---|---|---|
-| GP | Gu-log Picks（忠實翻譯） | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
+| GP | Gu-log Picks（暫停中，導讀格式另案） | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
 | MP | Mogu Picks（Mogu 依來源寫作） | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
 | SD | 原創文章 | `SD-N`／`SD-PENDING` | `sd-`／`sd-pending-` |
-| Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-` |
+| Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-`（既有文章沿用 `levelup-`） |
 
 非 canonical prefix、舊檔名 slug、舊 tool path 與 shell wrapper 都已退役。CLI 會針對非 canonical prefix 回傳可採取行動的錯誤，不提供 compatibility alias。
+
+GP 整篇翻譯流程已退役、GP 暫停中；哪些入口擋 GP、怎麼擋，以 [`SKILL.md`](SKILL.md) 為準。
 
 ## Why Go
 
@@ -39,14 +41,11 @@ effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.
 ## Quick start
 
 ```bash
-# 完整 GP 流程
-tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP
-
-# Mogu Picks
+# Mogu Picks；沒帶 --file 時一定要明確指定系列（--prefix 預設是暫停中的 GP）
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP
 
 # Rehearsal：停在 deploy 前
-tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP --dry-run
+tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP --dry-run
 
 # 僅預審一支 YouTube 影片；不進入寫作或發布
 tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
@@ -55,10 +54,10 @@ tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
 tools/gp-pipeline/gp-pipeline doctor
 
 # Counter read-only
-tools/gp-pipeline/gp-pipeline counter next --prefix GP
+tools/gp-pipeline/gp-pipeline counter next --prefix MP
 ```
 
-MP 沿用現有非 GP 的 `write → review → refine → Tribunal rewrite` 路徑。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 不取得 GP fidelity 承諾；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
+MP 走 `write → review → refine → Tribunal rewrite` 路徑；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 不取得 GP fidelity 承諾；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 
@@ -94,7 +93,7 @@ internal/runner/            external command boundary
 - `candidate` 不會呼叫 LLM、建立 MDX、配置 ticket、修改 Git／counter，或執行
   Eval、Write、Review、Refine、Credits、Ralph、Translate、Deploy。
 - `writeEligible: true` 只表示來源完整性與 video-ID dedup 允許人工考慮；
-  核准後仍須另跑 canonical `gp-pipeline run <youtube-url>`。
+  核准後仍須另跑 canonical `gp-pipeline run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（GP 暫停中）。
 - YouTube 擷取需要 `yt-dlp`。`candidate` 與正式 `run` 缺少它時都會封閉失敗，
   不會退回 generic HTML；`doctor` 會把這項能力列為 optional，不影響非 YouTube 流程。
 

@@ -14,13 +14,8 @@ import (
 type RuntimeRole string
 
 const (
-	RuntimeReviewer       RuntimeRole = "reviewer"
-	RuntimeWriter         RuntimeRole = "writer"
-	RuntimeTranslator     RuntimeRole = "translator"
-	RuntimeSourceReviewer RuntimeRole = "sourceReviewer"
-	RuntimeCorrector      RuntimeRole = "corrector"
-	RuntimeCommentary     RuntimeRole = "commentary"
-	RuntimeVibeScorer     RuntimeRole = "vibeScorer"
+	RuntimeReviewer RuntimeRole = "reviewer"
+	RuntimeWriter   RuntimeRole = "writer"
 )
 
 type ResolvedRuntime struct {
@@ -74,8 +69,8 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 // claudeRuntimeTools is the least-privilege tool set of a Claude route. The
 // router only routes article-writing steps to Claude (the single list lives in
 // scripts/tribunal-model-router.sh). The writer drafts files inside its own
-// work dir; every other step returns structured output and gets no tools at
-// all, so an injected source cannot touch the work dir's evidence files.
+// work dir; any other role that reaches Claude fails closed with no tools at
+// all, so an injected source cannot touch the work dir's files.
 func claudeRuntimeTools(role RuntimeRole) []string {
 	if role == RuntimeWriter {
 		return []string{"Read", "Grep", "Glob", "Edit", "Write"}

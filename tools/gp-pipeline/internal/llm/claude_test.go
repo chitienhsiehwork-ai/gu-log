@@ -207,44 +207,31 @@ func TestClaudeContainedWriterUsesLeastPrivilege(t *testing.T) {
 	}
 }
 
-// TestClaudeContainedJSONRoleReturnsStructuredOutput covers GP JSON roles: no
-// tools at all, the role schema on the CLI, and structured_output as the
-// returned artifact instead of free text.
-func TestClaudeContainedJSONRoleReturnsStructuredOutput(t *testing.T) {
-	argsPath, _ := writeFakeClaude(t, `{"result":"prose that must be ignored","structured_output":{"version":"v1","candidates":[]},"modelUsage":{"`+ClaudeOpusPinned+`":{"outputTokens":3}}}`, 0)
-	schema := `{"type":"object"}`
+// TestClaudeContainedToollessRoleGetsNoTools covers the fail-closed default for
+// a contained role without tools: the session gets no tools, pre-approves
+// nothing, and loads no host settings or MCP servers.
+func TestClaudeContainedToollessRoleGetsNoTools(t *testing.T) {
+	argsPath, _ := writeFakeClaude(t, `{"result":"ok","modelUsage":{"`+ClaudeOpusPinned+`":{"outputTokens":3}}}`, 0)
 	p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
-	out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: schema})
+	out, err := p.Run(context.Background(), "no tools", RunOptions{WorkDir: t.TempDir()})
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if out != `{"version":"v1","candidates":[]}` {
-		t.Fatalf("structured output = %q", out)
+	if out != "ok" {
+		t.Fatalf("output = %q, want the result text", out)
 	}
 	args := readLines(t, argsPath)
-	if got, ok := flagValue(args, "--json-schema"); !ok || got != schema {
-		t.Fatalf("--json-schema = %q (present=%v), want %q", got, ok, schema)
-	}
 	if got, ok := flagValue(args, "--tools"); !ok || got != "" {
 		t.Fatalf("--tools = %q (present=%v), want empty (no tools)", got, ok)
 	}
 	if _, ok := flagValue(args, "--allowed-tools"); ok {
-		t.Fatalf("JSON role must not pre-approve tools: %q", args)
+		t.Fatalf("tool-less role must not pre-approve tools: %q", args)
 	}
 	if got, ok := flagValue(args, "--setting-sources"); !ok || got != "" || !containsArg(args, "--strict-mcp-config") {
-		t.Fatalf("JSON role args %q load host settings or MCP servers", args)
+		t.Fatalf("tool-less role args %q load host settings or MCP servers", args)
 	}
 	if got := p.ActualModel(); got != ModelID(ClaudeOpusPinned) {
 		t.Fatalf("ActualModel = %q, want %q", got, ClaudeOpusPinned)
-	}
-}
-
-func TestClaudeStructuredOutputMissingFailsClosed(t *testing.T) {
-	writeFakeClaude(t, `{"result":"{\"version\":\"v1\"}","modelUsage":{"`+ClaudeOpusPinned+`":{"outputTokens":3}}}`, 0)
-	p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
-	out, err := p.Run(context.Background(), "json only", RunOptions{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`})
-	if err == nil || !strings.Contains(err.Error(), "structured_output") {
-		t.Fatalf("Run = (%q, %v), want missing structured_output error", out, err)
 	}
 }
 
@@ -286,18 +273,13 @@ func TestClaudeRunRejectsErrorResultsCarryingOnlyErrors(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			writeFakeClaude(t, tc.stdout, tc.rc)
-			for _, opts := range []RunOptions{
-				{WorkDir: t.TempDir()},
-				{WorkDir: t.TempDir(), JSONSchema: `{"type":"object"}`},
-			} {
-				p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
-				out, err := p.Run(context.Background(), "hi", opts)
-				if err == nil || out != "" {
-					t.Fatalf("Run(schema=%t) = (%q, %v), want an error and no output", opts.JSONSchema != "", out, err)
-				}
-				if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
-					t.Fatalf("Run(schema=%t) error = %v, want the errors[] detail", opts.JSONSchema != "", err)
-				}
+			p := &ClaudeProvider{ModelFlag: ClaudeOpusPinned, Contained: true, Tools: []string{}}
+			out, err := p.Run(context.Background(), "hi", RunOptions{WorkDir: t.TempDir()})
+			if err == nil || out != "" {
+				t.Fatalf("Run = (%q, %v), want an error and no output", out, err)
+			}
+			if !strings.Contains(err.Error(), "queryParams builder failed: boom") {
+				t.Fatalf("Run error = %v, want the errors[] detail", err)
 			}
 		})
 	}

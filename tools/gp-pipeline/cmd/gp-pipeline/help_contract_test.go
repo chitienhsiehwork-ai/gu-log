@@ -181,15 +181,22 @@ func TestSkillRecoveryContract(t *testing.T) {
 
 	for _, want := range []string{
 		"--work-dir <original> run --from-step <step> --file <existing>.mdx",
-		"--from-step source-preservation --file <existing-zh-filename>.mdx",
-		"--work-dir <original> deploy --active-file <gp-pending-*.mdx>",
-		"legacy-shadow",
+		"deploy --active-file <mp-pending-*.mdx>",
 		"--date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>",
+		"GP 暫停中",
+		"以檔名系列為準",
 		"AGENTS.md",
 		"detect-env.sh --runtime <codex|claude-code>",
 	} {
 		if !strings.Contains(skill, want) {
 			t.Errorf("skill missing recovery contract %q", want)
+		}
+	}
+	// The GP translation flow is retired (openspec: gp-source-preservation);
+	// the skill must not route agents back to it.
+	for _, retired := range []string{"legacy-shadow", "source-translate", "source-preservation", "gp-publish-gate", "--prefix GP"} {
+		if strings.Contains(skill, retired) {
+			t.Errorf("skill still documents the retired GP translation flow: %q", retired)
 		}
 	}
 

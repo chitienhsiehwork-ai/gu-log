@@ -1,5 +1,6 @@
-// Command gp-pipeline is gu-log's GP translation and MP writing pipeline CLI; the canonical
-// entrypoint is the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
+// Command gp-pipeline is gu-log's MP/SD/Lv source-grounded writing pipeline CLI
+// (GP is paused); the canonical entrypoint is the self-compiling wrapper
+// tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
 package main
@@ -54,11 +55,16 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log GP translation and MP source-grounded writing pipeline",
-		Long: `gp-pipeline is the Go implementation of gu-log's GP faithful-translation
-and MP source-grounded writing flows. The canonical entrypoint is
-tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP and post filename
-slugs are gp-/mp-.
+		Short: "gu-log source-grounded writing pipeline (GP paused)",
+		Long: `gp-pipeline is the Go implementation of gu-log's source-grounded writing
+flow for MP, SD, and Lv. The canonical entrypoint is
+tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP/SD/Lv and post
+filename slugs are gp-/mp-/sd-/lv- (existing Lv posts keep levelup-).
+
+GP 暫停中: the whole-article GP translation flow is retired, and GP writing,
+publishing, and ticket allocation are rejected until the commentary format
+ships (openspec: editorial-charter). ralph still scores existing GP posts
+without rewriting them.
 
 It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
@@ -68,10 +74,10 @@ one step at a time without inheriting the whole pipeline's side effects:
   status     inspect an active/recent run from work-dir + repo artifacts
   eval       decide whether a source is GP-worthy
   dedup      check whether the source is already covered
-  write      legacy/non-GP editorial draft step
-  review     legacy/non-GP editorial review step
-  refine     legacy/non-GP full-article refine step
-  ralph      run the 4-judge tribunal
+  write      draft an MP/SD/Lv article
+  review     review an MP/SD/Lv draft
+  refine     refine an MP/SD/Lv draft into final.mdx
+  ralph      run the 4-judge tribunal (GP is score-only)
   translate  produce the en sidecar, but only after ralph passed
              (zh-tw-first: never translates an unstable draft)
   deploy     validate, build, commit, push

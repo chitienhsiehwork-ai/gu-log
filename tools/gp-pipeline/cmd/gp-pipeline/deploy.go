@@ -53,8 +53,9 @@ node scripts/validate-posts.mjs.
 Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
-GP deploy additionally requires --work-dir with source-tweet.md and a fresh
-gp-publish-gate.json bound to the active article's canonical body projection.
+The series comes from the --active-file pending filename, and an explicit
+--prefix must match it. GP 暫停中: GP pending files are rejected before any
+slot check or mutation (openspec: editorial-charter).
 
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.
@@ -73,6 +74,7 @@ before either stage is reached.`,
 				AuthorSlug:       authorSlug,
 				TitleSlug:        titleSlug,
 				Prefix:           prefix,
+				PrefixSet:        cmd.Flags().Changed("prefix"),
 				DryRun:           dryRun,
 				SkipBuild:        skipBuild,
 				SkipValidate:     skipValidate,
@@ -85,7 +87,7 @@ before either stage is reached.`,
 	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename (required for fresh PENDING deploy)")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv); the --active-file series wins, and GP is paused")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate CLI inputs only; run no validator or mutations")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "testing only; rejected by normal standalone deploy")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "testing only; rejected by normal standalone deploy")
@@ -105,9 +107,12 @@ type deployCmdOpts struct {
 	AuthorSlug       string
 	TitleSlug        string
 	Prefix           string
-	DryRun           bool
-	SkipBuild        bool
-	SkipValidate     bool
+	// PrefixSet reports an explicit --prefix; only then must it agree with
+	// the series named by --active-file.
+	PrefixSet    bool
+	DryRun       bool
+	SkipBuild    bool
+	SkipValidate bool
 }
 
 func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) error {
@@ -119,6 +124,16 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	if err := deploypkg.ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
 		return newExitError(1, err)
 	}
+	prefix, err := resolveSeries("deploy", opts.Prefix, opts.PrefixSet, "--active-file", opts.ActiveFilename)
+	if err != nil {
+		return newExitError(1, err)
+	}
+	// GP is rejected before slot validation and any counter, rename, or git
+	// side effect (openspec: gp-pipeline-publish-integrity).
+	if prefix == "GP" {
+		return newExitError(1, fmt.Errorf("deploy: %w", pipeline.ErrGPPaused))
+	}
+	opts.Prefix = prefix
 	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{
 		DateStamp:  opts.DateStamp,
 		AuthorSlug: opts.AuthorSlug,
@@ -147,14 +162,6 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	s.AuthorSlug = opts.AuthorSlug
 	s.TitleSlug = opts.TitleSlug
 	s.WorkDir = flagWorkDir
-	if opts.Prefix == "GP" && s.WorkDir == "" {
-		return newExitError(1, fmt.Errorf("deploy: GP requires --work-dir containing source-tweet.md and a fresh gp-publish-gate.json"))
-	}
-	if opts.Prefix == "GP" {
-		if err := bindGPDeployProfile(state, s); err != nil {
-			return newExitError(1, err)
-		}
-	}
 
 	// The State.Deploy method drives the whole thing, but does not
 	// honor --skip-build / --skip-validate. For standalone debugging,
@@ -164,7 +171,7 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 		return newExitError(1, fmt.Errorf("deploy: --skip-build / --skip-validate are currently only supported inside tests; the standalone subcommand always runs the full sequence. Use `run --dry-run` to exercise everything but push"))
 	}
 
-	err := s.Deploy(ctx)
+	err = s.Deploy(ctx)
 	report.ElapsedMs = time.Since(start).Milliseconds()
 	if err != nil {
 		var se *pipeline.StepError
@@ -182,16 +189,6 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	report.Filename = s.Filename
 	report.ENFilename = s.ENFilename
 	emitDeployReport(state, report)
-	return nil
-}
-
-func bindGPDeployProfile(state *rootState, s *pipeline.State) error {
-	gp, failedRole, err := buildGPDispatchers(state)
-	if err != nil {
-		return fmt.Errorf("deploy: GP role %s preflight: %w", failedRole, err)
-	}
-	s.GPProfile, s.GPProfileSHA256 = gp.Profile, gp.ProfileSHA256
-	s.CanonicalTerminology = gp.CanonicalTerminology
 	return nil
 }
 

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
@@ -28,7 +30,8 @@ func newCreditsCmd(state *rootState) *cobra.Command {
 		Long: `credits is Step 4.6 of the pipeline. It rewrites translatedBy.model,
 translatedBy.harness, translatedBy.pipeline (4-entry), and pipelineUrl
 in the target file's frontmatter. Useful for debugging a single mdx
-without running the full pipeline.`,
+without running the full pipeline. GP 暫停中: a GP file (gp- filename or
+GP- ticketId) is rejected before any write.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runCredits(cmd.Context(), state, finalPath, workDir, writeModel, reviewModel, refineModel)
 		},
@@ -50,6 +53,15 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if _, err := os.Stat(abs); err != nil {
 		return fmt.Errorf("credits: file not found: %s", abs)
 	}
+	data, err := os.ReadFile(abs)
+	if err != nil {
+		return err
+	}
+	// Stamping credits rewrites the article's frontmatter, so a GP file is
+	// refused while GP is paused, before any scratch dir or write.
+	if creditsTargetsGP(abs, data) {
+		return newExitError(1, fmt.Errorf("credits: %w", pipeline.ErrGPPaused))
+	}
 	if workDir == "" {
 		workDir = filepath.Dir(abs)
 	}
@@ -60,10 +72,6 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if filepath.Base(abs) != "final.mdx" {
 		scratchWorkDir = filepath.Join(os.TempDir(), fmt.Sprintf("credits-scratch-%d", os.Getpid()))
 		if err := os.MkdirAll(scratchWorkDir, 0o755); err != nil {
-			return err
-		}
-		data, err := os.ReadFile(abs)
-		if err != nil {
 			return err
 		}
 		if err := os.WriteFile(filepath.Join(scratchWorkDir, "final.mdx"), data, 0o644); err != nil {
@@ -95,4 +103,19 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	}
 	state.log.OK("credits: stamped %s", abs)
 	return nil
+}
+
+// creditsTargetsGP reports whether path is a GP article: a gp- post filename,
+// or a GP- frontmatter ticketId, which is all a work-dir final.mdx carries. A
+// frontmatter that does not parse is left for Credits to reject.
+func creditsTargetsGP(path string, data []byte) bool {
+	if series, err := pipeline.SeriesFromFilename(filepath.Base(path)); err == nil && series == "GP" {
+		return true
+	}
+	f, err := frontmatter.Parse(data)
+	if err != nil {
+		return false
+	}
+	ticketID, _ := f.GetScalar("ticketId")
+	return strings.HasPrefix(strings.TrimLeft(ticketID, `"'`), "GP-")
 }

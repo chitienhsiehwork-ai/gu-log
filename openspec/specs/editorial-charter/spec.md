@@ -384,7 +384,7 @@ gu-log 的 reader-visible article content SHALL 預設不包含 emoji。Kaomoji 
 
 只有 ShroomDog 對特定文章中的特定 emoji 做出明確授權時，該 occurrence 才 MAY 保留。授權 SHALL 以 repo 內可稽核、窄範圍的 executable record 保存，且 SHALL 指向 feedback corpus 的具體人類決策；writer SHALL NOT 以自行設定的整篇 frontmatter flag、glob、未記錄的推測或無法對照人類決策的理由文字取代授權。
 
-這是 top-level editorial `MAY` 能力，不代表每條 automated pipeline 都 SHALL 支援 glyph 保留例外。已接上 exact allowlist 的非 GP automated lane MAY 使用此能力；沒有接線的 lane SHALL 明確維持預設禁用，不得假稱存在不可達的例外流程。GP automated lane 的邊界由 `gp-source-preservation` spec 定義。
+這是 top-level editorial `MAY` 能力，不代表每條 automated pipeline 都 SHALL 支援 glyph 保留例外。已接上 exact allowlist 的非 GP automated lane MAY 使用此能力；沒有接線的 lane SHALL 明確維持預設禁用，不得假稱存在不可達的例外流程。GP 的 automated lane SHALL NOT 提供 glyph 保留例外。gp-pipeline 的英文 sidecar 沒有接上 exact allowlist：英文 sidecar 翻譯者 SHALL 省略裝飾性字形，字形承載的必要語意 SHALL 改用自然文字表達，SHALL NOT 保留或依來源復原任何 Unicode emoji 字形。
 
 pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，阻擋新文章或修改內容新增未授權 emoji。既有未修改的歷史 emoji MAY 透過 non-retroactive ratchet 暫時保留；此 grandfathering SHALL NOT 允許新增、搬移或重寫含 emoji 的內容行。
 
@@ -437,6 +437,13 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 - **WHEN** 同一組 post changes 分別在 pre-commit 與 pull request CI 執行
 - **THEN** 兩者 SHALL 使用同一個 emoji detector、kaomoji boundary 與 exception evaluator
 - **AND** 任一環境無法解析比較基準時 SHALL fail closed
+
+#### Scenario: 英文 sidecar 不復原來源 emoji
+
+- **WHEN** gp-pipeline 的英文 sidecar 翻譯者遇到原始來源或 zh-tw 正文脈絡中的未授權表情圖示
+- **THEN** sidecar prompt SHALL 要求省略裝飾性字形，或用自然文字保留其必要語意
+- **AND** SHALL NOT 依來源或推測直接復原任何字形
+- **AND** prompt rendering test 與最終內容 gate SHALL 阻止未授權字形進站
 
 ### Requirement: GP 整篇翻譯 MUST 先取得來源作者同意才可公開
 

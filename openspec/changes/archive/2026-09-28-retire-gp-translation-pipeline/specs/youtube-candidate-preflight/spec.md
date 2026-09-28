@@ -1,8 +1,4 @@
-## Purpose
-
-定義 YouTube 來源候選預審的副作用邊界、可稽核證據、來源完整性、防重複與操作者契約，讓操作者能在不啟動寫作或發布流程的前提下安全判斷來源是否值得進一步處理。
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: 候選預審 SHALL 僅供審閱且限制副作用
 
@@ -63,79 +59,6 @@
 - **WHEN** YouTube metadata 缺少 upload date、title、channel 或 duration
 - **THEN** 清單對應欄位 SHALL 是 null
 - **AND** 來源證據 SHALL NOT 將推測值表述為來源事實
-
-### Requirement: 字幕來源與處理上限 SHALL 明確
-
-YouTube 擷取 SHALL 優先選人工字幕，再選自動字幕；每層 SHALL 以固定語言順位選擇單一字幕軌。清單 SHALL 記錄實際語言、人工／自動類型、片長、原始位元組、估算 token、限制與警告，並引用原始 VTT 與保留時間戳的可讀字幕逐字稿之相對路徑和 SHA-256。片長關卡 SHALL 在字幕下載前套用，原始位元組關卡 SHALL 在 VTT 讀取／解析前套用，token 關卡 SHALL 在有界解析後、任何 LLM 或進一步內容處理前套用；超限 SHALL NOT 自動分段或進入寫作。
-
-#### Scenario: 人工與自動字幕同時存在
-
-- **WHEN** 同一影片同時提供符合條件的人工與自動字幕軌
-- **THEN** 系統 SHALL 以固定規則選擇人工字幕軌
-- **AND** 清單 SHALL 記錄實際語言與 `manual` 來源類型
-
-#### Scenario: 只有自動字幕
-
-- **WHEN** 沒有可用人工字幕軌，但有符合條件的自動字幕軌
-- **THEN** 系統 SHALL 選擇該自動字幕軌
-- **AND** 清單 SHALL 記錄實際語言與 `automatic` 來源類型
-
-#### Scenario: 字幕逐字稿超出安全上限
-
-- **WHEN** 片長、原始位元組或估算 token 任一在其對應階段超出集中定義的候選預審上限
-- **THEN** 系統 SHALL 在對應關卡停止，不呼叫 LLM，也不自動分段
-- **AND** 清單 SHALL 記錄觸發的限制、觀察值並將 `writeEligible` 設為 false
-
-### Requirement: 候選清單 SHALL 原子、可重現且連結證據
-
-系統 SHALL 以有版本的 JSON schema 原子寫入 `candidate-manifest.json`，並以它作為所有來源證據的唯一入口／索引產物。清單 SHALL 包含 raw input URL、可為 null 的標準化 URL／影片 ID、來源種類、可為 null 的 metadata、可用性、`writeEligible`、警告、產物相對路徑／SHA-256、影片 ID 防重複結論／相符項目，以及失敗時的穩定代碼與是否可重試。相同影片 ID 與來源產物雜湊的重跑 SHALL 產生等價的證據欄位；URL、影片 ID 或雜湊不同時 SHALL NOT 靜默復用舊產物。
-
-#### Scenario: Candidate 成功
-
-- **WHEN** 來源擷取完整且影片 ID 防重複結果沒有 BLOCK
-- **THEN** 清單 SHALL 以目前 schema 版本完整連結來源證據與雜湊
-- **AND** `writeEligible` SHALL 為 true，但仍 SHALL 要求人類另行決定是否執行正式 run
-
-#### Scenario: 跨 URL 形式的影片 ID 防重複阻擋
-
-- **WHEN** candidate 使用 watch、shorts 或 `youtu.be` 其中一種 URL，而既有文章 frontmatter 的 `sourceUrl` 使用另一種 URL 指向相同 YouTube video ID
-- **THEN** 固定規則的防重複關卡 SHALL 回傳 BLOCK
-- **AND** 清單 SHALL 記錄 BLOCK 結論與相符項目
-- **AND** `writeEligible` SHALL 為 false
-- **AND** 候選預審指令 SHALL NOT 啟動標題相似度或任何 LLM 判斷來覆寫結果
-
-#### Scenario: 擷取 timeout 或中斷
-
-- **WHEN** 擷取逾時、收到 SIGTERM，或在工作目錄建立後發生可分類的擷取錯誤
-- **THEN** 系統 SHALL 盡量原子產生失敗清單，記錄穩定代碼、是否可重試、標準化 URL 與已完成產物雜湊
-- **AND** SHALL NOT 留下宣稱成功的半份清單
-
-#### Scenario: 工作目錄有過期產物
-
-- **WHEN** 既有候選預審產物的標準化 URL、影片 ID 或來源雜湊與本次輸入不一致
-- **THEN** 系統 SHALL 拒絕靜默復用
-- **AND** SHALL 產生可行動的過期產物錯誤，或在隔離位置重新擷取
-
-### Requirement: CLI 結束狀態 SHALL 與 manifest 決策分工
-
-Candidate 完整跑完且留下可審閱結果時 SHALL 回傳 0，即使因無字幕、過短、超限或 live／upcoming 而使 `writeEligible` 為 false；呼叫端 SHALL 讀 manifest 判斷完整性。影片 ID 防重複 BLOCK SHALL 回傳 13，相依工具／擷取技術失敗 SHALL 回傳 10，輸入或工作目錄契約錯誤 SHALL 回傳 1，逾時 SHALL 回傳 124。除尚未建立可確認位於 repo 外且可寫的安全工作目錄外，非 0 結果 SHALL 盡量留下 failure manifest；不得為了留下 manifest 而改寫其他 fallback 位置。
-
-#### Scenario: 不完整但可審閱的來源
-
-- **WHEN** metadata 已取得，但字幕缺失、過短、超限或影片狀態不可寫
-- **THEN** candidate SHALL 回傳 0 並留下 `writeEligible: false` manifest
-- **AND** 呼叫端 SHALL NOT 把結束碼 0 解讀為已核准或可發布
-
-#### Scenario: 防重複阻擋
-
-- **WHEN** manifest 記錄相同 YouTube video ID 的 BLOCK verdict
-- **THEN** candidate SHALL 回傳 13 並保留該 manifest
-
-#### Scenario: 擷取技術失敗
-
-- **WHEN** 缺少相依工具或 `yt-dlp` 發生技術擷取錯誤
-- **THEN** candidate SHALL 回傳 10
-- **AND** 在工作目錄可用時 SHALL 保留 stable failure manifest
 
 ### Requirement: 操作者診斷 SHALL 揭露 YouTube 能力且不破壞無關流程
 

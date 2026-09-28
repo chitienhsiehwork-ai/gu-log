@@ -11,13 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/preservation"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -73,85 +70,6 @@ func mustWrite(t *testing.T, path, content string) {
 	t.Helper()
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)
-	}
-}
-
-func installGPProjectionStub(t *testing.T, root string) {
-	t.Helper()
-	mustWrite(t, filepath.Join(root, "scripts", "gp-body-projection.mjs"), `
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-const document = readFileSync(process.argv[2], 'utf8');
-let body = document;
-if (document.startsWith('---\n')) {
-  const end = document.indexOf('\n---\n', 4);
-  if (end < 0) throw new Error('unterminated frontmatter');
-  body = document.slice(end + '\n---\n'.length);
-}
-const sha256 = createHash('sha256').update(body, 'utf8').digest('hex');
-process.stdout.write(JSON.stringify({ version: 'gp-source-preservation/v1', body, sha256 }) + '\n');
-`)
-	mustWrite(t, filepath.Join(root, "scripts", "check-jingjing.mjs"), `
-import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-const inputPath = process.argv.at(-1);
-const input = readFileSync(inputPath);
-process.stdout.write(JSON.stringify({
-  version: 'check-jingjing/v1',
-  policy_sha256: createHash('sha256').update('fixture-policy').digest('hex'),
-  baseline_ref: '',
-  baseline_ref_unavailable: false,
-  files: [{ path: inputPath, sha256: createHash('sha256').update(input).digest('hex'), skipped: false, violations: [] }],
-}) + '\n');
-`)
-}
-
-func writeCompleteFakeGPRoles(t *testing.T, path string) {
-	t.Helper()
-	mustWrite(t, path, `{
-  "roles": {
-    "judge": {"provider": "fake-judge", "responses": []},
-    "writer": {"provider": "fake-sidecar-writer", "responses": []},
-    "translator": {"provider": "fake-translator", "responses": []},
-    "sourceReviewer": {"provider": "fake-source-reviewer", "responses": []},
-    "corrector": {"provider": "fake-corrector", "responses": []},
-    "commentary": {"provider": "fake-commentary", "responses": []},
-    "vibeScorer": {"provider": "fake-vibe", "responses": []}
-  }
-}`)
-}
-
-func writeFreshGPPublishManifest(t *testing.T, root, workDir, sourcePath, bodyPath string) {
-	t.Helper()
-	source, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	projection, err := preservation.ProjectFile(context.Background(), root, bodyPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	now := time.Now().UTC()
-	gate := func(role string) preservation.GateEnvelope {
-		return preservation.GateEnvelope{
-			Version: preservation.ContractVersion, Gate: role,
-			SourceSHA256: preservation.SHA256(source), BodyProjectionSHA256: projection.SHA256,
-			Verdict: "PASS", Provenance: preservation.Provenance{
-				Role: role, Provider: "fixture", Model: role, Harness: "go-test", CompletedAt: now,
-			},
-		}
-	}
-	jingjing, _, err := preservation.CheckJingjing(context.Background(), root, bodyPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	manifest := preservation.PublishManifest{
-		Version: preservation.ContractVersion, ProfileSHA256: preservation.SHA256([]byte("fixture")), JingjingPolicySHA256: jingjing.PolicySHA256, SourceSHA256: preservation.SHA256(source),
-		BodyProjectionSHA256: projection.SHA256, Verdict: "PASS",
-		Gates: []preservation.GateEnvelope{gate("source-reviewer"), gate("vibe-scorer")}, CompletedAt: now,
-	}
-	if err := preservation.WriteJSON(filepath.Join(workDir, "gp-publish-gate.json"), manifest); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -285,74 +203,53 @@ exit 9
 	}
 }
 
-// TestGPRunPreflightBuildsSidecarWriterRoute proves the GP English sidecar no
-// longer reuses the tool-less JSON translator: a GP run must also resolve the
-// writer route, whose file tools let the sidecar write translated-en.mdx.
-func TestGPRunPreflightBuildsSidecarWriterRoute(t *testing.T) {
+func TestMPProviderPreflightFailurePersistsReportAndRecoveryState(t *testing.T) {
 	resetGlobals()
 	workDir := t.TempDir()
-	fakePath := filepath.Join(t.TempDir(), "gp-profile-without-writer.json")
+	fakePath := filepath.Join(t.TempDir(), "judge-only-profile.json")
 	mustWrite(t, fakePath, `{
   "roles": {
-    "judge": {"provider": "fake-judge", "responses": []},
-    "translator": {"provider": "fake-translator", "responses": []},
-    "sourceReviewer": {"provider": "fake-source-reviewer", "responses": []},
-    "corrector": {"provider": "fake-corrector", "responses": []},
-    "commentary": {"provider": "fake-commentary", "responses": []},
-    "vibeScorer": {"provider": "fake-vibe", "responses": []}
+    "judge": {"provider": "fake-judge", "responses": []}
   }
 }`)
 
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
 		"--json", "--fake-provider", fakePath, "--work-dir", workDir,
-		"run", "https://example.com/source", "--prefix", "GP", "--dry-run",
-	})
-	_, runErr := captureProcessStdout(t, func() error {
-		return cmd.ExecuteContext(context.Background())
-	})
-	if runErr == nil || !strings.Contains(runErr.Error(), "missing role writer") {
-		t.Fatalf("GP preflight error = %v, want the sidecar writer route to be required", runErr)
-	}
-}
-
-func TestGPProviderPreflightFailurePersistsReportAndRecoveryState(t *testing.T) {
-	resetGlobals()
-	workDir := t.TempDir()
-	fakePath := filepath.Join(t.TempDir(), "incomplete-gp-profile.json")
-	mustWrite(t, fakePath, `{
-  "roles": {
-    "judge": {"provider": "fake-judge", "responses": []},
-    "translator": {"provider": "fake-translator", "responses": []}
-  }
-}`)
-
-	cmd := buildRoot()
-	cmd.SetArgs([]string{
-		"--json", "--fake-provider", fakePath, "--work-dir", workDir,
-		"run", "https://example.com/source", "--prefix", "GP", "--dry-run",
+		"run", "https://example.com/source", "--prefix", "MP", "--dry-run",
 	})
 	out, runErr := captureProcessStdout(t, func() error {
 		return cmd.ExecuteContext(context.Background())
 	})
-	if runErr == nil || !strings.Contains(runErr.Error(), "sourceReviewer") {
-		t.Fatalf("preflight error = %v, want missing sourceReviewer", runErr)
+	if runErr == nil || !strings.Contains(runErr.Error(), "missing role writer") {
+		t.Fatalf("preflight error = %v, want missing writer role", runErr)
 	}
 	var report runReport
 	if err := json.Unmarshal(out, &report); err != nil {
 		t.Fatalf("decode preflight report %q: %v", out, err)
 	}
-	if report.OK || report.ErrorCode != 1 || report.WorkDir != workDir || !strings.Contains(report.Error, "sourceReviewer") {
+	if report.OK || report.ErrorCode != 1 || report.WorkDir != workDir || !strings.Contains(report.Error, "missing role writer") {
 		t.Fatalf("preflight report = %#v", report)
 	}
-	for _, artifact := range []string{"sourceReviewer-failure.json", "pipeline-status.json"} {
+	for _, artifact := range []string{"writer-failure.json", "pipeline-status.json"} {
 		data, err := os.ReadFile(filepath.Join(workDir, artifact))
 		if err != nil {
 			t.Fatalf("read durable %s: %v", artifact, err)
 		}
-		if !bytes.Contains(data, []byte("sourceReviewer")) {
+		if !bytes.Contains(data, []byte("missing role writer")) {
 			t.Fatalf("%s missing failed role evidence: %s", artifact, data)
 		}
+	}
+	var failure map[string]any
+	data, err := os.ReadFile(filepath.Join(workDir, "writer-failure.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &failure); err != nil {
+		t.Fatalf("decode writer-failure.json: %v", err)
+	}
+	if failure["role"] != "writer" || failure["version"] != "gp-pipeline-role-failure/v1" {
+		t.Fatalf("writer-failure.json = %#v", failure)
 	}
 }
 
@@ -502,7 +399,7 @@ func TestCanonicalRunYouTubeMissingYTDLPFailsBeforeProviderSetup(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	resetGlobals()
 	cmd := buildRoot()
-	cmd.SetArgs([]string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ", "--dry-run"})
+	cmd.SetArgs([]string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ", "--prefix", "MP", "--dry-run"})
 	err := cmd.ExecuteContext(context.Background())
 	var exitErr *ExitError
 	if !errors.As(err, &exitErr) {
@@ -524,32 +421,32 @@ func TestDeployDryRunValidatesFilenameSlots(t *testing.T) {
 	}{
 		{
 			name: "all missing",
-			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-example.mdx", "--dry-run"},
 			want: "--date-stamp",
 		},
 		{
 			name: "date missing",
-			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-example.mdx", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
 			want: "--date-stamp",
 		},
 		{
 			name: "author missing",
-			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--date-stamp", "20260722", "--title-slug", "title", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-example.mdx", "--date-stamp", "20260722", "--title-slug", "title", "--dry-run"},
 			want: "--author-slug",
 		},
 		{
 			name: "title missing",
-			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-example.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--dry-run"},
 			want: "--title-slug",
 		},
 		{
 			name: "active-file traversal",
-			args: []string{"deploy", "--active-file", "gp-pending-../../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-../../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
 			want: "must be a basename",
 		},
 		{
 			name: "active-en-file traversal",
-			args: []string{"deploy", "--active-file", "gp-pending-example.mdx", "--active-en-file", "en-gp-pending-../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
+			args: []string{"deploy", "--active-file", "mp-pending-example.mdx", "--active-en-file", "en-mp-pending-../escape.mdx", "--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title", "--dry-run"},
 			want: "must be a basename",
 		},
 	}
@@ -568,12 +465,110 @@ func TestDeployDryRunValidatesFilenameSlots(t *testing.T) {
 	resetGlobals()
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
-		"deploy", "--active-file", "gp-pending-example.mdx",
+		"deploy", "--active-file", "mp-pending-example.mdx",
 		"--date-stamp", "20260722", "--author-slug", "author", "--title-slug", "title",
 		"--dry-run",
 	})
 	if err := cmd.ExecuteContext(context.Background()); err != nil {
 		t.Fatalf("complete dry-run slots should succeed: %v", err)
+	}
+}
+
+// TestGPIngressRejectedBeforeSideEffects covers gp-pipeline-publish-integrity:
+// while GP is paused, every entry that would write, publish, or number a GP
+// post exits 1 with「GP 暫停中」before any work dir, fetch, runtime profile,
+// provider, counter, file, or git side effect. With a file, the filename
+// decides the series even when --prefix is left at its default.
+func TestGPIngressRejectedBeforeSideEffects(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const gpPost = "gp-10-20260723-author-title.mdx"
+	const gpPending = "gp-pending-20260723-author-title.mdx"
+	mustWrite(t, filepath.Join(postsDir, gpPost), "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
+	mustWrite(t, filepath.Join(postsDir, gpPending), "---\ntitle: \"GP\"\nticketId: GP-PENDING\nlang: zh-tw\n---\nbody\n")
+	trapDir := t.TempDir()
+	for _, name := range []string{"bash", "curl", "yt-dlp", "python3", "node", "codex", "claude", "git", "pnpm"} {
+		writeExecutableFile(t, filepath.Join(trapDir, name), "#!/bin/sh\nprintf '%s\\n' \"$0 $*\" >> \"$GP_INGRESS_TRAP_LOG\"\nexit 99\n")
+	}
+	t.Setenv("GU_LOG_DIR", root)
+	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	snapshot := func() map[string]string {
+		t.Helper()
+		state := map[string]string{}
+		for _, dir := range []string{postsDir, filepath.Join(root, "scripts")} {
+			entries, err := os.ReadDir(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, entry := range entries {
+				data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+				if err != nil {
+					t.Fatal(err)
+				}
+				state[filepath.Join(dir, entry.Name())] = string(data)
+			}
+		}
+		return state
+	}
+	slots := []string{"--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title"}
+
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{name: "run without prefix or file", args: []string{"run", "https://x.com/author/status/1"}},
+		{name: "run YouTube source before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}},
+		{name: "run resumes a GP file without prefix", args: []string{"run", "--from-step", "deploy", "--file", gpPost}},
+		{name: "run resumes a GP file with prefix", args: []string{"run", "--prefix", "GP", "--from-step", "translate", "--file", gpPost, "--dry-run"}},
+		{name: "deploy GP pending file before slot validation", args: []string{"deploy", "--active-file", gpPending}},
+		{name: "deploy GP pending file with prefix", args: append([]string{"deploy", "--prefix", "GP", "--active-file", gpPending}, slots...)},
+		{name: "counter bump default prefix", args: []string{"counter", "bump"}},
+		{name: "counter bump GP prefix", args: []string{"counter", "bump", "--prefix", "GP"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			trapLog := filepath.Join(t.TempDir(), "trap.log")
+			t.Setenv("GP_INGRESS_TRAP_LOG", trapLog)
+			before := snapshot()
+			workDir := filepath.Join(t.TempDir(), "never-created")
+			// A missing fake-provider spec fails differently if a model route is built.
+			args := append([]string{"--json", "--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...)
+			cmd := buildRoot()
+			cmd.SetArgs(args)
+			out, err := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			})
+			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) {
+				t.Fatalf("error = %v (exit %d), want the exit-1 GP pause rejection", err, exitCodeFor(err))
+			}
+			for _, want := range []string{"GP 暫停中", "openspec: editorial-charter"} {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error = %v, want %q", err, want)
+				}
+			}
+			if tc.args[0] != "counter" && len(out) != 0 {
+				t.Fatalf("ingress rejection emitted a report: %s", out)
+			}
+			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+				t.Fatalf("GP rejection created the work dir: %v", statErr)
+			}
+			if raw, readErr := os.ReadFile(trapLog); readErr == nil {
+				t.Fatalf("GP rejection ran external programs:\n%s", raw)
+			}
+			after := snapshot()
+			if len(after) != len(before) {
+				t.Fatalf("GP rejection changed the repo files: %d -> %d", len(before), len(after))
+			}
+			for path, content := range before {
+				if after[path] != content {
+					t.Fatalf("GP rejection changed %s", path)
+				}
+			}
+		})
 	}
 }
 
@@ -645,249 +640,249 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
-func TestRunRunGPRejectsNarrativeAngleOutsideLegacyShadow(t *testing.T) {
-	err := runRun(context.Background(), &rootState{}, runOpts{Prefix: "GP", TweetURL: "https://example.com", Angle: "換一個故事骨架"})
-	if err == nil || !strings.Contains(err.Error(), "--angle") {
-		t.Fatalf("error = %v", err)
+// TestRunRejectsRetiredTranslationSteps covers the gp-source-preservation
+// scenario「以退役的翻譯步驟恢復 run」: the retired GP step names are unknown
+// steps, rejected before any fetch, model call, or file change.
+func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
 	}
-}
-
-func TestCanonicalGPStageNamesAreDistinct(t *testing.T) {
-	if stepNameToInt["source-translate"] != pipeline.StepSourceTranslate || stepNameToInt["translate"] != pipeline.StepTranslate {
-		t.Fatalf("source translation and English sidecar stages must remain distinct: %#v", stepNameToInt)
-	}
-}
-
-func TestRunRunGPRejectsLegacyStageAliases(t *testing.T) {
-	for _, stage := range []string{"write", "review", "refine"} {
-		t.Run(stage, func(t *testing.T) {
-			err := runRun(context.Background(), &rootState{}, runOpts{
-				Prefix:       "GP",
-				FromStep:     stage,
-				ExistingFile: "gp-pending.mdx",
+	const existing = "mp-10-20260723-example.mdx"
+	body := "---\ntitle: \"MP\"\nticketId: MP-10\nlang: zh-tw\n---\nbody\n"
+	mustWrite(t, filepath.Join(postsDir, existing), body)
+	t.Setenv("GU_LOG_DIR", root)
+	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich"} {
+		for _, target := range [][]string{{"https://x.com/author/status/1"}, {"--file", existing}} {
+			t.Run(step+" "+target[0], func(t *testing.T) {
+				resetGlobals()
+				workDir := filepath.Join(t.TempDir(), "never-created")
+				args := append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
+					"run", "--prefix", "MP", "--from-step", step}, target...)
+				cmd := buildRoot()
+				cmd.SetArgs(args)
+				err := cmd.ExecuteContext(context.Background())
+				if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "unknown step") {
+					t.Fatalf("error = %v (exit %d), want an exit-1 unknown step rejection", err, exitCodeFor(err))
+				}
+				if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+					t.Fatalf("retired step created the work dir: %v", statErr)
+				}
+				if got, readErr := os.ReadFile(filepath.Join(postsDir, existing)); readErr != nil || string(got) != body {
+					t.Fatalf("retired step changed %s: %q, %v", existing, got, readErr)
+				}
 			})
-			if err == nil || !strings.Contains(err.Error(), "legacy GP step") {
-				t.Fatalf("runRun error = %v, want canonical-stage guidance", err)
-			}
-		})
-	}
-}
-
-func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
-	tests := []struct {
-		name string
-		run  func() error
-		want string
-	}{
-		{name: "write", run: func() error { return runWrite(context.Background(), &rootState{}, writeOpts{Prefix: "GP"}) }, want: "canonical source-translate"},
-		{name: "review", run: func() error { return runReview(context.Background(), &rootState{}, "missing.mdx", "", "GP-PENDING") }, want: "standalone full-draft review"},
-		{name: "refine", run: func() error {
-			return runRefine(context.Background(), &rootState{}, "missing.mdx", "", "", "GP-PENDING", "")
-		}, want: "evidence-bounded patches"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.run()
-			if err == nil || !strings.Contains(err.Error(), tt.want) {
-				t.Fatalf("error = %v, want %q", err, tt.want)
-			}
-		})
-	}
-}
-
-func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
-	for filename, want := range map[string]string{
-		"gp-10-example.mdx":    "GP",
-		"mp-20-example.mdx":    "MP",
-		"en-sd-30-example.mdx": "SD",
-		"lv-40-example.mdx":    "Lv",
-	} {
-		got, err := postPrefixFromFilename(filename)
-		if err != nil || got != want {
-			t.Errorf("postPrefixFromFilename(%q) = %q, %v; want %q", filename, got, err, want)
 		}
 	}
-	if _, err := postPrefixFromFilename("../mp-20-example.mdx"); err == nil {
-		t.Fatal("path traversal filename must fail")
-	}
 }
 
-func TestProductionGPRecoveryRejectsMissingAndStaleGateArtifacts(t *testing.T) {
+// TestStandaloneLegacyTextCommandsRejectGP covers the
+// gp-pipeline-publish-integrity scenario「單步寫作指令收到 GP」, including the
+// GP defaults of write --prefix and review/refine --ticket-id.
+func TestStandaloneLegacyTextCommandsRejectGP(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	source := filepath.Join(root, "source-tweet.md")
+	draft := filepath.Join(root, "draft-v1.mdx")
+	mustWrite(t, source, "source")
+	mustWrite(t, draft, "draft")
 	for _, tc := range []struct {
-		name     string
-		fromStep string
-		setup    func(t *testing.T, root, workDir, translationPath string)
-		want     string
+		name string
+		args []string
 	}{
-		{
-			name:     "missing verdict with --from-step and --file",
-			fromStep: "enrich",
-			setup:    func(*testing.T, string, string, string) {},
-			want:     "missing GP publish manifest",
-		},
-		{
-			name:     "stale final at deploy recovery",
-			fromStep: "deploy",
-			setup: func(t *testing.T, root, workDir, translationPath string) {
-				sourcePath := filepath.Join(workDir, "source-tweet.md")
-				writeFreshGPPublishManifest(t, root, workDir, sourcePath, translationPath)
-				mustWrite(t, filepath.Join(workDir, "final.mdx"), "---\ntitle: Recovery\n---\n\nstale body\n")
-			},
-			want: "hashes are stale",
-		},
+		{name: "write default prefix", args: []string{"write", "--source", source}},
+		{name: "write GP prefix", args: []string{"write", "--source", source, "--prefix", "GP"}},
+		{name: "review default ticket", args: []string{"review", "--draft", draft}},
+		{name: "refine GP ticket", args: []string{"refine", "--draft", draft, "--ticket-id", "GP-12"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resetGlobals()
+			// A missing fake-provider spec fails differently if a model route is built.
+			cmd := buildRoot()
+			cmd.SetArgs(append([]string{"--fake-provider", filepath.Join(root, "missing.json")}, tc.args...))
+			err := cmd.ExecuteContext(context.Background())
+			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) {
+				t.Fatalf("error = %v (exit %d), want the exit-1 GP pause rejection", err, exitCodeFor(err))
+			}
+			if !strings.Contains(err.Error(), "GP 暫停中") || !strings.Contains(err.Error(), "editorial-charter") {
+				t.Fatalf("error = %v, want 「GP 暫停中」 and editorial-charter", err)
+			}
+		})
+	}
+}
+
+// TestStandaloneCreditsRejectsGP: stamping credits rewrites frontmatter, so a
+// GP post or a work-dir final.mdx with a GP ticket exits 1 with「GP 暫停中」
+// and stays untouched, while a non-GP final.mdx still gets stamped.
+func TestStandaloneCreditsRejectsGP(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	gpPost := filepath.Join(t.TempDir(), "gp-10-20260723-author-title.mdx")
+	gpFinal := filepath.Join(t.TempDir(), "final.mdx")
+	mpFinal := filepath.Join(t.TempDir(), "final.mdx")
+	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
+	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n")
+	mustWrite(t, mpFinal, "---\ntitle: \"MP\"\nticketId: \"MP-PENDING\"\nlang: zh-tw\n---\nbody\n")
+	credits := func(path string) error {
+		resetGlobals()
+		cmd := buildRoot()
+		cmd.SetArgs([]string{"credits", "--file", path})
+		return cmd.ExecuteContext(context.Background())
+	}
+
+	for name, path := range map[string]string{"GP post": gpPost, "GP final.mdx": gpFinal} {
+		t.Run(name, func(t *testing.T) {
+			before, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = credits(path)
+			if err == nil || exitCodeFor(err) != 1 || !errors.Is(err, pipeline.ErrGPPaused) || !strings.Contains(err.Error(), "GP 暫停中") {
+				t.Fatalf("error = %v (exit %d), want the exit-1「GP 暫停中」rejection", err, exitCodeFor(err))
+			}
+			if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, before) {
+				t.Fatalf("GP rejection changed %s: %q, %v", path, after, err)
+			}
+		})
+	}
+	t.Run("MP final.mdx", func(t *testing.T) {
+		if err := credits(mpFinal); err != nil {
+			t.Fatalf("credits on an MP final.mdx: %v", err)
+		}
+		if got, err := os.ReadFile(mpFinal); err != nil || !strings.Contains(string(got), "pipelineUrl") {
+			t.Fatalf("MP final.mdx was not stamped: %q, %v", got, err)
+		}
+	})
+}
+
+// TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
+// series only changes whether Tribunal may rewrite (GP is score-only), and the
+// existing levelup- Lv corpus and en- sidecars must resolve instead of failing.
+func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
+	for filename, wantNoRewrite := range map[string]bool{
+		"gp-10-example.mdx":                      true,
+		"mp-20-example.mdx":                      false,
+		"en-sd-30-example.mdx":                   false,
+		"lv-40-example.mdx":                      false,
+		"levelup-20260701-core-dump-anatomy.mdx": false,
+	} {
+		t.Run(filename, func(t *testing.T) {
+			resetGlobals()
 			root := makeFakeRepo(t)
-			installGPProjectionStub(t, root)
 			postsDir := filepath.Join(root, "src", "content", "posts")
 			if err := os.MkdirAll(postsDir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			filename := "gp-10-20260815-recovery.mdx"
-			article := "---\ntitle: Recovery\nticketId: GP-10\nlang: zh-tw\n---\n\nsource body\n"
-			mustWrite(t, filepath.Join(postsDir, filename), article)
-			workDir := t.TempDir()
-			sourcePath := filepath.Join(workDir, "source-tweet.md")
-			translationPath := filepath.Join(workDir, "source-translation.mdx")
-			mustWrite(t, sourcePath, "complete source\n")
-			mustWrite(t, translationPath, article)
-			mustWrite(t, filepath.Join(workDir, "source-translation.initial.mdx"), article)
-			now := time.Now().UTC()
-			translationArtifact := preservation.SourceTranslationArtifact{
-				Version: preservation.ContractVersion, SourceSHA256: preservation.SHA256([]byte("complete source\n")), TranslationSHA256: preservation.SHA256([]byte(article)), TranslationMDX: article, SlopCandidates: []preservation.Finding{},
-				Provenance: preservation.Provenance{Role: "translator", Provider: "fixture", Model: "translator", Harness: "go-test", CompletedAt: now},
+			mustWrite(t, filepath.Join(postsDir, filename), "---\ntitle: \"Example\"\nlang: zh-tw\n---\nbody\n")
+			mustWrite(t, filepath.Join(root, "scripts", "tribunal.sh"), "printf 'tribunal args: %s\\n' \"$*\"\n")
+			for _, fixer := range []string{"add-kaomoji.mjs", "apply-glossary-links.mjs", "inject-related-posts.mjs"} {
+				mustWrite(t, filepath.Join(root, "scripts", fixer), "")
 			}
-			if err := preservation.WriteJSON(filepath.Join(workDir, "source-translate.json"), translationArtifact); err != nil {
-				t.Fatal(err)
-			}
-			tc.setup(t, root, workDir, translationPath)
-			fakePath := filepath.Join(root, "fake-gp-roles.json")
-			writeCompleteFakeGPRoles(t, fakePath)
 			t.Setenv("GU_LOG_DIR", root)
 
+			workDir := t.TempDir()
 			cmd := buildRoot()
-			cmd.SetArgs([]string{
-				"--json", "--fake-provider", fakePath, "--work-dir", workDir,
-				"run", "--from-step", tc.fromStep, "--file", filename, "--prefix", "GP", "--dry-run",
-			})
-			out, runErr := captureProcessStdout(t, func() error {
+			cmd.SetArgs([]string{"--json", "ralph", "--file", filename, "--work-dir", workDir})
+			if _, err := captureProcessStdout(t, func() error {
 				return cmd.ExecuteContext(context.Background())
-			})
-			if runErr == nil || !strings.Contains(runErr.Error(), tc.want) {
-				t.Fatalf("run error = %v, want %q", runErr, tc.want)
+			}); err != nil {
+				t.Fatalf("ralph --file %s: %v", filename, err)
 			}
-			var report runReport
-			if err := json.Unmarshal(out, &report); err != nil {
-				t.Fatalf("decode recovery report %q: %v", out, err)
-			}
-			if report.OK || !strings.Contains(report.Error, tc.want) {
-				t.Fatalf("recovery report = %#v", report)
-			}
-			got, err := os.ReadFile(filepath.Join(postsDir, filename))
+			args, err := os.ReadFile(filepath.Join(workDir, "tribunal-stdout.txt"))
 			if err != nil {
 				t.Fatal(err)
 			}
-			if string(got) != article {
-				t.Fatalf("failed recovery mutated --file article:\n%s", got)
+			if !strings.Contains(string(args), "tribunal args: "+filename) {
+				t.Fatalf("tribunal did not receive %s: %q", filename, args)
+			}
+			if got := strings.Contains(string(args), "--no-rewrite"); got != wantNoRewrite {
+				t.Fatalf("tribunal args = %q, want --no-rewrite=%t", args, wantNoRewrite)
+			}
+			// GP is score-only: the stamp normaliser must leave it untouched,
+			// while every other series gets the canonical pipeline block.
+			post, err := os.ReadFile(filepath.Join(postsDir, filename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stamped := strings.Contains(string(post), "pipelineUrl:"); stamped == wantNoRewrite {
+				t.Fatalf("pipeline stamp written = %t for %s, want %t:\n%s", stamped, filename, !wantNoRewrite, post)
+			}
+		})
+	}
+
+	resetGlobals()
+	cmd := buildRoot()
+	cmd.SetArgs([]string{"ralph", "--file", "../mp-20-example.mdx"})
+	if err := cmd.ExecuteContext(context.Background()); err == nil || !strings.Contains(err.Error(), "basename") {
+		t.Fatalf("path traversal filename error = %v, want a basename rejection", err)
+	}
+}
+
+// TestRunAndDeployRejectPrefixThatContradictsFile covers the
+// gp-pipeline-publish-integrity scenario「prefix 與檔案系列不一致」.
+func TestRunAndDeployRejectPrefixThatContradictsFile(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	slots := []string{"--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title"}
+	for _, tc := range []struct {
+		name, prefix, fileSeries string
+		args                     []string
+	}{
+		{name: "run GP prefix with MP file", prefix: "GP", fileSeries: "MP",
+			args: []string{"run", "--prefix", "GP", "--from-step", "translate", "--file", "mp-10-20260723-example.mdx", "--dry-run"}},
+		{name: "run MP prefix with GP file", prefix: "MP", fileSeries: "GP",
+			args: []string{"run", "--prefix", "MP", "--from-step", "translate", "--file", "gp-10-20260723-example.mdx", "--dry-run"}},
+		{name: "deploy GP prefix with MP pending file", prefix: "GP", fileSeries: "MP",
+			args: append([]string{"deploy", "--prefix", "GP", "--active-file", "mp-pending-20260723-author-title.mdx"}, slots...)},
+		{name: "deploy MP prefix with GP pending file", prefix: "MP", fileSeries: "GP",
+			args: append([]string{"deploy", "--prefix", "MP", "--active-file", "gp-pending-20260723-author-title.mdx"}, slots...)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resetGlobals()
+			workDir := filepath.Join(t.TempDir(), "never-created")
+			// A missing fake-provider spec fails loudly if a model route is built.
+			cmd := buildRoot()
+			cmd.SetArgs(append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...))
+			err := cmd.ExecuteContext(context.Background())
+			if err == nil || exitCodeFor(err) != 1 {
+				t.Fatalf("error = %v (exit %d), want an exit-1 ingress rejection", err, exitCodeFor(err))
+			}
+			for _, want := range []string{"--prefix " + tc.prefix, "(series " + tc.fileSeries + ")"} {
+				if !strings.Contains(err.Error(), want) {
+					t.Fatalf("error = %v, want both series named (%q)", err, want)
+				}
+			}
+			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
+				t.Fatalf("mismatched prefix created the work dir: %v", statErr)
 			}
 		})
 	}
 }
 
-func TestStandaloneGPDeployRejectsMissingManifestBeforeMutation(t *testing.T) {
-	resetGlobals()
-	root := makeFakeRepo(t)
-	installGPProjectionStub(t, root)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	filename := "gp-pending-20260815-author-title.mdx"
-	article := "---\ntitle: Title\nticketId: GP-PENDING\nlang: zh-tw\n---\n\nsource body\n"
-	mustWrite(t, filepath.Join(postsDir, filename), article)
-	workDir := t.TempDir()
-	mustWrite(t, filepath.Join(workDir, "source-tweet.md"), "complete source\n")
-	fakePath := filepath.Join(root, "fake-gp-roles.json")
-	writeCompleteFakeGPRoles(t, fakePath)
-	counterBefore, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("GU_LOG_DIR", root)
-
-	cmd := buildRoot()
-	cmd.SetArgs([]string{
-		"--fake-provider", fakePath, "--work-dir", workDir, "deploy", "--active-file", filename, "--prefix", "GP",
-		"--date-stamp", "20260815", "--author-slug", "author", "--title-slug", "title",
-	})
-	runErr := cmd.ExecuteContext(context.Background())
-	if runErr == nil || !strings.Contains(runErr.Error(), "missing GP publish manifest") {
-		t.Fatalf("standalone deploy error = %v", runErr)
-	}
-	counterAfter, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(counterBefore, counterAfter) {
-		t.Fatal("standalone GP deploy bumped counter before gate rejection")
-	}
-	got, err := os.ReadFile(filepath.Join(postsDir, filename))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != article {
-		t.Fatalf("standalone GP deploy mutated pending article before gate rejection:\n%s", got)
-	}
-}
-
-func TestStandaloneGPDeployBindsFreshManifestProfile(t *testing.T) {
-	root := makeFakeRepo(t)
-	installGPProjectionStub(t, root)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	articlePath := filepath.Join(postsDir, "gp-pending-20260815-author-title.mdx")
-	mustWrite(t, articlePath, "---\ntitle: Title\nticketId: GP-PENDING\nlang: zh-tw\n---\n\nsource body\n")
-	workDir := t.TempDir()
-	sourcePath := filepath.Join(workDir, "source-tweet.md")
-	mustWrite(t, sourcePath, "complete source\n")
-	writeFreshGPPublishManifest(t, root, workDir, sourcePath, articlePath)
-	fakePath := filepath.Join(root, "fake-gp-roles.json")
-	writeCompleteFakeGPRoles(t, fakePath)
-
-	rootState := &rootState{cfg: &config.Config{RepoRoot: root}, fakeProviderPath: fakePath}
-	pipelineState := pipeline.NewState()
-	pipelineState.Cfg = rootState.cfg
-	pipelineState.WorkDir = workDir
-	if err := bindGPDeployProfile(rootState, pipelineState); err != nil {
-		t.Fatalf("bind standalone GP deploy profile: %v", err)
-	}
-	if pipelineState.GPProfile != "fixture" || pipelineState.GPProfileSHA256 != preservation.SHA256([]byte("fixture")) {
-		t.Fatalf("unexpected standalone profile: %q %q", pipelineState.GPProfile, pipelineState.GPProfileSHA256)
-	}
-	if err := pipelineState.ValidateGPPublishManifest(context.Background(), articlePath); err != nil {
-		t.Fatalf("fresh manifest rejected after standalone profile binding: %v", err)
-	}
-	pipelineState.GPProfileSHA256 = preservation.SHA256([]byte("changed-profile"))
-	if err := pipelineState.ValidateGPPublishManifest(context.Background(), articlePath); err == nil {
-		t.Fatal("standalone deploy accepted a manifest from a changed runtime profile")
-	}
-}
-
+// TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations
+// resumes translation without --prefix: the file names the series (MP, and Lv
+// for the existing levelup- corpus) instead of the GP default
+// (openspec: gp-pipeline-publish-integrity「以既有非 GP 檔案恢復時沒帶 prefix」).
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
-	resetGlobals()
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	filename := "gp-10-20260723-recovery-roundtrip.mdx"
-	sourcePath := filepath.Join(postsDir, filename)
-	mustWrite(t, sourcePath, `---
+	for _, tc := range []struct {
+		filename string
+		ticketID string
+	}{
+		{filename: "mp-10-20260723-recovery-roundtrip.mdx", ticketID: "MP-10"},
+		{filename: "levelup-20260701-core-dump-anatomy.mdx", ticketID: "Lv-13"},
+	} {
+		t.Run(tc.filename, func(t *testing.T) {
+			resetGlobals()
+			root := makeFakeRepo(t)
+			postsDir := filepath.Join(root, "src", "content", "posts")
+			if err := os.MkdirAll(postsDir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			sourcePath := filepath.Join(postsDir, tc.filename)
+			mustWrite(t, sourcePath, `---
 title: "Recovery roundtrip"
-ticketId: GP-10
+ticketId: `+tc.ticketID+`
 translatedDate: "2026-04-11"
 translatedBy:
   model: "Old Translator"
@@ -896,18 +891,27 @@ lang: "zh-tw"
 ---
 中文內容。
 `)
-	sourceBefore, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fakePath := filepath.Join(root, "fake-provider.json")
-	mustWrite(t, fakePath, `{"model":"claude-opus-5","responses":[{"output":"---\ntitle: \"Recovery roundtrip\"\nticketId: GP-10\nlang: \"en\"\n---\nEnglish body.\n"}]}`)
-	t.Setenv("GU_LOG_DIR", root)
+			sourceBefore, err := os.ReadFile(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fakeSpec, err := json.Marshal(map[string]any{
+				"model": "claude-opus-5",
+				"responses": []map[string]string{{
+					"output": "---\ntitle: \"Recovery roundtrip\"\nticketId: " + tc.ticketID + "\nlang: \"en\"\n---\nEnglish body.\n",
+				}},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			fakePath := filepath.Join(root, "fake-provider.json")
+			mustWrite(t, fakePath, string(fakeSpec))
+			t.Setenv("GU_LOG_DIR", root)
 
-	binDir := t.TempDir()
-	gitMarker := filepath.Join(t.TempDir(), "git-called")
-	gitPath := filepath.Join(binDir, "git")
-	gitStub := `#!/bin/sh
+			binDir := t.TempDir()
+			gitMarker := filepath.Join(t.TempDir(), "git-called")
+			gitPath := filepath.Join(binDir, "git")
+			gitStub := `#!/bin/sh
 set -eu
 for arg in "$@"; do
   case "$arg" in
@@ -919,69 +923,74 @@ for arg in "$@"; do
 done
 exit 0
 `
-	if err := os.WriteFile(gitPath, []byte(gitStub), 0o755); err != nil {
-		t.Fatalf("write fake git: %v", err)
-	}
-	t.Setenv("GIT_MARKER", gitMarker)
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+			if err := os.WriteFile(gitPath, []byte(gitStub), 0o755); err != nil {
+				t.Fatalf("write fake git: %v", err)
+			}
+			t.Setenv("GIT_MARKER", gitMarker)
+			t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
-	cmd := buildRoot()
-	cmd.SetArgs([]string{
-		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
-		"run", "--from-step", "translate", "--file", filename, "--dry-run", "--legacy-shadow",
-	})
-	out, err := captureProcessStdout(t, func() error {
-		return cmd.ExecuteContext(context.Background())
-	})
-	if err != nil {
-		t.Fatalf("run command: %v", err)
-	}
-	var report runReport
-	if err := json.Unmarshal(out, &report); err != nil {
-		t.Fatalf("decode stdout JSON %q: %v", out, err)
-	}
-	want := "en-" + filename
-	if report.ENFilename != want {
-		t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
-	}
-	if report.TranslateModel != "Opus 5" {
-		t.Fatalf("translateModel = %q, want Opus 5", report.TranslateModel)
-	}
-	if report.TranslateHarness != "Claude Code CLI" {
-		t.Fatalf("translateHarness = %q, want Claude Code CLI", report.TranslateHarness)
-	}
-	if !report.DryRun {
-		t.Fatal("run report should preserve dryRun=true")
-	}
-	info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
-	if err != nil {
-		t.Fatalf("reported English file: %v", err)
-	}
-	if !info.Mode().IsRegular() {
-		t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
-	}
-	sidecar, err := os.ReadFile(filepath.Join(postsDir, report.ENFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{
-		`translatedBy:`,
-		`  model: "Opus 5"`,
-		`  harness: "Claude Code CLI"`,
-	} {
-		if !strings.Contains(string(sidecar), want) {
-			t.Errorf("sidecar missing %q:\n%s", want, sidecar)
-		}
-	}
-	sourceAfter, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(sourceAfter) != string(sourceBefore) {
-		t.Fatalf("dry-run translation mutated zh source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
-	}
-	if _, err := os.Stat(gitMarker); !os.IsNotExist(err) {
-		t.Fatalf("dry-run invoked git mutation (add/commit/push must remain unreachable): %v", err)
+			cmd := buildRoot()
+			cmd.SetArgs([]string{
+				"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "translate-work"),
+				"run", "--from-step", "translate", "--file", tc.filename, "--dry-run",
+			})
+			out, err := captureProcessStdout(t, func() error {
+				return cmd.ExecuteContext(context.Background())
+			})
+			if err != nil {
+				t.Fatalf("run command: %v", err)
+			}
+			var report runReport
+			if err := json.Unmarshal(out, &report); err != nil {
+				t.Fatalf("decode stdout JSON %q: %v", out, err)
+			}
+			if report.TicketID != tc.ticketID {
+				t.Fatalf("ticketId = %q, want %q from the resumed file", report.TicketID, tc.ticketID)
+			}
+			want := "en-" + tc.filename
+			if report.ENFilename != want {
+				t.Fatalf("enFilename = %q, want written file %q", report.ENFilename, want)
+			}
+			if report.TranslateModel != "Opus 5" {
+				t.Fatalf("translateModel = %q, want Opus 5", report.TranslateModel)
+			}
+			if report.TranslateHarness != "Claude Code CLI" {
+				t.Fatalf("translateHarness = %q, want Claude Code CLI", report.TranslateHarness)
+			}
+			if !report.DryRun {
+				t.Fatal("run report should preserve dryRun=true")
+			}
+			info, err := os.Lstat(filepath.Join(postsDir, report.ENFilename))
+			if err != nil {
+				t.Fatalf("reported English file: %v", err)
+			}
+			if !info.Mode().IsRegular() {
+				t.Fatalf("reported English path mode = %s, want regular file", info.Mode())
+			}
+			sidecar, err := os.ReadFile(filepath.Join(postsDir, report.ENFilename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, want := range []string{
+				`translatedBy:`,
+				`  model: "Opus 5"`,
+				`  harness: "Claude Code CLI"`,
+			} {
+				if !strings.Contains(string(sidecar), want) {
+					t.Errorf("sidecar missing %q:\n%s", want, sidecar)
+				}
+			}
+			sourceAfter, err := os.ReadFile(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(sourceAfter) != string(sourceBefore) {
+				t.Fatalf("dry-run translation mutated zh source:\nbefore:\n%s\nafter:\n%s", sourceBefore, sourceAfter)
+			}
+			if _, err := os.Stat(gitMarker); !os.IsNotExist(err) {
+				t.Fatalf("dry-run invoked git mutation (add/commit/push must remain unreachable): %v", err)
+			}
+		})
 	}
 }
 
@@ -1021,10 +1030,10 @@ func TestRunCommand_DryRunOmitsPrefilledMissingEnglishFile(t *testing.T) {
 	if err := os.MkdirAll(postsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	filename := "gp-10-20260723-ralph-failed.mdx"
+	filename := "mp-10-20260723-ralph-failed.mdx"
 	mustWrite(t, filepath.Join(postsDir, filename), `---
 title: "Ralph failed"
-ticketId: GP-10
+ticketId: MP-10
 lang: zh-tw
 ---
 中文內容。
@@ -1040,7 +1049,7 @@ lang: zh-tw
 	cmd := buildRoot()
 	cmd.SetArgs([]string{
 		"--json", "--fake-provider", fakePath, "--work-dir", filepath.Join(root, "ralph-work"),
-		"run", "--from-step", "ralph", "--file", filename, "--dry-run", "--legacy-shadow",
+		"run", "--from-step", "ralph", "--file", filename, "--dry-run",
 	})
 	out, err := captureProcessStdout(t, func() error {
 		return cmd.ExecuteContext(context.Background())

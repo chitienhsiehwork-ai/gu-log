@@ -344,12 +344,46 @@ func findClosingBacktickRun(line []byte, start, width int) int {
 	return -1
 }
 
+// seriesPrefixBySlug maps a post filename's leading slug to its ticket prefix.
+// New Lv files use lv-, while levelup- remains valid for the existing Lv
+// corpus.
+var seriesPrefixBySlug = map[string]string{
+	"gp":      "GP",
+	"mp":      "MP",
+	"sd":      "SD",
+	"lv":      "Lv",
+	"levelup": "Lv",
+}
+
+// SeriesFromFilename returns the ticket prefix (GP/MP/SD/Lv) named by a post
+// basename's leading series slug; an en- sidecar belongs to the same series.
+// Only that first slug is read, never the date/author/title slots. Retired or
+// unknown slugs get counter.ValidatePrefix's actionable taxonomy diagnostic,
+// so every CLI ingress reports them the same way.
+func SeriesFromFilename(filename string) (string, error) {
+	if filename == "" || filepath.Base(filename) != filename {
+		return "", fmt.Errorf("post filename must be a basename in src/content/posts/, got %q", filename)
+	}
+	stem := strings.TrimPrefix(strings.TrimSuffix(filename, ".mdx"), "en-")
+	seriesSlug, _, ok := strings.Cut(stem, "-")
+	if !ok || seriesSlug == "" {
+		return "", fmt.Errorf("filename %q is missing a canonical series prefix", filename)
+	}
+	prefix, canonical := seriesPrefixBySlug[seriesSlug]
+	if !canonical {
+		candidate := strings.ToUpper(seriesSlug)
+		if err := counter.ValidatePrefix(candidate); err != nil {
+			return "", fmt.Errorf("filename %q: %w", filename, err)
+		}
+		return "", fmt.Errorf("filename %q does not use the canonical lowercase slug for %s", filename, candidate)
+	}
+	return prefix, nil
+}
+
 // ValidateTranslationFilenames binds a zh-tw source filename and its optional
-// English output to one GP/MP/SD/Lv series. New Lv files use lv-, while
-// levelup- remains valid for the existing Lv corpus. Retired or unknown
-// prefixes are delegated to counter.ValidatePrefix so every CLI ingress emits
-// the same actionable taxonomy diagnostic instead of creating a legacy en-
-// sidecar. An explicit --en-file must preserve the canonical pair basename.
+// English output to one GP/MP/SD/Lv series (see SeriesFromFilename), so a
+// retired prefix cannot create a legacy en- sidecar. An explicit --en-file
+// must preserve the canonical pair basename.
 func ValidateTranslationFilenames(filename, enFilename string) (string, error) {
 	if filename == "" || filepath.Base(filename) != filename {
 		return "", fmt.Errorf("translate: --file must be a basename in src/content/posts/, got %q", filename)
@@ -357,28 +391,9 @@ func ValidateTranslationFilenames(filename, enFilename string) (string, error) {
 	if !strings.HasSuffix(filename, ".mdx") || strings.HasPrefix(filename, "en-") {
 		return "", fmt.Errorf("translate: --file must name a zh-tw .mdx post, got %q", filename)
 	}
-
-	seriesSlug, _, ok := strings.Cut(strings.TrimSuffix(filename, ".mdx"), "-")
-	if !ok || seriesSlug == "" {
-		return "", fmt.Errorf("translate: filename %q is missing a canonical series prefix", filename)
-	}
-	prefixBySlug := map[string]string{
-		"gp":      "GP",
-		"mp":      "MP",
-		"sd":      "SD",
-		"lv":      "Lv",
-		"levelup": "Lv",
-	}
-	prefix, canonical := prefixBySlug[seriesSlug]
-	if !canonical {
-		candidate := strings.ToUpper(seriesSlug)
-		if err := counter.ValidatePrefix(candidate); err != nil {
-			return "", fmt.Errorf("translate: filename %q: %w", filename, err)
-		}
-		return "", fmt.Errorf("translate: filename %q does not use the canonical lowercase slug for %s", filename, candidate)
-	}
-	if err := counter.ValidatePrefix(prefix); err != nil {
-		return "", fmt.Errorf("translate: filename %q: %w", filename, err)
+	prefix, err := SeriesFromFilename(filename)
+	if err != nil {
+		return "", fmt.Errorf("translate: %w", err)
 	}
 
 	if enFilename != "" {

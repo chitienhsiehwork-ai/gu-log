@@ -2,6 +2,8 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -82,44 +84,58 @@ func (s *State) stageEditorialContext() error {
 	return nil
 }
 
+// ErrGPPaused rejects GP writing, publishing, and ticket allocation while the
+// series is paused (openspec: gp-pipeline-publish-integrity). It states a
+// structural fact of this binary — the whole-article translation flow is
+// retired and no GP flow replaces it yet — rather than copying the site's
+// GP_SERIES_PAUSED flag. The commentary-format change brings GP back.
+var ErrGPPaused = errors.New("GP 暫停中: new GP posts are paused — whole-article translations need the source author's consent first, so gp-pipeline has no GP writing or publishing flow until the commentary format ships (openspec: editorial-charter)")
+
+// refuseGP returns ErrGPPaused, wrapped for step, when s would write or
+// publish GP. As in the CLI's series resolution, an existing post's filename
+// decides its series and Prefix only applies to a fresh article, so a
+// mismatched Prefix cannot carry a GP post past the pause. It stays out of
+// prepareExistingPost, which standalone translate calls with the default GP
+// Prefix.
+func (s *State) refuseGP(step string) error {
+	series := s.Prefix
+	if s.ExistingFile != "" {
+		var err error
+		if series, err = SeriesFromFilename(s.ExistingFile); err != nil {
+			return fmt.Errorf("%s: %w", step, err)
+		}
+	}
+	if series == "GP" {
+		return fmt.Errorf("%s: %w", step, ErrGPPaused)
+	}
+	return nil
+}
+
 type pipelineStep struct {
 	name string
 	fn   func(context.Context) error
 }
 
 func stepsForState(s *State) []pipelineStep {
-	steps := []pipelineStep{
+	return []pipelineStep{
 		{"fetch", s.Fetch},
 		{"dedup-url", s.DedupURL},
 		{"eval", s.Eval},
 		{"dedup", s.Dedup},
+		{"write", s.Write},
+		{"review", s.Review},
+		{"refine", s.Refine},
+		{"credits", s.Credits},
+		{"ralph", s.Ralph},
+		{"translate", s.Translate},
+		{"deploy", s.Deploy},
 	}
-	if s.Prefix == "GP" && !s.LegacyShadow {
-		return append(steps,
-			pipelineStep{"source-translate", s.SourceTranslate},
-			pipelineStep{"source-preservation", s.PreserveGP},
-			pipelineStep{"enrich", s.Enrich},
-			pipelineStep{"credits", s.Credits},
-			pipelineStep{"ralph", s.Ralph},
-			pipelineStep{"translate", s.Translate},
-			pipelineStep{"deploy", s.Deploy},
-		)
-	}
-	return append(steps,
-		pipelineStep{"write", s.Write},
-		pipelineStep{"review", s.Review},
-		pipelineStep{"refine", s.Refine},
-		pipelineStep{"credits", s.Credits},
-		pipelineStep{"ralph", s.Ralph},
-		pipelineStep{"translate", s.Translate},
-		pipelineStep{"deploy", s.Deploy},
-	)
 }
 
-// Run executes the full pipeline end-to-end. GP uses source-translate and
-// source-preservation gates; MP and the other series retain the existing
-// write-review-refine editorial flow.
-// honors s.FromStepInt so callers can resume partway through.
+// Run executes the full write-review-refine pipeline end-to-end and honors
+// s.FromStepInt so callers can resume partway through. GP has no flow while
+// it is paused, so Run refuses it before any snapshot, recovery hydration, or
+// step — the CLI ingress is not the only guard.
 //
 // Run is the single-invocation entrypoint of the pipeline. It
 // does NOT manage work-dir setup — call SetupWorkDir first — and does NOT
@@ -127,6 +143,9 @@ func stepsForState(s *State) []pipelineStep {
 // PrintSummary so the `run` subcommand can emit it in both human and
 // --json shapes.
 func Run(ctx context.Context, s *State) error {
+	if err := s.refuseGP("run"); err != nil {
+		return err
+	}
 	// Hydrate and validate an existing post before any recovery prompt runs.
 	// Otherwise review/refine would still see the fresh-run placeholder (for
 	// example GP-PENDING) and could rewrite an allocated article's identity.
@@ -192,6 +211,36 @@ func (s *State) RecordRunFailure(step string, runErr error) {
 	writeSnapshotBestEffort(s, step, "", "failed", errText)
 }
 
+// roleFailureVersion labels <role>-failure.json for humans; no tool parses it.
+const roleFailureVersion = "gp-pipeline-role-failure/v1"
+
+// RecordRoleFailure persists provider/profile failures before returning so a
+// resumed run has durable evidence instead of only ephemeral stderr.
+func (s *State) RecordRoleFailure(role string, runErr error) {
+	if s == nil || s.WorkDir == "" || runErr == nil {
+		return
+	}
+	_ = writeJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
+		"version":      roleFailureVersion,
+		"role":         role,
+		"error":        runErr.Error(),
+		"completed_at": time.Now().UTC(),
+	})
+}
+
+// writeJSON writes value as two-space indented JSON ending in a newline.
+func writeJSON(path string, value any) error {
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
+}
+
 // PrintSummary writes a human-readable pipeline summary to w, matching
 // the retired bash pipeline's Step 6 field layout. Used by the run
 // subcommand after Run returns.
@@ -205,7 +254,7 @@ func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "Title       : %s\n", nonEmpty(s.Title, "N/A"))
 	fmt.Fprintf(w, "Filename    : %s\n", nonEmpty(s.Filename, nonEmpty(s.ActiveFilename, "N/A (dry-run)")))
 	fmt.Fprintf(w, "Work dir    : %s\n", s.WorkDir)
-	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "source-translate", "source-preservation", "enrich", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
+	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
 		fmt.Fprintf(w, "%-7s time: %ds\n", name, s.Timings[name])
 	}
 }

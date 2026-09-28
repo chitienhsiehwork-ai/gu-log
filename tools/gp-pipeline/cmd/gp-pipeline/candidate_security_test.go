@@ -38,7 +38,7 @@ exit 99
 	} {
 		resetGlobals()
 		cmd := buildRoot()
-		cmd.SetArgs([]string{"run", rawURL, "--prefix", "GP"})
+		cmd.SetArgs([]string{"run", rawURL, "--prefix", "MP"})
 		err := cmd.Execute()
 		if err == nil || !strings.Contains(err.Error(), "invalid YouTube URL") {
 			t.Fatalf("run %s error = %v", rawURL, err)
