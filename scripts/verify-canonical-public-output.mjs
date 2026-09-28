@@ -502,6 +502,11 @@ function main() {
     feed: { content: readIfExists(path.join(DIST_DIR, 'api/feed.json')) ?? '{"articles":[]}' },
     navigationPages,
   });
+  if (!navigationPages.some((page) => page.name.endsWith('#onward'))) {
+    takedownErrors.push(
+      `no post page contains ${ONWARD_ZONE_START}; the onward-navigation takedown check would pass without checking anything`
+    );
+  }
   if (violations.length > 0) {
     console.error(`FAIL: ${violations.length} legacy public URL(s) found in build output:`);
     for (const violation of violations.slice(0, 50)) {
