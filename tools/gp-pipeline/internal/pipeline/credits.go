@@ -17,12 +17,9 @@ const PipelineURL = "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/too
 
 // PipelineEntry is one row of the translatedBy.pipeline block.
 type PipelineEntry struct {
-	Role           string
-	Provider       string
-	Model          string
-	Harness        string
-	ArtifactSHA256 string
-	Verdict        string
+	Role    string
+	Model   string
+	Harness string
 }
 
 // Credits is pipeline Step 4.6. It rewrites
@@ -138,17 +135,8 @@ func renderPipelineBlock(indentedKey string, entries []PipelineEntry) string {
 	b.WriteString(indentedKey + ":\n")
 	for _, e := range entries {
 		b.WriteString(childIndent + "- role: " + quoted(e.Role) + "\n")
-		if e.Provider != "" {
-			b.WriteString(childIndent + "  provider: " + quoted(e.Provider) + "\n")
-		}
 		b.WriteString(childIndent + "  model: " + quoted(e.Model) + "\n")
 		b.WriteString(childIndent + "  harness: " + quoted(e.Harness) + "\n")
-		if e.ArtifactSHA256 != "" {
-			b.WriteString(childIndent + "  artifactSha256: " + quoted(e.ArtifactSHA256) + "\n")
-		}
-		if e.Verdict != "" {
-			b.WriteString(childIndent + "  verdict: " + quoted(e.Verdict) + "\n")
-		}
 	}
 	return strings.TrimRight(b.String(), "\n")
 }

@@ -3,7 +3,6 @@ package llm
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -40,7 +39,7 @@ type ClaudeProvider struct {
 	// Contained selects the least-privilege invocation described above.
 	Contained bool
 	// Tools lists the built-in tools a Contained session may use. An empty
-	// list disables every tool (JSON-only roles).
+	// list disables every tool.
 	Tools       []string
 	actualModel ModelID
 }
@@ -152,9 +151,6 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 		"--model", c.modelFlag(),
 		"--output-format", "json",
 	}
-	if opts.JSONSchema != "" {
-		args = append(args, "--json-schema", opts.JSONSchema)
-	}
 	// The permission flags end with variadic tool lists. The prompt goes on
 	// stdin, so no trailing positional exists for them to swallow.
 	args = append(args, c.permissionArgs()...)
@@ -185,9 +181,6 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 	out := strings.TrimRight(string(res.Stdout), "\n")
 	parsed, ok := parseClaudeJSON(out)
 	if !ok {
-		if opts.JSONSchema != "" {
-			return "", errors.New("claude structured output: CLI did not return a JSON result")
-		}
 		return out, nil
 	}
 	// Prefer the top-level "model" field, but current Claude Code JSON omits it
@@ -209,13 +202,6 @@ func (c *ClaudeProvider) Run(ctx context.Context, prompt string, opts RunOptions
 			detail = "no error detail (subtype=" + parsed.Subtype + ")"
 		}
 		return "", fmt.Errorf("claude reported an error: %s", detail)
-	}
-	if opts.JSONSchema != "" {
-		structured := strings.TrimSpace(string(parsed.StructuredOutput))
-		if structured == "" || structured == "null" {
-			return "", errors.New("claude structured output: result has no structured_output")
-		}
-		return structured, nil
 	}
 	return strings.TrimRight(parsed.Result, "\n"), nil
 }
@@ -306,14 +292,13 @@ func (c *ClaudeProvider) modelFlag() string {
 }
 
 type claudeJSONOutput struct {
-	Type             string                     `json:"type"`
-	Subtype          string                     `json:"subtype"`
-	Result           string                     `json:"result"`
-	Errors           []json.RawMessage          `json:"errors"`
-	Model            string                     `json:"model"`
-	ModelUsage       map[string]modelUsageEntry `json:"modelUsage"`
-	IsError          bool                       `json:"is_error"`
-	StructuredOutput json.RawMessage            `json:"structured_output"`
+	Type       string                     `json:"type"`
+	Subtype    string                     `json:"subtype"`
+	Result     string                     `json:"result"`
+	Errors     []json.RawMessage          `json:"errors"`
+	Model      string                     `json:"model"`
+	ModelUsage map[string]modelUsageEntry `json:"modelUsage"`
+	IsError    bool                       `json:"is_error"`
 }
 
 // errorDetail joins the result text with every errors[] entry. Error results
