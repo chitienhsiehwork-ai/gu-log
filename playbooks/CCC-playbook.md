@@ -166,7 +166,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url>`。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；GP 暫停中，`--prefix` 預設的 GP 會在 ingress 被拒絕，所以一定要明確帶系列，user 要 GP 時先說明暫停、由 user 決定要不要換系列。
 
 ### pipeline 內建的 eval gate
 
@@ -191,14 +191,14 @@ intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，p
 
 ```bash
 # user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
-tools/gp-pipeline/gp-pipeline run <url>
+tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD|Lv>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
 tools/gp-pipeline/gp-pipeline fetch <url> --work-dir /tmp/gp-probe
 tools/gp-pipeline/gp-pipeline eval --source /tmp/gp-probe/source-tweet.md
 
 # Eval gate split/SKIP 但 user 堅持要寫 → 加 --force
-tools/gp-pipeline/gp-pipeline run <url> --force
+tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD|Lv> --force
 ```
 
 ### Sandbox 網路能力（2026-04-23 實測）
@@ -210,7 +210,7 @@ tools/gp-pipeline/gp-pipeline run <url> --force
 - **`x.com` / `twitter.com` 直接 curl**：會拿到 React shell（沒 prerender content）——所以 X 專用的 fetch 路徑走 `fetch-x-article.sh`（fxtwitter）而不是 raw curl。這跟「外網通不通」無關，是 X 自己 anti-bot
 - **`WebFetch` tool**：對某些 host 會被 upstream proxy 檔掉，curl 反而可以
 
-結論：user 授權寫作後，CCC 沙箱可以直接 `gp-pipeline run <url>`；fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
+結論：user 授權寫作後，CCC 沙箱可以直接 `gp-pipeline run <url> --prefix <系列>`；fetch + eval + dedup + write + review + refine + tribunal + deploy 整條都能在 CCC 跑完。
 
 ### 什麼時候才真的要 fallback 到手動 `claude -p`
 

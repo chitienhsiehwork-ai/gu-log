@@ -6,9 +6,7 @@
 
 ## GP source-preservation boundary
 
-`gp-*` 是明確例外：Tribunal 對 GP 只提供一般品質校準，不擁有來源正文的 rewrite authority。所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕。persona／narrative 低分可以誠實記錄並依 floor policy 發布，但不得補償或蓋過 gp-pipeline 的 source reviewer、natural-zh gate、canonical-body projection 與 freshness hard gates。
-
-若 GP hard gate 未通過、provider／runner 發生錯誤、缺少有效 verdict，或 source/body hash 已 stale，pipeline 必須停在 deploy 前。修復方式是回到原 workdir 的安全 recovery point 重跑相同角色，不是把 GP 送進通用 writer。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
+`gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕。persona／narrative 低分可以誠實記錄，但不得觸發改寫。GP 整篇翻譯流程已退役、GP 暫停收文，gp-pipeline 沒有 GP 發文流程；model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
 ## Writer candidate 的 frontmatter 邊界
 

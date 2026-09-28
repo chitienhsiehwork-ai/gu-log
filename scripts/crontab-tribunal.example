@@ -26,5 +26,7 @@ TRIBUNAL_LOG_DIR=/path/to/gu-log-logs
 # ─── Alternatively: run tribunal.sh directly on a specific file ───
 # 30 9 * * 1-5 TZ=Asia/Taipei bash "$GU_LOG_DIR/scripts/tribunal.sh" <filename.mdx> >> "$TRIBUNAL_LOG_DIR/tribunal.log" 2>&1
 
-# ─── GP pipeline invocation (Go binary, canonical as of Phase 4) ──────────
-# 0 10 * * 1-5 TZ=Asia/Taipei "$GU_LOG_DIR/tools/gp-pipeline/gp-pipeline" run <tweet_url> >> "$TRIBUNAL_LOG_DIR/gp-pipeline.log" 2>&1
+# ─── gp-pipeline invocation (Go binary, canonical as of Phase 4) ──────────
+# GP is paused (GP 暫停中) and rejected at ingress; --prefix defaults to GP, so
+# name the series explicitly (openspec: editorial-charter).
+# 0 10 * * 1-5 TZ=Asia/Taipei "$GU_LOG_DIR/tools/gp-pipeline/gp-pipeline" run <tweet_url> --prefix <MP|SD|Lv> >> "$TRIBUNAL_LOG_DIR/gp-pipeline.log" 2>&1
