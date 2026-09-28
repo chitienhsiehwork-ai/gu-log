@@ -63,3 +63,12 @@
   - 2026-09-28 controller 依額度改做小規模試跑：用 repo 的 Go 程式（`gp-pipeline stamp --file <草稿> --source <擷取檔>`，legacy profile，走 contained、不給工具的 aligner）對校準樣本 GP-184 導讀 r1 跑一次來源距離檢查；草稿、擷取與工作目錄都在 repo 外。真的 Claude（`claude-sonnet-5`）呼叫 2 次，structured output 兩次都解析成功，78 句導讀句全數出現。第一次配對 37 句、maxRun 2、占比 0.211 → 做第二次；第二次 33 句、maxRun 2、占比 0.209；聯集 39 句、占比 0.2243 → PASS，章寫進草稿、verify 通過（原文 186 句、2284 units；兩次呼叫共約 3 分鐘）。這個 sandbox 的 claude CLI 靠環境變數登入，contained 呼叫只帶 HOME／PATH，所以試跑在 PATH 前放了只在 scratchpad 的 shim 補回登入用的環境變數，參數與 prompt 照 gp-pipeline 組的原樣。沒涵蓋：完整 `run --dry-run` 的寫作、改寫迴圈與英文逐字檢查。
 - [ ] 10.3 archive：確認 `retire-gp-translation-pipeline` 已 archive、分支已 rebase；`openspec archive gp-commentary-format` 沒有 "not in the current spec" 警告；移除 `quality/brand-taxonomy-residual-allowlist.json` 裡本 change 的 exact exception，再跑 `npm run -s taxonomy:check`；直接改 `openspec/specs/editorial-charter/spec.md` 的 Purpose（GP 改成導讀、不再寫「翻譯忠實邊界」）；`openspec validate --specs --strict` 通過
 - [ ] 10.4 轉 ready、等 Codex auto-review、掛 auto-merge；上線後 smoke：`/gu-log-picks` 與 `/en/gu-log-picks` 回 200 並顯示中性空狀態、首頁 GP 區塊正常、GP-1 文章頁仍可讀；在 chat 回報 production URL
+
+## 11. 實作審查後的修正（正確性與簡潔度兩軌，0 blocking）
+
+- [x] 11.1 投影只看文章自己（spec 1072a1f0）：站內連結只在文字剛好是一個 ticket 編號時不進投影，`ticket: 標題` 等其他文字照樣計分；inject-related-posts 插入的延伸閱讀改用形狀辨識（測試直接跑真的 inject-related-posts，插入前後投影相同）；拿掉 `loadPostIndex` 與 CLI／Go 的 `--posts-dir`；驗章失敗訊息改成投影或 `sourceUrl` 跟 `subjectSha256` 對不上。測試：被連結的文章改標題、下架、被刪，GP 的章仍有效；`ticket: 標題` 連結文字改字讓指紋改變；固定指紋回歸值照實更新（fixture 內文的 `ticket: 標題` 連結文字現在進投影）
+- [x] 11.2 pre-commit 對每個 staged 的文章檔跑 `source-distance.mjs verify`，content gate 放過的只改術語、連結或後台 frontmatter 的修改也驗；verify 的錯誤同時寫 stderr；hook 測試涵蓋「只改連結的 GP 跳過分數 gate 但照樣驗章、驗章失敗就擋」
+- [x] 11.3 translate 由程式把英文檔的 `sourceUrl` 還原成繁中檔的值（跟 `translatedBy` 一樣），測試涵蓋模型改掉與漏掉兩種情況
+- [x] 11.4 「aligner pin 不能等於寫手 pin」只留 `llm.AlignerPin` 與它的 Go 測試：拿掉 router 的重複比對、兩支 shell 測試的對應案例與只有測試在用的 `source-aligner` 別名；`routing.go` 的 aligner 分支不再拿同一個 agent 檔跟自己比
+- [x] 11.5 簡潔度收尾：lib 的 `policy` 參數改讀常數、lib 外沒人用的 export 收回；verify 輸出與 `StampTarget` 拿掉沒人讀的欄位、`required` 的重複判斷；拿掉 `sourceDistance` 的 Zod schema；三個 vitest 檔的「有效章」fixture 抽成 `tests/helpers/source-distance-stamp.ts`；`run --help`／`stamp --help` 的 exit code 與改寫輪數從常數組字、help contract 測試比對常數，SKILL 的 exit code 表改成指向 `run --help`；`englishSkipped` 改成 CLI 布林旗標、清除可以重跑，Go 不再比對 YAML 字串；stamp 的 repo 內路徑檢查改用 candidate 的 `pathWithin`（兩邊先解 symlink）；`claude_test.go` 改用 `AgentModelPin`；「章不存配對明細」改餵完整計分結果；刪掉只驗 `MaxWaits == 0` 的測試
+- [x] 11.6 design 風險段記下 MDX 運算式與元件屬性不進投影的已知限制（v1 不處理，2c 再評估）
