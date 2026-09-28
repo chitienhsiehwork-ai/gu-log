@@ -53,7 +53,7 @@ Lv SHALL 支援兩種編輯 mode：
 
 `Lv-guided-reading` SHALL 用 Lv 拆解一篇又長又難或很密的 source article。在此 mode 中，文章 SHALL 在開頭 cite source ref，讓 coworker-floor reader 想追原文時一眼看得到。
 
-Lv-guided-reading SHALL 落在 SD 與 GP 中間：它是在「教」這篇 source，不是在翻譯它。它 MAY 只挑有用的一塊、簡化並大幅重組；它 SHALL NOT 被要求 cover 整篇 source。
+Lv-guided-reading 的讀者任務是分步學會這篇 source：它是在「教」，不是翻譯，也不是 GP 導讀（GP 帶讀者知道這篇值不值得讀、gu-log 怎麼看，再回原文讀）。它 MAY 只挑有用的一塊、簡化並大幅重組；它 SHALL NOT 被要求 cover 整篇 source。
 
 #### Scenario: Lv-original has no source fidelity obligation
 
@@ -78,7 +78,7 @@ Lv-guided-reading SHALL 落在 SD 與 GP 中間：它是在「教」這篇 sourc
 
 - **WHEN** Lv-guided-reading 轉述 source 說了什麼
 - **THEN** 那句話 SHALL 保留 source 意思
-- **AND** 不得因為 Lv 比 GP 自由，就扭曲掛在人家名下的 claim
+- **AND** 不得因為 Lv 可以大幅重組，就扭曲掛在人家名下的 claim
 
 #### Scenario: Lv-guided-reading labels gu-log extensions
 
@@ -92,7 +92,7 @@ Lv-guided-reading SHALL 落在 SD 與 GP 中間：它是在「教」這篇 sourc
 
 gu-log SHALL 使用以下四系列一句話定位：
 
-- GP = ShroomDog 選的外部好文，由來源作者擁有正文聲音，忠實翻譯並加 MoguNote commentary
+- GP = ShroomDog 精選導讀：ShroomDog 挑的外部好文，由 Mogu 用自己的話講重點、加上 gu-log 的看法，再帶讀者回原文
 - MP = Mogu 消化單一主要來源後，由 Mogu 擁有正文聲音並寫成自己的 source-grounded article
 - SD = ShroomDog 原創 essay，沒有 source fidelity 義務；ShroomDogNote 是 user 本人聲音
 - Lv = 原創入門教學，類比扛概念；`Lv-guided-reading` 以教會讀者理解 source 為主要 reader job
@@ -100,8 +100,8 @@ gu-log SHALL 使用以下四系列一句話定位：
 #### Scenario: GP identity is cited
 
 - **WHEN** doc、prompt 或 judge 描述 GP
-- **THEN** 它 SHALL 把 GP 描述為 ShroomDog-selected external good writing with faithful translation plus MoguNote commentary
-- **AND** SHALL NOT 把 GP 描述成自由改寫
+- **THEN** 它 SHALL 把 GP 描述為 ShroomDog 挑選來源、由 Mogu 撰寫的導讀
+- **AND** SHALL NOT 把 GP 描述成來源文章的翻譯或完整摘要
 
 #### Scenario: MP identity is cited
 
@@ -123,7 +123,7 @@ gu-log SHALL 使用以下四系列一句話定位：
 
 ### Requirement: MOBA register MUST follow voice, not series
 
-MOBA 味 SHALL 跟著聲音走，不跟著系列走。Mogu 擁有聲音的 MP body 與 MoguNote、SD、Lv SHALL 被允許使用 MOBA flavor；來源作者擁有聲音的 GP body SHALL 保持素顏，不得因站內 persona 沾上外加 MOBA flavor。
+MOBA 味 SHALL 跟著聲音走，不跟著系列走。Mogu 擁有聲音的 GP 導讀、MP body 與 MoguNote，以及 SD、Lv SHALL 被允許使用 MOBA flavor。直接引用的來源原話仍屬於來源作者，SHALL 保持素顏，不得因站內 persona 沾上外加 MOBA flavor。
 
 在作者優先北極星下，深 MOBA 詞，包含 Vainglory-specific terms，SHALL 被允許使用。On-site MOBA glossary 上線前，非顯而易見的深詞 SHALL 在當下自然解釋，或 SHALL 改用較廣、陌生同事能懂的概念。Glossary 上線後，每個非顯而易見的深詞 SHALL 能 link 到該站內 glossary。
 
@@ -131,17 +131,17 @@ MOBA 味 SHALL 跟著聲音走，不跟著系列走。Mogu 擁有聲音的 MP bo
 
 #### Scenario: translated body remains plain
 
-- **WHEN** GP body 翻譯 source claim
-- **THEN** translated body SHALL 保持 plain
+- **WHEN** 文章翻譯並直接引用來源的原話
+- **THEN** 引文的譯文 SHALL 保持 plain
 - **AND** SHALL NOT 加入 MOBA-flavored wording、玩笑或外加類比
-- **AND** 這類 commentary SHALL 改放進 MoguNote
+- **AND** Mogu 的吐槽與類比 SHALL 放在引文之外
 
 #### Scenario: Mogu voice may use MOBA flavor
 
-- **WHEN** MP body 使用 Mogu 的類比、幽默或 MOBA flavor 建立自己的論點
+- **WHEN** GP 導讀或 MP body 使用 Mogu 的類比、幽默或 MOBA flavor 建立自己的論點
 - **THEN** 該寫法 SHALL 被允許
 - **AND** SHALL NOT 因它出現在 body 而非 MoguNote 就判 commentary separation fail
-- **AND** factual premise 與來源歸因仍 SHALL 遵守 MP grounding contract
+- **AND** factual premise 與來源歸因仍 SHALL 遵守 MP grounding contract，GP 導讀適用同一套規則
 
 #### Scenario: deep terms remain readable before glossary launch
 
@@ -211,42 +211,6 @@ Glossary terminology normalization SHALL 只改變「怎麼稱呼同一個概念
 - **THEN** writer SHALL 使用符合該脈絡的自然詞
 - **AND** SHALL NOT 為了套用 `Agent` glossary 而把不同概念誤標成 `Agent`
 - **AND** 技術中介或轉發比喻 MAY 使用獨立的 `Proxy` glossary term
-
-### Requirement: GP body MUST be faithful translation
-
-GP body SHALL 讓來源作者以自然台灣中文說原本那篇文章。忠實翻譯 SHALL NOT 等於逐字翻譯；writer SHALL 保留 source 的 voice owner、人稱、論證順序、段落關係、主張強弱、條件、hedge、caveat、限制、證據、語氣、情緒與自然停點。writer SHALL 被允許為自然繁中調整句法、切句、合句與局部段落邊界，但 SHALL NOT 因為 source 平淡、線性或不像 gu-log 而摘要、自由重排、重建骨架或改寫成另一篇 editorial。
-
-所有 gu-log 意見、吐槽、玩笑、外加類比與 commentary SHALL 進 MoguNote，SHALL NOT 塞進 GP body。gu-log references 與 glossary SHALL 只作為 navigation layer，不得成為重寫 source prose 的理由。
-
-#### Scenario: natural sentence-level changes preserve source spine
-
-- **WHEN** source 句法逐字搬成中文會不自然
-- **THEN** GP body SHALL 被允許切句、合句、調整語序或改用自然台灣中文
-- **AND** voice owner、人稱、主張、條件、語氣與段落關係 SHALL 仍可辨識為 source 本身
-
-#### Scenario: first-person source does not become third-person editorial
-
-- **WHEN** source 是作者用第一人稱講述自己的經驗與判斷
-- **THEN** GP body SHALL 保留第一人稱
-- **AND** SHALL NOT 改成第三人稱品牌旁白或「寫這篇文章的人」式轉述
-
-#### Scenario: source structure remains the default
-
-- **WHEN** source 的文章順序在繁中仍然可讀
-- **THEN** GP body SHALL 保留原論證與敘事順序
-- **AND** SHALL NOT 為了製造 story arc、hook、spine 或 callback 而重建文章
-
-#### Scenario: plain inventory remains source-aligned
-
-- **WHEN** source 包含重複專名、機械 inventory 或低價值實作細節
-- **THEN** GP body SHALL 保留其項目、關係與位置
-- **AND** SHALL NOT 以低價值為由省略非 slop 材料
-
-#### Scenario: GP author test rejects invented meaning
-
-- **WHEN** GP body 讓 source 作者看起來主張了他沒講過的事實、結論、因果或信心水準
-- **THEN** 該片段 SHALL fail 原作者測試
-- **AND** writer SHALL 在發布前恢復 source fidelity，或把 gu-log 外加材料移進 MoguNote
 
 ### Requirement: MP body MUST be Mogu-authored and source-grounded
 
@@ -349,7 +313,7 @@ MoguNote SHALL 被允許用 Mogu 第一人稱表達反應與立場、描述實�
 
 ### Requirement: Series selection MUST use reader job and voice ownership
 
-gu-log SHALL 依固定 precedence 分流：先判斷主要 reader job 是否為分步教會讀者理解概念或來源；若是，文章 SHALL 使用 Lv。只有文章不屬於 Lv 時，才 SHALL 依正文 voice owner 區分其餘系列：GP 由來源作者擁有正文聲音；MP 由 Mogu 擁有正文聲音；SD 由 ShroomDog 擁有正文聲音。來源媒介、長短或是否引用外部資料 SHALL NOT 單獨決定系列。
+gu-log SHALL 依固定 precedence 分流：先判斷主要 reader job 是否為分步教會讀者理解概念或來源；若是，文章 SHALL 使用 Lv。只有文章不屬於 Lv 時，才 SHALL 依正文 voice owner 與來源由誰挑選區分其餘系列：SD 由 ShroomDog 擁有正文聲音；GP 與 MP 都由 Mogu 擁有正文聲音，GP 是 ShroomDog 挑選來源、帶讀者看重點與 gu-log 的看法再回原文的導讀，MP 是 Mogu 以來源為材料、提出自己主張的文章。來源媒介、長短或是否引用外部資料 SHALL NOT 單獨決定系列。
 
 #### Scenario: teaching a source routes to Lv
 
@@ -377,6 +341,13 @@ gu-log SHALL 依固定 precedence 分流：先判斷主要 reader job 是否為�
 - **AND** 主要 reader job 是分步教會讀者理解概念或來源
 - **THEN** 文章 SHALL 使用 Lv
 - **AND** SHALL NOT 只因 voice owner 是 ShroomDog 而改用 SD
+
+#### Scenario: ShroomDog-picked source routes to GP
+
+- **WHEN** ShroomDog 挑選一篇外部文章，要 gu-log 帶讀者看重點與 gu-log 的看法
+- **AND** 文章的主要 reader job 不是分步教會讀者理解概念或來源
+- **THEN** 文章 SHALL 使用 GP
+- **AND** SHALL 遵守 GP 導讀格式，並帶 `source-distance-stamp` 定義的來源距離章
 
 ### Requirement: Reader-visible article content MUST exclude unapproved emoji
 
@@ -447,17 +418,24 @@ pre-commit 與 CI SHALL 使用同一個 deterministic policy implementation，�
 
 ### Requirement: GP 整篇翻譯 MUST 先取得來源作者同意才可公開
 
-GP 是來源文章的整篇翻譯，屬於改作。GP 翻譯 SHALL 只在取得來源作者對整篇翻譯的同意之後公開。沒有同意紀錄的既有 GP 翻譯 SHALL 依 `post-takedown` 下架成墓碑頁。
+GP 整篇翻譯屬於改作，SHALL 只在取得來源作者對整篇翻譯的同意之後公開；gp-pipeline 目前不提供整篇翻譯流程（見 `gp-source-preservation` 的退役紀錄）。沒有同意紀錄的既有 GP 翻譯 SHALL 依 `post-takedown` 下架成墓碑頁。
 
-在後續的導讀新格式 change 重新定義 GP 之前，GP SHALL 暫停收新文：pre-commit 與 CI SHALL 擋下任何新增的 GP 文章（含 `GP-PENDING`），GP 系列頁與首頁的 GP 區塊 SHALL 顯示改版空狀態，不列出任何文章。自寫示範文 GP-1 不是第三方文章的翻譯，SHALL NOT 被下架，但暫停期間不列在 GP 系列頁與首頁。
+GP SHALL 以 ShroomDog 精選導讀的格式發布（見「GP body MUST be a Mogu-written reading guide」）。有外部來源的 GP 文章 SHALL 帶有效的來源距離章（見 `source-distance-stamp`）；pre-commit 與 CI 以章把關，SHALL NOT 再因為系列是 GP 就擋下新文章。
 
-本要求 SHALL NOT 改寫 GP 的系列身份定義，也 SHALL NOT 限制 MP、SD 或 Lv 的寫作與發布。
+GP 系列頁與首頁的 GP 區塊 SHALL 只列出公開的 GP 導讀；沒有任何公開導讀時，SHALL 顯示中性的空狀態，不宣稱 GP 暫停或改版中。自寫示範文 GP-1 不是第三方文章的翻譯，SHALL NOT 被下架，也 SHALL NOT 列在 GP 系列頁與首頁。
+
+本要求 SHALL NOT 限制 MP、SD 或 Lv 的寫作與發布。
 
 #### Scenario: 新 GP 草稿
 
-- **WHEN** 一個變更新增 `GP-PENDING` 或 `GP-N` 文章
+- **WHEN** 一個變更新增有外部來源的 `GP-PENDING` 或 `GP-N` 文章，但文章沒有有效的來源距離章
 - **THEN** pre-commit 與 CI SHALL 失敗
-- **AND** 診斷 SHALL 指出 GP 需要來源作者同意、目前暫停收新文
+- **AND** 診斷 SHALL 指出要用 gp-pipeline 產生導讀或重新蓋章
+
+#### Scenario: 帶有效章的 GP 導讀
+
+- **WHEN** 一個變更新增 GP 導讀與它的英文版，兩個檔案都帶有效的來源距離章
+- **THEN** pre-commit 與 CI SHALL NOT 因為系列是 GP 而失敗
 
 #### Scenario: 既有 GP 翻譯沒有同意紀錄
 
@@ -466,11 +444,53 @@ GP 是來源文章的整篇翻譯，屬於改作。GP 翻譯 SHALL 只在取得�
 
 #### Scenario: 讀者開啟 GP 系列頁
 
-- **WHEN** 讀者在 GP 暫停期間開啟 `/gu-log-picks` 或 `/en/gu-log-picks`
-- **THEN** 頁面 SHALL 回 200 並顯示改版空狀態「GP 正在改版：以後這裡會是 ShroomDog 精選的導讀」或對應的英文句
-- **AND** 頁面 SHALL NOT 列出任何文章或墓碑連結
+- **WHEN** 讀者開啟 `/gu-log-picks` 或 `/en/gu-log-picks`
+- **THEN** 頁面 SHALL 回 200，只列出公開的 GP 導讀
+- **AND** 頁面 SHALL NOT 列出墓碑或 GP-1
+- **AND** 沒有公開導讀時，頁面 SHALL 顯示中性的空狀態，SHALL NOT 宣稱 GP 暫停或改版中
 
 #### Scenario: 其他系列不受影響
 
 - **WHEN** 一個變更新增或修改 MP、SD 或 Lv 文章
 - **THEN** 本要求 SHALL NOT 擋下該變更
+
+### Requirement: GP body MUST be a Mogu-written reading guide
+
+GP 正文 SHALL 是 Mogu 為 ShroomDog 挑選的單一主要來源寫的導讀：讀者任務是知道這篇來源有什麼值得看、gu-log 怎麼看，然後回去讀原文。正文聲音 owner SHALL 是 Mogu。ShroomDog 本人的看法 SHALL 只放在 `ShroomDogNote`，內容 SHALL 來自 ShroomDog 本人；自動化 SHALL NOT 產生或代寫 `ShroomDogNote`。
+
+GP 導讀 SHALL 包含：開頭交代來源與值得讀的理由；用 Mogu 自己的話講重點；gu-log 的評論或看法；結尾帶讀者回原文。GP 導讀 SHALL NOT 翻譯整段原文、照原文順序一句對一句轉述，或重講過多原文；這三件事由 `source-distance-stamp` 的章判定，writer 與 reviewer SHALL NOT 另訂門檻。標題與摘要 SHALL 由 Mogu 自己寫，SHALL NOT 直譯原文標題。
+
+GP 保留的來源主張 SHALL 遵守「MP grounding MUST preserve claim closure and attribution」的 claim closure 與歸屬規則，導讀對來源主旨的描述 SHALL NOT 扭曲原意。MoguNote 是選配 aside，Mogu 的核心看法 MAY 直接寫在正文。
+
+Tribunal SHALL 以 MP 的評分規則評 GP 導讀，只有兩個差異：GP 正文只評分、不改寫（見 `gp-source-preservation`）；`ShroomDogNote` 視為 ShroomDog 本人的聲音，不當成 Mogu persona 評分。
+
+#### Scenario: 導讀帶讀者回原文
+
+- **WHEN** pipeline 組裝 GP 的 write 或 refine prompt
+- **THEN** prompt SHALL 要求開頭交代來源與值得讀的理由
+- **AND** prompt SHALL 要求結尾帶讀者回原文
+
+#### Scenario: 照順序轉述不算導讀
+
+- **WHEN** 草稿照原文順序一句一句轉述，或重講了原文大部分內容
+- **THEN** 來源距離章 SHALL 判定不通過
+- **AND** writer SHALL 改寫成重點加上 gu-log 的看法，SHALL NOT 只換字
+
+#### Scenario: 來源主張不改掛到 Mogu 名下
+
+- **WHEN** 導讀轉述來源作者的主張
+- **THEN** 讀者 SHALL 看得出那是來源作者的主張，條件、hedge 與信心水準 SHALL 保留
+- **AND** SHALL NOT 改寫成 Mogu 或 gu-log 自己的看法，gu-log 的推論也 SHALL NOT 掛到原作者名下
+
+#### Scenario: 自動化輸出 ShroomDogNote
+
+- **WHEN** 寫作或改寫步驟的輸出含 `ShroomDogNote`
+- **THEN** 該步驟 SHALL 失敗
+- **AND** 這段輸出 SHALL NOT 寫進文章
+
+#### Scenario: Tribunal 評 GP 導讀
+
+- **WHEN** Tribunal 評一篇 GP 導讀
+- **THEN** 評審 SHALL 套用 MP 的評分規則
+- **AND** SHALL NOT 以翻譯完整度、來源順序或來源作者聲音的保真度評分
+- **AND** SHALL NOT 改寫正文

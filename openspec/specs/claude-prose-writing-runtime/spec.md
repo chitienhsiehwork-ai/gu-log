@@ -7,11 +7,11 @@
 
 ### Requirement: Mogu 撰寫與改寫文章 SHALL 一律使用 Claude 模型
 
-gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。凡是會產生或改寫讀者可見文章字句的自動化步驟，SHALL 一律呼叫 Claude 模型。範圍包含英文 sidecar 翻譯、MP write 與 refine，以及 Tribunal 評審不過後的背景改寫與 final-build 修復；同時會審查又會改字的步驟也屬於寫作步驟。
+gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。凡是會產生或改寫讀者可見文章字句的自動化步驟，SHALL 一律呼叫 Claude 模型。範圍包含英文 sidecar 翻譯、MP 與 GP 的 write 與 refine（含來源距離沒過之後的改寫），以及 Tribunal 評審不過後的背景改寫與 final-build 修復；同時會審查又會改字的步驟也屬於寫作步驟。
 
 寫作步驟的 model SHALL 只來自 owner pin 的 Claude 模型 SSOT：gp-pipeline 的 `ClaudeOpusPinned` 與 `.claude/agents/tribunal-writer.md` 的 `model:` frontmatter，兩者 SHALL 保持一致。Runtime 設定檔 SHALL NOT 為寫作步驟另存 model 或 reasoning 副本。
 
-寫作步驟 SHALL NOT 使用 Codex、Grok 或其他模型，也 SHALL NOT 在 Claude 不可用、登入失效、額度不足或 pin 不一致時靜默改用其他模型或供應端；這些情況 SHALL 在寫入文章前明確失敗並保留可行動的錯誤。只打分或審查、不寫文章字句的評審（Tribunal 評審、eval、review）不受本 requirement 約束。
+寫作步驟 SHALL NOT 使用 Codex、Grok 或其他模型，也 SHALL NOT 在 Claude 不可用、登入失效、額度不足或 pin 不一致時靜默改用其他模型或供應端；這些情況 SHALL 在寫入文章前明確失敗並保留可行動的錯誤。只打分或審查、不寫文章字句的評審（Tribunal 評審、eval、review）不受本 requirement 約束。來源距離的配對員（aligner）只輸出句子配對、不寫文章字句，也不是寫作步驟；它的模型規則見 `source-distance-stamp`。
 
 #### Scenario: VM runtime profile 為寫作步驟選用 Claude 模型
 
