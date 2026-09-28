@@ -804,6 +804,22 @@ for (const line of ALLOWLIST_RAW.split('\n')) {
   }
 }
 
+// ── Units glued to a number ────────────────────────────────────────
+// A number glued to one of these units (13px, 60fps, 12.4pp) is a measured
+// value, not decorative English, so the checker reads the pair as one token
+// and passes it like any digit-and-letter token (GPT-5.4, K2.5). A unit on its
+// own (「px 很重要」) and any other word glued to a number (5days, 3tips) are
+// still checked. Units the allowlist above accepts on their own (ms, KB, Hz)
+// pass either way and are not repeated here. This list is part of the
+// accepted-English boundary, so extending it follows the ownership rule in the
+// header.
+const NUMBER_UNITS = ['px', 'pt', 'fps', 'pp', 'nm', 'cc', 'bit', 'Mbps'];
+const WORD_RE = new RegExp(
+  `\\d+(?:\\.\\d+)?(?:${NUMBER_UNITS.join('|')})(?![A-Za-z0-9'-])` +
+    `|[A-Za-z][A-Za-z0-9'-]*\\.?[A-Za-z0-9]*`,
+  'g'
+);
+
 // ── Glossary terms ─────────────────────────────────────────────────
 
 const GLOSSARY_TERMS = new Set();
@@ -955,17 +971,9 @@ function checkText(raw, filePath = '') {
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
     const mLine = maskedLines[i];
-    // Match English words: latin letters with optional digits/hyphens/dots/apostrophes.
-    // A number glued to a short unit (13px, 16ms, 4KB, 60fps) is a measured
-    // value, not decorative English, so it is matched whole and passes like any
-    // digit-and-letter token (GPT-5.4, K2.5); matching from the first letter
-    // used to split it and flag the bare unit. A unit on its own (「px 很重要」)
-    // or a word glued to a number (5minutes) is still checked.
-    const matches = [
-      ...mLine.matchAll(
-        /\d+(?:\.\d+)?[A-Za-z]{1,4}(?![A-Za-z0-9'-])|[A-Za-z][A-Za-z0-9'-]*\.?[A-Za-z0-9]*/g
-      ),
-    ];
+    // Match English words (latin letters with optional digits/hyphens/dots/
+    // apostrophes) and numbers glued to a unit (see NUMBER_UNITS).
+    const matches = [...mLine.matchAll(WORD_RE)];
     for (const m of matches) {
       const word = m[0];
       if (!isAllowed(word)) {

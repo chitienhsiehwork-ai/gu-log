@@ -262,10 +262,16 @@ describe('check-jingjing.checkFile', () => {
 
   it('still flags a bare unit and an English word glued to a number', () => {
     const filepath = tmpPath('jj-units-flag.mdx');
-    fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n先把 px 換掉，再等 5minutes 看看。\n`);
+    fs.writeFileSync(
+      filepath,
+      `---\nlang: zh-tw\n---\n先把 px 換掉，再等 5mins、5minutes，花 5days 整理 3tips。\n`
+    );
     expect(jj.checkFile(filepath).violations.map((v: { word: string }) => v.word)).toEqual([
       'px',
+      'mins',
       'minutes',
+      'days',
+      'tips',
     ]);
   });
 
