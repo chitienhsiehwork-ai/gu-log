@@ -1341,3 +1341,51 @@ failure_slug_classification="$(
 [ "$failure_slug_classification" = "unknown" ] \
   || fail "failure language inside a target filename must not make an informational line actionable"
 pass "classifier removes exact target paths before inspecting diagnostic markers"
+
+# A PASS earned before a takedown must never be published (openspec:
+# post-takedown): the runtime checkout still holds the old text, but origin/main
+# now has the tombstone, so the publisher skips it without a branch or PR.
+takedown_origin="$TMP/takedown-origin.git"
+takedown_seed="$TMP/takedown-seed"
+takedown_runtime="$TMP/takedown-runtime"
+takedown_worktree="$TMP/takedown-worktree"
+git clone --bare "$origin" "$takedown_origin" >/dev/null 2>&1
+git clone "$takedown_origin" "$takedown_runtime" >/dev/null 2>&1
+git -C "$takedown_runtime" checkout -b tribunal-takedown-runtime origin/main >/dev/null 2>&1
+mkdir -p "$takedown_runtime/scripts" "$takedown_runtime/.score-loop/state"
+cp "$ROOT_DIR/scripts/tribunal-publisher.sh" "$ROOT_DIR/scripts/tribunal-helpers.sh" \
+  "$runtime/scripts/test-validate-hook.sh" "$takedown_runtime/scripts/"
+printf 'Runtime rewrite that passed Tribunal before the takedown.\n' \
+  >> "$takedown_runtime/src/content/posts/gp-2-test.mdx"
+printf '{"gp-2-test.mdx": {"status": "PASS", "tribunalVersion": 8}}\n' \
+  > "$takedown_runtime/.score-loop/state/tribunal-progress.json"
+git clone "$takedown_origin" "$takedown_seed" >/dev/null 2>&1
+git -C "$takedown_seed" checkout -q -B main origin/main
+git -C "$takedown_seed" config user.email test@example.invalid
+git -C "$takedown_seed" config user.name "Tribunal Publisher Test"
+for post in gp-2-test.mdx en-gp-2-test.mdx; do
+  printf -- '---\nticketId: GP-2\nstatus: "taken-down"\ntakenDownAt: "2026-09-28"\n---\n' \
+    > "$takedown_seed/src/content/posts/$post"
+done
+git -C "$takedown_seed" commit -qam "take down GP-2"
+git -C "$takedown_seed" push origin HEAD:main >/dev/null 2>&1
+takedown_out="$(cd "$takedown_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 \
+  TRIBUNAL_PUBLISHER_SKIP_BUILD=1 \
+  TRIBUNAL_PUBLISHER_VALIDATE_HOOK="$takedown_runtime/scripts/test-validate-hook.sh" \
+  bash scripts/tribunal-publisher.sh --apply --max 2 \
+    --branch publisher/takedown --worktree "$takedown_worktree")"
+grep -q 'skipped gp-2-test.mdx — taken down on origin/main' <<<"$takedown_out" \
+  || fail "a PASS on a taken-down post must be skipped: $takedown_out"
+[ ! -e "$takedown_worktree" ] || fail "a taken-down PASS must not create a publisher worktree"
+git -C "$takedown_runtime" show-ref --verify --quiet refs/heads/publisher/takedown \
+  && fail "a taken-down PASS must not create a publisher branch"
+[ "$(jq -r '.entries["gp-2-test.mdx"].publishState' \
+  "$takedown_runtime/.score-loop/state/tribunal-publisher.json")" = "taken_down" ] \
+  || fail "a taken-down PASS must leave the ready queue for good"
+takedown_status="$(cd "$takedown_runtime" && \
+  TRIBUNAL_PUBLISHER_DISABLE_GH_SCAN=1 bash scripts/tribunal-publisher.sh --status)"
+grep -q 'publishable PASS: 0' <<<"$takedown_status" \
+  && grep -q 'skipped as taken down: 1' <<<"$takedown_status" \
+  || fail "status must stop offering a taken-down PASS: $takedown_status"
+pass "PASS artifacts of taken-down posts are skipped, never published"
