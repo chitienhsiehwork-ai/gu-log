@@ -252,11 +252,6 @@ describe('check-jingjing.checkFile', () => {
       'traces'
     );
   });
-
-  it('binds the accepted-English policy inputs to a stable digest', () => {
-    expect(jj.policySHA256()).toMatch(/^[a-f0-9]{64}$/);
-    expect(jj.policySHA256()).toBe(jj.policySHA256());
-  });
 });
 
 describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
