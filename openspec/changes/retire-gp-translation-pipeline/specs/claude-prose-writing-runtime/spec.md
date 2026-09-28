@@ -50,21 +50,24 @@ gu-log 的文章由 Mogu 撰寫；Claude 是 Mogu 背後使用的 AI 模型。�
 - **THEN** 它們 SHALL 維持各自既有的模型路由
 - **AND** 本 requirement SHALL NOT 要求這些評審改用 Claude 模型
 
+## REMOVED Requirements
+
 ### Requirement: 呼叫 Claude 模型撰寫文章 SHALL 以最小權限執行並擷取乾淨輸出
+
+**Reason**: 這條裡「只回傳 JSON artifact 的寫作步驟不給工具、以 structured output 取得 JSON」的條文與情境，對象是 GP translator、corrector、commentary；三者隨 GP 整篇翻譯流程退役後，Claude provider 的 JSON schema 與 structured output 路徑也沒有呼叫端而一併刪除。OpenSpec 不允許 MODIFIED 丟掉既有情境，所以其餘仍然有效的條文改以新名稱重新寫入。
+
+**Migration**: 最小權限、輸出擷取與錯誤處理的其餘條文與情境原樣移到「Claude 寫作呼叫 SHALL 以最小權限執行並擷取乾淨輸出」。日後若要新增只回傳 JSON 的 Claude 步驟，該 change 要自己定義 schema 驗證與工具權限，structured output 的實作可從 git 歷史取回。
+
+## ADDED Requirements
+
+### Requirement: Claude 寫作呼叫 SHALL 以最小權限執行並擷取乾淨輸出
 
 Runtime profile 與 Tribunal 部署路徑呼叫 Claude 模型撰寫文章時，SHALL 使用非互動、最小權限的呼叫方式，且 SHALL NOT 使用 bypass permissions 或同等的「全部放行」模式：
 
-- 只回傳 JSON artifact 的寫作步驟 SHALL 不提供任何工具，並 SHALL 以 structured output 取得符合該步驟 schema 的 JSON。
 - 需要寫檔的寫作步驟（MP write／refine、英文 sidecar、Tribunal 改寫與寫入 canary）SHALL 只提供檔案讀寫工具；讀取 MAY 涵蓋 repo 參考文件，編修 SHALL 只在該步驟的私有工作目錄內被自動核准，SHALL NOT 提供執行指令或網路工具。
 - 部署版 Tribunal 改寫與寫入 canary SHALL 共用同一個 Claude 執行器，並在暫態 systemd service 內執行。
-- Pipeline SHALL 從 Claude CLI 的 JSON 結果擷取最終回覆或 structured output，SHALL NOT 把 CLI 雜訊、錯誤訊息或空的 structured output 當成文章內容。
+- Pipeline SHALL 從 Claude CLI 的 JSON 結果擷取最終回覆，SHALL NOT 把 CLI 雜訊或錯誤訊息當成文章內容。
 - Claude 寫作呼叫 SHALL NOT 載入主機的使用者設定、權限規則或 MCP server，也 SHALL NOT 帶入 API key 或會改變計費端點的環境變數（例如 `ANTHROPIC_API_KEY`、`ANTHROPIC_BASE_URL`、`CLAUDE_CODE_USE_BEDROCK`），讓權限與計費都不受主機設定影響。
-
-#### Scenario: JSON 寫作步驟沒有工具可用
-
-- **WHEN** 只回傳 JSON artifact 的寫作步驟透過 runtime profile 呼叫 Claude 模型
-- **THEN** 該呼叫 SHALL 不提供任何工具，並帶上該步驟的 JSON schema
-- **AND** Claude 結果缺少 structured output 時 SHALL 失敗，SHALL NOT 改讀一般文字回覆
 
 #### Scenario: 注入的來源試圖寫出工作目錄
 

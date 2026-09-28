@@ -2,13 +2,21 @@
 
 ### Requirement: GP 暫停期間 gp-pipeline SHALL 在 ingress 拒絕 GP 寫作與發布
 
-在導讀新格式的 change 重新開放 GP 之前，gp-pipeline 會為 GP 產生新正文或配置 GP 號碼的入口 SHALL 在 ingress 以「GP 暫停中」錯誤結束，涵蓋 `run`、standalone `deploy`，以及收到 GP prefix 的 `write` 或收到 GP ticket 的 `review`、`refine`。
+在導讀新格式的 change 重新開放 GP 之前，下列會為 GP 產生新文章或配置 GP 號碼的入口 SHALL 在 ingress 以「GP 暫停中」錯誤結束：
 
-`run` 與 standalone `deploy` 判斷是否為 GP 的依據 SHALL 是這次要處理的文章：有 `--file`（`run`）或 `--active-file`（standalone `deploy`）時以檔名的系列為準；明確指定的 `--prefix` 與檔名系列不一致時，指令 SHALL 在 ingress 以 exit code 1 失敗；沒有檔案時才以 `--prefix` 為準，包含未指定時的預設值 GP。
+- `run`：這次處理的是 GP。
+- standalone `deploy`：這次處理的是 GP。
+- `counter bump`：`--prefix` 是 GP，包含未指定時的預設值。
+- `write`：`--prefix` 是 GP，包含未指定時的預設值。
+- `review`、`refine`：ticket 是 GP ticket，包含未指定時的預設值。
+
+`run` 與 standalone `deploy` 判斷是否為 GP 的依據 SHALL 是這次要處理的文章：有 `--file`（`run`）或 `--active-file`（standalone `deploy`）時，以檔名依 repo canonical 慣例對應的系列為準（包含既有 Lv 文章的 `levelup-` 前綴）；明確指定的 `--prefix` 與檔名系列不一致時，指令 SHALL 在 ingress 以 exit code 1 失敗；沒有檔案時才以 `--prefix` 為準，包含未指定時的預設值 GP。
 
 拒絕 SHALL 發生在建立或寫入工作目錄、抓取來源、解析 runtime profile、provider preflight、模型呼叫、counter 異動、檔案 rename 與 git 操作之前。Exit code SHALL 是 1，也就是 gp-pipeline 既有 ingress 拒絕（例如非 canonical prefix）使用的一般錯誤。錯誤訊息 SHALL 包含「GP 暫停中」並指向 `editorial-charter`；pipeline SHALL NOT 自動改用其他系列繼續執行。
 
-MP、SD 與 Lv 的流程、步驟與 exit code SHALL 不受本 requirement 影響。
+CLI 入口之外，pipeline 的整條執行與發布步驟收到 GP 時 SHALL 同樣以「GP 暫停中」錯誤結束，不依賴 CLI 先擋下。
+
+本 requirement 只涵蓋上述入口：唯讀或只評分的指令（例如 `counter next`、`ralph`）、只替既有文章補英文檔的 `translate`，以及 `fetch`、`eval`、`dedup`、`candidate`、`status`、`doctor` 不受影響。MP、SD 與 Lv 的流程、步驟與 exit code SHALL 不變。
 
 #### Scenario: 沒指定 prefix 的 run
 
@@ -22,10 +30,16 @@ MP、SD 與 Lv 的流程、步驟與 exit code SHALL 不受本 requirement 影�
 - **THEN** 指令 SHALL 以 exit code 1 與「GP 暫停中」錯誤結束
 - **AND** `scripts/article-counter.json`、`src/content/posts/` 與 git 狀態 SHALL 維持不變
 
-#### Scenario: 以既有 MP 檔案恢復時沒帶 prefix
+#### Scenario: counter bump 使用預設 prefix
 
-- **WHEN** 操作者執行 `run --from-step translate --file <既有 MP 檔>`，沒有帶 `--prefix`
-- **THEN** pipeline SHALL 依檔名把這次執行視為 MP
+- **WHEN** 操作者執行 `gp-pipeline counter bump`，沒有帶 `--prefix`，或帶 `--prefix GP`
+- **THEN** 指令 SHALL 以 exit code 1 與「GP 暫停中」錯誤結束
+- **AND** `scripts/article-counter.json` SHALL 維持不變
+
+#### Scenario: 以既有非 GP 檔案恢復時沒帶 prefix
+
+- **WHEN** 操作者執行 `run --from-step translate --file <既有 MP 檔或 levelup- 開頭的 Lv 檔>`，沒有帶 `--prefix`
+- **THEN** pipeline SHALL 依檔名把這次執行視為 MP 或 Lv
 - **AND** SHALL NOT 因 `--prefix` 的預設值 GP 而以「GP 暫停中」拒絕
 
 #### Scenario: prefix 與檔案系列不一致
@@ -39,6 +53,12 @@ MP、SD 與 Lv 的流程、步驟與 exit code SHALL 不受本 requirement 影�
 - **WHEN** 操作者以 GP prefix 執行 `write`，或以 GP ticket 執行 `review` 或 `refine`
 - **THEN** 指令 SHALL 在呼叫任何模型前以 exit code 1 與「GP 暫停中」錯誤結束
 
+#### Scenario: 繞過 CLI 直接執行 pipeline
+
+- **WHEN** 程式直接以 GP 呼叫 pipeline 的整條執行或發布步驟，沒有經過 CLI 入口
+- **THEN** pipeline SHALL 回「GP 暫停中」錯誤
+- **AND** SHALL NOT 執行任何步驟，也 SHALL NOT 異動 counter、文章檔案或 git
+
 #### Scenario: 其他系列不受影響
 
 - **WHEN** 操作者以 `--prefix MP` 執行 `gp-pipeline run <url>`
@@ -46,7 +66,7 @@ MP、SD 與 Lv 的流程、步驟與 exit code SHALL 不受本 requirement 影�
 
 ### Requirement: gp-pipeline 的 Go 測試 SHALL 是 PR 必要檢查
 
-PR Fast Gate SHALL 在既有 workflow 內以一個 leaf job 執行 `tools/gp-pipeline` 的完整 Go 測試（`go test ./...`），並把該 leaf 列進既有 `ci-passed.needs`。`ci-passed` SHALL 只把該 leaf 的結果字面值為 `success` 視為通過。
+PR Fast Gate SHALL 在既有 workflow 內以一個有執行時間上限的 leaf job 執行 `tools/gp-pipeline` 的完整 Go 測試，並停用測試快取（`go test -count=1 ./...`），且把該 leaf 列進既有 `ci-passed.needs`。`ci-passed` SHALL 只把該 leaf 的結果字面值為 `success` 視為通過。
 
 該 leaf 的執行環境 SHALL 提供 Go 測試會呼叫的 Node 與已安裝的 repo 套件，讓依賴 repo 腳本的測試實際執行，而不是因缺少依賴被略過或失敗。
 
@@ -58,7 +78,7 @@ PR Fast Gate SHALL 在既有 workflow 內以一個 leaf job 執行 `tools/gp-pip
 #### Scenario: Go 測試 leaf 接在既有聚合
 
 - **WHEN** 檢查 PR Fast Gate workflow
-- **THEN** Go 測試 leaf SHALL 出現在 `ci-passed.needs`，並在執行 Go 測試前安裝 repo 的 Node 套件
+- **THEN** Go 測試 leaf SHALL 出現在 `ci-passed.needs`，設有執行時間上限，並在執行 `go test -count=1 ./...` 前安裝 repo 的 Node 套件
 - **AND** repo SHALL NOT 另建脫離 `ci-passed` 的 Go 測試 workflow
 
 ## MODIFIED Requirements
@@ -81,5 +101,5 @@ PR Fast Gate SHALL 在既有 workflow 內以一個 leaf job 執行 `tools/gp-pip
 
 #### Scenario: run pipeline 不受影響
 
-- **WHEN** 完整 `gp-pipeline run <url>` pipeline 執行到 deploy 步驟
+- **WHEN** 以 `--prefix MP` 執行的完整 `gp-pipeline run <url>` pipeline 執行到 deploy 步驟
 - **THEN** deploy SHALL 一如既往成功，因為 `ralph.go` 一定會在 deploy 之前填好 `DateStamp`/`AuthorSlug`/`TitleSlug`

@@ -14,7 +14,7 @@
 
 #### Scenario: 要求路由退役的翻譯角色
 
-- **WHEN** 呼叫端要求 model router 解析 `translator`、`sourceReviewer`、`corrector` 或 `commentary`
+- **WHEN** 呼叫端要求 model router 解析 `translator`、`sourceReviewer`、`corrector`、`commentary`，或它們原本的別名（例如 `source-translator`、`source-reviewer`、`bounded-corrector`、`commentary-writer`）
 - **THEN** router SHALL 以未知角色的錯誤失敗
 - **AND** SHALL NOT 派送任何模型，也 SHALL NOT 因設定檔仍留有同名角色而放行
 
@@ -60,7 +60,7 @@ GP 正文 SHALL NOT 進入 `restructure` 或 `rebuild`。任何通用 editorial 
 
 **Reason**: 這條是 GP 譯文發布前由獨立 vibe scorer 冷讀的 hard gate（`vibe-gate` prompt），只服務整篇翻譯流程。
 
-**Migration**: 自然台灣中文仍是 `GU-LOG_WRITER_PROMPT.md` 與 Tribunal 評分的要求；導讀的發布 gate 由 `gp-commentary-format` 定義。
+**Migration**: 自然台灣中文仍是 `GU-LOG_WRITER_PROMPT.md` 與 Tribunal 評分的要求；導讀的發布 gate 由 `gp-commentary-format` 定義。這條情境裡來自 GP-273 事故的兩個反例（「銜尾蛇」「演算法動態」）目前只活在即將刪除的 deterministic 檢查與翻譯 prompt 裡，刪除後沒有 live SSOT；要不要把它們寫進 writer prompt 或評分標準，交給 `gp-commentary-format` 決定。
 
 ### Requirement: GP corrections MUST be evidence-bounded patches
 
