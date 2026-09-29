@@ -61,6 +61,9 @@ case "$MODE" in
   sync)
     sha="$(fetch_upstream up "$REF")"
     for s in "${SKILLS[@]}"; do
+      [ -d "$TMP/up/$(upstream_path "$s")" ] || { echo "dotfiles@${sha:0:7} 沒有 $(upstream_path "$s")，不同步" >&2; exit 1; }
+    done
+    for s in "${SKILLS[@]}"; do
       rm -rf "$(mirror "$s")"
       cp -R "$TMP/up/$(upstream_path "$s")" "$(mirror "$s")"
       printf '%s\n' \
