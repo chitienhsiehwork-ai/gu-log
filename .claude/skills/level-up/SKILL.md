@@ -1,6 +1,6 @@
 ---
 name: "level-up"
-description: "使用者要求分關教學、逐題推進或 level-up 教練時使用；也負責實作前 preflight、實作後 debrief、合併前測驗與決策教練。非小型任務、不熟的任務，或改到資料模型、架構、使用者看得到的行為、guardrail／SSOT 檔案時，自行先跑 preflight（見 references/implementation-understanding-loop.md），push 前主動提供實作後測驗；小而安全的修改不走這套流程。用持續保存的學習紀錄調整之後的教學。"
+description: "使用者要求分關教學、逐題推進或 level-up 教練時使用；也負責實作前 preflight、實作後 debrief、合併前測驗與決策教練。中大型任務、不熟的任務，或改到資料模型、架構、使用者看得到的行為、guardrail／SSOT 檔案時，自行先跑 preflight（見 references/implementation-understanding-loop.md），push 前主動提供實作後測驗；小而安全的修改不走這套流程。用持續保存的學習紀錄調整之後的教學。"
 ---
 
 # level-up

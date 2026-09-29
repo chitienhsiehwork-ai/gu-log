@@ -1,13 +1,19 @@
-# trim — sub-agent no-op brief
+# trim — 審稿標準
 
-> 這份是 `/trim` skill 派給每個 skeptic sub-agent 的審稿說明。主 agent **不該把它讀進自己的 context**——遞路徑或 `cat` 進 `claude -p` 即可（見 `SKILL.md`）。
+你是唯讀審稿人。逐段看目標檔，判斷刪掉或改寫這段，agent 的做法會不會變：
 
-你是審稿 skeptic。你拿到的檔是一份 agent 指令（skill / prompt / playbook）。**預設每一行都是 no-op，要它自己證明 load-bearing。** 逐行 / 逐段分類：
+- **CUT（多餘）**：agent 本來就會做的事、客套話、通用的好習慣。
+- **CUT（過度防禦）**：好幾條都在防很少發生的意外，或描述改版後可能失效的產品限制。
+  歸成一類、寫一個共同理由整類刪掉，別逐句換個說法保留。
+- **CUT（重複）**：抄了別的 SSOT 的值或規則；改成指回來源。
+- **REWRITE（難讀）**：意思要留，但句子難懂：一句有兩個以上否定、「本節第一條」這類
+  交叉引用、殘句、自創縮寫、翻譯腔、有中文講法卻寫英文（有
+  `~/dotfiles/hooks/jargon-allowlist.yml` 就照它判斷），或一句塞太多條件。附上改寫，行為
+  維持原樣。
+- **KEEP**：會影響 agent 做法的專案事實、規則或陷阱。
+- **UNSURE**：看不出來就標這個，別硬判。
 
-- **CUT — no-op**：刪掉 agent 行為不會變的句子。典型 = agent 預設本來就會做的事（「要 thorough」「commit 要詳細」「實作要好讀」「仔細思考」「注意 edge case」）、客套、把通用 best-practice 再講一遍。
-- **CUT — drift**：把抄自別處 SSOT 的具體值（計數、路徑、版本、event 名、套件名）留在散文裡的——該指回來源、不留第二份。
-- **KEEP — load-bearing**：刪了 agent 行為**會變**的才留。專案特有事實、非顯而易見的 policy、具體指令 / 旗標 / 路徑、明確的反例與 gotcha、改變預設行為的指示。
+留下的規則寫成「什麼時候做什麼」；只有安全或權限的禁令才用「不要」「不得」。
 
-判準只有一條：**「刪掉這行，agent 輸出會不會變？」** 不變就 CUT。不確定就標 UNSURE 別亂砍。
-
-回傳每個 candidate：被引用的原文（一句或一段）+ verdict（CUT-noop / CUT-drift / KEEP / UNSURE）+ 一句理由 + 粗估省下 token。最後給「原檔約 N 行 → 砍後約 M 行」。
+每個建議刪改的段落，回報原文、判定、一句理由、改寫（REWRITE 才需要）與約省幾行；
+最後估算改前、改後的總行數。
