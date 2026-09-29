@@ -11,8 +11,9 @@ disable-model-invocation: true
 
 ## 流程
 
-1. 每個目標檔開一個新的唯讀子 agent，不帶目前的對話，只給它 `noop-brief.md` 和
-   目標檔這兩個路徑，讓它自己讀。
+1. 每個目標檔開一個新的唯讀子 agent，用目前 runtime 內建的 subagent；
+   Codex 使用可用的 multi-agent tool。子 agent 不帶目前的對話，只給它
+   `noop-brief.md` 和目標檔這兩個路徑，讓它自己讀。
 2. 收回建議，理由相同的合成一項，由主 agent 決定採用哪些。
 3. 改動走 PR，逐項寫出刪了或改寫了什麼、為什麼、約省幾行；拿不準的先保留，在 PR
    裡問使用者。
