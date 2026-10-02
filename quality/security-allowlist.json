@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-09-26T00:00:00Z",
+  "updatedAt": "2026-10-02T00:00:00Z",
   "entries": [
     {
       "id": "1139346",
@@ -12,6 +12,12 @@
       "id": "1193685",
       "name": "extract-zip",
       "reason": "2026-09-26 新增（GHSA-7pqw-9j4j-h8q3 symlink 任意寫檔）：與 1139346 同一條 LHCI dev 路徑、同樣不進 production bundle、nightly 不會解壓外部 zip；extract-zip 全版本無修正，等 LHCI 升到 lighthouse 13（@puppeteer/browsers 3.x 已移除 extract-zip）再移除。",
+      "expiresAt": "2026-11-09T00:00:00Z"
+    },
+    {
+      "id": "1240853",
+      "name": "basic-ftp",
+      "reason": "2026-10-02 新增（GHSA-c475-qrg2-pj4r Client.list() 目錄清單解析的二次方時間 CPU DoS）：LHCI 的間接 dev dependency（@lhci/cli → proxy-agent → pac-proxy-agent → get-uri → basic-ftp），不進 production bundle。只有 LHCI 經 proxy-agent 抓 ftp:// 網址、又連到惡意 FTP 伺服器時才會觸發，gu-log 的 LHCI 只量 https 頁面。修正版只有 basic-ftp 6.2.1，但 get-uri 最新 8.0.1 仍綁 ^5.3.1，強制跨大版本 override 有 API 相容風險；等 get-uri 放寬到 6.x 再移除。",
       "expiresAt": "2026-11-09T00:00:00Z"
     }
   ]
