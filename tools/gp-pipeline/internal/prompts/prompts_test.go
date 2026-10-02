@@ -411,6 +411,7 @@ func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 		"pipeline runtime writes them after translation",
 		"`translatedBy.pipeline` and `translatedBy.pipelineUrl` IDENTICAL",
 		"`/glossary#...` links to `/en/glossary#...`",
+		"Give every English MoguNote a `summary`",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("translate prompt missing provenance boundary %q", want)
