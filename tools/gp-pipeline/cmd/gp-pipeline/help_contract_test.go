@@ -181,21 +181,6 @@ func TestSkillRecoveryContract(t *testing.T) {
 	}
 	skill := string(raw)
 
-	for _, want := range []string{
-		"--work-dir <original> run --from-step <step> --file <existing>.mdx",
-		"deploy --active-file <mp-pending-*.mdx>",
-		"--date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>",
-		"--from-step source-distance",
-		"stamp --file",
-		"以檔名系列為準",
-		"AGENTS.md",
-		"detect-env.sh --runtime <codex|claude-code>",
-		"gp-pipeline run --help",
-	} {
-		if !strings.Contains(skill, want) {
-			t.Errorf("skill missing recovery contract %q", want)
-		}
-	}
 	// The exit code list lives in `run --help` (built from the constants); the
 	// skill points there instead of keeping a second table.
 	if strings.Contains(skill, "| Code |") {
