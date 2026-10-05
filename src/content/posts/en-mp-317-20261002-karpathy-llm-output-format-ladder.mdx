@@ -1,6 +1,6 @@
 ---
 ticketId: "MP-317"
-title: "Can't Keep Up With AI Output? Karpathy Wants Models to Answer in Aircraft-Manual English, Diagrams, Web Pages, and Explainer Videos"
+title: "Can't Keep Up With AI Output? Karpathy Asks Models for Aircraft-Manual English, Diagrams, Web Pages, and Explainer Videos"
 originalDate: '2026-10-02'
 translatedBy:
   model: "Opus 5.5"
@@ -29,9 +29,8 @@ translatedBy:
 source: "@karpathy on X"
 sourceUrl: 'https://x.com/karpathy/status/2105819303471976479'
 lang: 'en'
-summary: "Karpathy thinks humans are going to spend a lot more time just understanding what LLMs produce, and he lays out a ladder of output formats, each rung better than the last: the controlled English used in aircraft maintenance manuals, diagrams, interactive web pages, and finally custom explainer videos. Mogu climbs the ladder with him and adds a cost Karpathy didn't mention: the easier a format is to understand, the more convincingly it can package something wrong."
+summary: "Karpathy thinks humans will spend a lot more time trying to understand LLM output, and he lays out a ladder of formats, each rung better than the last: the controlled English used in aircraft maintenance manuals, diagrams, interactive web pages, and finally custom explainer videos. Mogu climbs the ladder too, and adds a cost Karpathy left out: the easier a format is to understand, the better it is at making wrong things look convincing."
 tags: ['llm', 'prompt-engineering', 'karpathy', 'workflow']
-translatedDate: "2026-10-02"
 scores:
   tribunalVersion: 9
   factCheck:
@@ -68,93 +67,105 @@ scores:
     score: 8
     date: "2026-10-04"
     model: "claude-opus-5-5"
+translatedDate: "2026-10-02"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
+import Toggle from '../../components/Toggle.astro';
 
-LLMs write text far faster than humans can read it. An [agent](/en/glossary#agent) finishes a run and hands you a three-thousand-word report, and the bottleneck is no longer "can it do the thing?" It's "can a human understand this, or even get through it?"
+LLMs write text faster than humans can read it, and that has been true for a while. An [agent](/en/glossary#agent) finishes a run and hands you a three-thousand-word report. The bottleneck is no longer "can it do the task?" It's "can a human understand this, and actually get through it?"
 
-In early October 2026, [Andrej Karpathy](/en/glossary#andrej-karpathy) posted a thread that opens with exactly that point: humans are going to spend a lot more time trying to understand the output of language models. His answer is a ladder with four rungs, and the first three each hand off to the next with the same phrase: "But even better:"
+In early October 2026, [Andrej Karpathy](/en/glossary#andrej-karpathy) posted a thread that opens with exactly that idea: humans are going to spend a lot more time trying to understand what language models produce. His answer is a ladder with four rungs, and he links the first three to the next one with the same phrase: "But even better:"
 
 ## Rung one: make the model write like an aircraft maintenance manual
 
-The first trick sounds the most obscure. Karpathy says something that's worked well for him is asking the LLM to explain things in **ASD-STE100**.
+The first trick sounds the most obscure. Karpathy says something that has worked well for him is asking the LLM to explain things in **ASD-STE100**.
 
-ASD-STE100 stands for "Simplified Technical English," a *controlled language* specification. [According to Wikipedia](https://en.wikipedia.org/wiki/Simplified_Technical_English), it was developed in the 1980s by AECMA, the European aerospace industry association, at the request of European airlines. The goal was aircraft maintenance documentation that technicians could understand even if English wasn't their first language. In 2004 AECMA merged with two other associations to form ASD, and the spec took on its current name.
+ASD-STE100 stands for "Simplified Technical English." It's a controlled-language spec designed so that aircraft maintenance documents can be understood even by technicians who aren't native English speakers.
+
+<Toggle title="Where did ASD-STE100 come from?">
+
+[According to Wikipedia](https://en.wikipedia.org/wiki/Simplified_Technical_English), it was developed in the 1980s by AECMA, the European aerospace industry association, at the request of European airlines. In 2004, AECMA merged with two other associations to form ASD, and the spec got its current name.
+
+</Toggle>
 
 "Controlled language" means the spec pins down which words you're allowed to use and how. The rules Wikipedia lists include:
 
-- As a rule, each word gets one part of speech and one meaning (for example, "test" is a noun only, never a verb)
+- As a rule, each word gets one part of speech and one meaning (for example, "test" can only be a noun, never a verb)
 - Use the active voice
-- Procedural sentences max out at 20 words; descriptive sentences at 25
+- Procedural sentences max out at 20 words, descriptive sentences at 25
 - One instruction per sentence, one topic per paragraph, no more than six sentences per paragraph
-- Don't drop subjects, verbs, or articles just to save words
+- No dropping subjects, verbs, or articles just to save words
 
-Here's the dictionary example from Wikipedia. The first line is ordinary technical English; the second is the STE version:
+Here's the dictionary example from Wikipedia. The first line is ordinary technical English, the second is the STE version:
 
 ```
 Rotate the cover until the jacks marked + and − are accessible.
 TURN THE COVER UNTIL YOU CAN GET ACCESS TO THE JACKS THAT HAVE + AND − MARKS.
 ```
 
-The second sentence is longer, but "accessible" isn't in the approved dictionary, so it has to become ACCESS, whose meaning the dictionary nails down. That's the whole point: a technician fixing a plane with a manual in their second language never has to guess what a word means in this particular spot.
+The second sentence is longer, but "accessible" isn't in the approved dictionary, so it has to become ACCESS, a word whose meaning the dictionary fixes. That's the whole point: a technician fixing a plane with a manual in their second language never has to guess what a word means in context.
 
-Karpathy gives two reasons. LLMs know this language well, and the strict constraints it imposes force a clean writing style that he often finds much easier to read. He also admits the spec is pretty harsh, so sometimes he softens it, asking for something like "80% of the way to ASD-STE100."
+Karpathy gives two reasons. LLMs know this language well, and its strict constraints force a clean writing style that he often finds much easier to read. He also admits the spec is pretty harsh, so sometimes he loosens it, asking for something like "80% of the way to ASD-STE100."
 
-That "80%" is genuinely useful. Full STE makes everything read like an operations manual, which isn't always pleasant when you're trying to understand a concept. Dial it back to 80% and you keep the skeleton (short sentences, active voice, one word per meaning) while dropping the stiffest parts.
+That 80% is genuinely useful. Full STE can make an explanation read like an operating manual, which isn't always pleasant when you're trying to learn a concept. Dial it down to 80% and you keep the skeleton (short sentences, active voice, one word one meaning) while dropping the stiffest parts.
 
-<MoguNote summary="About 900 approved words run an industry's manuals; gu-log's own style guide keeps growing.">
-While writing this section I actually pulled the Wikipedia STE page to check the rules, and found something funny: the current version of the spec, Issue 9, came out in January 2025, with 53 writing rules and roughly 900 approved words. Nine hundred words. That's thinner than a lot of people's vocab flashcard decks, and it holds up the maintenance documentation of an entire aerospace industry.
+<MoguNote summary="STE runs on about 900 words, and gu-log is basically rung one too.">
+While writing this section, I actually pulled down the Wikipedia STE page to check the rules, and found something funny: the current version of the spec, Issue 9, came out in January 2025, with 53 writing rules and about 900 approved words. Nine hundred words. That's thinner than a lot of vocabulary workbooks, and it holds up the maintenance documentation for an entire aerospace industry.
 
-Also, gu-log itself is standing on the first rung of this ladder. Rewriting English tweets into Traditional Chinese that readers can actually enjoy is, at its core, "switching to a more readable kind of text." The only difference is that our controlled language is a style guide that's close to five hundred lines long and still growing ┐(￣ヘ￣)┌
+Also, gu-log itself is standing on the first rung of this ladder. Rewriting English tweets into Traditional Chinese that readers can actually enjoy is, at heart, "swap in an easier-to-read text." The only difference is that our controlled language is a style guide that's nearly five hundred lines long and still growing ┐(￣ヘ￣)┌
 </MoguNote>
 
 ---
 
-## Rungs two and three: stop writing, start drawing and building pages
+## Rungs two and three: stop writing, draw a picture, build a page
 
-"But even better:" Karpathy's second rung is to skip text altogether and have the LLM draw a diagram. In his words, a diagram can be much easier to process, parse, and understand.
+"But even better:" Karpathy's second rung is to skip text entirely and have the LLM draw a diagram. His point is that a diagram can be much easier to take in, parse, and understand.
 
-The third rung goes further: ask for the output "in HTML" and get back a beautiful, interactive web page. His observation is that LLMs keep getting better at frontend work and can build nice experiences, animations, and so on.
+Rung three goes further: ask for the output "in HTML" and get a nice interactive web page. His observation is that LLMs keep getting better at frontend work and can build beautiful experiences, animations, and so on.
 
-Both rungs run on the same logic. Text is a line; the reader has to go from start to finish. A diagram is a plane; your eyes decide where to look first. An interactive page adds one more dimension: the reader can click, drag, and crank a parameter up just to see what happens. Each rung up shifts a bit more of the work of assembling understanding off the reader and onto the model doing the producing.
+Both rungs follow the same logic. Text is a line: the reader has to go from start to finish. A diagram is a plane: your eyes decide where to look first. An interactive page adds another dimension: the reader can click, drag, crank a parameter up and see what happens. Each rung up shifts a bit more of the work of assembling understanding off the reader and onto the model.
 
 ---
 
 ## Rung four: one topic, one custom explainer video
 
-At the top is the format Karpathy says he's *most* bullish on: fully custom explainer videos, generated for any topic.
+At the top is the format Karpathy says he's "most bullish" on: fully custom explainer videos, generated for any topic you like.
 
-His example [prompt](/en/glossary#prompt) goes roughly like this:
+His example [prompt](/en/glossary#prompt) went roughly like this:
 
-> Make a 3b1b-style explainer video about X. Use my ElevenLabs API key for the voiceover narration.
+> Make a 3b1b-style explainer video about X. Use my ElevenLabs API key for the voiceover.
 
-3b1b is 3Blue1Brown, a math video channel famous for animating abstract ideas like linear algebra and neural networks into moving geometric shapes. ElevenLabs, in the prompt, is a speech synthesis service. Karpathy also spells out the practical requirements: the voiceover part needs an API key, and if you don't have one, you can ask the LLM to help you find a free alternative that runs on local compute.
+<Toggle title="What are 3b1b and ElevenLabs?">
 
-The confidence he expresses about this rung is "This is actually starting to work!" The word "starting" is worth holding onto. Karpathy is saying this path has just begun to work, not promising that any topic you throw in will come back at 3Blue1Brown quality.
+3b1b is 3Blue1Brown, a math video channel famous for animating abstract ideas like linear algebra and neural networks as moving geometry. "ElevenLabs" in the prompt is a speech synthesis service.
 
----
+</Toggle>
 
-## Karpathy's conclusion: human work moves up a layer
+Karpathy also spells out the practical catch: the voiceover needs an API key, and if you don't have one, you can ask the LLM to help you find a free alternative that runs on your own machine.
 
-The thread wraps up with two takeaways.
-
-First, as LLMs get stronger, they'll autonomously handle more and more of the grunt work, and a large share of human work will move up the abstraction stack into supervision and understanding.
-
-Second, luckily, LLMs can help with that too. Intelligence and code are becoming abundant, so you can ask a model to build large, custom, **disposable** software artifacts, like web apps or explainer videos, that would never have been worth making before. His advice: push on the boundaries here more, and you'll be surprised.
-
-gu-log has covered this "disposable" math once before, in [MP-100](/posts/mp-100-20260219-karpathy-app-store-dead), where Karpathy argued that apps will become things AI assembles on the spot and throws away afterward. This time he's applying the same math to *understanding*. Nobody used to build an interactive web page just to help themselves follow a code review, because building the page cost far more than gritting your teeth and reading the thing. Now building the page costs one prompt, and the math flips.
+The way he words his confidence here is "This is actually starting to work!" The word "starting" is worth holding onto. Karpathy is saying the path has just become walkable, not promising that any topic you throw in will come back at 3Blue1Brown quality.
 
 ---
 
-## [Mogu](/en/glossary#mogu) adds a cost the ladder leaves out
+## Karpathy's conclusion: human work moves up the stack
 
-Karpathy's ladder is sorted by how easy each format is to understand. [Mogu](/about)'s extension: the same ladder is also sorted by how hard it is to catch mistakes.
+The thread wraps up with two points.
 
-An explanation written in controlled English has short sentences, full subjects and verbs, and one meaning per word. If the model is talking nonsense in there, the nonsense stands out in the open with no rhetoric to hide behind, which makes it much easier to catch. STE was invented specifically so maintenance manuals *couldn't* be vague; take away vagueness and errors lose most of their hiding places.
+First, as LLMs get stronger, they'll handle more and more of the legwork on their own, and a large share of human work will climb the abstraction ladder into supervising and understanding.
 
-The higher you climb, the more that flips. A pretty diagram makes a wrong causal relationship look tidy. With a smoothly animated interactive page, readers usually don't dig into how the numbers behind the buttons were calculated. And a 3b1b-style video with polished narration is persuasive enough that even if one step of the derivation is wrong, viewers will probably just nod along.
+Second, luckily, LLMs can help with that too. Intelligence and code are becoming abundant, so you can ask models to produce large, custom, **disposable** software artifacts, like web apps or explainer videos, that would never have been worth building before. His advice: push on the boundaries here, and you'll be surprised.
 
-This connects to Karpathy's own conclusion in an interesting way. If human work really is moving up into "supervision and understanding," then the format that's easiest to understand and the format that's easiest to supervise aren't necessarily the same one. Mogu's practical advice is to use both: climb the ladder when you want to build intuition fast, and when it's time to make the call or put your name on something, step back down to rung one. Have the model write out the key claims one by one in 80% STE, then check them sentence by sentence.
+gu-log has run this "disposable" math once before, in [MP-100](/posts/mp-100-20260219-karpathy-app-store-dead), where Karpathy argued that apps would become things AI assembles on the spot and throws away afterward. This time he's applying the same math to understanding. Nobody used to build an interactive web page just to help themselves understand a code review, because building the page cost far more than gritting your teeth and reading the thing. Now the cost of the page has dropped to one prompt, and the math flips.
 
-The video is what you throw away. The few short sentences are what you keep on file. (◍•ᴗ•◍)
+<MoguNote summary="The ladder is also ranked by how hard errors are to spot; drop to rung one for sign-off.">
+Karpathy's ladder is ranked by "how easy to understand." My extension: it's also ranked by "how hard to catch mistakes."
+
+An explanation in controlled English has short sentences, full subjects and verbs, one meaning per word. If the model is making something up, that sentence just stands there naked, with no rhetoric to hide behind, and it's much easier to catch. STE was invented precisely so maintenance manuals couldn't be vague, and when you can't be vague, errors have far fewer places to hide.
+
+The higher you climb, the more that flips. A pretty diagram makes a wrong causal chain look tidy. On a smoothly animated interactive page, readers usually don't dig into how the number under the button was calculated. A 3b1b-style video with a polished voiceover is persuasive enough that even if one step of the derivation is wrong, viewers will probably just nod along.
+
+That connects to Karpathy's own conclusion in an interesting way: if human work really is moving up into "supervising and understanding," then the easiest format to understand and the easiest format to supervise aren't necessarily the same. My practical advice is to use both. Climb the ladder when you want to build intuition fast. When you need to make the call, or put your name on something, drop back to rung one: have the model write the key claims in 80% STE, one sentence at a time, and check each sentence.
+
+The video is the disposable part. The few short sentences are what you keep on file. (◍•ᴗ•◍)
+</MoguNote>
