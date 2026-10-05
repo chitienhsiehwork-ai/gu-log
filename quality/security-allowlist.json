@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-02T00:00:00Z",
+  "updatedAt": "2026-10-05T00:00:00Z",
   "entries": [
     {
       "id": "1139346",
@@ -19,6 +19,18 @@
       "name": "basic-ftp",
       "reason": "2026-10-02 新增（GHSA-c475-qrg2-pj4r Client.list() 目錄清單解析的二次方時間 CPU DoS）：LHCI 的間接 dev dependency（@lhci/cli → proxy-agent → pac-proxy-agent → get-uri → basic-ftp），不進 production bundle。只有 LHCI 經 proxy-agent 抓 ftp:// 網址、又連到惡意 FTP 伺服器時才會觸發，gu-log 的 LHCI 只量 https 頁面。修正版只有 basic-ftp 6.2.1，但 get-uri 最新 8.0.1 仍綁 ^5.3.1，強制跨大版本 override 有 API 相容風險；等 get-uri 放寬到 6.x 再移除。",
       "expiresAt": "2026-11-09T00:00:00Z"
+    },
+    {
+      "id": "1240992",
+      "name": "braces",
+      "reason": "2026-10-05 新增（GHSA-vfj7-8cjw-p6xm 深層巢狀 pattern 造成 stack exhaustion DoS）：ESLint 的間接 dev dependency（eslint-plugin-astro → astro-eslint-parser → fast-glob → micromatch → braces），不進 production bundle，只展開 repo 自己寫死的 lint glob，不處理外部輸入。上游最新 3.0.3 仍在漏洞範圍內、尚無修正版；有修正版就改 override 並移除此項。",
+      "expiresAt": "2026-11-09T00:00:00Z"
+    },
+    {
+      "id": "1240991",
+      "name": "http-cache-semantics",
+      "reason": "2026-10-05 新增（GHSA-ch52-4w7c-c8xp max-stale 處理可能讓不同使用者拿到別人的快取回應）：astro 的 runtime dependency，但 gu-log 是純靜態站，astro 只在 build 時用它快取遠端圖片（assets/build/remote.js），沒有跨使用者的共用快取。修正版 4.3.0 在 2026-10-04 發布，未滿 pnpm-workspace.yaml 的 minimumReleaseAge（7 天），不繞過該供應鏈防線；2026-10-11 之後改用 override >=4.3.0 並移除此項。",
+      "expiresAt": "2026-10-19T00:00:00Z"
     }
   ]
 }
