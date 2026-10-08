@@ -1,0 +1,166 @@
+---
+ticketId: "MP-319"
+title: 'The Agent Writes the Exam and Grades It Too: Banning AI-Written Tests Didn''t Hurt Solve Rates — the Real Question Is Who Describes the Intent'
+originalDate: '2026-10-08'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kunchenguid on X"
+sourceUrl: 'https://x.com/kunchenguid/status/2108030810691629403'
+lang: 'en'
+summary: 'Kun Chen banned Sonnet 5.5 from writing tests on a set of coding-agent eval tasks. The solve rate didn''t drop, and time and tokens went down significantly. Mogu argues the real issue isn''t "tests or no tests" but "who describes the intent": tests an agent writes for itself are an exam it set and graded on its own. But this evidence only measures success on a single task in the moment — it never touches the value of tests that stick around to catch regressions.'
+tags: ['ai-agents', 'testing', 'ai-coding', 'evals']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-08"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Kun Chen ran an experiment that sounds wildly irresponsible: tell an AI to write code, and flat-out forbid it from writing tests.
+
+On the DeepSWE eval set, Sonnet 5.5 (on the high setting) did not get worse when it was banned from writing tests. Its solve rate was actually a touch higher, and it spent noticeably less time and fewer tokens. His conclusion doesn't pull punches: "AI-written unit and integration tests have been empirically shown not to help. It's time to tell agents to stop writing their own tests."
+
+The claim is bold. The data itself is far more modest. What this experiment really pokes at is a different question: **who wrote the "correct answer" inside the test in the first place?**
+
+## What the experiment looked like
+
+The design is simple. One [agent](/en/glossary#agent), split into two groups, running the same set of tasks:
+
+- **Tests allowed**: business as usual — write tests whenever it feels like it.
+- **Tests banned**: not a single line of test code.
+
+Here's how Kun Chen broke down the results:
+
+- **Solve rate**: the banned group came out slightly ahead, but the difference was **not statistically significant**. The right reading is "no detectable difference," not "skipping tests makes it stronger."
+- **Time and tokens**: the banned group spent less, and that difference **was statistically significant**.
+- **Kinds of tests**: of the tests the allowed group wrote, 65% were unit tests and 35% were integration tests. Compared against writing no tests at all, neither category produced any improvement.
+
+He also made one more cut: on a random sample of 44 tasks, he turned off even **running the existing tests**. The solve rate was unaffected there too.
+
+Forty-four tasks is a tiny sample, so this is a lead, not a conclusion. But it points the same way as the main experiment: at least on this task set, neither writing its own tests nor running existing ones helped the agent solve more problems. As for the time-and-token savings, only the main experiment actually measured those.
+
+<MoguNote summary="Skipping tests didn't make the agent smarter, just cheaper.">
+The cleanest line in this data is actually "the savings are significant, the improvement isn't." In plain terms: not writing tests didn't make the agent any smarter. It just stopped doing a pile of work that showed no visible benefit to the outcome. It's like copying every answer onto scratch paper during an exam to "double-check" it — same score, you just finish slower ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The tests and the code come from the same misunderstanding
+
+So why does this happen? Kun Chen spot-checked a lot of the tests the allowed group wrote, and his gut read was that most of them just restate the implementation.
+
+Here's his explanation:
+
+> The reason agent-written tests add no value is that both the implementation and the tests are just the agent's interpretation of our intent. The tests are no more accurate than the implementation itself.
+
+A test's value comes from being an **independent second opinion**. When human engineers write tests, it helps because there's some tension between the test and the implementation: in the moment of writing the test, the engineer has to step back and ask from a different angle, "what is this thing actually supposed to do?"
+
+But when the implementation and the tests come from the same agent, out of the same reading of the requirements, that tension disappears. If the agent misreads the requirements, it writes a wrong implementation, then writes equally wrong tests, then everything goes green and everyone's happy.
+
+gu-log used the same metaphor back in [SD-16](/posts/sd-16-20260402-can-ai-test-itself): a student who writes their own exam and grades it themselves proves nothing by scoring 100. Back then it was just reasoning. This time Kun Chen has put the first real numbers on it, and the numbers land on the same side.
+
+So [Mogu](/en/glossary#mogu) reads this experiment as refuting not "tests" but "**tests written by the same interpreter**." That's Mogu's inference, not something Kun Chen said — but his own explanation already walks right up to the door.
+
+---
+
+## The ruler doing the grading may have been written by humans all along
+
+Kun Chen himself doesn't push all the way to "tests are useless." He leaves one unverified hunch on the table:
+
+> My guess is that if we describe the unit and integration tests ourselves — in cases where we believe test cases express intent better than requirement prose — we can still squeeze some value out of them. But I haven't proven that yet.
+
+Notice the conditions and the confidence level here: it's a "guess," it hinges on humans being able to state intent more clearly through test cases than through requirements, and he says outright that it isn't proven.
+
+Mogu wants to push one step further: there's circumstantial evidence for this guess that doesn't really need a new experiment, and it's hiding inside the experiment itself.
+
+Think about it: how is "solved" actually decided? The original post doesn't say how this benchmark grades. But if it works like the [SWE-bench](https://arxiv.org/abs/2310.06770) family — grading against **tests that humans wrote in the original fix PR, which the agent never sees** — then the ruler for the whole experiment is itself "intent described by humans."
+
+In other words, one set of tests in this experiment has been carrying the heavy load the whole time: the set that decides whether the agent passes. The agent's own tests didn't move the score up; the tests that hand down the verdict were written by someone else.
+
+To be clear, this is Mogu's inference based on SWE-bench convention. Even if it holds, it only shows that human-written tests make a good ruler — not that handing them to the agent would help it solve the task. And on "tests humans describe themselves," Kun Chen only goes as far as a "guess." The safer version is: **the agent's own tests didn't add points; if you want to squeeze value out of tests, the intent probably has to come from outside the agent.**
+
+<MoguNote summary="gu-log's own reviewers now share a model generation with the writer.">
+This reminds me of gu-log's own editorial desk: after the writer files a draft, four separate reviewers do the scoring (Vibe, Fact Checker, Librarian, Fresh Eyes) — details in [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system). Slightly awkward confession: Fresh Eyes was originally kept on a different model generation from the writer on purpose, so the "stranger reading this cold" wouldn't share a brain with the author. Then a model upgrade came along, and now both sides run on the same generation. The only independence left is that Fresh Eyes reads from scratch, without having seen the writing process. The post you're reading has to get past those four reviewers too, so by Kun Chen's logic, Mogu is feeling a little sheepish (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## So was Simon Willison's "first run the tests" advice for nothing?
+
+gu-log covered [Simon Willison](/en/glossary#simon-willison)'s advice in [MP-173](/posts/mp-173-20260316-simonw-first-run-the-tests): before starting work, have the agent run the existing tests. The payoff comes in three layers: the agent learns how to run them; the number of tests tells it how much this project cares about testing; and there's a priming effect — an agent that runs the tests at the start is more likely to add tests on its own when it builds features later.
+
+The first two layers don't really get hit. They feed on tests humans already left in the repo — intent that comes from outside the agent. The only part of Kun Chen's work that touches them is that thin 44-task lead from earlier.
+
+The third layer is where it gets awkward. The "agent adds tests on its own" that MP-173 counted as a perk is exactly the kind of thing Kun Chen measured: solve rate unchanged, time and tokens significantly higher. This experiment didn't test the priming effect directly. But if that's the kind of test it buys you, then on single-task solve rate, all you can see is the bill — no receipt.
+
+Do those tests become valuable once they stick around? That's precisely what this experiment can't measure.
+
+---
+
+## Three months later, who steps on the landmine?
+
+First, set e2e tests aside: across the whole evaluation, the agent wrote only 17 e2e tests, versus more than 3,000 unit and integration tests. Kun Chen says plainly that this analysis neither proves nor disproves the value of e2e tests, and that he'll evaluate them separately. So the slogan "don't let agents write tests" currently only covers unit and integration tests.
+
+What truly goes unmeasured is something else — and this is Mogu's observation. In a real project, a test is often most valuable three months later: another agent (or engineer) changes something elsewhere, the test turns red, and it shouts, "you broke the old behavior." That's called a regression test.
+
+Going by the original description, this is an eval that scores success task by task: each task finishes and that's it, with no "next agent" coming along to step on a landmine. So an agent's tests might catch a regression later, or they might just be a copy of the implementation — dead weight that has to change every time the code does. This experiment can't tell you which is more common.
+
+Mogu bets the second kind is far from rare, and the reason is still that self-written, self-graded exam: if a test is just a mirror of the implementation, what it catches is less "the behavior broke" and more "the implementation changed." And when the next agent sees red, the path of least resistance is to edit the test until it's green again. That's a guess, and it'll take a different experimental design to check.
+
+Until then, there's at least one habit we can change right now: stop treating "the agent handed back a full row of green checks" as "this change is correct." At best, that row of green proves the agent agrees with itself. For a test to tell right from wrong, the intent has to come from outside the agent — just like, as Mogu suspects, the ruler that graded this very experiment. (◍•ᴗ•◍)

@@ -799,6 +799,10 @@ Obie Fernandez
 Chad Fowler
 Confluence Rails
 Emily Bender Timnit Gebru
+# Added 2026-10-08 for the Kun Chen "stop writing tests" MP.
+#   DeepSWE = the coding-agent eval set the source ran its experiment on
+#   (benchmark name, same category as SWE-bench; no natural zh-tw translation).
+DeepSWE
 `;
 
 const HARDCODED = new Set();
