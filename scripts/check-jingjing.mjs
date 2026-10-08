@@ -787,6 +787,18 @@ OneDrive Outlook DMZ
 #   LINE Developers / Messaging API = LINE's developer-console + product-API
 #     proper nouns (same category as the Microsoft product names above).
 Developers Messaging
+# Added 2026-10-08 for MP-318 (Obie Fernandez "You're Already a Meat Proxy").
+# Bona-fide proper nouns named in the single source, none with a natural zh-tw
+# translation (writer-prompt rule #2: people / products stay English):
+#   Obie Fernandez = the author (person). Chad Fowler = his friend writing the
+#   regenerative-software book (person). Confluence = Atlassian's wiki product
+#   (same category as Jira). Rails = Ruby on Rails, the web framework.
+#   Emily Bender / Timnit Gebru = authors of the "stochastic parrots" paper
+#   cited in a MoguNote (people).
+Obie Fernandez
+Chad Fowler
+Confluence Rails
+Emily Bender Timnit Gebru
 `;
 
 const HARDCODED = new Set();
