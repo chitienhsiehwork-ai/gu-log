@@ -21,3 +21,7 @@
 | 產品資料與低摩擦操作 | [product-data-design](topics/product-data-design.md) |
 | Working tree 衛生與 agent 視野 | [working-tree-hygiene](topics/working-tree-hygiene.md) |
 | 文字相似度技術（pg_trgm、BM25、embedding） | [text-similarity-techniques](topics/text-similarity-techniques.md) |
+| 規格驅動開發與多 agent 審查迴圈 | [spec-driven-development](topics/spec-driven-development.md) |
+| 服務對外暴露與 webhook 入站 | [network-exposure](topics/network-exposure.md) |
+| 產品切入點與通路 | [product-strategy](topics/product-strategy.md) |
+| 翻譯、引用與改作的著作權邊界 | [copyright-derivative-works](topics/copyright-derivative-works.md) |

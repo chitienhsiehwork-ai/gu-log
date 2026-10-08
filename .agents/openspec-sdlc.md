@@ -68,7 +68,7 @@ OpenSpec 的 proposal、design、spec、tasks 與 archive 都由 agents 主動�
 
 階段 6 的「過關」不靠 reviewer 主觀滿意，而是可機器判定的收斂。核心洞察：**code 有客觀真值（測試），內容線 tribunal 用全主觀 LLM judge 是因為 prose 沒有——code 線不該照搬那個主觀性。**
 
-- **executable-first 三層**：scenario 能編成測試的走 **Tier-1**（測試綠才算對上）；真測不了的落 **Tier-2**（reviewer 逐條判 binary 對上/未對上，標記為主觀）；**Tier-3**（checkbox 自報）不可單獨採信。
+- **executable-first 三層**：scenario 能編成測試的走 **Tier-1**（測試綠才算對上）；真測不了的落 **Tier-2**（reviewer 逐條判 binary 對上/未對上，標記為主觀）；**Tier-3**（checkbox 自報）不可單獨採信。規定 prompt / 指示檔「要寫什麼」的 scenario 歸 **Tier-2**，不得拿字串比對原句充當 Tier-1（理由見 `docs/agent-discipline.md`〈測試不斷言 prompt / 指示檔的原句〉）；能檢查結構化值或兩份副本一致性的才留在 Tier-1。
 - **收斂定義**：所有 Tier-1 測試綠 **AND** 所有 Tier-2 判為對上 **AND** 簡潔度 reviewer 無未解 blocking finding。正確性 reviewer 用 spec scenario 當 rubric 逐條對帳；scenario 抓不到臃腫，所以簡潔度那一軌**不可省**（否則雙審之一被廢）。
 - **Tier 分類要被覆核**：builder 交 scenario→tier 清單（Tier-1 附測試），正確性 reviewer 覆核分類與 test↔scenario 對應忠實度，可把「不可測」宣稱打回 Tier-1（防 test-gaming）。
 - **controller 聚合**：收斂判定由 controller 聚合 reviewer verdict + 測試結果做，不讓渡給單一 reviewer。
