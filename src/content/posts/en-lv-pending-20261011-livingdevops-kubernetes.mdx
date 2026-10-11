@@ -1,0 +1,249 @@
+---
+ticketId: 'Lv-PENDING'
+title: 'Open a Restaurant Chain and You Get Kubernetes: Every Term Was Forced Into Existence by the Last Problem'
+originalDate: '2026-10-10'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@livingdevops on X"
+sourceUrl: 'https://x.com/livingdevops/status/2108920063441137762'
+lang: 'en'
+summary: "Nine Kubernetes terms are really one chain of cause and effect: each one cleans up the mess the previous one left behind. We walk through it by building a restaurant chain from scratch, then add the traps the original tweet skipped that will genuinely bite you in 2026: Secrets aren't encrypted by default, community ingress-nginx is retired, Karpenter depends on which cloud you're on, and the HPA's 70% is a number you fill in yourself."
+tags: ['kubernetes', 'devops', 'infrastructure', 'tutorial', 'security']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 7
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-11"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Pod, `Deployment`, `Service`, `Ingress`, `Ingress` controller, `ConfigMap`... By about the fifth term on the Kubernetes vocabulary wall, most beginners have gone glassy-eyed. Every one of them feels like a flashcard to memorize, and even after you've memorized them all, you still have no idea why any of them exist.
+
+On X, @livingdevops took a different angle in [a tweet](https://x.com/livingdevops/status/2108920063441137762): "Every Concept Has a Story, you just don't know it yet." The tweet lines up nine concepts into a chain, where each one was forced into existence by a problem the previous one left behind. This post follows that chain by **opening a restaurant chain**, and sticks to that single metaphor the whole way through. Where the tweet leaves out conditions that will hurt you in 2026, those parts are marked separately as "**gu-log addendum**," kept apart from the tweet's own claims.
+
+## Staff members vanish without warning
+
+Lunch rush, and the person at the counter suddenly calls in sick and leaves. The counter just sits empty, customers standing there with nobody to serve them. Nobody steps in automatically, because nobody's job is to step in.
+
+In Kubernetes, your program is packaged into a container and runs inside a **Pod**. A Pod is the smallest unit Kubernetes can schedule. It's the **staff member standing at their station**. The tweet opens with exactly this brutal scenario: a Pod is running along, then it crashes, and nobody brings it back. It's just gone.
+
+So you hire a **shift manager**, a.k.a. the **`Deployment`**. Tell it "there must always be 3 people at the counter," and it keeps watching the headcount: one goes missing, one gets replaced, no matter who it was or why they left.
+
+<MoguNote summary="ReplicaSet exists underneath Deployment, but beginners can safely ignore it.">
+If you want to get pedantic, underneath the `Deployment` there's actually another layer called a `ReplicaSet` doing the headcount, while the `Deployment` handles "how to swap people out one at a time when you roll out a new version." But Mogu's position is this: intro material that opens with the `Deployment` → `ReplicaSet` → Pod nesting-doll trio is basically trying to scare people off. The official docs themselves recommend using `Deployment` rather than touching `ReplicaSet` directly. If even the official docs tell you not to touch the middle layer, a beginner can pretend it doesn't exist on day one ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## The extension number changes every time
+
+The shift manager is diligent, but that diligence creates a new problem: the replacement is a **new** Pod, and every new Pod gets a new IP.
+
+It's like the extension number for a station changing every time someone new takes over. The front of house wants to reach the kitchen: yesterday it was 101, today it's 117, tomorrow who knows. Once you have enough services, hardcoding numbers is hopeless.
+
+The fix is a **`Service`**: set up a **main switchboard number**. The switchboard doesn't track "who's on shift right now." It looks at **job-title name tags**, like whoever's wearing a "Kitchen" badge on their chest. In Kubernetes those name tags are called `labels`, and a `Service` finds Pods by label, not by IP. A Pod dies and comes back, and in the tweet's words: "The Service does not care."
+
+<MoguNote summary="Services also get a stable DNS name; use it instead of hardcoding IPs.">
+The tweet only says a `Service` has a stable address, and Mogu thinks it skipped the more useful half: every `Service` also gets an in-cluster DNS name, like `kitchen.default.svc.cluster.local`. Hardcoding the `Service` IP in your config is only different from hardcoding the Pod IP in that it breaks later: the day someone deletes and recreates the `Service`, the IP changes anyway. The front of house should just shout "Kitchen!", not memorize the switchboard number. This is how humans lazied their way into building the entire internet, and this time the laziness is exactly right.
+</MoguNote>
+
+---
+
+## Every department gets its own outside line
+
+"How do 10 `Service`s turn into 10 load balancers?" The tweet jumps straight to the bill, skipping a premise along the way.
+
+**gu-log addendum**: The default `Service` type is `ClusterIP`, which can only be dialed from **inside** the cluster, like an in-house extension. To let outside customers call in, the common approach is to make the `Service` a `LoadBalancer` type, and the cloud provider spins up a real load balancer for it. One per `Service`, each billed separately.
+
+With that premise filled in, the scenario makes sense: 10 services all need to be public, so you get 10 load balancers, and the cloud bill doesn't care that 6 of them get almost no traffic. In restaurant terms: reservations, delivery, complaints, catering, hiring... every department applies for its own outside landline. Some of those lines ring twice a month, and the monthly fee gets charged regardless.
+
+The fix is **`Ingress`**: keep **one public number** for the whole restaurant, answered by a phone menu: "For reservations, press 1. For delivery, press 2." One load balancer sits in front, and every service behind it gets routed by rules, deciding who to forward to based on the URL path or domain.
+
+<MoguNote summary="Lv-03 covers Ingress routing in depth, but its NGINX advice has aged.">
+The routing details of `Ingress`, and how it splits work with Istio, gu-log already covered from DNS on up in [Lv-03](/posts/levelup-20260213-03-one-domain-multi-services), "One Domain, Multiple API Services," so we won't rebuild that building here. That said, Lv-03 was written in February 2026, back when it listed NGINX as "the oldest and most widely used" controller. Two sections from now, time is going to slap that sentence down, and gu-log doesn't get a pass either (⌐■_■)
+</MoguNote>
+
+### The rules are on the wall, but nobody answers the phone
+
+This is where beginners get stuck a lot: **an `Ingress` is just rules. Nobody is executing them.**
+
+You can write the phone-menu script, print it out, tape it to the wall, and the phone still goes unanswered. The rules need **an operator actually sitting at the switchboard, routing calls according to the script**. That's the **`Ingress` Controller**. It's a real program running in the cluster that reads `Ingress` rules and actually moves the traffic. The tweet lists three options: Nginx, Traefik, and the `AWS Load Balancer Controller`. Install one of them, and only then do the rules take effect.
+
+### gu-log addendum: be very careful with that Nginx option in 2026
+
+Nginx being listed first was common sense a few years ago. Now it's out of date.
+
+**`ingress-nginx`**, maintained by the Kubernetes community, was [officially announced as retiring on November 11, 2025](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/). Per the announcement, best-effort maintenance only runs through March 2026. After that, no new releases, no bug fixes, and no patches even if security vulnerabilities are found. Existing deployments won't stop working because of this, and the install files are still downloadable, but from here on it's a switchboard the vendor no longer sends anyone to repair: it still takes calls, and when it breaks, you're on your own.
+
+Things were serious enough that the Kubernetes Steering Committee and Security Response Committee [issued a joint statement on January 29, 2026](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/), saying `ingress-nginx` is critical infrastructure used in roughly half of all cloud native environments, and that this situation "cannot be ignored, dismissed, or left until the last minute."
+
+The official guidance offers two paths:
+
+- **Migrate to Gateway API.** The project calls it the modern successor to `Ingress`. It splits "who owns the public number" and "how each department routes" into separate roles with separate configuration, so large teams step on each other less.
+- If you really still need `Ingress`, switch to [one of the other `Ingress` controllers listed in the Kubernetes docs](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/).
+
+What's retiring is the community `ingress-nginx`. F5 (NGINX's parent company) has its own similarly named `NGINX Ingress Controller`, which is a different project; the original tweet just says "Nginx" without specifying which. If your cluster is running the community version, now is the time to schedule a migration, and to genuinely block out time for it: the statement makes clear that no existing replacement is a drop-in swap, and migrating takes planning and engineering time. To check whether you're affected, the official check is to run this with cluster admin permissions:
+
+```bash
+kubectl get pods --all-namespaces --selector app.kubernetes.io/name=ingress-nginx
+```
+
+<MoguNote summary="A second official statement usually means nobody read the first one.">
+It's like the switchboard your restaurant has used for ten years: the vendor announces "no more repairs after March," and then a bit over two months later, even headquarters' decision committee and security team co-sign a letter saying "please, everyone, actually switch." When the project puts out a second statement, it usually means nobody read the first announcement. Important things need to be said many times, and gu-log uses this trick on itself too: a piece of revision feedback only gets promoted into the official writing guidelines once it's come up three times. Humans and AI are the same here: say something once and it mostly goes in one ear and out the other.
+</MoguNote>
+
+---
+
+## The menu and the safe combination, both in the wrong place
+
+The test environment connects to the wrong database, production uses the wrong API key, and every config change means rebuilding the image. Traffic can finally get in, and the next thing to blow up is **configuration**, all for one reason: the config is hardcoded inside the container.
+
+Restaurant version: every branch's menu and prices are trained directly into the staff's heads. The Taipei branch wants to raise prices? Ship the whole crew back to headquarters for retraining.
+
+The fix is a **`ConfigMap`**: **print the menu on a sign hung outside the shop**. Staff training (the image) is the same nationwide; whichever branch they land at, they read that branch's sign. The config lives outside the container and gets injected at runtime, so the same image can run in dev, test, and production, just fed different configs.
+
+The sign works so well that people start posting everything on it, including the database password. Now anyone with basic `kubectl` access can walk past the sign and jot it down. This is where @livingdevops lands the heaviest line in the whole tweet: "That is not a mistake. That is a security incident."
+
+The tweet's fix is a **`Secret`**: sensitive data stored separately, with its own access control, and the image itself never touches it. In restaurant terms, the password doesn't go on the sign; it goes in a **safe**.
+
+The story looks wrapped up at this point, and yet this is exactly where the whole thing most needs a follow-up.
+
+### gu-log addendum: the default safe is made of clear acrylic
+
+The [official Kubernetes docs](https://kubernetes.io/docs/concepts/configuration/secret/) put a warning right on the `Secret` page: `Secret`s are, **by default, stored unencrypted** in `etcd`, the datastore behind the API server. Anyone with API access can read or modify a `Secret`, and so can anyone with access to `etcd`.
+
+Plenty of people think "the `Secret` value is an unreadable string of gibberish, so it's encrypted." That gibberish is base64 **encoding**, not encryption. Encoding just writes the same thing a different way, and anyone can turn it back with one command:
+
+```bash
+echo 'aHVudGVyMg==' | base64 -d
+# hunter2
+```
+
+In other words, the default safe is a clear acrylic box with a "CONFIDENTIAL" sticker on the outside. To turn it into an actual safe, you need to add at least two things:
+
+1. **Turn on encryption at rest** (encrypting data as it's written to disk). Follow the [official setup guide](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/) to have the API server encrypt `Secret`s before writing them to `etcd`. Ideally, hook it up to your cloud's KMS (key management service), so the encryption key doesn't live on the same machine as the data: the key to the safe goes to headquarters' vault, not taped to the back of the safe.
+2. **Use RBAC to limit who can read them.** RBAC is "role-based access control," which decides which people and which programs can read which `Secret`s. The official docs also point out an easy-to-miss back door: anyone **with permission to create Pods** in a namespace can indirectly read every `Secret` in that namespace, and "can create `Deployment`s" counts too. In restaurant terms: whoever can call staff in to work can tell that staff member to open the safe.
+
+<MoguNote summary="Creating a Secret is not encryption; the name gives false security.">
+So "anyone with basic `kubectl` access can read it" doesn't automatically go away once you switch to `Secret`s. Unless RBAC is tightened separately, you've just gone from "everyone can see it on the sign" to "the safe is transparent, but at least it's in the back room." `Secret` is such a reassuring name that tons of people assume creating a `Secret` means it's encrypted. This is a security incident caused by naming, and Kubernetes owes the world an apology (╯°□°)╯
+</MoguNote>
+
+---
+
+## Short-staffed at the rush, idle crowds after close
+
+Some days you have 100 users, some days 10,000. At peak you manually scale to 8 Pods, then watch them sit idle all night. Nobody can babysit a cluster forever.
+
+Restaurant version: the lunch rush is chaos, so the manager phones 5 extra people to come help; by 2 p.m. the customers are gone, and those 5 people stand around collecting wages until closing.
+
+The fix is the **HPA** (`HorizontalPodAutoscaler`): set a "busy line," automatically call people in when it's crossed, and automatically send them home when things quiet down. The tweet's version: when CPU goes above 70%, Pods are added automatically, and when traffic drops, they scale back in. No more getting woken up at 2 a.m.
+
+**gu-log addendum**: That 70% isn't a magic number built into Kubernetes. It's a target value you fill in yourself in the HPA config. The official getting-started example uses 50%, and the right number depends on the service: latency-sensitive services should go lower to add people earlier; cost-sensitive ones can go higher. The HPA also isn't limited to CPU: memory or custom metrics (like requests per second) can serve as the busy line too.
+
+There's an even sneakier detail hiding in the denominator. The "70%" the HPA calculates uses the Pod's `requests` as 100%: set `requests` to 200m (0.2 of a CPU), and once usage crosses 140m, the manager starts making calls. So what if a container never set `requests` at all? The [official docs](https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/) answer bluntly: that Pod's CPU utilization can't be calculated, and the HPA takes no action for that metric. It's like handing the manager a ruler with no markings and asking them to call people in at "70% full." No matter how diligent they are, they can't tell how full it is. As for what `requests` actually is, hold that thought; the final problem will bring it properly on stage.
+
+---
+
+## The staff showed up, but there's nowhere to stand
+
+The HPA dutifully calls people in, and the new Pods get stuck in `Pending`, going nowhere. The HPA has actually done its job; the problem is that the cluster has **nowhere to put these Pods**.
+
+Time to meet a new character: the **node**, the actual machine that runs Pods. In the restaurant, a node is **the shop itself**. The HPA decides how many staff to call in, but the shop is only so big. Once every workstation is taken, the new part-timers can only wait at the door.
+
+The tweet's fix is **Karpenter**: when it sees Pods stuck in `Pending`, it automatically launches a new node; when load drops, it removes the node, so you only pay for what you actually use. Restaurant version: when staff start queuing at the door, automatically lease the shop next door; when business slows, end the lease.
+
+### gu-log addendum: with Karpenter, first ask "which cloud is the shop in?"
+
+Karpenter [was developed at AWS](https://karpenter.sh/) and later handed over to the Kubernetes community; the core code now lives at [`kubernetes-sigs/karpenter`](https://github.com/kubernetes-sigs/karpenter). The premise the tweet skips: Karpenter doesn't sign leases itself. It decides "how big a shop should we lease," but actually dealing with the landlord takes a separate integration that someone has to write for each cloud.
+
+So before you start, ask: which cloud is the shop in, and is the agent there reliable? AWS is the birthplace, with the deepest integration; Azure's implementation lives in its own official GitHub organization, and Oracle has an officially maintained version too; GCP and Alibaba Cloud implementations are written by third-party companies, and a few implementations are still in early testing. Same name, different cloud, and the maturity gap is huge.
+
+On a cloud without a reliable agent, fall back to the old standby, the **`Cluster Autoscaler`**: maintained by the Kubernetes autoscaling group, it supports lots of clouds and does the same job of "add nodes when Pods are stuck, remove them when idle." The difference is clearest in leasing terms: the `Cluster Autoscaler` usually pre-negotiates a few fixed shop sizes with the landlord and, when short on space, leases more units straight from the catalog; Karpenter is more like looking at how much room the queue actually needs and picking a shop that's just the right size.
+
+---
+
+## One cook takes over the whole kitchen
+
+One cook starts spreading ingredients across the entire kitchen, from their own counter all the way over to the fryer next door, the dessert station, the dish pit. This cook means no harm; they were just never told where the boundaries are. The whole kitchen grinds to a halt.
+
+This is the last link in the chain, and the most insidious. Back in Kubernetes: some Pod starts eating 4GB of memory, and nobody ever told Kubernetes that's not allowed. It starves the other Pods on the same node, and the cascading failures begin. In the tweet's own words: "One rogue pod with no limits takes down everything around it."
+
+The fix is the one that's been foreshadowed twice and never formally introduced: resource **`requests` and `limits`**. Two numbers, two jobs:
+
+- **`requests` is "the minimum counter space you're guaranteed."** It tells Kubernetes how many resources this Pod needs at minimum to get scheduled; when assigning shifts, Kubernetes uses this number to figure out "can this shop still fit them?"
+- **`limits` is "you can use up to here and no further."** It ensures no Pod can steal resources from those around it.
+
+Only with both numbers filled in does the cluster behave predictably. And here's the biggest twist in the whole chain: this last link to show up is actually the foundation of the previous two. The HPA uses `requests` as the scale for its busy line, and Karpenter and the `Cluster Autoscaler` look at it too when deciding "should we open a new shop, and how big?" Leave `requests` out entirely, and Karpenter is leasing shops blindfolded while the HPA can't even work out whether to call anyone in. This restaurant was built backwards, with the foundation poured last.
+
+<MoguNote summary="Exceeding CPU means throttling; exceeding memory may mean OOMKilled restart loops.">
+What happens after you exceed the limit differs between CPU and memory. Go over on CPU and you just get **throttled**: the staff member slows down but is still there. Go over on memory and you **might** get sent straight home: the official docs say the kernel "may" kill the over-limit container, with status `OOMKilled` (OOM means out of memory), so exceeding the limit doesn't guarantee an immediate kill.
+
+And after the kill, it's not the shift manager bringing in a new hire; it's the same staff member in the same Pod being woken up on the spot and sent back to work (`kubelet` restarts the container according to `restartPolicy`). So with a memory limit set too tight, `kubectl get pods` shows the same Pod's restart count climbing and climbing until it gets stuck in `CrashLoopBackOff`, like watching a tragedy on repeat. `CrashLoopBackOff` might be the most honest status name in Kubernetes: it really is crashing in a loop, and it waits longer and longer before each restart. So Mogu leans conservative: until you've measured actual usage, don't squeeze memory limits tight based on gut feeling. The little bit of memory you save gets paid back by sitting through reruns of that tragedy all night.
+</MoguNote>
+
+---
+
+## Looking back at the restaurant
+
+Starting from a staff member who could vanish without warning, this restaurant grew a shift manager, a switchboard, a phone menu, an operator, a sign, a safe, temp staffing, a leasing agent, and finally a counter-space quota for everyone. None of it was something the owner wanted to buy at the start. Every single piece was added only after the previous piece broke.
+
+<MoguNote summary="The tweet explains how terms are born; 2026 pain comes from how they age.">
+Mogu's one complaint about the original tweet is this: the chain explains how these terms are **born**, but what actually bites in 2026 is how they **age** and how they get misunderstood. The switchboard vendor stopped doing repairs (community `ingress-nginx` retired), the safe is transparent (`Secret`s aren't encrypted by default), and the busy line is one you drew yourself (you fill in the 70%, and you have to set `requests` first). You can recite all nine terms perfectly and still crash, and the crash points almost all land in the conditions the tweet didn't write down. The tweet isn't wrong; it's just too short to hold these caveats, which is why this post spent nearly half its length on addenda.
+</MoguNote>
+
+That's where @livingdevops's "Every Concept Has a Story" is most useful: next time you run into an unfamiliar Kubernetes term in the docs, first ask what mess it's cleaning up. That usually sticks better than memorizing the definition. As for whether this trick works for every single term, [Mogu](/en/glossary#mogu) won't guarantee it. Tracing the backstory of `CustomResourceDefinition` probably means following a whole other chain (¬‿¬)
