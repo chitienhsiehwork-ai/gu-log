@@ -1,0 +1,249 @@
+---
+ticketId: 'Lv-18'
+title: '開一家連鎖餐廳就懂 Kubernetes：每個名詞都是被上一個麻煩逼出來的'
+originalDate: '2026-10-10'
+translatedDate: '2026-10-11'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@livingdevops on X"
+sourceUrl: 'https://x.com/livingdevops/status/2108920063441137762'
+lang: 'zh-tw'
+summary: 'Kubernetes 九個名詞其實是一條因果鏈：每個都在收拾上一個留下的爛攤子。這篇用一家連鎖餐廳從頭走一遍，再補上原推文沒講、2026 年會真的咬人的坑：Secret 預設沒加密、社群版 ingress-nginx 已退役、Karpenter 要看用哪朵雲、HPA 的 70% 是自己填的數字。'
+tags: ['kubernetes', 'devops', 'infrastructure', 'tutorial', 'security']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 7
+    crossRef: 8
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-11"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Pod、`Deployment`、`Service`、`Ingress`、`Ingress` 控制器、`ConfigMap`……Kubernetes 的名詞牆大概數到第五個，大部分新手的眼神就開始放空了。每個都像必背單字，背完還是不知道它們為什麼要存在。
+
+X 上的 @livingdevops 在[一則推文](https://x.com/livingdevops/status/2108920063441137762)裡換了一個講法："Every Concept Has a Story, you just don't know it yet."（每個概念都有一段故事，只是還不知道而已。）他把九個概念排成一條鏈，每一個都是被上一個留下的問題逼出來的。這篇沿著這條鏈**開一家連鎖餐廳**，全文只用這一個比喻；推文省略了條件、放到 2026 年會害人的地方，另外標成「**gu-log 補充**」，跟原推文的主張分開。
+
+## 店員會突然消失
+
+午餐尖峰，櫃台的店員突然請病假走了。櫃台就這樣空著，客人站在那邊沒人理。沒有人會自動補位，因為根本沒人負責補位。
+
+在 Kubernetes 裡，程式是包成容器、放進 **Pod** 裡跑的。Pod 是 Kubernetes 能調度的最小單位，就是那個**站在崗位上的店員**。推文的故事就從這種殘酷場景開始：Pod 跑著跑著當掉了，沒有人會把它叫回來，它就是不見了。
+
+所以要請一個**排班經理**，也就是 **`Deployment`**。跟它說「櫃台隨時要有 3 個人」，它就一直盯著人數：少一個補一個，不管是誰、為什麼不見。
+
+<MoguNote>
+硬要講細節的話，`Deployment` 底下其實還有一層叫 `ReplicaSet` 的東西在數人頭，`Deployment` 管的是「換版本時怎麼一個一個換人」。但 Mogu 的立場是：入門教材一開場就端出 `Deployment` → `ReplicaSet` → Pod 三層俄羅斯娃娃，根本是在勸退。官方文件自己都建議用 `Deployment`，不要直接去操作 `ReplicaSet`；連官方都叫人別碰的中間層，新手第一天當它不存在就好 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 分機號碼每次都不一樣
+
+排班經理很盡責，但盡責本身就帶來新麻煩：補上來的是**新的** Pod，而每個新 Pod 都拿到新的 IP。
+
+這就像每次換人，那個崗位的分機號碼也跟著換。外場要找廚房，昨天撥 101，今天要撥 117，明天不知道幾號。服務一多，根本不可能把號碼寫死。
+
+解法是 **`Service`**：設一支**總機號碼**。總機不記「現在是誰在班」，它看的是**職稱名牌**，例如胸口別著「廚房」名牌的人。Kubernetes 裡這個名牌叫標籤（`labels`），`Service` 靠標籤找 Pod，不靠 IP。Pod 死了又回來，用推文的話說："The Service does not care."（`Service` 根本不在乎。）
+
+<MoguNote>
+推文只講到 `Service` 有個穩定的位址，Mogu 覺得它漏掉了比較好用的那一半：每個 `Service` 還會拿到一個叢集內的 DNS 名字，例如 `kitchen.default.svc.cluster.local`。把 `Service` 的 IP 寫死在設定裡，跟寫死 Pod IP 只差在晚一點出事：哪天有人把 `Service` 刪掉重建，IP 照樣會換。外場該喊的是「廚房！」，不是背總機號碼。人類就是這樣一路懶出整個網際網路的，而這次懶得很對。
+</MoguNote>
+
+---
+
+## 每個部門都牽一條對外專線
+
+「10 個 `Service` 怎麼會變成 10 台負載平衡器？」推文直接從帳單跳進來，中間跳過了一個前提。
+
+**gu-log 補充**：`Service` 預設的型別叫 `ClusterIP`，只能在叢集**內部**撥打，像店內分機。要讓外面的客人打進來，常見做法是把 `Service` 開成 `LoadBalancer` 型別，雲端供應商就會替它開一台真正的負載平衡器。一個 `Service` 一台，各自計費。
+
+補上這個前提，場景就說得通了：10 個服務都要對外，就有 10 台負載平衡器，而雲端帳單才不管其中 6 台幾乎沒流量。換成餐廳：訂位、外送、客訴、團膳、徵才……每個部門都去申請一支自己的對外市話，有的專線一個月響兩次，月租照收。
+
+解法是 **`Ingress`**：全店只留**一支對外總號碼**，接起來是語音選單：「訂位請按 1，外送請按 2」。一台負載平衡器擋在前面，後面所有服務照規則分流，看網址路徑或網域決定轉給誰。
+
+<MoguNote>
+`Ingress` 的分流細節、跟 Istio 怎麼分工，gu-log 在 [Lv-03](/posts/levelup-20260213-03-one-domain-multi-services)「一個 Domain，多個 API Service」從 DNS 一路蓋上去講過了，這裡就不重蓋一次樓。不過 Lv-03 寫於 2026 年 2 月，那時把 NGINX 列為「最老牌、最多人用」的控制器——這句話再過兩段就會被時間打臉，連 gu-log 自己也逃不掉 (⌐■_■)
+</MoguNote>
+
+### 規則貼在牆上，但沒人接電話
+
+新手很常卡在這裡：**`Ingress` 只是規則，沒有人去執行它。**
+
+語音選單的腳本寫好、印出來貼在牆上，電話照樣沒人接。規則需要一個**真的坐在總機前面、照腳本轉接的接線生**，那就是 **`Ingress` 控制器**（英文文件寫作 `Ingress Controller`）。它是實際跑在叢集裡的程式，讀 `Ingress` 規則，然後真的去搬流量。推文列了三個選項：Nginx、Traefik、`AWS Load Balancer Controller`，裝上其中一個，規則才會生效。
+
+### gu-log 補充：Nginx 那個選項，2026 年要特別小心
+
+Nginx 排第一個，在幾年前是常識，現在已經過時。
+
+Kubernetes 社群維護的 **`ingress-nginx`**，在 [2025 年 11 月 11 日正式公告退役](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)。依公告，盡力維護只到 2026 年 3 月為止，之後不再發新版、不修 bug，發現安全漏洞也不會修補。已經在跑的部署不會因此停擺，安裝檔也還下載得到，但它從此是一台廠商不再派人來修的總機：還能接電話，壞了就自己看著辦。
+
+事情嚴重到 Kubernetes 的指導委員會與安全回應委員會在 [2026 年 1 月 29 日又聯名發了一份聲明](https://kubernetes.io/blog/2026/01/29/ingress-nginx-statement/)，說 `ingress-nginx` 是大約一半雲原生環境都在用的關鍵基礎設施，這件事「不能被忽視、敷衍，或拖到最後一刻」。
+
+官方給的路有兩條：
+
+- **遷移到 Gateway API**。官方稱它是 `Ingress` 的現代接班人，把「誰管總號碼」跟「各部門怎麼分流」拆成不同角色各自設定，大型團隊比較不會互踩。
+- 真的還要用 `Ingress`，就換 [Kubernetes 文件列出的其他 `Ingress` 控制器](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/)。
+
+退役的是社群版 `ingress-nginx`。F5（NGINX 的母公司）自己有另一套名字很像的 `NGINX Ingress Controller`，是不同專案；原文只寫「Nginx」，沒講是哪一個。如果手上的叢集裝的是社群版，現在就是排遷移的時候，而且要真的排出時間：那份聲明講明了，目前沒有任何替代品能直接無痛替換，遷移需要規劃和工程時間。要確認自己有沒有中招，官方給的檢查方式是用叢集管理員權限跑：
+
+```bash
+kubectl get pods --all-namespaces --selector app.kubernetes.io/name=ingress-nginx
+```
+
+<MoguNote>
+這就像餐廳用了十年的總機系統，廠商發公告說「三月後不再維修」，然後兩個多月後，連總部的決策委員會和資安小組都聯名發信說「拜託大家真的要換」。官方會發第二份聲明，通常代表第一份公告沒人在看。重要的事要講很多遍，這招 gu-log 自己也在用：同一條修稿回饋累積到三次，才會被升級寫進正式寫作規範。人類跟 AI 都一樣，講一次的東西多半當耳邊風。
+</MoguNote>
+
+---
+
+## 菜單和保險箱密碼，都放錯了地方
+
+測試環境連到錯的資料庫，正式環境用了錯的 API 金鑰，每改一次設定就要重新打包一次映像檔。流量終於進得來了，接下來翻車的是**設定**，而原因只有一個：設定直接寫死在容器裡。
+
+餐廳版本：每家分店的菜單和價目，是直接訓練進店員腦袋裡的。台北店要漲價？整批店員送回總部重新受訓。
+
+解法是 **`ConfigMap`**：把菜單**印成看板掛在店外**。店員的訓練（映像檔）全國統一，到了哪家分店就看哪塊看板。設定活在容器外面，執行時才注入，同一個映像檔就能在開發、測試、正式環境跑，只是吃不同的設定。
+
+看板好用到大家開始什麼都往上貼，包括資料庫密碼。於是任何有基本 `kubectl` 權限的人，經過看板都能順手抄走。@livingdevops 在這裡下了全推文最重的一句："That is not a mistake. That is a security incident."（這不是失誤，是資安事件。）
+
+他給的解法是 **`Secret`**：機密資料分開放，有自己的存取控制，映像檔本身完全碰不到它。換成餐廳，就是密碼不貼看板，改收進**保險箱**。
+
+故事到這裡像是結案了，偏偏這正是全文最需要補刀的地方。
+
+### gu-log 補充：預設的保險箱是透明壓克力做的
+
+[Kubernetes 官方文件](https://kubernetes.io/docs/concepts/configuration/secret/)自己在 `Secret` 頁面掛了一個警告：`Secret` **預設是以未加密的形式**存在 API 伺服器背後的資料庫 `etcd` 裡。任何有 API 存取權的人都能讀取或修改 `Secret`，能碰到 `etcd` 的人也可以。
+
+很多人以為「`Secret` 的值是一串看不懂的亂碼，所以有加密」。那串亂碼是 base64 **編碼**，不是加密。編碼只是換一種寫法，任何人一行指令就轉回來：
+
+```bash
+echo 'aHVudGVyMg==' | base64 -d
+# hunter2
+```
+
+也就是說，預設的保險箱是透明壓克力盒，外面貼了一張「機密」貼紙。要讓它變成真的保險箱，至少要補兩件事：
+
+1. **開啟靜態加密**（資料存進硬碟時就先加密）。依[官方的設定教學](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)讓 API 伺服器在寫進 `etcd` 前先加密 `Secret`。最好接上雲端的 KMS（金鑰管理服務），讓加密用的鑰匙不跟資料放在同一台機器上：保險箱的鑰匙交給總部的金庫保管，不是黏在保險箱背面。
+2. **用 RBAC 限制誰能讀**。RBAC 是「以角色為基礎的存取控制」，決定哪個人、哪個程式可以讀哪些 `Secret`。官方文件還點出一個容易漏掉的後門：在某個命名空間裡**有權限建立 Pod 的人**，就能間接讀到該命名空間的所有 `Secret`，連「能建立 `Deployment`」也算。用餐廳講：能叫店員來上班的人，就能叫店員去開保險箱。
+
+<MoguNote>
+所以「有基本 `kubectl` 權限就讀得到」這件事，換成 `Secret` 之後並不會自動消失；RBAC 沒另外收緊的話，只是從「看板上大家都看得到」變成「保險箱是透明的，但至少放在後面房間」。`Secret` 這個名字取得太有安全感了，害一堆人以為建立 `Secret` 就等於加密。這是命名造成的資安事件，Kubernetes 欠全世界一個道歉 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 尖峰時段人手不夠，打烊後一堆人發呆
+
+有些天 100 個使用者，有些天 10,000 個。尖峰時手動擴到 8 個 Pod，然後眼睜睜看它們整晚閒著。人不可能永遠守著叢集。
+
+餐廳版：午餐尖峰手忙腳亂，店長臨時打電話叫 5 個人來支援；下午兩點客人散了，這 5 個人站著領薪水到打烊。
+
+解法是 **HPA**（`HorizontalPodAutoscaler`，水平自動擴縮器）：設一條「忙碌線」，超過就自動叫人，閒下來自動放人回家。推文的版本是 CPU 超過 70% 就自動加 Pod，流量下來就縮回去，從此凌晨兩點不會再被叫醒。
+
+**gu-log 補充**：那個 70% 不是 Kubernetes 內建的魔法數字，是使用者自己在 HPA 設定裡填的目標值。官方的入門範例用的是 50%，填多少要看服務特性：反應要快的服務設低一點、提早加人；成本敏感的設高一點。HPA 也不只能看 CPU，記憶體或自訂指標（例如每秒請求數）都能拿來當忙碌線。
+
+還有一個更陰的細節，藏在分母裡。HPA 算的「70%」，是拿 Pod 的 `requests` 當一百分：`requests` 填 200m（0.2 顆 CPU），用量衝過 140m，店長就開始打電話叫人。那如果哪個容器根本沒填 `requests` 呢？[官方文件](https://kubernetes.io/docs/concepts/workloads/autoscaling/horizontal-pod-autoscale/)回答得很乾脆：這個 Pod 的 CPU 使用率算不出來，HPA 對這個指標什麼都不做。等於塞給店長一把沒有刻度的尺，要他在「七成滿」的時候叫人，他再盡責也看不出現在是幾成。`requests` 到底是什麼，先記著，最後一個麻煩會讓它正式登場。
+
+---
+
+## 人叫來了，店裡沒地方站
+
+HPA 很勤勞地叫了人，結果新 Pod 卡在 `Pending` 狀態動不了。HPA 其實已經做完它的工作了，問題是叢集裡**沒有地方放這些 Pod**。
+
+這裡要認識一個新角色：**節點**，也就是真正跑 Pod 的機器。在餐廳裡，節點是**店面本身**。HPA 管的是叫多少店員，可是店面就這麼大，工作台全滿了，新來的兼職只能站在門口等。
+
+推文給的解法是 **Karpenter**：看到有 Pod 卡在 `Pending`，就自動開一台新節點；負載下來，再把節點收掉，只為真正用到的資源付錢。餐廳版就是：門口開始排店員，自動租下隔壁的店面；生意淡了就退租。
+
+### gu-log 補充：Karpenter 要先問「店開在哪朵雲」
+
+Karpenter [是在 AWS 開發出來的](https://karpenter.sh/)，後來交給 Kubernetes 社群維護，核心程式現在放在 [`kubernetes-sigs/karpenter`](https://github.com/kubernetes-sigs/karpenter)。推文沒提的前提是：Karpenter 自己不會去簽租約。它負責判斷「該租一間多大的店面」，真正去跟房東打交道的，是每朵雲各自要有人寫的一套對接程式。
+
+所以開工前要先問：店開在哪朵雲，那邊的仲介靠不靠得住？AWS 是發源地，整合最深；Azure 的實作在它自己官方的 GitHub 組織，Oracle 也有官方維護版；GCP、阿里雲則是第三方公司寫的，也有幾個實作還停在早期測試階段。同一個名字，換一朵雲，成熟度就差一大截。
+
+找不到可靠仲介的雲，就回頭用老牌的 **叢集自動擴縮器**（`Cluster Autoscaler`）：由 Kubernetes 的自動擴縮小組維護，支援的雲端多，做的也是「Pod 卡住就加節點、閒置就收掉」。兩者的差別用租店面講最清楚：叢集自動擴縮器通常是事先跟房東談好幾種固定坪數，缺人就照型錄多租幾間；Karpenter 比較像現場看排隊的人要多大空間，挑一間坪數剛好的。
+
+---
+
+## 一個廚師霸占整個廚房
+
+一個廚師開始在整個廚房攤開食材，從自己的檯面一路擺到隔壁的炸鍋、甜點站、洗碗區。這位廚師沒有惡意，只是從沒被告知界線在哪。結果整個廚房停擺。
+
+這是鏈上最後一環，也是最陰險的一個。換回 Kubernetes：某個 Pod 開始吃掉 4GB 記憶體，而從來沒有人告訴 Kubernetes 這樣不行。它把同一台節點上的其他 Pod 餓死，連鎖崩潰就此開始。推文的原話是 "One rogue pod with no limits takes down everything around it."（一個沒設上限的失控 Pod，會拖垮它周圍的一切。）
+
+解法就是前面被預告了兩次、一直沒正式登場的那位：資源的 **`requests` 與 `limits`**（請求量與上限）。兩個數字分工：
+
+- **`requests` 是「保證分到的最小檯面」**。它告訴 Kubernetes 這個 Pod 至少需要多少資源才能被排上去；排班時，Kubernetes 就是拿這個數字算「這家店還塞不塞得下」。
+- **`limits` 是「最多只能用到這裡」**。確保沒有任何 Pod 能從周圍偷資源。
+
+兩個數字都填好，叢集的行為才會變得可預測。而這裡藏著整條鏈最大的轉折：最後才登場的這一環，其實是前兩環的地基。HPA 拿 `requests` 當忙碌線的刻度，Karpenter 跟叢集自動擴縮器判斷「要不要開新店面、開多大」看的也是它。完全不填 `requests`，Karpenter 等於矇著眼睛租店面，HPA 連要不要叫人都算不出來。這家店是倒著蓋的，地基最後才補。
+
+<MoguNote>
+超過上限之後的下場，CPU 跟記憶體不一樣。CPU 超過只會被**限速**，店員動作變慢但人還在。記憶體超過，則**有可能**直接被請回家：官方文件的用詞是核心「may」把超標的容器砍掉，狀態顯示 `OOMKilled`（OOM 就是記憶體耗盡），超標不保證當場就被砍。
+
+而且砍掉之後不是排班經理換一個新人，是同一個 Pod 裡的店員被原地叫起來重新上工（`kubelet` 照 `restartPolicy` 重啟容器）。所以記憶體上限設太緊，`kubectl get pods` 看到的會是同一個 Pod 的重啟次數一直往上跳，最後卡在 `CrashLoopBackOff`，像在看一部重播的悲劇。`CrashLoopBackOff` 大概是 Kubernetes 最誠實的狀態名：真的在迴圈裡崩潰，而且每次重啟前等得越來越久。所以 Mogu 的態度偏保守：還沒量過實際用量之前，記憶體上限別憑感覺壓緊，省下的那點記憶體，換來的是陪這部悲劇重播一整晚。
+</MoguNote>
+
+---
+
+## 回頭看這家店
+
+從一個會突然消失的店員開始，這家店一路長出了排班經理、總機、語音選單、接線生、看板、保險箱、臨時人力、店面仲介，最後是每個人的檯面配額。沒有一樣是老闆一開始就想買的，每一樣都是上一樣東西出包之後才補上的。
+
+<MoguNote>
+Mogu 對原推文唯一的不滿在這裡：這條鏈講的是名詞怎麼**出生**，可是 2026 年真正咬人的，是它們怎麼**變老**、怎麼被誤會。總機廠商不修了（社群版 `ingress-nginx` 退役）、保險箱是透明的（`Secret` 預設沒加密）、忙碌線是自己畫的（70% 要自己填，還得先填 `requests`）。九個名詞背得滾瓜爛熟，照樣會翻車，翻車點幾乎都落在推文沒寫的條件裡。推文沒寫錯，只是短到裝不下這些但書，所以這篇才花了快一半篇幅在補充上。
+</MoguNote>
+
+這就是 @livingdevops 那句 "Every Concept Has a Story" 最好用的地方：下次在文件裡撞到沒看過的 Kubernetes 名詞，先問它在收拾什麼爛攤子，通常會比直接背定義好記。至於這招是不是對每個名詞都管用，[Mogu](/glossary#mogu) 不敢打包票，`CustomResourceDefinition` 的前因大概就要追到另一條鏈去了 (¬‿¬)

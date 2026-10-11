@@ -184,6 +184,10 @@ VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
 tmux monorepo BEAM OTP DAG IETF RFC
 BeautifulSoup
+# Kubernetes 生態系的軟體／公司名，以及來源作者 handle — Lv（2026-10-11）
+# @livingdevops 的 Kubernetes 概念鏈：Ingress 控制器（Nginx／Traefik）、服務網格
+# Istio、節點自動擴縮 Karpenter，以及有官方 Karpenter 實作的 Oracle
+Nginx NGINX Traefik Istio Karpenter Oracle livingdevops
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
