@@ -474,10 +474,10 @@ func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
 // TestWriteReviewAndRefineSetAsideAnEarlierOutput covers
 // gp-pipeline-publish-integrity〈write、review 與 refine SHALL NOT 把工作目錄裡的
 // 舊產物當成這次的輸出〉: a writer that answers on stdout alone replaces the
-// file an earlier run left in the work dir, and a writer that fails without
-// writing leaves that file as it was.
+// file an earlier run left in the work dir, here an Lv post, and a writer that
+// fails without writing leaves that file as it was.
 func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
-	const earlier = "---\ntitle: \"Earlier\"\n---\nearlier body\n"
+	const earlier = "---\ntitle: \"Earlier\"\nticketId: Lv-PENDING\n---\nearlier body\n"
 	const fresh = "---\ntitle: \"Fresh\"\n---\nfresh body\n"
 	for _, step := range []struct {
 		name, output string
@@ -510,27 +510,11 @@ func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
 				if got := mustRead(t, path); got != tc.want {
 					t.Fatalf("%s = %q, want %q", step.output, got, tc.want)
 				}
+				if isLv, _ := isLvFile(path); isLv && !tc.wantErr {
+					t.Fatalf("%s is still the earlier Lv post", step.output)
+				}
 			})
 		}
-	}
-}
-
-// TestRefineDoesNotKeepAnEarlierLvFinal: an MP refine whose writer answers on
-// stdout alone does not pass off the Lv final.mdx an earlier run left behind.
-func TestRefineDoesNotKeepAnEarlierLvFinal(t *testing.T) {
-	s, fake, workDir := newTestState(t)
-	s.Prefix = "MP"
-	s.PromptTicketID = "MP-PENDING"
-	finalPath := filepath.Join(workDir, "final.mdx")
-	if err := os.WriteFile(finalPath, []byte("---\ntitle: \"Lv\"\nticketId: Lv-PENDING\n---\nbody\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	fake.WithResponses(llm.FakeResponse{Output: "---\ntitle: \"MP\"\nticketId: MP-PENDING\n---\nbody\n"})
-	if err := s.Refine(context.Background()); err != nil {
-		t.Fatalf("Refine: %v", err)
-	}
-	if isLv, err := isLvFile(finalPath); err != nil || isLv {
-		t.Fatalf("final.mdx is Lv = %v (%v), want this refine's MP output", isLv, err)
 	}
 }
 
