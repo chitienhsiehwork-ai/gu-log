@@ -43,7 +43,7 @@
 
 - [x] 5.1 在 `src/config/glossary.ts` 定義分類 id 與中英文 label 的唯一對照，包含 `products`、`models`、`platforms`。篩選按鈕取資料用到的分類，詞條標籤顯示對應語言的 label。單元測試：資料用到沒有 label 的分類就失敗（對應「新分類缺 label」）；沒有詞條的分類不產生按鈕（對應「沒有詞條的分類」）
 - [x] 5.2 抽出 `src/components/glossary/` 共用元件，`src/pages/glossary.astro` 與 `src/pages/en/glossary.astro` 改成薄包裝，只傳語言；英文頁的文章連結指向英文版文章、顯示英文版標題。驗證：兩頁 build 出的詞條數、順序與分類一致；英文頁 Kubernetes 的文章連結是英文標題（對應「中英文詞彙表 SHALL 行為一致」的兩個情境）
-- [ ] 5.3 精簡顯示（規則見 design §2）：
+- [x] 5.3 精簡顯示（規則見 design §2）：
   - CSS 預設顯示名稱、英文名、分類 label、定義前兩行與每列的複製連結按鈕；
   - `:target` 與 `.is-open` 展開完整定義、MoguNote、外部連結、Thread、相關詞條與文章，`.is-collapsed` 蓋過 `:target`；
   - 沒有 JS 時，展開控制是指向自己錨點的連結；

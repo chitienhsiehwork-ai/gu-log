@@ -131,42 +131,121 @@
   border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
 }
 
+.glossary-entry[hidden] {
+  display: none;
+}
+
 .glossary-entry:last-child {
   border-bottom: none;
 }
 
-dt {
+/* 詞條列：名稱、英文名、分類 label 與展開記號。沒有 JS 時是 <a>，有 JS 時是 <button>。 */
+.entry-head {
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
   margin: 0;
 }
 
-.term-link {
+.entry-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  row-gap: 0.1rem;
+  padding: 0.15rem 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.entry-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 展開記號：收起時朝下，展開時朝上 */
+.entry-toggle::after {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: 0 0.35rem 0 auto;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.term-name {
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--color-text);
-  text-decoration: none;
   transition: color 0.15s;
 }
 
-.term-link:hover {
+.entry-toggle:hover .term-name {
   color: var(--color-accent);
-}
-
-.term-link.copied::after {
-  content: ' ✓ copied';
-  color: var(--color-accent);
-  font-size: 0.65rem;
-  font-weight: 400;
 }
 
 .term-en {
   font-size: 0.78rem;
   color: var(--color-text-muted);
   font-weight: 400;
-  opacity: 0.7;
+}
+
+/* 每列的複製連結按鈕，由 script 加上 */
+.entry-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.25rem 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.entry-copy:hover,
+.entry-copy.copied {
+  color: var(--color-accent);
+}
+
+.entry-copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.entry-copy svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.entry-copy .icon-check,
+.entry-copy.copied .icon-link {
+  display: none;
+}
+
+.entry-copy.copied .icon-check {
+  display: block;
 }
 
 /* Inline category badges */
@@ -215,23 +294,51 @@ dt {
   background: color-mix(in srgb, var(--color-cat-people) 15%, transparent);
 }
 
-dd {
+.glossary-entry dd {
   margin: 0.1rem 0 0 0;
 }
 
-.term-def {
+/* 精簡列只顯示定義的前兩行；完整定義、MoguNote 與連結收在 .entry-details。
+   選擇器要蓋過 global.css 的 [lang='zh-TW'] p 行高。 */
+.glossary-entry .term-def {
   font-size: 0.85rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text-muted);
   margin: 0;
   white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
-.term-meta {
-  font-size: 0.72rem;
+.entry-details {
+  display: none;
+}
+
+/* 展開：從錨點進來（:target）或按了展開（.is-open）。
+   .is-collapsed 蓋過 :target，讓從錨點展開的詞條也收得起來。 */
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .term-def {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
+  overflow: visible;
+}
+
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .entry-details {
+  display: block;
+}
+
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .entry-toggle::after {
+  transform: translateY(25%) rotate(-135deg);
+}
+
+.glossary-entry .term-meta {
+  font-size: 0.75rem;
+  line-height: 1.6;
   color: var(--color-text-muted);
-  margin: 0.1rem 0 0 0;
-  opacity: 0.55;
+  margin: 0.25rem 0 0 0;
 }
 
 .term-meta a {
@@ -241,11 +348,10 @@ dd {
 
 .term-meta a:hover {
   text-decoration: underline;
-  opacity: 1;
 }
 
-/* Compact MoguNote inside glossary entries */
-.glossary-entry :global(blockquote.mogu-note) {
+/* 詞條裡的 MoguNote 縮小一點 */
+.glossary-entry blockquote.mogu-note {
   margin: 0.4rem 0 0.2rem 0;
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
@@ -255,6 +361,18 @@ dd {
   color: var(--color-text-muted);
   font-size: 0.85rem;
   padding: 1rem 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .glossary-footer {

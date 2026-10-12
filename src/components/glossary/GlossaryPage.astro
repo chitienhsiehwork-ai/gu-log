@@ -27,7 +27,7 @@ const copy = {
   'zh-tw': {
     title: '詞彙表 - gu-log',
     heading: '📖 詞彙表',
-    intro: '本站常出現的 AI 術語。點術語名稱可複製連結。',
+    intro: '本站常出現的 AI 術語。點術語展開完整說明；想分享某個詞條，按它右邊的按鈕複製連結。',
     searchPlaceholder: '搜尋術語...',
     searchLabel: '搜尋術語',
     all: '全部',
@@ -35,7 +35,10 @@ const copy = {
     countSuffix: ' 個術語',
     alphabetLabel: '字母索引',
     threadLabel: 'Thread：',
+    relatedLabel: '相關：',
     postsLabel: '文章：',
+    copyLink: '複製「{term}」的連結',
+    copiedLink: '已複製「{term}」的連結',
     listSeparator: '、',
     empty: '沒有符合的術語。',
     homeHref: '/',
@@ -44,7 +47,8 @@ const copy = {
   en: {
     title: 'Glossary - gu-log',
     heading: '📖 Glossary',
-    intro: 'AI terms that show up often on gu-log. Click a term name to copy its anchor link.',
+    intro:
+      'AI terms that show up often on gu-log. Tap a term to expand the full entry; to share one, use the button on its right to copy the link.',
     searchPlaceholder: 'Search terms...',
     searchLabel: 'Search terms',
     all: 'All',
@@ -52,7 +56,10 @@ const copy = {
     countSuffix: ' terms',
     alphabetLabel: 'Alphabet index',
     threadLabel: 'Thread:',
+    relatedLabel: 'Related:',
     postsLabel: 'Posts:',
+    copyLink: 'Copy link to {term}',
+    copiedLink: 'Copied link to {term}',
     listSeparator: ', ',
     empty: 'No matching terms.',
     homeHref: '/en',
@@ -183,69 +190,68 @@ for (const item of entries) {
                 <div
                   class="glossary-entry"
                   id={item.anchor}
-                  data-term={item.term.toLowerCase()}
-                  data-en={item.en.toLowerCase()}
-                  data-definition={item.definition.toLowerCase()}
-                  data-aliases={item.aliases.join(' ').toLowerCase()}
                   data-category={item.category}
+                  data-search={[item.term, item.en, ...item.aliases].join(' ').toLowerCase()}
                 >
-                  <dt>
-                    <a href={`#${item.anchor}`} class="term-link">
-                      {item.term}
+                  <dt class="entry-head">
+                    {/* 沒有 JS 時是指向自己錨點的連結（:target 展開）；有 JS 時換成切換按鈕。 */}
+                    <a href={`#${item.anchor}`} class="entry-toggle">
+                      <span class="term-name">{item.term}</span>
+                      {item.en !== item.term && <span class="term-en">{item.en}</span>}
+                      <span class={`term-cat cat-${item.category}`}>{item.categoryLabel}</span>
                     </a>
-                    {item.en !== item.term && <span class="term-en">{item.en}</span>}
-                    <span class={`term-cat cat-${item.category}`}>{item.categoryLabel}</span>
                   </dt>
                   <dd>
                     <p class="term-def">{item.definition}</p>
-                    {item.moguNote && <MoguNote>{item.moguNote}</MoguNote>}
-                    {item.safeUrl && (
-                      <p class="term-meta">
-                        <a
-                          href={item.safeUrl.href}
-                          target={item.safeUrl.external ? '_blank' : undefined}
-                          rel={item.safeUrl.external ? 'noopener noreferrer' : undefined}
-                        >
-                          {urlLabel(item.safeUrl)}
-                          {item.safeUrl.external && ' ↗'}
-                        </a>
-                      </p>
-                    )}
-                    {item.safeThreadUrl && (
-                      <p class="term-meta">
-                        {copy.threadLabel}{' '}
-                        <a href={item.safeThreadUrl.href} target="_blank" rel="noopener noreferrer">
-                          {item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗
-                        </a>
-                      </p>
-                    )}
-                    {(item.related.length > 0 || item.posts.length > 0) && (
-                      <p class="term-meta">
-                        {item.related.length > 0 && (
-                          <span class="meta-links">
-                            →{' '}
-                            {item.related.map((rel, i) => (
-                              <span>
-                                <a href={`#${rel.anchor}`}>{rel.term}</a>
-                                {i < item.related.length - 1 && copy.listSeparator}
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                        {item.posts.length > 0 && (
-                          <span class="meta-posts">
-                            {' '}
-                            | {copy.postsLabel}{' '}
-                            {item.posts.map((post, i) => (
-                              <span>
-                                <a href={post.href}>{post.title}</a>
-                                {i < item.posts.length - 1 && copy.listSeparator}
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                      </p>
-                    )}
+                    <div class="entry-details" id={`${item.anchor}__details`}>
+                      {item.moguNote && <MoguNote>{item.moguNote}</MoguNote>}
+                      {item.safeUrl && (
+                        <p class="term-meta">
+                          <a
+                            href={item.safeUrl.href}
+                            target={item.safeUrl.external ? '_blank' : undefined}
+                            rel={item.safeUrl.external ? 'noopener noreferrer' : undefined}
+                          >
+                            {urlLabel(item.safeUrl)}
+                            {item.safeUrl.external && ' ↗'}
+                          </a>
+                        </p>
+                      )}
+                      {item.safeThreadUrl && (
+                        <p class="term-meta">
+                          {copy.threadLabel}{' '}
+                          <a
+                            href={item.safeThreadUrl.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗
+                          </a>
+                        </p>
+                      )}
+                      {item.related.length > 0 && (
+                        <p class="term-meta">
+                          {copy.relatedLabel}{' '}
+                          {item.related.map((rel, i) => (
+                            <span>
+                              <a href={`#${rel.anchor}`}>{rel.term}</a>
+                              {i < item.related.length - 1 && copy.listSeparator}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                      {item.posts.length > 0 && (
+                        <p class="term-meta">
+                          {copy.postsLabel}{' '}
+                          {item.posts.map((post, i) => (
+                            <span>
+                              <a href={post.href}>{post.title}</a>
+                              {i < item.posts.length - 1 && copy.listSeparator}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                    </div>
                   </dd>
                 </div>
               ))}
@@ -255,7 +261,28 @@ for (const item of entries) {
       }
     </div>
 
-    <p class="glossary-empty" id="glossary-empty" style="display:none">{copy.empty}</p>
+    <p class="glossary-empty" id="glossary-empty" hidden>{copy.empty}</p>
+    <p
+      class="visually-hidden"
+      id="glossary-status"
+      role="status"
+      data-copy-link={copy.copyLink}
+      data-copied-link={copy.copiedLink}
+    >
+    </p>
+
+    {/* 複製連結要靠 JS，所以按鈕由 script 從這個 template 複製到每一列。 */}
+    <template id="glossary-copy-button">
+      <button type="button" class="entry-copy">
+        <svg class="icon-link" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        <svg class="icon-check" viewBox="0 0 24 24" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </button>
+    </template>
 
     <footer class="glossary-footer">
       <a href={copy.homeHref}>{copy.homeLabel}</a>
