@@ -24,7 +24,7 @@ function git(args) {
   });
 }
 
-function stagedPostRecords() {
+function stagedPostFiles() {
   const output = git(['ls-files', '--stage', '-z', '--', POSTS_DIR]);
   return output
     .split('\0')
@@ -34,8 +34,12 @@ function stagedPostRecords() {
       if (separator === -1) {
         throw new Error('malformed staged post record');
       }
-      const [mode, objectId, stage] = record.slice(0, separator).split(' ');
-      return { mode, objectId, stage, file: record.slice(separator + 1) };
+      const file = record.slice(separator + 1);
+      // An unmerged post has no single staged version to check a link target against.
+      if (record.slice(0, separator).split(' ')[2] !== '0') {
+        throw new Error(`${file} is unmerged in the staged index`);
+      }
+      return file;
     });
 }
 
@@ -52,7 +56,7 @@ export function isStagedLinkOnlyChange(file) {
     filePath: file,
     glossary: loadStagedGlossary(process.cwd()),
     validatePostLink: createPostLinkValidator({
-      listPosts: stagedPostRecords,
+      listPosts: stagedPostFiles,
       readPost: (target) => git(['show', `:${target}`]),
     }),
   });

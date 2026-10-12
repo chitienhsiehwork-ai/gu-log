@@ -112,7 +112,7 @@ function linkProofOptions(currentFile) {
         fs
           .readdirSync(POSTS_DIR)
           .filter((name) => name.endsWith('.mdx'))
-          .map((name) => ({ file: `${POSTS_DIR}/${name}`, stage: '0' })),
+          .map((name) => `${POSTS_DIR}/${name}`),
       readPost: (file) => fs.readFileSync(file, 'utf8'),
     }),
   };

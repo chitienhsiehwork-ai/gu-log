@@ -124,10 +124,6 @@ function hasSameReaderStructure(before, after) {
   }
 }
 
-function rejectPostLinks() {
-  throw new Error('internal post links cannot be validated here');
-}
-
 /**
  * Whether `after` differs from `before` only by adding, removing or correcting glossary
  * links, or by retargeting internal post links to validated canonical posts.
@@ -137,15 +133,11 @@ function rejectPostLinks() {
  * @param {{
  *   filePath: string,
  *   glossary: object[],
- *   validatePostLink?: (label: string, href: string) => void,
+ *   validatePostLink: (label: string, href: string) => void,
  * }} options `glossary` must be the same revision as `after`; `validatePostLink` throws
  *   when a changed internal post link does not resolve to its canonical target.
  */
-export function isLinkOnlyChange(
-  before,
-  after,
-  { filePath, glossary, validatePostLink = rejectPostLinks }
-) {
+export function isLinkOnlyChange(before, after, { filePath, glossary, validatePostLink }) {
   // Nothing changed, so nothing to prove: a pure taxonomy rename ends up here.
   if (before === after) return true;
   if (before.includes(PLACEHOLDER_MARK) || after.includes(PLACEHOLDER_MARK)) return false;
@@ -183,33 +175,28 @@ export function isLinkOnlyChange(
   return hasSameReaderStructure(before, after);
 }
 
-function targetForSlug(records, slug) {
-  const candidates = records.filter(
-    ({ file }) => path.basename(file, '.mdx').toLowerCase() === slug
-  );
+function targetForSlug(files, slug) {
+  const candidates = files.filter((file) => path.basename(file, '.mdx').toLowerCase() === slug);
   if (candidates.length !== 1) {
     throw new Error(`canonical target ${slug} must resolve to exactly one post`);
   }
   const [target] = candidates;
-  if (target.stage !== '0') {
-    throw new Error(`canonical target ${slug} is unmerged in the staged index`);
-  }
-  if (path.basename(target.file, '.mdx') !== slug) {
+  if (path.basename(target, '.mdx') !== slug) {
     throw new Error(`canonical target ${slug} must use an exact lowercase filename`);
   }
-  return target.file;
+  return target;
 }
 
 /**
  * Build the internal post link validator for one revision of the posts.
  *
  * @param {{
- *   listPosts: () => Array<{ file: string, stage: string }>,
+ *   listPosts: () => string[],
  *   readPost: (file: string) => string,
- * }} source
+ * }} source `listPosts` returns the post paths of that revision.
  */
 export function createPostLinkValidator({ listPosts, readPost }) {
-  let records;
+  let files;
   return function validatePostLink(label, url) {
     const match = CANONICAL_POST_LINK.exec(url);
     if (!match) {
@@ -222,8 +209,8 @@ export function createPostLinkValidator({ listPosts, readPost }) {
       throw new Error(`internal post URL locale does not match its slug: ${url}`);
     }
 
-    records ??= listPosts();
-    const targetFile = targetForSlug(records, slug);
+    files ??= listPosts();
+    const targetFile = targetForSlug(files, slug);
     let frontmatter;
     try {
       frontmatter = matter(readPost(targetFile)).data;
