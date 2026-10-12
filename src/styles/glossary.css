@@ -56,8 +56,8 @@ html:has(.glossary-page) {
 }
 
 .glossary-search::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.7;
+  /* 搜尋框底色是 --color-surface，--color-text-muted 在深色主題對比不到 4.5:1 */
+  color: var(--color-surface-meta);
 }
 
 .glossary-count {
@@ -65,7 +65,6 @@ html:has(.glossary-page) {
   font-size: 0.7rem;
   color: var(--color-text-muted);
   white-space: nowrap;
-  opacity: 0.6;
 }
 
 /* 分類按鈕與 A–Z 各佔一行；手機上放不下的分類按鈕左右滑。 */
@@ -99,7 +98,7 @@ html:has(.glossary-page) {
 
 .category-pill[aria-pressed='true'] {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-color: var(--color-accent);
 }
 
@@ -139,7 +138,6 @@ html:has(.glossary-page) {
   margin: 0.75rem 0 0 0;
   padding-bottom: 0.2rem;
   border-bottom: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  opacity: 0.9;
 }
 
 /* Entries */
@@ -372,11 +370,15 @@ html:has(.glossary-page) {
   text-decoration: underline;
 }
 
-/* 詞條裡的 MoguNote 縮小一點 */
+/* 詞條裡的 MoguNote 縮小一點，前綴和內文之間也收緊 */
 .glossary-entry blockquote.mogu-note {
   margin: 0.4rem 0 0.2rem 0;
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
+}
+
+.glossary-entry .mogu-note .mogu-note-content {
+  margin-top: 0.35rem;
 }
 
 .glossary-empty {

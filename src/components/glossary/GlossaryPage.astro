@@ -34,6 +34,7 @@ const copy = {
     categoryGroupLabel: '分類篩選',
     countSuffix: ' 個術語',
     alphabetLabel: '字母索引',
+    // 詞條 meta 的標籤直接接內容：全形冒號後面不空格，英文標籤自己帶空格。
     threadLabel: 'Thread：',
     relatedLabel: '相關：',
     postsLabel: '文章：',
@@ -55,9 +56,9 @@ const copy = {
     categoryGroupLabel: 'Category filter',
     countSuffix: ' terms',
     alphabetLabel: 'Alphabet index',
-    threadLabel: 'Thread:',
-    relatedLabel: 'Related:',
-    postsLabel: 'Posts:',
+    threadLabel: 'Thread: ',
+    relatedLabel: 'Related: ',
+    postsLabel: 'Posts: ',
     copyLink: 'Copy link to {term}',
     copiedLink: 'Copied link to {term}',
     listSeparator: ', ',
@@ -109,6 +110,11 @@ const entries = [...glossaryData]
     })),
     posts: articleLinks(item.definedIn),
   }));
+
+// 清單項目之間插入分隔符號，例如 [A, B, C] → [A, '、', B, '、', C]。
+function joinWith<T>(items: T[], separator: string): (T | string)[] {
+  return items.flatMap((item, i) => (i === 0 ? [item] : [separator, item]));
+}
 
 function urlLabel(url: ParsedGlossaryUrl) {
   if (!url.external) return `gu-log${url.href}`;
@@ -223,38 +229,39 @@ for (const item of entries) {
                           </a>
                         </p>
                       )}
+                      {/* 標籤、分隔符號與連結寫在同一個運算式裡，模板的換行才不會變成「A 、 B」這種多餘空白。 */}
                       {item.safeThreadUrl && (
                         <p class="term-meta">
-                          {copy.threadLabel}{' '}
-                          <a
-                            href={item.safeThreadUrl.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗
-                          </a>
+                          {[
+                            copy.threadLabel,
+                            <a
+                              href={item.safeThreadUrl.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >{`${item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗`}</a>,
+                          ]}
                         </p>
                       )}
                       {item.related.length > 0 && (
                         <p class="term-meta">
-                          {copy.relatedLabel}{' '}
-                          {item.related.map((rel, i) => (
-                            <span>
-                              <a href={`#${rel.anchor}`}>{rel.term}</a>
-                              {i < item.related.length - 1 && copy.listSeparator}
-                            </span>
-                          ))}
+                          {[
+                            copy.relatedLabel,
+                            ...joinWith(
+                              item.related.map((rel) => <a href={`#${rel.anchor}`}>{rel.term}</a>),
+                              copy.listSeparator
+                            ),
+                          ]}
                         </p>
                       )}
                       {item.posts.length > 0 && (
                         <p class="term-meta">
-                          {copy.postsLabel}{' '}
-                          {item.posts.map((post, i) => (
-                            <span>
-                              <a href={post.href}>{post.title}</a>
-                              {i < item.posts.length - 1 && copy.listSeparator}
-                            </span>
-                          ))}
+                          {[
+                            copy.postsLabel,
+                            ...joinWith(
+                              item.posts.map((post) => <a href={post.href}>{post.title}</a>),
+                              copy.listSeparator
+                            ),
+                          ]}
                         </p>
                       )}
                     </div>

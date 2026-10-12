@@ -17,6 +17,7 @@ test.use({
 interface GlossaryItem {
   term: string;
   category: string;
+  related?: string[];
   enDefinition?: string;
   enMoguNote?: string;
 }
@@ -78,6 +79,19 @@ test.describe('glossary pages share one structure', () => {
     const postLink = page.locator('#kubernetes a[href^="/en/posts/"]');
     await expect(postLink).toHaveAttribute('href', `/en/posts/${id}`);
     await expect(postLink).toHaveText(postTitle(id));
+  });
+
+  test('related terms use the language separator without stray spaces', async ({ page }) => {
+    const karpathy = glossaryData.find((entry) => entry.term === 'Andrej Karpathy')!;
+    for (const [route, label, separator] of [
+      ['/glossary', '相關：', '、'],
+      ['/en/glossary', 'Related: ', ', '],
+    ]) {
+      await page.goto(`${route}#andrej-karpathy`);
+      await expect(
+        page.locator('#andrej-karpathy .term-meta', { hasText: label.trim() })
+      ).toHaveText(`${label}${karpathy.related!.join(separator)}`);
+    }
   });
 });
 
