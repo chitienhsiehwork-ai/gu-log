@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log 依來源寫作的 pipeline，GP 導讀、MP、SD、Lv 共用。唯一入口是：
+gu-log 依來源寫作的 pipeline，GP 導讀、MP、SD 共用；Lv 是手寫的，只用得到 pipeline 的非寫作步驟（見〈Lv 只用非寫作步驟〉）。唯一入口是：
 
 ```bash
 tools/gp-pipeline/gp-pipeline <subcommand>
@@ -52,7 +52,7 @@ tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
 `candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿，以及來源完整時的
 source capture。它不呼叫 LLM、不建立 MDX、不配置 ticket、不修改 counter／Git，
 也不執行 Eval、Write、Review、Refine、Credits、Ralph、Translate 或 Deploy。
-`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定。
+`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（Lv 不走 `run`）。
 
 常用控制：
 
@@ -75,7 +75,15 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
   --from-step source-distance --prefix GP
 ```
 
-流程順序是 fetch → eval → dedup → `write` → `review` → `refine` →（GP：post-fixer → source-distance）→ credits → ralph → translate（GP 接英文逐字檢查）→ deploy，四個系列共用，不另建 pipeline 或 editorial mode。`translate` 只在 Tribunal 通過後產生 en sidecar；未通過時 zh-tw 單獨發布。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
+流程順序是 fetch → eval → dedup → `write` → `review` → `refine` →（GP：post-fixer → source-distance）→ credits → ralph → translate（GP 接英文逐字檢查）→ deploy，GP、MP、SD 共用，不另建 pipeline 或 editorial mode。`translate` 只在 Tribunal 通過後產生 en sidecar；未通過時 zh-tw 單獨發布。內容任務的完成定義仍以 repo playbook 為準，不因單一 subcommand 成功而縮水。
+
+## Lv 只用非寫作步驟
+
+Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學（Lv）〉。pipeline 不撰寫、不改寫 Lv，也不替 Lv 蓋 pipeline 署名：
+
+- 下列入口遇到 Lv 都在 ingress 以 exit 1 結束，不建工作目錄、不呼叫模型、不動 counter 與檔案：`run --prefix Lv`、`run --file <Lv 檔>` 起點早於 `translate`（沒指定起點也算）、`write --prefix Lv`、`review`／`refine` 的 `--ticket-id` 或草稿 `ticketId` 是 Lv、`ralph`／`credits` 指向 Lv 檔。
+- Lv 還能用：`counter`、`fetch`、`eval`、`dedup --series Lv`、`translate --file <Lv 檔>`、standalone `deploy --active-file <lv-pending 檔>`，以及 `run --file <Lv 檔> --from-step translate|deploy`。
+- Lv 的 Tribunal 直接跑 `scripts/tribunal.sh`，跑法見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)。
 
 ## 可組合 subcommands
 
@@ -88,7 +96,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 | 檢查重複 | `gp-pipeline dedup --url <url> --title <title> --series <PREFIX>` |
 | 起草 | `gp-pipeline write --source <file> --prefix <PREFIX> --ticket-id <PREFIX>-PENDING`；`--prefix` 必填 |
 | 審稿／精修 | `gp-pipeline review --draft <file> --ticket-id MP-PENDING`、`gp-pipeline refine --draft <file> --review <file> --ticket-id MP-PENDING`；`--ticket-id` 的系列決定用哪一套 checklist／prompt，預設 GP-PENDING，審其他系列要明確帶 |
-| 跑 tribunal | `gp-pipeline ralph --file <post>.mdx`；系列看檔名（含 `levelup-` 與 `en-` 檔），GP 固定 `--no-rewrite`、只評分 |
+| 跑 tribunal | `gp-pipeline ralph --file <post>.mdx`；系列看檔名（含 `en-` 檔），GP 固定 `--no-rewrite`、只評分；Lv 改跑 `scripts/tribunal.sh` |
 | 補 en sidecar | `gp-pipeline translate --file <mp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push；GP 會先過英文逐字檢查） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix <PREFIX>` |
 | 原子配置號碼 | `gp-pipeline counter bump --prefix <PREFIX>`；`--prefix` 必填 |
@@ -112,7 +120,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
   落在 repo 內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
 - YouTube 的 canonical `run` 同樣要求 `yt-dlp`；缺少時不得 fallback 到 generic HTML。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
-- `ralph` 對非 GP 可依 Tribunal 契約改寫；GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）。
+- `ralph` 對 MP、SD 可依 Tribunal 契約改寫；GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）；Lv 在 ingress 就被擋下。
 - `stamp` 只寫 frontmatter 的 `sourceDistance`，不改正文；原文擷取留在 repo 外的工作目錄。沒過或零配對以 exit 19 結束並印出標出的段落，檔案不變。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。有外部來源的 GP 要帶有效的來源距離章，validator 才會放行。
