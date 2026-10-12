@@ -33,7 +33,7 @@
 
 ## 2. 文件指向同一條 Lv 流程
 
-- [ ] 2.1 `CONTRIBUTING.md`：
+- [x] 2.1 `CONTRIBUTING.md`：
   - 〈Workflow〉在 SD 之後新增〈新增入門教學（Lv）〉。內容：依 `editorial-charter` 判斷 `Lv-original` 或 `Lv-guided-reading`；先讀兩三篇近期 Lv 當範本（列檔名）；先寫設計稿（分層、貫穿全篇的比喻、每層測驗、魔王關）；正文交給固定版本寫手（只指向各 runtime playbook，不複製指令或 model ID）；跑確定性檢查；用 `scripts/tribunal.sh` 跑 Tribunal（只指向 `docs/tribunal-runbook.md`，不複製旗標）；通過後用 `gp-pipeline translate --file` 產英文版；配號與發布。
   - 同一節寫〈Lv 常見骨架〉：每一層由上一層留下的問題逼出來，標題用 `Floor N` 或「第 N 層」；一個比喻扛全篇；`LevelUpProgress`；通常每層一題 `LevelUpQuiz`，`explanation` 只能寫純文字；`AnalogyBox`；選用的 `Mermaid`；魔王關把前面串起來；guided-reading 在開頭 cite 來源。明寫這是常見形狀、不是硬性規則。
   - 〈gp-pipeline（自動寫作流程）〉改成 `--prefix <GP|MP|SD>`，加一句 Lv 正文不走 pipeline，但可用 `translate`、`deploy`。

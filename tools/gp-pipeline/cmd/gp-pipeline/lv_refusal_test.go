@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -365,5 +366,21 @@ func TestSeriesHelpMatchesWhatEachCommandServes(t *testing.T) {
 		if strings.Contains(cmd.Long, "Lv") {
 			t.Errorf("%s --help still names Lv among the series it writes", name)
 		}
+	}
+}
+
+// TestLvRefusalNamesAnExistingSection keeps the refusal and the
+// CONTRIBUTING.md heading it points at in step.
+func TestLvRefusalNamesAnExistingSection(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "CONTRIBUTING.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	heading := "### " + pipeline.LvWorkflowSection
+	if !slices.Contains(strings.Split(string(raw), "\n"), heading) {
+		t.Fatalf("CONTRIBUTING.md has no %q heading for the Lv refusal to point at", heading)
+	}
+	if msg := pipeline.LvAuthoringError("run").Error(); !strings.Contains(msg, pipeline.LvWorkflowSection) {
+		t.Fatalf("refusal %q does not name %q", msg, pipeline.LvWorkflowSection)
 	}
 }
