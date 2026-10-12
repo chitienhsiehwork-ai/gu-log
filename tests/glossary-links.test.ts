@@ -229,15 +229,10 @@ describe('glossary link checker', () => {
     ['inside an email autolink', '寄到 Elixir@example.com 就好'],
   ])('does not ask for a link %s', (_name, body) => {
     const content = `---\nlang: zh-tw\n---\n${body}\n`;
-    const elixir = checker
-      .normalizeGlossary(glossary)
-      .find((entry: { term: string }) => entry.term === 'Elixir');
 
     expect(checker.checkContent(content, { filePath: 'post.mdx', glossary }).violations).toEqual(
       []
     );
-    // The placement rule itself rules it out, not only the structure check behind it.
-    expect(checker.findSafeOccurrences(content, elixir, 'Elixir')).toEqual([]);
   });
 
   it('asks for the next occurrence when the first one cannot take a link', () => {

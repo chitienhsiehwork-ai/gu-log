@@ -364,7 +364,7 @@ function linkRanges(content, mask) {
  * import/export lines and lines that open an MDX component. findSafeOccurrences adds the
  * characters a link can't touch; together they are the one placement rule.
  */
-export function buildUnsafeMask(content) {
+function buildUnsafeMask(content) {
   const { mask, expressions, tags } = frontmatterAndCodeMask(content);
   for (const range of [...expressions, ...tags]) markRange(mask, range.start, range.end);
   for (const [index, tag] of tags.entries()) {
@@ -482,13 +482,13 @@ const GLUED_AFTER = /[*_~]/u;
 
 /**
  * Occurrences of `matchText` a glossary link can wrap: the placement rule the checker, the
- * fixer and the link-only proof share. Outside buildUnsafeMask, on word boundaries, and not
- * touching the characters above. The proof applies it to the post with glossary links turned
- * back into text, so a term next to a glossary link is judged by that link's text. When the
- * first occurrence can't take a link, the next one that can is first in the list.
+ * fixer and the link-only proof share. Outside `mask` (buildUnsafeMask of `content`), on word
+ * boundaries, and not touching the characters above. The proof applies it to the post with
+ * glossary links turned back into text, so a term next to a glossary link is judged by that
+ * link's text. When the first occurrence can't take a link, the next one that can is first in
+ * the list.
  */
-export function findSafeOccurrences(content, term, matchText, options = {}) {
-  const mask = options.mask ?? buildUnsafeMask(content);
+function findSafeOccurrences(content, term, matchText, mask) {
   const flags = term.caseSensitive ? 'g' : 'gi';
   const re = new RegExp(matchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
   const out = [];
@@ -702,7 +702,7 @@ function stripLinks(content) {
 
 function isLinkableOccurrence(text, entry, link, mask) {
   return entry.matches.some((matchText) =>
-    findSafeOccurrences(text, entry, matchText, { mask }).some(
+    findSafeOccurrences(text, entry, matchText, mask).some(
       (occurrence) => occurrence.start === link.start && occurrence.end === link.end
     )
   );
@@ -867,7 +867,7 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
     if (hasCoverage(content, term, href)) continue;
 
     const occurrences = term.matches
-      .flatMap((matchText) => findSafeOccurrences(content, term, matchText, { mask }))
+      .flatMap((matchText) => findSafeOccurrences(content, term, matchText, mask))
       .filter((occurrence) => rangeIsSafe(occupied, occurrence.start, occurrence.end))
       .sort((a, b) => a.start - b.start);
     for (const occurrence of occurrences) {
