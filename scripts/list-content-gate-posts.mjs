@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import { canonicalizeSeriesTaxonomyText } from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange, isLinkOnlyChange } from './check-glossary-links.mjs';
-import { createPostLinkValidator } from './lib/link-only-proof.mjs';
+import { createPostLinkValidator } from './lib/post-link-validator.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';

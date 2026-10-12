@@ -12,7 +12,7 @@ import { realpathSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { isLinkOnlyChange, loadStagedGlossary } from './check-glossary-links.mjs';
-import { createPostLinkValidator } from './lib/link-only-proof.mjs';
+import { createPostLinkValidator } from './lib/post-link-validator.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 const SOURCE_FILE = new RegExp(`^${POSTS_DIR}/[^/]+\\.mdx$`, 'u');
