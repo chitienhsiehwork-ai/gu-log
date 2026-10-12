@@ -7,40 +7,35 @@
  * 驗證，驗證不過就不算只改連結，文章照常接受內容品質 gate。新連結的位置照 checker 的
  * 放置規則（findSafeOccurrences），修正器寫連結也用同一條。
  *
- * 原始碼比對過了，再用網站同一套 parser 解析修改前後的正文比結構，擋下原始碼一樣、
- * 渲染卻不同的修改（強調語法被拆開、連結疊在連結裡、反斜線跳脫）。
+ * 原始碼比對過了，再用網站同一套 parser 解析修改前後的正文比結構（checker 的
+ * hasSameReaderStructure），擋下原始碼一樣、渲染卻不同的修改（強調語法被拆開、連結疊在
+ * 連結裡、反斜線跳脫）。
  *
  * pre-commit（scripts/check-staged-internal-post-links.mjs）與 PR content gate
  * （scripts/list-content-gate-posts.mjs）共用這一份，只差資料來源：前者讀 staged，
  * 後者讀 head。
  */
 import path from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 import matter from 'gray-matter';
-import remarkGfm from 'remark-gfm';
-import remarkMdx from 'remark-mdx';
-import remarkParse from 'remark-parse';
-import { unified } from 'unified';
 import {
   GLOSSARY_HREF,
+  INTERNAL_POST_PREFIX,
   MARKDOWN_LINK,
   buildUnsafeMask,
   findSafeOccurrences,
+  hasSameReaderStructure,
   isEnglishPost,
   parseFrontmatter,
   rangeIsSafe,
   resolveGlossaryLinkTarget,
 } from '../check-glossary-links.mjs';
 
-const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 const CANONICAL_POST_LINK = /^\/(en\/)?posts\/([a-z0-9][a-z0-9-]*)\/$/u;
 const CANONICAL_TICKET_ID = /^(GP|MP)-([1-9]\d*)$/u;
 // Private-use code points never appear in prose, so the placeholder cannot collide with
 // text. A post that contains one anyway is not proven: it could be faking the placeholder.
 const PLACEHOLDER_MARK = '\uE000';
 const POST_LINK_PLACEHOLDER = `${PLACEHOLDER_MARK}INTERNAL_POST_LINK\uE001`;
-
-const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
 
 /**
  * Replace glossary links with their text and internal post links with a placeholder.
@@ -72,56 +67,6 @@ function isLinkableOccurrence(text, entry, link, mask) {
       (occurrence) => occurrence.start === link.start && occurrence.end === link.end
     )
   );
-}
-
-// The mdast a reader gets, with links the proof has dealt with taken out: a glossary link
-// becomes its children, an internal post link one placeholder node. Adjacent text merges,
-// and positions go (with `data`, where MDX keeps its estree and that tree's offsets).
-function readerChildren(children) {
-  const out = [];
-  for (const child of children) {
-    let nodes;
-    if (child.type === 'link' && GLOSSARY_HREF.test(child.url)) {
-      nodes = readerChildren(child.children);
-    } else if (child.type === 'link' && INTERNAL_POST_PREFIX.test(child.url)) {
-      nodes = [{ type: 'internalPostLink' }];
-    } else {
-      nodes = [readerTree(child)];
-    }
-    for (const node of nodes) {
-      const previous = out.at(-1);
-      if (node.type === 'text' && previous?.type === 'text') {
-        out[out.length - 1] = { type: 'text', value: previous.value + node.value };
-      } else {
-        out.push(node);
-      }
-    }
-  }
-  return out;
-}
-
-function readerTree(value) {
-  if (Array.isArray(value)) return value.map(readerTree);
-  if (!value || typeof value !== 'object') return value;
-  const node = {};
-  for (const [key, child] of Object.entries(value)) {
-    if (key === 'position' || key === 'data') continue;
-    node[key] = key === 'children' ? readerChildren(child) : readerTree(child);
-  }
-  return node;
-}
-
-// The frontmatter already matched character for character, so only the body is parsed.
-// A body that does not parse proves nothing.
-function hasSameReaderStructure(before, after) {
-  try {
-    return isDeepStrictEqual(
-      readerTree(markdown.parse(parseFrontmatter(before).body)),
-      readerTree(markdown.parse(parseFrontmatter(after).body))
-    );
-  } catch {
-    return false;
-  }
 }
 
 /**

@@ -2,6 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { isDeepStrictEqual } from 'node:util';
+import remarkGfm from 'remark-gfm';
+import remarkMdx from 'remark-mdx';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
 import { isScalar, isSeq, parseDocument } from 'yaml';
 import { glossaryAnchor } from '../src/lib/glossary-anchor.mjs';
 
@@ -586,6 +591,63 @@ export function expectedHref(anchor, english) {
 export const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 // A glossary href; captures the /en prefix and the anchor.
 export const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
+// An internal post link's href.
+export const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
+
+const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
+
+// The mdast a reader gets, with links the proof has dealt with taken out: a glossary link
+// becomes its children, an internal post link one placeholder node. Adjacent text merges,
+// and positions go (with `data`, where MDX keeps its estree and that tree's offsets).
+function readerChildren(children) {
+  const out = [];
+  for (const child of children) {
+    let nodes;
+    if (child.type === 'link' && GLOSSARY_HREF.test(child.url)) {
+      nodes = readerChildren(child.children);
+    } else if (child.type === 'link' && INTERNAL_POST_PREFIX.test(child.url)) {
+      nodes = [{ type: 'internalPostLink' }];
+    } else {
+      nodes = [readerTree(child)];
+    }
+    for (const node of nodes) {
+      const previous = out.at(-1);
+      if (node.type === 'text' && previous?.type === 'text') {
+        out[out.length - 1] = { type: 'text', value: previous.value + node.value };
+      } else {
+        out.push(node);
+      }
+    }
+  }
+  return out;
+}
+
+function readerTree(value) {
+  if (Array.isArray(value)) return value.map(readerTree);
+  if (!value || typeof value !== 'object') return value;
+  const node = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'position' || key === 'data') continue;
+    node[key] = key === 'children' ? readerChildren(child) : readerTree(child);
+  }
+  return node;
+}
+
+/**
+ * Whether two versions of a post parse, with the site's parser, to the same structure once
+ * glossary links become their text and internal post links one placeholder: the link-only
+ * proof's last step. Only the body is parsed; a body that does not parse proves nothing.
+ */
+export function hasSameReaderStructure(before, after) {
+  try {
+    return isDeepStrictEqual(
+      readerTree(markdown.parse(parseFrontmatter(before).body)),
+      readerTree(markdown.parse(parseFrontmatter(after).body))
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Resolve a glossary link target for a post: the path must follow the post language
