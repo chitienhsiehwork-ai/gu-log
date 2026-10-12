@@ -147,15 +147,27 @@ test.describe('compact entries expand in place', () => {
     const elixir = page.locator('#elixir');
     const toggle = elixir.locator('.entry-toggle');
     await expect(elixir.locator('.mogu-note')).toBeVisible();
-    await expect(elixir.locator('.term-name')).toBeInViewport();
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await expectBelowToolbar(page, '#elixir');
 
     await toggle.tap();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     await expect(elixir.locator('.mogu-note')).toBeHidden();
   });
 
-  test('following a related link expands the target and scrolls it into view', async ({ page }) => {
+  // 錨點規則的頁面端：名稱裡的標點不進錨點（Software 3.0 → #software-30）。
+  test('an anchor made from a term with punctuation opens that entry', async ({ page }) => {
+    await page.goto('/glossary#software-30');
+
+    const entry = page.locator('#software-30');
+    await expect(entry.locator('.term-name')).toHaveText('Software 3.0');
+    await expect(entry.locator('.entry-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(entry.locator('.mogu-note')).toBeVisible();
+  });
+
+  test('following a related link expands the target below the sticky controls', async ({
+    page,
+  }) => {
     await page.goto('/glossary#andrej-karpathy');
 
     await page.locator('#andrej-karpathy').getByRole('link', { name: 'Vibe Coding' }).tap();
@@ -164,7 +176,7 @@ test.describe('compact entries expand in place', () => {
     await expect(page).toHaveURL(/#vibe-coding$/);
     await expect(target.locator('.entry-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(target.locator('.mogu-note')).toBeVisible();
-    await expect(target.locator('.term-name')).toBeInViewport();
+    await expectBelowToolbar(page, '#vibe-coding');
     // 原本展開的詞條不會因為錨點換掉就收起來。
     await expect(page.locator('#andrej-karpathy .mogu-note')).toBeVisible();
   });
@@ -206,11 +218,13 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('.glossary-copy-hint')).toBeHidden();
   });
 
-  test('an entry opened from the URL anchor is expanded', async ({ page }) => {
+  test('an entry opened from the URL anchor is expanded below the sticky controls', async ({
+    page,
+  }) => {
     await page.goto('/glossary#elixir');
 
     await expect(page.locator('#elixir .mogu-note')).toBeVisible();
-    await expect(page.locator('#elixir .term-name')).toBeInViewport();
+    await expectBelowToolbar(page, '#elixir');
   });
 });
 
@@ -240,13 +254,6 @@ test('the copy button copies the entry link and says so', async ({ page }) => {
 });
 
 test.describe('sticky controls and in-page filters', () => {
-  test('an anchor target is not hidden under the sticky controls', async ({ page }) => {
-    await page.goto('/glossary#elixir');
-
-    await expect(page.locator('#elixir .mogu-note')).toBeVisible();
-    await expectBelowToolbar(page, '#elixir');
-  });
-
   test('a related entry hidden by the people filter switches the filter back to all', async ({
     page,
   }) => {
@@ -301,16 +308,5 @@ test.describe('sticky controls and in-page filters', () => {
     await expect(entry.locator('.mogu-note')).toContainText(karpathy.enMoguNote!);
     await expect(entry.locator('.term-cat')).toHaveText('People');
     await expectBelowToolbar(page, '#andrej-karpathy');
-  });
-});
-
-test.describe('sticky controls without JavaScript', () => {
-  test.use({ javaScriptEnabled: false });
-
-  test('an anchor target is not hidden under the sticky controls', async ({ page }) => {
-    await page.goto('/glossary#elixir');
-
-    await expect(page.locator('#elixir .mogu-note')).toBeVisible();
-    await expectBelowToolbar(page, '#elixir');
   });
 });
