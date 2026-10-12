@@ -61,14 +61,8 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if filepath.Base(abs) == "final.mdx" {
 		stamped = filepath.Join(workDir, "final.mdx")
 	}
-	for _, path := range []string{abs, stamped} {
-		isLv, err := pipeline.IsLvFile(path)
-		if err != nil {
-			return fmt.Errorf("credits: %w", err)
-		}
-		if isLv {
-			return pipeline.LvAuthoringError("credits")
-		}
+	if err := pipeline.RefuseLvFiles("credits", abs, stamped); err != nil {
+		return err
 	}
 	// The Credits method expects the file to be called "final.mdx" in
 	// the work dir. If the caller pointed us at a differently named

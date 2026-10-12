@@ -53,14 +53,29 @@ func isLvPost(filename string, content []byte) bool {
 	return err == nil && prefix == "Lv"
 }
 
-// IsLvFile reports whether the post at path is Lv (see isLvPost). A missing
+// isLvFile reports whether the post at path is Lv (see isLvPost). A missing
 // file is judged by its name alone; the step that needs it reports it missing.
-func IsLvFile(path string) (bool, error) {
+func isLvFile(path string) (bool, error) {
 	content, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
 	}
 	return isLvPost(filepath.Base(path), content), nil
+}
+
+// RefuseLvFiles returns LvAuthoringError(command) when any of paths is an Lv
+// post (see isLvFile); a read error is returned wrapped for command.
+func RefuseLvFiles(command string, paths ...string) error {
+	for _, path := range paths {
+		isLv, err := isLvFile(path)
+		if err != nil {
+			return fmt.Errorf("%s: %w", command, err)
+		}
+		if isLv {
+			return LvAuthoringError(command)
+		}
+	}
+	return nil
 }
 
 // LvAuthoringError is the single ingress refusal of every command that would

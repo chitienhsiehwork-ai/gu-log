@@ -526,7 +526,7 @@ func TestRefineDoesNotKeepAnEarlierLvFinal(t *testing.T) {
 	if err := s.Refine(context.Background()); err != nil {
 		t.Fatalf("Refine: %v", err)
 	}
-	if isLv, err := IsLvFile(finalPath); err != nil || isLv {
+	if isLv, err := isLvFile(finalPath); err != nil || isLv {
 		t.Fatalf("final.mdx is Lv = %v (%v), want this refine's MP output", isLv, err)
 	}
 }

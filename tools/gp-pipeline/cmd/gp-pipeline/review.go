@@ -79,14 +79,8 @@ func draftIngress(command, draftPath, workDir, ticketID string) (prefix, absWork
 	if absWorkDir, err = filepath.Abs(workDir); err != nil {
 		return "", "", err
 	}
-	for _, draft := range []string{absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")} {
-		isLv, err := pipeline.IsLvFile(draft)
-		if err != nil {
-			return "", "", fmt.Errorf("%s: %w", command, err)
-		}
-		if isLv {
-			return "", "", pipeline.LvAuthoringError(command)
-		}
+	if err := pipeline.RefuseLvFiles(command, absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")); err != nil {
+		return "", "", err
 	}
 	return prefix, absWorkDir, nil
 }
