@@ -56,9 +56,9 @@ const glossary = [
 ];
 
 describe('glossary anchor rule', () => {
-  const zhPage = fs.readFileSync(new URL('../src/pages/glossary.astro', import.meta.url), 'utf8');
-  const enPage = fs.readFileSync(
-    new URL('../src/pages/en/glossary.astro', import.meta.url),
+  // /glossary 與 /en/glossary 都由這個共用元件產生。
+  const glossaryPage = fs.readFileSync(
+    new URL('../src/components/glossary/GlossaryPage.astro', import.meta.url),
     'utf8'
   );
 
@@ -97,13 +97,11 @@ describe('glossary anchor rule', () => {
     ).toBe('gpt-5-6');
   });
 
-  it.each([
-    ['zh-tw', zhPage],
-    ['en', enPage],
-  ])('%s page derives entry ids and related links from the shared rule', (_lang, page) => {
-    expect(page).toContain('id={glossaryAnchor(item)}');
-    expect(page).toContain('relatedGlossaryAnchor(glossaryData, rel)');
-    expect(page).not.toContain(".toLowerCase().replace(/\\s+/g, '-')");
+  it('derives entry ids and related links on the glossary page from the shared rule', () => {
+    expect(glossaryPage).toContain('anchor: glossaryAnchor(item)');
+    expect(glossaryPage).toContain('id={item.anchor}');
+    expect(glossaryPage).toContain('anchor: relatedGlossaryAnchor(glossaryData, term)');
+    expect(glossaryPage).not.toContain(".toLowerCase().replace(/\\s+/g, '-')");
   });
 
   it('names a pure-Chinese term that has no linking.anchor', () => {
