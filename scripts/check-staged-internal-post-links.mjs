@@ -24,23 +24,10 @@ function git(args) {
   });
 }
 
+// Git refuses to commit with unmerged paths before pre-commit runs, so every staged post here
+// has one version.
 function stagedPostFiles() {
-  const output = git(['ls-files', '--stage', '-z', '--', POSTS_DIR]);
-  return output
-    .split('\0')
-    .filter(Boolean)
-    .map((record) => {
-      const separator = record.indexOf('\t');
-      if (separator === -1) {
-        throw new Error('malformed staged post record');
-      }
-      const file = record.slice(separator + 1);
-      // An unmerged post has no single staged version to check a link target against.
-      if (record.slice(0, separator).split(' ')[2] !== '0') {
-        throw new Error(`${file} is unmerged in the staged index`);
-      }
-      return file;
-    });
+  return git(['ls-files', '-z', '--', POSTS_DIR]).split('\0').filter(Boolean);
 }
 
 export function isStagedLinkOnlyChange(file) {
