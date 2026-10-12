@@ -52,7 +52,7 @@ tools/gp-pipeline/gp-pipeline candidate '<youtube-url>'
 `candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿，以及來源完整時的
 source capture。它不呼叫 LLM、不建立 MDX、不配置 ticket、不修改 counter／Git，
 也不執行 Eval、Write、Review、Refine、Credits、Ralph、Translate 或 Deploy。
-`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（Lv 不走 `run`）。
+`writeEligible: true` 仍不是核准；人工確認後要另跑標準 `run <youtube-url> --prefix <系列>`，系列依 `editorial-charter` 選定（Lv 不能用 `run` 從網址開寫）。
 
 常用控制：
 
@@ -81,7 +81,7 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 
 Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學（Lv）〉。pipeline 不撰寫、不改寫 Lv，也不替 Lv 蓋 pipeline 署名：
 
-- 下列入口遇到 Lv 都在 ingress 以 exit 1 結束，不建工作目錄、不呼叫模型、不動 counter 與檔案：`run --prefix Lv`、`run --file <Lv 檔>` 起點早於 `translate`（沒指定起點也算）、`write --prefix Lv`、`review`／`refine` 的 `--ticket-id` 或草稿 `ticketId` 是 Lv、`ralph`／`credits` 指向 Lv 檔。
+- 下列情況都在 ingress 以 exit 1 結束，不建工作目錄、不呼叫模型、不動 counter 與檔案：沒帶 `--file` 的 `run --prefix Lv`（不論起點）、`run --file <Lv 檔>` 起點早於 `translate`（沒指定起點也算）、`write --prefix Lv`、`review`／`refine` 的 `--ticket-id` 是 Lv 或要讀的草稿是 Lv、`ralph`／`credits` 要處理的是 Lv 檔。
 - Lv 還能用：`counter`、`fetch`、`eval`、`dedup --series Lv`、`translate --file <Lv 檔>`、standalone `deploy --active-file <lv-pending 檔>`，以及 `run --file <Lv 檔> --from-step translate|deploy`。
 - Lv 的 Tribunal 直接跑 `scripts/tribunal.sh`，跑法見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)。
 

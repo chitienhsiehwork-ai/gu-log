@@ -66,7 +66,7 @@
   - 第 1 步只留「依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`」，不重抄兩種 mode 的定義；
   - 開頭不再自己列六個指令與 exit 1，改指向 `tools/gp-pipeline/SKILL.md` 的 Lv 小節；
   - 配號那步拿掉括號裡的指令，只指向〈編號分配：PENDING ticket pattern（預設流程）〉。
-- [ ] 4.4 `tools/gp-pipeline/SKILL.md` candidate 段落的「Lv 不走 `run`」改成跟 Lv 小節一致的說法；root help（`cmd/gp-pipeline/main.go`）的 Lv 說明縮成一句，不再重列 Lv 可用的步驟（清單留在拒絕訊息裡）
+- [x] 4.4 `tools/gp-pipeline/SKILL.md` candidate 段落的「Lv 不走 `run`」改成跟 Lv 小節一致的說法；root help（`cmd/gp-pipeline/main.go`）的 Lv 說明縮成一句，不再重列 Lv 可用的步驟（清單留在拒絕訊息裡）
 - [ ] 4.5 測試去重：`main_test.go` 的 `TestStandaloneRalphInfersSeriesFromFilename` 拿掉兩個 Lv 案例與 refused 分支、map 改回 bool（保留 `sd-30`），Lv 的 ralph 拒絕由 `lv_refusal_test.go` 負責；`TestMissingPrefixFailsAtIngress` 改用 `trapExternalPrograms`；刪掉 `lv_refusal_test.go` 裡兩個一定會過的斷言（錯誤訊息含 `LvWorkflowSection`、`sourceDir/draft-v1.mdx` 不存在）
 
 ## Workflow follow-up
