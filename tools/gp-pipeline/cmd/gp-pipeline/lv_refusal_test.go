@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -233,6 +234,76 @@ func TestRalphAndCreditsRefuseLvPosts(t *testing.T) {
 			requireBytes(t, path, []byte(body))
 		})
 	}
+}
+
+// TestLvKeepsNonWritingSteps: a hand-written Lv still gets its number, its
+// English version, and its deploy from the pipeline. run --from-step translate
+// is covered by TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations.
+func TestLvKeepsNonWritingSteps(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const filename = "lv-18-20261011-example.mdx"
+	const zhPost = "---\ntitle: \"Lv\"\nticketId: Lv-18\nlang: zh-tw\n---\n中文內容。\n"
+	zhPath := filepath.Join(postsDir, filename)
+	mustWrite(t, zhPath, zhPost)
+	fakeSpec, err := json.Marshal(map[string]any{
+		"model":     "claude-opus-5",
+		"responses": []map[string]string{{"output": "---\ntitle: \"Lv\"\nticketId: Lv-18\nlang: \"en\"\n---\nEnglish body.\n"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakePath := filepath.Join(root, "fake-provider.json")
+	mustWrite(t, fakePath, string(fakeSpec))
+	t.Setenv("GU_LOG_DIR", root)
+
+	t.Run("translate --file", func(t *testing.T) {
+		if err := executeCLI(t, "--fake-provider", fakePath, "translate", "--file", filename, "--work-dir", t.TempDir()); err != nil {
+			t.Fatalf("translate --file %s: %v", filename, err)
+		}
+		if _, err := os.Stat(filepath.Join(postsDir, "en-"+filename)); err != nil {
+			t.Fatalf("English sidecar not written: %v", err)
+		}
+		requireBytes(t, zhPath, []byte(zhPost))
+	})
+
+	t.Run("counter bump", func(t *testing.T) {
+		if err := executeCLI(t, "counter", "bump", "--prefix", "Lv"); err != nil {
+			t.Fatalf("counter bump --prefix Lv: %v", err)
+		}
+		raw, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var counters map[string]struct {
+			Next int `json:"next"`
+		}
+		if err := json.Unmarshal(raw, &counters); err != nil {
+			t.Fatal(err)
+		}
+		if counters["Lv"].Next != 41 {
+			t.Fatalf("Lv counter next = %d, want 41 after one bump", counters["Lv"].Next)
+		}
+	})
+
+	t.Run("standalone deploy", func(t *testing.T) {
+		if err := executeCLI(t, "deploy", "--active-file", "lv-pending-20261012-author-title.mdx",
+			"--date-stamp", "20261012", "--author-slug", "author", "--title-slug", "title", "--dry-run"); err != nil {
+			t.Fatalf("deploy dry-run of an Lv pending file: %v", err)
+		}
+	})
+
+	t.Run("run --from-step deploy", func(t *testing.T) {
+		emptyFake := filepath.Join(t.TempDir(), "fake.json")
+		mustWrite(t, emptyFake, `{"responses":[]}`)
+		if err := executeCLI(t, "--json", "--work-dir", t.TempDir(), "--fake-provider", emptyFake,
+			"run", "--file", filename, "--from-step", "deploy", "--dry-run"); err != nil {
+			t.Fatalf("run --from-step deploy for an Lv post: %v", err)
+		}
+	})
 }
 
 // TestSDRunPassesLvRefusal: SD keeps the writing pipeline. A run reaches its

@@ -877,8 +877,10 @@ func TestRunAndDeployRejectPrefixThatContradictsFile(t *testing.T) {
 
 // TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations
 // resumes translation without --prefix: the file names the series (MP, and Lv
-// for the existing levelup- corpus) instead of the GP default
+// for lv- and the existing levelup- corpus) instead of the GP default
 // (openspec: gp-pipeline-publish-integrity「以既有非 GP 檔案恢復時沒帶 prefix」).
+// A hand-written Lv gets its English version this way: the Lv refusal only
+// covers starts before translate.
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
 	for _, tc := range []struct {
 		filename string
@@ -886,6 +888,7 @@ func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t 
 	}{
 		{filename: "mp-10-20260723-recovery-roundtrip.mdx", ticketID: "MP-10"},
 		{filename: "levelup-20260701-core-dump-anatomy.mdx", ticketID: "Lv-13"},
+		{filename: "lv-18-20261011-recovery-roundtrip.mdx", ticketID: "Lv-18"},
 	} {
 		t.Run(tc.filename, func(t *testing.T) {
 			resetGlobals()
