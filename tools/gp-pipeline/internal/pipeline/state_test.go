@@ -471,15 +471,22 @@ func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
 	}
 }
 
-// TestWriteAndRefineSetAsideAnEarlierOutput covers
-// gp-pipeline-publish-integrity〈write 與 refine SHALL NOT 把工作目錄裡的舊產物
-// 當成這次的輸出〉: a writer that answers on stdout alone replaces the file an
-// earlier run left in the work dir, and a writer that fails without writing
-// leaves that file as it was.
-func TestWriteAndRefineSetAsideAnEarlierOutput(t *testing.T) {
+// TestWriteReviewAndRefineSetAsideAnEarlierOutput covers
+// gp-pipeline-publish-integrity〈write、review 與 refine SHALL NOT 把工作目錄裡的
+// 舊產物當成這次的輸出〉: a writer that answers on stdout alone replaces the
+// file an earlier run left in the work dir, and a writer that fails without
+// writing leaves that file as it was.
+func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
 	const earlier = "---\ntitle: \"Earlier\"\n---\nearlier body\n"
 	const fresh = "---\ntitle: \"Fresh\"\n---\nfresh body\n"
-	for _, step := range []string{"write", "refine"} {
+	for _, step := range []struct {
+		name, output string
+		run          func(*State, context.Context) error
+	}{
+		{name: "write", output: "draft-v1.mdx", run: (*State).Write},
+		{name: "review", output: "review.md", run: (*State).Review},
+		{name: "refine", output: "final.mdx", run: (*State).Refine},
+	} {
 		for _, tc := range []struct {
 			name     string
 			response llm.FakeResponse
@@ -490,22 +497,18 @@ func TestWriteAndRefineSetAsideAnEarlierOutput(t *testing.T) {
 			{name: "writer fails", response: llm.FakeResponse{Err: "writer crashed"}, wantErr: true, want: earlier},
 			{name: "no file, no stdout", response: llm.FakeResponse{}, wantErr: true, want: earlier},
 		} {
-			t.Run(step+" "+tc.name, func(t *testing.T) {
+			t.Run(step.name+" "+tc.name, func(t *testing.T) {
 				s, fake, workDir := newTestState(t)
-				output, run := "draft-v1.mdx", s.Write
-				if step == "refine" {
-					output, run = "final.mdx", s.Refine
-				}
-				path := filepath.Join(workDir, output)
+				path := filepath.Join(workDir, step.output)
 				if err := os.WriteFile(path, []byte(earlier), 0o644); err != nil {
 					t.Fatal(err)
 				}
 				fake.WithResponses(tc.response)
-				if err := run(context.Background()); (err != nil) != tc.wantErr {
-					t.Fatalf("%s error = %v, want error %v", step, err, tc.wantErr)
+				if err := step.run(s, context.Background()); (err != nil) != tc.wantErr {
+					t.Fatalf("%s error = %v, want error %v", step.name, err, tc.wantErr)
 				}
 				if got := mustRead(t, path); got != tc.want {
-					t.Fatalf("%s = %q, want %q", output, got, tc.want)
+					t.Fatalf("%s = %q, want %q", step.output, got, tc.want)
 				}
 			})
 		}
