@@ -42,7 +42,7 @@
   驗證：新小節標題與 1.1 錯誤訊息指向的名稱一致；pre-commit 的 markdown 與 zh-tw 檢查通過
 - [x] 2.2 `tools/gp-pipeline/SKILL.md`：改掉開頭的「GP 導讀、MP、SD、Lv 共用」；寫明 Lv 的撰寫入口（含 `ralph`、`credits`）會 exit 1、Lv 可用的步驟，並指向 `CONTRIBUTING.md` 的 Lv 流程；「跑 tribunal」那一列拿掉 `levelup-`，註明 Lv 改跑 `scripts/tribunal.sh`。驗證：`go test -count=1 ./...` 裡讀 `SKILL.md` 的契約測試照樣綠
 - [x] 2.3 `AGENTS.md` 主題路由表的「來源寫作 pipeline」那一列不再把 Lv 列為 pipeline 寫作系列，改成指向 `CONTRIBUTING.md` 的 Lv 流程。驗證：pre-commit 通過，路由表其他列不變
-- [ ] 2.4 其他說 pipeline 能寫 Lv、或叫人用 `gp-pipeline ralph` 評 Lv 的地方：
+- [x] 2.4 其他說 pipeline 能寫 Lv、或叫人用 `gp-pipeline ralph` 評 Lv 的地方：
   - `playbooks/CCC-playbook.md`：Tribunal 首選做法那段補一句，Lv 用 `scripts/tribunal-batch-runner.sh` 或 `scripts/tribunal.sh`；〈建議指令〉的 `--prefix` 改成 `<GP|MP|SD>`；
   - `tools/gp-pipeline/README.md` 開頭；
   - `tools/gp-pipeline/gp-pipeline` wrapper 的註解；
