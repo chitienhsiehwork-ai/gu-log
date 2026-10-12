@@ -445,26 +445,6 @@ export function resolveGlossaryLinkTarget(href, { english, glossary }) {
   return { entry };
 }
 
-/** Whether `text` is one of the strings the checker matches for this entry. */
-export function isGlossaryMatchText(entry, text) {
-  return entry.matches.some((match) =>
-    entry.caseSensitive ? match === text : match.toLowerCase() === text.toLowerCase()
-  );
-}
-
-/**
- * Validate a glossary link's target and its text: the target as in
- * resolveGlossaryLinkTarget, and the text must be how the checker matches that entry.
- */
-export function validateGlossaryLink(label, href, options) {
-  const target = resolveGlossaryLinkTarget(href, options);
-  if (target.error) return target;
-  if (!isGlossaryMatchText(target.entry, label)) {
-    return { error: `${JSON.stringify(label)} is not a match for ${target.entry.term}` };
-  }
-  return target;
-}
-
 // Glossary links as posts write them; captures the href, the /en prefix and the anchor.
 const POST_GLOSSARY_LINK = /\[[^\]\n]+\]\((\/(en\/)?glossary#([^)\n]*))\)/gu;
 
@@ -725,10 +705,8 @@ export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadG
       const added = count - (beforeLinks.get(link) ?? 0);
       if (added <= 0) continue;
 
-      const [, label = '', href = ''] = /^\[([^\]\n]+)\]\(([^)\n]+)\)$/u.exec(link) ?? [];
-      const target = validateGlossaryLink(label, href, { english: false, glossary });
       const entry = entries.find(
-        (candidate) => candidate.term === target.entry?.term && label === candidate.term
+        (candidate) => link === `[${candidate.term}](/glossary#${candidate.anchor})`
       );
       if (!entry) return false;
 
