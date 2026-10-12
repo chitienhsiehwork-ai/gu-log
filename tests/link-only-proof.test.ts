@@ -300,6 +300,27 @@ describe('link-only proof: what the fixer writes', () => {
     ).toBe(true);
   });
 
+  // 修正器逐一插入、每一步跟上一步比；全部補完再跟原文比，證明一樣放行。
+  it('accepts all the links the fixer writes in one go, one of them past an email address', () => {
+    const before = post(
+      'Kubernetes.[Agents](/glossary#agent)@x.io 之後，Codex 與 Kubernetes 一起跑 Agent。'
+    );
+    const fixed = fixer.applyLinksToContent(before, { filePath: ZH_FILE, glossary });
+
+    expect(fixed.content).toBe(
+      post(
+        `Kubernetes.[Agents](/glossary#agent)@x.io 之後，[Codex](/glossary#codex) 與 ${K8S_LINK} 一起跑 [Agent](/glossary#agent)。`
+      )
+    );
+    expect(
+      checker.isLinkOnlyChange(before, fixed.content, {
+        filePath: ZH_FILE,
+        glossary,
+        validatePostLink,
+      })
+    ).toBe(true);
+  });
+
   // openspec〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉：檢查器要求的連結，
   // 修正器寫出來後證明放行；證明不收的位置，檢查器不要求。null 是哪裡都不能放。
   it.each([
@@ -346,6 +367,13 @@ describe('link-only proof: what the fixer writes', () => {
       '[Agent](/glossary#agent)/Kubernetes 很穩。',
       `[Agent](/glossary#agent)/${K8S_LINK} 很穩。`,
     ],
+    // 原始碼裡沒有網址或 email，glossary 連結換回文字才連成一個，證明把詞條算在裡面。
+    [
+      'a glossary link in the middle of an email address',
+      'Kubernetes.[Agent](/glossary#agent)@x.io',
+      null,
+    ],
+    ['a glossary link in the middle of a www. link', 'www.[a](/glossary#agent)/Kubernetes', null],
   ])('agrees with the checker and the fixer on %s', (_name, body, linked) => {
     const before = post(body);
     const missing = checker.checkContent(before, { filePath: ZH_FILE, glossary }).violations;

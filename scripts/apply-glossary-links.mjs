@@ -6,7 +6,6 @@ import {
   listPostFiles,
   loadGlossary,
   missingGlossaryLinks,
-  normalizeGlossary,
   writeGlossaryLinks,
 } from './check-glossary-links.mjs';
 
@@ -32,11 +31,10 @@ function parseArgs(argv) {
 // Writes exactly the links checkContent reports missing, all together the way the checker
 // tried them one by one, so a backfill passes the checker and the link-only proof.
 export function applyLinksToContent(content, options = {}) {
-  const edits = missingGlossaryLinks(
-    content,
-    normalizeGlossary(options.glossary ?? loadGlossary()),
-    { filePath: options.filePath ?? 'post.mdx', terms: options.terms }
-  ).sort((a, b) => a.start - b.start);
+  const edits = missingGlossaryLinks(content, options.glossary ?? loadGlossary(), {
+    filePath: options.filePath ?? 'post.mdx',
+    terms: options.terms,
+  }).sort((a, b) => a.start - b.start);
   const output = writeGlossaryLinks(content, edits);
   return { content: output, changed: output !== content, edits };
 }

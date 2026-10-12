@@ -835,18 +835,24 @@ export function writeGlossaryLinks(content, links) {
   return output + content.slice(last);
 }
 
+// Writing glossary links leaves internal post links alone, so the proof never has one to
+// validate for a candidate. If it asks, that is a bug, and the candidate is not taken.
+function noPostLinkChanges() {
+  throw new Error('writing a glossary link changed an internal post link');
+}
+
 /**
  * The links the checker reports missing and the fixer writes: for each term the post
  * neither links nor ignores, its first occurrence that findSafeOccurrences allows, that a
- * longer term has not claimed, and that keeps the structure. Each candidate is written in
- * after the links picked before it and must parse the same as the post without it
- * (hasSameReaderStructure, the link-only proof's last step); if not, the next occurrence
- * gets its turn. That catches syntax the mask does not know, such as reference links,
- * definitions and footnotes, and the same at every step means the fixer's post parses the
- * same as the original.
+ * longer term has not claimed, and that the link-only proof accepts. Each candidate is written
+ * in after the links picked before it and must pass isLinkOnlyChange against the post without
+ * it; if not, the next occurrence gets its turn. That catches what the mask does not know,
+ * such as reference links, definitions, footnotes, or a URL or email address that only forms
+ * once glossary links turn back into text. Every step strips to the same text, so the fixer's
+ * post passes the proof against the original as well.
  *
  * @param {string} content
- * @param {ReturnType<typeof normalizeGlossary>} glossary normalized entries
+ * @param {object[]} glossary the glossary as stored, the form isLinkOnlyChange takes
  * @param {{ filePath: string, terms?: string[] }} options
  */
 export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }) {
@@ -856,10 +862,11 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
   const ignored = ignoredTerms(content, frontmatter);
   const mask = buildUnsafeMask(content);
   const occupied = new Array(content.length).fill(false);
+  const proofOptions = { filePath, glossary, validatePostLink: noPostLinkChanges };
   const links = [];
   let linked = content;
 
-  for (const term of glossary) {
+  for (const term of normalizeGlossary(glossary)) {
     if (termFilter.size && !termFilter.has(term.term)) continue;
     if (ignored.has(term.term)) continue;
     const href = expectedHref(term.anchor, english);
@@ -872,7 +879,7 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
     for (const occurrence of occurrences) {
       const link = { ...occurrence, term: term.term, href };
       const withLink = writeGlossaryLinks(content, [...links, link]);
-      if (!hasSameReaderStructure(linked, withLink)) continue;
+      if (!isLinkOnlyChange(linked, withLink, proofOptions)) continue;
       markRange(occupied, link.start, link.end);
       links.push(link);
       linked = withLink;
@@ -884,12 +891,12 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
 
 export function checkContent(content, options = {}) {
   const filePath = options.filePath ?? 'post.mdx';
-  const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
+  const glossary = options.glossary ?? loadGlossary();
   const termFilter = new Set(options.terms ?? []);
   const violations = [];
 
   if (!isEnglishPost(filePath, parseFrontmatter(content).data)) {
-    for (const term of glossary) {
+    for (const term of normalizeGlossary(glossary)) {
       if (termFilter.size && !termFilter.has(term.term)) continue;
       for (const forbidden of term.forbiddenZhTw) {
         for (const occurrence of findCanonicalOccurrences(content, forbidden)) {
