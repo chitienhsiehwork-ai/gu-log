@@ -3,10 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import {
-  canonicalizeSeriesTaxonomyText,
-  isCanonicalSeriesTaxonomyOnlyChange,
-} from './check-brand-taxonomy.mjs';
+import { canonicalizeSeriesTaxonomyText } from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
 import { createPostLinkValidator, isLinkOnlyChange } from './lib/link-only-proof.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
@@ -101,22 +98,20 @@ function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
 
 // The PR gate proves link-only edits against the head revision: the glossary and the
 // internal post link targets come from the checked-out tree, like the post itself.
-let headLinkProof;
+const headGlossary = fs.existsSync(GLOSSARY_FILE)
+  ? JSON.parse(fs.readFileSync(GLOSSARY_FILE, 'utf8'))
+  : [];
+const validateHeadPostLink = createPostLinkValidator({
+  listPosts: () =>
+    fs
+      .readdirSync(POSTS_DIR)
+      .filter((name) => name.endsWith('.mdx'))
+      .map((name) => `${POSTS_DIR}/${name}`),
+  readPost: (file) => fs.readFileSync(file, 'utf8'),
+});
+
 function linkProofOptions(currentFile) {
-  headLinkProof ??= {
-    glossary: fs.existsSync(GLOSSARY_FILE)
-      ? JSON.parse(fs.readFileSync(GLOSSARY_FILE, 'utf8'))
-      : [],
-    validatePostLink: createPostLinkValidator({
-      listPosts: () =>
-        fs
-          .readdirSync(POSTS_DIR)
-          .filter((name) => name.endsWith('.mdx'))
-          .map((name) => `${POSTS_DIR}/${name}`),
-      readPost: (file) => fs.readFileSync(file, 'utf8'),
-    }),
-  };
-  return { filePath: currentFile, ...headLinkProof };
+  return { filePath: currentFile, glossary: headGlossary, validatePostLink: validateHeadPostLink };
 }
 
 // Same proof as pre-commit (scripts/lib/link-only-proof.mjs): glossary links are
@@ -144,10 +139,9 @@ function isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile) {
   if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
   const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
   const newContent = fs.readFileSync(currentFile, 'utf8');
-  if (isCanonicalSeriesTaxonomyOnlyChange(oldContent, newContent)) return true;
-  // A canonical taxonomy rename can also carry link maintenance: apply the taxonomy
-  // rewrite first, then the remaining difference must pass the shared link-only proof.
-  // Any reader-prose edit still fails it.
+  // Apply the taxonomy rewrite first; what remains must pass the shared link-only proof
+  // (nothing remains for a pure rename), so a rename can carry link maintenance but any
+  // reader-prose edit still fails.
   const canonical = canonicalizeSeriesTaxonomyText(oldContent);
   return (
     canonical !== oldContent &&
@@ -209,11 +203,7 @@ const files = parseNameStatus(changed)
     if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
     const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
     const newContent = fs.readFileSync(currentFile, 'utf8');
-    return !isCanonicalTerminologyOnlyChange(
-      oldContent,
-      newContent,
-      linkProofOptions(currentFile).glossary
-    );
+    return !isCanonicalTerminologyOnlyChange(oldContent, newContent, headGlossary);
   })
   .filter(({ baseFile, currentFile }) => !isMetadataOnlyDiff(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isLinkOnlyChangeAt(baseRef, baseFile, currentFile))
