@@ -44,7 +44,7 @@
 - [x] 5.1 在 `src/config/glossary.ts` 定義分類 id 與中英文 label 的唯一對照，包含 `products`、`models`、`platforms`。篩選按鈕取資料用到的分類，詞條標籤顯示對應語言的 label。單元測試：資料用到沒有 label 的分類就失敗（對應「新分類缺 label」）；沒有詞條的分類不產生按鈕（對應「沒有詞條的分類」）
 - [x] 5.2 抽出 `src/components/glossary/` 共用元件，`src/pages/glossary.astro` 與 `src/pages/en/glossary.astro` 改成薄包裝，只傳語言；英文頁的文章連結指向英文版文章、顯示英文版標題。驗證：兩頁 build 出的詞條數、順序與分類一致；英文頁 Kubernetes 的文章連結是英文標題（對應「中英文詞彙表 SHALL 行為一致」的兩個情境）
 - [x] 5.3 精簡顯示（規則見 design §2）：
-  - CSS 預設顯示名稱、英文名、分類 label、定義前兩行與每列的複製連結按鈕；
+  - CSS 預設顯示名稱、英文名、分類 label 與定義前兩行；每列的複製連結按鈕由 script 加上（剪貼簿要 JS），頁首提到按鈕的說明也只在有 JS 時顯示；
   - `:target` 與 `.is-open` 展開完整定義、MoguNote、外部連結、Thread、相關詞條與文章，`.is-collapsed` 蓋過 `:target`；
   - 沒有 JS 時，展開控制是指向自己錨點的連結；
   - 有 JS 時，展開控制是切換的按鈕，有 `aria-expanded`，處理 `hashchange`，收起靠 `:target` 展開的詞條時加 `.is-collapsed`；
@@ -52,7 +52,7 @@
 
   新的 Playwright spec 自己設定 iPhone 13 viewport 與關閉 JavaScript 的情境（e2e-core 預設只跑 Desktop Chrome），並登記進 `tests/spec-ownership.json`、class 設 `blocking`。涵蓋：精簡列沒有顯示 MoguNote、點擊與鍵盤展開、再點一次收起（含從錨點展開的詞條）、從 `/glossary#elixir` 進來時目標已展開且位於可見範圍、點相關詞條時目標展開、關閉 JavaScript 時仍能展開，以及從錨點進來的詞條是展開的（對應「詞條 SHALL 預設精簡並可就地展開」「從錨點進來的詞條 SHALL 直接展開」）
 
-- [x] 5.4 控制列 sticky；詞彙表頁面的 `scroll-padding-top` 等於 sticky 區塊高度，不在詞條上另加 `scroll-margin-top`。點到被目前篩選藏起來的詞條時先切回「全部」。Playwright 涵蓋：手機 viewport 下錨點目標沒有被控制列蓋住；選「人物」篩選後點非人物的相關詞條，篩選切回全部並展開目標；`/en/glossary#andrej-karpathy` 以英文內容展開（對應「篩選中點到被藏起來的詞條」「英文頁從錨點展開」）
+- [x] 5.4 控制列 sticky；詞彙表頁面的 `scroll-padding-top` 等於 sticky 區塊高度，不在詞條上另加 `scroll-margin-top`。點到被目前篩選藏起來的詞條時先切回「全部」。Playwright 涵蓋：手機 viewport 下錨點目標沒有被控制列蓋住；選「人物」篩選後點非人物的相關詞條，篩選切回全部並展開目標；`/en/glossary#andrej-karpathy` 以英文內容展開（對應「篩選中點到被藏起來的詞條」「英文頁從錨點展開」）。詞彙表頁面改成直接跳到錨點，控制列高度由 JS 寫進 `--glossary-toolbar-height`（見 design §3）
 - [x] 5.5 更新受影響的既有 Playwright spec 與單元測試（例如 `tests/mogu-note.spec.ts`、`tests/a11y-baseline.spec.ts`、`tests/component-smoke.spec.ts`），並更新頁面上「點術語名稱可複製連結」這類過期的說明文字
 - [x] 5.6 跑 `uiux-auditor`：深色與淺色兩種主題、iPhone 13 viewport，WCAG AA 對比，不得有寫死的色碼；修掉 must-fix。記錄修改前後的頁面高度（螢幕數），目標是 zh 從約 41 降到 10 個左右
 
@@ -60,6 +60,7 @@
 
 - [x] 6.1 收斂 `src/config/glossary.ts` 裡 `glossaryInclude` 的過期說明：註解寫「跟 /glossary 同步」，實際只列 27 條。依實際用途決定刪除或改正註解，並同步引用它的文件
 - [ ] 6.2 跑 `pnpm run build`、`pnpm exec vitest run`、`pnpm run glossary:check`、`node scripts/validate-posts.mjs` 與受影響的 Playwright spec，全部通過；把頁面高度量測與截圖路徑記進 PR 說明
+- [x] 6.3 `glossaryExclude` 一樣沒有任何引用，清單裡還有 Benchmark、Token、Prompt 這些現有詞條：刪掉，並把 `GU-LOG_WRITER_PROMPT.md` 叫人放進 `glossaryExclude` 的那句改成指向晶晶體 lint 的 allowlist
 
 ## Workflow follow-up
 
