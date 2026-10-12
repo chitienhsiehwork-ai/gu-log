@@ -335,6 +335,7 @@ describe('link-only proof: what the fixer writes', () => {
     ],
     ['an export that spans lines', 'export const tags = [\n  "Kubernetes",\n]\n\n正文。', null],
     ['literal brackets', '[Kubernetes] 是括號裡的字。', `[${K8S_LINK}] 是括號裡的字。`],
+    ['an inline link left open', '請見 [文件](Kubernetes 官網', `請見 [文件](${K8S_LINK} 官網`],
     [
       'a shortcut reference right before the term',
       '見 [官方]Kubernetes 文件。\n\n[官方]: https://kubernetes.io',
