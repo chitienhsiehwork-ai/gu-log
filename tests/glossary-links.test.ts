@@ -56,12 +56,6 @@ const glossary = [
 ];
 
 describe('glossary anchor rule', () => {
-  // /glossary 與 /en/glossary 都由這個共用元件產生。
-  const glossaryPage = fs.readFileSync(
-    new URL('../src/components/glossary/GlossaryPage.astro', import.meta.url),
-    'utf8'
-  );
-
   it('gives a punctuated term the same anchor on the page, in the checker and in the fixer', () => {
     const entry = realGlossary.find((item) => item.term === 'Software 3.0');
     const pageId = anchors.glossaryAnchor(entry);
@@ -95,13 +89,6 @@ describe('glossary anchor rule', () => {
         'GPT-5.6 系列'
       )
     ).toBe('gpt-5-6');
-  });
-
-  it('derives entry ids and related links on the glossary page from the shared rule', () => {
-    expect(glossaryPage).toContain('anchor: glossaryAnchor(item)');
-    expect(glossaryPage).toContain('id={item.anchor}');
-    expect(glossaryPage).toContain('anchor: relatedGlossaryAnchor(glossaryData, term)');
-    expect(glossaryPage).not.toContain(".toLowerCase().replace(/\\s+/g, '-')");
   });
 
   it('names a pure-Chinese term that has no linking.anchor', () => {

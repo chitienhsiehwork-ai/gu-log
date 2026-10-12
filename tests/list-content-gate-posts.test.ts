@@ -225,6 +225,8 @@ describe('list-content-gate-posts fail-closed base contract', () => {
 });
 
 describe('list-content-gate-posts link-only proof', () => {
+  // 只驗 CI 的接線（glossary 與站內文章目標都讀 head），證明本身的案例在
+  // tests/link-only-proof.test.ts。
   const TARGET_FILE = 'src/content/posts/mp-316-target.mdx';
   const TARGET_LINK = '[MP-316: 目標文章](/posts/mp-316-target/)';
 
@@ -306,24 +308,6 @@ describe('list-content-gate-posts link-only proof', () => {
       );
       git(repo, ['add', '.']);
       git(repo, ['commit', '-qm', 'link the wrong anchor']);
-
-      expect(runGate(repo)).toEqual([file]);
-    } finally {
-      fs.rmSync(repo, { recursive: true, force: true });
-    }
-  });
-
-  it('still gates reordered lines instead of comparing sorted lines', () => {
-    const repo = makeRepo();
-
-    try {
-      const file = seedLegacyPost(repo, ['Kubernetes'], 'first reader line\nsecond reader line\n');
-      fs.writeFileSync(
-        path.join(repo, file),
-        post('MP-4', 'legacy', 'second reader line\nfirst reader line\n')
-      );
-      git(repo, ['add', '.']);
-      git(repo, ['commit', '-qm', 'reorder prose']);
 
       expect(runGate(repo)).toEqual([file]);
     } finally {
