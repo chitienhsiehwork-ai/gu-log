@@ -133,6 +133,11 @@ for (const entry of entries) {
   setOpen(entry, entry === initialTarget);
 }
 
+// 頁首提到複製按鈕的那句，等按鈕真的加上才顯示。
+if (copyButtonTemplate) {
+  document.querySelector<HTMLElement>('.glossary-copy-hint')?.removeAttribute('hidden');
+}
+
 // 點到頁內錨點（相關詞條、Mogu 前綴、A–Z）時先處理目標，再讓瀏覽器照常捲過去。
 // 連到目前錨點的連結不會觸發 hashchange，所以在 click 就處理。
 document.addEventListener('click', (event) => {

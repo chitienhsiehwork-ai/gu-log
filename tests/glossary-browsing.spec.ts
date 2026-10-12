@@ -184,6 +184,13 @@ test.describe('without JavaScript', () => {
     await expect(agent.locator('.mogu-note')).toBeVisible();
   });
 
+  test('the intro does not mention the copy button', async ({ page }) => {
+    await page.goto('/glossary');
+
+    await expect(page.locator('.glossary-intro')).toBeVisible();
+    await expect(page.locator('.glossary-copy-hint')).toBeHidden();
+  });
+
   test('an entry opened from the URL anchor is expanded', async ({ page }) => {
     await page.goto('/glossary#elixir');
 
@@ -205,6 +212,7 @@ test('the copy button copies the entry link and says so', async ({ page }) => {
     });
   });
   await page.goto('/glossary');
+  await expect(page.locator('.glossary-copy-hint')).toBeVisible();
 
   const copyButton = page.getByRole('button', { name: '複製「Agent」的連結' });
   await copyButton.tap();

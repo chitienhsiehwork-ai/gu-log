@@ -27,7 +27,9 @@ const copy = {
   'zh-tw': {
     title: '詞彙表 - gu-log',
     heading: '📖 詞彙表',
-    intro: '本站常出現的 AI 術語。點術語展開完整說明；想分享某個詞條，按它右邊的按鈕複製連結。',
+    intro: '本站常出現的 AI 術語。點術語展開完整說明。',
+    // 複製按鈕要 JS 才有，這句由 script 加上按鈕時一起顯示。
+    copyHint: '想分享某個詞條，按它右邊的按鈕複製連結。',
     searchPlaceholder: '搜尋術語...',
     searchLabel: '搜尋術語',
     all: '全部',
@@ -48,8 +50,8 @@ const copy = {
   en: {
     title: 'Glossary - gu-log',
     heading: '📖 Glossary',
-    intro:
-      'AI terms that show up often on gu-log. Tap a term to expand the full entry; to share one, use the button on its right to copy the link.',
+    intro: 'AI terms that show up often on gu-log. Tap a term to expand the full entry.',
+    copyHint: ' To share one, use the button on its right to copy the link.',
     searchPlaceholder: 'Search terms...',
     searchLabel: 'Search terms',
     all: 'All',
@@ -145,7 +147,9 @@ for (const item of entries) {
   <article class="glossary-page">
     <header>
       <h1>{copy.heading}</h1>
-      <p class="glossary-intro">{copy.intro}</p>
+      <p class="glossary-intro">
+        {copy.intro}<span class="glossary-copy-hint" hidden>{copy.copyHint}</span>
+      </p>
     </header>
 
     {/* 搜尋、分類按鈕與 A–Z 列捲動時固定在上方（openspec: glossary-browsing）。 */}
