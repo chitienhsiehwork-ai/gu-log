@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { canonicalizeSeriesTaxonomyText } from './check-brand-taxonomy.mjs';
-import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
-import { createPostLinkValidator, isLinkOnlyChange } from './lib/link-only-proof.mjs';
+import { isCanonicalTerminologyOnlyChange, isLinkOnlyChange } from './check-glossary-links.mjs';
+import { createPostLinkValidator } from './lib/link-only-proof.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
@@ -114,8 +114,8 @@ function linkProofOptions(currentFile) {
   return { filePath: currentFile, glossary: headGlossary, validatePostLink: validateHeadPostLink };
 }
 
-// Same proof as pre-commit (scripts/lib/link-only-proof.mjs): glossary links are
-// validated before they are stripped and the whole file must then match exactly.
+// Same proof as pre-commit (isLinkOnlyChange in scripts/check-glossary-links.mjs): glossary
+// links are validated before they are stripped and the whole file must then match exactly.
 function isLinkOnlyChangeAt(baseRef, baseFile, currentFile) {
   if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
   const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });

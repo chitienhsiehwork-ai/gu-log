@@ -467,7 +467,7 @@ function isBoundaryChar(ch) {
   return !ch || !/[\p{L}\p{N}_-]/u.test(ch);
 }
 
-export function rangeIsSafe(mask, start, end) {
+function rangeIsSafe(mask, start, end) {
   for (let i = start; i < end; i += 1) if (mask[i]) return false;
   return true;
 }
@@ -576,11 +576,11 @@ export function expectedHref(anchor, english) {
 // A Markdown link as posts write it; captures the text and the href. Neither holds a `[`:
 // a bracket that opens no link (`[Kubernetes] 是…`, `arr[` in code) is not part of the next
 // link, and a link left open (`[文件](官網…`) does not swallow the next one. Global: use matchAll.
-export const MARKDOWN_LINK = /\[([^[\]\n]+)\]\(([^[)\n]+)\)/gu;
+const MARKDOWN_LINK = /\[([^[\]\n]+)\]\(([^[)\n]+)\)/gu;
 // A glossary href; captures the /en prefix and the anchor.
-export const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
+const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
 // An internal post link's href.
-export const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
+const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 
 // A glossary link right next to a term shows its text there, so that text, not the link's `)`
 // or `[`, is what a reader sees beside the term. The link-only proof judges the post with
@@ -648,7 +648,7 @@ function readerTree(value) {
  * glossary links become their text and internal post links one placeholder: the link-only
  * proof's last step. Only the body is parsed; a body that does not parse proves nothing.
  */
-export function hasSameReaderStructure(before, after) {
+function hasSameReaderStructure(before, after) {
   try {
     return isDeepStrictEqual(
       readerTree(markdown.parse(parseFrontmatter(before).body)),
@@ -664,7 +664,7 @@ export function hasSameReaderStructure(before, after) {
  * and the anchor must belong to an enabled entry (case-sensitive). Returns
  * `{ entry }` with the normalized entry, or `{ error }` explaining the rejection.
  */
-export function resolveGlossaryLinkTarget(href, { english, glossary }) {
+function resolveGlossaryLinkTarget(href, { english, glossary }) {
   const anchor = GLOSSARY_HREF.exec(href)?.[2];
   if (anchor === undefined) return { error: `${JSON.stringify(href)} is not a glossary link` };
   if (href !== expectedHref(anchor, english)) {
@@ -675,6 +675,101 @@ export function resolveGlossaryLinkTarget(href, { english, glossary }) {
   const [entry] = normalizeGlossary([target]);
   if (!entry) return { error: `${target.term} has automatic linking disabled` };
   return { entry };
+}
+
+// Private-use code points never appear in prose, so the placeholder cannot collide with
+// text. A post that contains one anyway is not proven: it could be faking the placeholder.
+const PLACEHOLDER_MARK = '\uE000';
+const POST_LINK_PLACEHOLDER = `${PLACEHOLDER_MARK}INTERNAL_POST_LINK\uE001`;
+
+/**
+ * Replace glossary links with their text and internal post links with a placeholder.
+ * Positions are recorded in the stripped text, keyed by `start:end`.
+ */
+function stripLinks(content) {
+  const glossaryLinks = new Map();
+  const postLinks = new Map();
+  let text = '';
+  let last = 0;
+  for (const match of content.matchAll(MARKDOWN_LINK)) {
+    const [raw, label, href] = match;
+    if (content[match.index - 1] === '!') continue;
+    const isGlossary = GLOSSARY_HREF.test(href);
+    if (!isGlossary && !INTERNAL_POST_PREFIX.test(href)) continue;
+    text += content.slice(last, match.index);
+    const start = text.length;
+    text += isGlossary ? label : POST_LINK_PLACEHOLDER;
+    const link = { start, end: text.length, label, href, raw };
+    (isGlossary ? glossaryLinks : postLinks).set(`${start}:${link.end}`, link);
+    last = match.index + raw.length;
+  }
+  return { text: text + content.slice(last), glossaryLinks, postLinks };
+}
+
+function isLinkableOccurrence(text, entry, link, mask) {
+  return entry.matches.some((matchText) =>
+    findSafeOccurrences(text, entry, matchText, { mask }).some(
+      (occurrence) => occurrence.start === link.start && occurrence.end === link.end
+    )
+  );
+}
+
+/**
+ * The link-only proof (openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械
+ * 證明並略過內容品質 gate〉〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉): whether
+ * `after` differs from `before` only by adding, removing or correcting glossary links, or by
+ * retargeting internal post links to validated canonical posts. New and changed links are
+ * validated, then stripped: glossary links become their text and internal post links one
+ * placeholder, and the two stripped files must match exactly, frontmatter included. Last, the
+ * bodies must parse to the same structure, which stops edits that strip the same but render
+ * differently.
+ *
+ * @param {string} before
+ * @param {string} after
+ * @param {{
+ *   filePath: string,
+ *   glossary: object[],
+ *   validatePostLink: (label: string, href: string) => void,
+ * }} options `glossary` is the glossary as stored, the same revision as `after`;
+ *   `validatePostLink` throws when a changed internal post link does not resolve to its
+ *   canonical target.
+ */
+export function isLinkOnlyChange(before, after, { filePath, glossary, validatePostLink }) {
+  // Nothing changed, so nothing to prove: a pure taxonomy rename ends up here.
+  if (before === after) return true;
+  if (before.includes(PLACEHOLDER_MARK) || after.includes(PLACEHOLDER_MARK)) return false;
+  const previous = stripLinks(before);
+  const current = stripLinks(after);
+  if (current.text !== previous.text) return false;
+
+  const english = isEnglishPost(filePath, parseFrontmatter(after).data);
+  const mask = buildUnsafeMask(current.text);
+
+  for (const [key, link] of current.glossaryLinks) {
+    const old = previous.glossaryLinks.get(key);
+    if (old?.href === link.href) continue;
+    if (!rangeIsSafe(mask, link.start, link.end)) return false;
+    const { entry } = resolveGlossaryLinkTarget(link.href, { english, glossary });
+    if (!entry) return false;
+    // A new wrapper must cover text the checker itself links to this entry, at a spot the
+    // placement rule allows; a link whose target is corrected keeps the text it already had.
+    if (!old && !isLinkableOccurrence(current.text, entry, link, mask)) return false;
+  }
+
+  // Unwrapping is only link maintenance where a real link could live, not inside code.
+  for (const [key, link] of previous.glossaryLinks) {
+    if (!current.glossaryLinks.has(key) && !rangeIsSafe(mask, link.start, link.end)) return false;
+  }
+
+  for (const [key, link] of current.postLinks) {
+    if (previous.postLinks.get(key)?.raw === link.raw) continue;
+    try {
+      validatePostLink(link.label, link.href);
+    } catch {
+      return false;
+    }
+  }
+  return hasSameReaderStructure(before, after);
 }
 
 /**

@@ -1,12 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import * as checkerModule from '../scripts/check-glossary-links.mjs';
 import * as fixerModule from '../scripts/apply-glossary-links.mjs';
-import * as proofModule from '../scripts/lib/link-only-proof.mjs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const checker = checkerModule as any;
 const fixer = fixerModule as any;
-const proof = proofModule as any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 const glossary = [
@@ -35,7 +33,7 @@ function validatePostLink(label: string, href: string): void {
 }
 
 function zhProof(before: string, after: string, beforeFrontmatter?: string): boolean {
-  return proof.isLinkOnlyChange(post(before, beforeFrontmatter), post(after), {
+  return checker.isLinkOnlyChange(post(before, beforeFrontmatter), post(after), {
     filePath: ZH_FILE,
     glossary,
     validatePostLink,
@@ -48,7 +46,7 @@ function wrapFirstKubernetes(body: string): string {
 }
 
 function enProof(before: string, after: string): boolean {
-  return proof.isLinkOnlyChange(post(before, EN_FRONTMATTER), post(after, EN_FRONTMATTER), {
+  return checker.isLinkOnlyChange(post(before, EN_FRONTMATTER), post(after, EN_FRONTMATTER), {
     filePath: 'src/content/posts/en-mp-212-legacy.mdx',
     glossary,
     validatePostLink,
@@ -155,7 +153,7 @@ describe('link-only proof: edits riding along with link maintenance', () => {
     // same text as the internal post link it replaced.
     const withSummary = (summary: string) => `${LEGACY_FRONTMATTER}\nsummary: "${summary}"`;
     expect(
-      proof.isLinkOnlyChange(
+      checker.isLinkOnlyChange(
         post('正文', withSummary(`看 [${POST_LABEL}](${POST_URL})`)),
         post('正文', withSummary('看 \uE000INTERNAL_POST_LINK\uE001')),
         { filePath: ZH_FILE, glossary, validatePostLink }
@@ -225,7 +223,7 @@ describe('link-only proof: links where the checker would never put one', () => {
 
   it('rejects a new link inside frontmatter', () => {
     expect(
-      proof.isLinkOnlyChange(
+      checker.isLinkOnlyChange(
         post('正文', 'ticketId: "MP-212"\nsummary: "Kubernetes 入門"\nlang: "zh-tw"'),
         post(
           '正文',
@@ -294,7 +292,7 @@ describe('link-only proof: what the fixer writes', () => {
       []
     );
     expect(
-      proof.isLinkOnlyChange(before, fixed.content, {
+      checker.isLinkOnlyChange(before, fixed.content, {
         filePath: ZH_FILE,
         glossary,
         validatePostLink,
@@ -364,7 +362,7 @@ describe('link-only proof: what the fixer writes', () => {
       expect(missing).toEqual([expect.objectContaining({ term: 'Kubernetes' })]);
       expect(fixed.content).toBe(post(linked));
       expect(
-        proof.isLinkOnlyChange(before, fixed.content, {
+        checker.isLinkOnlyChange(before, fixed.content, {
           filePath: ZH_FILE,
           glossary,
           validatePostLink,

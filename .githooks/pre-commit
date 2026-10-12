@@ -251,10 +251,11 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # scripts/lib/link-only-proof.mjs proves the staged edit only adds, removes,
-    # or corrects glossary links (checked against the staged glossary) or moves
-    # internal post links to the staged target's canonical identity. With those
-    # links stripped, the whole file must still match HEAD exactly.
+    # The link-only proof (isLinkOnlyChange in scripts/check-glossary-links.mjs)
+    # proves the staged edit only adds, removes, or corrects glossary links
+    # (checked against the staged glossary) or moves internal post links to the
+    # staged target's canonical identity. With those links stripped, the whole
+    # file must still match HEAD exactly.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi

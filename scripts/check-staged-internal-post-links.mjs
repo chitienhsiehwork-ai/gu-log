@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * pre-commit 的「只改連結」豁免：拿 HEAD 與 staged 版本跑共用的證明
- * （scripts/lib/link-only-proof.mjs）。glossary 資料與站內文章的目標都讀 staged
- * index，跟這次要 commit 的文章同一個版本，所以同一個 commit 新增的詞條也算啟用中。
+ * （scripts/check-glossary-links.mjs 的 isLinkOnlyChange）。glossary 資料與站內文章的目標
+ * 都讀 staged index，跟這次要 commit 的文章同一個版本，所以同一個 commit 新增的詞條也算啟用中。
  *
  * exit 0 = 證明成立（內容品質 gate 可略過）；其他狀況一律 exit 1。
  */
@@ -11,8 +11,8 @@ import { execFileSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
-import { loadStagedGlossary } from './check-glossary-links.mjs';
-import { createPostLinkValidator, isLinkOnlyChange } from './lib/link-only-proof.mjs';
+import { isLinkOnlyChange, loadStagedGlossary } from './check-glossary-links.mjs';
+import { createPostLinkValidator } from './lib/link-only-proof.mjs';
 
 const POSTS_DIR = 'src/content/posts';
 const SOURCE_FILE = new RegExp(`^${POSTS_DIR}/[^/]+\\.mdx$`, 'u');
