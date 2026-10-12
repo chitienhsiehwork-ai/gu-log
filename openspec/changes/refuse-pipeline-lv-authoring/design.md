@@ -96,6 +96,14 @@ Lv 的 Tribunal 改走 `scripts/tribunal.sh`：四位評審相同，背景 daemo
 
 模板沒有 Lv 專屬內容，SD 仍需要 `{{else}}` 分支。清理模板不在這次範圍。
 
+### 7. 工作目錄裡的舊檔：續跑在入口擋，從頭跑先移開
+
+- `--work-dir` 會沿用舊的工作目錄。續跑（從 `write` 之後開始）本來就要沿用裡面的 `draft-v1.mdx`、`final.mdx`，所以 `run` 在入口檢查這兩個檔，是 Lv 就拒絕，不管 `--prefix` 或 `--file` 是哪個系列。
+- 從頭跑時，`write`、`refine` 原本只在檔案不存在或是空檔時才改用寫手的 stdout。寫手只回 stdout 時，上一次留下的檔就被當成這次的輸出：如果那是 Lv，就會被蓋署名、送進 posts；換成其他系列，也是把舊文章冒充成新產出。
+- 修法跟 `refineFrom` 現在的做法一樣：呼叫寫手前先移開舊檔，寫手失敗而沒有寫出檔案時再放回去，之後的恢復照舊可用。`refineFrom` 的兩個呼叫者最後都走到 `runRefine`，搬進去之後它自己那份就可以拿掉。
+
+替代方案：從頭跑也在入口檢查 Lv。這樣只擋得住 Lv，其他系列的舊檔還是會冒充新產出；而且重用工作目錄寫別的文章時，錯誤訊息會說「不寫 Lv」，讓人看不懂。
+
 ## Risks / Trade-offs
 
 - [某個自動化流程其實會用 Lv 呼叫這些入口] → 實作時 grep repo 內所有呼叫點確認沒有。背景 Tribunal daemon 直接跑 `scripts/tribunal.sh`，不經過 `gp-pipeline ralph`，不受影響。

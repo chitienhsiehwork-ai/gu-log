@@ -94,3 +94,17 @@ Lv 的 `counter`、`fetch`、`eval`、`dedup`、`translate`、standalone `deploy
 
 - **WHEN** 操作者執行 `gp-pipeline counter bump --help`
 - **THEN** `--prefix` 的說明 SHALL 繼續列出 Lv
+
+### Requirement: write 與 refine SHALL NOT 把工作目錄裡的舊產物當成這次的輸出
+
+`write` 與 `refine` 呼叫寫手之前，SHALL 先移開工作目錄裡既有的 `draft-v1.mdx` 或 `final.mdx`。寫手沒有寫檔時，SHALL 只用這次回傳的 stdout，沒有 stdout 就 SHALL 失敗。寫手失敗而沒有寫出檔案時，SHALL 放回原本的檔案，之後的恢復照舊可用。
+
+#### Scenario: 寫手只用 stdout 回覆
+
+- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx` 或 `final.mdx`，這次 `write` 或 `refine` 的寫手沒有寫檔、只回傳 stdout
+- **THEN** 該檔 SHALL 是這次的 stdout，SHALL NOT 是上一次留下的內容
+
+#### Scenario: 寫手失敗
+
+- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx` 或 `final.mdx`，這次 `write` 或 `refine` 的寫手失敗、沒有寫出檔案
+- **THEN** 指令 SHALL 失敗，該檔 SHALL 維持原本的內容

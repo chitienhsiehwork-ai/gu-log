@@ -13,7 +13,7 @@ pipeline 的 `ralph` 也有同樣的問題。它遇到 GP 以外的系列，會�
 ## What Changes
 
 - `gp-pipeline` 不再撰寫、改寫 Lv，也不替 Lv 蓋 pipeline 署名。下列入口遇到 Lv 時，在 ingress 以 exit 1 失敗：
-  - `run`：系列是 Lv（`--prefix Lv`，或 `--file` 是 Lv 檔），除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；沒指定起點、加 `--dry-run` 都一樣擋；
+  - `run`：系列是 Lv（`--prefix Lv`，或 `--file` 是 Lv 檔），除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；沒指定起點、加 `--dry-run` 都一樣擋。帶 `--work-dir` 從 `write` 之後續跑時，工作目錄裡的 `draft-v1.mdx` 或 `final.mdx` 是 Lv 也擋；
   - `write --prefix Lv`；
   - `review`、`refine`：`--ticket-id` 是 Lv ticket，或草稿 frontmatter 的 `ticketId` 是 Lv ticket（`--ticket-id` 沒帶時預設是 `GP-PENDING`，只看參數的話，Lv 草稿會默默套用 GP 的規則）；
   - `credits`、`ralph`：目標檔是 Lv。
@@ -24,6 +24,7 @@ pipeline 的 `ralph` 也有同樣的問題。它遇到 GP 以外的系列，會�
 - `write`、`review`、`refine`、`run`、`candidate` 與 root 的 help text，以及 `run`、`write` 缺 `--prefix` 時列出的系列，不再把 Lv 當成可以撰寫的系列；`run --help` 說明 Lv 檔只能從 `translate` 或 `deploy` 恢復。`counter`、`dedup`、`deploy` 照舊接受 Lv。
 - `CONTRIBUTING.md` 新增「新增入門教學（Lv）」流程：依 charter 選 mode、拿近期 Lv 當範本、先寫設計稿、正文交給固定版本寫手、跑確定性檢查、用 `scripts/tribunal.sh` 跑 Tribunal、通過後用 `gp-pipeline translate` 產英文版。同一節描述 Lv 的常見骨架（分層、`LevelUpProgress`、每層一題 `LevelUpQuiz`、`AnalogyBox`、選用的 `Mermaid`、魔王關）。這是寫作指引，不是硬性格式規則：既有 17 篇本身就不完全一致，charter 也允許 Lv 自由安排結構。
 - 說 pipeline 能寫 Lv、或叫人用 `gp-pipeline ralph` 評 Lv 的文件一起改：`tools/gp-pipeline/SKILL.md`、`tools/gp-pipeline/README.md`、wrapper 註解、`CONTRIBUTING.md` 的 gp-pipeline 小節與研究流程、`AGENTS.md` 路由表、`playbooks/CCC-playbook.md`（Tribunal 的首選做法與 pipeline 指令範例）、`scripts/crontab-tribunal.example`。
+- `write`、`refine` 呼叫寫手前先移開工作目錄裡的舊 `draft-v1.mdx`／`final.mdx`，寫手失敗才放回。原本寫手只回 stdout 時，上一次留下的檔會被當成這次的輸出；那份檔如果是 Lv，就會被蓋署名、送進 posts。
 - SD 行為不變：SD 仍走同一條 write／review／refine／ralph 路徑。
 
 ## Capabilities
@@ -34,10 +35,10 @@ pipeline 的 `ralph` 也有同樣的問題。它遇到 GP 以外的系列，會�
 
 ### Modified Capabilities
 
-- `gp-pipeline-publish-integrity`：新增「gp-pipeline 不撰寫、不改寫 Lv，也不替 Lv 蓋 pipeline 署名」的要求，定義哪些指令在 ingress 拒絕 Lv、拒絕前不得產生的副作用、錯誤訊息要指向哪裡，以及 Lv 仍可使用的非寫作步驟與說明文字的誠實要求。
+- `gp-pipeline-publish-integrity`：新增「gp-pipeline 不撰寫、不改寫 Lv，也不替 Lv 蓋 pipeline 署名」的要求，定義哪些指令在 ingress 拒絕 Lv、拒絕前不得產生的副作用、錯誤訊息要指向哪裡，以及 Lv 仍可使用的非寫作步驟與說明文字的誠實要求；另外新增「`write`、`refine` 不把工作目錄裡的舊產物當成這次的輸出」。
 
 ## Impact
 
-- Go CLI：`tools/gp-pipeline/cmd/gp-pipeline/` 的 `run.go`、`write.go`、`review.go`、`refine.go`、`credits.go`、`ralph.go`、`candidate.go`、`main.go`（ingress 檢查與 help text），以及對應的行為測試；既有斷言 Lv 可以跑 standalone `ralph` 的測試改成斷言拒絕。
+- Go CLI：`tools/gp-pipeline/cmd/gp-pipeline/` 的 `run.go`、`write.go`、`review.go`、`refine.go`、`credits.go`、`ralph.go`、`candidate.go`、`main.go`（ingress 檢查與 help text），`internal/pipeline/` 的 `write.go`、`refine.go`（呼叫寫手前移開舊檔），以及對應的行為測試；既有斷言 Lv 可以跑 standalone `ralph` 的測試改成斷言拒絕。
 - 文件：見上方 What Changes 的清單。
 - 不受影響：`editorial-charter`（Lv 的編輯身份不變）、四位評審與 `scripts/tribunal.sh`（含背景 daemon）、`validate-posts.mjs`、prompt 模板內容、SD 流程、既有 Lv 文章。
