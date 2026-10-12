@@ -721,10 +721,26 @@ export function findMissingRelated(glossary) {
   return violations;
 }
 
+/** `content` with the text of each link (`{ start, end, text, href }`) wrapped in it. */
+export function writeGlossaryLinks(content, links) {
+  let output = '';
+  let last = 0;
+  for (const link of [...links].sort((a, b) => a.start - b.start)) {
+    output += `${content.slice(last, link.start)}[${link.text}](${link.href})`;
+    last = link.end;
+  }
+  return output + content.slice(last);
+}
+
 /**
  * The links the checker reports missing and the fixer writes: for each term the post
- * neither links nor ignores, its first occurrence findSafeOccurrences allows that a longer
- * term has not claimed already.
+ * neither links nor ignores, its first occurrence that findSafeOccurrences allows, that a
+ * longer term has not claimed, and that keeps the structure. Each candidate is written in
+ * after the links picked before it and must parse the same as the post without it
+ * (hasSameReaderStructure, the link-only proof's last step); if not, the next occurrence
+ * gets its turn. That catches syntax the mask does not know, such as reference links,
+ * definitions and footnotes, and the same at every step means the fixer's post parses the
+ * same as the original.
  *
  * @param {string} content
  * @param {ReturnType<typeof normalizeGlossary>} glossary normalized entries
@@ -738,6 +754,7 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
   const mask = buildUnsafeMask(content);
   const occupied = new Array(content.length).fill(false);
   const links = [];
+  let linked = content;
 
   for (const term of glossary) {
     if (termFilter.size && !termFilter.has(term.term)) continue;
@@ -745,16 +762,19 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
     const href = expectedHref(term.anchor, english);
     if (hasCoverage(content, term, href)) continue;
 
-    let first = null;
-    for (const matchText of term.matches) {
-      for (const occurrence of findSafeOccurrences(content, term, matchText, { mask })) {
-        if (!rangeIsSafe(occupied, occurrence.start, occurrence.end)) continue;
-        if (!first || occurrence.start < first.start) first = occurrence;
-      }
+    const occurrences = term.matches
+      .flatMap((matchText) => findSafeOccurrences(content, term, matchText, { mask }))
+      .filter((occurrence) => rangeIsSafe(occupied, occurrence.start, occurrence.end))
+      .sort((a, b) => a.start - b.start);
+    for (const occurrence of occurrences) {
+      const link = { ...occurrence, term: term.term, href };
+      const withLink = writeGlossaryLinks(content, [...links, link]);
+      if (!hasSameReaderStructure(linked, withLink)) continue;
+      markRange(occupied, link.start, link.end);
+      links.push(link);
+      linked = withLink;
+      break;
     }
-    if (!first) continue;
-    markRange(occupied, first.start, first.end);
-    links.push({ ...first, term: term.term, href });
   }
   return links;
 }

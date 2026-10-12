@@ -7,6 +7,7 @@ import {
   loadGlossary,
   missingGlossaryLinks,
   normalizeGlossary,
+  writeGlossaryLinks,
 } from './check-glossary-links.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -28,19 +29,15 @@ function parseArgs(argv) {
   return args;
 }
 
-// Writes exactly the links checkContent reports missing, placed by the rule the link-only
-// proof also checks, so a backfill passes both.
+// Writes exactly the links checkContent reports missing, all together the way the checker
+// tried them one by one, so a backfill passes the checker and the link-only proof.
 export function applyLinksToContent(content, options = {}) {
   const edits = missingGlossaryLinks(
     content,
     normalizeGlossary(options.glossary ?? loadGlossary()),
     { filePath: options.filePath ?? 'post.mdx', terms: options.terms }
   ).sort((a, b) => a.start - b.start);
-
-  let output = content;
-  for (const edit of [...edits].reverse()) {
-    output = `${output.slice(0, edit.start)}[${edit.text}](${edit.href})${output.slice(edit.end)}`;
-  }
+  const output = writeGlossaryLinks(content, edits);
   return { content: output, changed: output !== content, edits };
 }
 

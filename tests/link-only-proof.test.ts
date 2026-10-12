@@ -271,11 +271,25 @@ describe('link-only proof: links that change how the post renders', () => {
 
 describe('link-only proof: what the fixer writes', () => {
   // openspec「第一次出現的位置不能放連結」：修正器改連下一處，檢查器與證明都接受。
-  it('links the next occurrence when the first one is glued to bold', () => {
-    const before = post('這是**Kubernetes**的核心。之後 Kubernetes 會把狀態拉回來。');
+  it.each([
+    [
+      'glued to bold',
+      '這是**Kubernetes**的核心。\n之後 Kubernetes 會把狀態拉回來。',
+      `這是**Kubernetes**的核心。\n之後 ${K8S_LINK} 會把狀態拉回來。`,
+    ],
+    [
+      'the text of a reference link',
+      '先看 [Kubernetes 文件][k8s]。\n之後 Kubernetes 很穩。\n\n[k8s]: https://kubernetes.io',
+      `先看 [Kubernetes 文件][k8s]。\n之後 ${K8S_LINK} 很穩。\n\n[k8s]: https://kubernetes.io`,
+    ],
+  ])('links the next occurrence when the first one is %s', (_name, body, linked) => {
+    const before = post(body);
     const fixed = fixer.applyLinksToContent(before, { filePath: ZH_FILE, glossary });
 
-    expect(fixed.content).toBe(post(`這是**Kubernetes**的核心。之後 ${K8S_LINK} 會把狀態拉回來。`));
+    expect(checker.checkContent(before, { filePath: ZH_FILE, glossary }).violations).toEqual([
+      expect.objectContaining({ kind: 'missing-link', term: 'Kubernetes', line: 10 }),
+    ]);
+    expect(fixed.content).toBe(post(linked));
     expect(checker.checkContent(fixed.content, { filePath: ZH_FILE, glossary }).violations).toEqual(
       []
     );
@@ -286,6 +300,69 @@ describe('link-only proof: what the fixer writes', () => {
         validatePostLink,
       })
     ).toBe(true);
+  });
+
+  // openspec〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉：檢查器要求的連結，
+  // 修正器寫出來後證明放行；證明不收的位置，檢查器不要求。null 是哪裡都不能放。
+  it.each([
+    [
+      'a full reference link',
+      '先看 [Kubernetes 文件][k8s]。\n\n[k8s]: https://kubernetes.io',
+      null,
+    ],
+    [
+      'a collapsed reference link',
+      '先看 [Kubernetes][]。\n\n[Kubernetes]: https://kubernetes.io',
+      null,
+    ],
+    [
+      'a shortcut reference link',
+      '先看 [Kubernetes]。\n\n[Kubernetes]: https://kubernetes.io',
+      null,
+    ],
+    ['a link definition', '[Kubernetes]: https://kubernetes.io\n\n正文。', null],
+    ['a footnote', '正文[^Kubernetes]。\n\n[^Kubernetes]: 註解。', null],
+    [
+      'a link whose URL wraps to the next line',
+      '[看 Kubernetes 文件](\nhttps://kubernetes.io)',
+      null,
+    ],
+    ['an autolink with parentheses in its URL', '見 https://x.io/a_(b)/Kubernetes 吧', null],
+    [
+      'a fence that ends with its list item',
+      '- 項目\n\n  ```js\n  x\n```\n\nKubernetes 在 fence 裡\n```',
+      null,
+    ],
+    ['an export that spans lines', 'export const tags = [\n  "Kubernetes",\n]\n\n正文。', null],
+    ['literal brackets', '[Kubernetes] 是括號裡的字。', `[${K8S_LINK}] 是括號裡的字。`],
+    [
+      'a shortcut reference right before the term',
+      '見 [官方]Kubernetes 文件。\n\n[官方]: https://kubernetes.io',
+      null,
+    ],
+  ])('agrees with the checker and the fixer on %s', (_name, body, linked) => {
+    const before = post(body);
+    const missing = checker.checkContent(before, { filePath: ZH_FILE, glossary }).violations;
+    const fixed = fixer.applyLinksToContent(before, { filePath: ZH_FILE, glossary });
+
+    if (linked === null) {
+      for (let at = body.indexOf('Kubernetes'); at >= 0; at = body.indexOf('Kubernetes', at + 1)) {
+        const wrapped = `${body.slice(0, at)}${K8S_LINK}${body.slice(at + 'Kubernetes'.length)}`;
+        expect(zhProof(body, wrapped), wrapped).toBe(false);
+      }
+      expect(missing).toEqual([]);
+      expect(fixed.changed).toBe(false);
+    } else {
+      expect(missing).toEqual([expect.objectContaining({ term: 'Kubernetes' })]);
+      expect(fixed.content).toBe(post(linked));
+      expect(
+        proof.isLinkOnlyChange(before, fixed.content, {
+          filePath: ZH_FILE,
+          glossary,
+          validatePostLink,
+        })
+      ).toBe(true);
+    }
   });
 });
 
