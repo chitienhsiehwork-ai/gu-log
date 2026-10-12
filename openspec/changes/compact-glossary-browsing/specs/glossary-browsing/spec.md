@@ -21,7 +21,7 @@
 
 ### Requirement: 詞條 SHALL 預設精簡並可就地展開
 
-每個詞條預設 SHALL 只顯示名稱、英文名（與名稱不同時）、分類 label 與定義的開頭摘要。完整定義、MoguNote、外部連結、Thread、相關詞條與文章 SHALL 收在同一個詞條裡，讀者展開後原地顯示，SHALL NOT 需要離開頁面。展開控制 SHALL 可用鍵盤操作，並向輔助技術回報展開狀態。
+每個詞條預設 SHALL 顯示名稱、英文名（與名稱不同時）、分類 label 與定義的開頭摘要；完整定義、MoguNote、外部連結、Thread、相關詞條與文章 SHALL 先收起來，讀者展開後在原地顯示，SHALL NOT 需要離開頁面。展開控制 SHALL 可用鍵盤操作；有 JavaScript 時，展開控制 SHALL 向輔助技術回報展開狀態，並 SHALL 能把展開的詞條收起，包含從錨點展開的詞條。
 
 #### Scenario: 瀏覽時看到精簡詞條
 
@@ -29,11 +29,11 @@
 - **THEN** 每個詞條 SHALL 顯示名稱、分類 label 與定義摘要
 - **AND** 詞條展開前 SHALL NOT 顯示 MoguNote
 
-#### Scenario: 展開一個詞條
+#### Scenario: 展開與收起一個詞條
 
 - **WHEN** 讀者用滑鼠、觸控或鍵盤啟動某個詞條的展開控制
-- **THEN** 該詞條的完整定義、MoguNote、外部連結、相關詞條與文章 SHALL 在原地出現
-- **AND** 展開控制 SHALL 回報已展開的狀態
+- **THEN** 該詞條的完整定義、MoguNote、外部連結、相關詞條與文章 SHALL 在原地出現，展開控制 SHALL 回報已展開的狀態
+- **AND** 再啟動一次同一個控制時，該詞條 SHALL 收起
 
 #### Scenario: 沒有 JavaScript 時仍可展開
 
@@ -42,7 +42,7 @@
 
 ### Requirement: 從錨點進來的詞條 SHALL 直接展開
 
-讀者以 `/glossary#<錨點>` 或 `/en/glossary#<錨點>` 開啟頁面，或在頁內點到另一個詞條的錨點（例如相關詞條）時，目標詞條 SHALL 已經展開並捲到可見位置，讀者 SHALL NOT 需要再點一次才看到完整內容。沒有 JavaScript 時，從網址錨點進來的目標詞條 SHALL 同樣展開。
+讀者以 `/glossary#<錨點>` 或 `/en/glossary#<錨點>` 開啟頁面，或在頁內點到另一個詞條的錨點（例如相關詞條）時，目標詞條 SHALL 已經展開並捲到可見位置，讀者 SHALL NOT 需要再點一次才看到完整內容。沒有 JavaScript 時，從網址錨點進來的目標詞條 SHALL 同樣展開。目標詞條被目前的分類篩選藏起來時，頁面 SHALL 先切回「全部」。
 
 #### Scenario: 從文章點進詞條
 
@@ -53,6 +53,12 @@
 
 - **WHEN** 讀者在已展開的詞條裡點一個相關詞條連結
 - **THEN** 目標詞條 SHALL 展開並捲到可見位置
+
+#### Scenario: 篩選中點到被藏起來的詞條
+
+- **WHEN** 讀者選了「人物」篩選，並在展開的人物詞條裡點一個不屬於人物的相關詞條
+- **THEN** 篩選 SHALL 切回「全部」
+- **AND** 目標詞條 SHALL 展開並位於可見位置
 
 ### Requirement: 分類篩選 SHALL 從詞條資料產生並有雙語 label
 
@@ -74,26 +80,17 @@
 - **WHEN** `src/data/glossary.json` 出現一個沒有 label 的分類
 - **THEN** 測試 SHALL 失敗，並指出這個分類
 
-### Requirement: 篩選狀態 SHALL 放在查詢字串
-
-選擇分類時，頁面 SHALL 把狀態寫進查詢字串 `?cat=<分類 id>`，SHALL NOT 佔用錨點；以帶 `?cat=` 的網址開啟時 SHALL 套用該篩選。錨點指到的詞條不在目前的篩選結果裡時，頁面 SHALL 改回「全部」並顯示該詞條。
-
-#### Scenario: 分享只看人物的網址
-
-- **WHEN** 讀者開啟 `/glossary?cat=people`
-- **THEN** 頁面 SHALL 只顯示人物詞條，且「人物」篩選為選取狀態
-
-#### Scenario: 錨點詞條被篩掉
-
-- **WHEN** 讀者開啟 `/glossary?cat=people#elixir`
-- **THEN** 篩選 SHALL 改回「全部」
-- **AND** Elixir SHALL 展開並位於可見位置
-
 ### Requirement: 中英文詞彙表 SHALL 行為一致
 
-`/glossary` 與 `/en/glossary` SHALL 由同一份頁面結構產生。詞條順序、分類篩選、精簡與展開、錨點與 `?cat=` 的行為 SHALL 一致；兩頁只有文字語言不同，英文頁使用英文定義、英文 MoguNote 與英文 label。
+`/glossary` 與 `/en/glossary` SHALL 由同一份頁面結構產生。詞條順序、分類篩選、精簡與展開、錨點的行為 SHALL 一致；兩頁只有文字語言不同。英文頁 SHALL 使用英文定義、英文 MoguNote 與英文 label，詞條裡的文章連結 SHALL 指向英文版文章並顯示英文版標題。
 
-#### Scenario: 英文頁的篩選與展開
+#### Scenario: 英文頁從錨點展開
 
-- **WHEN** 讀者開啟 `/en/glossary?cat=people#andrej-karpathy`
-- **THEN** 頁面 SHALL 只顯示人物詞條，並以英文 label 與英文內容展開 Andrej Karpathy
+- **WHEN** 讀者開啟 `/en/glossary#andrej-karpathy`
+- **THEN** Andrej Karpathy SHALL 以英文定義與英文 MoguNote 展開
+- **AND** 它的分類標籤 SHALL 顯示英文 label
+
+#### Scenario: 英文頁的文章連結
+
+- **WHEN** 讀者在 `/en/glossary` 展開一個有文章連結的詞條，例如 Kubernetes
+- **THEN** 文章連結 SHALL 指向英文版文章，並顯示英文版的標題

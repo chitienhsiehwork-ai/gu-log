@@ -3,15 +3,19 @@
 ## Context
 
 - 動機與量測見 proposal.md〈Why〉。
-- 現在的 `/glossary` 與 `/en/glossary` 各寫一份 Astro 頁面。分類按鈕與 label 寫死在頁面裡。
+- 現在的 `/glossary` 與 `/en/glossary` 各寫一份 Astro 頁面。分類按鈕與 label 寫死在頁面裡。英文頁的文章連結顯示中文標題。
 - 錨點有四份推導邏輯：
   - 頁面：`linking.anchor` 或「小寫加連字號」，保留標點；
   - 頁內 `related`：只做「小寫加連字號」，忽略 `linking.anchor`；
   - `check-glossary-links.mjs` 的 `slugify`：去掉英數以外的字元；
-  - `tribunal-librarian-packet.py`。
+  - `tribunal-librarian-packet.py`：`term.lower().replace(' ', '-')`。
 - 文章裡的 1,874 條連結是 checker 與 fixer 寫出來的，用的是 `slugify` 的結果。
-- pre-commit 的「只改連結」豁免走 `check-staged-internal-post-links.mjs`。這支程式會把 glossary 連結正規化，但要求至少驗證到一條站內文章連結才放行。
-- CI 的 `list-content-gate-posts.mjs` 用 `isLinkOnlyDiff` 正規化兩邊的連結再比對，只加 glossary 連結也會放行。兩邊的規則不一致。
+- 「只改連結」的豁免有三條路徑，都是不驗證就把 glossary 連結剝掉：
+  - pre-commit 走 `check-staged-internal-post-links.mjs`：剝掉 glossary 連結，再要求至少驗證到一條站內文章連結才放行。所以只加 glossary 連結會被擋；反過來，只要同時有一條合法的文章連結，錯錨點的 glossary 連結就一起過關。
+  - CI 的 `list-content-gate-posts.mjs` 用 `isLinkOnlyDiff`：剝掉兩邊的連結、把行 trim 再排序後比對。行序調換也會過，pre-commit 卻會擋。
+  - 同一支程式的 taxonomy 證明，也先用同一個正規化剝掉連結。
+- `check-glossary-links.mjs --check-canonical-staged-file` 另有一套「把禁用中文詞換成 canonical 詞條連結」的證明。它已經會驗證新包的連結必須是 `[term](/glossary#anchor)`。
+- 全域 CSS 在 `html` 上設了 `scroll-padding-top`。
 
 ## Goals / Non-Goals
 
@@ -24,6 +28,7 @@
 **Non-Goals:**
 
 - 不拆分類頁，不做單詞頁，不改任何網址。
+- 篩選狀態不寫進網址。沒有人要求分享篩選結果；以後有需求再加。
 - 不把詞彙表加進站內搜尋索引。
 - 不調整 Docker 這類其他候選詞條的收錄。審查提到 Docker 有 35 篇提及卻沒有詞條，留給之後決定。
 - 不改 `glossary-identity-ssot` 的 Mogu 與人物規則。
@@ -50,9 +55,11 @@
 ### 2. 精簡顯示：CSS 先決定，JS 只做加強
 
 - 伺服器端照常輸出每個詞條的完整內容。
-- CSS 預設只顯示詞條列：名稱、英文名、分類 label、定義的前兩行（line-clamp）。完整定義、MoguNote 與 meta 預設隱藏。
+- CSS 預設顯示詞條列：名稱、英文名、分類 label、定義的前兩行（line-clamp），加上每列的複製連結按鈕。完整定義、MoguNote 與 meta 預設隱藏。定義的第一句因此要能單獨成立。
 - 詞條是 `:target`，或帶有 `.is-open`，就整條展開。所以從 `/glossary#x` 進來時，第一次繪製就是展開的，不會等 JS 跑完才跳動。
-- 展開控制在沒有 JS 時是指向自己錨點的連結：點了就變成 `:target`，一次展開一條。有 JS 時改成切換 `.is-open` 的按鈕：可以同時展開多條，回報 `aria-expanded`，並處理 `hashchange`，讓點相關詞條時目標展開。
+- 展開控制在沒有 JS 時是指向自己錨點的連結：點了就變成 `:target`，一次展開一條。這時沒辦法向輔助技術回報展開狀態，所以 spec 只要求有 JS 時回報。
+- 有 JS 時改成切換 `.is-open` 的按鈕：可以同時展開多條，回報 `aria-expanded`，並處理 `hashchange`，讓點相關詞條時目標展開。
+- 收起一個靠 `:target` 展開的詞條時，JS 加上 `.is-collapsed` 蓋過 `:target`。只用 `history.replaceState` 拿掉錨點不夠，有些瀏覽器不會因此更新 `:target`。
 - 定義全文一直在 DOM 裡，搜尋照樣比對全文。
 
 替代方案：
@@ -63,7 +70,7 @@
 ### 3. 控制列固定在上方
 
 - 搜尋框、分類按鈕與 A–Z 列包成一個 sticky 區塊。
-- 詞條設定 `scroll-margin-top`，等於這個區塊的高度，錨點目標才不會被蓋住。
+- 錨點目標不被蓋住，靠詞彙表頁面上的 `scroll-padding-top`（等於 sticky 區塊的高度）。不另外在詞條上加 `scroll-margin-top`，因為它會跟全域的 `scroll-padding-top` 疊加。
 - 「點名稱複製連結」改成每列一個小的複製按鈕，名稱列本身負責展開。複製連結的能力保留。
 
 ### 4. 分類只有一份清單
@@ -72,49 +79,64 @@
 - 資料出現未知分類就讓單元測試失敗。
 - Kubernetes 放 `platforms`，「平台」按鈕因此有了詞條。
 
-### 5. 篩選狀態放 `?cat=`
+### 5. 篩選只在頁內
 
-- JS 在載入時讀 `?cat=`，切換分類時用 `history.replaceState` 更新查詢字串，保留錨點。
-- 錨點目標被篩選掉時，先切回「全部」再捲動。
+- 分類篩選是頁內狀態，不寫進網址；重新載入就回到「全部」。
+- 點到被目前篩選藏起來的詞條（例如相關詞條）時，先切回「全部」再展開、捲動。
+- 替代方案：寫進 `?cat=`。沒有人要求分享篩選結果，還要處理錨點與篩選衝突，先不做。
 
 ### 6. 中英文共用一個元件
 
-兩頁改成薄薄的包裝，共用 `src/components/glossary/` 底下的元件。語言差異只剩文字來源（定義、MoguNote、label、介面字串）。
+兩頁改成薄薄的包裝，共用 `src/components/glossary/` 底下的元件。語言差異只剩文字來源：定義、MoguNote、label、介面字串，以及文章連結（英文頁連英文版文章、顯示英文版標題）。
 
 ### 7. 錨點規則以 checker 的 `slugify` 為準
 
-文章裡的 1,874 條連結都是照 `slugify` 寫的，所以以它為標準。差異只有少數含標點的詞條，例如 `Software 3.0` 的頁面 id 會從 `software-3.0` 變成 `software-30`。
+文章裡的 1,874 條連結都是照 `slugify` 寫的，所以以它為標準。差異只有少數含標點的詞條，例如 `Software 3.0` 的頁面 id 會從 `software-3.0` 變成 `software-30`。文章裡原本連 `#software-30` 的連結因此變成有效。
 
-規則放進一個 JS 模組，Astro 頁面、`related` 連結、checker 與 fixer 共用。Python 的 Librarian packet 照同一規則實作，另加一個測試，對全部詞條比對兩邊的結果，任何一條不同就失敗。
+- 規則放進一個 JS 模組，Astro 頁面、`related` 連結、checker 與 fixer 共用。模組的測試擋下空錨點（例如純中文的 term）與重複錨點，這種詞條要設 `linking.anchor`。
+- Librarian packet 不再自己推錨點，改呼叫 checker 的 `--format json`，用它回報的結果列出可能漏連的詞條。少一份要對齊的實作，也不用另寫一致性測試。
+- checker 新增連結檢查：
+  - 文章的 glossary 連結指向不存在的錨點（大小寫不符也算）就失敗。判斷存在與否要把停用自動連結的詞條算進去，所以不能直接沿用會濾掉停用詞條的 `normalizeGlossary`。
+  - 英文文章連到 `/glossary#…`、繁中文章連到 `/en/glossary#…` 就失敗。這是既有〈Link target MUST follow post language〉的執行面。
+  - `related` 列出不存在的詞條就失敗。
+- 同一個 PR 修掉現有違規：mp-212 中英文版大小寫錯的錨點改正、沒有詞條的（`#Opus`）拿掉連結；連錯語言的英文文章連結改連 `/en/glossary`；`related` 改正或刪掉。
 
-死錨點檢查放進 `check-glossary-links.mjs`，檢查文章與 `related`。目前的 10 個死錨點與 7 條 `related` 在同一個 PR 修掉：
+### 8. 只改 glossary 連結的證明共用一份「先驗證、再剝掉」
 
-- 大小寫錯的改成正確錨點；
-- 沒有詞條的移除連結，或改指向正確詞條；
-- `related` 指向不存在詞條的，改成正確名稱或刪掉。
-
-### 8. 只改 glossary 連結的證明共用一份
-
-- 抽出一個證明函式：把修改前後的 glossary 連結語法都拿掉之後，兩邊的內容要完全相同；新增或改動的 glossary 連結都要指向該文章語言、啟用中詞條的正確錨點。
-- pre-commit（staged 對 HEAD）與 `list-content-gate-posts.mjs`（base 對 head）都呼叫它。既有的站內文章連結驗證保留。
+- 抽出一個正規化函式，對修改前後兩個版本運作：
+  - 每個 glossary 連結先驗證：指向該文章語言、啟用中詞條的正確錨點，而且位在 `buildUnsafeMask` 判定的安全區（不在 code、frontmatter、JSX 屬性或既有連結裡）。
+  - 新包起來的文字（修改前那個位置不是連結）要能被 checker 的比對規則認成該詞條；只改錨點的既有連結保留原文字，例如 mp-212 的 `[glossary 有完整拆解](/glossary#Codex)`。
+  - 驗證過的才剝掉，驗證不過的原樣留著，比對自然失敗。
+  - 剝掉之後整份檔案（含 frontmatter）逐字比對，不 trim、不排序。
+- 站內文章連結沿用既有的驗證，兩種連結在同一個函式裡各自驗證。
+- 用它的地方：
+  - pre-commit 的「只改連結」豁免（`check-staged-internal-post-links.mjs`），拿掉「至少一條文章連結」的條件；
+  - CI 的 `list-content-gate-posts.mjs`，取代 `isLinkOnlyDiff`，taxonomy 證明的連結正規化也換成它；
+  - canonical 詞的證明（`--check-canonical-staged-file`）保留它自己的方向性規則，但錨點與文字的驗證改呼叫同一份。
+- 驗證要讀跟文章同一個版本的 glossary：pre-commit 讀 staged，CI 讀 head。這樣同一個 commit 新增的 Kubernetes 才算啟用中。
 - 新增或移除連結、改正錨點，都算只改連結。
+- 這條只放寬內容品質 gate。證明涵蓋整份檔案，所以被放行的修改不會動到 frontmatter；pre-commit 對被放行的檔案略過 `validate-posts` 也因此沒有風險。
 - hook 錯誤訊息改成指向修法，不再建議 `--no-verify`。
 
 ### 9. Kubernetes 條目
 
-- 定義與 MoguNote（中英文）由固定版本寫手產生，比喻接 Lv-18 的「一行白板配一位經理」。
+- 定義與 MoguNote（中英文）由固定版本寫手產生，比喻接 Lv-18 的「一行白板配一位經理」，定義第一句可以單獨成立。產出存成這個 change 目錄裡的 `kubernetes-entry.json`，實作時原文照貼，不改字；已經手動跑過晶晶體、AI 腔與代名詞檢查。
 - 不設 `linking.match`，只比對正式名稱 `Kubernetes`，預設區分大小寫。`kubernetes.io`、`kubernetes-sigs`、程式碼與元件屬性本來就會被排除。
-- 補連結用 `apply-glossary-links.mjs --term Kubernetes`，31 個 diff 逐一看過。例如 mp-39 第一處出現在「Google Kubernetes Engine」裡，改連同篇其他較自然的位置。
+- 補連結用 `apply-glossary-links.mjs --term Kubernetes`，31 個 diff 逐一看過。mp-39 與 en-mp-39 的第一處都落在「Google Kubernetes Engine」裡，改連同篇其他較自然的位置。
+- 條目與 31 篇補連結放同一個 commit。分開的話，只有條目的那個 commit 會被 changed-term ratchet 擋下（31 篇都還沒連）。
 
 ## Risks / Trade-offs
 
 - [MoguNote 預設收起來，Mogu 的聲音比較不顯眼] → 從文章點進來的詞條完整展開；在 chat 告知 ShroomDog，要恢復只需調整 CSS。
 - [`software-3.0` 這類 id 改變，外部舊連結會失效] → 只影響少數含標點的詞條，站內連結全部改用新規則；接受。
-- [sticky 控制列蓋住錨點目標] → `scroll-margin-top`，並在 Playwright 以手機 viewport 驗證目標在可見範圍。
-- [只改連結的證明被拿來夾帶改字] → 拿掉連結語法後必須完全相同，並驗證錨點；pre-commit 與 CI 用同一份程式碼。
+- [sticky 控制列蓋住錨點目標] → 用頁面的 `scroll-padding-top`，並在 Playwright 以手機 viewport 驗證目標在可見範圍。
+- [只改連結的證明被拿來夾帶改字或亂加連結] → 先驗證再剝掉、整份檔案逐字比對，新包的文字要是詞條的寫法；pre-commit 與 CI 用同一份程式碼。
+- [glossary.json 裡的文字沒有內容 gate] → Kubernetes 的四段文字由固定版本寫手產生，人工看過，並手動跑過晶晶體、AI 腔與代名詞檢查。
 - [補連結讓 31 篇的版本號各加一] → 這是現行版本清單的既有語意（依 commit 數），接受。這個 PR 動到文章，必須用 merge，不得 squash，否則版本清單會跟 main 歷史對不上。
 - [Playwright spec 依賴舊 DOM] → 同一個 PR 更新。
 
 ## Migration Plan
 
-網址與資料格式都不變，不需要遷移。要回退就 revert 整個 PR；文章的連結修正是有效連結，可以留著。
+網址與資料格式都不變，不需要遷移。
+
+回退：整個 PR revert 會連文章的連結修正與 Kubernetes 補連結一起退掉。UI、gate、資料與文章分成不同的 commit，合併用 merge，所以要只退 UI，revert UI 的那幾個 commit 就好；文章的連結修正都是有效連結，可以留著。
