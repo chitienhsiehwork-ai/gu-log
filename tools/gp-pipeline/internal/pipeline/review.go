@@ -48,6 +48,11 @@ func (s *State) Review(ctx context.Context) error {
 	if disp == nil {
 		return fmt.Errorf("review: judge dispatcher is nil")
 	}
+	restore, err := setAside(reviewPath)
+	if err != nil {
+		return fmt.Errorf("review: set aside the previous review.md: %w", err)
+	}
+	defer restore()
 	res, err := disp.Run(stepCtx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("review: dispatcher failed: %w", err))

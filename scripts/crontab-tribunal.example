@@ -29,5 +29,6 @@ TRIBUNAL_LOG_DIR=/path/to/gu-log-logs
 # ─── gp-pipeline invocation (Go binary, canonical as of Phase 4) ──────────
 # --prefix is required without --file: the pipeline never picks a series
 # (openspec: gp-pipeline-publish-integrity). A GP run also calls the Claude
-# source-distance aligner, so the VM's Claude CLI login covers it.
-# 0 10 * * 1-5 TZ=Asia/Taipei "$GU_LOG_DIR/tools/gp-pipeline/gp-pipeline" run <tweet_url> --prefix <GP|MP|SD|Lv> >> "$TRIBUNAL_LOG_DIR/gp-pipeline.log" 2>&1
+# source-distance aligner, so the VM's Claude CLI login covers it. Lv is
+# written by hand (CONTRIBUTING.md), so it never runs through this line.
+# 0 10 * * 1-5 TZ=Asia/Taipei "$GU_LOG_DIR/tools/gp-pipeline/gp-pipeline" run <tweet_url> --prefix <GP|MP|SD> >> "$TRIBUNAL_LOG_DIR/gp-pipeline.log" 2>&1

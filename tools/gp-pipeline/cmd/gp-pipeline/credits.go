@@ -47,11 +47,22 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(abs); err != nil {
+	data, err := os.ReadFile(abs)
+	if err != nil {
 		return fmt.Errorf("credits: file not found: %s", abs)
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(abs)
+	}
+	// Lv carries no pipeline credits: it is written by hand. Check --file and
+	// the file the stamp lands on: a --file named final.mdx stamps the work
+	// dir's final.mdx, any other name a scratch copy of --file.
+	stamped := abs
+	if filepath.Base(abs) == "final.mdx" {
+		stamped = filepath.Join(workDir, "final.mdx")
+	}
+	if err := pipeline.RefuseLvFiles("credits", abs, stamped); err != nil {
+		return err
 	}
 	// The Credits method expects the file to be called "final.mdx" in
 	// the work dir. If the caller pointed us at a differently named
@@ -60,10 +71,6 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if filepath.Base(abs) != "final.mdx" {
 		scratchWorkDir = filepath.Join(os.TempDir(), fmt.Sprintf("credits-scratch-%d", os.Getpid()))
 		if err := os.MkdirAll(scratchWorkDir, 0o755); err != nil {
-			return err
-		}
-		data, err := os.ReadFile(abs)
-		if err != nil {
 			return err
 		}
 		if err := os.WriteFile(filepath.Join(scratchWorkDir, "final.mdx"), data, 0o644); err != nil {

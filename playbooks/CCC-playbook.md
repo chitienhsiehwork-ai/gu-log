@@ -83,6 +83,8 @@ PR 合併用 `merge_method` 參數指定，三個選項：
 
 **判斷規則**：看 PR 的 commit list，每個 commit subject 自己讀都有意義 → `merge`；有廢 commit → `squash`。CCC 理論上不該產廢 commit，所以預設是 `merge`。
 
+**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。呼叫 `enable_pr_auto_merge` 或 `merge_pull_request` 時要明確指定 merge，不要依賴 repo 預設值。
+
 ### CI 等待 timeout
 
 **15 分鐘規則**：CI 超過 15 分鐘沒進展就停下來 check 一次。
@@ -136,7 +138,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **唯一例外是下架**：把文章改成 `status: taken-down` 不是改寫，不跑 Tribunal；下架文章也不在 Tribunal 範圍內，範圍只看 `status`（`post-takedown` 與 `tribunal-verification-scope` spec）。下架一律走 `scripts/take-down-posts.mjs`，不要自己清正文。
 
-**首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
+**首選**：`scripts/tribunal-batch-runner.sh` 或 `gp-pipeline ralph` 自動跑完四審 + rewrite + 寫 frontmatter scores；Lv 不能用 `gp-pipeline ralph`，改用 `scripts/tribunal-batch-runner.sh` 或 `scripts/tribunal.sh`。**這條在 CCC（root sandbox）現在可以原生跑**——`tribunal_claude_exec`（shell judges）和 Go `ClaudeProvider.Run`（pipeline）在 `id -u == 0` 時自動：(1) 用 `acceptEdits` 取代被 CLI 拒絕的 `bypassPermissions`，(2) 補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit` 讓 judge Read 文章檔時不會卡 permission prompt，(3) prompt 走 stdin 避免 variadic 旗標吞掉內文。實測 `bash scripts/tribunal.sh --score-only --only-stage vibe <post>` 在 CCC 端到端 PASS（#123）。
 
 **沙箱 fallback**（只有上面 shell/pipeline 路真的壞掉時才用——例如 quota 用盡、CLI 版本回歸）：CCC 依 `.claude/agents/` 的四個 role 平行跑；浮動 alias 的 judge 用 `Agent` tool，exact-version pinned 的 Vibe 用 `claude -p --model <frontmatter 的完整 id>`：
 
@@ -166,7 +168,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉處理。CCC 可以跑完整的 GP 導讀流程：寫手與來源距離的 aligner 都走 Claude CLI，不需要 GP 專屬的 runtime profile。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉處理；Lv 不走 pipeline，照同一份文件的〈新增入門教學（Lv）〉。CCC 可以跑完整的 GP 導讀流程：寫手與來源距離的 aligner 都走 Claude CLI，不需要 GP 專屬的 runtime profile。
 
 ### pipeline 內建的 eval gate
 
@@ -191,14 +193,14 @@ intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，p
 
 ```bash
 # user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
-tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD|Lv>
+tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
 tools/gp-pipeline/gp-pipeline fetch <url> --work-dir /tmp/gp-probe
 tools/gp-pipeline/gp-pipeline eval --source /tmp/gp-probe/source-tweet.md
 
 # Eval gate split/SKIP 但 user 堅持要寫 → 加 --force
-tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD|Lv> --force
+tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD> --force
 ```
 
 ### Sandbox 網路能力（2026-04-23 實測）
