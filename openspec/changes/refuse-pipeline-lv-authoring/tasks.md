@@ -71,7 +71,7 @@
 
 ## 5. 階段 6 第二輪審查修正
 
-- [ ] 5.1 `run` 帶 `--work-dir`、從 `write` 之後到 `translate` 之前的步驟恢復時，在 yt-dlp preflight 與建立工作目錄之前，用 `IsLvFile` 檢查工作目錄的 `draft-v1.mdx` 與 `final.mdx`，任一個是 Lv 就拒絕。Go 測試涵蓋三種情況，都要 exit 1、工作目錄裡的檔案逐位元組不變、posts 沒有多出檔案、沒有外部呼叫（對應「從放著 Lv 草稿的工作目錄恢復」）：
+- [x] 5.1 `run` 帶 `--work-dir`、從 `write` 之後到 `translate` 之前的步驟恢復時，在 yt-dlp preflight 與建立工作目錄之前，用 `IsLvFile` 檢查工作目錄的 `draft-v1.mdx` 與 `final.mdx`，任一個是 Lv 就拒絕。Go 測試涵蓋三種情況，都要 exit 1、工作目錄裡的檔案逐位元組不變、posts 沒有多出檔案、沒有外部呼叫（對應「從放著 Lv 草稿的工作目錄恢復」）：
   - `--prefix MP --from-step review`，工作目錄的 `draft-v1.mdx` 是 Lv；
   - `--prefix GP --from-step ralph`，工作目錄的 `final.mdx` 是 Lv；
   - `--file <GP 檔> --from-step ralph`，工作目錄的 `final.mdx` 是 Lv。

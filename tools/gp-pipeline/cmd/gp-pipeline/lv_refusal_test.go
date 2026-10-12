@@ -75,6 +75,20 @@ func requireAbsent(t *testing.T, path string) {
 	}
 }
 
+// dirNames lists the entry names in dir, sorted.
+func dirNames(t *testing.T, dir string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		names = append(names, entry.Name())
+	}
+	return names
+}
+
 func TestRunRefusesLvBeforeWritingSteps(t *testing.T) {
 	root := makeFakeRepo(t)
 	postsDir := filepath.Join(root, "src", "content", "posts")
@@ -137,6 +151,60 @@ func TestRunRefusesLvBeforeYTDLPPreflight(t *testing.T) {
 		"run", "https://youtube.com/watch?v=dQw4w9WgXcQ", "--prefix", "Lv")
 	requireLvRefusal(t, err)
 	requireAbsent(t, workDir)
+}
+
+// TestRunRefusesLvDraftInResumedWorkDir: a run resumed after write reuses the
+// work dir's draft-v1.mdx and final.mdx, so an Lv one there is refused
+// whichever series --prefix or --file names.
+func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
+	root := makeFakeRepo(t)
+	postsDir := filepath.Join(root, "src", "content", "posts")
+	if err := os.MkdirAll(postsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const gpFile = "gp-10-20261012-author-title.mdx"
+	mustWrite(t, filepath.Join(postsDir, gpFile), "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
+	t.Setenv("GU_LOG_DIR", root)
+	trapLog := trapExternalPrograms(t)
+	runArgs := func(workDir string, args ...string) []string {
+		return append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"), "run", "--dry-run"}, args...)
+	}
+
+	for _, tc := range []struct {
+		name string
+		file string // the work dir file holding the Lv draft
+		args []string
+	}{
+		{name: "MP from review, Lv draft-v1.mdx", file: "draft-v1.mdx", args: []string{"--prefix", "MP", "--from-step", "review"}},
+		{name: "GP from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "GP", "--from-step", "ralph"}},
+		{name: "GP --file from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--file", gpFile, "--from-step", "ralph"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
+			workDir := t.TempDir()
+			mustWrite(t, filepath.Join(workDir, tc.file), lvDraft)
+			err := executeCLI(t, runArgs(workDir, tc.args...)...)
+			requireLvRefusal(t, err)
+			requireNoExternalCalls(t, trapLog)
+			requireBytes(t, filepath.Join(workDir, tc.file), []byte(lvDraft))
+			if got := dirNames(t, workDir); !slices.Equal(got, []string{tc.file}) {
+				t.Fatalf("work dir holds %v, want only %s", got, tc.file)
+			}
+			if got := dirNames(t, postsDir); !slices.Equal(got, []string{gpFile}) {
+				t.Fatalf("posts dir holds %v, want only %s", got, gpFile)
+			}
+		})
+	}
+
+	// Control: the same resume from an MP draft reaches its model route.
+	t.Run("MP from review, MP draft-v1.mdx", func(t *testing.T) {
+		workDir := t.TempDir()
+		mustWrite(t, filepath.Join(workDir, "draft-v1.mdx"), "---\ntitle: \"Draft\"\nticketId: MP-PENDING\n---\nbody\n")
+		err := executeCLI(t, runArgs(workDir, "--prefix", "MP", "--from-step", "review")...)
+		if err == nil || !strings.Contains(err.Error(), "missing.json") || strings.Contains(err.Error(), "CONTRIBUTING.md") {
+			t.Fatalf("error = %v, want the MP resume to reach its model route", err)
+		}
+	})
 }
 
 func TestWriteRefusesLv(t *testing.T) {

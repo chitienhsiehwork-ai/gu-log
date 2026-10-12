@@ -220,6 +220,19 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	if !pipeline.IsAuthorable(opts.Prefix) && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
 		return pipeline.LvAuthoringError("run")
 	}
+	// A run resumed after write reuses the work dir's draft-v1.mdx and
+	// final.mdx, so an Lv draft left there is refused like an Lv series.
+	if flagWorkDir != "" && fromStepInt > pipeline.StepWrite && fromStepInt < pipeline.StepTranslate {
+		for _, name := range []string{"draft-v1.mdx", "final.mdx"} {
+			isLv, err := pipeline.IsLvFile(filepath.Join(flagWorkDir, name))
+			if err != nil {
+				return fmt.Errorf("run: %w", err)
+			}
+			if isLv {
+				return pipeline.LvAuthoringError("run")
+			}
+		}
+	}
 	if fromStepInt == pipeline.StepSourceDistance && opts.Prefix != "GP" {
 		return fmt.Errorf("run: --from-step source-distance only applies to GP; %s has no source-distance step", opts.Prefix)
 	}
