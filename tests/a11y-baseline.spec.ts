@@ -15,6 +15,7 @@ const ROUTES = [
   { name: 'Mogu Picks listing', path: '/mogu-picks/' },
   { name: 'Tags', path: '/tags' },
   { name: 'Glossary', path: '/glossary' },
+  { name: 'Glossary (en)', path: '/en/glossary' },
   { name: 'Level Up index', path: '/level-up' },
   { name: 'MP post (zh-tw)', path: '/posts/mp-291-20260414-anthropic-' },
 ];

@@ -53,7 +53,7 @@
   新的 Playwright spec 自己設定 iPhone 13 viewport 與關閉 JavaScript 的情境（e2e-core 預設只跑 Desktop Chrome），並登記進 `tests/spec-ownership.json`、class 設 `blocking`。涵蓋：精簡列沒有顯示 MoguNote、點擊與鍵盤展開、再點一次收起（含從錨點展開的詞條）、從 `/glossary#elixir` 進來時目標已展開且位於可見範圍、點相關詞條時目標展開、關閉 JavaScript 時仍能展開，以及從錨點進來的詞條是展開的（對應「詞條 SHALL 預設精簡並可就地展開」「從錨點進來的詞條 SHALL 直接展開」）
 
 - [x] 5.4 控制列 sticky；詞彙表頁面的 `scroll-padding-top` 等於 sticky 區塊高度，不在詞條上另加 `scroll-margin-top`。點到被目前篩選藏起來的詞條時先切回「全部」。Playwright 涵蓋：手機 viewport 下錨點目標沒有被控制列蓋住；選「人物」篩選後點非人物的相關詞條，篩選切回全部並展開目標；`/en/glossary#andrej-karpathy` 以英文內容展開（對應「篩選中點到被藏起來的詞條」「英文頁從錨點展開」）
-- [ ] 5.5 更新受影響的既有 Playwright spec 與單元測試（例如 `tests/mogu-note.spec.ts`、`tests/a11y-baseline.spec.ts`、`tests/component-smoke.spec.ts`），並更新頁面上「點術語名稱可複製連結」這類過期的說明文字
+- [x] 5.5 更新受影響的既有 Playwright spec 與單元測試（例如 `tests/mogu-note.spec.ts`、`tests/a11y-baseline.spec.ts`、`tests/component-smoke.spec.ts`），並更新頁面上「點術語名稱可複製連結」這類過期的說明文字
 - [ ] 5.6 跑 `uiux-auditor`：深色與淺色兩種主題、iPhone 13 viewport，WCAG AA 對比，不得有寫死的色碼；修掉 must-fix。記錄修改前後的頁面高度（螢幕數），目標是 zh 從約 41 降到 10 個左右
 
 ## 6. 整合驗證
