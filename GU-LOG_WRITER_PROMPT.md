@@ -293,7 +293,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 
 - 普通英文有自然中文可寫：`framing` →「包裝」、`takeaway` →「真正的重點」、`generalist` →「通才」。這種要翻，不要建 glossary。
 - 單篇 source 裡的一次性 label、活動名稱、內部專案代號，讀者不需要長期記住；文內解釋一次就好。
-- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist 或 glossaryExclude 就好。
+- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist（`scripts/check-jingjing.mjs`）就好。
 - 只是因為 lint 擋住、或 agent 懶得想自然中文。Lint 失敗不是建 glossary 的理由，只是提醒「翻中文」或「提術語決策」。
 
 **文內解釋即可**：
@@ -302,7 +302,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 - 中文翻法雖然不是完美，但讀者能順暢理解，而且不需要拿英文去查外部文件。
 - source-specific 說法只需要保留 attribution，不需要納入 gu-log 詞彙系統。
 
-**PR checklist**：真的新增 glossary term 時，同一個 PR 要更新 `src/data/glossary.json`，必要時更新 `src/config/glossary.ts`，第一次出現連 `/glossary#...`，英文版連 `/en/glossary#...`，並確保 `scripts/check-jingjing.mjs` 通過。若決策來自 ShroomDog feedback，也要 append 到 `docs/shroomdog-editorial-feedback.md`。
+**PR checklist**：真的新增 glossary term 時，同一個 PR 要更新 `src/data/glossary.json`（用到新分類時，在 `src/config/glossary.ts` 補中英文 label），第一次出現連 `/glossary#...`，英文版連 `/en/glossary#...`，並確保 `scripts/check-jingjing.mjs` 通過。若決策來自 ShroomDog feedback，也要 append 到 `docs/shroomdog-editorial-feedback.md`。
 
 **術語 checkpoint（不要硬翻研究論文腔）**：遇到像「擴展測試時運算」這種語意看得懂、但中文讀起來很卡的譯法，先停下來判斷：
 

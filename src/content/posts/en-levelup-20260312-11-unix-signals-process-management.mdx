@@ -165,7 +165,7 @@ The OS kills the FastAPI process instantly. The user who waited 4 seconds sees `
 The user gets their correct response and never notices anything happened.
 </AnalogyBox>
 
-This is why Kubernetes (K8s) and Docker follow this standard procedure when deleting a container:
+This is why [Kubernetes](/en/glossary#kubernetes) (K8s) and Docker follow this standard procedure when deleting a container:
 1. Send `SIGTERM` first (polite ask).
 2. Start a countdown (usually 30 seconds grace period).
 3. If the Process is still alive after 30 seconds, send `SIGKILL` (forced removal).

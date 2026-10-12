@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import glossaryData from '../src/data/glossary.json';
 import { parseGlossaryUrl } from '../src/config/glossary';
 
-const zhPage = readFileSync(new URL('../src/pages/glossary.astro', import.meta.url), 'utf8');
-const enPage = readFileSync(new URL('../src/pages/en/glossary.astro', import.meta.url), 'utf8');
+// /glossary 與 /en/glossary 都由這個共用元件產生。
+const page = readFileSync(
+  new URL('../src/components/glossary/GlossaryPage.astro', import.meta.url),
+  'utf8'
+);
 
 describe('glossary URL render contract', () => {
-  it.each([
-    ['zh-tw', zhPage],
-    ['en', enPage],
-  ])('%s page validates item and thread URLs before rendering hrefs', (_lang, page) => {
+  it('validates item and thread URLs before rendering hrefs', () => {
     expect(page).toContain('parseGlossaryUrl(item.url');
     expect(page).toContain('parseGlossaryUrl(item.thread.url');
     expect(page).toContain('item.url !== undefined');
