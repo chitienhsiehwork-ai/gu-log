@@ -376,27 +376,13 @@ export function buildUnsafeMask(content) {
   maskRegex(content, mask, /(?:https?:\/\/|www\.)[^\s)]+/g);
   maskRegex(content, mask, /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g);
 
-  const lines = content.split(/\n/);
   let offset = 0;
-  let inMdxComponent = false;
-  for (const line of lines) {
-    const lineEnd = offset + line.length;
-    const startsMdxComponent = /^\s*<[A-Z][\w.:-]*\b/.test(line);
-    const endsMdxComponent = /\/?>\s*$/.test(line) && !/[{(]\s*$/.test(line);
-
-    if (
-      inMdxComponent ||
-      startsMdxComponent ||
-      /^\s*>/.test(line) ||
-      /^\s*(import|export)\b/.test(line)
-    ) {
-      markRange(mask, offset, lineEnd);
-      if (startsMdxComponent && !endsMdxComponent) inMdxComponent = true;
-      if (inMdxComponent && endsMdxComponent) inMdxComponent = false;
+  for (const line of content.split('\n')) {
+    if (/^\s*(?:<[A-Z]|>|(?:import|export)\b)/.test(line)) {
+      markRange(mask, offset, offset + line.length);
     }
-    offset = lineEnd + 1;
+    offset += line.length + 1;
   }
-
   return mask;
 }
 
