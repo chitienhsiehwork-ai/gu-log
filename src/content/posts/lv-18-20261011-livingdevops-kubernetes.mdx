@@ -25,16 +25,16 @@ scores:
   tribunalVersion: 9
   factCheck:
     accuracy: 9
-    fidelity: 8
+    fidelity: 9
     consistency: 9
     sourceBoundary: 9
     commentarySeparation: 9
-    score: 8
+    score: 9
     date: "2026-10-12"
     model: "claude-opus-5-5"
   librarian:
     glossary: 8
-    crossRef: 9
+    crossRef: 8
     sourceAlign: 9
     attribution: 9
     score: 8
@@ -248,7 +248,11 @@ hunter2
 
 能存取 API 或 `etcd` 的人，都讀得到箱子裡的東西。還有一條更隱蔽的路：在某個命名空間裡有權限建立 Pod 的人，就能讀到那個命名空間裡所有的 `Secret`，連「能建立 `Deployment`」這種間接權限都算。能叫廚師來上班的人，就能叫廚師去開保險箱。
 
-補法就照著這兩條路來。直接翻白板（`etcd`）那條，靠靜態加密（`encryption at rest`）堵：API 伺服器把 `Secret` 寫進 `etcd` 之前先加密，等於把白板上那幾行真的鎖起來；鑰匙最好交給叢集外的 KMS（金鑰管理服務）保管，不跟保險箱放在同一間辦公室（設定方式見[官方教學](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)）。但加密只擋得住拿到 `etcd` 或它備份的人，擋不住有權限從 API 讀的人。從 API 讀、或叫廚師去開保險箱那條，要靠 RBAC（依角色決定誰能做什麼的權限設定）堵：誰能讀 `Secret`、誰能建立 Pod 跟 `Deployment` 這類工作負載，都照最小權限給。
+補法就照著這兩條路來。
+
+直接翻白板（`etcd`）那條，靠[靜態加密](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)（`encryption at rest`）堵。API 伺服器把 `Secret` 寫進 `etcd` 之前，先加密一次，等於把白板上那幾行真的鎖起來。鑰匙最好交給叢集外的 KMS（金鑰管理服務）保管，不跟保險箱放在同一間辦公室。不過加密只擋得住拿到 `etcd` 或它備份的人，擋不住有權限從 API 讀的人。
+
+從 API 讀、或叫廚師去開保險箱那條，要靠 RBAC（依角色決定誰能做什麼的權限設定）堵。誰能讀 `Secret`、誰能建立 Pod 跟 `Deployment` 這類工作負載，都照最小權限給。
 
 公平地說，`Secret` 分開管、能單獨收權限、只送到需要它的節點，這些 `ConfigMap` 都給不了。它缺的，只是出廠那把**鎖**。
 
@@ -421,7 +425,7 @@ spec:
               memory: 512Mi          # 檯面最多到這裡
 ```
 
-這塊白板還可以再加新的欄位。Kubernetes 允許使用者自己定義新的資源種類，叫 CRD（`CustomResourceDefinition`）：在白板上加一種新欄位，再請一位新經理來盯它，又是一對。Gateway API、Karpenter 用來描述廚房規格的 `NodePool`，都是這樣加進這家店的。名詞會一直換，連 `ingress-nginx` 都退休了；這一招不會換。
+這塊白板還可以再加新的欄位。Kubernetes 允許使用者自己定義新的資源種類，叫 CRD（`CustomResourceDefinition`）：在白板上加一種新欄位，再請一位新經理來盯它，又是一對。Gateway API、Karpenter 用來描述廚房規格的 `NodePool`，都是這樣加進這家店的。白板能一直加欄位，店裡的新名詞只會越來越多；下次在廚房撞見一個沒看過的名字，先別急著背它的定義，先問它是被哪一場麻煩逼出來的。
 
 ---
 
