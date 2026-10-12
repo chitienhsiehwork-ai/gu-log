@@ -181,19 +181,22 @@ test.describe('compact entries expand in place', () => {
     await expect(page.locator('#andrej-karpathy .mogu-note')).toBeVisible();
   });
 
-  test('a malformed URL anchor does not stop the page script', async ({ page }) => {
-    const errors: string[] = [];
-    page.on('pageerror', (error) => errors.push(error.message));
-
+  test('a malformed URL anchor does not stop the page script', async ({ context }) => {
+    // 每個網址各開一頁：同一頁再 goto 只換錨點，只會觸發 hashchange，不會從頭初始化。
     for (const url of ['/glossary#100%', '/glossary#%E5']) {
+      const page = await context.newPage();
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+
       await page.goto(url);
       await expect(page.locator('#agent button.entry-toggle')).toHaveAttribute(
         'aria-expanded',
         'false'
       );
       await expect(page.getByRole('button', { name: '複製「Agent」的連結' })).toBeVisible();
+      expect(errors, url).toEqual([]);
+      await page.close();
     }
-    expect(errors).toEqual([]);
   });
 });
 
