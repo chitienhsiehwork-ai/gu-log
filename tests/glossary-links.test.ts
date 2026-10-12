@@ -5,11 +5,14 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as checkerModule from '../scripts/check-glossary-links.mjs';
 import * as fixerModule from '../scripts/apply-glossary-links.mjs';
+import * as anchorModule from '../src/lib/glossary-anchor.mjs';
+import realGlossary from '../src/data/glossary.json';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const checker = checkerModule as any;
 const fixer = fixerModule as any;
+const anchors = anchorModule as any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -51,6 +54,85 @@ const glossary = [
     },
   },
 ];
+
+describe('glossary anchor rule', () => {
+  const zhPage = fs.readFileSync(new URL('../src/pages/glossary.astro', import.meta.url), 'utf8');
+  const enPage = fs.readFileSync(
+    new URL('../src/pages/en/glossary.astro', import.meta.url),
+    'utf8'
+  );
+
+  it('gives a punctuated term the same anchor on the page, in the checker and in the fixer', () => {
+    const entry = realGlossary.find((item) => item.term === 'Software 3.0');
+    const pageId = anchors.glossaryAnchor(entry);
+    const checkerAnchor = checker
+      .normalizeGlossary(realGlossary)
+      .find((term: { term: string }) => term.term === 'Software 3.0').anchor;
+    const post = '---\nlang: zh-tw\n---\nSoftware 3.0 改變了寫程式的方式。\n';
+    const expected = checker.checkContent(post, {
+      glossary: realGlossary,
+      terms: ['Software 3.0'],
+    }).violations[0].expectedHref;
+    const fixed = fixer.applyLinksToContent(post, {
+      glossary: realGlossary,
+      terms: ['Software 3.0'],
+      filePath: 'post.mdx',
+    });
+
+    expect(pageId).toBe('software-30');
+    expect(checkerAnchor).toBe(pageId);
+    expect(expected).toBe(`/glossary#${pageId}`);
+    expect(fixed.content).toContain(`[Software 3.0](/glossary#${pageId})`);
+  });
+
+  it('prefers linking.anchor over the derived slug', () => {
+    expect(anchors.glossaryAnchor({ term: 'GPT-5.6 系列', linking: { anchor: 'gpt-5-6' } })).toBe(
+      'gpt-5-6'
+    );
+    expect(
+      anchors.relatedGlossaryAnchor(
+        [{ term: 'GPT-5.6 系列', linking: { anchor: 'gpt-5-6' } }],
+        'GPT-5.6 系列'
+      )
+    ).toBe('gpt-5-6');
+  });
+
+  it.each([
+    ['zh-tw', zhPage],
+    ['en', enPage],
+  ])('%s page derives entry ids and related links from the shared rule', (_lang, page) => {
+    expect(page).toContain('id={glossaryAnchor(item)}');
+    expect(page).toContain('relatedGlossaryAnchor(glossaryData, rel)');
+    expect(page).not.toContain(".toLowerCase().replace(/\\s+/g, '-')");
+  });
+
+  it('names a pure-Chinese term that has no linking.anchor', () => {
+    const problems = anchors.findGlossaryAnchorProblems([
+      { term: 'Kubernetes' },
+      { term: '容器編排' },
+    ]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/^容器編排: /);
+    expect(problems[0]).toContain('linking.anchor');
+  });
+
+  it('names the entry whose anchor collides with an earlier one', () => {
+    const problems = anchors.findGlossaryAnchorProblems([
+      { term: 'Software 3.0' },
+      { term: 'Software 30' },
+    ]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatch(/^Software 30: /);
+    expect(problems[0]).toContain('#software-30');
+    expect(problems[0]).toContain('Software 3.0');
+  });
+
+  it('keeps every current glossary anchor non-empty and unique', () => {
+    expect(anchors.findGlossaryAnchorProblems(realGlossary)).toEqual([]);
+  });
+});
 
 describe('glossary link checker', () => {
   it('accepts a valid changed-posts Git base', () => {

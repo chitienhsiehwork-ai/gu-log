@@ -3,21 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { isScalar, isSeq, parseDocument } from 'yaml';
+import { glossaryAnchor } from '../src/lib/glossary-anchor.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
-
-function slugify(value) {
-  return String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 function parseArgs(argv) {
   const args = {
@@ -116,7 +106,7 @@ export function normalizeGlossary(glossary) {
         Array.isArray(linking.match) && linking.match.length ? linking.match : [entry.term];
       return {
         term: entry.term,
-        anchor: linking.anchor || slugify(entry.term),
+        anchor: glossaryAnchor(entry),
         matches: matches.filter(Boolean),
         caseSensitive: linking.caseSensitive !== false,
         forbiddenZhTw: Array.isArray(entry.forbiddenZhTw)

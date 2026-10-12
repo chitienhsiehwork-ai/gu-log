@@ -4,7 +4,7 @@
 
 ## 1. 錨點只剩一套規則
 
-- [ ] 1.1 新增共用的錨點模組（有 `linking.anchor` 就用它，否則照 checker 現行的 `slugify`），讓詞彙表頁面的 id、頁內 `related` 連結、`check-glossary-links.mjs` 與 `apply-glossary-links.mjs` 都改用它。`tribunal-librarian-packet.py` 不再自己推錨點，改呼叫 `check-glossary-links.mjs --format json`，用回報的結果列出可能漏連的詞條。單元測試涵蓋：
+- [x] 1.1 新增共用的錨點模組（有 `linking.anchor` 就用它，否則照 checker 現行的 `slugify`），讓詞彙表頁面的 id、頁內 `related` 連結、`check-glossary-links.mjs` 與 `apply-glossary-links.mjs` 都改用它。`tribunal-librarian-packet.py` 不再自己推錨點，改呼叫 `check-glossary-links.mjs --format json`，用回報的結果列出可能漏連的詞條。單元測試涵蓋：
   - `Software 3.0` 的頁面 id、checker 預期錨點、fixer 錨點三者相同（對應「名稱含標點的詞條」）；
   - 合成資料裡有純中文、沒設 `linking.anchor` 的詞條，或兩個詞條推出相同錨點時，測試失敗並指出詞條（對應「推不出錨點的詞條」）；
   - 現有 `glossary.json` 沒有空錨點或重複錨點。

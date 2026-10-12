@@ -6,6 +6,7 @@ import glossaryData from '../data/glossary.json';
 import { getCollection } from 'astro:content';
 import { parseGlossaryUrl, type ParsedGlossaryUrl } from '../config/glossary';
 import { isPostTakenDown } from '../utils/post-status';
+import { glossaryAnchor, relatedGlossaryAnchor } from '../lib/glossary-anchor.mjs';
 
 // 詞條的「文章」連結不列已下架的文章（openspec: post-takedown）。
 const allPosts = await getCollection('posts');
@@ -56,10 +57,6 @@ function urlLabel(url: ParsedGlossaryUrl) {
   const skip = /^(en|zh|ja|ko|de|fr|es|pt|ru)$/i;
   const first = parts.find((p) => !skip.test(p));
   return first ? `${host}/${first}` : host;
-}
-
-function termAnchor(item: (typeof glossary)[number]) {
-  return item.linking?.anchor ?? item.term.toLowerCase().replace(/\s+/g, '-');
 }
 
 // Group by first letter
@@ -131,7 +128,7 @@ const allLetters = grouped.map((g) => g.letter);
               {group.items.map((item) => (
                 <div
                   class="glossary-entry"
-                  id={termAnchor(item)}
+                  id={glossaryAnchor(item)}
                   data-term={item.term.toLowerCase()}
                   data-en={item.en.toLowerCase()}
                   data-definition={item.definition.toLowerCase()}
@@ -139,7 +136,7 @@ const allLetters = grouped.map((g) => g.letter);
                   data-category={item.category}
                 >
                   <dt>
-                    <a href={`#${termAnchor(item)}`} class="term-link">
+                    <a href={`#${glossaryAnchor(item)}`} class="term-link">
                       {item.term}
                     </a>
                     {item.en !== item.term && <span class="term-en">{item.en}</span>}
@@ -177,7 +174,7 @@ const allLetters = grouped.map((g) => g.letter);
                             →{' '}
                             {item.related.map((rel, i) => (
                               <span>
-                                <a href={`#${rel.toLowerCase().replace(/\s+/g, '-')}`}>{rel}</a>
+                                <a href={`#${relatedGlossaryAnchor(glossaryData, rel)}`}>{rel}</a>
                                 {i < item.related.length - 1 && '、'}
                               </span>
                             ))}
