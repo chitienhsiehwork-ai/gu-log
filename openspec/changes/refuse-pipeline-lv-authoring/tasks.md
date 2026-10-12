@@ -83,6 +83,13 @@
   - MP、工作目錄有舊的 Lv `final.mdx`、寫手只回 stdout：Refine 之後 `final.mdx` 不是 Lv；
   - 既有的 source-distance、content-lint 改寫測試照樣綠。
 
+## 6. 階段 6 第三輪審查修正
+
+- [ ] 6.1 `authoring.go` 新增 `RefuseLvFiles(command string, paths ...string) error`：逐一跑 `IsLvFile`，讀檔錯誤包成 `command: …`，是 Lv 就回 `LvAuthoringError(command)`。`run`、`credits`、`review`／`refine` 的草稿檢查、`ralph` 改用它；`IsLvFile` 沒有外部呼叫者之後改成不 export
+- [ ] 6.2 `run` 的工作目錄檢查，範圍改成跟系列檢查相同：沒帶 `--file` 時，`translate`、`deploy` 起點也檢查。Go 測試補 `--prefix MP --from-step deploy --dry-run`、沒帶 `--file`、工作目錄的 `final.mdx` 是 Lv：exit 1、工作目錄不變（對應「從放著 Lv 草稿的工作目錄恢復」）
+- [ ] 6.3 `review` 呼叫寫手前也移開舊的 `review.md`，做法跟 `write`、`refine` 相同。Go 測試補 `review` 的「只回 stdout」與「寫手失敗」（對應「write、review 與 refine SHALL NOT 把工作目錄裡的舊產物當成這次的輸出」）
+- [ ] 6.4 測試去重：`TestRefineDoesNotKeepAnEarlierLvFinal` 併進 `TestWriteAndRefineSetAsideAnEarlierOutput` 的「只回 stdout」（舊檔改成 `ticketId: Lv-PENDING`）
+
 ## Workflow follow-up
 
 - 依 `.agents/openspec-sdlc.md` 走階段 6 雙審（正確性錨 spec scenario、簡潔度錨 over-engineering）。

@@ -98,9 +98,9 @@ Lv 的 Tribunal 改走 `scripts/tribunal.sh`：四位評審相同，背景 daemo
 
 ### 7. 工作目錄裡的舊檔：要沿用的在入口擋，要重新產生的先移開
 
-- 帶 `--work-dir` 時，工作目錄可能是上一次留下的。續跑（從 `write` 之後開始）本來就要沿用裡面的 `draft-v1.mdx`、`final.mdx`，所以 `run` 在入口檢查這兩個檔，是 Lv 就拒絕，不管 `--prefix` 或 `--file` 是哪個系列。
-- `write`、`refine` 原本只在檔案不存在或是空檔時才改用寫手的 stdout。寫手只回 stdout 時，上一次留下的檔就被當成這次的輸出：如果那是 Lv，就會被蓋署名、送進 posts；換成其他系列，也是把舊文章冒充成新產出。
-- 修法沿用 `refineFrom` 原本的做法：呼叫寫手前先移開舊檔，寫手失敗而沒有寫出檔案時再放回去，之後照樣能從這裡續跑。`refineFrom` 的兩個呼叫者最後都走到 `runRefine`，所以這段搬進 `runRefine` 之後，`refineFrom` 自己那份就拿掉了。
+- 帶 `--work-dir` 時，工作目錄可能是上一次留下的。續跑（從 `write` 之後開始）本來就要沿用裡面的 `draft-v1.mdx`、`final.mdx`，所以 `run` 在入口檢查這兩個檔，是 Lv 就拒絕，不管 `--prefix` 或 `--file` 是哪個系列。沒帶 `--file` 時，從 `deploy` 開始也一樣會沿用工作目錄的 `final.mdx`、替它蓋署名，所以範圍跟系列檢查相同：帶 `--file` 時只檢查 `translate` 之前的起點。
+- `write`、`review`、`refine` 原本只在檔案不存在或是空檔時才改用寫手的 stdout。寫手只回 stdout 時，上一次留下的檔就被當成這次的輸出：如果那是 Lv，就會被蓋署名、送進 posts；換成其他系列，也是把舊文章冒充成新產出；舊的 `review.md` 則會讓 refine 照著上一次的意見改。
+- 修法沿用 `refineFrom` 原本的做法：呼叫寫手前先移開舊檔，寫手失敗而沒有寫出檔案時再放回去，之後照樣能從這裡續跑。`refineFrom` 的兩個呼叫者最後都走到 `runRefine`，所以這段搬進 `runRefine` 之後，`refineFrom` 自己那份就拿掉了。`review` 用同一個做法。
 
 替代方案：從頭跑也在入口檢查 Lv。這樣只擋得住 Lv，其他系列的舊檔還是會冒充新產出；而且重用工作目錄寫別的文章時，錯誤訊息會說「不寫 Lv」，讓人看不懂。
 

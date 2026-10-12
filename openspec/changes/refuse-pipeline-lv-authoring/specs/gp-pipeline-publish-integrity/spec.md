@@ -18,7 +18,7 @@
 
 #### Scenario: 從放著 Lv 草稿的工作目錄恢復
 
-- **WHEN** 操作者以 `run --work-dir <目錄>` 從 `write` 之後、`translate` 之前的步驟恢復，而目錄裡的 `draft-v1.mdx` 或 `final.mdx` 是 Lv，不論 `--prefix` 或 `--file` 是哪個系列
+- **WHEN** 操作者以 `run --work-dir <目錄>` 從 `write` 之後的步驟恢復（帶 `--file` 時只算 `translate` 之前的步驟），而目錄裡的 `draft-v1.mdx` 或 `final.mdx` 是 Lv，不論 `--prefix` 或 `--file` 是哪個系列
 - **THEN** 指令 SHALL 以 exit code 1 結束
 - **AND** SHALL NOT 呼叫任何模型，工作目錄裡的檔案 SHALL 維持不變，也 SHALL NOT 產生新的文章檔
 
@@ -95,16 +95,16 @@ Lv 的 `counter`、`fetch`、`eval`、`dedup`、`translate`、standalone `deploy
 - **WHEN** 操作者執行 `gp-pipeline counter bump --help`
 - **THEN** `--prefix` 的說明 SHALL 繼續列出 Lv
 
-### Requirement: write 與 refine SHALL NOT 把工作目錄裡的舊產物當成這次的輸出
+### Requirement: write、review 與 refine SHALL NOT 把工作目錄裡的舊產物當成這次的輸出
 
-`write` 與 `refine` 寫出的 `draft-v1.mdx` 或 `final.mdx` SHALL 是這次寫手的輸出：寫手沒有寫檔時，輸出 SHALL 只取這次回傳的 stdout，沒有 stdout 就 SHALL 失敗，SHALL NOT 沿用工作目錄裡上一次留下的檔。寫手失敗而沒有寫出檔案時，工作目錄裡原本的檔案 SHALL 維持原樣。
+`write`、`review` 與 `refine` 寫出的 `draft-v1.mdx`、`review.md` 或 `final.mdx` SHALL 是這次寫手的輸出：寫手沒有寫檔時，輸出 SHALL 只取這次回傳的 stdout，沒有 stdout 就 SHALL 失敗，SHALL NOT 沿用工作目錄裡上一次留下的檔。寫手失敗而沒有寫出檔案時，工作目錄裡原本的檔案 SHALL 維持原樣。
 
 #### Scenario: 寫手只用 stdout 回覆
 
-- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx` 或 `final.mdx`，這次 `write` 或 `refine` 的寫手沒有寫檔、只回傳 stdout
+- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx`、`review.md` 或 `final.mdx`，這次 `write`、`review` 或 `refine` 的寫手沒有寫檔、只回傳 stdout
 - **THEN** 該檔 SHALL 是這次的 stdout，SHALL NOT 是上一次留下的內容
 
 #### Scenario: 寫手失敗
 
-- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx` 或 `final.mdx`，這次 `write` 或 `refine` 的寫手失敗、沒有寫出檔案
+- **WHEN** 工作目錄裡有上一次留下的 `draft-v1.mdx`、`review.md` 或 `final.mdx`，這次 `write`、`review` 或 `refine` 的寫手失敗、沒有寫出檔案
 - **THEN** 指令 SHALL 失敗，該檔 SHALL 維持原本的內容
