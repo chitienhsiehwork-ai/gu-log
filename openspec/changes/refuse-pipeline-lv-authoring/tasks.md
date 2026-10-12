@@ -29,7 +29,7 @@
   - `run`、`write` 缺 `--prefix` 時列出的可用系列。
 
   `run --help` 加一句：Lv 檔只能從 `translate` 或 `deploy` 恢復。`counter`、`dedup`、`deploy` 繼續列 Lv。Go 測試：`write` 的 `--prefix` 說明列出 GP、MP、SD 且不含 Lv；`write` 沒帶 `--prefix` 的錯誤訊息不含 Lv；`counter bump` 的 `--prefix` 說明仍含 Lv（對應「寫作指令的說明與錯誤訊息 SHALL NOT 邀請撰寫 Lv」的三個情境）
-- [ ] 1.4 grep 整個 repo（scripts、`.github/workflows`、`tools/`、`playbooks/`、`docs/`、skills），找出用 Lv 呼叫 `run`、`write`、`review`、`refine`、`credits`、`ralph` 的程式：有就改掉，文件交給第 2 組；在 PR 說明記下 grep 結果
+- [x] 1.4 grep 整個 repo（scripts、`.github/workflows`、`tools/`、`playbooks/`、`docs/`、skills），找出用 Lv 呼叫 `run`、`write`、`review`、`refine`、`credits`、`ralph` 的程式：有就改掉，文件交給第 2 組；在 PR 說明記下 grep 結果
 
 ## 2. 文件指向同一條 Lv 流程
 
