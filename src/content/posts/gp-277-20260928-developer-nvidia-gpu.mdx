@@ -1,0 +1,158 @@
+---
+ticketId: "GP-277"
+title: '模型的形狀也是效能問題：NVIDIA 寫給模型設計者的 GPU 友善清單'
+originalDate: '2026-07-10'
+translatedDate: '2026-09-28'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: 'NVIDIA Technical Blog'
+sourceUrl: 'https://developer.nvidia.com/blog/ai-model-co-design-hardware-friendly-llm-design/'
+lang: 'zh-tw'
+summary: 'NVIDIA 推論與架構團隊的七位作者列出七條設計守則，像是矩陣別太扁、維度至少用 128 的倍數、寬優於深、為低精度設計。Mogu 拿 DeepSeek-R1 的實際維度對照，發現守則會被取捨打破，缺掉的效率得靠部署端的平行策略補。'
+tags: ['llm', 'inference', 'gpu', 'nvidia', 'moe', 'hardware']
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: 'dea6c87d7976b4aa0032f7bad57a22875daed522fd90ae2160dcaf0f5b4ae1e7'
+  sourceSha256: 'd46624cb8a3d11981d9e96ca4cb2cfdd861f1f9e266b00a27178c225ef831111'
+  sourceUnits: 3082
+  metrics:
+    maxRun: 2
+    sourceRatio: 0.2836
+    alignedSentences: 45
+  aligner: 'claude-sonnet-5'
+  rewrites: 2
+  alignerCalls: 5
+  checkedAt: '2026-09-28'
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 8
+    commentarySeparation: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 7
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 7
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-09-28"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+模型跑得慢，第一個被找來的通常是部署團隊：批次開大一點、多加幾張卡。NVIDIA 這篇談「模型與硬體共同設計」的技術文，想把一部分帳往前算：有些速度差距，在訓練前畫架構圖、挑維度的時候就埋下了。對 Mogu 來說，這篇最有用的地方是打破「效能是上線後才輪到別人處理」的分工想像。
+
+這篇值得讀，主要是因為作者群。七位作者裡，有人是 NVIDIA GPU 加速推論的技術負責人，有人參與打造 NVIDIA 的推論引擎、矩陣運算函式庫與張量核心，也有人在微軟時共同創立 OCP MX 聯盟，推動 4 位元與 6 位元資料格式標準化。這群平常在 GPU 那一側接模型的人，把「什麼形狀的模型最好跑」整理成七條守則，還附上 GB300 的實測曲線。這是系列文的第一篇，後面幾章會再談其他面向。
+
+整篇讀下來，有三件事特別值得帶走：一個要先問清楚的前提、兩條形狀規則，還有一個原文分成兩段講、拿真實模型一對照才串得起來的取捨。
+
+## 先知道時間花在哪
+
+作者把部署情境畫成四格：上下文長或短、服務目標重吞吐量或重延遲。格子不同，時間花的地方就不同。再套上安達爾定律，原文舉的例子是：注意力若吃掉 77% 的執行時間，去調前饋層（FFN）只有邊際效果。
+
+後面的守則各有最吃重的象限，也有像維度對齊這種不分象限都適用的。先搞清楚自家服務落在哪一格，才不會對錯的地方用力。
+
+---
+
+## 瘦長矩陣讓 GPU 閒著等資料
+
+第一個形狀規則跟「算術強度」有關，也就是每從記憶體搬一個位元組，能做多少次運算。強度低，GPU 大部分時間在等資料送到；強度高，才吃得滿算力。
+
+用廚房來想比較直覺：GPU 的算力是一排超大火力的炒鍋，記憶體頻寬是送食材的推車。一道菜用的料少、動作又簡單，炒鍋火再大也只能乾等推車。
+
+調效能的第一反應常是把批次開大，這篇最該記住的反駁是：批次只補得到 [Token](/glossary#token) 那一個維度。原文拿一層故意壓窄的 FFN 在 GB300 上算給讀者看，Token 數再多，這層還是卡在搬資料；實測曲線也顯示，縮減維度（K，也就是每個輸出要做多長的內積）和輸出維度兩邊都得夠大，才吃得到八成算力。[Mogu](/about) 的讀法是：另外兩個維度太窄的時候，Token 再多也救不回來。確切的計算表和曲線，值得回原文對著看。
+
+守則一因此是：參數量固定時，權重矩陣盡量接近正方形，任何一邊都別太小。作者說得很直接：「model dimensions matter just as much as batch size for saturating compute」。[Mogu](/glossary#mogu) 覺得這句的重量在於兩者的時間點不同：批次大小是部署時還能調的旋鈕，維度卻在訓練前就寫死了。
+
+<MoguNote>
+原文通篇在講的 GEMM，全名是「General Matrix Multiply」，一般矩陣乘法。這名字來自 BLAS 線性代數函式庫：GEMM 屬於 1980 年代末提出、1990 年正式發表的 [Level 3 BLAS](https://www.netlib.org/blas/)，前面再掛一個字母標精度（SGEMM、DGEMM），GE 是一般矩陣、MM 是矩陣乘矩陣，讀起來像火星文。三十多年後，全世界最貴的晶片還在拚命跑這個老函式名，某種程度上 AI 軍備競賽就是一場大型矩陣乘法比賽 (⌐■_■)
+</MoguNote>
+
+---
+
+## 257 塊餅乾要開兩盤烤
+
+第二條形狀規則便宜得多，通常只是把維度挑成整齊一點的數字。
+
+道理用烤箱講最快：烤盤一盤放 256 塊餅乾，訂單如果是 257 塊，第二盤只放一塊，烤箱還是得完整烤一輪。GPU 把矩陣乘法的輸出切成固定大小的分塊來算，維度沒對齊，邊角那塊一樣要跑滿一整輪；較新的 GPU 讓幾個串流多處理器（SM）合力算更大的分塊，對齊的單位也跟著變大。作者因此給出守則二：維度至少用 128 的倍數，能用 256 或 512 更好。Mogu 覺得這是七條裡最划算的一條，多數時候只是挑數字時多看一眼。
+
+這裡 Mogu 想補一個邊界：128 是作者說的「安全、可攜」的底線，256 與 512 則明確對應 SM 合力算大分塊時的尺寸。別家硬體或下一代 GPU 的最佳倍數不一定一樣，文中的鋸齒圖也只量了 GB300 上一種強制的分塊設定。
+
+---
+
+## 拿 DeepSeek-R1 對答案
+
+讀到這裡很容易想把守則當成法律。Mogu 拿原文自己一再舉例的 DeepSeek-R1 去對它公開的[設定檔](https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/main/config.json)，結果有點意思。
+
+隱藏維度 7168，剛好是 512 的 14 倍，守則二滿分。可是每個路由專家的中間維度只有 2048。對照前面的實測門檻，上投影的輸出維度（2048，門檻 2560）和下投影的縮減維度（2048，門檻 3072）都落在門檻下面；另一邊的 7168 則沒問題。
+
+這只是粗略對照：那組曲線是在 Token 維度 8192、另一邊維度八九千的條件下量的，真實的專家矩陣乘法條件不同。不過方向很清楚：細顆粒的混合專家模型把每個專家切小，單顆矩陣乘法的效率本來就吃虧。
+
+所以 Mogu 的結論是：前三條形狀守則是「能選的時候怎麼選」的預設值，不是鐵律；選不了，帳就轉到部署端去付。這也是讀這篇最容易錯過的連結。原文把形狀守則放前半、平行策略放後半，沒說兩段在處理同一件事，但拿 DeepSeek-R1 一對照就接起來了：細顆粒設計欠兩筆帳，一是專家的中間維度窄，二是 256 選 8 的路由讓每個專家分到的 Token 少，後半剛好各有一招在還。前者對應原文在低延遲情境的建議，細顆粒模型改用專家平行，別用張量平行把專家切得更碎；後者對應重吞吐量時把專家平行拉寬。帶著這個對照讀後半，先分清楚模型虧在哪個維度再挑招，七條守則就不會散成一張清單。
+
+寬度與深度也是同一種取捨。作者建議同樣參數量時寬優於深，但自己也留了但書：深度對模型的表達能力有貢獻，存在一個好用的寬深比區間，要在準確度撐得住的範圍內才偏向寬，不要為了變寬硬砍層數。
+
+部署端的寬專家平行、把處理輸入的預填階段和逐字生成的解碼階段拆到不同 GPU 跑這些招式怎麼在實際跑分裡疊起來，[MP-296](/posts/mp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd) 寫過一家半導體研究機構做的完整橫評，這裡不重講。
+
+---
+
+## 讀的時候記得這是廠商文
+
+這篇技術含量很紮實，但它終究是 NVIDIA 的部落格，讀的時候最好心裡有數。
+
+最該打折扣的是量化那段。作者主張 NVFP4 靠兩層縮放因子，能在 4 位元的速度下逼近高精度的準確度，撐腰的是 DeepSeek-R1 的七項評估基準，多數項目離 FP8 基準線大約一分以內。Mogu 會把這句讀成「在這個模型上很接近」：證據只涵蓋一個模型，作者的用詞也是「closely match」，沒有說毫無損失。要搬到自己的模型上，還是得自己量過。
+
+Mogu 的做法是把建議分成帶得走和帶不走兩堆。矩陣別太扁、維度對齊、寬優於深，是矩陣乘法硬體普遍的直覺，換平台大概也用得上；NVFP4、256 與 512 的倍數、靠 NVL72 吸收大部分通訊成本，則明確綁在 NVIDIA 這一代硬體上，要不要照做，得先看自己跑在什麼硬體上。原文的落地建議也幾乎都指回 NVIDIA 自家工具，這不代表建議有問題，只是分堆時多一個理由。
+
+還有一個讀者定位問題。這份清單的主要對象是從零設計模型架構、或在大規模服務模型的團隊；只拿現成開放權重模型來用的開發者，很難直接照著做。對後者來說，最實用的收穫是理解：為什麼推論服務商的速度差那麼多，為什麼開放模型的維度常常是 128、256 這種整齊的倍數。
+
+---
+
+## 回原文看什麼
+
+這篇導讀刻意跳過不少東西，其中幾塊值得自己去讀。
+
+表一把 Q/K/V、注意力輸出、FFN 上投影與下投影四種線性層，逐一對應到矩陣乘法的三個維度。想自己算一個模型哪層會被記憶體卡住的人，那張表是最好的起點。
+
+專家平行那段有一條短公式，說明每個專家實際收到的 Token 數怎麼隨同時服務的請求量與稀疏度變化，把「為什麼混合專家模型要拉寬專家平行」講得很清楚。
+
+最後兩章 Mogu 最推薦注意力那段，因為前面的模式在這裡又出現一次：架構上的選擇，替部署端劃下能切多細的邊界。這次的邊界是 KV 頭（存鍵／值快取的注意力頭）的數量，原文指出注意力的張量平行最多只能切到這裡，而現代架構的 KV 頭偏少。NVIDIA 怎麼繞過這道牆、長輸入的分塊管線平行怎麼做，以及兩段各自連到的 NVIDIA Research 論文，都留給有興趣的讀者回原文挖。

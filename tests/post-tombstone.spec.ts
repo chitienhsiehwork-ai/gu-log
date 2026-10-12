@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { getGpEmptyNotice } from '../src/lib/gp-listing.mjs';
+import { expectGpSeriesListing } from './helpers/gp-listing';
 import {
   getSourceByline,
   getTombstoneCopy,
@@ -244,20 +244,13 @@ test.describe('Tombstone resilience', () => {
 });
 
 test.describe('Gu-log Picks listing', () => {
-  test('GIVEN only tombstones and the GP-1 demo WHEN the listing opens THEN it shows the neutral empty state and no post', async ({
+  test('GIVEN tombstones, the GP-1 demo and any reading guides WHEN the listing opens THEN it lists exactly the public guides, or the neutral empty state when there are none', async ({
     page,
     request,
   }) => {
-    // openspec editorial-charter〈讀者開啟 GP 系列頁〉: no tombstone and no GP-1.
-    const response = await page.goto('/gu-log-picks');
-    expect(response?.status()).toBe(200);
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('zh-tw'));
-    await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
-    await expect(page.locator('nav.pagination')).toHaveCount(0);
-    expect((await request.get('/gu-log-picks/2')).status()).toBe(404);
-
-    await page.goto('/en/gu-log-picks');
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('en'));
-    await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
+    // openspec editorial-charter〈讀者開啟 GP 系列頁〉：不列墓碑與 GP-1。該列哪幾篇照內容算
+    // （tests/helpers/gp-listing.ts），發布新的導讀不用回來改這裡。
+    await expectGpSeriesListing(page, request, 'zh-tw');
+    await expectGpSeriesListing(page, request, 'en');
   });
 });
