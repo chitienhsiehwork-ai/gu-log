@@ -66,13 +66,7 @@ ShroomDog 在 2026-10-12 的 chat 說詞彙表太長、要一直滑，提議把�
 ## Impact
 
 - 頁面與樣式：`src/pages/glossary.astro`、`src/pages/en/glossary.astro`，抽出共用元件；`src/styles/glossary.css`。
-- 資料與設定：`src/data/glossary.json`（Kubernetes 條目、修正 `related`）、`src/config/glossary.ts`（分類 label、錨點規則、過期的 `glossaryInclude` 註解）。
-- 工具與 gate：
-  - `scripts/check-glossary-links.mjs`、`scripts/apply-glossary-links.mjs`
-  - `scripts/tribunal-librarian-packet.py`
-  - `scripts/check-staged-internal-post-links.mjs`
-  - `scripts/list-content-gate-posts.mjs`
-  - `.githooks/pre-commit`
-  - 對應的單元測試與 Playwright spec
+- 資料與設定：`src/data/glossary.json`（Kubernetes 條目、修正 `related`）、`src/config/glossary.ts`（分類 label；刪掉沒有引用的清單）、共用的錨點模組。
+- 工具與 gate：glossary 的檢查器與修正器、Librarian packet、pre-commit 的「只改連結」豁免與 PR content gate，加上對應的單元測試與 Playwright spec。
 - 內容：31 篇補 Kubernetes 連結；mp-212 中英文版修死錨點；英文文章裡連錯語言的連結改連英文詞彙表。都是只改連結的修改，不重跑 Tribunal。
 - 不受影響：網址、`glossary-identity-ssot` 的 Mogu 與人物錨點、文章正文其他內容、搜尋索引。

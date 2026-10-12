@@ -14,7 +14,7 @@
 - [x] 2.1 抽出共用的「先驗證、再剝掉」正規化函式（規則見 design §8）：glossary 連結要指向該文章語言、啟用中詞條的正確錨點，位在 `buildUnsafeMask` 的安全區，新包起來的文字要能被 checker 的比對規則認成該詞條，只改錨點的既有連結保留原文字；驗證過的才剝掉；剝完整份檔案逐字比對，不 trim、不排序。站內文章連結沿用既有驗證。接到三個地方：
   - `scripts/check-staged-internal-post-links.mjs`（pre-commit 的豁免），拿掉「至少一條文章連結」的條件；
   - `scripts/list-content-gate-posts.mjs`，刪掉 `isLinkOnlyDiff`，taxonomy 證明的連結正規化也換成它；
-  - `check-glossary-links.mjs --check-canonical-staged-file` 保留方向性規則，錨點與文字驗證改呼叫同一份。
+  - `check-glossary-links.mjs --check-canonical-staged-file` 保留自己的方向性規則與逐字 `[term](/glossary#錨點)` 的文字規則，只有錨點從共用模組取得。
 
   glossary 資料讀跟文章同一個版本（pre-commit 讀 staged，CI 讀 head）。單元測試涵蓋：
   - 沒有 scores 的舊文只加 Kubernetes 連結，兩邊都放行；
@@ -25,7 +25,7 @@
   - `[這裡](/glossary#kubernetes)` 不放行；
   - 只調換行序不放行。
 
-  hook 的整合測試要實際 commit 一次（對應「只改 glossary 連結的修改」的六個情境）
+  證明本身的情境由單元測試涵蓋；hook 與 CI 的整合測試只驗接線：pre-commit 讀 staged 的 glossary、CI 讀 head 的 glossary，各加一個被擋下的情況（對應「新詞條替舊文補連結」要求兩個 gate 都放行）
 
 - [x] 2.2 `.githooks/pre-commit` 的錯誤訊息不再建議 `--no-verify`，改指向修法。驗證：`rg -n 'no-verify' .githooks/` 只剩禁止用法的說明，hook 測試綠
 
@@ -61,6 +61,20 @@
 - [x] 6.1 收斂 `src/config/glossary.ts` 裡 `glossaryInclude` 的過期說明：註解寫「跟 /glossary 同步」，實際只列 27 條。依實際用途決定刪除或改正註解，並同步引用它的文件
 - [ ] 6.2 跑 `pnpm run build`、`pnpm exec vitest run`、`pnpm run glossary:check`、`node scripts/validate-posts.mjs` 與受影響的 Playwright spec，全部通過；把頁面高度量測與截圖路徑記進 PR 說明
 - [x] 6.3 `glossaryExclude` 一樣沒有任何引用，清單裡還有 Benchmark、Token、Prompt 這些現有詞條：刪掉，並把 `GU-LOG_WRITER_PROMPT.md` 叫人放進 `glossaryExclude` 的那句改成指向晶晶體 lint 的 allowlist
+
+## 7. 階段 6 第一輪審查修正
+
+- [ ] 7.1 連結位置規則與證明（規則見 design §8）。改 `scripts/check-glossary-links.mjs`、`scripts/lib/link-only-proof.mjs`、`scripts/apply-glossary-links.mjs` 與它們的測試：
+  - `buildUnsafeMask` 補上 `~~~` 與外層較長的 code fence、跨行 inline code、跨行標籤（不分大小寫）、MDX `{…}`；`frontmatterAndCodeMask` 不再是另一份複本，`buildUnsafeMask` 直接用它；能跟 `buildCanonicalUnsafeMask` 共用的部分就共用；
+  - 檢查器、修正器與證明共用的「可以放連結」判斷，排除緊貼 `*`、`_`、`~` 的位置、前一個字元是 `\` 的位置，以及其他連結的文字裡（連結文字可以跨行）；第一次出現的位置不能放時改看下一個；
+  - 證明加上結構比對：`remark-parse`＋`remark-mdx`＋`remark-gfm` 解析正文（frontmatter 先切掉），驗證過的 glossary 連結換回文字、合併相鄰文字節點、拿掉 `position` 後比較；
+  - 刪掉 `validateGlossaryLink`、`isGlossaryMatchText`，canonical 證明改回逐字比對 `[term](/glossary#錨點)`；
+  - 改前或改後含 `\uE000` 時證明直接失敗。
+
+  單元測試：審查找到的每一種寫法各一個（`~~~`、巢狀 fence、跨行 inline code、`{…}`、跨行 `<div title>`、緊貼粗體、跨行連結裡、反斜線），證明都要失敗；「第一次出現的位置緊貼粗體，修正器改連下一個位置、檢查器接受」一個。全站 `pnpm run glossary:check` 仍是 0 個違規，這個 PR 補過的 40 篇仍然通過證明。
+
+- [ ] 7.2 測試與小清理：hook 與 CI 的整合測試只留接線相關的案例（規則見 tasks 2.1）；刪掉 `tests/glossary-links.test.ts` 比對元件原始碼的斷言；`link-only-proof` 的 `validatePostLink` 改必填、unmerged 檢查留在 pre-commit 那一側、CI 不再假造 `stage`；`findMissingRelated` 拿掉沒人傳的參數；語言路徑改用同一個 `expectedHref`、glossary href 的 regex 只留一份；`list-content-gate-posts.mjs` 拿掉多餘的判斷。
+- [ ] 7.3 詞彙表頁面：文章連結改用 `getLocalizedPostUrl`；hash 解碼失敗時不讓初始化中斷；刪掉 `findUnlabeledGlossaryCategories`，測試改成對每個詞條呼叫 `glossaryCategoryLabel`；Playwright 刪掉被涵蓋的重複案例，補「開 `/glossary#software-30` 會展開」與「點相關詞條後目標沒有被控制列蓋住」；CSS 拿掉沒有作用的 `[hidden]` 規則、分類顏色改用一個變數；`glossary.json` 的 `definedIn[].title` 沒有程式在讀，刪掉；`src/lib/glossary-anchor.mjs`、`scripts/tribunal-librarian-packet.py` 過期的註解改正。
 
 ## Workflow follow-up
 

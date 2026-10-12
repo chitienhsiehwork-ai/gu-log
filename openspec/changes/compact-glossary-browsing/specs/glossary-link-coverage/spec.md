@@ -71,3 +71,32 @@
 
 - **WHEN** 新加的連結是 `[這裡](/glossary#kubernetes)`
 - **THEN** 證明 SHALL 失敗
+
+### Requirement: 只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化
+
+證明除了比對原始碼，SHALL 把修改前後的文章正文解析成 Markdown／MDX 結構，把驗證過的 glossary 連結換回它的文字之後比較，兩邊不同就失敗。glossary 檢查器、修正器與證明 SHALL 用同一套規則判斷哪些位置可以放連結，修正器 SHALL NOT 寫出證明會拒絕的連結，檢查器 SHALL NOT 要求在不能放連結的位置加連結。
+
+#### Scenario: 連結拆開了旁邊的強調語法
+
+- **WHEN** 新連結把 `這是**Kubernetes**的核心` 改成 `這是**[Kubernetes](/glossary#kubernetes)**的核心`
+- **THEN** 證明 SHALL 失敗
+
+#### Scenario: 連結放進另一個連結的文字裡
+
+- **WHEN** 新連結落在另一個連結的文字裡，包括文字跨行的連結
+- **THEN** 證明 SHALL 失敗
+
+#### Scenario: 連結前面緊貼反斜線
+
+- **WHEN** 新連結的 `[` 前一個字元是 `\`
+- **THEN** 證明 SHALL 失敗
+
+#### Scenario: 其他寫法的 code 與 MDX 區塊
+
+- **WHEN** 新連結落在 `~~~` code block、外層 fence 較長的巢狀 code block、跨行的 inline code、屬性跨行寫的標籤，或 MDX 的 `{…}` 運算式裡
+- **THEN** 證明 SHALL 失敗
+
+#### Scenario: 第一次出現的位置不能放連結
+
+- **WHEN** 詞條在文章裡第一次出現的位置不能放連結，例如緊貼在強調語法裡
+- **THEN** 修正器 SHALL 改連下一個可以放連結的位置，glossary 檢查 SHALL 接受這個結果
