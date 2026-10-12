@@ -213,10 +213,11 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		}
 		fromStepInt = v
 	}
-	// The pipeline does not write Lv: an Lv run may only resume at translate
-	// or deploy, and the refusal comes before the yt-dlp preflight and the
-	// work dir.
-	if !pipeline.IsAuthorable(opts.Prefix) && fromStepInt < pipeline.StepTranslate {
+	// The pipeline does not write Lv: an Lv run may only resume an Lv file at
+	// translate or deploy, and the refusal comes before the yt-dlp preflight
+	// and the work dir. Without a file there is nothing to publish, and the
+	// credits step would stamp the work dir's final.mdx.
+	if !pipeline.IsAuthorable(opts.Prefix) && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
 		return pipeline.LvAuthoringError("run")
 	}
 	if fromStepInt == pipeline.StepSourceDistance && opts.Prefix != "GP" {

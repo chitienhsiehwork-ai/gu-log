@@ -103,6 +103,7 @@ func TestRunRefusesLvBeforeWritingSteps(t *testing.T) {
 	cases := []runCase{
 		{name: "URL", args: []string{"run", "https://x.com/author/status/1", "--prefix", "Lv"}},
 		{name: "URL dry-run", args: []string{"run", "https://x.com/author/status/1", "--prefix", "Lv", "--dry-run"}},
+		{name: "deploy without --file", args: []string{"run", "--prefix", "Lv", "--from-step", "deploy"}},
 	}
 	for filename := range posts {
 		cases = append(cases, runCase{name: filename + " from the start", args: []string{"run", "--file", filename}})
