@@ -4,7 +4,12 @@ import MoguNote from '../components/MoguNote.astro';
 import '../styles/glossary.css';
 import glossaryData from '../data/glossary.json';
 import { getCollection } from 'astro:content';
-import { parseGlossaryUrl, type ParsedGlossaryUrl } from '../config/glossary';
+import {
+  glossaryCategoryFilters,
+  glossaryCategoryLabel,
+  parseGlossaryUrl,
+  type ParsedGlossaryUrl,
+} from '../config/glossary';
 import { isPostTakenDown } from '../utils/post-status';
 import { glossaryAnchor, relatedGlossaryAnchor } from '../lib/glossary-anchor.mjs';
 
@@ -31,22 +36,7 @@ const glossary = [...glossaryData]
   }))
   .sort((a, b) => a.term.localeCompare(b.term));
 
-const categories: { id: string; label: string }[] = [
-  { id: 'all', label: '全部' },
-  { id: 'tools', label: '工具' },
-  { id: 'concepts', label: '概念' },
-  { id: 'methods', label: '方法' },
-  { id: 'platforms', label: '平台' },
-  { id: 'people', label: '人物' },
-];
-
-const categoryLabel: Record<string, string> = {
-  tools: '工具',
-  concepts: '概念',
-  methods: '方法',
-  platforms: '平台',
-  people: '人物',
-};
+const categories = [{ id: 'all', label: '全部' }, ...glossaryCategoryFilters(glossary, 'zh-tw')];
 
 function urlLabel(url: ParsedGlossaryUrl) {
   if (!url.external) return `gu-log${url.href}`;
@@ -141,7 +131,7 @@ const allLetters = grouped.map((g) => g.letter);
                     </a>
                     {item.en !== item.term && <span class="term-en">{item.en}</span>}
                     <span class={`term-cat cat-${item.category}`}>
-                      {categoryLabel[item.category] || item.category}
+                      {glossaryCategoryLabel(item.category, 'zh-tw')}
                     </span>
                   </dt>
                   <dd>

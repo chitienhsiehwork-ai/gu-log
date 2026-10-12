@@ -66,6 +66,53 @@ export function parseGlossaryUrl(
   return invalidGlossaryUrl(field, allowInternal);
 }
 
+export type GlossaryLang = 'zh-tw' | 'en';
+
+// 詞彙表分類的唯一對照（openspec: glossary-browsing）。篩選按鈕依資料實際用到的分類、
+// 照這裡的順序產生；詞條的分類標籤顯示對應語言的 label。資料用到這裡沒有的分類時，
+// 單元測試會失敗，頁面 build 也會停下來。
+export const GLOSSARY_CATEGORY_LABELS: Record<string, Record<GlossaryLang, string>> = {
+  tools: { 'zh-tw': '工具', en: 'Tools' },
+  concepts: { 'zh-tw': '概念', en: 'Concepts' },
+  methods: { 'zh-tw': '方法', en: 'Methods' },
+  products: { 'zh-tw': '產品', en: 'Products' },
+  models: { 'zh-tw': '模型', en: 'Models' },
+  platforms: { 'zh-tw': '平台', en: 'Platforms' },
+  people: { 'zh-tw': '人物', en: 'People' },
+};
+
+interface GlossaryCategoryEntry {
+  category: string;
+}
+
+/** 資料用到、但沒有 label 的分類，依第一次出現的順序。 */
+export function findUnlabeledGlossaryCategories(entries: GlossaryCategoryEntry[]): string[] {
+  const unlabeled = entries
+    .map((entry) => entry.category)
+    .filter((category) => !Object.hasOwn(GLOSSARY_CATEGORY_LABELS, category));
+  return [...new Set(unlabeled)];
+}
+
+export function glossaryCategoryLabel(category: string, lang: GlossaryLang): string {
+  if (!Object.hasOwn(GLOSSARY_CATEGORY_LABELS, category)) {
+    throw new Error(
+      `Glossary category "${category}" has no label; add it to GLOSSARY_CATEGORY_LABELS`
+    );
+  }
+  return GLOSSARY_CATEGORY_LABELS[category][lang];
+}
+
+/** 篩選按鈕：資料實際用到的分類（不含「全部」），照 GLOSSARY_CATEGORY_LABELS 的順序。 */
+export function glossaryCategoryFilters(
+  entries: GlossaryCategoryEntry[],
+  lang: GlossaryLang
+): { id: string; label: string }[] {
+  const used = new Set(entries.map((entry) => entry.category));
+  return Object.keys(GLOSSARY_CATEGORY_LABELS)
+    .filter((id) => used.has(id))
+    .map((id) => ({ id, label: glossaryCategoryLabel(id, lang) }));
+}
+
 // Terms that are common enough to NOT need glossary links
 // These are either:
 // - Too basic (readers should know)

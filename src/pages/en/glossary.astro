@@ -4,7 +4,12 @@ import MoguNote from '../../components/MoguNote.astro';
 import '../../styles/glossary.css';
 import glossaryData from '../../data/glossary.json';
 import { getCollection } from 'astro:content';
-import { parseGlossaryUrl, type ParsedGlossaryUrl } from '../../config/glossary';
+import {
+  glossaryCategoryFilters,
+  glossaryCategoryLabel,
+  parseGlossaryUrl,
+  type ParsedGlossaryUrl,
+} from '../../config/glossary';
 import { isPostTakenDown } from '../../utils/post-status';
 import { glossaryAnchor, relatedGlossaryAnchor } from '../../lib/glossary-anchor.mjs';
 
@@ -31,22 +36,7 @@ const glossary = [...glossaryData]
   }))
   .sort((a, b) => a.term.localeCompare(b.term));
 
-const categories: { id: string; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'tools', label: 'Tools' },
-  { id: 'concepts', label: 'Concepts' },
-  { id: 'methods', label: 'Methods' },
-  { id: 'platforms', label: 'Platforms' },
-  { id: 'people', label: 'People' },
-];
-
-const categoryLabel: Record<string, string> = {
-  tools: 'Tools',
-  concepts: 'Concepts',
-  methods: 'Methods',
-  platforms: 'Platforms',
-  people: 'People',
-};
+const categories = [{ id: 'all', label: 'All' }, ...glossaryCategoryFilters(glossary, 'en')];
 
 function urlLabel(url: ParsedGlossaryUrl) {
   if (!url.external) return `gu-log${url.href}`;
@@ -143,7 +133,7 @@ const allLetters = grouped.map((g) => g.letter);
                     </a>
                     {item.en !== item.term && <span class="term-en">{item.en}</span>}
                     <span class={`term-cat cat-${item.category}`}>
-                      {categoryLabel[item.category] || item.category}
+                      {glossaryCategoryLabel(item.category, 'en')}
                     </span>
                   </dt>
                   <dd>
