@@ -577,11 +577,15 @@ function ignoredTerms(content, frontmatter) {
   return ignored;
 }
 
-export function expectedHref(term, filePath, frontmatter) {
-  return `${isEnglishPost(filePath, frontmatter) ? '/en/glossary' : '/glossary'}#${term.anchor}`;
+/** The glossary link to an anchor for a post in this language. */
+export function expectedHref(anchor, english) {
+  return `${english ? '/en/glossary' : '/glossary'}#${anchor}`;
 }
 
-const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
+// A Markdown link as posts write it; captures the text and the href. Global: use matchAll.
+export const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
+// A glossary href; captures the /en prefix and the anchor.
+export const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
 
 /**
  * Resolve a glossary link target for a post: the path must follow the post language
@@ -589,20 +593,17 @@ const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
  * `{ entry }` with the normalized entry, or `{ error }` explaining the rejection.
  */
 export function resolveGlossaryLinkTarget(href, { english, glossary }) {
-  const match = GLOSSARY_HREF.exec(href);
-  if (!match) return { error: `${JSON.stringify(href)} is not a glossary link` };
-  if (Boolean(match[1]) !== english) {
-    return { error: `${href} must use ${english ? '/en/glossary' : '/glossary'} for this post` };
+  const anchor = GLOSSARY_HREF.exec(href)?.[2];
+  if (anchor === undefined) return { error: `${JSON.stringify(href)} is not a glossary link` };
+  if (href !== expectedHref(anchor, english)) {
+    return { error: `${href} must be ${expectedHref(anchor, english)} for this post` };
   }
-  const target = glossary.find((entry) => entry?.term && glossaryAnchor(entry) === match[2]);
-  if (!target) return { error: `no glossary entry has anchor #${match[2]}` };
+  const target = glossary.find((entry) => entry?.term && glossaryAnchor(entry) === anchor);
+  if (!target) return { error: `no glossary entry has anchor #${anchor}` };
   const [entry] = normalizeGlossary([target]);
   if (!entry) return { error: `${target.term} has automatic linking disabled` };
   return { entry };
 }
-
-// Glossary links as posts write them; captures the href, the /en prefix and the anchor.
-const POST_GLOSSARY_LINK = /\[[^\]\n]+\]\((\/(en\/)?glossary#([^)\n]*))\)/gu;
 
 /**
  * Glossary links that lead nowhere: the anchor must belong to some entry (entries with
@@ -616,21 +617,21 @@ export function checkLinkTargets(content, options = {}) {
   const english = isEnglishPost(filePath, parseFrontmatter(content).data);
   const { mask } = frontmatterAndCodeMask(content);
   const violations = [];
-  for (const match of content.matchAll(POST_GLOSSARY_LINK)) {
-    if (mask[match.index]) continue;
-    const [, href, enPrefix, anchor] = match;
+  for (const match of content.matchAll(MARKDOWN_LINK)) {
+    const glossaryLink = GLOSSARY_HREF.exec(match[2]);
+    if (!glossaryLink || mask[match.index]) continue;
+    const [href, , anchor] = glossaryLink;
     const line = content.slice(0, match.index).split('\n').length;
     if (!anchors.has(anchor)) {
       violations.push({ kind: 'dead-anchor', file: filePath, line, href, anchor });
-    } else if (Boolean(enPrefix) !== english) {
-      const expected = `${english ? '/en/glossary' : '/glossary'}#${anchor}`;
+    } else if (href !== expectedHref(anchor, english)) {
       violations.push({
         kind: 'wrong-language',
         file: filePath,
         line,
         href,
         anchor,
-        expectedHref: expected,
+        expectedHref: expectedHref(anchor, english),
       });
     }
   }
@@ -668,6 +669,7 @@ export function findMissingRelated(glossary, filePath = GLOSSARY_PATH) {
 export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }) {
   const termFilter = new Set(terms);
   const { data: frontmatter } = parseFrontmatter(content);
+  const english = isEnglishPost(filePath, frontmatter);
   const ignored = ignoredTerms(content, frontmatter);
   const mask = buildUnsafeMask(content);
   const occupied = new Array(content.length).fill(false);
@@ -676,7 +678,7 @@ export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }
   for (const term of glossary) {
     if (termFilter.size && !termFilter.has(term.term)) continue;
     if (ignored.has(term.term)) continue;
-    const href = expectedHref(term, filePath, frontmatter);
+    const href = expectedHref(term.anchor, english);
     if (hasCoverage(content, term, href)) continue;
 
     let first = null;
@@ -712,7 +714,7 @@ export function checkContent(content, options = {}) {
             forbidden,
             line: occurrence.line,
             text: occurrence.text,
-            expectedHref: `/glossary#${term.anchor}`,
+            expectedHref: expectedHref(term.anchor, false),
           });
         }
       }

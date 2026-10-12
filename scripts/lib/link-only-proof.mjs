@@ -22,6 +22,8 @@ import remarkMdx from 'remark-mdx';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import {
+  GLOSSARY_HREF,
+  MARKDOWN_LINK,
   buildUnsafeMask,
   findSafeOccurrences,
   isEnglishPost,
@@ -30,8 +32,6 @@ import {
   resolveGlossaryLinkTarget,
 } from '../check-glossary-links.mjs';
 
-const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
-const GLOSSARY_LINK = /^\/(?:en\/)?glossary#/u;
 const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 const CANONICAL_POST_LINK = /^\/(en\/)?posts\/([a-z0-9][a-z0-9-]*)\/$/u;
 const CANONICAL_TICKET_ID = /^(GP|MP)-([1-9]\d*)$/u;
@@ -54,7 +54,7 @@ function stripLinks(content) {
   for (const match of content.matchAll(MARKDOWN_LINK)) {
     const [raw, label, href] = match;
     if (content[match.index - 1] === '!') continue;
-    const isGlossary = GLOSSARY_LINK.test(href);
+    const isGlossary = GLOSSARY_HREF.test(href);
     if (!isGlossary && !INTERNAL_POST_PREFIX.test(href)) continue;
     text += content.slice(last, match.index);
     const start = text.length;
@@ -81,7 +81,7 @@ function readerChildren(children) {
   const out = [];
   for (const child of children) {
     let nodes;
-    if (child.type === 'link' && GLOSSARY_LINK.test(child.url)) {
+    if (child.type === 'link' && GLOSSARY_HREF.test(child.url)) {
       nodes = readerChildren(child.children);
     } else if (child.type === 'link' && INTERNAL_POST_PREFIX.test(child.url)) {
       nodes = [{ type: 'internalPostLink' }];
