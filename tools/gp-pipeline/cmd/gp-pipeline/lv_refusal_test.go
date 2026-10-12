@@ -178,6 +178,7 @@ func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
 		{name: "MP from review, Lv draft-v1.mdx", file: "draft-v1.mdx", args: []string{"--prefix", "MP", "--from-step", "review"}},
 		{name: "GP from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "GP", "--from-step", "ralph"}},
 		{name: "GP --file from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--file", gpFile, "--from-step", "ralph"}},
+		{name: "MP from deploy, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "MP", "--from-step", "deploy"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
@@ -408,7 +409,11 @@ func TestLvKeepsNonWritingSteps(t *testing.T) {
 	t.Run("run --from-step deploy", func(t *testing.T) {
 		emptyFake := filepath.Join(t.TempDir(), "fake.json")
 		mustWrite(t, emptyFake, `{"responses":[]}`)
-		if err := executeCLI(t, "--json", "--work-dir", t.TempDir(), "--fake-provider", emptyFake,
+		// A translate start leaves the post in the work dir as final.mdx;
+		// with --file, that is no reason to refuse.
+		workDir := t.TempDir()
+		mustWrite(t, filepath.Join(workDir, "final.mdx"), zhPost)
+		if err := executeCLI(t, "--json", "--work-dir", workDir, "--fake-provider", emptyFake,
 			"run", "--file", filename, "--from-step", "deploy", "--dry-run"); err != nil {
 			t.Fatalf("run --from-step deploy for an Lv post: %v", err)
 		}

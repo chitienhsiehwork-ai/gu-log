@@ -221,8 +221,10 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return pipeline.LvAuthoringError("run")
 	}
 	// A run resumed after write reuses the work dir's draft-v1.mdx and
-	// final.mdx, so an Lv draft left there is refused like an Lv series.
-	if flagWorkDir != "" && fromStepInt > pipeline.StepWrite && fromStepInt < pipeline.StepTranslate {
+	// final.mdx, so an Lv draft left there is refused like an Lv series and
+	// over the same range: without --file, a deploy start also reuses the
+	// work dir's final.mdx, and credits is not skipped.
+	if flagWorkDir != "" && fromStepInt > pipeline.StepWrite && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
 		if err := pipeline.RefuseLvFiles("run", filepath.Join(flagWorkDir, "draft-v1.mdx"), filepath.Join(flagWorkDir, "final.mdx")); err != nil {
 			return err
 		}
