@@ -2,14 +2,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  loadGlossary,
-  normalizeGlossary,
-  parseFrontmatter,
-  buildUnsafeMask,
-  findSafeOccurrences,
-  expectedHref,
-  listPostFiles,
   checkContent,
+  listPostFiles,
+  loadGlossary,
+  missingGlossaryLinks,
+  normalizeGlossary,
 } from './check-glossary-links.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -31,76 +28,20 @@ function parseArgs(argv) {
   return args;
 }
 
-function markRange(mask, start, end) {
-  for (let i = Math.max(0, start); i < Math.min(mask.length, end); i += 1) mask[i] = true;
-}
-
-function hasCorrectCoverage(content, term, href) {
-  for (const matchText of term.matches) {
-    const escapedText = matchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const escapedHref = href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(
-      `\\[${escapedText}\\]\\(${escapedHref}\\)`,
-      term.caseSensitive ? '' : 'i'
-    );
-    if (re.test(content)) return true;
-  }
-  return false;
-}
-
-function ignoredTerms(content, frontmatter) {
-  const ignored = new Set();
-  if (Array.isArray(frontmatter.glossaryIgnore))
-    for (const t of frontmatter.glossaryIgnore) ignored.add(t);
-  const re = /<!--\s*glossary-ignore\s+([^>]+?)\s*-->/g;
-  let match;
-  while ((match = re.exec(content))) {
-    for (const part of match[1].split(/[,;]/)) {
-      const t = part.trim();
-      if (t) ignored.add(t);
-    }
-  }
-  return ignored;
-}
-
+// Writes exactly the links checkContent reports missing, placed by the rule the link-only
+// proof also checks, so a backfill passes both.
 export function applyLinksToContent(content, options = {}) {
-  const filePath = options.filePath ?? 'post.mdx';
-  const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
-  const termFilter = new Set(options.terms ?? []);
-  const { data: frontmatter } = parseFrontmatter(content);
-  const ignored = ignoredTerms(content, frontmatter);
+  const edits = missingGlossaryLinks(
+    content,
+    normalizeGlossary(options.glossary ?? loadGlossary()),
+    { filePath: options.filePath ?? 'post.mdx', terms: options.terms }
+  ).sort((a, b) => a.start - b.start);
+
   let output = content;
-  const edits = [];
-  const occupied = new Array(content.length).fill(false);
-  let mask = buildUnsafeMask(content);
-
-  for (const term of glossary) {
-    if (termFilter.size && !termFilter.has(term.term)) continue;
-    if (ignored.has(term.term)) continue;
-    const href = expectedHref(term, filePath, frontmatter);
-    if (hasCorrectCoverage(output, term, href)) continue;
-
-    let first = null;
-    for (const matchText of term.matches) {
-      const occurrences = findSafeOccurrences(content, term, matchText, { mask });
-      for (const occ of occurrences) {
-        let overlaps = false;
-        for (let i = occ.start; i < occ.end; i += 1) if (occupied[i]) overlaps = true;
-        if (overlaps) continue;
-        if (!first || occ.start < first.start) first = occ;
-      }
-    }
-    if (!first) continue;
-    markRange(occupied, first.start, first.end);
-    edits.push({ ...first, href, term: term.term });
+  for (const edit of [...edits].reverse()) {
+    output = `${output.slice(0, edit.start)}[${edit.text}](${edit.href})${output.slice(edit.end)}`;
   }
-
-  edits.sort((a, b) => b.start - a.start);
-  for (const edit of edits) {
-    output = `${output.slice(0, edit.start)}[${output.slice(edit.start, edit.end)}](${edit.href})${output.slice(edit.end)}`;
-  }
-
-  return { content: output, changed: output !== content, edits: edits.reverse() };
+  return { content: output, changed: output !== content, edits };
 }
 
 export function applyLinksToFile(filePath, options = {}) {

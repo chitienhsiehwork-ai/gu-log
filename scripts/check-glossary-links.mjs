@@ -515,17 +515,50 @@ export function findMissingRelated(glossary, filePath = GLOSSARY_PATH) {
   return violations;
 }
 
-export function checkContent(content, options = {}) {
-  const filePath = options.filePath ?? 'post.mdx';
-  const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
-  const termFilter = new Set(options.terms ?? []);
+/**
+ * The links the checker reports missing and the fixer writes: for each term the post
+ * neither links nor ignores, its first occurrence findSafeOccurrences allows that a longer
+ * term has not claimed already.
+ *
+ * @param {string} content
+ * @param {ReturnType<typeof normalizeGlossary>} glossary normalized entries
+ * @param {{ filePath: string, terms?: string[] }} options
+ */
+export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }) {
+  const termFilter = new Set(terms);
   const { data: frontmatter } = parseFrontmatter(content);
   const ignored = ignoredTerms(content, frontmatter);
   const mask = buildUnsafeMask(content);
   const occupied = new Array(content.length).fill(false);
+  const links = [];
+
+  for (const term of glossary) {
+    if (termFilter.size && !termFilter.has(term.term)) continue;
+    if (ignored.has(term.term)) continue;
+    const href = expectedHref(term, filePath, frontmatter);
+    if (hasCoverage(content, term, href)) continue;
+
+    let first = null;
+    for (const matchText of term.matches) {
+      for (const occurrence of findSafeOccurrences(content, term, matchText, { mask })) {
+        if (!rangeIsSafe(occupied, occurrence.start, occurrence.end)) continue;
+        if (!first || occurrence.start < first.start) first = occurrence;
+      }
+    }
+    if (!first) continue;
+    markRange(occupied, first.start, first.end);
+    links.push({ ...first, term: term.term, href });
+  }
+  return links;
+}
+
+export function checkContent(content, options = {}) {
+  const filePath = options.filePath ?? 'post.mdx';
+  const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
+  const termFilter = new Set(options.terms ?? []);
   const violations = [];
 
-  if (!isEnglishPost(filePath, frontmatter)) {
+  if (!isEnglishPost(filePath, parseFrontmatter(content).data)) {
     for (const term of glossary) {
       if (termFilter.size && !termFilter.has(term.term)) continue;
       for (const forbidden of term.forbiddenZhTw) {
@@ -545,32 +578,15 @@ export function checkContent(content, options = {}) {
     }
   }
 
-  for (const term of glossary) {
-    if (termFilter.size && !termFilter.has(term.term)) continue;
-    if (ignored.has(term.term)) continue;
-    const href = expectedHref(term, filePath, frontmatter);
-    if (hasCoverage(content, term, href)) continue;
-
-    let first = null;
-    for (const matchText of term.matches) {
-      const occurrences = findSafeOccurrences(content, term, matchText, { mask });
-      for (const occ of occurrences) {
-        let overlaps = false;
-        for (let i = occ.start; i < occ.end; i += 1) if (occupied[i]) overlaps = true;
-        if (overlaps) continue;
-        if (!first || occ.start < first.start) first = occ;
-      }
-    }
-    if (!first) continue;
-    markRange(occupied, first.start, first.end);
+  for (const link of missingGlossaryLinks(content, glossary, { filePath, terms: options.terms })) {
     violations.push({
       kind: 'missing-link',
       file: filePath,
-      term: term.term,
-      line: first.line,
-      text: first.text,
-      expectedHref: href,
-      command: `node scripts/apply-glossary-links.mjs --term ${JSON.stringify(term.term)} ${JSON.stringify(filePath)}`,
+      term: link.term,
+      line: link.line,
+      text: link.text,
+      expectedHref: link.href,
+      command: `node scripts/apply-glossary-links.mjs --term ${JSON.stringify(link.term)} ${JSON.stringify(filePath)}`,
     });
   }
   return { violations };
