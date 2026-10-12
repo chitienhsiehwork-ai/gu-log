@@ -495,8 +495,9 @@ const GLUED_AFTER = /[*_~]/u;
 /**
  * Occurrences of `matchText` a glossary link can wrap: the placement rule the checker, the
  * fixer and the link-only proof share. Outside buildUnsafeMask, on word boundaries, and not
- * touching the characters above. When the first occurrence can't take a link, the next one
- * that can is first in the list.
+ * touching the characters above, judged on what a reader sees next to the term
+ * (visibleNeighbors). When the first occurrence can't take a link, the next one that can is
+ * first in the list.
  */
 export function findSafeOccurrences(content, term, matchText, options = {}) {
   const mask = options.mask ?? buildUnsafeMask(content);
@@ -507,9 +508,8 @@ export function findSafeOccurrences(content, term, matchText, options = {}) {
   while ((match = re.exec(content))) {
     const start = match.index;
     const end = start + match[0].length;
-    const before = content[start - 1] ?? '';
-    const after = content[end] ?? '';
     if (!rangeIsSafe(mask, start, end)) continue;
+    const { before, after } = visibleNeighbors(content, start, end);
     if (!isBoundaryChar(before) || !isBoundaryChar(after)) continue;
     if (GLUED_BEFORE.test(before) || GLUED_AFTER.test(after)) continue;
     const line = content.slice(0, start).split('\n').length;
@@ -595,6 +595,28 @@ export const MARKDOWN_LINK = /\[([^[\]\n]+)\]\(([^)\n]+)\)/gu;
 export const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
 // An internal post link's href.
 export const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
+
+// A glossary link right next to a term shows its text there, so that text, not the link's `)`
+// or `[`, is what a reader sees beside the term. The link-only proof judges the post with
+// glossary links taken out, images aside, and the checker has to see the same neighbors.
+const LINK_ENDING_HERE = new RegExp(`(?<!!)${MARKDOWN_LINK.source}$`, 'u');
+const LINK_STARTING_HERE = new RegExp(`^${MARKDOWN_LINK.source}`, 'u');
+
+function visibleNeighbors(content, start, end) {
+  let before = content[start - 1] ?? '';
+  let after = content[end] ?? '';
+  if (before === ')') {
+    const link = LINK_ENDING_HERE.exec(
+      content.slice(content.lastIndexOf('\n', start - 1) + 1, start)
+    );
+    if (link && GLOSSARY_HREF.test(link[2])) before = link[1].at(-1);
+  }
+  if (after === '[') {
+    const link = LINK_STARTING_HERE.exec(content.slice(end));
+    if (link && GLOSSARY_HREF.test(link[2])) after = link[1][0];
+  }
+  return { before, after };
+}
 
 const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
 

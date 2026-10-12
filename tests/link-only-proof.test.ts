@@ -340,6 +340,13 @@ describe('link-only proof: what the fixer writes', () => {
       '見 [官方]Kubernetes 文件。\n\n[官方]: https://kubernetes.io',
       null,
     ],
+    ['a glossary link glued before the term', '[Agent](/glossary#agent)Kubernetes 很穩。', null],
+    ['a glossary link glued after the term', 'Kubernetes[代理](/glossary#agent) 很穩。', null],
+    [
+      'a glossary link a slash away',
+      '[Agent](/glossary#agent)/Kubernetes 很穩。',
+      `[Agent](/glossary#agent)/${K8S_LINK} 很穩。`,
+    ],
   ])('agrees with the checker and the fixer on %s', (_name, body, linked) => {
     const before = post(body);
     const missing = checker.checkContent(before, { filePath: ZH_FILE, glossary }).violations;
