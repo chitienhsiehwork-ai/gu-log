@@ -97,7 +97,7 @@ Lv 的 `counter`、`fetch`、`eval`、`dedup`、`translate`、standalone `deploy
 
 ### Requirement: write 與 refine SHALL NOT 把工作目錄裡的舊產物當成這次的輸出
 
-`write` 與 `refine` 呼叫寫手之前，SHALL 先移開工作目錄裡既有的 `draft-v1.mdx` 或 `final.mdx`。寫手沒有寫檔時，SHALL 只用這次回傳的 stdout，沒有 stdout 就 SHALL 失敗。寫手失敗而沒有寫出檔案時，SHALL 放回原本的檔案，之後的恢復照舊可用。
+`write` 與 `refine` 寫出的 `draft-v1.mdx` 或 `final.mdx` SHALL 是這次寫手的輸出：寫手沒有寫檔時，輸出 SHALL 只取這次回傳的 stdout，沒有 stdout 就 SHALL 失敗，SHALL NOT 沿用工作目錄裡上一次留下的檔。寫手失敗而沒有寫出檔案時，工作目錄裡原本的檔案 SHALL 維持原樣。
 
 #### Scenario: 寫手只用 stdout 回覆
 
