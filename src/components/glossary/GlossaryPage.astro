@@ -14,6 +14,7 @@ import {
   type ParsedGlossaryUrl,
 } from '../../config/glossary';
 import { isPostTakenDown } from '../../utils/post-status';
+import { getLocalizedPostUrl } from '../../utils/post-urls';
 import { glossaryAnchor, relatedGlossaryAnchor } from '../../lib/glossary-anchor.mjs';
 
 interface Props {
@@ -80,7 +81,7 @@ function articleLinks(definedIn: { slug: string }[] | undefined) {
     const id = isEnglish ? `en-${slug}` : slug;
     const post = postsById.get(id);
     if (!post || isPostTakenDown(post, allPosts)) return [];
-    return [{ href: isEnglish ? `/en/posts/${id}` : `/posts/${id}`, title: post.data.title }];
+    return [{ href: getLocalizedPostUrl(post), title: post.data.title }];
   });
 }
 
