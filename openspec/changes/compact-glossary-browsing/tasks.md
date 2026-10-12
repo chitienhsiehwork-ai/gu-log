@@ -73,7 +73,7 @@
 
   單元測試：審查找到的每一種寫法各一個（`~~~`、巢狀 fence、跨行 inline code、`{…}`、跨行 `<div title>`、緊貼粗體、跨行連結裡、反斜線），證明都要失敗；「第一次出現的位置緊貼粗體，修正器改連下一個位置、檢查器接受」一個。全站 `pnpm run glossary:check` 仍是 0 個違規，這個 PR 補過的 40 篇仍然通過證明。
 
-- [ ] 7.2 測試與小清理：hook 與 CI 的整合測試只留接線相關的案例（規則見 tasks 2.1）；刪掉 `tests/glossary-links.test.ts` 比對元件原始碼的斷言；`link-only-proof` 的 `validatePostLink` 改必填、unmerged 檢查留在 pre-commit 那一側、CI 不再假造 `stage`；`findMissingRelated` 拿掉沒人傳的參數；語言路徑改用同一個 `expectedHref`、glossary href 的 regex 只留一份；`list-content-gate-posts.mjs` 拿掉多餘的判斷。
+- [x] 7.2 測試與小清理：hook 與 CI 的整合測試只留接線相關的案例（規則見 tasks 2.1）；刪掉 `tests/glossary-links.test.ts` 比對元件原始碼的斷言；`link-only-proof` 的 `validatePostLink` 改必填、unmerged 檢查留在 pre-commit 那一側、CI 不再假造 `stage`；`findMissingRelated` 拿掉沒人傳的參數；語言路徑改用同一個 `expectedHref`、glossary href 的 regex 只留一份；`list-content-gate-posts.mjs` 拿掉多餘的判斷。
 - [ ] 7.3 詞彙表頁面：文章連結改用 `getLocalizedPostUrl`；hash 解碼失敗時不讓初始化中斷；刪掉 `findUnlabeledGlossaryCategories`，測試改成對每個詞條呼叫 `glossaryCategoryLabel`；Playwright 刪掉被涵蓋的重複案例，補「開 `/glossary#software-30` 會展開」與「點相關詞條後目標沒有被控制列蓋住」；CSS 拿掉沒有作用的 `[hidden]` 規則、分類顏色改用一個變數；`glossary.json` 的 `definedIn[].title` 沒有程式在讀，刪掉；`src/lib/glossary-anchor.mjs`、`scripts/tribunal-librarian-packet.py` 過期的註解改正。
 
 ## Workflow follow-up
