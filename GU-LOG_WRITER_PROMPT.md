@@ -293,7 +293,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 
 - 普通英文有自然中文可寫：`framing` →「包裝」、`takeaway` →「真正的重點」、`generalist` →「通才」。這種要翻，不要建 glossary。
 - 單篇 source 裡的一次性 label、活動名稱、內部專案代號，讀者不需要長期記住；文內解釋一次就好。
-- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist 或 glossaryExclude 就好。
+- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist（`scripts/check-jingjing.mjs`）就好。
 - 只是因為 lint 擋住、或 agent 懶得想自然中文。Lint 失敗不是建 glossary 的理由，只是提醒「翻中文」或「提術語決策」。
 
 **文內解釋即可**：
