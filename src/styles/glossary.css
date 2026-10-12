@@ -260,7 +260,7 @@ html:has(.glossary-page) {
   display: block;
 }
 
-/* Inline category badges */
+/* 分類標籤：字色是分類色，底色是同一個顏色的 15%；每個分類只指定 --cat-color */
 .term-cat {
   font-size: 0.6rem;
   font-weight: 600;
@@ -269,41 +269,36 @@ html:has(.glossary-page) {
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 15%, transparent);
 }
 
 .cat-tools {
-  color: var(--color-cat-tools);
-  background: color-mix(in srgb, var(--color-cat-tools) 15%, transparent);
+  --cat-color: var(--color-cat-tools);
 }
 
 .cat-concepts {
-  color: var(--color-cat-concepts);
-  background: color-mix(in srgb, var(--color-cat-concepts) 15%, transparent);
+  --cat-color: var(--color-cat-concepts);
 }
 
 .cat-methods {
-  color: var(--color-cat-methods);
-  background: color-mix(in srgb, var(--color-cat-methods) 15%, transparent);
+  --cat-color: var(--color-cat-methods);
 }
 
 .cat-products {
-  color: var(--color-cat-products);
-  background: color-mix(in srgb, var(--color-cat-products) 15%, transparent);
+  --cat-color: var(--color-cat-products);
 }
 
 .cat-models {
-  color: var(--color-cat-models);
-  background: color-mix(in srgb, var(--color-cat-models) 15%, transparent);
+  --cat-color: var(--color-cat-models);
 }
 
 .cat-platforms {
-  color: var(--color-cat-platforms);
-  background: color-mix(in srgb, var(--color-cat-platforms) 15%, transparent);
+  --cat-color: var(--color-cat-platforms);
 }
 
 .cat-people {
-  color: var(--color-cat-people);
-  background: color-mix(in srgb, var(--color-cat-people) 15%, transparent);
+  --cat-color: var(--color-cat-people);
 }
 
 .glossary-entry dd {
