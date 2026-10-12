@@ -29,11 +29,11 @@ func IsAuthorable(prefix string) bool {
 	return slices.Contains(AuthorablePrefixes, prefix)
 }
 
-// IsLvPost reports whether a post is Lv: its filename series (lv-, levelup-,
+// isLvPost reports whether a post is Lv: its filename series (lv-, levelup-,
 // and their en- sidecars) or its frontmatter ticketId names Lv, and either one
 // is enough. A basename without a series (final.mdx, draft-v1.mdx) or content
 // without a canonical ticketId is no evidence either way.
-func IsLvPost(filename string, content []byte) bool {
+func isLvPost(filename string, content []byte) bool {
 	if series, err := SeriesFromFilename(filename); err == nil && series == "Lv" {
 		return true
 	}
@@ -53,14 +53,14 @@ func IsLvPost(filename string, content []byte) bool {
 	return err == nil && prefix == "Lv"
 }
 
-// IsLvFile reports whether the post at path is Lv (see IsLvPost). A missing
+// IsLvFile reports whether the post at path is Lv (see isLvPost). A missing
 // file is judged by its name alone; the step that needs it reports it missing.
 func IsLvFile(path string) (bool, error) {
 	content, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
 	}
-	return IsLvPost(filepath.Base(path), content), nil
+	return isLvPost(filepath.Base(path), content), nil
 }
 
 // LvAuthoringError is the single ingress refusal of every command that would

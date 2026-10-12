@@ -323,20 +323,26 @@ func TestRalphAndCreditsRefuseLvPosts(t *testing.T) {
 		})
 	}
 
-	// A --file named final.mdx gets the stamp on the work dir's final.mdx.
-	t.Run("credits GP final.mdx, Lv final.mdx in --work-dir", func(t *testing.T) {
-		const gpPost = "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n"
-		file := filepath.Join(t.TempDir(), "final.mdx")
-		mustWrite(t, file, gpPost)
-		workDir := t.TempDir()
-		stamped := filepath.Join(workDir, "final.mdx")
-		mustWrite(t, stamped, lvPost)
-		err := executeCLI(t, "credits", "--file", file, "--work-dir", workDir)
-		requireLvRefusal(t, err)
-		requireNoExternalCalls(t, trapLog)
-		requireBytes(t, stamped, []byte(lvPost))
-		requireBytes(t, file, []byte(gpPost))
-	})
+	// A --file named final.mdx gets the stamp on the work dir's final.mdx, so
+	// either one being Lv is refused.
+	const gpPost = "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n"
+	for name, tc := range map[string]struct{ file, stamped string }{
+		"credits GP final.mdx, Lv final.mdx in --work-dir": {file: gpPost, stamped: lvPost},
+		"credits Lv final.mdx, GP final.mdx in --work-dir": {file: lvPost, stamped: gpPost},
+	} {
+		t.Run(name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "final.mdx")
+			mustWrite(t, file, tc.file)
+			workDir := t.TempDir()
+			stamped := filepath.Join(workDir, "final.mdx")
+			mustWrite(t, stamped, tc.stamped)
+			err := executeCLI(t, "credits", "--file", file, "--work-dir", workDir)
+			requireLvRefusal(t, err)
+			requireNoExternalCalls(t, trapLog)
+			requireBytes(t, file, []byte(tc.file))
+			requireBytes(t, stamped, []byte(tc.stamped))
+		})
+	}
 }
 
 // TestLvKeepsNonWritingSteps: a hand-written Lv still gets its number, its

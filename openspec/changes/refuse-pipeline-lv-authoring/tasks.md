@@ -75,7 +75,7 @@
   - `--prefix MP --from-step review`，工作目錄的 `draft-v1.mdx` 是 Lv；
   - `--prefix GP --from-step ralph`，工作目錄的 `final.mdx` 是 Lv；
   - `--file <GP 檔> --from-step ralph`，工作目錄的 `final.mdx` 是 Lv。
-- [ ] 5.2 `credits` 改成對 `--file` 與實際蓋章的檔各跑一次 `IsLvFile`，跟 `review`、`refine` 的寫法一致；`IsLvPost` 沒有外部呼叫者之後改成不 export。Go 測試補「`--file` 是 Lv 的 `final.mdx`、`--work-dir` 裡是 GP 的 `final.mdx`」：exit 1、兩個檔都不變
+- [x] 5.2 `credits` 改成對 `--file` 與實際蓋章的檔各跑一次 `IsLvFile`，跟 `review`、`refine` 的寫法一致；`IsLvPost` 沒有外部呼叫者之後改成不 export。Go 測試補「`--file` 是 Lv 的 `final.mdx`、`--work-dir` 裡是 GP 的 `final.mdx`」：exit 1、兩個檔都不變
 
 ## Workflow follow-up
 
