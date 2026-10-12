@@ -11,7 +11,7 @@
 
 ## 2. 只改 glossary 連結的證明
 
-- [ ] 2.1 抽出共用的「先驗證、再剝掉」正規化函式（規則見 design §8）：glossary 連結要指向該文章語言、啟用中詞條的正確錨點，位在 `buildUnsafeMask` 的安全區，新包起來的文字要能被 checker 的比對規則認成該詞條，只改錨點的既有連結保留原文字；驗證過的才剝掉；剝完整份檔案逐字比對，不 trim、不排序。站內文章連結沿用既有驗證。接到三個地方：
+- [x] 2.1 抽出共用的「先驗證、再剝掉」正規化函式（規則見 design §8）：glossary 連結要指向該文章語言、啟用中詞條的正確錨點，位在 `buildUnsafeMask` 的安全區，新包起來的文字要能被 checker 的比對規則認成該詞條，只改錨點的既有連結保留原文字；驗證過的才剝掉；剝完整份檔案逐字比對，不 trim、不排序。站內文章連結沿用既有驗證。接到三個地方：
   - `scripts/check-staged-internal-post-links.mjs`（pre-commit 的豁免），拿掉「至少一條文章連結」的條件；
   - `scripts/list-content-gate-posts.mjs`，刪掉 `isLinkOnlyDiff`，taxonomy 證明的連結正規化也換成它；
   - `check-glossary-links.mjs --check-canonical-staged-file` 保留方向性規則，錨點與文字驗證改呼叫同一份。

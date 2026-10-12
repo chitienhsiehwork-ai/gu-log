@@ -88,6 +88,20 @@ export function loadGlossary(glossaryPath = GLOSSARY_PATH) {
   return JSON.parse(fs.readFileSync(glossaryPath, 'utf8'));
 }
 
+/**
+ * The glossary as staged in `cwd`'s index, so pre-commit proofs validate links
+ * against the same version as the staged post. Empty when the index has none.
+ */
+export function loadStagedGlossary(cwd = REPO_ROOT) {
+  const spec = ':src/data/glossary.json';
+  try {
+    execFileSync('git', ['cat-file', '-e', spec], { cwd, stdio: 'ignore' });
+  } catch {
+    return [];
+  }
+  return JSON.parse(execFileSync('git', ['show', spec], { cwd, encoding: 'utf8' }));
+}
+
 export function normalizeGlossary(glossary) {
   return glossary
     .filter((entry) => entry && entry.term && entry.linking?.enabled !== false)
@@ -321,7 +335,7 @@ function isBoundaryChar(ch) {
   return !ch || !/[\p{L}\p{N}_-]/u.test(ch);
 }
 
-function rangeIsSafe(mask, start, end) {
+export function rangeIsSafe(mask, start, end) {
   for (let i = start; i < end; i += 1) if (mask[i]) return false;
   return true;
 }
@@ -409,6 +423,46 @@ function ignoredTerms(content, frontmatter) {
 
 export function expectedHref(term, filePath, frontmatter) {
   return `${isEnglishPost(filePath, frontmatter) ? '/en/glossary' : '/glossary'}#${term.anchor}`;
+}
+
+const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
+
+/**
+ * Resolve a glossary link target for a post: the path must follow the post language
+ * and the anchor must belong to an enabled entry (case-sensitive). Returns
+ * `{ entry }` with the normalized entry, or `{ error }` explaining the rejection.
+ */
+export function resolveGlossaryLinkTarget(href, { english, glossary }) {
+  const match = GLOSSARY_HREF.exec(href);
+  if (!match) return { error: `${JSON.stringify(href)} is not a glossary link` };
+  if (Boolean(match[1]) !== english) {
+    return { error: `${href} must use ${english ? '/en/glossary' : '/glossary'} for this post` };
+  }
+  const target = glossary.find((entry) => entry?.term && glossaryAnchor(entry) === match[2]);
+  if (!target) return { error: `no glossary entry has anchor #${match[2]}` };
+  const [entry] = normalizeGlossary([target]);
+  if (!entry) return { error: `${target.term} has automatic linking disabled` };
+  return { entry };
+}
+
+/** Whether `text` is one of the strings the checker matches for this entry. */
+export function isGlossaryMatchText(entry, text) {
+  return entry.matches.some((match) =>
+    entry.caseSensitive ? match === text : match.toLowerCase() === text.toLowerCase()
+  );
+}
+
+/**
+ * Validate a glossary link's target and its text: the target as in
+ * resolveGlossaryLinkTarget, and the text must be how the checker matches that entry.
+ */
+export function validateGlossaryLink(label, href, options) {
+  const target = resolveGlossaryLinkTarget(href, options);
+  if (target.error) return target;
+  if (!isGlossaryMatchText(target.entry, label)) {
+    return { error: `${JSON.stringify(label)} is not a match for ${target.entry.term}` };
+  }
+  return target;
 }
 
 export function checkContent(content, options = {}) {
@@ -601,8 +655,10 @@ export function isCanonicalTerminologyOnlyChange(before, after, glossary = loadG
       const added = count - (beforeLinks.get(link) ?? 0);
       if (added <= 0) continue;
 
+      const [, label = '', href = ''] = /^\[([^\]\n]+)\]\(([^)\n]+)\)$/u.exec(link) ?? [];
+      const target = validateGlossaryLink(label, href, { english: false, glossary });
       const entry = entries.find(
-        (candidate) => link === `[${candidate.term}](/glossary#${candidate.anchor})`
+        (candidate) => candidate.term === target.entry?.term && label === candidate.term
       );
       if (!entry) return false;
 
@@ -659,7 +715,7 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
         cwd: REPO_ROOT,
         encoding: 'utf8',
       });
-      return isCanonicalTerminologyOnlyChange(before, after, glossary) ? 0 : 1;
+      return isCanonicalTerminologyOnlyChange(before, after, loadStagedGlossary()) ? 0 : 1;
     } catch {
       return 1;
     }

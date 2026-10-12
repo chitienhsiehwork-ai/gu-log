@@ -251,9 +251,10 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Post links may update labels only when the staged target's canonical
-    # ticket, title, language, and filename prove the new identity. The shared
-    # validator also preserves glossary behavior and surrounding prose equality.
+    # scripts/lib/link-only-proof.mjs proves the staged edit only adds, removes,
+    # or corrects glossary links (checked against the staged glossary) or moves
+    # internal post links to the staged target's canonical identity. With those
+    # links stripped, the whole file must still match HEAD exactly.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi

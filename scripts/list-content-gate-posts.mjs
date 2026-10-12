@@ -3,11 +3,16 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { isCanonicalSeriesTaxonomyOnlyChange } from './check-brand-taxonomy.mjs';
+import {
+  canonicalizeSeriesTaxonomyText,
+  isCanonicalSeriesTaxonomyOnlyChange,
+} from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange } from './check-glossary-links.mjs';
+import { createPostLinkValidator, isLinkOnlyChange } from './lib/link-only-proof.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
+const GLOSSARY_FILE = 'src/data/glossary.json';
 
 function git(args, { trim = true, allowedExitCodes = [], ...options } = {}) {
   try {
@@ -66,27 +71,6 @@ function ticketExistsAt(ref, ticket, currentFile) {
     .some((file) => file !== currentFile);
 }
 
-function diffBodyLines(baseRef, baseFile, currentFile) {
-  const files = baseFile === currentFile ? [currentFile] : [baseFile, currentFile];
-  const diff = git([
-    '-c',
-    'diff.renameLimit=0',
-    'diff',
-    '-M',
-    '--no-color',
-    '-U0',
-    '--end-of-options',
-    `${baseRef}...HEAD`,
-    '--',
-    ...files,
-  ]);
-  if (!diff) return [];
-  return diff
-    .split('\n')
-    .filter((line) => /^[+-]/.test(line))
-    .filter((line) => !line.startsWith('+++ ') && !line.startsWith('--- '));
-}
-
 function splitFrontmatter(content) {
   const frontmatter = content.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/);
   if (!frontmatter) return null;
@@ -115,31 +99,33 @@ function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
   );
 }
 
-function normalizeGlossaryAndPostLinks(text) {
-  return text
-    .replace(/\[([^\]\n]+)\]\(\/(?:en\/)?glossary#[^)\n]+\)/g, '$1')
-    .replace(/\[([^\]\n]+)\]\(\/posts\/[^)\n]+\)/g, '$1');
+// The PR gate proves link-only edits against the head revision: the glossary and the
+// internal post link targets come from the checked-out tree, like the post itself.
+let headLinkProof;
+function linkProofOptions(currentFile) {
+  headLinkProof ??= {
+    glossary: fs.existsSync(GLOSSARY_FILE)
+      ? JSON.parse(fs.readFileSync(GLOSSARY_FILE, 'utf8'))
+      : [],
+    validatePostLink: createPostLinkValidator({
+      listPosts: () =>
+        fs
+          .readdirSync(POSTS_DIR)
+          .filter((name) => name.endsWith('.mdx'))
+          .map((name) => ({ file: `${POSTS_DIR}/${name}`, stage: '0' })),
+      readPost: (file) => fs.readFileSync(file, 'utf8'),
+    }),
+  };
+  return { filePath: currentFile, ...headLinkProof };
 }
 
-function normalizeMaintenanceLinks(line) {
-  return normalizeGlossaryAndPostLinks(line.slice(1)).trim();
-}
-
-function isLinkOnlyDiff(baseRef, baseFile, currentFile) {
-  if (!existsAt(baseRef, baseFile)) return false;
-  const lines = diffBodyLines(baseRef, baseFile, currentFile);
-  if (lines.length === 0) return true;
-
-  const removed = lines
-    .filter((line) => line.startsWith('-'))
-    .map(normalizeMaintenanceLinks)
-    .sort();
-  const added = lines
-    .filter((line) => line.startsWith('+'))
-    .map(normalizeMaintenanceLinks)
-    .sort();
-
-  return JSON.stringify(removed) === JSON.stringify(added);
+// Same proof as pre-commit (scripts/lib/link-only-proof.mjs): glossary links are
+// validated before they are stripped and the whole file must then match exactly.
+function isLinkOnlyChangeAt(baseRef, baseFile, currentFile) {
+  if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
+  const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+  const newContent = fs.readFileSync(currentFile, 'utf8');
+  return isLinkOnlyChange(oldContent, newContent, linkProofOptions(currentFile));
 }
 
 // Taken-down posts have no reader content left to lint (openspec:
@@ -159,14 +145,14 @@ function isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile) {
   const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
   const newContent = fs.readFileSync(currentFile, 'utf8');
   if (isCanonicalSeriesTaxonomyOnlyChange(oldContent, newContent)) return true;
-  // Glossary/post-link (un)wrapping is already gate-exempt on its own via
-  // isLinkOnlyDiff, so a canonical taxonomy rename that also carries link
-  // wrapping stays mechanical: normalize links on both sides and re-check.
-  // Any reader-prose edit still breaks the exact-equality comparison.
-  const oldNormalized = normalizeGlossaryAndPostLinks(oldContent);
-  const newNormalized = normalizeGlossaryAndPostLinks(newContent);
-  if (oldNormalized === oldContent && newNormalized === newContent) return false;
-  return isCanonicalSeriesTaxonomyOnlyChange(oldNormalized, newNormalized);
+  // A canonical taxonomy rename can also carry link maintenance: apply the taxonomy
+  // rewrite first, then the remaining difference must pass the shared link-only proof.
+  // Any reader-prose edit still fails it.
+  const canonical = canonicalizeSeriesTaxonomyText(oldContent);
+  return (
+    canonical !== oldContent &&
+    isLinkOnlyChange(canonical, newContent, linkProofOptions(currentFile))
+  );
 }
 
 function parseNameStatus(output) {
@@ -223,10 +209,14 @@ const files = parseNameStatus(changed)
     if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
     const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
     const newContent = fs.readFileSync(currentFile, 'utf8');
-    return !isCanonicalTerminologyOnlyChange(oldContent, newContent);
+    return !isCanonicalTerminologyOnlyChange(
+      oldContent,
+      newContent,
+      linkProofOptions(currentFile).glossary
+    );
   })
   .filter(({ baseFile, currentFile }) => !isMetadataOnlyDiff(baseRef, baseFile, currentFile))
-  .filter(({ baseFile, currentFile }) => !isLinkOnlyDiff(baseRef, baseFile, currentFile))
+  .filter(({ baseFile, currentFile }) => !isLinkOnlyChangeAt(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => !isExistingTicketAddition(baseRef, baseFile, currentFile))
   .map(({ currentFile }) => currentFile);
 

@@ -421,6 +421,172 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
   });
 });
 
+describe('pre-commit: glossary link-only edits go through a real git commit', () => {
+  // openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械證明並略過內容品質
+  // gate〉：舊文沒有 scores，只要證明不成立，score gate 的 sentinel 就會擋下這次 commit。
+  const LEGACY_FRONTMATTER = 'ticketId: MP-212\nlang: zh-tw';
+  const OLD_POST_LINK = '[GP-53: 舊標題](/posts/gp-53-20260213-openclaw-setup-guide-review/)';
+  const NEW_POST_LINK = `[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`;
+  const CODEX = {
+    term: 'Codex',
+    en: 'Codex',
+    category: 'products',
+    linking: { enabled: true, anchor: 'codex', match: ['Codex'], caseSensitive: true },
+  };
+  const THREAD = {
+    term: 'Thread',
+    en: 'Thread',
+    category: 'concepts',
+    linking: { anchor: 'thread', enabled: false },
+  };
+  const KUBERNETES = {
+    term: 'Kubernetes',
+    en: 'Kubernetes',
+    aliases: ['K8s'],
+    category: 'platforms',
+  };
+
+  function writeGlossary(repo: string, entries: object[]): void {
+    fs.writeFileSync(
+      path.join(repo, 'src', 'data', 'glossary.json'),
+      `${JSON.stringify(entries, null, 2)}\n`
+    );
+  }
+
+  function writeLegacyPost(post: string, body: string, frontmatter = LEGACY_FRONTMATTER): void {
+    fs.writeFileSync(post, `---\n${frontmatter}\n---\n${body}\n`);
+  }
+
+  function seedLegacyGlossaryPost(
+    body: string,
+    { frontmatter = LEGACY_FRONTMATTER, glossary = [CODEX, THREAD, KUBERNETES] } = {}
+  ) {
+    const repo = makeFakeRepo();
+    seedLinkMaintenanceRepo(repo);
+    writeGlossary(repo, glossary);
+    const post = path.join(repo, 'src', 'content', 'posts', 'mp-212-legacy-glossary.mdx');
+    writeLegacyPost(post, body, frontmatter);
+    commitAll(repo, 'base legacy post without scores');
+    return { repo, post };
+  }
+
+  function commitThroughHook(repo: string) {
+    const head = () => execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf-8' }).trim();
+    execSync('git add -A', { cwd: repo });
+    const before = head();
+    const r = spawnSync(
+      'git',
+      ['-c', 'core.hooksPath=.githooks', 'commit', '-q', '-m', 'glossary link maintenance'],
+      { cwd: repo, env: makeScoreGateProbeEnv(), encoding: 'utf-8' }
+    );
+    return { status: r.status, output: r.stdout + r.stderr, committed: head() !== before };
+  }
+
+  function expectCommitted(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status, r.output).toBe(0);
+    expect(r.committed).toBe(true);
+    expect(r.output).not.toContain('score-check-sentinel');
+  }
+
+  function expectGated(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status).not.toBe(0);
+    expect(r.committed).toBe(false);
+    expect(r.output).toContain('SCORE GATE FAILED');
+    expect(r.output).toContain('score-check-sentinel');
+  }
+
+  it('commits a new entry together with its backfilled link in a legacy post', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。', {
+      glossary: [CODEX, THREAD],
+    });
+    writeGlossary(repo, [CODEX, THREAD, KUBERNETES]);
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會把狀態拉回來。');
+
+    expectCommitted(commitThroughHook(repo));
+    expect(
+      execSync('git show HEAD:src/data/glossary.json', { cwd: repo, encoding: 'utf-8' })
+    ).toContain('"term": "Kubernetes"');
+  });
+
+  it('commits an anchor case fix that keeps the original link text', () => {
+    const { repo, post } = seedLegacyGlossaryPost('詳見 [glossary 有完整拆解](/glossary#Codex)。');
+    writeLegacyPost(post, '詳見 [glossary 有完整拆解](/glossary#codex)。');
+
+    expectCommitted(commitThroughHook(repo));
+  });
+
+  it('gates a backfill that also edits prose', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。');
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會自動把狀態拉回來。');
+
+    expectGated(commitThroughHook(repo));
+  });
+
+  it('gates a backfill that also edits frontmatter', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。');
+    writeLegacyPost(
+      post,
+      '[Kubernetes](/glossary#kubernetes) 會把狀態拉回來。',
+      `${LEGACY_FRONTMATTER}\ntitle: 偷改的標題`
+    );
+
+    expectGated(commitThroughHook(repo));
+  });
+
+  it.each([
+    ['a missing anchor', '[Kubernetes](/glossary#kube) 很穩，Thread 一直開著。'],
+    ['a case-mismatched anchor', '[Kubernetes](/glossary#Kubernetes) 很穩，Thread 一直開著。'],
+    ['the English glossary path', '[Kubernetes](/en/glossary#kubernetes) 很穩，Thread 一直開著。'],
+    ['an entry with linking disabled', 'Kubernetes 很穩，[Thread](/glossary#thread) 一直開著。'],
+  ])('gates %s even beside a valid internal post link', (_name, line) => {
+    const { repo, post } = seedLegacyGlossaryPost(
+      `Kubernetes 很穩，Thread 一直開著。\n延伸閱讀：${OLD_POST_LINK}`
+    );
+    writeLegacyPost(post, `${line}\n延伸閱讀：${NEW_POST_LINK}`);
+
+    expectGated(commitThroughHook(repo));
+  });
+
+  it.each([
+    [
+      'a fenced code block',
+      '```bash\nkubectl get pods # Kubernetes\n```',
+      '```bash\nkubectl get pods # [Kubernetes](/glossary#kubernetes)\n```',
+    ],
+    ['inline code', '執行 `Kubernetes` 指令。', '執行 `[Kubernetes](/glossary#kubernetes)` 指令。'],
+    [
+      'a JSX attribute',
+      '<Figure caption="Kubernetes 架構" />',
+      '<Figure caption="[Kubernetes](/glossary#kubernetes) 架構" />',
+    ],
+  ])('gates a new link inside %s', (_name, before, after) => {
+    const { repo, post } = seedLegacyGlossaryPost(before);
+    writeLegacyPost(post, after);
+
+    expectGated(commitThroughHook(repo));
+  });
+
+  it('gates a new link inside frontmatter', () => {
+    const { repo, post } = seedLegacyGlossaryPost('正文沒變。', {
+      frontmatter: `${LEGACY_FRONTMATTER}\nsummary: Kubernetes 入門`,
+    });
+    writeLegacyPost(
+      post,
+      '正文沒變。',
+      `${LEGACY_FRONTMATTER}\nsummary: "[Kubernetes](/glossary#kubernetes) 入門"`
+    );
+
+    expectGated(commitThroughHook(repo));
+  });
+
+  it('gates a new link whose text is not how the checker writes the term', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 的細節看這裡。');
+    writeLegacyPost(post, 'Kubernetes 的細節看[這裡](/glossary#kubernetes)。');
+
+    expectGated(commitThroughHook(repo));
+  });
+});
+
 describe('pre-commit: every staged post goes through the source-distance stamp check', () => {
   // 只改站內連結的 GP 會被 content gate 放過（不跑 validate-posts），但連結文字可能在
   // 投影裡，所以驗章要另外跑、而且擋得住（openspec source-distance-stamp）。
