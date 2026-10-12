@@ -77,7 +77,7 @@
   - `--file <GP 檔> --from-step ralph`，工作目錄的 `final.mdx` 是 Lv。
 - [x] 5.2 `credits` 改成對 `--file` 與實際蓋章的檔各跑一次 `IsLvFile`，跟 `review`、`refine` 的寫法一致；`IsLvPost` 沒有外部呼叫者之後改成不 export。Go 測試補「`--file` 是 Lv 的 `final.mdx`、`--work-dir` 裡是 GP 的 `final.mdx`」：exit 1、兩個檔都不變
 
-- [ ] 5.3 `write` 與 `refine` 呼叫寫手前先移開工作目錄裡既有的 `draft-v1.mdx`／`final.mdx`，寫手失敗而沒有寫出檔案時放回原檔，做法跟 `refineFrom` 現在一樣（規則見 design §7）；搬進 `runRefine` 之後，`refineFrom` 自己的移開與放回如果重複就拿掉。Go 測試在 package 內涵蓋：
+- [x] 5.3 `write` 與 `refine` 呼叫寫手前先移開工作目錄裡既有的 `draft-v1.mdx`／`final.mdx`，寫手失敗而沒有寫出檔案時放回原檔，做法跟 `refineFrom` 現在一樣（規則見 design §7）；搬進 `runRefine` 之後，`refineFrom` 自己的移開與放回如果重複就拿掉。Go 測試在 package 內涵蓋：
   - `write`、`refine` 各一：工作目錄有舊檔、寫手只回 stdout，跑完的檔是這次的 stdout（對應「寫手只用 stdout 回覆」）；
   - `write`、`refine` 各一：工作目錄有舊檔、寫手失敗，跑完的檔維持原本內容（對應「寫手失敗」）；
   - MP、工作目錄有舊的 Lv `final.mdx`、寫手只回 stdout：Refine 之後 `final.mdx` 不是 Lv；
