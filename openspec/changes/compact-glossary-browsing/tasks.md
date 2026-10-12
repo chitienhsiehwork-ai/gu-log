@@ -83,6 +83,14 @@
 - [x] 8.3 證明的核心（`stripLinks`、`isLinkableOccurrence`、`isLinkOnlyChange`）搬進 `scripts/check-glossary-links.mjs`，`missingGlossaryLinks` 的候選位置改用 `isLinkOnlyChange` 判斷（取代只比結構）；`scripts/lib/link-only-proof.mjs` 只留站內文章連結的驗證。補「glossary 連結夾在網址或 email 中間」（例如 `Kubernetes.[Agent](/glossary#agent)@x.io`）的一致性測試。
 - [x] 8.4 只剩站內文章連結驗證的 `scripts/lib/link-only-proof.mjs` 改名為 `scripts/lib/post-link-validator.mjs`，免得之後有人去這個檔找證明；兩個 import 跟著改。
 
+## 9. 階段 6 第三輪審查修正
+
+- [ ] 9.1 簡化與補洞（規則見 design §8）：
+  - 刪掉 `visibleNeighbors`（連同 `LINK_ENDING_HERE`、`LINK_STARTING_HERE`），`findSafeOccurrences` 直接看前後一個字元。每個候選都會進證明，證明在 glossary 連結換回文字後判斷字界，這段已經沒有作用；
+  - `remark` 那組 parser 改成第一次做結構比對時才載入，用不到結構比對的檢查（例如 canonical 詞的檢查）不必付載入成本；
+  - 圖片的說明文字一律不放連結，`![…][…]` 這種 reference 形式也算；
+  - 測試：刪掉 `tests/glossary-links.test.ts` 直接斷言 `findSafeOccurrences` 的那行，`buildUnsafeMask`、`findSafeOccurrences` 改回內部；刪掉 `tests/link-only-proof.test.ts` 重複的案例；補「`![Kubernetes 架構圖][img]` 裡不放連結，改要求下一處」。
+
 ## Workflow follow-up
 
 - 依 `.agents/openspec-sdlc.md` 走階段 6 雙審（正確性錨 spec scenario、簡潔度錨 over-engineering）。
