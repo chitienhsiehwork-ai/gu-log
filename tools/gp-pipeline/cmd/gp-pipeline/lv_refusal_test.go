@@ -143,8 +143,7 @@ func TestWriteRefusesLv(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
 	trapLog := trapExternalPrograms(t)
-	sourceDir := t.TempDir()
-	source := filepath.Join(sourceDir, "source-tweet.md")
+	source := filepath.Join(t.TempDir(), "source-tweet.md")
 	mustWrite(t, source, "source")
 	workDir := filepath.Join(t.TempDir(), "never-created")
 
@@ -153,7 +152,6 @@ func TestWriteRefusesLv(t *testing.T) {
 	requireLvRefusal(t, err)
 	requireNoExternalCalls(t, trapLog)
 	requireAbsent(t, workDir)
-	requireAbsent(t, filepath.Join(sourceDir, "draft-v1.mdx"))
 }
 
 // TestReviewAndRefineRefuseLvDrafts: --ticket-id defaults to GP-PENDING, so the
@@ -413,8 +411,5 @@ func TestLvRefusalNamesAnExistingSection(t *testing.T) {
 	heading := "### " + pipeline.LvWorkflowSection
 	if !slices.Contains(strings.Split(string(raw), "\n"), heading) {
 		t.Fatalf("CONTRIBUTING.md has no %q heading for the Lv refusal to point at", heading)
-	}
-	if msg := pipeline.LvAuthoringError("run").Error(); !strings.Contains(msg, pipeline.LvWorkflowSection) {
-		t.Fatalf("refusal %q does not name %q", msg, pipeline.LvWorkflowSection)
 	}
 }

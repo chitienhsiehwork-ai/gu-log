@@ -484,12 +484,8 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	root := makeFakeRepo(t)
 	source := filepath.Join(root, "source-tweet.md")
 	mustWrite(t, source, "source")
-	trapDir := t.TempDir()
-	for _, name := range []string{"bash", "curl", "yt-dlp", "python3", "node", "codex", "claude", "git", "pnpm"} {
-		writeExecutableFile(t, filepath.Join(trapDir, name), "#!/bin/sh\nprintf '%s\\n' \"$0 $*\" >> \"$GP_INGRESS_TRAP_LOG\"\nexit 99\n")
-	}
 	t.Setenv("GU_LOG_DIR", root)
-	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	trapLog := trapExternalPrograms(t)
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
 	// Writing commands offer only the series the pipeline writes; the counter
@@ -507,8 +503,6 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resetGlobals()
-			trapLog := filepath.Join(t.TempDir(), "trap.log")
-			t.Setenv("GP_INGRESS_TRAP_LOG", trapLog)
 			counterBefore, err := os.ReadFile(counterFile)
 			if err != nil {
 				t.Fatal(err)
@@ -533,9 +527,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
 				t.Fatalf("missing --prefix created the work dir: %v", statErr)
 			}
-			if raw, readErr := os.ReadFile(trapLog); readErr == nil {
-				t.Fatalf("missing --prefix ran external programs:\n%s", raw)
-			}
+			requireNoExternalCalls(t, trapLog)
 			if counterAfter, err := os.ReadFile(counterFile); err != nil || !bytes.Equal(counterAfter, counterBefore) {
 				t.Fatalf("missing --prefix changed the counter: %v", err)
 			}
@@ -759,22 +751,14 @@ func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 
 // TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
 // series only changes whether Tribunal may rewrite (GP is score-only), and en-
-// sidecars must resolve instead of failing. Lv, by lv- or the existing levelup-
-// filename, is refused before Tribunal runs: it is written by hand
-// (openspec gp-pipeline-publish-integrity).
+// sidecars must resolve instead of failing. The Lv refusal is covered in
+// lv_refusal_test.go.
 func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
-	const (
-		scoreOnly = "score-only"
-		rewrite   = "rewrite"
-		refused   = "refused"
-	)
-	for filename, want := range map[string]string{
-		"gp-10-example.mdx":                      scoreOnly,
-		"mp-20-example.mdx":                      rewrite,
-		"sd-30-example.mdx":                      rewrite,
-		"en-sd-30-example.mdx":                   rewrite,
-		"lv-40-example.mdx":                      refused,
-		"levelup-20260701-core-dump-anatomy.mdx": refused,
+	for filename, wantNoRewrite := range map[string]bool{
+		"gp-10-example.mdx":    true,
+		"mp-20-example.mdx":    false,
+		"sd-30-example.mdx":    false,
+		"en-sd-30-example.mdx": false,
 	} {
 		t.Run(filename, func(t *testing.T) {
 			resetGlobals()
@@ -783,8 +767,7 @@ func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 			if err := os.MkdirAll(postsDir, 0o755); err != nil {
 				t.Fatal(err)
 			}
-			const original = "---\ntitle: \"Example\"\nlang: zh-tw\n---\nbody\n"
-			mustWrite(t, filepath.Join(postsDir, filename), original)
+			mustWrite(t, filepath.Join(postsDir, filename), "---\ntitle: \"Example\"\nlang: zh-tw\n---\nbody\n")
 			mustWrite(t, filepath.Join(root, "scripts", "tribunal.sh"), "printf 'tribunal args: %s\\n' \"$*\"\n")
 			for _, fixer := range []string{"add-kaomoji.mjs", "apply-glossary-links.mjs", "inject-related-posts.mjs"} {
 				mustWrite(t, filepath.Join(root, "scripts", fixer), "")
@@ -794,25 +777,11 @@ func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 			workDir := t.TempDir()
 			cmd := buildRoot()
 			cmd.SetArgs([]string{"--json", "ralph", "--file", filename, "--work-dir", workDir})
-			_, err := captureProcessStdout(t, func() error {
+			if _, err := captureProcessStdout(t, func() error {
 				return cmd.ExecuteContext(context.Background())
-			})
-			if want == refused {
-				if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "CONTRIBUTING.md") {
-					t.Fatalf("error = %v (exit %d), want the exit-1 Lv refusal pointing to CONTRIBUTING.md", err, exitCodeFor(err))
-				}
-				if _, statErr := os.Stat(filepath.Join(workDir, "tribunal-stdout.txt")); !os.IsNotExist(statErr) {
-					t.Fatalf("tribunal.sh ran for an Lv post: %v", statErr)
-				}
-				if got, readErr := os.ReadFile(filepath.Join(postsDir, filename)); readErr != nil || string(got) != original {
-					t.Fatalf("ralph changed the Lv post: %q, %v", got, readErr)
-				}
-				return
-			}
-			if err != nil {
+			}); err != nil {
 				t.Fatalf("ralph --file %s: %v", filename, err)
 			}
-			wantNoRewrite := want == scoreOnly
 			args, err := os.ReadFile(filepath.Join(workDir, "tribunal-stdout.txt"))
 			if err != nil {
 				t.Fatal(err)
