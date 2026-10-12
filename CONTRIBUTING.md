@@ -476,16 +476,17 @@ user 要把 URL 寫成 GP 時，照上面的流程跑 `--prefix GP`。系列依 
 
 ### 新增入門教學（Lv）
 
-Lv 是原創入門教學：從零教一個概念，或一步一步拆解一篇難讀的來源。系列身份與兩種 mode 以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準。Lv 的正文一律手寫，不走 gp-pipeline：`run`、`write`、`review`、`refine`、`ralph`、`credits` 遇到 Lv 都會以 exit 1 擋下。
+Lv 是原創入門教學，系列身份與兩種 mode 以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準。Lv 的正文不走 gp-pipeline 的寫作步驟；pipeline 哪些步驟會擋 Lv、哪些還能用，見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)〈Lv 只用非寫作步驟〉。
 
-1. 依 `editorial-charter` 決定 mode：從零教概念是 `Lv-original`；拆一篇特定的長文或難文是 `Lv-guided-reading`。有來源就先抓完整原文；兩種 mode 都要做 overlap evaluation 與 dedup（`gp-pipeline fetch`、`eval`、`dedup --series Lv` 都能用）
-2. 先讀兩三篇近期的 Lv 當範本，對照骨架、元件與節奏，例如 `lv-18-20261011-livingdevops-kubernetes.mdx`（guided-reading）、`levelup-20260608-12-llm-internals.mdx`（guided-reading）、`levelup-20260701-core-dump-anatomy.mdx`（original）
-3. 動筆前先寫設計稿：分幾層、每層回答什麼問題、哪個比喻貫穿全篇、每層考什麼、魔王關怎麼把前面串起來，可以對照下面的〈Lv 常見骨架〉
-4. 正文交給固定版本的寫手，不要由當下 session 的模型自己寫。怎麼呼叫寫手，照各 runtime 的 playbook：CCC 看 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)〈文章寫作 SOP（省 token 版）〉；本機看 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md)〈SD 原創文：正文用 Claude 模型，Codex 只編排〉，Lv 也照那套 brief 與寫手流程
-5. 跑確定性檢查：`scripts/validate-posts.mjs`、`check-jingjing.mjs`、`check-pronoun-clarity.mjs`（pre-commit 也會再擋一次），有問題先修完再進 Tribunal
-6. 用 `scripts/tribunal.sh` 跑 Tribunal，跑法見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)；不要用 `gp-pipeline ralph`
-7. 繁中通過後，用 `tools/gp-pipeline/gp-pipeline translate --file <繁中檔名>` 產英文版
-8. 照〈編號分配：PENDING ticket pattern（預設流程）〉配號（`node scripts/allocate-ticket.mjs`，或 standalone `gp-pipeline deploy --active-file <lv-pending 檔>`），再 validate、build、發布
+1. 依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`；`Lv-guided-reading` 依 charter 規定，開頭一定要 cite 來源
+2. 有來源就先抓完整原文；不論有沒有來源，都要做 overlap evaluation 與 dedup（`gp-pipeline fetch`、`eval`、`dedup --series Lv` 都能用）
+3. 先讀兩三篇近期的 Lv 當範本，對照骨架、元件與節奏，例如 `lv-18-20261011-livingdevops-kubernetes.mdx`（guided-reading）、`levelup-20260608-12-llm-internals.mdx`（guided-reading）、`levelup-20260701-core-dump-anatomy.mdx`（original）
+4. 動筆前先寫設計稿：分幾層、每層回答什麼問題、哪個比喻貫穿全篇、每層考什麼、魔王關怎麼把前面串起來，可以對照下面的〈Lv 常見骨架〉
+5. 正文交給固定版本的寫手，不要由當下 session 的模型自己寫。怎麼呼叫寫手，照各 runtime 的 playbook：CCC 看 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)〈文章寫作 SOP（省 token 版）〉；本機看 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md)〈SD 原創文：正文用 Claude 模型，Codex 只編排〉，Lv 也照那套 brief 與寫手流程
+6. 跑確定性檢查：`scripts/validate-posts.mjs`、`check-jingjing.mjs`、`check-pronoun-clarity.mjs`（pre-commit 也會再擋一次），有問題先修完再進 Tribunal
+7. 用 `scripts/tribunal.sh` 跑 Tribunal，跑法見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)；不要用 `gp-pipeline ralph`
+8. 繁中通過後，用 `tools/gp-pipeline/gp-pipeline translate --file <繁中檔名>` 產英文版
+9. 照〈編號分配：PENDING ticket pattern（預設流程）〉配號，再 validate、build、發布
 
 #### Lv 常見骨架
 
@@ -497,7 +498,6 @@ Lv 是原創入門教學：從零教一個概念，或一步一步拆解一篇�
 - 通常每層一題 `LevelUpQuiz`；`explanation` 會原樣顯示，只能寫純文字，不要放 Markdown 或 HTML
 - 比喻的關鍵對照放進 `AnalogyBox`；流程或架構用文字講不清楚時，可以加 `Mermaid`
 - 最後的魔王關把前面每一層串起來
-- `Lv-guided-reading` 在開頭就 cite 來源
 
 ### gp-pipeline（自動寫作流程）
 
