@@ -90,7 +90,14 @@ function setOpen(entry: HTMLElement, open: boolean) {
 // 頁內錨點的目標：詞條或字母段落。
 function targetForHash(hash: string) {
   if (!hash || hash === '#') return null;
-  const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+  let id = hash.slice(1);
+  try {
+    id = decodeURIComponent(id);
+  } catch {
+    // 格式壞掉的錨點（例如 #100%、#%E5）解碼會丟 URIError；改用原字串找，找不到就是沒有目標，
+    // 不能讓它中斷後面建立按鈕的初始化。
+  }
+  const target = document.getElementById(id);
   return target && list?.contains(target) ? target : null;
 }
 

@@ -168,6 +168,21 @@ test.describe('compact entries expand in place', () => {
     // 原本展開的詞條不會因為錨點換掉就收起來。
     await expect(page.locator('#andrej-karpathy .mogu-note')).toBeVisible();
   });
+
+  test('a malformed URL anchor does not stop the page script', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+
+    for (const url of ['/glossary#100%', '/glossary#%E5']) {
+      await page.goto(url);
+      await expect(page.locator('#agent button.entry-toggle')).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+      await expect(page.getByRole('button', { name: '複製「Agent」的連結' })).toBeVisible();
+    }
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('without JavaScript', () => {
