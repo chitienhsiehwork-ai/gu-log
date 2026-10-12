@@ -54,6 +54,16 @@ func runRalph(ctx context.Context, state *rootState, filename, workDir string) e
 	if err != nil {
 		return fmt.Errorf("ralph: --file: %w", err)
 	}
+	// ralph would run the post-fixers, allow Tribunal rewrites, and stamp the
+	// pipeline credits: refuse an Lv post (by filename or ticketId) first. A
+	// missing post is left to Ralph's own error.
+	post, err := os.ReadFile(filepath.Join(state.cfg.PostsDir, filename))
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("ralph: read --file: %w", err)
+	}
+	if pipeline.IsLvPost(filename, post) {
+		return pipeline.LvAuthoringError("ralph")
+	}
 
 	if workDir == "" {
 		workDir = filepath.Join(state.cfg.RepoRoot, "tmp", fmt.Sprintf("gp-ralph-%d", time.Now().Unix()))

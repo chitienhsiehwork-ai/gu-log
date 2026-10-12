@@ -52,18 +52,36 @@ pipeline runs ` + "`codex exec`" + ` in (cd $WORK_DIR && …).`,
 	return cmd
 }
 
+// draftIngress is the shared ingress of review and refine. The --ticket-id
+// series picks the prompt; an Lv ticket, or an Lv draft whatever --ticket-id
+// says (it defaults to GP-PENDING), is refused before any work dir or model.
+func draftIngress(command, draftPath, ticketID string) (prefix, absDraft string, err error) {
+	prefix, err = counter.PrefixOfTicketID(ticketID)
+	if err != nil {
+		return "", "", err
+	}
+	if !pipeline.IsAuthorable(prefix) {
+		return "", "", pipeline.LvAuthoringError(command)
+	}
+	absDraft, err = filepath.Abs(draftPath)
+	if err != nil {
+		return "", "", err
+	}
+	draft, err := os.ReadFile(absDraft)
+	if err != nil {
+		return "", "", fmt.Errorf("%s: draft not found at %s", command, absDraft)
+	}
+	if pipeline.IsLvPost(filepath.Base(absDraft), draft) {
+		return "", "", pipeline.LvAuthoringError(command)
+	}
+	return prefix, absDraft, nil
+}
+
 func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticketID string) error {
 	start := time.Now()
-	prefix, err := counter.PrefixOfTicketID(ticketID)
+	prefix, absDraft, err := draftIngress("review", draftPath, ticketID)
 	if err != nil {
 		return err
-	}
-	absDraft, err := filepath.Abs(draftPath)
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(absDraft); err != nil {
-		return fmt.Errorf("review: draft not found at %s", absDraft)
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(absDraft)

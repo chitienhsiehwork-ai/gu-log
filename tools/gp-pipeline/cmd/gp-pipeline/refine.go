@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
@@ -55,16 +54,9 @@ contents — the LLM reads them from --work-dir.`,
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	prefix, err := counter.PrefixOfTicketID(ticketID)
+	prefix, absDraft, err := draftIngress("refine", draftPath, ticketID)
 	if err != nil {
 		return err
-	}
-	absDraft, err := filepath.Abs(draftPath)
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(absDraft); err != nil {
-		return fmt.Errorf("refine: draft not found at %s", absDraft)
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(absDraft)

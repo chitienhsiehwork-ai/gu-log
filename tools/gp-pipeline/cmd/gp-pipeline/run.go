@@ -209,6 +209,12 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		}
 		fromStepInt = v
 	}
+	// The pipeline does not write Lv: an Lv run may only resume at translate
+	// or deploy, and the refusal comes before the yt-dlp preflight and the
+	// work dir.
+	if !pipeline.IsAuthorable(opts.Prefix) && fromStepInt < pipeline.StepTranslate {
+		return pipeline.LvAuthoringError("run")
+	}
 	if fromStepInt == pipeline.StepSourceDistance && opts.Prefix != "GP" {
 		return fmt.Errorf("run: --from-step source-distance only applies to GP; %s has no source-distance step", opts.Prefix)
 	}

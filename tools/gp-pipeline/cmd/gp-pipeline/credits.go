@@ -47,8 +47,13 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(abs); err != nil {
+	data, err := os.ReadFile(abs)
+	if err != nil {
 		return fmt.Errorf("credits: file not found: %s", abs)
+	}
+	// Lv carries no pipeline credits: it is written by hand.
+	if pipeline.IsLvPost(filepath.Base(abs), data) {
+		return pipeline.LvAuthoringError("credits")
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(abs)
@@ -60,10 +65,6 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if filepath.Base(abs) != "final.mdx" {
 		scratchWorkDir = filepath.Join(os.TempDir(), fmt.Sprintf("credits-scratch-%d", os.Getpid()))
 		if err := os.MkdirAll(scratchWorkDir, 0o755); err != nil {
-			return err
-		}
-		data, err := os.ReadFile(abs)
-		if err != nil {
 			return err
 		}
 		if err := os.WriteFile(filepath.Join(scratchWorkDir, "final.mdx"), data, 0o644); err != nil {

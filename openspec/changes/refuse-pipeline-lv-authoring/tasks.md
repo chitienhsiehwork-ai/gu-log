@@ -4,7 +4,7 @@
 
 ## 1. Go CLI 擋下 Lv 寫作
 
-- [ ] 1.1 新增三樣共用的東西：判斷「pipeline 能撰寫的系列」（GP、MP、SD）、判斷「目標檔是不是 Lv」（檔名系列含 `levelup-`、`en-`，或 frontmatter 的 `ticketId`），以及單一的拒絕錯誤（exit 1；訊息說明 pipeline 不撰寫 Lv、指向 `CONTRIBUTING.md` 的 Lv 寫作流程、列出 Lv 仍可用的步驟）。接到六個入口，位置都在任何副作用之前：
+- [x] 1.1 新增三樣共用的東西：判斷「pipeline 能撰寫的系列」（GP、MP、SD）、判斷「目標檔是不是 Lv」（檔名系列含 `levelup-`、`en-`，或 frontmatter 的 `ticketId`），以及單一的拒絕錯誤（exit 1；訊息說明 pipeline 不撰寫 Lv、指向 `CONTRIBUTING.md` 的 Lv 寫作流程、列出 Lv 仍可用的步驟）。接到六個入口，位置都在任何副作用之前：
   - `run`：系列與 `--from-step` 一解析完就檢查（系列是 Lv 且起點早於 `translate`，含沒指定起點），排在 yt-dlp preflight 與建立工作目錄之前；
   - `write`：`--prefix` 驗證之後、`MkdirAll` 之前；
   - `review`、`refine`：從 `--ticket-id` 推出系列之後檢查，再讀草稿 frontmatter 的 `ticketId`，是 Lv 也拒絕，兩者都在碰工作目錄與模型之前；
