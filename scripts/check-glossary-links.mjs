@@ -3,10 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { isDeepStrictEqual } from 'node:util';
-import remarkGfm from 'remark-gfm';
-import remarkMdx from 'remark-mdx';
-import remarkParse from 'remark-parse';
-import { unified } from 'unified';
+import { createRequire } from 'node:module';
 import { isScalar, isSeq, parseDocument } from 'yaml';
 import { glossaryAnchor } from '../src/lib/glossary-anchor.mjs';
 
@@ -583,7 +580,18 @@ const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
 // An internal post link's href.
 const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 
-const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
+// Loaded on first use: only the structure comparison needs the parser, and many runs never get
+// there (the canonical-term check never does; a prose edit fails the text comparison first).
+const require = createRequire(import.meta.url);
+let markdown;
+function markdownParser() {
+  markdown ??= require('unified')
+    .unified()
+    .use(require('remark-parse').default)
+    .use(require('remark-mdx').default)
+    .use(require('remark-gfm').default);
+  return markdown;
+}
 
 // The mdast a reader gets, with links the proof has dealt with taken out: a glossary link
 // becomes its children, an internal post link one placeholder node. Adjacent text merges,
@@ -628,10 +636,12 @@ function readerTree(value) {
  * proof's last step. Only the body is parsed; a body that does not parse proves nothing.
  */
 function hasSameReaderStructure(before, after) {
+  // Outside the try: a parser that cannot load is an error, not a difference.
+  const parser = markdownParser();
   try {
     return isDeepStrictEqual(
-      readerTree(markdown.parse(parseFrontmatter(before).body)),
-      readerTree(markdown.parse(parseFrontmatter(after).body))
+      readerTree(parser.parse(parseFrontmatter(before).body)),
+      readerTree(parser.parse(parseFrontmatter(after).body))
     );
   } catch {
     return false;
