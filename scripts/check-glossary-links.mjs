@@ -152,21 +152,224 @@ function maskRegex(content, mask, re) {
   while ((match = re.exec(content))) markRange(mask, match.index, match.index + match[0].length);
 }
 
-export function buildUnsafeMask(content) {
-  const mask = new Array(content.length).fill(false);
+function frontmatterEnd(content) {
+  if (!content.startsWith('---\n')) return 0;
+  const end = content.indexOf('\n---', 4);
+  if (end < 0) return 0;
+  const after = content.indexOf('\n', end + 4);
+  return after >= 0 ? after + 1 : content.length;
+}
 
-  if (content.startsWith('---\n')) {
-    const end = content.indexOf('\n---', 4);
-    if (end >= 0) {
-      const after = content.indexOf('\n', end + 4);
-      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
+function isEscaped(content, index) {
+  let backslashes = 0;
+  while (content[index - 1 - backslashes] === '\\') backslashes += 1;
+  return backslashes % 2 === 1;
+}
+
+function isBlankLineAt(content, lineStart) {
+  const lineEnd = content.indexOf('\n', lineStart);
+  return /^[ \t]*$/.test(content.slice(lineStart, lineEnd < 0 ? content.length : lineEnd));
+}
+
+// A fence closes only with the same character at least as long as the opener, so a longer
+// outer fence can wrap shorter ones; an unclosed fence runs to the end of the file.
+// Indentation is not limited because list items indent their fences.
+function fencedCodeRanges(content, from) {
+  const ranges = [];
+  let open = null;
+  let offset = from;
+  for (const line of content.slice(from).split('\n')) {
+    const fence = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line);
+    if (!open) {
+      // A backtick fence's info string can't hold a backtick; such a line is inline code.
+      if (fence && !(fence[1][0] === '`' && fence[2].includes('`'))) {
+        open = { start: offset, char: fence[1][0], length: fence[1].length };
+      }
+    } else if (
+      fence &&
+      fence[1][0] === open.char &&
+      fence[1].length >= open.length &&
+      /^[ \t]*$/.test(fence[2])
+    ) {
+      ranges.push({ start: open.start, end: offset + line.length });
+      open = null;
+    }
+    offset += line.length + 1;
+  }
+  if (open) ranges.push({ start: open.start, end: content.length });
+  return ranges;
+}
+
+// End of the inline code span opening at `start`: the next backtick run of the same length
+// in the same paragraph, or -1 when there is none and the backticks are plain text.
+function codeSpanEnd(content, start, mask) {
+  let i = start;
+  while (content[i] === '`') i += 1;
+  const length = i - start;
+  while (i < content.length && !mask[i]) {
+    if (content[i] === '`') {
+      const run = i;
+      while (content[i] === '`') i += 1;
+      if (i - run === length) return i;
+    } else {
+      if (content[i] === '\n' && isBlankLineAt(content, i + 1)) return -1;
+      i += 1;
     }
   }
+  return -1;
+}
 
-  maskRegex(content, mask, /```[\s\S]*?```/g);
-  maskRegex(content, mask, /`[^`\n]+`/g);
-  maskRegex(content, mask, /!?\[[^\]\n]*\]\([^)\n]+\)/g);
-  maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
+// Index of the quote closing the JavaScript string that opens at `start`. A quote that never
+// closes (for ' and ", not on its own line: an apostrophe in JSX text) starts no string, so
+// `start` comes back and the quote reads as a plain character.
+function stringEnd(content, start, multiline) {
+  const quote = content[start];
+  for (let i = start + 1; i < content.length; i += 1) {
+    if (content[i] === quote) return i;
+    if (content[i] === '\\') i += 1;
+    else if (content[i] === '\n' && !multiline) break;
+  }
+  return start;
+}
+
+// End of the MDX expression `{…}` opening at `start`, or -1: braces balance outside
+// JavaScript strings and comments.
+function expressionEnd(content, start) {
+  let depth = 0;
+  for (let i = start; i < content.length; i += 1) {
+    const char = content[i];
+    if (char === '{') depth += 1;
+    else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    } else if (char === '/' && content[i + 1] === '*') {
+      i = content.indexOf('*/', i + 2);
+      if (i < 0) return -1;
+      i += 1;
+    } else if (char === '"' || char === "'" || char === '`') {
+      i = stringEnd(content, i, char === '`');
+    }
+  }
+  return -1;
+}
+
+// End of the JSX tag opening at `start` (`<div …>`, `</div>`, `<>`), or -1: attribute
+// strings and `{…}` values may hold `>` and span lines.
+function tagEnd(content, start) {
+  for (let i = start + 1; i < content.length; i += 1) {
+    const char = content[i];
+    if (char === '>') return i + 1;
+    if (char === '{') {
+      const end = expressionEnd(content, i);
+      if (end < 0) return -1;
+      i = end - 1;
+    } else if (char === '"' || char === "'") {
+      i = stringEnd(content, i, true);
+    }
+  }
+  return -1;
+}
+
+/**
+ * Frontmatter and code (fenced blocks and inline code spans), where link syntax is text.
+ * Inline code is read in source order together with MDX expressions and JSX tags, as the
+ * MDX parser does: whichever starts first wins, so a `{` inside code is text and a backtick
+ * inside `{…}` or an attribute is JavaScript. Those ranges come back too, so the other
+ * masks build on this one instead of scanning again.
+ */
+function frontmatterAndCodeMask(content) {
+  const mask = new Array(content.length).fill(false);
+  const bodyStart = frontmatterEnd(content);
+  markRange(mask, 0, bodyStart);
+  for (const fence of fencedCodeRanges(content, bodyStart)) markRange(mask, fence.start, fence.end);
+
+  const found = { code: [], expressions: [], tags: [] };
+  for (let i = bodyStart; i < content.length; i += 1) {
+    if (mask[i]) continue;
+    const char = content[i];
+    if (char === '\\') {
+      i += 1;
+      continue;
+    }
+    let kind = null;
+    let end = -1;
+    if (char === '`') [kind, end] = ['code', codeSpanEnd(content, i, mask)];
+    else if (char === '{') [kind, end] = ['expressions', expressionEnd(content, i)];
+    else if (char === '<' && /[A-Za-z/>]/.test(content[i + 1] ?? '')) {
+      [kind, end] = ['tags', tagEnd(content, i)];
+    }
+    if (end > i) {
+      found[kind].push({ start: i, end });
+      i = end - 1;
+    } else {
+      // A backtick run with no closing run is text as a whole.
+      while (char === '`' && content[i + 1] === '`') i += 1;
+    }
+  }
+  for (const span of found.code) markRange(mask, span.start, span.end);
+  return { mask, expressions: found.expressions, tags: found.tags };
+}
+
+function closingBracket(content, open, mask) {
+  let depth = 0;
+  for (let i = open; i < content.length; i += 1) {
+    const char = content[i];
+    if (mask[i]) continue;
+    if (char === '\n' && isBlankLineAt(content, i + 1)) return -1;
+    if ((char !== '[' && char !== ']') || isEscaped(content, i)) continue;
+    depth += char === '[' ? 1 : -1;
+    if (depth === 0) return i;
+  }
+  return -1;
+}
+
+function closingParen(content, open) {
+  let depth = 0;
+  for (let i = open; i < content.length && content[i] !== '\n'; i += 1) {
+    if (content[i] === '\\') i += 1;
+    else if (content[i] === '(') depth += 1;
+    else if (content[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return -1;
+}
+
+// Links and images, text and destination both: a link inside another link's text does not
+// render. The text may wrap onto the next line, but not past a blank line.
+function linkRanges(content, mask) {
+  const ranges = [];
+  for (let i = 0; i < content.length; i += 1) {
+    if (content[i] !== '[' || mask[i] || isEscaped(content, i)) continue;
+    const close = closingBracket(content, i, mask);
+    const end = close >= 0 && content[close + 1] === '(' ? closingParen(content, close + 1) : -1;
+    if (end < 0) continue;
+    ranges.push({ start: content[i - 1] === '!' ? i - 1 : i, end });
+    i = end - 1;
+  }
+  return ranges;
+}
+
+/**
+ * Where a glossary link must not go: frontmatter, code, MDX expressions, JSX tags and the
+ * text of other links (an `<a>` element's content included), autolinks, blockquotes,
+ * import/export lines and lines that open an MDX component. findSafeOccurrences adds the
+ * characters a link can't touch; together they are the one placement rule.
+ */
+export function buildUnsafeMask(content) {
+  const { mask, expressions, tags } = frontmatterAndCodeMask(content);
+  for (const range of [...expressions, ...tags]) markRange(mask, range.start, range.end);
+  for (const [index, tag] of tags.entries()) {
+    if (!/^<a[\s>]/.test(content.slice(tag.start, tag.end))) continue;
+    const close = tags
+      .slice(index + 1)
+      .find((other) => /^<\/a\s*>$/.test(content.slice(other.start, other.end)));
+    if (close) markRange(mask, tag.start, close.end);
+  }
+  for (const link of linkRanges(content, mask)) markRange(mask, link.start, link.end);
+  maskRegex(content, mask, /(?:https?:\/\/|www\.)[^\s)]+/g);
+  maskRegex(content, mask, /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g);
 
   const lines = content.split(/\n/);
   let offset = 0;
@@ -180,17 +383,11 @@ export function buildUnsafeMask(content) {
       inMdxComponent ||
       startsMdxComponent ||
       /^\s*>/.test(line) ||
-      /^\s*(import|export)\b/.test(line) ||
-      /^\s*<\/?[A-Z][^>]*>\s*$/.test(line)
+      /^\s*(import|export)\b/.test(line)
     ) {
       markRange(mask, offset, lineEnd);
       if (startsMdxComponent && !endsMdxComponent) inMdxComponent = true;
       if (inMdxComponent && endsMdxComponent) inMdxComponent = false;
-    } else {
-      let tagMatch;
-      const tagRe = /<\/?[A-Za-z][^>]*>/g;
-      while ((tagMatch = tagRe.exec(line)))
-        markRange(mask, offset + tagMatch.index, offset + tagMatch.index + tagMatch[0].length);
     }
     offset = lineEnd + 1;
   }
@@ -203,32 +400,11 @@ export function buildUnsafeMask(content) {
 // syntax is unsafe. Keep this mask separate so the long-standing link fixer does
 // not start mutating quotations or component bodies.
 export function buildCanonicalUnsafeMask(content) {
-  const mask = new Array(content.length).fill(false);
-  const expressions = mdxExpressionRanges(content);
-
-  if (content.startsWith('---\n')) {
-    const end = content.indexOf('\n---', 4);
-    if (end >= 0) {
-      const after = content.indexOf('\n', end + 4);
-      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
-    }
-  }
-
-  maskRegex(content, mask, /```[\s\S]*?```/g);
-  maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
-  const inlineCodeRe = /`[^`\n]+`/g;
-  let inlineCode;
-  while ((inlineCode = inlineCodeRe.exec(content))) {
-    const start = inlineCode.index;
-    const end = start + inlineCode[0].length;
-    if (expressions.some((range) => start >= range.start && end <= range.end)) continue;
-    markRange(mask, start, end);
-  }
+  const { mask, expressions, tags } = frontmatterAndCodeMask(content);
   maskRegex(content, mask, /<!--[\s\S]*?-->/g);
   // MDX expressions are code. Only a standalone string/template literal is
   // statically guaranteed to render as reader-visible prose; strings nested
-  // inside program logic remain syntax and stay masked.
-  maskRegex(content, mask, /\{\/\*[\s\S]*?\*\/\}/g);
+  // inside program logic (and `{/* comments */}`) remain syntax and stay masked.
   for (const expression of expressions) {
     const raw = content.slice(expression.start, expression.end);
     const visibleLiteral = raw.match(/^\{\s*(?:(['"])([\s\S]*?)\1|`([\s\S]*?)`)\s*\}$/);
@@ -245,7 +421,7 @@ export function buildCanonicalUnsafeMask(content) {
     markRange(mask, expression.start, expression.end);
     if (visibleRange) unmarkRange(mask, visibleRange.start, visibleRange.end);
   }
-  maskRegex(content, mask, /<[^>]*>/g);
+  for (const tag of tags) markRange(mask, tag.start, tag.end);
   maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
 
   const linkRe = /!?\[[^\]\n]*\]\(([^)\n]+)\)/g;
@@ -296,41 +472,6 @@ export function frontmatterReaderVisibleRanges(content) {
   return ranges;
 }
 
-function mdxExpressionRanges(content) {
-  const ranges = [];
-  for (let start = 0; start < content.length; start += 1) {
-    if (content[start] !== '{' || content.startsWith('{/*', start)) continue;
-    let depth = 1;
-    let quote = null;
-    let escaped = false;
-    for (let index = start + 1; index < content.length; index += 1) {
-      const char = content[index];
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (quote) {
-        if (char === '\\') escaped = true;
-        else if (char === quote) quote = null;
-        continue;
-      }
-      if (char === "'" || char === '"' || char === '`') {
-        quote = char;
-      } else if (char === '{') {
-        depth += 1;
-      } else if (char === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          ranges.push({ start, end: index + 1 });
-          start = index;
-          break;
-        }
-      }
-    }
-  }
-  return ranges;
-}
-
 function isBoundaryChar(ch) {
   return !ch || !/[\p{L}\p{N}_-]/u.test(ch);
 }
@@ -340,6 +481,18 @@ export function rangeIsSafe(mask, start, end) {
   return true;
 }
 
+// `*`, `_` or `~` next to the term are emphasis or strikethrough delimiters that the link
+// syntax would pull apart. Before the term, `\` would escape the `[` and `!` would turn the
+// link into an image.
+const GLUED_BEFORE = /[*_~\\!]/u;
+const GLUED_AFTER = /[*_~]/u;
+
+/**
+ * Occurrences of `matchText` a glossary link can wrap: the placement rule the checker, the
+ * fixer and the link-only proof share. Outside buildUnsafeMask, on word boundaries, and not
+ * touching the characters above. When the first occurrence can't take a link, the next one
+ * that can is first in the list.
+ */
 export function findSafeOccurrences(content, term, matchText, options = {}) {
   const mask = options.mask ?? buildUnsafeMask(content);
   const flags = term.caseSensitive ? 'g' : 'gi';
@@ -349,8 +502,11 @@ export function findSafeOccurrences(content, term, matchText, options = {}) {
   while ((match = re.exec(content))) {
     const start = match.index;
     const end = start + match[0].length;
+    const before = content[start - 1] ?? '';
+    const after = content[end] ?? '';
     if (!rangeIsSafe(mask, start, end)) continue;
-    if (!isBoundaryChar(content[start - 1]) || !isBoundaryChar(content[end])) continue;
+    if (!isBoundaryChar(before) || !isBoundaryChar(after)) continue;
+    if (GLUED_BEFORE.test(before) || GLUED_AFTER.test(after)) continue;
     const line = content.slice(0, start).split('\n').length;
     out.push({ start, end, text: match[0], line });
   }
@@ -448,21 +604,6 @@ export function resolveGlossaryLinkTarget(href, { english, glossary }) {
 // Glossary links as posts write them; captures the href, the /en prefix and the anchor.
 const POST_GLOSSARY_LINK = /\[[^\]\n]+\]\((\/(en\/)?glossary#([^)\n]*))\)/gu;
 
-// Link syntax inside frontmatter or code is text, not a link readers can follow.
-function frontmatterAndCodeMask(content) {
-  const mask = new Array(content.length).fill(false);
-  if (content.startsWith('---\n')) {
-    const end = content.indexOf('\n---', 4);
-    if (end >= 0) {
-      const after = content.indexOf('\n', end + 4);
-      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
-    }
-  }
-  maskRegex(content, mask, /```[\s\S]*?```/g);
-  maskRegex(content, mask, /`[^`\n]+`/g);
-  return mask;
-}
-
 /**
  * Glossary links that lead nowhere: the anchor must belong to some entry (entries with
  * automatic linking disabled still exist; case must match), and the path must follow
@@ -473,7 +614,7 @@ export function checkLinkTargets(content, options = {}) {
   const glossary = options.glossary ?? loadGlossary();
   const anchors = new Set(glossary.filter((entry) => entry?.term).map(glossaryAnchor));
   const english = isEnglishPost(filePath, parseFrontmatter(content).data);
-  const mask = frontmatterAndCodeMask(content);
+  const { mask } = frontmatterAndCodeMask(content);
   const violations = [];
   for (const match of content.matchAll(POST_GLOSSARY_LINK)) {
     if (mask[match.index]) continue;

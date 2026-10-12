@@ -225,6 +225,33 @@ describe('glossary link checker', () => {
     expect(result.violations).toEqual([]);
   });
 
+  // openspec〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉：檢查器不要求在不能放
+  // 連結的位置加連結，第一處不能放就改看下一處。
+  it.each([
+    ['inside a ~~~ code block', '~~~\nElixir in code\n~~~'],
+    ['inside a code block wrapped in a longer fence', '````md\n```\nElixir\n```\n````'],
+    ['inside inline code that wraps onto the next line', '用 `mix 跑\nElixir` 專案'],
+    ['inside an MDX expression', '看 {"Elixir"} 這段'],
+    ['inside a tag whose attributes span lines', '<div\n  title="Elixir"\n>\n內容\n</div>'],
+    ['inside the text of a link that wraps', '[看看\nElixir 文件](https://example.com)'],
+    ['on a term glued to bold', '這是**Elixir**的核心'],
+    ['on a term right after a backslash', '路徑是 C:\\Elixir 底下'],
+  ])('does not ask for a link %s', (_name, body) => {
+    const content = `---\nlang: zh-tw\n---\n${body}\n`;
+
+    expect(checker.checkContent(content, { filePath: 'post.mdx', glossary }).violations).toEqual(
+      []
+    );
+  });
+
+  it('asks for the next occurrence when the first one cannot take a link', () => {
+    const content = '---\nlang: zh-tw\n---\n這是**Elixir**的核心。\n後面 Elixir 再出現。\n';
+
+    expect(checker.checkContent(content, { filePath: 'post.mdx', glossary }).violations).toEqual([
+      expect.objectContaining({ kind: 'missing-link', term: 'Elixir', line: 5 }),
+    ]);
+  });
+
   it('does not use aliases as automatic matchers', () => {
     const file = tmpPath('alias.mdx');
     fs.writeFileSync(file, '---\nlang: zh-tw\n---\nPower Elixir 是另一個語境。\n');

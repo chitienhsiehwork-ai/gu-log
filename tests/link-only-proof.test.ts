@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import * as checkerModule from '../scripts/check-glossary-links.mjs';
+import * as fixerModule from '../scripts/apply-glossary-links.mjs';
 import * as proofModule from '../scripts/lib/link-only-proof.mjs';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const checker = checkerModule as any;
+const fixer = fixerModule as any;
 const proof = proofModule as any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -17,8 +21,10 @@ const glossary = [
 
 const LEGACY_FRONTMATTER = 'ticketId: "MP-212"\ntitle: "舊文"\nlang: "zh-tw"';
 const EN_FRONTMATTER = 'ticketId: "MP-212"\ntitle: "Old post"\nlang: "en"';
+const ZH_FILE = 'src/content/posts/mp-212-legacy.mdx';
 const POST_LABEL = 'MP-316: 目標文章';
 const POST_URL = '/posts/mp-316-target/';
+const K8S_LINK = '[Kubernetes](/glossary#kubernetes)';
 
 function post(body: string, frontmatter = LEGACY_FRONTMATTER): string {
   return `---\n${frontmatter}\n---\n\nimport MoguNote from '../../components/MoguNote.astro';\n\n${body}\n`;
@@ -30,10 +36,15 @@ function validatePostLink(label: string, href: string): void {
 
 function zhProof(before: string, after: string, beforeFrontmatter?: string): boolean {
   return proof.isLinkOnlyChange(post(before, beforeFrontmatter), post(after), {
-    filePath: 'src/content/posts/mp-212-legacy.mdx',
+    filePath: ZH_FILE,
     glossary,
     validatePostLink,
   });
+}
+
+// The edit the fixer would make at the first `Kubernetes`, whether or not it may.
+function wrapFirstKubernetes(body: string): string {
+  return body.replace('Kubernetes', K8S_LINK);
 }
 
 function enProof(before: string, after: string): boolean {
@@ -181,6 +192,17 @@ describe('link-only proof: links where the checker would never put one', () => {
     expect(zhProof(before, after)).toBe(false);
   });
 
+  // openspec〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉「其他寫法的 code 與 MDX 區塊」
+  it.each([
+    ['a ~~~ code block', '~~~yaml\nkind: Kubernetes\n~~~'],
+    ['a code block wrapped in a longer fence', '````md\n```yaml\nKubernetes\n```\n````'],
+    ['inline code that wraps onto the next line', '用 `kubectl 管\nKubernetes` 叢集'],
+    ['an MDX expression', '看 {"Kubernetes"} 這段'],
+    ['a tag whose attributes span lines', '<div\n  title="Kubernetes"\n>\n內容\n</div>'],
+  ])('rejects a new link inside %s', (_name, before) => {
+    expect(zhProof(before, wrapFirstKubernetes(before))).toBe(false);
+  });
+
   it('rejects a new link inside frontmatter', () => {
     expect(
       proof.isLinkOnlyChange(
@@ -189,13 +211,44 @@ describe('link-only proof: links where the checker would never put one', () => {
           '正文',
           'ticketId: "MP-212"\nsummary: "[Kubernetes](/glossary#kubernetes) 入門"\nlang: "zh-tw"'
         ),
-        { filePath: 'src/content/posts/mp-212-legacy.mdx', glossary, validatePostLink }
+        { filePath: ZH_FILE, glossary, validatePostLink }
       )
     ).toBe(false);
   });
 
   it('rejects unwrapping link syntax inside code', () => {
     expect(zhProof('範例：`[Agent](/glossary#agent)`', '範例：`Agent`')).toBe(false);
+  });
+});
+
+describe('link-only proof: links that change how the post renders', () => {
+  // openspec〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉
+  it.each([
+    ['splits the bold around it', '這是**Kubernetes**的核心'],
+    ['lands inside a link whose text wraps', '[看看\nKubernetes 文件](https://example.com)'],
+    ['follows a backslash', '路徑是 C:\\Kubernetes 底下'],
+  ])('rejects a new link that %s', (_name, before) => {
+    expect(zhProof(before, wrapFirstKubernetes(before))).toBe(false);
+  });
+});
+
+describe('link-only proof: what the fixer writes', () => {
+  // openspec「第一次出現的位置不能放連結」：修正器改連下一處，檢查器與證明都接受。
+  it('links the next occurrence when the first one is glued to bold', () => {
+    const before = post('這是**Kubernetes**的核心。之後 Kubernetes 會把狀態拉回來。');
+    const fixed = fixer.applyLinksToContent(before, { filePath: ZH_FILE, glossary });
+
+    expect(fixed.content).toBe(post(`這是**Kubernetes**的核心。之後 ${K8S_LINK} 會把狀態拉回來。`));
+    expect(checker.checkContent(fixed.content, { filePath: ZH_FILE, glossary }).violations).toEqual(
+      []
+    );
+    expect(
+      proof.isLinkOnlyChange(before, fixed.content, {
+        filePath: ZH_FILE,
+        glossary,
+        validatePostLink,
+      })
+    ).toBe(true);
   });
 });
 

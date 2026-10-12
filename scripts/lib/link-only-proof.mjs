@@ -4,7 +4,8 @@
  *
  * 先驗證、再剝掉：glossary 連結換回連結文字，站內文章連結換成同一個佔位符，剝完的
  * 兩個版本要逐字相同（含 frontmatter，不 trim、不排序）。新增或改動的連結要先通過
- * 驗證，驗證不過就不算只改連結，文章照常接受內容品質 gate。
+ * 驗證，驗證不過就不算只改連結，文章照常接受內容品質 gate。新連結的位置照 checker 的
+ * 放置規則（findSafeOccurrences），修正器寫連結也用同一條。
  *
  * pre-commit（scripts/check-staged-internal-post-links.mjs）與 PR content gate
  * （scripts/list-content-gate-posts.mjs）共用這一份，只差資料來源：前者讀 staged，
@@ -96,8 +97,8 @@ export function isLinkOnlyChange(
     if (!rangeIsSafe(mask, link.start, link.end)) return false;
     const { entry } = resolveGlossaryLinkTarget(link.href, { english, glossary });
     if (!entry) return false;
-    // A new wrapper must cover text the checker itself links to this entry; a link whose
-    // target is corrected keeps the text it already had.
+    // A new wrapper must cover text the checker itself links to this entry, at a spot the
+    // placement rule allows; a link whose target is corrected keeps the text it already had.
     if (!old && !isLinkableOccurrence(current.text, entry, link, mask)) return false;
   }
 
