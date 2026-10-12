@@ -58,7 +58,7 @@
 
 ## 6. 整合驗證
 
-- [ ] 6.1 收斂 `src/config/glossary.ts` 裡 `glossaryInclude` 的過期說明：註解寫「跟 /glossary 同步」，實際只列 27 條。依實際用途決定刪除或改正註解，並同步引用它的文件
+- [x] 6.1 收斂 `src/config/glossary.ts` 裡 `glossaryInclude` 的過期說明：註解寫「跟 /glossary 同步」，實際只列 27 條。依實際用途決定刪除或改正註解，並同步引用它的文件
 - [ ] 6.2 跑 `pnpm run build`、`pnpm exec vitest run`、`pnpm run glossary:check`、`node scripts/validate-posts.mjs` 與受影響的 Playwright spec，全部通過；把頁面高度量測與截圖路徑記進 PR 說明
 
 ## Workflow follow-up
