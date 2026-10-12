@@ -230,6 +230,23 @@ describe('link-only proof: links that change how the post renders', () => {
   ])('rejects a new link that %s', (_name, before) => {
     expect(zhProof(before, wrapFirstKubernetes(before))).toBe(false);
   });
+
+  it('rejects unwrapping a link that had broken the bold, which brings the bold back', () => {
+    expect(zhProof(`這是**${K8S_LINK}**的核心`, '這是**Kubernetes**的核心')).toBe(false);
+  });
+
+  it('rejects an anchor fix on link syntax a backslash keeps as visible text', () => {
+    expect(
+      zhProof(
+        '路徑是 C:\\[Kubernetes](/glossary#Kubernetes) 底下',
+        '路徑是 C:\\[Kubernetes](/glossary#kubernetes) 底下'
+      )
+    ).toBe(false);
+  });
+
+  it('rejects a post whose body does not parse', () => {
+    expect(zhProof('<div\nKubernetes 很穩。', `<div\n${K8S_LINK} 很穩。`)).toBe(false);
+  });
 });
 
 describe('link-only proof: what the fixer writes', () => {

@@ -1,18 +1,26 @@
 /**
  * 「只改連結」的證明（openspec: glossary-link-coverage〈只改 glossary 連結的修改 SHALL
- * 可機械證明並略過內容品質 gate〉）。
+ * 可機械證明並略過內容品質 gate〉、〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉）。
  *
  * 先驗證、再剝掉：glossary 連結換回連結文字，站內文章連結換成同一個佔位符，剝完的
  * 兩個版本要逐字相同（含 frontmatter，不 trim、不排序）。新增或改動的連結要先通過
  * 驗證，驗證不過就不算只改連結，文章照常接受內容品質 gate。新連結的位置照 checker 的
  * 放置規則（findSafeOccurrences），修正器寫連結也用同一條。
  *
+ * 原始碼比對過了，再用網站同一套 parser 解析修改前後的正文比結構，擋下原始碼一樣、
+ * 渲染卻不同的修改（強調語法被拆開、連結疊在連結裡、反斜線跳脫）。
+ *
  * pre-commit（scripts/check-staged-internal-post-links.mjs）與 PR content gate
  * （scripts/list-content-gate-posts.mjs）共用這一份，只差資料來源：前者讀 staged，
  * 後者讀 head。
  */
 import path from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import matter from 'gray-matter';
+import remarkGfm from 'remark-gfm';
+import remarkMdx from 'remark-mdx';
+import remarkParse from 'remark-parse';
+import { unified } from 'unified';
 import {
   buildUnsafeMask,
   findSafeOccurrences,
@@ -29,6 +37,8 @@ const CANONICAL_POST_LINK = /^\/(en\/)?posts\/([a-z0-9][a-z0-9-]*)\/$/u;
 const CANONICAL_TICKET_ID = /^(GP|MP)-([1-9]\d*)$/u;
 // Private-use code points never appear in prose, so the placeholder cannot collide with text.
 const POST_LINK_PLACEHOLDER = '\uE000INTERNAL_POST_LINK\uE001';
+
+const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
 
 /**
  * Replace glossary links with their text and internal post links with a placeholder.
@@ -62,6 +72,56 @@ function isLinkableOccurrence(text, entry, link, mask) {
   );
 }
 
+// The mdast a reader gets, with links the proof has dealt with taken out: a glossary link
+// becomes its children, an internal post link one placeholder node. Adjacent text merges,
+// and positions go (with `data`, where MDX keeps its estree and that tree's offsets).
+function readerChildren(children) {
+  const out = [];
+  for (const child of children) {
+    let nodes;
+    if (child.type === 'link' && GLOSSARY_LINK.test(child.url)) {
+      nodes = readerChildren(child.children);
+    } else if (child.type === 'link' && INTERNAL_POST_PREFIX.test(child.url)) {
+      nodes = [{ type: 'internalPostLink' }];
+    } else {
+      nodes = [readerTree(child)];
+    }
+    for (const node of nodes) {
+      const previous = out.at(-1);
+      if (node.type === 'text' && previous?.type === 'text') {
+        out[out.length - 1] = { type: 'text', value: previous.value + node.value };
+      } else {
+        out.push(node);
+      }
+    }
+  }
+  return out;
+}
+
+function readerTree(value) {
+  if (Array.isArray(value)) return value.map(readerTree);
+  if (!value || typeof value !== 'object') return value;
+  const node = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'position' || key === 'data') continue;
+    node[key] = key === 'children' ? readerChildren(child) : readerTree(child);
+  }
+  return node;
+}
+
+// The frontmatter already matched character for character, so only the body is parsed.
+// A body that does not parse proves nothing.
+function hasSameReaderStructure(before, after) {
+  try {
+    return isDeepStrictEqual(
+      readerTree(markdown.parse(parseFrontmatter(before).body)),
+      readerTree(markdown.parse(parseFrontmatter(after).body))
+    );
+  } catch {
+    return false;
+  }
+}
+
 function rejectPostLinks() {
   throw new Error('internal post links cannot be validated here');
 }
@@ -84,6 +144,8 @@ export function isLinkOnlyChange(
   after,
   { filePath, glossary, validatePostLink = rejectPostLinks }
 ) {
+  // Nothing changed, so nothing to prove: a pure taxonomy rename ends up here.
+  if (before === after) return true;
   const previous = stripLinks(before);
   const current = stripLinks(after);
   if (current.text !== previous.text) return false;
@@ -115,7 +177,7 @@ export function isLinkOnlyChange(
       return false;
     }
   }
-  return true;
+  return hasSameReaderStructure(before, after);
 }
 
 function targetForSlug(records, slug) {
