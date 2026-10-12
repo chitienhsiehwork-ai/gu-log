@@ -1,9 +1,6 @@
 /**
  * Glossary 錨點的唯一規則（openspec: glossary-link-coverage〈Glossary 錨點 SHALL 由單一規則推導〉）。
- *
- * 詞彙表頁面的詞條 id、頁內 related 連結、check-glossary-links.mjs 與
- * apply-glossary-links.mjs 都從這裡取錨點；Librarian packet 讀 checker 的結果。
- * 不要在別處自己推錨點。
+ * 所有錨點都從這裡取，不要在別處自己推。
  */
 
 /**

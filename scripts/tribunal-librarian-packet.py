@@ -115,7 +115,7 @@ def unlinked_glossary_terms(post_path: Path) -> tuple[list[str], str | None]:
     """Ask the glossary checker which enabled terms this post mentions without a link.
 
     The checker owns the anchor rule (src/lib/glossary-anchor.mjs) and the safe-region
-    scan, so the packet never derives anchors or matches terms itself.
+    scan, so this function never derives anchors or matches terms itself.
     """
     try:
         result = subprocess.run(
