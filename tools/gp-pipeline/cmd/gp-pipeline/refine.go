@@ -54,14 +54,7 @@ contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	prefix, absDraft, err := draftIngress("refine", draftPath, ticketID)
-	if err != nil {
-		return err
-	}
-	if workDir == "" {
-		workDir = filepath.Dir(absDraft)
-	}
-	workDir, err = filepath.Abs(workDir)
+	prefix, workDir, err := draftIngress("refine", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}

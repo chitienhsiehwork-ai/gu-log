@@ -51,12 +51,22 @@ func runCredits(ctx context.Context, state *rootState, finalPath, workDir, write
 	if err != nil {
 		return fmt.Errorf("credits: file not found: %s", abs)
 	}
-	// Lv carries no pipeline credits: it is written by hand.
-	if pipeline.IsLvPost(filepath.Base(abs), data) {
-		return pipeline.LvAuthoringError("credits")
-	}
 	if workDir == "" {
 		workDir = filepath.Dir(abs)
+	}
+	// Lv carries no pipeline credits: it is written by hand. Check --file and
+	// the file the stamp lands on: a --file named final.mdx stamps the work
+	// dir's final.mdx, any other name a scratch copy of --file.
+	stamped := abs
+	if filepath.Base(abs) == "final.mdx" {
+		stamped = filepath.Join(workDir, "final.mdx")
+	}
+	stampedIsLv, err := pipeline.IsLvFile(stamped)
+	if err != nil {
+		return fmt.Errorf("credits: %w", err)
+	}
+	if stampedIsLv || pipeline.IsLvPost(filepath.Base(abs), data) {
+		return pipeline.LvAuthoringError("credits")
 	}
 	// The Credits method expects the file to be called "final.mdx" in
 	// the work dir. If the caller pointed us at a differently named

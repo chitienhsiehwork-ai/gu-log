@@ -1,7 +1,11 @@
 package pipeline
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
 	"slices"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
@@ -47,6 +51,16 @@ func IsLvPost(filename string, content []byte) bool {
 	}
 	prefix, err := counter.PrefixOfTicketID(ticketID)
 	return err == nil && prefix == "Lv"
+}
+
+// IsLvFile reports whether the post at path is Lv (see IsLvPost). A missing
+// file is judged by its name alone; the step that needs it reports it missing.
+func IsLvFile(path string) (bool, error) {
+	content, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return false, err
+	}
+	return IsLvPost(filepath.Base(path), content), nil
 }
 
 // LvAuthoringError is the single ingress refusal of every command that would

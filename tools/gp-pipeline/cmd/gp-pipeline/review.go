@@ -52,10 +52,13 @@ pipeline runs `+"`codex exec`"+` in (cd $WORK_DIR && …).`, authorableSeries(" 
 	return cmd
 }
 
-// draftIngress is the shared ingress of review and refine. The --ticket-id
-// series picks the prompt; an Lv ticket, or an Lv draft whatever --ticket-id
-// says (it defaults to GP-PENDING), is refused before any work dir or model.
-func draftIngress(command, draftPath, ticketID string) (prefix, absDraft string, err error) {
+// draftIngress is the shared ingress of review and refine; it returns the
+// --ticket-id series, which picks the prompt, and the absolute work dir
+// (--work-dir, or the --draft directory). An Lv ticket is refused, and so is
+// an Lv draft whatever --ticket-id says (it defaults to GP-PENDING): --draft
+// and the work dir's draft-v1.mdx, the file the model actually reads. Both
+// checks come before any work dir or model.
+func draftIngress(command, draftPath, workDir, ticketID string) (prefix, absWorkDir string, err error) {
 	prefix, err = counter.PrefixOfTicketID(ticketID)
 	if err != nil {
 		return "", "", err
@@ -63,30 +66,34 @@ func draftIngress(command, draftPath, ticketID string) (prefix, absDraft string,
 	if !pipeline.IsAuthorable(prefix) {
 		return "", "", pipeline.LvAuthoringError(command)
 	}
-	absDraft, err = filepath.Abs(draftPath)
+	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
 		return "", "", err
 	}
-	draft, err := os.ReadFile(absDraft)
-	if err != nil {
+	if _, err := os.Stat(absDraft); err != nil {
 		return "", "", fmt.Errorf("%s: draft not found at %s", command, absDraft)
-	}
-	if pipeline.IsLvPost(filepath.Base(absDraft), draft) {
-		return "", "", pipeline.LvAuthoringError(command)
-	}
-	return prefix, absDraft, nil
-}
-
-func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticketID string) error {
-	start := time.Now()
-	prefix, absDraft, err := draftIngress("review", draftPath, ticketID)
-	if err != nil {
-		return err
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(absDraft)
 	}
-	workDir, err = filepath.Abs(workDir)
+	if absWorkDir, err = filepath.Abs(workDir); err != nil {
+		return "", "", err
+	}
+	for _, draft := range []string{absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")} {
+		isLv, err := pipeline.IsLvFile(draft)
+		if err != nil {
+			return "", "", fmt.Errorf("%s: %w", command, err)
+		}
+		if isLv {
+			return "", "", pipeline.LvAuthoringError(command)
+		}
+	}
+	return prefix, absWorkDir, nil
+}
+
+func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticketID string) error {
+	start := time.Now()
+	prefix, workDir, err := draftIngress("review", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}

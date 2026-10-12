@@ -185,6 +185,24 @@ func TestReviewAndRefineRefuseLvDrafts(t *testing.T) {
 				}
 			})
 		}
+		// The model reads the work dir's draft-v1.mdx, which need not be --draft.
+		t.Run(command+" GP --draft, Lv draft-v1.mdx in --work-dir", func(t *testing.T) {
+			const gpDraft = "---\ntitle: \"Draft\"\nticketId: GP-PENDING\n---\nbody\n"
+			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
+			draft := filepath.Join(t.TempDir(), "draft-v1.mdx")
+			mustWrite(t, draft, gpDraft)
+			workDir := t.TempDir()
+			read := filepath.Join(workDir, "draft-v1.mdx")
+			mustWrite(t, read, lvDraft)
+			err := executeCLI(t, "--fake-provider", filepath.Join(root, "missing.json"), command, "--draft", draft, "--work-dir", workDir)
+			requireLvRefusal(t, err)
+			requireNoExternalCalls(t, trapLog)
+			requireBytes(t, read, []byte(lvDraft))
+			entries, err := os.ReadDir(workDir)
+			if err != nil || len(entries) != 1 {
+				t.Fatalf("work dir holds %d entries (%v), want only the Lv draft", len(entries), err)
+			}
+		})
 	}
 }
 
@@ -238,6 +256,21 @@ func TestRalphAndCreditsRefuseLvPosts(t *testing.T) {
 			requireBytes(t, path, []byte(body))
 		})
 	}
+
+	// A --file named final.mdx gets the stamp on the work dir's final.mdx.
+	t.Run("credits GP final.mdx, Lv final.mdx in --work-dir", func(t *testing.T) {
+		const gpPost = "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\nbody\n"
+		file := filepath.Join(t.TempDir(), "final.mdx")
+		mustWrite(t, file, gpPost)
+		workDir := t.TempDir()
+		stamped := filepath.Join(workDir, "final.mdx")
+		mustWrite(t, stamped, lvPost)
+		err := executeCLI(t, "credits", "--file", file, "--work-dir", workDir)
+		requireLvRefusal(t, err)
+		requireNoExternalCalls(t, trapLog)
+		requireBytes(t, stamped, []byte(lvPost))
+		requireBytes(t, file, []byte(gpPost))
+	})
 }
 
 // TestLvKeepsNonWritingSteps: a hand-written Lv still gets its number, its

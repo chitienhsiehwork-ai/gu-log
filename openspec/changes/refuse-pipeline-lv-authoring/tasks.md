@@ -60,7 +60,7 @@
 ## 4. 階段 6 審查修正
 
 - [x] 4.1 `run` 對 Lv 只接受 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復：沒帶 `--file` 的 Lv run 一律拒絕。Go 測試涵蓋 `run --prefix Lv --from-step deploy` 沒帶 `--file`：exit 1、沒有工作目錄（對應「沒有 Lv 檔的 run」）
-- [ ] 4.2 `review`、`refine` 除了 `--draft`，也檢查模型實際會讀的 `<work-dir>/draft-v1.mdx`；`credits` 檢查實際會蓋章的檔（`--work-dir` 底下的 `final.mdx`）。Go 測試涵蓋 `--work-dir` 跟 `--draft`／`--file` 不同目錄、而工作目錄裡是 Lv 檔的情況
+- [x] 4.2 `review`、`refine` 除了 `--draft`，也檢查模型實際會讀的 `<work-dir>/draft-v1.mdx`；`credits` 檢查實際會蓋章的檔（`--work-dir` 底下的 `final.mdx`）。Go 測試涵蓋 `--work-dir` 跟 `--draft`／`--file` 不同目錄、而工作目錄裡是 Lv 檔的情況
 - [ ] 4.3 `CONTRIBUTING.md`〈新增入門教學（Lv）〉：
   - 「guided-reading 開頭要 cite 來源」從〈Lv 常見骨架〉移到第 1 步，寫成依 `editorial-charter` 必須做；
   - 第 1 步只留「依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`」，不重抄兩種 mode 的定義；
