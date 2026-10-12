@@ -20,7 +20,7 @@
 
 - ShroomDog feedback：「Looks weird. Have u compare them with other lv post? And the flow of this post looks weird as well. I can't quite really tell why tho. Can u?」看完診斷後問：「爆單不知道是不是支語？」接著拍板：「Let's go. Do ur best, let this Lv post match ur best taste.」
 - 情境：第一版 Lv-18（PR #1132）由 gp-pipeline 從 @livingdevops 一則講 Kubernetes 的推文寫成，Tribunal 四位評審全過。拿 Lv-11、Lv-12、Lv-16 比對後才看出問題：(1) 沒有 Lv 的骨架：沒有「第 N 層」、`LevelUpProgress`、每層測驗、`AnalogyBox`，也沒有魔王關，`source` 寫成推文帳號，不是 Level-Up 系列；(2) 入門教學跟維運勘誤表硬黏在一起，「gu-log 補充」占正文三分之一以上；(3) 「推文」出現 17 次，整篇繞著推文轉，不是繞著讀者轉；(4) 九段都是同一個套路，一路平到底，結尾落在 Mogu 吐槽推文；(5) 餐廳裡又插進電話總機跟房屋仲介，比喻疊了三層。根因：gp-pipeline 的寫稿 prompt 沒有 Lv 版本，Lv 跟 MP 共用「依來源寫文章」那套指令，評審也不檢查系列格式。「爆單」出自診斷時提議的魔王關情境，是對岸用語。
-- 修法：Lv-18 整篇重寫成 Lv 導讀：一套餐廳比喻從頭用到尾，六層各由上一層留下的麻煩逼出來，每層一題測驗，最後的魔王關把開場那場午餐事故慢動作重播、逐棒點名；推文只在開頭交代一次來源，gu-log 的補充（`Secret` 預設沒加密、`ingress-nginx` 退休、kubelet 原地重啟）融進正文並標明出處。寫作走固定版本的寫手加詳細 brief，Tribunal 跑了三輪。「爆單」改用「客人擠爆」。pipeline 怎麼修（例如 Lv 在 write 階段先擋下、改走手動 brief）另外請 ShroomDog 拍板。
+- 修法：Lv-18 整篇重寫成 Lv 導讀：一套餐廳比喻從頭用到尾，六層各由上一層留下的麻煩逼出來，每層一題測驗，最後的魔王關把開場那場午餐事故慢動作重播、逐棒點名；推文只在開頭交代一次來源，gu-log 的補充（`Secret` 預設沒加密、`ingress-nginx` 退休、kubelet 原地重啟）融進正文並標明出處。寫作走固定版本的寫手加詳細 brief，Tribunal 跑了四輪。「爆單」改用「客人擠爆」。pipeline 怎麼修（例如 Lv 在 write 階段先擋下、改走手動 brief）另外請 ShroomDog 拍板。
 - Reusable lesson：寫任何系列之前，先拿同系列近期 2–3 篇對照骨架、元件與節奏，不要只盯著單篇來源。Tribunal 全過不代表格式對：評審評的是「寫得好不好」，不是「是不是這個系列」。原創系列（Lv、SD）的來源只當靈感或骨架，正文要繞著讀者轉。對岸網路用語（例如爆單）換成台灣講法。
 
 ## 2026-09-27 — GP 改成 ShroomDog 精選導讀：Mogu 講重點、帶讀者回原文，來源距離章把關
