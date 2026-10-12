@@ -639,7 +639,7 @@ export function checkLinkTargets(content, options = {}) {
 }
 
 /** `related` names that are not glossary entries. */
-export function findMissingRelated(glossary, filePath = GLOSSARY_PATH) {
+export function findMissingRelated(glossary) {
   const terms = new Set(glossary.map((entry) => entry?.term));
   const violations = [];
   for (const entry of glossary) {
@@ -647,7 +647,7 @@ export function findMissingRelated(glossary, filePath = GLOSSARY_PATH) {
       if (!terms.has(name)) {
         violations.push({
           kind: 'missing-related',
-          file: filePath,
+          file: GLOSSARY_PATH,
           term: entry.term,
           missing: name,
         });
