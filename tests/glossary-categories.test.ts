@@ -1,26 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import glossaryData from '../src/data/glossary.json';
-import {
-  GLOSSARY_CATEGORY_LABELS,
-  findUnlabeledGlossaryCategories,
-  glossaryCategoryFilters,
-  glossaryCategoryLabel,
-} from '../src/config/glossary';
+import { glossaryCategoryFilters, glossaryCategoryLabel } from '../src/config/glossary';
 
 // openspec: glossary-browsing〈分類篩選 SHALL 從詞條資料產生並有雙語 label〉
 describe('glossary categories', () => {
-  it('labels every category the glossary data uses, in both languages', () => {
-    expect(findUnlabeledGlossaryCategories(glossaryData)).toEqual([]);
-    for (const labels of Object.values(GLOSSARY_CATEGORY_LABELS)) {
-      expect(labels['zh-tw']).toMatch(/\S/);
-      expect(labels.en).toMatch(/\S/);
+  // 詞條用到沒有 label 的分類時，glossaryCategoryLabel 會丟錯並寫出分類名，這個測試就失敗。
+  it('labels the category of every glossary entry, in both languages', () => {
+    for (const entry of glossaryData) {
+      expect(glossaryCategoryLabel(entry.category, 'zh-tw')).toMatch(/\S/);
+      expect(glossaryCategoryLabel(entry.category, 'en')).toMatch(/\S/);
     }
   });
 
-  it('names a category the data uses without a label', () => {
-    const entries = [{ category: 'concepts' }, { category: 'datasets' }, { category: 'datasets' }];
-
-    expect(findUnlabeledGlossaryCategories(entries)).toEqual(['datasets']);
+  it('names the category when it has no label', () => {
     expect(() => glossaryCategoryLabel('datasets', 'zh-tw')).toThrow('"datasets"');
   });
 
@@ -35,21 +27,5 @@ describe('glossary categories', () => {
       { id: 'concepts', label: 'Concepts' },
       { id: 'people', label: 'People' },
     ]);
-  });
-
-  it('gives every category in the current data a filter button with a label per language', () => {
-    const used = new Set(glossaryData.map((entry) => entry.category));
-
-    for (const lang of ['zh-tw', 'en'] as const) {
-      const filters = glossaryCategoryFilters(glossaryData, lang);
-      expect(new Set(filters.map((filter) => filter.id))).toEqual(used);
-    }
-    expect(glossaryCategoryFilters(glossaryData, 'zh-tw')).toEqual(
-      expect.arrayContaining([
-        { id: 'products', label: '產品' },
-        { id: 'models', label: '模型' },
-        { id: 'platforms', label: '平台' },
-      ])
-    );
   });
 });

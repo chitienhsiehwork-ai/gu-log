@@ -87,14 +87,6 @@ interface GlossaryCategoryEntry {
   category: string;
 }
 
-/** 資料用到、但沒有 label 的分類，依第一次出現的順序。 */
-export function findUnlabeledGlossaryCategories(entries: GlossaryCategoryEntry[]): string[] {
-  const unlabeled = entries
-    .map((entry) => entry.category)
-    .filter((category) => !Object.hasOwn(GLOSSARY_CATEGORY_LABELS, category));
-  return [...new Set(unlabeled)];
-}
-
 export function glossaryCategoryLabel(category: string, lang: GlossaryLang): string {
   if (!Object.hasOwn(GLOSSARY_CATEGORY_LABELS, category)) {
     throw new Error(
