@@ -35,8 +35,10 @@ const GLOSSARY_LINK = /^\/(?:en\/)?glossary#/u;
 const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
 const CANONICAL_POST_LINK = /^\/(en\/)?posts\/([a-z0-9][a-z0-9-]*)\/$/u;
 const CANONICAL_TICKET_ID = /^(GP|MP)-([1-9]\d*)$/u;
-// Private-use code points never appear in prose, so the placeholder cannot collide with text.
-const POST_LINK_PLACEHOLDER = '\uE000INTERNAL_POST_LINK\uE001';
+// Private-use code points never appear in prose, so the placeholder cannot collide with
+// text. A post that contains one anyway is not proven: it could be faking the placeholder.
+const PLACEHOLDER_MARK = '\uE000';
+const POST_LINK_PLACEHOLDER = `${PLACEHOLDER_MARK}INTERNAL_POST_LINK\uE001`;
 
 const markdown = unified().use(remarkParse).use(remarkMdx).use(remarkGfm);
 
@@ -146,6 +148,7 @@ export function isLinkOnlyChange(
 ) {
   // Nothing changed, so nothing to prove: a pure taxonomy rename ends up here.
   if (before === after) return true;
+  if (before.includes(PLACEHOLDER_MARK) || after.includes(PLACEHOLDER_MARK)) return false;
   const previous = stripLinks(before);
   const current = stripLinks(after);
   if (current.text !== previous.text) return false;

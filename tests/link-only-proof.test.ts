@@ -142,6 +142,19 @@ describe('link-only proof: edits riding along with link maintenance', () => {
       )
     ).toBe(false);
   });
+
+  it('rejects swapping a link in frontmatter for a faked post link placeholder', () => {
+    // Frontmatter only goes through the source comparison, where the fake would strip to the
+    // same text as the internal post link it replaced.
+    const withSummary = (summary: string) => `${LEGACY_FRONTMATTER}\nsummary: "${summary}"`;
+    expect(
+      proof.isLinkOnlyChange(
+        post('正文', withSummary(`看 [${POST_LABEL}](${POST_URL})`)),
+        post('正文', withSummary('看 \uE000INTERNAL_POST_LINK\uE001')),
+        { filePath: ZH_FILE, glossary, validatePostLink }
+      )
+    ).toBe(false);
+  });
 });
 
 describe('link-only proof: links that point at the wrong place', () => {
