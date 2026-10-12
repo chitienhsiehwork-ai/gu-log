@@ -59,7 +59,7 @@
 ## 6. 整合驗證
 
 - [x] 6.1 收斂 `src/config/glossary.ts` 裡 `glossaryInclude` 的過期說明：註解寫「跟 /glossary 同步」，實際只列 27 條。依實際用途決定刪除或改正註解，並同步引用它的文件
-- [ ] 6.2 跑 `pnpm run build`、`pnpm exec vitest run`、`pnpm run glossary:check`、`node scripts/validate-posts.mjs` 與受影響的 Playwright spec，全部通過；把頁面高度量測與截圖路徑記進 PR 說明
+- [x] 6.2 跑 `pnpm run build`、`pnpm exec vitest run`、`pnpm run glossary:check`、`node scripts/validate-posts.mjs` 與受影響的 Playwright spec，全部通過；把頁面高度量測與截圖路徑記進 PR 說明
 - [x] 6.3 `glossaryExclude` 一樣沒有任何引用，清單裡還有 Benchmark、Token、Prompt 這些現有詞條：刪掉，並把 `GU-LOG_WRITER_PROMPT.md` 叫人放進 `glossaryExclude` 的那句改成指向晶晶體 lint 的 allowlist
 
 ## 7. 階段 6 第一輪審查修正
@@ -85,7 +85,7 @@
 
 ## 9. 階段 6 第三輪審查修正
 
-- [ ] 9.1 簡化與補洞（規則見 design §8）：
+- [x] 9.1 簡化與補洞（規則見 design §8）：
   - 刪掉 `visibleNeighbors`（連同 `LINK_ENDING_HERE`、`LINK_STARTING_HERE`），`findSafeOccurrences` 直接看前後一個字元。每個候選都會進證明，證明在 glossary 連結換回文字後判斷字界，這段已經沒有作用；
   - `remark` 那組 parser 改成第一次做結構比對時才載入，用不到結構比對的檢查（例如 canonical 詞的檢查）不必付載入成本；
   - 圖片的說明文字一律不放連結，`![…][…]` 這種 reference 形式也算；
