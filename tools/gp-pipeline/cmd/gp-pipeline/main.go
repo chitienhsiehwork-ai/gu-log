@@ -1,6 +1,6 @@
-// Command gp-pipeline is gu-log's GP/MP/SD/Lv source-grounded writing pipeline
-// CLI; the canonical entrypoint is the self-compiling wrapper
-// tools/gp-pipeline/gp-pipeline.
+// Command gp-pipeline is gu-log's source-grounded writing pipeline CLI for
+// GP/MP/SD; Lv only uses its non-writing steps. The canonical entrypoint is
+// the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
 package main
@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // Version is kept explicit until release automation injects a tagged build.
@@ -56,12 +58,13 @@ func buildRoot() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
 		Short: "gu-log source-grounded writing pipeline",
-		Long: `gp-pipeline is the Go implementation of gu-log's source-grounded writing
-flow for GP, MP, SD, and Lv. The canonical entrypoint is
-tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP/SD/Lv and post
-filename slugs are gp-/mp-/sd-/lv- (existing Lv posts keep levelup-).
-Commands that start without a file require --prefix: no command picks a
-series on its own.
+		Long: fmt.Sprintf(`gp-pipeline is the Go implementation of gu-log's source-grounded writing
+flow for %s. Lv is written by hand (see CONTRIBUTING.md); for Lv the
+pipeline only counts, fetches, evaluates, dedups, translates, and deploys.
+The canonical entrypoint is tools/gp-pipeline/gp-pipeline; ticket prefixes
+are GP/MP/SD/Lv and post filename slugs are gp-/mp-/sd-/lv- (existing Lv
+posts keep levelup-). Commands that start without a file require --prefix:
+no command picks a series on its own.
 
 It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
@@ -85,7 +88,7 @@ one step at a time without inheriting the whole pipeline's side effects:
   counter    read / bump the ticket counter
 
 Use --help on any subcommand for details. See tools/gp-pipeline/README.md
-for the migration history and current operational notes.`,
+for the migration history and current operational notes.`, authorableSeries(" / ")),
 		Version:       Version,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -190,6 +193,12 @@ func exitCodeFor(err error) int {
 		return 124
 	}
 	return 1
+}
+
+// authorableSeries joins pipeline.AuthorablePrefixes with sep, so the help
+// text names exactly the series the pipeline writes.
+func authorableSeries(sep string) string {
+	return strings.Join(pipeline.AuthorablePrefixes, sep)
 }
 
 func truthyEnv(key string) bool {

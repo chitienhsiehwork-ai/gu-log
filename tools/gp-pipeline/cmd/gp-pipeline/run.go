@@ -115,14 +115,17 @@ verbatim check against the source; one that does not is dropped without a
 retranslation, the zh-tw stamp records englishSkipped: verbatim, and zh-tw
 deploys alone.
 
-Without --file, --prefix is required: a run never picks a series on its own,
-and a missing --prefix fails before any work dir, fetch, or model call.
+Without --file, --prefix is required and names a series the pipeline writes
+(%[4]s): a run never picks a series on its own, and a missing
+--prefix fails before any work dir, fetch, or model call.
 
 --from-step resumes partway through a previous run. --file is required
 when --from-step skips the fetch stage and no tweet URL is given. With
 --file, the file's series (gp-/mp-/sd-/lv-/levelup-) decides the run, and an
-explicit --prefix must match it. --from-step source-distance (GP only)
-re-pairs and re-scores the work dir's final.mdx without rewriting the draft.
+explicit --prefix must match it. Lv is written by hand (see CONTRIBUTING.md),
+so an Lv file only resumes from translate or deploy.
+--from-step source-distance (GP only) re-pairs and re-scores the work dir's
+final.mdx without rewriting the draft.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
@@ -132,7 +135,8 @@ failed, 16 validate-posts rejected, 17 build failed, 18 push failed,
 %[2]d GP source distance did not pass, 124 timeout.
 
 Use --fake-provider <json> only to test without spending credits or to pin
-canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode, pipeline.MaxContentLintFixes),
+canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode, pipeline.MaxContentLintFixes,
+			authorableSeries(" / ")),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tweetURL string
@@ -162,7 +166,7 @@ canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pip
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
 	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing post in src/content/posts/; its filename sets the series")
-	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required without --file, and must match the --file series when given")
+	cmd.Flags().StringVar(&prefix, "prefix", "", fmt.Sprintf("ticket prefix (%s); required without --file, and must match the --file series when given", authorableSeries(" / ")))
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
@@ -195,7 +199,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	start := time.Now()
 	// Fail at ingress: a missing or non-canonical series must not reach the
 	// work dir, fetch, evaluation, or writing stages.
-	prefix, err := resolveSeries("run", opts.Prefix, opts.PrefixSet, "--file", opts.ExistingFile)
+	prefix, err := resolveSeries("run", opts.Prefix, opts.PrefixSet, "--file", opts.ExistingFile, pipeline.AuthorablePrefixes)
 	if err != nil {
 		return err
 	}
@@ -340,11 +344,12 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 
 // resolveSeries picks the series a run or standalone deploy works on, and the
 // article decides: with a file, its filename series wins and an explicitly set
-// --prefix must agree; without one, --prefix is required and has no default.
-func resolveSeries(command, prefix string, prefixSet bool, fileFlag, filename string) (string, error) {
+// --prefix must agree; without one, --prefix is required and has no default,
+// and the error lists choices (the series the command offers).
+func resolveSeries(command, prefix string, prefixSet bool, fileFlag, filename string, choices []string) (string, error) {
 	if filename == "" {
 		if prefix == "" {
-			return "", fmt.Errorf("%s: --prefix is required without %s; choose one of %v", command, fileFlag, counter.ValidPrefixes)
+			return "", fmt.Errorf("%s: --prefix is required without %s; choose one of %v", command, fileFlag, choices)
 		}
 		if err := counter.ValidatePrefix(prefix); err != nil {
 			return "", err

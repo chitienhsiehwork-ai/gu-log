@@ -33,14 +33,14 @@ func newReviewCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "review",
 		Short: "Run the review checklist against a draft",
-		Long: `review runs the full-draft review for GP, MP, SD, and Lv drafts; the
+		Long: fmt.Sprintf(`review runs the full-draft review for a %s draft; the
 --ticket-id series picks the checklist. This command points the LLM at
 draft-v1.mdx and asks it to produce a review.md with blocker/major/minor
 findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM
 is expected to read draft-v1.mdx from --work-dir. This matches how the
-pipeline runs ` + "`codex exec`" + ` in (cd $WORK_DIR && …).`,
+pipeline runs `+"`codex exec`"+` in (cd $WORK_DIR && …).`, authorableSeries(" / ")),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runReview(cmd.Context(), state, draftPath, workDir, ticketID)
 		},

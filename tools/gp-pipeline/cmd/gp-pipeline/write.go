@@ -42,7 +42,7 @@ func newWriteCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "write",
 		Short: "Draft a zh-tw MDX article from a captured source",
-		Long: `write drafts a GP, MP, SD, or Lv zh-tw article from a captured source. It
+		Long: fmt.Sprintf(`write drafts a %s zh-tw article from a captured source. It
 renders the write.tmpl prompt with the source-tweet.md contents and
 GU-LOG_WRITER_PROMPT.md embedded as template variables, then runs it through
 the LLM dispatcher. The prompt instructs the LLM to write draft-v1.mdx into
@@ -51,7 +51,7 @@ the working directory.
 --prefix is required: write never picks a series. The --ticket-id,
 --original-date, --author-handle, --tweet-url, and --prefix flags populate
 the article's frontmatter. Most callers will set these from the upstream
-fetch + counter steps.`,
+fetch + counter steps.`, authorableSeries(" / ")),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runWrite(cmd.Context(), state, writeOpts{
 				SourcePath:     sourcePath,
@@ -74,7 +74,7 @@ fetch + counter steps.`,
 	cmd.Flags().StringVar(&originalDate, "original-date", "", "YYYY-MM-DD of the source publication")
 	cmd.Flags().StringVar(&authorHandle, "author", "", "author handle WITHOUT @ prefix")
 	cmd.Flags().StringVar(&tweetURL, "tweet-url", "", "canonical source URL")
-	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
+	cmd.Flags().StringVar(&prefix, "prefix", "", fmt.Sprintf("ticket prefix (%s); required", authorableSeries(" / ")))
 	cmd.Flags().StringVar(&translatedDate, "translated-date", "", "YYYY-MM-DD of the translation run (defaults to today)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
@@ -105,7 +105,7 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 			return err
 		}
 	}
-	if err := counter.RequirePrefix("write", opts.Prefix); err != nil {
+	if err := counter.RequirePrefix("write", opts.Prefix, pipeline.AuthorablePrefixes); err != nil {
 		return err
 	}
 	if !pipeline.IsAuthorable(opts.Prefix) {

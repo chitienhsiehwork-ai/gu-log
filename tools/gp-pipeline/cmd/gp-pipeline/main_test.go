@@ -9,11 +9,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -489,15 +492,18 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
+	// Writing commands offer only the series the pipeline writes; the counter
+	// still serves every series, Lv included.
 	for _, tc := range []struct {
-		name string
-		args []string
+		name   string
+		args   []string
+		series []string
 	}{
-		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}},
-		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}},
-		{name: "counter bump", args: []string{"counter", "bump"}},
-		{name: "counter next", args: []string{"counter", "next"}},
-		{name: "write", args: []string{"write", "--source", source}},
+		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}, series: pipeline.AuthorablePrefixes},
+		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}, series: pipeline.AuthorablePrefixes},
+		{name: "counter bump", args: []string{"counter", "bump"}, series: counter.ValidPrefixes},
+		{name: "counter next", args: []string{"counter", "next"}, series: counter.ValidPrefixes},
+		{name: "write", args: []string{"write", "--source", source}, series: pipeline.AuthorablePrefixes},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resetGlobals()
@@ -518,8 +524,11 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 			if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "--prefix is required") {
 				t.Fatalf("error = %v (exit %d), want the exit-1 missing --prefix rejection", err, exitCodeFor(err))
 			}
-			if !strings.Contains(err.Error(), "[GP MP SD Lv]") {
-				t.Fatalf("error = %v, want the available series listed", err)
+			if !strings.Contains(err.Error(), fmt.Sprint(tc.series)) {
+				t.Fatalf("error = %v, want the available series %v listed", err, tc.series)
+			}
+			if strings.Contains(err.Error(), "Lv") != slices.Contains(tc.series, "Lv") {
+				t.Fatalf("error = %v, want Lv named only when the command serves it", err)
 			}
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
 				t.Fatalf("missing --prefix created the work dir: %v", statErr)

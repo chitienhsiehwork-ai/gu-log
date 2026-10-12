@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // Lv is written by hand (CONTRIBUTING.md): run, write, review, refine, ralph,
@@ -316,5 +318,52 @@ func TestSDRunPassesLvRefusal(t *testing.T) {
 		"run", "https://x.com/author/status/1", "--prefix", "SD")
 	if err == nil || !strings.Contains(err.Error(), "missing.json") || strings.Contains(err.Error(), "CONTRIBUTING.md") {
 		t.Fatalf("error = %v, want SD to reach its model route", err)
+	}
+}
+
+// TestSeriesHelpMatchesWhatEachCommandServes: the writing commands offer only
+// the series the pipeline writes, while the commands Lv still uses keep
+// offering Lv.
+func TestSeriesHelpMatchesWhatEachCommandServes(t *testing.T) {
+	root := buildRoot()
+	for _, tc := range []struct {
+		path   []string
+		flag   string
+		wantLv bool
+	}{
+		{path: []string{"write"}, flag: "prefix"},
+		{path: []string{"run"}, flag: "prefix"},
+		{path: []string{"counter", "bump"}, flag: "prefix", wantLv: true},
+		{path: []string{"counter", "next"}, flag: "prefix", wantLv: true},
+		{path: []string{"dedup"}, flag: "series", wantLv: true},
+		{path: []string{"deploy"}, flag: "prefix", wantLv: true},
+	} {
+		t.Run(strings.Join(tc.path, " "), func(t *testing.T) {
+			cmd, _, err := root.Find(tc.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			flag := cmd.Flags().Lookup(tc.flag)
+			if flag == nil {
+				t.Fatalf("no --%s flag", tc.flag)
+			}
+			for _, series := range pipeline.AuthorablePrefixes {
+				if !strings.Contains(flag.Usage, series) {
+					t.Errorf("--%s usage %q does not list %s", tc.flag, flag.Usage, series)
+				}
+			}
+			if got := strings.Contains(flag.Usage, "Lv"); got != tc.wantLv {
+				t.Errorf("--%s usage %q lists Lv = %v, want %v", tc.flag, flag.Usage, got, tc.wantLv)
+			}
+		})
+	}
+	for _, name := range []string{"write", "review", "refine"} {
+		cmd, _, err := root.Find([]string{name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(cmd.Long, "Lv") {
+			t.Errorf("%s --help still names Lv among the series it writes", name)
+		}
 	}
 }

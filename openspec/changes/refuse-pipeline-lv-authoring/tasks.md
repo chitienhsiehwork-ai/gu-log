@@ -22,7 +22,7 @@
 
   錯誤訊息的測試只檢查它含 `CONTRIBUTING.md`。既有的 `TestStandaloneRalphInfersSeriesFromFilename` 裡兩個 Lv 案例改成斷言拒絕，其他系列照舊（對應「gp-pipeline SHALL NOT 撰寫或改寫 Lv，也 SHALL NOT 替 Lv 蓋 pipeline 署名」的五個情境，與「拒絕 Lv SHALL 發生在任何副作用之前，並指向 Lv 寫作流程」的兩個情境）
 - [x] 1.2 確認 Lv 的非寫作步驟沒有被擋：`run --file <Lv 檔> --from-step translate --dry-run` 與 `translate --file <Lv 檔>` 通過 ingress、`counter bump --prefix Lv` 照常配號、standalone `deploy --active-file <lv-pending 檔>` 通過系列判斷。既有測試已涵蓋的就引用，缺的補上（對應「Lv SHALL 仍可使用 pipeline 的非寫作步驟」的兩個情境）
-- [ ] 1.3 說明與錯誤訊息都從 1.1 的同一份清單產生，不再列 Lv：
+- [x] 1.3 說明與錯誤訊息都從 1.1 的同一份清單產生，不再列 Lv：
   - `write`、`review`、`refine` 的說明；
   - `write`、`run` 的 `--prefix` 說明；
   - `run`、`candidate`（help 裡的範例指令）與 root help 的可撰寫系列；
