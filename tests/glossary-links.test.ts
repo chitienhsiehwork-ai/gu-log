@@ -437,6 +437,131 @@ describe('glossary link checker', () => {
   });
 });
 
+describe('glossary link targets', () => {
+  // openspec glossary-link-coverage〈Glossary 連結 SHALL 指向存在的錨點與文章的語言〉
+  const targets = [
+    { term: 'Agent', category: 'concepts', related: ['Thread'] },
+    { term: 'Thread', category: 'concepts', linking: { anchor: 'thread', enabled: false } },
+  ];
+  const zhPost = (body: string, frontmatter = 'lang: zh-tw') =>
+    `---\n${frontmatter}\n---\n${body}\n`;
+  const enPost = (body: string) => zhPost(body, 'lang: en');
+
+  it('reports an anchor no entry has, including a case mismatch', () => {
+    const { violations } = checker.checkLinkTargets(
+      zhPost('[Opus](/glossary#Opus) 負責想。\n[agentic coding](/glossary#Agent) 的世界'),
+      { filePath: 'mp-212.mdx', glossary: targets }
+    );
+
+    expect(violations).toEqual([
+      expect.objectContaining({ kind: 'dead-anchor', line: 4, href: '/glossary#Opus' }),
+      expect.objectContaining({ kind: 'dead-anchor', line: 5, href: '/glossary#Agent' }),
+    ]);
+  });
+
+  it('reports a link to the glossary in the other language', () => {
+    expect(
+      checker.checkLinkTargets(enPost('One [Agent](/glossary#agent) is not enough.'), {
+        filePath: 'en-mp-245.mdx',
+        glossary: targets,
+      }).violations
+    ).toEqual([
+      expect.objectContaining({
+        kind: 'wrong-language',
+        href: '/glossary#agent',
+        expectedHref: '/en/glossary#agent',
+      }),
+    ]);
+    expect(
+      checker.checkLinkTargets(zhPost('[Agent](/en/glossary#agent) 一個不夠。'), {
+        filePath: 'mp-245.mdx',
+        glossary: targets,
+      }).violations
+    ).toEqual([
+      expect.objectContaining({ kind: 'wrong-language', expectedHref: '/glossary#agent' }),
+    ]);
+  });
+
+  it('does not treat a link to an entry with automatic linking disabled as dead', () => {
+    expect(
+      checker.checkLinkTargets(zhPost('[Thread](/glossary#thread) 一直開著。'), {
+        filePath: 'mp-1.mdx',
+        glossary: targets,
+      }).violations
+    ).toEqual([]);
+  });
+
+  it('ignores link syntax inside frontmatter and code', () => {
+    const content = zhPost(
+      '範例：`[Opus](/glossary#Opus)`\n```md\n[Opus](/glossary#Opus)\n```',
+      'lang: zh-tw\nsummary: "[Opus](/glossary#Opus)"'
+    );
+
+    expect(
+      checker.checkLinkTargets(content, { filePath: 'mp-1.mdx', glossary: targets }).violations
+    ).toEqual([]);
+  });
+
+  it('names the entry and the related name that does not exist', () => {
+    expect(
+      checker.findMissingRelated([...targets, { term: 'MCP', related: ['Agent', 'Tool Use'] }])
+    ).toEqual([
+      expect.objectContaining({ kind: 'missing-related', term: 'MCP', missing: 'Tool Use' }),
+    ]);
+  });
+
+  it('CLI exits non-zero and lists file and anchor, or entry and missing name', () => {
+    const root = makeTempDirectory('gugl-targets-');
+    const postsDirectory = path.join(root, 'src', 'content', 'posts');
+    fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'src', 'lib'), { recursive: true });
+    fs.mkdirSync(path.join(root, 'src', 'data'), { recursive: true });
+    fs.mkdirSync(postsDirectory, { recursive: true });
+    fs.copyFileSync(CHECKER_CLI, path.join(root, 'scripts', 'check-glossary-links.mjs'));
+    fs.copyFileSync(
+      fileURLToPath(new URL('../src/lib/glossary-anchor.mjs', import.meta.url)),
+      path.join(root, 'src', 'lib', 'glossary-anchor.mjs')
+    );
+    fs.symlinkSync(
+      fileURLToPath(new URL('../node_modules', import.meta.url)),
+      path.join(root, 'node_modules')
+    );
+    const writeGlossary = (entries: object[]) =>
+      fs.writeFileSync(path.join(root, 'src', 'data', 'glossary.json'), JSON.stringify(entries));
+    const writePost = (name: string, content: string) =>
+      fs.writeFileSync(path.join(postsDirectory, name), content);
+    const run = () =>
+      spawnSync(
+        process.execPath,
+        [path.join(root, 'scripts', 'check-glossary-links.mjs'), '--all'],
+        {
+          encoding: 'utf8',
+        }
+      );
+
+    writeGlossary([...targets, { term: 'MCP', category: 'concepts', related: ['Tool Use'] }]);
+    writePost('mp-1-dead.mdx', zhPost('[Agent](/glossary#agent) 與 [Opus](/glossary#Opus)。'));
+    writePost('en-mp-1-dead.mdx', enPost('One [Agent](/glossary#agent) is not enough.'));
+    writePost('mp-2-thread.mdx', zhPost('[Thread](/glossary#thread) 一直開著。'));
+    const failing = run();
+
+    expect(failing.status).toBe(1);
+    expect(failing.stderr).toContain('src/content/posts/mp-1-dead.mdx:4 /glossary#Opus');
+    expect(failing.stderr).toContain(
+      'src/content/posts/en-mp-1-dead.mdx:4 /glossary#agent → /en/glossary#agent'
+    );
+    expect(failing.stderr).toContain('src/data/glossary.json: MCP lists related "Tool Use"');
+    expect(failing.stderr).not.toContain('#thread');
+
+    writeGlossary([...targets, { term: 'MCP', category: 'concepts', related: ['Agent'] }]);
+    writePost('mp-1-dead.mdx', zhPost('[Agent](/glossary#agent) 與 Opus。'));
+    writePost('en-mp-1-dead.mdx', enPost('One [Agent](/en/glossary#agent) is not enough.'));
+    const passing = run();
+
+    expect(passing.status, passing.stderr).toBe(0);
+  });
+});
+
 describe('canonical terminology migration proof', () => {
   it('accepts forbidden-term replacement plus glossary link wrapping', () => {
     const before = '---\nsummary: 讓代理人做事\n---\nAI 代理人會工作。\n';

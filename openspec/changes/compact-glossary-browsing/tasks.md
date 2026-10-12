@@ -31,8 +31,8 @@
 
 ## 3. 死錨點檢查與修正（同一個 commit）
 
-- [ ] 3.1 `check-glossary-links.mjs` 新增連結檢查：文章裡指向不存在錨點的 glossary 連結（大小寫不符也算；停用自動連結的詞條算存在，不能沿用 `normalizeGlossary`）、英文文章連 `/glossary#…` 或繁中文章連 `/en/glossary#…`、`related` 列出不存在的詞條；失敗時列出檔案與錨點，或詞條與找不到的名稱。測試用合成資料涵蓋這幾種失敗，以及連到 `#thread` 不算死錨點（對應「Glossary 連結 SHALL 指向存在的錨點與文章的語言」的四個情境）
-- [ ] 3.2 修掉現有違規，跟 3.1 放同一個 commit：先跑 3.1 的檢查列出清單；mp-212 中英文版大小寫錯的錨點改正，沒有詞條的（`#Opus`）拿掉連結；英文文章裡連到 `/glossary#…` 的改連 `/en/glossary#…`；`related` 改正或刪除。驗證：commit 時 pre-commit 用第 2 組的證明放行，`pnpm run glossary:check` 全站通過，`post-versions.json` 與 `post-reader-revisions.json` 跟著同一個 commit 更新
+- [x] 3.1 `check-glossary-links.mjs` 新增連結檢查：文章裡指向不存在錨點的 glossary 連結（大小寫不符也算；停用自動連結的詞條算存在，不能沿用 `normalizeGlossary`）、英文文章連 `/glossary#…` 或繁中文章連 `/en/glossary#…`、`related` 列出不存在的詞條；失敗時列出檔案與錨點，或詞條與找不到的名稱。測試用合成資料涵蓋這幾種失敗，以及連到 `#thread` 不算死錨點（對應「Glossary 連結 SHALL 指向存在的錨點與文章的語言」的四個情境）
+- [x] 3.2 修掉現有違規，跟 3.1 放同一個 commit：先跑 3.1 的檢查列出清單；mp-212 中英文版大小寫錯的錨點改正，沒有詞條的（`#Opus`）拿掉連結；英文文章裡連到 `/glossary#…` 的改連 `/en/glossary#…`；`related` 改正或刪除。驗證：commit 時 pre-commit 用第 2 組的證明放行，`pnpm run glossary:check` 全站通過，`post-versions.json` 與 `post-reader-revisions.json` 跟著同一個 commit 更新
 
 ## 4. Kubernetes 條目與補連結（同一個 commit）
 

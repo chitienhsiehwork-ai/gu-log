@@ -465,6 +465,76 @@ export function validateGlossaryLink(label, href, options) {
   return target;
 }
 
+// Glossary links as posts write them; captures the href, the /en prefix and the anchor.
+const POST_GLOSSARY_LINK = /\[[^\]\n]+\]\((\/(en\/)?glossary#([^)\n]*))\)/gu;
+
+// Link syntax inside frontmatter or code is text, not a link readers can follow.
+function frontmatterAndCodeMask(content) {
+  const mask = new Array(content.length).fill(false);
+  if (content.startsWith('---\n')) {
+    const end = content.indexOf('\n---', 4);
+    if (end >= 0) {
+      const after = content.indexOf('\n', end + 4);
+      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
+    }
+  }
+  maskRegex(content, mask, /```[\s\S]*?```/g);
+  maskRegex(content, mask, /`[^`\n]+`/g);
+  return mask;
+}
+
+/**
+ * Glossary links that lead nowhere: the anchor must belong to some entry (entries with
+ * automatic linking disabled still exist; case must match), and the path must follow
+ * the post language.
+ */
+export function checkLinkTargets(content, options = {}) {
+  const filePath = options.filePath ?? 'post.mdx';
+  const glossary = options.glossary ?? loadGlossary();
+  const anchors = new Set(glossary.filter((entry) => entry?.term).map(glossaryAnchor));
+  const english = isEnglishPost(filePath, parseFrontmatter(content).data);
+  const mask = frontmatterAndCodeMask(content);
+  const violations = [];
+  for (const match of content.matchAll(POST_GLOSSARY_LINK)) {
+    if (mask[match.index]) continue;
+    const [, href, enPrefix, anchor] = match;
+    const line = content.slice(0, match.index).split('\n').length;
+    if (!anchors.has(anchor)) {
+      violations.push({ kind: 'dead-anchor', file: filePath, line, href, anchor });
+    } else if (Boolean(enPrefix) !== english) {
+      const expected = `${english ? '/en/glossary' : '/glossary'}#${anchor}`;
+      violations.push({
+        kind: 'wrong-language',
+        file: filePath,
+        line,
+        href,
+        anchor,
+        expectedHref: expected,
+      });
+    }
+  }
+  return { violations };
+}
+
+/** `related` names that are not glossary entries. */
+export function findMissingRelated(glossary, filePath = GLOSSARY_PATH) {
+  const terms = new Set(glossary.map((entry) => entry?.term));
+  const violations = [];
+  for (const entry of glossary) {
+    for (const name of Array.isArray(entry?.related) ? entry.related : []) {
+      if (!terms.has(name)) {
+        violations.push({
+          kind: 'missing-related',
+          file: filePath,
+          term: entry.term,
+          missing: name,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
 export function checkContent(content, options = {}) {
   const filePath = options.filePath ?? 'post.mdx';
   const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
@@ -732,7 +802,14 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
   files = [...new Set(files)].filter((f) => f.endsWith('.mdx') && fs.existsSync(f));
 
   const violations = [];
-  for (const file of files) violations.push(...checkFile(file, { glossary, terms }).violations);
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    violations.push(
+      ...checkContent(content, { filePath: file, glossary, terms }).violations,
+      ...checkLinkTargets(content, { filePath: file, glossary }).violations
+    );
+  }
+  violations.push(...findMissingRelated(glossary));
 
   if (args.format === 'json') {
     io.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
@@ -742,6 +819,18 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
       if (v.kind === 'canonical-term') {
         io.error(
           `${path.relative(REPO_ROOT, v.file)}:${v.line} forbidden ${JSON.stringify(v.forbidden)} → ${v.canonicalTerm} (${v.expectedHref})`
+        );
+      } else if (v.kind === 'dead-anchor') {
+        io.error(
+          `${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.href} → no glossary entry has #${v.anchor} (anchors are case-sensitive)`
+        );
+        io.error('  fix: point it at an existing anchor, or remove the link and keep its text');
+      } else if (v.kind === 'wrong-language') {
+        io.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.href} → ${v.expectedHref}`);
+        io.error("  fix: link the glossary in the post's language");
+      } else if (v.kind === 'missing-related') {
+        io.error(
+          `${path.relative(REPO_ROOT, v.file)}: ${v.term} lists related ${JSON.stringify(v.missing)}, which is not a glossary entry`
         );
       } else {
         io.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.term} → ${v.expectedHref}`);
