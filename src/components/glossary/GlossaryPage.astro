@@ -142,43 +142,49 @@ for (const item of entries) {
       <p class="glossary-intro">{copy.intro}</p>
     </header>
 
-    <div class="glossary-controls">
-      <input
-        type="search"
-        id="glossary-search"
-        class="glossary-search"
-        placeholder={copy.searchPlaceholder}
-        aria-label={copy.searchLabel}
-      />
-      <div class="controls-row">
-        <div class="category-pills" role="group" aria-label={copy.categoryGroupLabel}>
-          {
-            categories.map((cat) => (
-              <button
-                class="category-pill"
-                data-category={cat.id}
-                aria-pressed={cat.id === 'all' ? 'true' : 'false'}
-              >
-                {cat.label}
-              </button>
-            ))
-          }
-        </div>
-        <span class="glossary-count" id="glossary-count" data-count-suffix={copy.countSuffix}>
+    {/* 搜尋、分類按鈕與 A–Z 列捲動時固定在上方（openspec: glossary-browsing）。 */}
+    <div class="glossary-toolbar" id="glossary-toolbar">
+      <div class="toolbar-search">
+        <input
+          type="search"
+          id="glossary-search"
+          class="glossary-search"
+          placeholder={copy.searchPlaceholder}
+          aria-label={copy.searchLabel}
+        />
+        <span
+          class="glossary-count"
+          id="glossary-count"
+          data-count-suffix={copy.countSuffix}
+          aria-live="polite"
+        >
           {entries.length}{copy.countSuffix}
         </span>
       </div>
+      <div class="category-pills" role="group" aria-label={copy.categoryGroupLabel}>
+        {
+          categories.map((cat) => (
+            <button
+              type="button"
+              class="category-pill"
+              data-category={cat.id}
+              aria-pressed={cat.id === 'all' ? 'true' : 'false'}
+            >
+              {cat.label}
+            </button>
+          ))
+        }
+      </div>
+      <nav class="alpha-bar" aria-label={copy.alphabetLabel}>
+        {
+          groups.map(({ letter }) => (
+            <a href={`#letter-${letter}`} class="alpha-link">
+              {letter}
+            </a>
+          ))
+        }
+      </nav>
     </div>
-
-    <nav class="alpha-bar" aria-label={copy.alphabetLabel}>
-      {
-        groups.map(({ letter }) => (
-          <a href={`#letter-${letter}`} class="alpha-link">
-            {letter}
-          </a>
-        ))
-      }
-    </nav>
 
     <div id="glossary-list">
       {

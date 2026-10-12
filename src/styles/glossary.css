@@ -9,17 +9,39 @@
   margin-bottom: 1rem;
 }
 
-/* Controls */
-.glossary-controls {
+/* 控制列：搜尋、分類按鈕與 A–Z 列捲動時固定在上方。
+   錨點目標不被蓋住，靠這一頁的 scroll-padding-top（等於控制列高度；script 量好後寫進
+   --glossary-toolbar-height，沒有 JS 時用預設值）。不要在詞條上加 scroll-margin-top，
+   它會跟 scroll-padding-top 疊加。
+   這一頁不用全站的平滑捲動：從網址錨點進來時瀏覽器也會慢慢捲，捲到一半網頁字型換上去、
+   版面位移，目標就停在控制列底下。直接跳過去，瀏覽器才會在載入期間持續對齊錨點。 */
+html:has(.glossary-page) {
+  scroll-padding-top: var(--glossary-toolbar-height, 6.6rem);
+  scroll-behavior: auto;
+}
+
+.glossary-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0 0.35rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toolbar-search {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
 .glossary-search {
-  width: 100%;
-  padding: 0.45rem 0.7rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
@@ -38,20 +60,28 @@
   opacity: 0.7;
 }
 
-.controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+.glossary-count {
+  flex: none;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  opacity: 0.6;
 }
 
+/* 分類按鈕與 A–Z 各佔一行；手機上放不下的分類按鈕左右滑。 */
 .category-pills {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.category-pills::-webkit-scrollbar {
+  display: none;
 }
 
 .category-pill {
+  flex: none;
   padding: 0.2rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -73,29 +103,22 @@
   border-color: var(--color-accent);
 }
 
-.glossary-count {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  opacity: 0.6;
-}
-
-/* Alphabet jump bar */
+/* A–Z：字母平分一行的寬度，手機上也不用左右滑 */
 .alpha-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem;
-  padding: 0.4rem 0;
-  margin-bottom: 0.25rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .alpha-link {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.25rem;
   font-size: 0.7rem;
   font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 0.15rem 0.35rem;
+  padding: 0.15rem 0;
   border-radius: 3px;
   transition: all 0.1s;
 }
@@ -105,9 +128,8 @@
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
-/* Letter sections */
-.letter-section {
-  scroll-margin-top: 1rem;
+.letter-section[hidden] {
+  display: none;
 }
 
 .letter-heading {

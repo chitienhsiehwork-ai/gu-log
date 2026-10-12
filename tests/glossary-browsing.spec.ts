@@ -14,9 +14,31 @@ test.use({
   userAgent: iPhone13.userAgent,
 });
 
+interface GlossaryItem {
+  term: string;
+  category: string;
+  enDefinition?: string;
+  enMoguNote?: string;
+}
+
+const glossaryData: GlossaryItem[] = JSON.parse(
+  readFileSync(new URL('../src/data/glossary.json', import.meta.url), 'utf8')
+);
+
 function postTitle(id: string): string {
   const source = readFileSync(new URL(`../src/content/posts/${id}.mdx`, import.meta.url), 'utf8');
   return matter(source).data.title;
+}
+
+// 目標詞條的上緣要在 sticky 控制列下緣之下，也還在畫面裡。
+async function expectBelowToolbar(page: Page, selector: string) {
+  const toolbar = await page.locator('#glossary-toolbar').boundingBox();
+  const target = await page.locator(selector).boundingBox();
+  const viewport = page.viewportSize();
+  expect(toolbar && target && viewport).toBeTruthy();
+  expect(toolbar!.y).toBeLessThanOrEqual(0.5);
+  expect(target!.y).toBeGreaterThanOrEqual(toolbar!.y + toolbar!.height - 1);
+  expect(target!.y).toBeLessThan(viewport!.height);
 }
 
 async function entrySummaries(page: Page) {
@@ -178,4 +200,80 @@ test('the copy button copies the entry link and says so', async ({ page }) => {
   expect(
     await page.evaluate(() => (window as Window & { __copiedText?: string }).__copiedText)
   ).toMatch(/\/glossary#agent$/);
+});
+
+test.describe('sticky controls and in-page filters', () => {
+  test('an anchor target is not hidden under the sticky controls', async ({ page }) => {
+    await page.goto('/glossary#elixir');
+
+    await expect(page.locator('#elixir .mogu-note')).toBeVisible();
+    await expectBelowToolbar(page, '#elixir');
+  });
+
+  test('a related entry hidden by the people filter switches the filter back to all', async ({
+    page,
+  }) => {
+    await page.goto('/glossary');
+
+    await page.getByRole('button', { name: '人物', exact: true }).tap();
+    await expect(page.locator('#vibe-coding')).toBeHidden();
+    await page.locator('#andrej-karpathy .entry-toggle').tap();
+    await page.locator('#andrej-karpathy').getByRole('link', { name: 'Vibe Coding' }).tap();
+
+    await expect(page.getByRole('button', { name: '全部', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await expect(page.locator('#vibe-coding .entry-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    await expect(page.locator('#vibe-coding .mogu-note')).toBeVisible();
+    await expect(page).toHaveURL(/\/glossary#vibe-coding$/);
+    await expectBelowToolbar(page, '#vibe-coding');
+  });
+
+  test('every category has a filter button that shows only its entries', async ({ page }) => {
+    for (const [route, products, models] of [
+      ['/glossary', '產品', '模型'],
+      ['/en/glossary', 'Products', 'Models'],
+    ]) {
+      await page.goto(route);
+      for (const [category, label] of [
+        ['products', products],
+        ['models', models],
+      ]) {
+        await page.getByRole('button', { name: label, exact: true }).tap();
+        const visible = page.locator('.glossary-entry:visible');
+        await expect(visible).toHaveCount(
+          glossaryData.filter((entry) => entry.category === category).length
+        );
+        await expect(visible.locator('.term-cat')).toHaveText(
+          (await visible.locator('.term-cat').allTextContents()).map(() => label)
+        );
+      }
+    }
+  });
+
+  test('the English page opens an anchored people entry in English', async ({ page }) => {
+    const karpathy = glossaryData.find((entry) => entry.term === 'Andrej Karpathy')!;
+    await page.goto('/en/glossary#andrej-karpathy');
+
+    const entry = page.locator('#andrej-karpathy');
+    await expect(entry.locator('.term-def')).toHaveText(karpathy.enDefinition!);
+    await expect(entry.locator('.mogu-note')).toContainText(karpathy.enMoguNote!);
+    await expect(entry.locator('.term-cat')).toHaveText('People');
+    await expectBelowToolbar(page, '#andrej-karpathy');
+  });
+});
+
+test.describe('sticky controls without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('an anchor target is not hidden under the sticky controls', async ({ page }) => {
+    await page.goto('/glossary#elixir');
+
+    await expect(page.locator('#elixir .mogu-note')).toBeVisible();
+    await expectBelowToolbar(page, '#elixir');
+  });
 });
