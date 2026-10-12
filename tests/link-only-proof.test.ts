@@ -76,6 +76,13 @@ describe('link-only proof: new glossary entry backfills a legacy post', () => {
   it('treats an unchanged file as link-only', () => {
     expect(zhProof('Kubernetes 很穩。', 'Kubernetes 很穩。')).toBe(true);
   });
+
+  it.each([
+    ['literal brackets around the term', '[Kubernetes] 是括號裡的字。'],
+    ['a bracket left open in inline code', '用 `arr[` 開頭的 Kubernetes'],
+  ])('accepts a new link after a bracket that opens no link: %s', (_name, before) => {
+    expect(zhProof(before, wrapFirstKubernetes(before))).toBe(true);
+  });
 });
 
 describe('link-only proof: correcting existing links', () => {

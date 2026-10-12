@@ -587,8 +587,10 @@ export function expectedHref(anchor, english) {
   return `${english ? '/en/glossary' : '/glossary'}#${anchor}`;
 }
 
-// A Markdown link as posts write it; captures the text and the href. Global: use matchAll.
-export const MARKDOWN_LINK = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
+// A Markdown link as posts write it; captures the text and the href. The text holds no `[`:
+// a bracket that opens no link (`[Kubernetes] 是…`, `arr[` in code) is not part of the next
+// link. Global: use matchAll.
+export const MARKDOWN_LINK = /\[([^[\]\n]+)\]\(([^)\n]+)\)/gu;
 // A glossary href; captures the /en prefix and the anchor.
 export const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
 // An internal post link's href.

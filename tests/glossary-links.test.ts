@@ -503,6 +503,15 @@ describe('glossary link targets', () => {
     ).toEqual([]);
   });
 
+  it('checks a link that follows a bracket left open in inline code', () => {
+    expect(
+      checker.checkLinkTargets(zhPost('用 `arr[` 開頭的 [Opus](/glossary#Opus)'), {
+        filePath: 'mp-1.mdx',
+        glossary: targets,
+      }).violations
+    ).toEqual([expect.objectContaining({ kind: 'dead-anchor', href: '/glossary#Opus' })]);
+  });
+
   it('ignores link syntax inside frontmatter and code', () => {
     const content = zhPost(
       '範例：`[Opus](/glossary#Opus)`\n```md\n[Opus](/glossary#Opus)\n```',
