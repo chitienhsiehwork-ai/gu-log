@@ -223,12 +223,21 @@ describe('glossary link checker', () => {
     ['inside the text of a link that wraps', '[看看\nElixir 文件](https://example.com)'],
     ['on a term glued to bold', '這是**Elixir**的核心'],
     ['on a term right after a backslash', '路徑是 C:\\Elixir 底下'],
+    ['inside an <a> element', '延伸閱讀 <a href="/posts/mp-1-demo/">Elixir 入門</a> 這篇'],
+    ['right after an exclamation mark', '太好了!Elixir 真的穩'],
+    ['inside a www. autolink', '官網是 www.Elixir.dev 這個'],
+    ['inside an email autolink', '寄到 Elixir@example.com 就好'],
   ])('does not ask for a link %s', (_name, body) => {
     const content = `---\nlang: zh-tw\n---\n${body}\n`;
+    const elixir = checker
+      .normalizeGlossary(glossary)
+      .find((entry: { term: string }) => entry.term === 'Elixir');
 
     expect(checker.checkContent(content, { filePath: 'post.mdx', glossary }).violations).toEqual(
       []
     );
+    // The placement rule itself rules it out, not only the structure check behind it.
+    expect(checker.findSafeOccurrences(content, elixir, 'Elixir')).toEqual([]);
   });
 
   it('asks for the next occurrence when the first one cannot take a link', () => {
