@@ -76,6 +76,11 @@
 - [x] 7.2 測試與小清理：hook 與 CI 的整合測試只留接線相關的案例（規則見 tasks 2.1）；刪掉 `tests/glossary-links.test.ts` 比對元件原始碼的斷言；`link-only-proof` 的 `validatePostLink` 改必填、unmerged 檢查留在 pre-commit 那一側、CI 不再假造 `stage`；`findMissingRelated` 拿掉沒人傳的參數；語言路徑改用同一個 `expectedHref`、glossary href 的 regex 只留一份；`list-content-gate-posts.mjs` 拿掉多餘的判斷。
 - [x] 7.3 詞彙表頁面：文章連結改用 `getLocalizedPostUrl`；hash 解碼失敗時不讓初始化中斷；刪掉 `findUnlabeledGlossaryCategories`，測試改成對每個詞條呼叫 `glossaryCategoryLabel`；Playwright 刪掉被涵蓋的重複案例，補「開 `/glossary#software-30` 會展開」與「點相關詞條後目標沒有被控制列蓋住」；CSS 拿掉沒有作用的 `[hidden]` 規則、分類顏色改用一個變數；`glossary.json` 的 `definedIn[].title` 沒有程式在讀，刪掉；`src/lib/glossary-anchor.mjs`、`scripts/tribunal-librarian-packet.py` 過期的註解改正。
 
+## 8. 階段 6 第二輪審查修正
+
+- [ ] 8.1 檢查器與修正器挑位置時，每個候選位置先用證明的結構比對驗一次，不過就改看下一處（規則見 design §8）；結構比對搬進 `scripts/check-glossary-links.mjs`，證明從那裡 import；`MARKDOWN_LINK` 的連結文字不含 `[`。測試：reference 連結（full／collapsed／shortcut）、連結定義、註腳、網址換行的連結、autolink 括號、list 裡被結束的 fence、跨行 export、字面方括號、shortcut reference 後面緊接詞條，每種都要「檢查器要求的連結，修正器寫出來後證明會放行；證明不收的位置，檢查器不要求」；另補「第一處在 reference 連結裡、改連第二處」。
+- [ ] 8.2 小清理：`!`、`<a>` 內容、`www.`、email 四條位置規則補測試；`buildUnsafeMask` 拿掉已被掃描器涵蓋的跨行元件狀態；拿掉 pre-commit 碰不到的 unmerged 檢查；Playwright 壞錨點案例每個網址各開一頁。
+
 ## Workflow follow-up
 
 - 依 `.agents/openspec-sdlc.md` 走階段 6 雙審（正確性錨 spec scenario、簡潔度錨 over-engineering）。
