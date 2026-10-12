@@ -60,7 +60,7 @@
 ## 4. 階段 6 審查修正
 
 - [x] 4.1 `run` 對 Lv 只接受 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復：沒帶 `--file` 的 Lv run 一律拒絕。Go 測試涵蓋 `run --prefix Lv --from-step deploy` 沒帶 `--file`：exit 1、沒有工作目錄（對應「沒有 Lv 檔的 run」）
-- [x] 4.2 `review`、`refine` 除了 `--draft`，也檢查模型實際會讀的 `<work-dir>/draft-v1.mdx`；`credits` 檢查實際會蓋章的檔（`--work-dir` 底下的 `final.mdx`）。Go 測試涵蓋 `--work-dir` 跟 `--draft`／`--file` 不同目錄、而工作目錄裡是 Lv 檔的情況
+- [x] 4.2 `review`、`refine` 除了 `--draft`，也檢查模型實際會讀的 `<work-dir>/draft-v1.mdx`；`credits` 檢查實際會蓋章的檔（`--file` 叫 `final.mdx` 時是 `--work-dir` 底下的 `final.mdx`）。Go 測試涵蓋 `--work-dir` 跟 `--draft`／`--file` 不同目錄、而工作目錄裡是 Lv 檔的情況
 - [x] 4.3 `CONTRIBUTING.md`〈新增入門教學（Lv）〉：
   - 「guided-reading 開頭要 cite 來源」從〈Lv 常見骨架〉移到第 1 步，寫成依 `editorial-charter` 必須做；
   - 第 1 步只留「依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`」，不重抄兩種 mode 的定義；
@@ -68,6 +68,14 @@
   - 配號那步拿掉括號裡的指令，只指向〈編號分配：PENDING ticket pattern（預設流程）〉。
 - [x] 4.4 `tools/gp-pipeline/SKILL.md` candidate 段落的「Lv 不走 `run`」改成跟 Lv 小節一致的說法；root help（`cmd/gp-pipeline/main.go`）的 Lv 說明縮成一句，不再重列 Lv 可用的步驟（清單留在拒絕訊息裡）
 - [x] 4.5 測試去重：`main_test.go` 的 `TestStandaloneRalphInfersSeriesFromFilename` 拿掉兩個 Lv 案例與 refused 分支、map 改回 bool（保留 `sd-30`），Lv 的 ralph 拒絕由 `lv_refusal_test.go` 負責；`TestMissingPrefixFailsAtIngress` 改用 `trapExternalPrograms`；刪掉 `lv_refusal_test.go` 裡兩個一定會過的斷言（錯誤訊息含 `LvWorkflowSection`、`sourceDir/draft-v1.mdx` 不存在）
+
+## 5. 階段 6 第二輪審查修正
+
+- [ ] 5.1 `run` 帶 `--work-dir`、從 `write` 之後到 `translate` 之前的步驟恢復時，在 yt-dlp preflight 與建立工作目錄之前，用 `IsLvFile` 檢查工作目錄的 `draft-v1.mdx` 與 `final.mdx`，任一個是 Lv 就拒絕。Go 測試涵蓋三種情況，都要 exit 1、工作目錄裡的檔案逐位元組不變、posts 沒有多出檔案、沒有外部呼叫（對應「從放著 Lv 草稿的工作目錄恢復」）：
+  - `--prefix MP --from-step review`，工作目錄的 `draft-v1.mdx` 是 Lv；
+  - `--prefix GP --from-step ralph`，工作目錄的 `final.mdx` 是 Lv；
+  - `--file <GP 檔> --from-step ralph`，工作目錄的 `final.mdx` 是 Lv。
+- [ ] 5.2 `credits` 改成對 `--file` 與實際蓋章的檔各跑一次 `IsLvFile`，跟 `review`、`refine` 的寫法一致；`IsLvPost` 沒有外部呼叫者之後改成不 export。Go 測試補「`--file` 是 Lv 的 `final.mdx`、`--work-dir` 裡是 GP 的 `final.mdx`」：exit 1、兩個檔都不變
 
 ## Workflow follow-up
 

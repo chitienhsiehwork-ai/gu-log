@@ -2,7 +2,7 @@
 
 ### Requirement: gp-pipeline SHALL NOT 撰寫或改寫 Lv，也 SHALL NOT 替 Lv 蓋 pipeline 署名
 
-會撰寫或改寫 Lv 正文，或會把 pipeline 署名（`translatedBy.pipeline`、`pipelineUrl`）寫進 Lv 的入口，遇到 Lv 時 SHALL 以 exit code 1 失敗，SHALL NOT 改用其他系列繼續執行。這些入口是：`run` 處理 Lv，除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；`write --prefix Lv`；`review`、`refine` 的 `--ticket-id` 或草稿 frontmatter 的 `ticketId` 是 Lv ticket；`credits`、`ralph` 的目標檔是 Lv 檔，也就是檔名系列是 Lv（含 `levelup-` 與 `en-` 前綴），或 frontmatter 的 `ticketId` 是 Lv ticket。
+會撰寫或改寫 Lv 正文，或會把 pipeline 署名（`translatedBy.pipeline`、`pipelineUrl`）寫進 Lv 的入口，遇到 Lv 時 SHALL 以 exit code 1 失敗，SHALL NOT 改用其他系列繼續執行。這些入口是：`run` 處理 Lv（含工作目錄裡會被沿用的 Lv 草稿），除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；`write --prefix Lv`；`review`、`refine` 的 `--ticket-id` 或草稿 frontmatter 的 `ticketId` 是 Lv ticket；`credits`、`ralph` 的目標檔是 Lv 檔，也就是檔名系列是 Lv（含 `levelup-` 與 `en-` 前綴），或 frontmatter 的 `ticketId` 是 Lv ticket。
 
 #### Scenario: 以 Lv 檔從寫作或評審步驟恢復
 
@@ -15,6 +15,12 @@
 - **WHEN** 操作者執行 `gp-pipeline run --prefix Lv --from-step deploy`，沒有帶 `--file`
 - **THEN** 指令 SHALL 以 exit code 1 結束
 - **AND** SHALL NOT 建立工作目錄或呼叫任何模型
+
+#### Scenario: 從放著 Lv 草稿的工作目錄恢復
+
+- **WHEN** 操作者以 `run --work-dir <目錄>` 從 `write` 之後、`translate` 之前的步驟恢復，而目錄裡的 `draft-v1.mdx` 或 `final.mdx` 是 Lv，不論 `--prefix` 或 `--file` 是哪個系列
+- **THEN** 指令 SHALL 以 exit code 1 結束
+- **AND** SHALL NOT 呼叫任何模型，工作目錄裡的檔案 SHALL 維持不變，也 SHALL NOT 產生新的文章檔
 
 #### Scenario: 單步 write 寫 Lv
 
