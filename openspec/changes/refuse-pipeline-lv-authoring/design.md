@@ -51,7 +51,7 @@
 
 Lv 的 Tribunal 改走 `scripts/tribunal.sh`：四位評審相同，背景 daemon 本來就這樣跑。
 
-`run` 的判斷是：系列是 Lv，而且起點早於 `translate`，就拒絕；沒指定起點視同從頭跑。
+`run` 的判斷是：系列是 Lv 時，只接受 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復，其他一律拒絕；沒指定起點視同從頭跑。沒有 Lv 檔的 `run --from-step deploy` 沒有東西可以發布，卻會先在工作目錄跑 credits 蓋署名，所以也擋。
 
 替代方案：
 
@@ -61,7 +61,7 @@ Lv 的 Tribunal 改走 `scripts/tribunal.sh`：四位評審相同，背景 daemo
 ### 3. 單一判斷、單一錯誤、說明文字從同一份清單產生
 
 - 用一個函式判斷「pipeline 能撰寫的系列」（GP、MP、SD），再用一個建構函式產生拒絕錯誤，六個入口都呼叫同一組。
-- 「目標檔是不是 Lv」也只寫一份：檔名系列（含 `levelup-`、`en-`）或 frontmatter 的 `ticketId`，任一個是 Lv 就算。`ralph`、`credits` 與 `review`／`refine` 的草稿檢查共用它。
+- 「目標檔是不是 Lv」也只寫一份：檔名系列（含 `levelup-`、`en-`）或 frontmatter 的 `ticketId`，任一個是 Lv 就算。`ralph`、`credits` 與 `review`／`refine` 的草稿檢查共用它，而且檢查的是實際會被讀寫的檔：`--work-dir` 跟 `--draft`、`--file` 不在同一個目錄時，模型讀的是工作目錄裡的草稿，`credits` 蓋章的也是工作目錄裡的 `final.mdx`。
 - `review`、`refine` 除了看 `--ticket-id`，也看草稿的 `ticketId`。只看參數的話，漏帶 `--ticket-id` 就會落到預設的 `GP-PENDING`，Lv 草稿默默套用 GP 的規則。這裡只多擋 Lv，其他系列照舊以 `--ticket-id` 為準。
 - 寫作指令 help text 與「缺 `--prefix`」錯誤訊息裡的系列清單，從同一個常數產生，不各自手寫。
 - 這樣將來要開放或收回某個系列，只改一處，說明文字也不會跟行為對不上。

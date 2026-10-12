@@ -21,6 +21,7 @@
   - `run <url> --prefix SD` 與 `ralph --file <sd- 檔>` 不被這條檢查擋下。
 
   錯誤訊息的測試只檢查它含 `CONTRIBUTING.md`。既有的 `TestStandaloneRalphInfersSeriesFromFilename` 裡兩個 Lv 案例改成斷言拒絕，其他系列照舊（對應「gp-pipeline SHALL NOT 撰寫或改寫 Lv，也 SHALL NOT 替 Lv 蓋 pipeline 署名」的五個情境，與「拒絕 Lv SHALL 發生在任何副作用之前，並指向 Lv 寫作流程」的兩個情境）
+
 - [x] 1.2 確認 Lv 的非寫作步驟沒有被擋：`run --file <Lv 檔> --from-step translate --dry-run` 與 `translate --file <Lv 檔>` 通過 ingress、`counter bump --prefix Lv` 照常配號、standalone `deploy --active-file <lv-pending 檔>` 通過系列判斷。既有測試已涵蓋的就引用，缺的補上（對應「Lv SHALL 仍可使用 pipeline 的非寫作步驟」的兩個情境）
 - [x] 1.3 說明與錯誤訊息都從 1.1 的同一份清單產生，不再列 Lv：
   - `write`、`review`、`refine` 的說明；
@@ -29,6 +30,7 @@
   - `run`、`write` 缺 `--prefix` 時列出的可用系列。
 
   `run --help` 加一句：Lv 檔只能從 `translate` 或 `deploy` 恢復。`counter`、`dedup`、`deploy` 繼續列 Lv。Go 測試：`write` 的 `--prefix` 說明列出 GP、MP、SD 且不含 Lv；`write` 沒帶 `--prefix` 的錯誤訊息不含 Lv；`counter bump` 的 `--prefix` 說明仍含 Lv（對應「寫作指令的說明與錯誤訊息 SHALL NOT 邀請撰寫 Lv」的三個情境）
+
 - [x] 1.4 grep 整個 repo（scripts、`.github/workflows`、`tools/`、`playbooks/`、`docs/`、skills），找出用 Lv 呼叫 `run`、`write`、`review`、`refine`、`credits`、`ralph` 的程式：有就改掉，文件交給第 2 組；在 PR 說明記下 grep 結果
 
 ## 2. 文件指向同一條 Lv 流程
@@ -40,6 +42,7 @@
   - 研究流程那條「Go 就依選定的系列走 gp-pipeline」補上：Lv 改走〈新增入門教學（Lv）〉。
 
   驗證：新小節標題與 1.1 錯誤訊息指向的名稱一致；pre-commit 的 markdown 與 zh-tw 檢查通過
+
 - [x] 2.2 `tools/gp-pipeline/SKILL.md`：改掉開頭的「GP 導讀、MP、SD、Lv 共用」；寫明 Lv 的撰寫入口（含 `ralph`、`credits`）會 exit 1、Lv 可用的步驟，並指向 `CONTRIBUTING.md` 的 Lv 流程；「跑 tribunal」那一列拿掉 `levelup-`，註明 Lv 改跑 `scripts/tribunal.sh`。驗證：`go test -count=1 ./...` 裡讀 `SKILL.md` 的契約測試照樣綠
 - [x] 2.3 `AGENTS.md` 主題路由表的「來源寫作 pipeline」那一列不再把 Lv 列為 pipeline 寫作系列，改成指向 `CONTRIBUTING.md` 的 Lv 流程。驗證：pre-commit 通過，路由表其他列不變
 - [x] 2.4 其他說 pipeline 能寫 Lv、或叫人用 `gp-pipeline ralph` 評 Lv 的地方：
@@ -53,6 +56,18 @@
 ## 3. 整合驗證
 
 - [x] 3.1 實際跑編好的 CLI：先記下 `scripts/article-counter.json` 的 hash；`tools/gp-pipeline/gp-pipeline run https://example.com/x --prefix Lv` 與 `tools/gp-pipeline/gp-pipeline write --prefix Lv --source <任一檔>` 各給一個不存在的工作目錄路徑，兩個都 exit 1、訊息含 `CONTRIBUTING.md`；兩個工作目錄都沒被建出來、counter hash 不變、`git status` 乾淨；`write --help` 的 `--prefix` 不列 Lv。把指令與輸出貼進 PR 說明
+
+## 4. 階段 6 審查修正
+
+- [ ] 4.1 `run` 對 Lv 只接受 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復：沒帶 `--file` 的 Lv run 一律拒絕。Go 測試涵蓋 `run --prefix Lv --from-step deploy` 沒帶 `--file`：exit 1、沒有工作目錄（對應「沒有 Lv 檔的 run」）
+- [ ] 4.2 `review`、`refine` 除了 `--draft`，也檢查模型實際會讀的 `<work-dir>/draft-v1.mdx`；`credits` 檢查實際會蓋章的檔（`--work-dir` 底下的 `final.mdx`）。Go 測試涵蓋 `--work-dir` 跟 `--draft`／`--file` 不同目錄、而工作目錄裡是 Lv 檔的情況
+- [ ] 4.3 `CONTRIBUTING.md`〈新增入門教學（Lv）〉：
+  - 「guided-reading 開頭要 cite 來源」從〈Lv 常見骨架〉移到第 1 步，寫成依 `editorial-charter` 必須做；
+  - 第 1 步只留「依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`」，不重抄兩種 mode 的定義；
+  - 開頭不再自己列六個指令與 exit 1，改指向 `tools/gp-pipeline/SKILL.md` 的 Lv 小節；
+  - 配號那步拿掉括號裡的指令，只指向〈編號分配：PENDING ticket pattern（預設流程）〉。
+- [ ] 4.4 `tools/gp-pipeline/SKILL.md` candidate 段落的「Lv 不走 `run`」改成跟 Lv 小節一致的說法；root help（`cmd/gp-pipeline/main.go`）的 Lv 說明縮成一句，不再重列 Lv 可用的步驟（清單留在拒絕訊息裡）
+- [ ] 4.5 測試去重：`main_test.go` 的 `TestStandaloneRalphInfersSeriesFromFilename` 拿掉兩個 Lv 案例與 refused 分支、map 改回 bool（保留 `sd-30`），Lv 的 ralph 拒絕由 `lv_refusal_test.go` 負責；`TestMissingPrefixFailsAtIngress` 改用 `trapExternalPrograms`；刪掉 `lv_refusal_test.go` 裡兩個一定會過的斷言（錯誤訊息含 `LvWorkflowSection`、`sourceDir/draft-v1.mdx` 不存在）
 
 ## Workflow follow-up
 

@@ -2,13 +2,19 @@
 
 ### Requirement: gp-pipeline SHALL NOT 撰寫或改寫 Lv，也 SHALL NOT 替 Lv 蓋 pipeline 署名
 
-會撰寫或改寫 Lv 正文，或會把 pipeline 署名（`translatedBy.pipeline`、`pipelineUrl`）寫進 Lv 的入口，遇到 Lv 時 SHALL 以 exit code 1 失敗，SHALL NOT 改用其他系列繼續執行。這些入口是：`run` 處理 Lv 而且起點早於 `translate`（沒指定起點也算）；`write --prefix Lv`；`review`、`refine` 的 `--ticket-id` 或草稿 frontmatter 的 `ticketId` 是 Lv ticket；`credits`、`ralph` 的目標檔是 Lv 檔，也就是檔名系列是 Lv（含 `levelup-` 與 `en-` 前綴），或 frontmatter 的 `ticketId` 是 Lv ticket。
+會撰寫或改寫 Lv 正文，或會把 pipeline 署名（`translatedBy.pipeline`、`pipelineUrl`）寫進 Lv 的入口，遇到 Lv 時 SHALL 以 exit code 1 失敗，SHALL NOT 改用其他系列繼續執行。這些入口是：`run` 處理 Lv，除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；`write --prefix Lv`；`review`、`refine` 的 `--ticket-id` 或草稿 frontmatter 的 `ticketId` 是 Lv ticket；`credits`、`ralph` 的目標檔是 Lv 檔，也就是檔名系列是 Lv（含 `levelup-` 與 `en-` 前綴），或 frontmatter 的 `ticketId` 是 Lv ticket。
 
 #### Scenario: 以 Lv 檔從寫作或評審步驟恢復
 
 - **WHEN** 操作者以 `run --file <lv- 或 levelup- 開頭的檔案>` 執行，沒有帶 `--from-step`，或 `--from-step` 是 `translate` 之前的任何步驟（例如 `write`、`refine`、`ralph`）
 - **THEN** 指令 SHALL 以 exit code 1 結束
 - **AND** SHALL NOT 建立工作目錄或呼叫任何模型，Lv 檔 SHALL 維持不變
+
+#### Scenario: 沒有 Lv 檔的 run
+
+- **WHEN** 操作者執行 `gp-pipeline run --prefix Lv --from-step deploy`，沒有帶 `--file`
+- **THEN** 指令 SHALL 以 exit code 1 結束
+- **AND** SHALL NOT 建立工作目錄或呼叫任何模型
 
 #### Scenario: 單步 write 寫 Lv
 

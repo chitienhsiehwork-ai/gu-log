@@ -13,12 +13,13 @@ pipeline 的 `ralph` 也有同樣的問題。它遇到 GP 以外的系列，會�
 ## What Changes
 
 - `gp-pipeline` 不再撰寫、改寫 Lv，也不替 Lv 蓋 pipeline 署名。下列入口遇到 Lv 時，在 ingress 以 exit 1 失敗：
-  - `run`：`--prefix Lv`，或 `--file` 是 Lv 檔，而且起點早於 `translate`（沒指定起點也算，加 `--dry-run` 也一樣）；
+  - `run`：系列是 Lv（`--prefix Lv`，或 `--file` 是 Lv 檔），除非是 `run --file <Lv 檔>` 從 `translate` 或 `deploy` 恢復；沒指定起點、加 `--dry-run` 都一樣擋；
   - `write --prefix Lv`；
   - `review`、`refine`：`--ticket-id` 是 Lv ticket，或草稿 frontmatter 的 `ticketId` 是 Lv ticket（`--ticket-id` 沒帶時預設是 `GP-PENDING`，只看參數的話，Lv 草稿會默默套用 GP 的規則）；
   - `credits`、`ralph`：目標檔是 Lv。
 
   拒絕發生在建立工作目錄、檢查外部工具（例如 yt-dlp）、抓來源、呼叫模型、改動 `scripts/article-counter.json` 與寫入任何檔案之前。錯誤訊息指向 `CONTRIBUTING.md` 的 Lv 寫作流程，並列出 Lv 仍可用的步驟。
+
 - Lv 仍可使用 pipeline 的非寫作步驟：`counter`、`fetch`、`eval`、`dedup`、`translate --file`、standalone `deploy --active-file`，以及 `run --file <Lv 檔> --from-step translate|deploy`。Lv-18 的英文版就是用 `translate` 產生的；`translate` 保留原文的署名，只記下翻譯用的模型。
 - `write`、`review`、`refine`、`run`、`candidate` 與 root 的 help text，以及 `run`、`write` 缺 `--prefix` 時列出的系列，不再把 Lv 當成可以撰寫的系列；`run --help` 說明 Lv 檔只能從 `translate` 或 `deploy` 恢復。`counter`、`dedup`、`deploy` 照舊接受 Lv。
 - `CONTRIBUTING.md` 新增「新增入門教學（Lv）」流程：依 charter 選 mode、拿近期 Lv 當範本、先寫設計稿、正文交給固定版本寫手、跑確定性檢查、用 `scripts/tribunal.sh` 跑 Tribunal、通過後用 `gp-pipeline translate` 產英文版。同一節描述 Lv 的常見骨架（分層、`LevelUpProgress`、每層一題 `LevelUpQuiz`、`AnalogyBox`、選用的 `Mermaid`、魔王關）。這是寫作指引，不是硬性格式規則：既有 17 篇本身就不完全一致，charter 也允許 Lv 自由安排結構。
