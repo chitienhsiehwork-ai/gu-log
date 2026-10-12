@@ -339,23 +339,28 @@ function closingParen(content, open) {
 }
 
 // Links and images, text and destination both: a link inside another link's text does not
-// render. The text may wrap onto the next line, but not past a blank line.
+// render. The text may wrap onto the next line, but not past a blank line. An image's
+// description is masked up to its `]` whatever follows (`(…)`, `[…]`, `[]` or nothing): it
+// renders as plain text, and the structure comparison cannot tell a link written there from none.
 function linkRanges(content, mask) {
   const ranges = [];
   for (let i = 0; i < content.length; i += 1) {
     if (content[i] !== '[' || mask[i] || isEscaped(content, i)) continue;
     const close = closingBracket(content, i, mask);
-    const end = close >= 0 && content[close + 1] === '(' ? closingParen(content, close + 1) : -1;
-    if (end < 0) continue;
-    ranges.push({ start: content[i - 1] === '!' ? i - 1 : i, end });
+    if (close < 0) continue;
+    const image = content[i - 1] === '!';
+    const destinationEnd = content[close + 1] === '(' ? closingParen(content, close + 1) : -1;
+    if (destinationEnd < 0 && !image) continue;
+    const end = destinationEnd < 0 ? close + 1 : destinationEnd;
+    ranges.push({ start: image ? i - 1 : i, end });
     i = end - 1;
   }
   return ranges;
 }
 
 /**
- * Where a glossary link must not go: frontmatter, code, MDX expressions, JSX tags and the
- * text of other links (an `<a>` element's content included), autolinks, blockquotes,
+ * Where a glossary link must not go: frontmatter, code, MDX expressions, JSX tags, the text
+ * of other links (an `<a>` element's content included) and of images, autolinks, blockquotes,
  * import/export lines and lines that open an MDX component. findSafeOccurrences adds the
  * characters a link can't touch; together they are the one placement rule.
  */

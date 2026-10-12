@@ -206,6 +206,11 @@ describe('link-only proof: links where the checker would never put one', () => {
       '看 <Badge label="Kubernetes" /> 這個。',
       '看 <Badge label="[Kubernetes](/glossary#kubernetes)" /> 這個。',
     ],
+    [
+      'the description of a reference image',
+      '![Kubernetes 架構圖][img]\n\n[img]: /x.png',
+      '![[Kubernetes](/glossary#kubernetes) 架構圖][img]\n\n[img]: /x.png',
+    ],
   ])('rejects a new link inside %s', (_name, before, after) => {
     expect(zhProof(before, after)).toBe(false);
   });
@@ -279,6 +284,11 @@ describe('link-only proof: what the fixer writes', () => {
       'the text of a reference link',
       '先看 [Kubernetes 文件][k8s]。\n之後 Kubernetes 很穩。\n\n[k8s]: https://kubernetes.io',
       `先看 [Kubernetes 文件][k8s]。\n之後 ${K8S_LINK} 很穩。\n\n[k8s]: https://kubernetes.io`,
+    ],
+    [
+      'the description of a reference image',
+      '先看 ![Kubernetes 架構圖][img]。\n之後 Kubernetes 很穩。\n\n[img]: /x.png',
+      `先看 ![Kubernetes 架構圖][img]。\n之後 ${K8S_LINK} 很穩。\n\n[img]: /x.png`,
     ],
   ])('links the next occurrence when the first one is %s', (_name, body, linked) => {
     const before = post(body);
