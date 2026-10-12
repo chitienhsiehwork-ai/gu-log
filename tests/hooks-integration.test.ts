@@ -493,6 +493,7 @@ describe('pre-commit: glossary link-only edits go through a real git commit', ()
     expect(r.committed).toBe(false);
     expect(r.output).toContain('SCORE GATE FAILED');
     expect(r.output).toContain('score-check-sentinel');
+    expect(r.output).not.toContain('--no-verify');
   }
 
   it('commits a new entry together with its backfilled link in a legacy post', () => {
@@ -991,6 +992,16 @@ describe('pre-push: Tribunal PASS artifact audit', () => {
 
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/progress-only Tribunal PASS commit/);
+  });
+});
+
+describe('pre-commit: failure messages point to a fix', () => {
+  it('never suggests bypassing the hook with --no-verify', () => {
+    const messages = fs
+      .readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'), 'utf-8')
+      .split('\n')
+      .filter((line) => /^\s*echo\b/.test(line));
+    expect(messages.filter((line) => line.includes('--no-verify'))).toEqual([]);
   });
 });
 

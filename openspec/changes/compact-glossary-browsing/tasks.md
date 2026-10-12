@@ -27,7 +27,7 @@
 
   hook 的整合測試要實際 commit 一次（對應「只改 glossary 連結的修改」的六個情境）
 
-- [ ] 2.2 `.githooks/pre-commit` 的錯誤訊息不再建議 `--no-verify`，改指向修法。驗證：`rg -n 'no-verify' .githooks/` 只剩禁止用法的說明，hook 測試綠
+- [x] 2.2 `.githooks/pre-commit` 的錯誤訊息不再建議 `--no-verify`，改指向修法。驗證：`rg -n 'no-verify' .githooks/` 只剩禁止用法的說明，hook 測試綠
 
 ## 3. 死錨點檢查與修正（同一個 commit）
 
