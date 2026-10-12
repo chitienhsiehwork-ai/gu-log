@@ -52,7 +52,7 @@
 
 ## 3. 整合驗證
 
-- [ ] 3.1 實際跑編好的 CLI：先記下 `scripts/article-counter.json` 的 hash；`tools/gp-pipeline/gp-pipeline run https://example.com/x --prefix Lv` 與 `tools/gp-pipeline/gp-pipeline write --prefix Lv --source <任一檔>` 各給一個不存在的工作目錄路徑，兩個都 exit 1、訊息含 `CONTRIBUTING.md`；兩個工作目錄都沒被建出來、counter hash 不變、`git status` 乾淨；`write --help` 的 `--prefix` 不列 Lv。把指令與輸出貼進 PR 說明
+- [x] 3.1 實際跑編好的 CLI：先記下 `scripts/article-counter.json` 的 hash；`tools/gp-pipeline/gp-pipeline run https://example.com/x --prefix Lv` 與 `tools/gp-pipeline/gp-pipeline write --prefix Lv --source <任一檔>` 各給一個不存在的工作目錄路徑，兩個都 exit 1、訊息含 `CONTRIBUTING.md`；兩個工作目錄都沒被建出來、counter hash 不變、`git status` 乾淨；`write --help` 的 `--prefix` 不列 Lv。把指令與輸出貼進 PR 說明
 
 ## Workflow follow-up
 
