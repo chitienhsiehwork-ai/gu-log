@@ -37,7 +37,7 @@
 ## 4. Kubernetes 條目與補連結（同一個 commit）
 
 - [x] 4.1 在 `src/data/glossary.json` 新增 Kubernetes：`category: platforms`；`en: Kubernetes`；`aliases` 含 `K8s`；`definedIn` 指向 `lv-18-20261011-livingdevops-kubernetes`；`related` 只放 glossary 裡真的存在的詞條；不設 `linking.match`。`definition`、`moguNote`、`enDefinition`、`enMoguNote` 一字不改照貼固定版本寫手的產出（這個 change 目錄裡的 `kubernetes-entry.json`），實作的 agent 不得自己改寫或補字
-- [x] 4.2 跑 `node scripts/apply-glossary-links.mjs --term Kubernetes` 替所有提到它的文章補連結（繁中連 `/glossary#kubernetes`，英文連 `/en/glossary#kubernetes`），逐一檢查 diff；mp-39 與 en-mp-39 的第一處落在「Google Kubernetes Engine」裡，改連同篇較自然的位置。4.1 與 4.2 放同一個 commit。驗證：pre-commit 用第 2 組的證明放行，`pnpm run glossary:check` 全站 0 violation，`post-versions.json` 與 `post-reader-revisions.json` 跟著同一個 commit 更新
+- [x] 4.2 跑 `node scripts/apply-glossary-links.mjs --term Kubernetes` 替所有提到它的文章補連結（繁中連 `/glossary#kubernetes`，英文連 `/en/glossary#kubernetes`），逐一檢查 diff；mp-39 與 en-mp-39 的第一處落在「Google Kubernetes Engine」裡，有別的位置就改連同篇較自然的位置（實際：兩篇全文只有這一處，保留原位置，見 design §9）。4.1 與 4.2 放同一個 commit。驗證：pre-commit 用第 2 組的證明放行，`pnpm run glossary:check` 全站 0 violation，`post-versions.json` 與 `post-reader-revisions.json` 跟著同一個 commit 更新
 
 ## 5. 精簡的詞彙表頁面
 

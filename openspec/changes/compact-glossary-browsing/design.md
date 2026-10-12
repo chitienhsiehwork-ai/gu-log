@@ -104,7 +104,7 @@
 ### 8. 只改 glossary 連結的證明共用一份「先驗證、再剝掉」
 
 - 抽出一個正規化函式，對修改前後兩個版本運作：
-  - 每個 glossary 連結先驗證：指向該文章語言、啟用中詞條的正確錨點，而且位在 `buildUnsafeMask` 判定的安全區（不在 code、frontmatter、JSX 屬性或既有連結裡）。
+  - 新增或改動的每個 glossary 連結先驗證：指向該文章語言、啟用中詞條的正確錨點，而且位在 `buildUnsafeMask` 判定的安全區（不在 code、frontmatter、JSX 屬性或既有連結裡）。沒有變動的既有連結在兩邊一起剝掉，不影響比對。
   - 新包起來的文字（修改前那個位置不是連結）要能被 checker 的比對規則認成該詞條；只改錨點的既有連結保留原文字，例如 mp-212 的 `[glossary 有完整拆解](/glossary#Codex)`。
   - 驗證過的才剝掉，驗證不過的原樣留著，比對自然失敗。
   - 剝掉之後整份檔案（含 frontmatter）逐字比對，不 trim、不排序。
@@ -122,7 +122,7 @@
 
 - 定義與 MoguNote（中英文）由固定版本寫手產生，比喻接 Lv-18 的「一行白板配一位經理」，定義第一句可以單獨成立。產出存成這個 change 目錄裡的 `kubernetes-entry.json`，實作時原文照貼，不改字；已經手動跑過晶晶體、AI 腔與代名詞檢查。
 - 不設 `linking.match`，只比對正式名稱 `Kubernetes`，預設區分大小寫。`kubernetes.io`、`kubernetes-sigs`、程式碼與元件屬性本來就會被排除。
-- 補連結用 `apply-glossary-links.mjs --term Kubernetes`，31 個 diff 逐一看過。mp-39 與 en-mp-39 的第一處都落在「Google Kubernetes Engine」裡，改連同篇其他較自然的位置。
+- 補連結用 `apply-glossary-links.mjs --term Kubernetes`，31 個 diff 逐一看過。mp-39 與 en-mp-39 全文只有「Google Kubernetes Engine」這一處提到 Kubernetes，連結留在其中的「Kubernetes」上：GKE 就是 Google 託管的 Kubernetes，連過去語意正確；要避開只能改字或加 `glossaryIgnore`，那就不是只改連結了。
 - 條目與 31 篇補連結放同一個 commit。分開的話，只有條目的那個 commit 會被 changed-term ratchet 擋下（31 篇都還沒連）。
 
 ## Risks / Trade-offs
