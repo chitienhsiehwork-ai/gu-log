@@ -85,6 +85,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
     mergeSync,
     importSyncStore,
   } from '../lib/gist-sync';
+  import { initHumanSignalSync } from '../lib/human-signal-sync';
   import {
     recordManualMarkRead,
     recordReadAbandonCandidate,
@@ -322,6 +323,9 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
 
   initReadButtons();
   initScrollRead();
+  // Sends every human-signal event on the article page (read, share, feedback).
+  const signalApiUrl = document.querySelector<HTMLElement>('[data-read-button]')?.dataset.apiUrl;
+  if (signalApiUrl) initHumanSignalSync(signalApiUrl);
 </script>
 
 <style>

@@ -79,7 +79,6 @@ const options = [
 
 <script>
   import { getGuLogSessionToken } from '../lib/gist-sync';
-  import { initHumanSignalSync } from '../lib/human-signal-sync';
   import { recordFeedbackComment, snapshotFromDataset } from '../lib/human-signals';
   import type { CommentPolarity } from '../lib/human-signals';
 
@@ -108,9 +107,6 @@ const options = [
   }
 
   initOwnerFeedback();
-  // Sync covers every human-signal event on the article page, not just feedback.
-  const apiUrl = document.querySelector<HTMLElement>('[data-read-button]')?.dataset.apiUrl;
-  if (apiUrl) initHumanSignalSync(apiUrl);
 </script>
 
 <style>
