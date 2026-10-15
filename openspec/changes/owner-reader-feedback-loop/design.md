@@ -5,7 +5,7 @@
 - `src/lib/human-signals.ts` 已有事件 schema、`localStorage` store、`getPendingHumanSignalEvents` / `markHumanSignalEventSynced` 與 `buildHumanSignalTribunalPacket`，但 `transport` 只有 `local_storage`，`recordFeedbackComment` 沒有任何呼叫端。
 - 文章頁已經把 reader revision（`src/data/post-reader-revisions.json`，由 `scripts/build-reader-revision-manifest.mjs` 產生的內容雜湊）傳給 `ReadStatusButton`（`data-reader-revision`），只是沒有寫進事件。
 - `postVersion` 來自 `src/data/post-versions.json`（git touch 次數），Tribunal 寫分數的 commit 也會讓它 +1。
-- 登入狀態是 `localStorage` 的 `gu-log-jwt`，後端 base URL 是 `PUBLIC_API_URL`（預設 `https://api.shroomdog.dev`）。後端是 後端主機上的 `gu-log-api.service`，原始碼不在本 repo。
+- 登入狀態是 `localStorage` 的 `gu-log-jwt`，後端 base URL 是 `PUBLIC_API_URL`（預設 `https://api.shroomdog.dev`）。後端是主機上的 `gu-log-api.service`，原始碼不在本 repo。
 - Tribunal 分數在 MDX frontmatter `scores:`；PASS 判斷的 SSOT 是 `src/utils/tribunal-scores.ts`（`meetsPublishBar` / `computeOverallComposite`）。
 
 ## Goals / Non-Goals
@@ -17,7 +17,7 @@
 
 **Non-Goals:**
 - 不在本 repo 實作後端資料庫與 API（只定契約）。
-- 不把任何 human signal 注入 Tribunal judge／writer prompt（等校準報告證明有用，另開 change）。
+- 不實作 automation 開關打開後的行為（judge 注入、requeue、publisher block）；本 change 只定義開關且預設關閉，Tribunal 程式碼目前也沒有任何 human signal 消費端，所以關閉狀態不需要改 Tribunal。
 - 不做 Giscus 留言索引、guest 訊號儀表板、自動 requeue、publisher block。
 - 不修正自動 abandon 偵測的雜訊來源；v1 只是不採信它。
 
@@ -25,7 +25,7 @@
 
 ### D1. 版本比對用 reader revision，`postVersion` 只保留顯示
 
-事件新增選填欄位 `readerRevision: string`。快照從頁面 data attribute 取得，所有 `record*` 函式透過 `ArticleVersionSnapshot` 傳入。替代方案是改用 `contentVersion` 整數，但那需要新的版本索引；內容雜湊已經存在而且正好排除 metadata，直接用最便宜。
+事件新增選填欄位 `readerRevision: string`。快照從頁面 data attribute 取得，所有 `record*` 函式透過 `ArticleVersionSnapshot` 傳入；`articleVersionKey` 也納入 reader revision。`versioned-human-feedback` 裡的 `contentVersion`／`contentHash` 由 reader revision 滿足，不另造整數版本。替代方案是改用 `contentVersion` 整數，但那需要新的版本索引；內容雜湊已經存在而且正好排除 metadata，直接用最便宜。
 
 ### D2. 一鍵回饋是獨立元件，只在登入時顯示
 
@@ -39,11 +39,13 @@
 
 新增 `src/lib/human-signal-sync.ts`：
 - 觸發時機：文章頁載入時、每次記錄新事件後（debounce），以及 `pagehide`。
+- 重用 `src/lib/gist-sync.ts` 的 `getGuLogSessionToken`、逾時 helper 與 `src/lib/public-api-url.ts` 的 URL 正規化，不另寫一份。
 - `POST ${PUBLIC_API_URL}/human-signals`，`Authorization: Bearer <gu-log-jwt>`，body `{ "events": HumanSignalEvent[] }`，每批最多 50 筆。用 `fetch(..., { keepalive: true })`，因為 `sendBeacon` 不能帶 Authorization header。
-- 回應 `{ "accepted": string[], "rejected": { "eventId": string, "reason": string }[] }`；`accepted` 標 `synced`，其餘維持 `local_only`。404／網路錯誤／逾時（5 秒）一律靜默，下次再試。`rejected` 的事件標 `sync_failed`，不再重送。
+- 回應 `{ "accepted": string[], "rejected": { "eventId": string, "reason": string }[] }`；`accepted` 標 `synced`，其餘維持 `local_only`。404／網路錯誤／逾時（5 秒）一律靜默，下次再試。`rejected` 的事件標 `sync_failed`，不再重送；`getPendingHumanSignalEvents` 因此改成只回傳 `local_only`。
+- 已登入但不是 owner 的讀者：本機照樣顯示「已記錄」（事件確實記在本機），後端回 `rejected: not_owner` 後標 `sync_failed`。v1 只有 owner 會登入，不另做 owner 判斷 UI。
 - `transport` 型別新增 `'gu_log_api'`，已同步事件標成這個值。
 
-### D4. 後端契約（給 後端主機 上的實作用）
+### D4. 後端契約（給後端主機上的實作用）
 
 - `POST /human-signals`：驗 JWT；以伺服器端 owner email allowlist 判 `owner_trusted`，非 owner 一律回 `rejected: not_owner` 且不儲存；忽略客戶端的 `readerTrustTier`；以 `eventId` 做唯一鍵（重送回 accepted）；每批上限 50 筆、單筆 4 KB、每使用者每分鐘 60 次。
 - `GET /human-signals/export`：需要 owner JWT 或伺服器端 operator token，回傳與匯出檔相同的格式。
@@ -57,8 +59,8 @@
 
 `scripts/reader-signal-calibration.ts`（`pnpm reader:calibrate -- --events <file> [--min-sample 10] [--json]`）：
 - 讀事件檔、`src/data/post-reader-revisions.json`、文章 frontmatter `scores`。
-- 用 `src/utils/tribunal-scores.ts` 判 PASS 與 composite，不自己重算門檻。
-- 每篇取同一讀者、同一 reader revision 的最新明確回饋。
+- 用 `src/utils/tribunal-scores.ts` 的 `classifyTribunalResult` 分類（PASS／未 PASS／未評分），composite 用 `computeOverallComposite`，不自己重算門檻；未評分的文章另列。
+- 每篇取同一讀者、同一 reader revision 的最新明確回饋；事件沒有 `reader` 時視為同一位本機讀者（匯出檔只來自一個瀏覽器，後端匯出則一律有 `reader`）。
 - 輸出：明確回饋 × PASS／未 PASS 對照表、分歧清單（PASS 但 owner 負評／未 PASS 但 owner 正評）、隱性訊號統計（另列）、舊版本與版本不明的計數；樣本低於 `--min-sample` 時顯示樣本不足、不給結論。
 - 純函式核心（`src/lib/reader-signal-calibration.ts`）放邏輯，腳本只負責 I/O，方便測試。
 
@@ -78,4 +80,4 @@
 
 ## Open Questions
 
-- owner allowlist 放在後端哪個 config／secret，等接上後端主機 看現有 gu-log-api 結構再定（不影響本 repo 的契約）。
+- owner allowlist 放在後端哪個 config／secret，等接上後端主機看現有 gu-log-api 結構再定（不影響本 repo 的契約）。

@@ -22,7 +22,7 @@
 
 ### Requirement: Human signal transport SHALL be explicit and queryable
 
-Gu-log SHALL store human engagement events in the gu-log backend database behind `api.shroomdog.dev`, reached through an authenticated human-signals endpoint, and SHALL provide an authorized way for Tribunal tooling or operators to query or export them. Browser `localStorage` SHALL remain only an outbox and offline cache; it SHALL NOT be relied on for Tribunal decisions.
+Gu-log SHALL use the gu-log backend database behind `api.shroomdog.dev`, reached through an authenticated human-signals endpoint, as the human-signal transport, with an authorized export for Tribunal tooling and operators. Until that endpoint is deployed, signals SHALL remain local-only and SHALL NOT be used for Tribunal decisions. Browser `localStorage` SHALL remain only an outbox and offline cache.
 
 #### Scenario: Existing Vercel Analytics pageviews are telemetry, not Tribunal evidence
 
@@ -35,6 +35,7 @@ Gu-log SHALL store human engagement events in the gu-log backend database behind
 #### Scenario: Tribunal requests signals for a post
 
 - **WHEN** Tribunal tooling prepares to score or rewrite an article
+- **AND** the backend export is deployed and human-signal automation is enabled
 - **THEN** it SHALL be able to query a deterministic packet of human signals for that article
 - **AND** the packet SHALL include event kinds, versions, reader revisions, timestamps, and unresolved/resolved state
 - **AND** if the backend is unreachable, Tribunal SHALL proceed without human signals rather than block or retry indefinitely

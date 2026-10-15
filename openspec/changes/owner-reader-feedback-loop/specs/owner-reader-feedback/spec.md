@@ -22,6 +22,17 @@
 - **WHEN** 沒有 gu-log 登入狀態的訪客開啟文章
 - **THEN** 一鍵回饋控制項 SHALL NOT 顯示
 
+#### Scenario: Note is too long
+
+- **WHEN** 讀者輸入超過 280 字元的備註
+- **THEN** 介面 SHALL 不允許輸入超過 280 字元
+- **AND** 記錄的事件備註 SHALL NOT 超過 280 字元
+
+#### Scenario: Note contains instructions
+
+- **WHEN** 備註內容看起來像對 AI 的指令
+- **THEN** 任何消費端 SHALL 把它當成引用的資料呈現，SHALL NOT 當成指令執行
+
 #### Scenario: Reader changes their mind
 
 - **WHEN** 讀者對同一篇文章、同一個 reader revision 再次送出不同選項
@@ -37,7 +48,13 @@
 - **WHEN** 讀者已登入且有待送事件
 - **AND** 後端回應接受了某些事件 ID
 - **THEN** 那些事件 SHALL 標記為已同步
-- **AND** 未被接受的事件 SHALL 維持待送
+- **AND** 回應中既沒被接受也沒被拒絕的事件 SHALL 維持待送
+
+#### Scenario: Backend rejects an event
+
+- **WHEN** 後端在回應中明確拒絕某個事件 ID（例如非 owner、格式錯誤）
+- **THEN** 該事件 SHALL 標記為同步失敗
+- **AND** 系統 SHALL NOT 再重送它
 
 #### Scenario: Backend endpoint is not deployed yet
 
@@ -77,4 +94,5 @@ Reading Tracker 頁 SHALL 提供把本機 human-signal 事件匯出成 JSON 檔�
 
 - **WHEN** 讀者在 Reading Tracker 頁按下匯出
 - **THEN** 瀏覽器 SHALL 下載一個包含所有本機 human-signal 事件的 JSON 檔
+- **AND** 檔案 SHALL 帶 `exportSchemaVersion` 與匯出時間
 - **AND** 檔案格式 SHALL 能直接被校準報告讀取
