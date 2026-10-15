@@ -199,7 +199,9 @@ describe('human signal sync', () => {
     localStorage.setItem('gu-log-jwt', 'jwt-token');
     const { recordFeedbackComment, syncHumanSignalBatch } = await load();
     recordFeedbackComment(snapshot, { source: 'first_party', polarity: 'positive' });
-    const fetchMock = vi.fn(async () => jsonResponse({ accepted: [] }));
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) =>
+      jsonResponse({ accepted: [] })
+    );
     vi.stubGlobal('fetch', fetchMock);
 
     await syncHumanSignalBatch(API, { keepalive: true });
