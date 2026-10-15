@@ -117,6 +117,7 @@ export type HumanSignalTribunalPacketSignal = Readonly<
     | 'pathname'
     | 'postVersion'
     | 'contentVersion'
+    | 'readerRevision'
     | 'occurredAt'
     | 'reader'
     | 'readerTrustTier'
@@ -234,6 +235,7 @@ function toTribunalPacketSignal(event: HumanSignalEvent): HumanSignalTribunalPac
     pathname: event.pathname,
     postVersion: event.postVersion,
     contentVersion: event.contentVersion,
+    readerRevision: event.readerRevision,
     occurredAt: event.occurredAt,
     reader: event.reader,
     readerTrustTier: event.readerTrustTier,

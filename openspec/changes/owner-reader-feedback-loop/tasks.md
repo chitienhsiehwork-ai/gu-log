@@ -4,7 +4,7 @@
 
 - [x] 1.1 `ArticleVersionSnapshot` 與事件型別新增選填 `readerRevision`，`normalizeSnapshot` 保留它，`articleVersionKey` 納入它；驗證：unit test 確認 `recordReadFinish`／`recordReadAbandonCandidate`／`recordShareIntent`／`recordFeedbackComment` 產生的事件帶 `readerRevision`
 - [ ] 1.2 `ReadStatusButton.astro`、`ShareButton.astro` 的快照帶入 reader revision（`ShareButton` 需要新增 prop 並由 `ArticleActionArea` 傳入）；驗證：Playwright 測試在一篇 zh-tw 與一篇 en 文章頁斷言 `[data-read-button]` 與 share 元素的 `data-reader-revision` 等於 `src/data/post-reader-revisions.json` 的值
-- [ ] 1.3 `buildHumanSignalTribunalPacket` 的輸出訊號帶 `readerRevision`；驗證：既有 packet 測試更新後通過
+- [x] 1.3 `buildHumanSignalTribunalPacket` 的輸出訊號帶 `readerRevision`；驗證：既有 packet 測試更新後通過
 
 ## 2. 一鍵回饋
 

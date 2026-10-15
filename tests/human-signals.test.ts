@@ -326,7 +326,13 @@ describe('human signals', () => {
     } = await import('../src/lib/human-signals');
     const ownerFinish = promoteHumanSignalTrustTier(
       recordReadFinish(
-        { postId: 'gp-123.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 4 },
+        {
+          postId: 'gp-123.mdx',
+          lang: 'zh-tw',
+          pathname: '/posts/gp-123/',
+          postVersion: 4,
+          readerRevision: '0123456789abcdef',
+        },
         { method: 'active_scroll_end', activeReadMs: 61_000, maxScrollPercent: 100 }
       ),
       'owner_trusted',
@@ -372,6 +378,7 @@ describe('human signals', () => {
     ]);
     expect(packet.signals[0]).toMatchObject({
       kind: 'read_finish',
+      readerRevision: '0123456789abcdef',
       readerTrustTier: 'owner_trusted',
       automationAuthoritative: true,
       finishability: 'finished',
