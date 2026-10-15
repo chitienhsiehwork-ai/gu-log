@@ -29,7 +29,7 @@ Implicit signals (automatic read finish, suspected abandon, scroll depth, active
 
 ### Requirement: Tribunal SHALL consume unresolved human signals as deterministic evidence
 
-While human-signal automation is enabled (see “Human-signal automation SHALL be explicitly enabled before it affects Tribunal”), tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
+While human-signal automation is enabled, tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
 
 #### Scenario: Human signal SSOT and progress ledger SSOT remain separate
 
@@ -64,7 +64,7 @@ While human-signal automation is enabled (see “Human-signal automation SHALL b
 
 ### Requirement: Severe unresolved negative human signals SHALL trigger bounded requeue or review
 
-While human-signal automation is enabled (see “Human-signal automation SHALL be explicitly enabled before it affects Tribunal”), a PASS article with severe unresolved negative human signals SHALL NOT be treated as fully done merely because model scores passed. The system SHALL choose a bounded resolution path.
+While human-signal automation is enabled, a PASS article with severe unresolved negative human signals SHALL NOT be treated as fully done merely because model scores passed. The system SHALL choose a bounded resolution path.
 
 Valid disposition paths SHALL include:
 
@@ -104,7 +104,7 @@ Valid disposition paths SHALL include:
 
 ### Requirement: Publisher SHALL respect unresolved human quality blocks
 
-While human-signal automation is enabled (see “Human-signal automation SHALL be explicitly enabled before it affects Tribunal”), the publishing pipeline SHALL block or flag publication of articles with unresolved severe human quality signals according to policy, even if Tribunal scores pass.
+While human-signal automation is enabled, the publishing pipeline SHALL block or flag publication of articles with unresolved severe human quality signals according to policy, even if Tribunal scores pass.
 
 #### Scenario: Publisher human block carries version binding
 

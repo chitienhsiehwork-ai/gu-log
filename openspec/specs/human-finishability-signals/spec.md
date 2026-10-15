@@ -128,7 +128,7 @@ Gu-log SHALL record share intent as a positive human signal. Share events SHALL 
 
 ### Requirement: Human signal transport SHALL be explicit and queryable
 
-Gu-log SHALL define where human engagement events are stored and how Tribunal or operators can query them. The storage MAY be first-party API/DB, Gist, repo JSONL, GitHub Discussions derived index, or another explicit transport, but it SHALL NOT rely on unqueryable browser-only state for Tribunal decisions.
+Gu-log SHALL use the gu-log backend database behind `api.shroomdog.dev`, reached through an authenticated human-signals endpoint, as the human-signal transport, with an authorized export for Tribunal tooling and operators. Until that endpoint is deployed, signals SHALL remain local-only and SHALL NOT be used for Tribunal decisions. Browser `localStorage` SHALL remain only an outbox and offline cache.
 
 #### Scenario: Existing Vercel Analytics pageviews are telemetry, not Tribunal evidence
 
@@ -140,17 +140,17 @@ Gu-log SHALL define where human engagement events are stored and how Tribunal or
 
 #### Scenario: Tribunal requests signals for a post
 
-- **WHEN** Tribunal prepares to score or rewrite an article
+- **WHEN** Tribunal tooling prepares to score or rewrite an article
+- **AND** the backend export is deployed and human-signal automation is enabled
 - **THEN** it SHALL be able to query a deterministic packet of human signals for that article
-- **AND** the packet SHALL include event kinds, versions, timestamps, and unresolved/resolved state
+- **AND** the packet SHALL include event kinds, versions, reader revisions, timestamps, and unresolved/resolved state
+- **AND** if the backend is unreachable, Tribunal SHALL proceed without human signals rather than block or retry indefinitely
 
 #### Scenario: Browser-only local state has not synced
 
-- **WHEN** engagement state exists only in a browser localStorage and has not synced to the configured transport
+- **WHEN** engagement state exists only in a browser localStorage and has not synced to the backend
 - **THEN** Tribunal SHALL NOT assume that state exists
 - **AND** the UI SHOULD expose sync status or otherwise avoid implying unsynced events are already part of automation
-
----
 
 ### Requirement: Reader identity and trust tier SHALL gate automation impact
 
@@ -188,3 +188,19 @@ Reader trust tiers SHALL include at least:
 - **WHEN** multiple random guests show similar finishability or share patterns
 - **THEN** the system MAY aggregate those signals for product insight
 - **AND** the aggregate SHALL remain reference-only until ShroomDog / owner approval makes it actionable
+
+### Requirement: Engagement events SHALL carry the reader-facing content revision
+
+每筆 human-signal 事件 SHALL 在可取得時帶上讀者當下看到的 reader revision（文章內容雜湊，不含 Tribunal 分數等 metadata）。消費端比對「這筆回饋是不是針對目前內容」時 SHALL 以 reader revision 為準，`postVersion` 只作為顯示用的參考。
+
+#### Scenario: Tribunal writes scores without changing prose
+
+- **WHEN** owner 對某篇文章留下回饋
+- **AND** 之後 Tribunal 只把分數寫進 frontmatter，讀者看到的內文沒變
+- **THEN** 該文章的 reader revision SHALL 維持不變
+- **AND** 消費端 SHALL 仍把那筆回饋視為針對目前內容
+
+#### Scenario: Article prose is rewritten
+
+- **WHEN** 文章內文被改寫，reader revision 改變
+- **THEN** 改寫前的回饋 SHALL 被視為針對舊版本
