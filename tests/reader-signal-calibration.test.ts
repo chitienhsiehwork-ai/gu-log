@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import type { HumanSignalEvent } from '../src/lib/human-signals';
 import {
@@ -231,4 +233,61 @@ describe('reader signal calibration', () => {
       parseHumanSignalExport({ exportSchemaVersion: 1, exportedAt: 'x', events: [] }).events
     ).toEqual([]);
   });
+});
+
+describe('reader:calibrate CLI', () => {
+  const fixture = (name: string) =>
+    fileURLToPath(new URL(`./fixtures/reader-signal-calibration/${name}`, import.meta.url));
+  const repoRoot = fileURLToPath(new URL('..', import.meta.url));
+  const run = (...extra: string[]) =>
+    execFileSync(
+      'pnpm',
+      [
+        'exec',
+        'tsx',
+        'scripts/reader-signal-calibration.ts',
+        '--',
+        '--events',
+        fixture('export.json'),
+        '--posts-dir',
+        fixture('posts'),
+        '--revisions',
+        fixture('revisions.json'),
+        '--min-sample',
+        '3',
+        ...extra,
+      ],
+      { cwd: repoRoot, encoding: 'utf8' }
+    );
+  const gitStatus = () =>
+    execFileSync('git', ['status', '--porcelain', '--untracked-files=all'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+
+  it('prints the expected report from a fixture export without changing any file', () => {
+    const before = gitStatus();
+    const json = JSON.parse(run('--json')) as ReturnType<typeof buildCalibrationReport>;
+    const text = run();
+
+    expect(json.totals).toEqual({ events: 4, current: 2, stale: 1, unknown: 1 });
+    expect(json.explicitFeedback).toMatchObject({
+      sampleSize: 2,
+      sampleSufficient: false,
+      agreementRate: null,
+    });
+    expect(json.disagreements).toEqual([
+      expect.objectContaining({
+        postId: 'gp-1-pass',
+        tribunalResult: 'pass',
+        composite: 8,
+        polarity: 'rewrite_needed',
+        note: '節奏太拖',
+      }),
+    ]);
+    expect(json.explicitFeedback.table.fail.neutral).toBe(1);
+    expect(text).toContain('[PASS 但 owner 負評] gp-1-pass');
+    expect(text).toContain('樣本不足');
+    expect(gitStatus()).toBe(before);
+  }, 60_000);
 });
