@@ -3,7 +3,10 @@ const SIGNAL_STORAGE_KEY = 'gu-log-human-signals';
 export const HUMAN_SIGNAL_RECORDED_EVENT = 'gu-log:human-signal-recorded';
 
 export type HumanSignalKind =
-  'read_finish' | 'read_abandon_candidate' | 'share_intent' | 'feedback_comment';
+  | 'read_finish'
+  | 'read_abandon_candidate'
+  | 'share_intent'
+  | 'feedback_comment';
 export type GuLogLang = 'zh-tw' | 'en';
 export type ReaderTrustTier = 'owner_trusted' | 'owner_approved' | 'guest_reference' | 'unknown';
 export type SignalSyncStatus = 'local_only' | 'synced' | 'sync_failed';
@@ -40,7 +43,10 @@ type BaseHumanSignalEvent = {
 
 export type ReadFinishMethod = 'active_scroll_end' | 'manual_mark_read' | 'legacy_import';
 export type FinishabilityState =
-  'finished' | 'manually_marked_read' | 'abandoned_suspected_boring' | 'abandoned_unknown';
+  | 'finished'
+  | 'manually_marked_read'
+  | 'abandoned_suspected_boring'
+  | 'abandoned_unknown';
 export type SignalConfidence = 'active_finish' | 'legacy_or_manual' | 'low';
 
 export type ReadFinishEvent = BaseHumanSignalEvent & {
@@ -96,7 +102,10 @@ export type FeedbackCommentEvent = BaseHumanSignalEvent & {
 };
 
 export type HumanSignalEvent =
-  ReadFinishEvent | ReadAbandonCandidateEvent | ShareIntentEvent | FeedbackCommentEvent;
+  | ReadFinishEvent
+  | ReadAbandonCandidateEvent
+  | ShareIntentEvent
+  | FeedbackCommentEvent;
 
 export type HumanSignalTrustInput = {
   reader?: string;
