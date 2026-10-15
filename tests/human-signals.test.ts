@@ -449,6 +449,20 @@ describe('human signals reader revision', () => {
   });
 });
 
+describe('feedback note length', () => {
+  it('stores at most 280 characters of a feedback note', async () => {
+    const { FEEDBACK_NOTE_MAX_LENGTH, recordFeedbackComment, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    expect(FEEDBACK_NOTE_MAX_LENGTH).toBe(280);
+    const event = recordFeedbackComment(
+      { postId: 'gp-1.mdx', lang: 'zh-tw', pathname: '/posts/gp-1/', postVersion: 1 },
+      { source: 'first_party', polarity: 'negative', commentText: '難'.repeat(300) }
+    );
+    expect(Array.from(event.commentText ?? '')).toHaveLength(280);
+    expect(getHumanSignalEvents()[0]).toMatchObject({ commentText: '難'.repeat(280) });
+  });
+});
+
 describe('reading tracker migration to event-aware store', () => {
   it('preserves v1 read slugs and imports them as legacy-confidence records', async () => {
     (globalThis as any).localStorage.setItem(

@@ -80,6 +80,17 @@ export type ShareIntentEvent = BaseHumanSignalEvent & {
 
 export type CommentPolarity = 'unknown' | 'positive' | 'negative' | 'rewrite_needed';
 
+/** Longest note a reader may attach to feedback, in characters (code points). */
+export const FEEDBACK_NOTE_MAX_LENGTH = 280;
+
+function truncateNote(text: string | undefined): string | undefined {
+  if (text === undefined) return undefined;
+  const chars = Array.from(text);
+  return chars.length > FEEDBACK_NOTE_MAX_LENGTH
+    ? chars.slice(0, FEEDBACK_NOTE_MAX_LENGTH).join('')
+    : text;
+}
+
 export type FeedbackCommentEvent = BaseHumanSignalEvent & {
   kind: 'feedback_comment';
   source: 'giscus' | 'first_party';
@@ -512,7 +523,7 @@ export function recordFeedbackComment(
     kind: 'feedback_comment',
     source: comment.source,
     commentId: comment.commentId,
-    commentText: comment.commentText,
+    commentText: truncateNote(comment.commentText),
     polarity: comment.polarity || 'unknown',
   };
   return appendHumanSignalEvent(event) as FeedbackCommentEvent;
