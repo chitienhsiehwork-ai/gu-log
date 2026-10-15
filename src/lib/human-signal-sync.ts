@@ -9,7 +9,6 @@ import {
   HUMAN_SIGNAL_RECORDED_EVENT,
   applyHumanSignalSyncResult,
   getPendingHumanSignalEvents,
-  type HumanSignalEvent,
 } from './human-signals';
 import { buildPublicApiEndpoint } from './public-api-url';
 
@@ -23,22 +22,15 @@ export type HumanSignalSyncOutcome =
   | { status: 'unavailable' }
   | { status: 'synced'; accepted: number; rejected: number };
 
-function idsFromResponse(payload: unknown, batch: readonly HumanSignalEvent[]) {
-  const sent = new Set(batch.map((event) => event.eventId));
-  const body = (payload && typeof payload === 'object' ? payload : {}) as {
-    accepted?: unknown;
-    rejected?: unknown;
+function idsFromResponse(payload: unknown) {
+  const body = (payload ?? {}) as { accepted?: unknown; rejected?: unknown };
+  const ids = (list: unknown[]) => list.filter((id): id is string => typeof id === 'string');
+  return {
+    accepted: Array.isArray(body.accepted) ? ids(body.accepted) : [],
+    rejected: Array.isArray(body.rejected)
+      ? ids(body.rejected.map((item) => (item as { eventId?: unknown } | null)?.eventId))
+      : [],
   };
-  const accepted = Array.isArray(body.accepted)
-    ? body.accepted.filter((id): id is string => typeof id === 'string' && sent.has(id))
-    : [];
-  const rejected = Array.isArray(body.rejected)
-    ? body.rejected
-        .map((item) => (item && typeof item === 'object' ? (item as { eventId?: unknown }) : {}))
-        .map((item) => item.eventId)
-        .filter((id): id is string => typeof id === 'string' && sent.has(id))
-    : [];
-  return { accepted, rejected };
 }
 
 /** Send one batch of pending events. Never throws. */
@@ -66,7 +58,7 @@ export async function syncHumanSignalBatch(apiUrl: string): Promise<HumanSignalS
       () => new Error('human-signal sync timed out')
     );
     if (payload === null) return { status: 'unavailable' };
-    const { accepted, rejected } = idsFromResponse(payload, batch);
+    const { accepted, rejected } = idsFromResponse(payload);
     applyHumanSignalSyncResult({ accepted, rejected });
     return { status: 'synced', accepted: accepted.length, rejected: rejected.length };
   } catch {

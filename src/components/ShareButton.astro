@@ -137,8 +137,8 @@ const t = i18n[lang];
 </div>
 
 <script>
-  import { recordShareIntent } from '../lib/human-signals';
-  import type { ArticleVersionSnapshot, GuLogLang, ShareTarget } from '../lib/human-signals';
+  import { recordShareIntent, snapshotFromDataset } from '../lib/human-signals';
+  import type { ShareTarget } from '../lib/human-signals';
 
   function initShareButtons() {
     const container = document.querySelector('.share-buttons');
@@ -153,16 +153,7 @@ const t = i18n[lang];
     const copyText = container.getAttribute('data-copy-text') || 'Copy link';
     const copiedText = container.getAttribute('data-copied-text') || 'Copied!';
 
-    const snapshot: ArticleVersionSnapshot = {
-      postId: container.getAttribute('data-post-id') || '',
-      ticketId: container.getAttribute('data-ticket-id') || undefined,
-      lang: (container.getAttribute('data-lang') ||
-        document.documentElement.lang ||
-        'zh-tw') as GuLogLang,
-      pathname: container.getAttribute('data-pathname') || window.location.pathname,
-      postVersion: container.getAttribute('data-post-version') || '1',
-      readerRevision: container.getAttribute('data-reader-revision'),
-    };
+    const snapshot = snapshotFromDataset((container as HTMLElement).dataset);
 
     function record(
       target: ShareTarget,

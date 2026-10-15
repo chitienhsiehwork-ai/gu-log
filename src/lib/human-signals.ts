@@ -168,6 +168,18 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** Read the version snapshot that article controls render as data-* attributes. */
+export function snapshotFromDataset(data: DOMStringMap): ArticleVersionSnapshot {
+  return {
+    postId: data.postId || data.slug || '',
+    ticketId: data.ticketId || undefined,
+    lang: (data.lang || 'zh-tw') as GuLogLang,
+    pathname: data.pathname || window.location.pathname,
+    postVersion: data.postVersion || '1',
+    readerRevision: data.readerRevision || null,
+  };
+}
+
 function makeEventId(kind: HumanSignalKind): string {
   const random = Math.random().toString(36).slice(2, 10);
   return `hs_${kind}_${Date.now().toString(36)}_${random}`;

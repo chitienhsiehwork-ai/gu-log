@@ -79,8 +79,9 @@ const options = [
 
 <script>
   import { getGuLogSessionToken } from '../lib/gist-sync';
-  import { recordFeedbackComment } from '../lib/human-signals';
-  import type { CommentPolarity, GuLogLang } from '../lib/human-signals';
+  import { initHumanSignalSync } from '../lib/human-signal-sync';
+  import { recordFeedbackComment, snapshotFromDataset } from '../lib/human-signals';
+  import type { CommentPolarity } from '../lib/human-signals';
 
   function initOwnerFeedback() {
     const root = document.querySelector<HTMLElement>('[data-owner-feedback]');
@@ -94,21 +95,11 @@ const options = [
     buttons.forEach((button) => {
       button.addEventListener('click', () => {
         const text = note.value.trim();
-        recordFeedbackComment(
-          {
-            postId: root.dataset.postId || '',
-            ticketId: root.dataset.ticketId || undefined,
-            lang: (root.dataset.lang || 'zh-tw') as GuLogLang,
-            pathname: root.dataset.pathname || window.location.pathname,
-            postVersion: root.dataset.postVersion || '1',
-            readerRevision: root.dataset.readerRevision || null,
-          },
-          {
-            source: 'first_party',
-            polarity: button.dataset.polarity as CommentPolarity,
-            commentText: text || undefined,
-          }
-        );
+        recordFeedbackComment(snapshotFromDataset(root.dataset), {
+          source: 'first_party',
+          polarity: button.dataset.polarity as CommentPolarity,
+          commentText: text || undefined,
+        });
         buttons.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
         note.value = '';
         status.textContent = `${root.dataset.recordedPrefix ?? ''}${button.textContent?.trim()}`;
@@ -117,6 +108,9 @@ const options = [
   }
 
   initOwnerFeedback();
+  // Sync covers every human-signal event on the article page, not just feedback.
+  const apiUrl = document.querySelector<HTMLElement>('[data-read-button]')?.dataset.apiUrl;
+  if (apiUrl) initHumanSignalSync(apiUrl);
 </script>
 
 <style>

@@ -89,8 +89,9 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
     recordManualMarkRead,
     recordReadAbandonCandidate,
     recordReadFinish,
+    snapshotFromDataset,
   } from '../lib/human-signals';
-  import type { ArticleVersionSnapshot, GuLogLang } from '../lib/human-signals';
+  import type { ArticleVersionSnapshot } from '../lib/human-signals';
 
   const LAST_SYNC_KEY = 'gu-log-last-sync';
   const SYNC_DIRTY_KEY = 'gu-log-sync-dirty';
@@ -98,14 +99,7 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
   let syncDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   function getSnapshot(el: HTMLElement): ArticleVersionSnapshot {
-    return {
-      postId: el.dataset.postId || el.dataset.slug || '',
-      ticketId: el.dataset.ticketId || undefined,
-      lang: (el.dataset.lang || 'zh-tw') as GuLogLang,
-      pathname: el.dataset.pathname || window.location.pathname,
-      postVersion: el.dataset.postVersion || '1',
-      readerRevision: el.dataset.readerRevision || null,
-    };
+    return snapshotFromDataset(el.dataset);
   }
 
   function scheduleDebouncedSync() {
