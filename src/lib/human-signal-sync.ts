@@ -9,10 +9,13 @@ import {
   HUMAN_SIGNAL_RECORDED_EVENT,
   applyHumanSignalSyncResult,
   getPendingHumanSignalEvents,
+  type HumanSignalEvent,
 } from './human-signals';
 import { buildPublicApiEndpoint } from './public-api-url';
 
 export const HUMAN_SIGNAL_SYNC_BATCH_SIZE = 50;
+/** Browsers cap keepalive request bodies at 64 KB; leave headroom for the envelope. */
+export const HUMAN_SIGNAL_SYNC_MAX_BATCH_BYTES = 60_000;
 export const HUMAN_SIGNAL_SYNC_TIMEOUT_MS = 5_000;
 const RECORD_DEBOUNCE_MS = 2_000;
 
@@ -20,7 +23,23 @@ export type HumanSignalSyncOutcome =
   | { status: 'signed_out' }
   | { status: 'idle' }
   | { status: 'unavailable' }
-  | { status: 'synced'; accepted: number; rejected: number };
+  /** `changed`: local events whose sync status this response updated. */
+  | { status: 'synced'; changed: number };
+
+/** Oldest pending events, capped by count and by serialized body size. */
+function takeBatch(pending: readonly HumanSignalEvent[]): HumanSignalEvent[] {
+  const encoder = new TextEncoder();
+  const batch: HumanSignalEvent[] = [];
+  let bytes = encoder.encode('{"events":[]}').length;
+  for (const event of pending) {
+    const size = encoder.encode(JSON.stringify(event)).length + 1;
+    if (batch.length >= HUMAN_SIGNAL_SYNC_BATCH_SIZE) break;
+    if (batch.length > 0 && bytes + size > HUMAN_SIGNAL_SYNC_MAX_BATCH_BYTES) break;
+    batch.push(event);
+    bytes += size;
+  }
+  return batch;
+}
 
 function idsFromResponse(payload: unknown) {
   const body = (payload ?? {}) as { accepted?: unknown; rejected?: unknown };
@@ -33,11 +52,17 @@ function idsFromResponse(payload: unknown) {
   };
 }
 
-/** Send one batch of pending events. Never throws. */
-export async function syncHumanSignalBatch(apiUrl: string): Promise<HumanSignalSyncOutcome> {
+/**
+ * Send one batch of pending events. Never throws. `keepalive` is only for the
+ * pagehide send, where the request must outlive the page.
+ */
+export async function syncHumanSignalBatch(
+  apiUrl: string,
+  { keepalive = false }: { keepalive?: boolean } = {}
+): Promise<HumanSignalSyncOutcome> {
   const jwt = getGuLogSessionToken();
   if (!jwt) return { status: 'signed_out' };
-  const batch = getPendingHumanSignalEvents().slice(0, HUMAN_SIGNAL_SYNC_BATCH_SIZE);
+  const batch = takeBatch(getPendingHumanSignalEvents());
   if (batch.length === 0) return { status: 'idle' };
 
   try {
@@ -47,7 +72,7 @@ export async function syncHumanSignalBatch(apiUrl: string): Promise<HumanSignalS
       async (signal) => {
         const resp = await fetch(endpoint, {
           method: 'POST',
-          keepalive: true,
+          keepalive,
           signal,
           headers: { Authorization: `Bearer ${jwt}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ events: batch }),
@@ -58,19 +83,17 @@ export async function syncHumanSignalBatch(apiUrl: string): Promise<HumanSignalS
       () => new Error('human-signal sync timed out')
     );
     if (payload === null) return { status: 'unavailable' };
-    const { accepted, rejected } = idsFromResponse(payload);
-    applyHumanSignalSyncResult({ accepted, rejected });
-    return { status: 'synced', accepted: accepted.length, rejected: rejected.length };
+    return { status: 'synced', changed: applyHumanSignalSyncResult(idsFromResponse(payload)) };
   } catch {
     return { status: 'unavailable' };
   }
 }
 
-/** Keep sending batches while the backend makes progress. Never throws. */
+/** Keep sending batches while responses actually settle local events. Never throws. */
 export async function syncPendingHumanSignals(apiUrl: string): Promise<HumanSignalSyncOutcome> {
   for (;;) {
     const outcome = await syncHumanSignalBatch(apiUrl);
-    if (outcome.status !== 'synced' || outcome.accepted + outcome.rejected === 0) return outcome;
+    if (outcome.status !== 'synced' || outcome.changed === 0) return outcome;
   }
 }
 
@@ -98,7 +121,7 @@ export function initHumanSignalSync(apiUrl: string): void {
     // Registered after every component script has run, so pagehide recorders
     // (e.g. abandon candidates) store their event before this batch is read.
     window.addEventListener('pagehide', () => {
-      void syncHumanSignalBatch(apiUrl);
+      void syncHumanSignalBatch(apiUrl, { keepalive: true });
     });
     syncAll();
   };
