@@ -196,6 +196,40 @@ describe('human signals', () => {
     });
   });
 
+  it('sends updated abandon metrics under a new eventId once the old one was synced', async () => {
+    const {
+      applyHumanSignalSyncResult,
+      getHumanSignalEvents,
+      getPendingHumanSignalEvents,
+      recordReadAbandonCandidate,
+    } = await import('../src/lib/human-signals');
+    const snapshot = {
+      postId: 'gp-790-synced-abandon.mdx',
+      lang: 'zh-tw' as const,
+      pathname: '/posts/gp-790-synced-abandon/',
+      postVersion: 2,
+    };
+    const first = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 31_000,
+      maxScrollPercent: 30,
+    });
+    applyHumanSignalSyncResult({ accepted: [first.eventId] });
+    const second = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 45_000,
+      maxScrollPercent: 50,
+    });
+
+    expect(second.eventId).not.toBe(first.eventId);
+    expect(getHumanSignalEvents()).toEqual([second]);
+    expect(getPendingHumanSignalEvents()).toEqual([
+      expect.objectContaining({
+        eventId: second.eventId,
+        maxScrollPercent: 50,
+        syncStatus: 'local_only',
+      }),
+    ]);
+  });
+
   it('keeps abandon candidates for different article versions as separate events', async () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
@@ -215,11 +249,10 @@ describe('human signals', () => {
     expect(getHumanSignalEvents()).toEqual([v1, v2]);
   });
 
-  it('lists local-only and failed human-signal events as pending sync work', async () => {
+  it('lists only local-only events as pending; synced and rejected events are never resent', async () => {
     const {
       getPendingHumanSignalEvents,
-      markHumanSignalEventSynced,
-      markHumanSignalEventFailed,
+      applyHumanSignalSyncResult,
       recordManualMarkRead,
       recordShareIntent,
     } = await import('../src/lib/human-signals');
@@ -242,20 +275,15 @@ describe('human signals', () => {
       first.eventId,
       second.eventId,
     ]);
-    expect(markHumanSignalEventSynced(first.eventId)).toBe(true);
-    expect(markHumanSignalEventFailed(second.eventId)).toBe(true);
-    expect(getPendingHumanSignalEvents()).toEqual([
-      expect.objectContaining({ eventId: second.eventId, syncStatus: 'sync_failed' }),
-    ]);
+    expect(
+      applyHumanSignalSyncResult({ accepted: [first.eventId], rejected: [second.eventId] })
+    ).toBe(2);
+    expect(getPendingHumanSignalEvents()).toEqual([]);
   });
 
   it('marks human-signal sync status by eventId without changing event semantics', async () => {
-    const {
-      getHumanSignalEvents,
-      markHumanSignalEventFailed,
-      markHumanSignalEventSynced,
-      recordReadFinish,
-    } = await import('../src/lib/human-signals');
+    const { applyHumanSignalSyncResult, getHumanSignalEvents, recordReadFinish } =
+      await import('../src/lib/human-signals');
     const event = recordReadFinish(
       {
         postId: 'gp-901-status.mdx',
@@ -267,19 +295,23 @@ describe('human signals', () => {
       { method: 'active_scroll_end', activeReadMs: 10_000, maxScrollPercent: 100 }
     );
     const before = { ...event };
-    expect(markHumanSignalEventFailed('missing-event-id')).toBe(false);
-    expect(markHumanSignalEventFailed(event.eventId)).toBe(true);
-    expect(markHumanSignalEventSynced(event.eventId)).toBe(true);
-    expect(getHumanSignalEvents()[0]).toEqual({ ...before, syncStatus: 'synced' });
+    expect(applyHumanSignalSyncResult({ rejected: ['missing-event-id'] })).toBe(0);
+    expect(applyHumanSignalSyncResult({ rejected: [event.eventId] })).toBe(1);
+    expect(applyHumanSignalSyncResult({ accepted: [event.eventId] })).toBe(1);
+    expect(getHumanSignalEvents()[0]).toEqual({
+      ...before,
+      syncStatus: 'synced',
+      transport: 'gu_log_api',
+    });
   });
 
   it('treats corrupted human-signal storage as an empty pending queue', async () => {
     (globalThis as any).localStorage.setItem('gu-log-human-signals', '{not valid json');
-    const { getHumanSignalEvents, getPendingHumanSignalEvents, markHumanSignalEventSynced } =
+    const { applyHumanSignalSyncResult, getHumanSignalEvents, getPendingHumanSignalEvents } =
       await import('../src/lib/human-signals');
     expect(getHumanSignalEvents()).toEqual([]);
     expect(getPendingHumanSignalEvents()).toEqual([]);
-    expect(markHumanSignalEventSynced('missing-event-id')).toBe(false);
+    expect(applyHumanSignalSyncResult({ accepted: ['missing-event-id'] })).toBe(0);
   });
 
   it('classifies guest and unknown signals as non-authoritative and owner signals as actionable', async () => {
@@ -326,7 +358,13 @@ describe('human signals', () => {
     } = await import('../src/lib/human-signals');
     const ownerFinish = promoteHumanSignalTrustTier(
       recordReadFinish(
-        { postId: 'gp-123.mdx', lang: 'zh-tw', pathname: '/posts/gp-123/', postVersion: 4 },
+        {
+          postId: 'gp-123.mdx',
+          lang: 'zh-tw',
+          pathname: '/posts/gp-123/',
+          postVersion: 4,
+          readerRevision: '0123456789abcdef',
+        },
         { method: 'active_scroll_end', activeReadMs: 61_000, maxScrollPercent: 100 }
       ),
       'owner_trusted',
@@ -372,6 +410,7 @@ describe('human signals', () => {
     ]);
     expect(packet.signals[0]).toMatchObject({
       kind: 'read_finish',
+      readerRevision: '0123456789abcdef',
       readerTrustTier: 'owner_trusted',
       automationAuthoritative: true,
       finishability: 'finished',
@@ -387,6 +426,72 @@ describe('human signals', () => {
     expect(packet).not.toHaveProperty('requeueTribunal');
     expect(Object.isFrozen(packet)).toBe(true);
     expect(Object.isFrozen(packet.signals)).toBe(true);
+  });
+});
+
+describe('human signals reader revision', () => {
+  const snapshot = {
+    postId: 'gp-321-revision.mdx',
+    ticketId: 'GP-321',
+    lang: 'zh-tw' as const,
+    pathname: '/posts/gp-321-revision/',
+    postVersion: 3,
+    readerRevision: 'abc123def4567890',
+  };
+
+  it('stamps every record* event with the reader revision from the snapshot', async () => {
+    const {
+      recordReadFinish,
+      recordReadAbandonCandidate,
+      recordShareIntent,
+      recordFeedbackComment,
+    } = await import('../src/lib/human-signals');
+    const events = [
+      recordReadFinish(snapshot, { method: 'active_scroll_end' }),
+      recordReadAbandonCandidate(snapshot, { activeReadMs: 31_000, maxScrollPercent: 40 }),
+      recordShareIntent(snapshot, { target: 'copy_link', result: 'completed' }),
+      recordFeedbackComment(snapshot, { source: 'first_party', polarity: 'positive' }),
+    ];
+    for (const event of events) {
+      expect(event.readerRevision).toBe('abc123def4567890');
+    }
+  });
+
+  it('omits readerRevision when the page has no revision', async () => {
+    const { recordReadFinish } = await import('../src/lib/human-signals');
+    const event = recordReadFinish(
+      { ...snapshot, readerRevision: null },
+      { method: 'manual_mark_read' }
+    );
+    expect(event).not.toHaveProperty('readerRevision');
+  });
+
+  it('keeps abandon candidates for different reader revisions as separate events', async () => {
+    const { recordReadAbandonCandidate, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    const before = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 31_000,
+      maxScrollPercent: 40,
+    });
+    const after = recordReadAbandonCandidate(
+      { ...snapshot, readerRevision: 'ffff000011112222' },
+      { activeReadMs: 31_000, maxScrollPercent: 40 }
+    );
+    expect(getHumanSignalEvents()).toEqual([before, after]);
+  });
+});
+
+describe('feedback note length', () => {
+  it('stores at most 280 characters of a feedback note', async () => {
+    const { FEEDBACK_NOTE_MAX_LENGTH, recordFeedbackComment, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    expect(FEEDBACK_NOTE_MAX_LENGTH).toBe(280);
+    const event = recordFeedbackComment(
+      { postId: 'gp-1.mdx', lang: 'zh-tw', pathname: '/posts/gp-1/', postVersion: 1 },
+      { source: 'first_party', polarity: 'negative', commentText: '難'.repeat(300) }
+    );
+    expect(Array.from(event.commentText ?? '')).toHaveLength(280);
+    expect(getHumanSignalEvents()[0]).toMatchObject({ commentText: '難'.repeat(280) });
   });
 });
 
