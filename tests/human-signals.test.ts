@@ -252,8 +252,7 @@ describe('human signals', () => {
   it('lists only local-only events as pending; synced and rejected events are never resent', async () => {
     const {
       getPendingHumanSignalEvents,
-      markHumanSignalEventSynced,
-      markHumanSignalEventFailed,
+      applyHumanSignalSyncResult,
       recordManualMarkRead,
       recordShareIntent,
     } = await import('../src/lib/human-signals');
@@ -276,18 +275,15 @@ describe('human signals', () => {
       first.eventId,
       second.eventId,
     ]);
-    expect(markHumanSignalEventSynced(first.eventId)).toBe(true);
-    expect(markHumanSignalEventFailed(second.eventId)).toBe(true);
+    expect(
+      applyHumanSignalSyncResult({ accepted: [first.eventId], rejected: [second.eventId] })
+    ).toBe(2);
     expect(getPendingHumanSignalEvents()).toEqual([]);
   });
 
   it('marks human-signal sync status by eventId without changing event semantics', async () => {
-    const {
-      getHumanSignalEvents,
-      markHumanSignalEventFailed,
-      markHumanSignalEventSynced,
-      recordReadFinish,
-    } = await import('../src/lib/human-signals');
+    const { applyHumanSignalSyncResult, getHumanSignalEvents, recordReadFinish } =
+      await import('../src/lib/human-signals');
     const event = recordReadFinish(
       {
         postId: 'gp-901-status.mdx',
@@ -299,9 +295,9 @@ describe('human signals', () => {
       { method: 'active_scroll_end', activeReadMs: 10_000, maxScrollPercent: 100 }
     );
     const before = { ...event };
-    expect(markHumanSignalEventFailed('missing-event-id')).toBe(false);
-    expect(markHumanSignalEventFailed(event.eventId)).toBe(true);
-    expect(markHumanSignalEventSynced(event.eventId)).toBe(true);
+    expect(applyHumanSignalSyncResult({ rejected: ['missing-event-id'] })).toBe(0);
+    expect(applyHumanSignalSyncResult({ rejected: [event.eventId] })).toBe(1);
+    expect(applyHumanSignalSyncResult({ accepted: [event.eventId] })).toBe(1);
     expect(getHumanSignalEvents()[0]).toEqual({
       ...before,
       syncStatus: 'synced',
@@ -311,11 +307,11 @@ describe('human signals', () => {
 
   it('treats corrupted human-signal storage as an empty pending queue', async () => {
     (globalThis as any).localStorage.setItem('gu-log-human-signals', '{not valid json');
-    const { getHumanSignalEvents, getPendingHumanSignalEvents, markHumanSignalEventSynced } =
+    const { applyHumanSignalSyncResult, getHumanSignalEvents, getPendingHumanSignalEvents } =
       await import('../src/lib/human-signals');
     expect(getHumanSignalEvents()).toEqual([]);
     expect(getPendingHumanSignalEvents()).toEqual([]);
-    expect(markHumanSignalEventSynced('missing-event-id')).toBe(false);
+    expect(applyHumanSignalSyncResult({ accepted: ['missing-event-id'] })).toBe(0);
   });
 
   it('classifies guest and unknown signals as non-authoritative and owner signals as actionable', async () => {

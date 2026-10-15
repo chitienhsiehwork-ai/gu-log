@@ -423,14 +423,6 @@ export function applyHumanSignalSyncResult(result: {
   return changed;
 }
 
-export function markHumanSignalEventSynced(eventId: string): boolean {
-  return applyHumanSignalSyncResult({ accepted: [eventId] }) > 0;
-}
-
-export function markHumanSignalEventFailed(eventId: string): boolean {
-  return applyHumanSignalSyncResult({ rejected: [eventId] }) > 0;
-}
-
 export function appendHumanSignalEvent(
   event: HumanSignalEvent,
   options: EventUpsertOptions = {}
