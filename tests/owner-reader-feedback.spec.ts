@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { parseHumanSignalExport } from '../src/lib/reader-signal-calibration';
 import { expect, test } from './fixtures';
 
 // openspec: owner-reader-feedback / human-finishability-signals
@@ -283,6 +284,8 @@ test.describe('reading tracker export', () => {
     expect(Object.keys(file).sort()).toEqual(['events', 'exportSchemaVersion', 'exportedAt']);
     expect(file.exportSchemaVersion).toBe(1);
     expect(Number.isNaN(Date.parse(String(file.exportedAt)))).toBe(false);
+    // The calibration report must be able to read the file as-is.
+    expect(parseHumanSignalExport(file).events).toHaveLength(1);
     expect(file.events).toEqual([
       expect.objectContaining({
         eventId: 'hs_feedback_comment_seed',
