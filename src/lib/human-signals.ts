@@ -341,6 +341,17 @@ export function getHumanSignalEvents(): HumanSignalEvent[] {
   return [...getStore().events];
 }
 
+/** File format shared by the Reading Tracker export and the backend export endpoint. */
+export type HumanSignalExport = {
+  exportSchemaVersion: 1;
+  exportedAt: string;
+  events: HumanSignalEvent[];
+};
+
+export function buildHumanSignalExport(): HumanSignalExport {
+  return { exportSchemaVersion: 1, exportedAt: nowIso(), events: getHumanSignalEvents() };
+}
+
 type EventUpsertOptions = {
   dedupeKey?: (event: HumanSignalEvent) => string;
 };

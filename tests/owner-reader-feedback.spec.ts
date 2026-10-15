@@ -239,3 +239,56 @@ test.describe('human-signal sync channel', () => {
     expect(dialogs).toEqual([]);
   });
 });
+
+test.describe('reading tracker export', () => {
+  test('downloads local human-signal events in the calibration export format', async ({ page }) => {
+    await signIn(page);
+    await page.addInitScript(() => {
+      if (localStorage.getItem('gu-log-human-signals')) return;
+      localStorage.setItem(
+        'gu-log-human-signals',
+        JSON.stringify({
+          version: 1,
+          lastUpdated: '2026-10-01T00:00:00.000Z',
+          events: [
+            {
+              eventSchemaVersion: 1,
+              eventId: 'hs_feedback_comment_seed',
+              kind: 'feedback_comment',
+              postId: 'mp-25-20260204-cursor-vibe-coding-lies.mdx',
+              lang: 'zh-tw',
+              pathname: '/posts/mp-25-20260204-cursor-vibe-coding-lies',
+              postVersion: 3,
+              readerRevision: '12407a7105ee5292',
+              occurredAt: '2026-10-01T00:00:00.000Z',
+              readerTrustTier: 'unknown',
+              transport: 'local_storage',
+              syncStatus: 'local_only',
+              source: 'first_party',
+              polarity: 'rewrite_needed',
+            },
+          ],
+        })
+      );
+    });
+    await page.goto('/reading-tracker');
+
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: '匯出閱讀紀錄' }).click(),
+    ]);
+    expect(download.suggestedFilename()).toMatch(/^gu-log-human-signals-\d{4}-\d{2}-\d{2}\.json$/);
+    const file = JSON.parse(readFileSync(await download.path(), 'utf8')) as Record<string, unknown>;
+
+    expect(Object.keys(file).sort()).toEqual(['events', 'exportSchemaVersion', 'exportedAt']);
+    expect(file.exportSchemaVersion).toBe(1);
+    expect(Number.isNaN(Date.parse(String(file.exportedAt)))).toBe(false);
+    expect(file.events).toEqual([
+      expect.objectContaining({
+        eventId: 'hs_feedback_comment_seed',
+        kind: 'feedback_comment',
+        readerRevision: '12407a7105ee5292',
+      }),
+    ]);
+  });
+});

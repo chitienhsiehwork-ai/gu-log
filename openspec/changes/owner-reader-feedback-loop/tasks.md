@@ -20,7 +20,7 @@
 
 ## 4. 匯出
 
-- [ ] 4.1 Reading Tracker 頁新增「匯出閱讀紀錄」按鈕，下載 D5 格式 JSON；驗證：Playwright 測試下載檔案並以 schema 檢查
+- [x] 4.1 Reading Tracker 頁新增「匯出閱讀紀錄」按鈕，下載 D5 格式 JSON；驗證：Playwright 測試下載檔案並以 schema 檢查
 
 ## 5. 校準報告
 
