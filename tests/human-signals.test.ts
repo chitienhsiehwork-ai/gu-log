@@ -390,6 +390,58 @@ describe('human signals', () => {
   });
 });
 
+describe('human signals reader revision', () => {
+  const snapshot = {
+    postId: 'gp-321-revision.mdx',
+    ticketId: 'GP-321',
+    lang: 'zh-tw' as const,
+    pathname: '/posts/gp-321-revision/',
+    postVersion: 3,
+    readerRevision: 'abc123def4567890',
+  };
+
+  it('stamps every record* event with the reader revision from the snapshot', async () => {
+    const {
+      recordReadFinish,
+      recordReadAbandonCandidate,
+      recordShareIntent,
+      recordFeedbackComment,
+    } = await import('../src/lib/human-signals');
+    const events = [
+      recordReadFinish(snapshot, { method: 'active_scroll_end' }),
+      recordReadAbandonCandidate(snapshot, { activeReadMs: 31_000, maxScrollPercent: 40 }),
+      recordShareIntent(snapshot, { target: 'copy_link', result: 'completed' }),
+      recordFeedbackComment(snapshot, { source: 'first_party', polarity: 'positive' }),
+    ];
+    for (const event of events) {
+      expect(event.readerRevision).toBe('abc123def4567890');
+    }
+  });
+
+  it('omits readerRevision when the page has no revision', async () => {
+    const { recordReadFinish } = await import('../src/lib/human-signals');
+    const event = recordReadFinish(
+      { ...snapshot, readerRevision: null },
+      { method: 'manual_mark_read' }
+    );
+    expect(event).not.toHaveProperty('readerRevision');
+  });
+
+  it('keeps abandon candidates for different reader revisions as separate events', async () => {
+    const { recordReadAbandonCandidate, getHumanSignalEvents } =
+      await import('../src/lib/human-signals');
+    const before = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 31_000,
+      maxScrollPercent: 40,
+    });
+    const after = recordReadAbandonCandidate(
+      { ...snapshot, readerRevision: 'ffff000011112222' },
+      { activeReadMs: 31_000, maxScrollPercent: 40 }
+    );
+    expect(getHumanSignalEvents()).toEqual([before, after]);
+  });
+});
+
 describe('reading tracker migration to event-aware store', () => {
   it('preserves v1 read slugs and imports them as legacy-confidence records', async () => {
     (globalThis as any).localStorage.setItem(

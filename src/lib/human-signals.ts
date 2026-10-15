@@ -17,6 +17,8 @@ export type ArticleVersionSnapshot = {
   pathname: string;
   postVersion: number | string;
   contentVersion?: number | string;
+  /** Reader-facing content hash from post-reader-revisions.json (metadata excluded). */
+  readerRevision?: string | null;
 };
 
 type BaseHumanSignalEvent = {
@@ -29,6 +31,7 @@ type BaseHumanSignalEvent = {
   pathname: string;
   postVersion: number;
   contentVersion?: number;
+  readerRevision?: string;
   occurredAt: string;
   reader?: string;
   readerTrustTier: ReaderTrustTier;
@@ -166,6 +169,10 @@ function makeEventId(kind: HumanSignalKind): string {
 }
 
 function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
+  const readerRevision =
+    typeof snapshot.readerRevision === 'string' && snapshot.readerRevision.trim()
+      ? snapshot.readerRevision.trim()
+      : undefined;
   return {
     postId: snapshot.postId,
     ticketId: snapshot.ticketId,
@@ -176,6 +183,7 @@ function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
       snapshot.contentVersion === undefined
         ? undefined
         : toPositiveInteger(snapshot.contentVersion),
+    ...(readerRevision ? { readerRevision } : {}),
   };
 }
 
@@ -331,6 +339,7 @@ function articleVersionKey(event: HumanSignalEvent): string {
     event.postId,
     event.postVersion,
     event.contentVersion ?? '',
+    event.readerRevision ?? '',
     event.pathname,
     event.reader ?? '',
   ].join('|');
