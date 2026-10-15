@@ -5,10 +5,19 @@ interface Props {
   postId: string;
   ticketId?: string;
   postVersion: number;
+  readerRevision?: string | null;
   pathname: string;
 }
 
-const { title, lang = 'zh-tw', postId, ticketId, postVersion, pathname } = Astro.props;
+const {
+  title,
+  lang = 'zh-tw',
+  postId,
+  ticketId,
+  postVersion,
+  readerRevision,
+  pathname,
+} = Astro.props;
 
 const i18n = {
   'zh-tw': {
@@ -40,6 +49,7 @@ const t = i18n[lang];
     data-post-id={postId}
     data-ticket-id={ticketId}
     data-post-version={postVersion}
+    data-reader-revision={readerRevision}
     data-pathname={pathname}
   >
     <!-- Native share button (hidden by default, shown via JS if supported) -->
@@ -151,6 +161,7 @@ const t = i18n[lang];
         'zh-tw') as GuLogLang,
       pathname: container.getAttribute('data-pathname') || window.location.pathname,
       postVersion: container.getAttribute('data-post-version') || '1',
+      readerRevision: container.getAttribute('data-reader-revision'),
     };
 
     function record(
