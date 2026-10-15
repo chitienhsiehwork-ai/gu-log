@@ -16,6 +16,7 @@ import {
   buildCalibrationReport,
   formatCalibrationReport,
   parseHumanSignalExport,
+  postKey,
   type CalibrationPost,
 } from '../src/lib/reader-signal-calibration';
 import { DEFAULT_POSTS_DIR, readPostIndex } from './lib/taken-down-posts.mjs';
@@ -53,7 +54,7 @@ const revisions = JSON.parse(readFileSync(values.revisions ?? DEFAULT_REVISIONS,
 >;
 const posts: CalibrationPost[] = readPostIndex(values['posts-dir'] ?? DEFAULT_POSTS_DIR).map(
   (post: { file: string; data: Record<string, unknown> }) => {
-    const postId = post.file.replace(/\.mdx$/i, '');
+    const postId = postKey(post.file);
     return {
       postId,
       title: typeof post.data.title === 'string' ? post.data.title : undefined,
