@@ -33,7 +33,7 @@ test.describe('reader revision on article controls', () => {
   }
 });
 
-const FAKE_JWT = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvd25lciJ9.fake-signature';
+const FAKE_JWT = 'owner-session-token';
 
 async function signIn(page: import('@playwright/test').Page) {
   await page.addInitScript((jwt) => localStorage.setItem('gu-log-jwt', jwt), FAKE_JWT);
