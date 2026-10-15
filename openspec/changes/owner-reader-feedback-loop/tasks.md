@@ -24,7 +24,7 @@
 
 ## 5. 校準報告
 
-- [ ] 5.1 `src/lib/reader-signal-calibration.ts` 純函式：版本分類（目前／舊／不明）、每篇最新明確回饋（無 `reader` 視為同一本機讀者）、用 `classifyTribunalResult` 分 PASS／未 PASS／未評分、分歧清單、樣本門檻；驗證：unit test 覆蓋 `reader-signal-calibration` spec 的每個 scenario
+- [x] 5.1 `src/lib/reader-signal-calibration.ts` 純函式：版本分類（目前／舊／不明）、每篇最新明確回饋（無 `reader` 視為同一本機讀者）、用 `classifyTribunalResult` 分 PASS／未 PASS／未評分、分歧清單、樣本門檻；驗證：unit test 覆蓋 `reader-signal-calibration` spec 的每個 scenario
 - [ ] 5.2 `scripts/reader-signal-calibration.ts` 與 `pnpm reader:calibrate` script（文字與 `--json` 輸出，唯讀）；驗證：用測試 fixture 匯出檔跑出預期報告，且 `git status` 無任何檔案變動
 - [ ] 5.3 在 `docs/tribunal-runbook.md` 加一段怎麼匯出與跑校準報告、automation 開關預設關閉；驗證：段落指向腳本與 spec，不複述門檻數值
 
