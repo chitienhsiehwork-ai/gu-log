@@ -16,7 +16,7 @@
 ## 3. 送出通道
 
 - [x] 3.1 `SignalTransport` 新增 `gu_log_api`；`getPendingHumanSignalEvents` 改成只回傳 `local_only`；新增 `src/lib/human-signal-sync.ts`（重用 gist-sync 的 token／逾時 helper 與 public-api-url；批次 50、5 秒逾時、`keepalive`、accepted→synced、rejected→sync_failed 不重送、未列出→維持待送、404／錯誤靜默）；驗證：unit test 以 mock fetch 覆蓋 accepted、rejected、未列出、404、逾時、未登入不送
-- [ ] 3.2 文章頁載入、記錄事件後（debounce）、`pagehide` 觸發同步；驗證：Playwright 測試攔截 `/human-signals` 請求，確認登入時送出、未登入不送、回 404 時頁面無錯誤
+- [x] 3.2 文章頁載入、記錄事件後（debounce）、`pagehide` 觸發同步；驗證：Playwright 測試攔截 `/human-signals` 請求，確認登入時送出、未登入不送、回 404 時頁面無錯誤
 
 ## 4. 匯出
 

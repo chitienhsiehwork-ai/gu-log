@@ -130,3 +130,112 @@ test.describe('owner one-tap feedback', () => {
     expect(event).not.toHaveProperty('commentText');
   });
 });
+
+const CORS_HEADERS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-headers': 'authorization, content-type',
+  'access-control-allow-methods': 'POST, OPTIONS',
+};
+
+type SyncRoute = { posted: Array<{ authorization?: string; eventIds: string[] }> };
+
+async function mockHumanSignals(
+  page: import('@playwright/test').Page,
+  respond: (eventIds: string[]) => { status: number; body: unknown }
+): Promise<SyncRoute> {
+  const state: SyncRoute = { posted: [] };
+  await page.route('**/human-signals', async (route) => {
+    const request = route.request();
+    if (request.method() === 'OPTIONS') {
+      await route.fulfill({ status: 204, headers: CORS_HEADERS });
+      return;
+    }
+    const eventIds = (request.postDataJSON() as { events: Array<{ eventId: string }> }).events.map(
+      (event) => event.eventId
+    );
+    state.posted.push({ authorization: request.headers()['authorization'], eventIds });
+    const { status, body } = respond(eventIds);
+    await route.fulfill({
+      status,
+      headers: { ...CORS_HEADERS, 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  });
+  return state;
+}
+
+test.describe('human-signal sync channel', () => {
+  test('signed-in reader sends recorded feedback and marks accepted events synced', async ({
+    page,
+  }) => {
+    await signIn(page);
+    const sync = await mockHumanSignals(page, (eventIds) => ({
+      status: 200,
+      body: { accepted: eventIds, rejected: [] },
+    }));
+    await page.goto(`/posts/${ZH_POST}`);
+
+    await page.locator('[data-owner-feedback]').getByRole('button', { name: '好看' }).click();
+
+    await expect.poll(() => sync.posted.length, { timeout: 10_000 }).toBeGreaterThan(0);
+    expect(sync.posted[0].authorization).toBe(`Bearer ${FAKE_JWT}`);
+    await expect
+      .poll(async () =>
+        (await storedEvents(page))
+          .filter((event) => event.kind === 'feedback_comment')
+          .map((event) => [event.syncStatus, event.transport])
+      )
+      .toEqual([['synced', 'gu_log_api']]);
+  });
+
+  test('signed-out visitor never contacts the endpoint', async ({ page }) => {
+    const sync = await mockHumanSignals(page, () => ({ status: 200, body: {} }));
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.resolve() },
+      });
+    });
+    await page.goto(`/posts/${ZH_POST}`);
+
+    // Anonymous share still records a local event; it must stay local.
+    await page.locator('.share-copy').click();
+    await expect.poll(async () => (await storedEvents(page)).length).toBe(1);
+    await page.waitForTimeout(3_000);
+    expect(sync.posted).toEqual([]);
+  });
+
+  test('a 404 from the undeployed endpoint keeps events local without page errors', async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    const dialogs: string[] = [];
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('dialog', async (dialog) => {
+      dialogs.push(dialog.message());
+      await dialog.dismiss();
+    });
+    await signIn(page);
+    const sync = await mockHumanSignals(page, () => ({
+      status: 404,
+      body: { detail: 'Not Found' },
+    }));
+    await page.goto(`/posts/${ZH_POST}`);
+
+    const feedback = page.locator('[data-owner-feedback]');
+    await feedback.getByRole('button', { name: '難看想重寫' }).click();
+    await expect.poll(() => sync.posted.length, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    await expect(feedback.locator('.owner-feedback-status')).toHaveText('已記錄：難看想重寫');
+    await page.locator('.read-status-btn').click();
+    await expect(page.locator('.read-status-btn')).toHaveClass(/is-read/);
+    expect(
+      (await storedEvents(page))
+        .filter((event) => event.kind === 'feedback_comment')
+        .map((event) => event.syncStatus)
+    ).toEqual(['local_only']);
+    expect(pageErrors).toEqual([]);
+    expect(dialogs).toEqual([]);
+  });
+});

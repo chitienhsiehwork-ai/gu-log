@@ -6,6 +6,7 @@
  */
 import { getGuLogSessionToken, withDeadline } from './gist-sync';
 import {
+  HUMAN_SIGNAL_RECORDED_EVENT,
   applyHumanSignalSyncResult,
   getPendingHumanSignalEvents,
   type HumanSignalEvent,
@@ -14,6 +15,7 @@ import { buildPublicApiEndpoint } from './public-api-url';
 
 export const HUMAN_SIGNAL_SYNC_BATCH_SIZE = 50;
 export const HUMAN_SIGNAL_SYNC_TIMEOUT_MS = 5_000;
+const RECORD_DEBOUNCE_MS = 2_000;
 
 export type HumanSignalSyncOutcome =
   | { status: 'signed_out' }
@@ -78,4 +80,36 @@ export async function syncPendingHumanSignals(apiUrl: string): Promise<HumanSign
     const outcome = await syncHumanSignalBatch(apiUrl);
     if (outcome.status !== 'synced' || outcome.accepted + outcome.rejected === 0) return outcome;
   }
+}
+
+/**
+ * Article-page wiring: sync on load, shortly after each recorded event, and one
+ * batch on pagehide. Does nothing for signed-out readers.
+ */
+export function initHumanSignalSync(apiUrl: string): void {
+  if (!getGuLogSessionToken()) return;
+  let inFlight: Promise<unknown> | null = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  const syncAll = () => {
+    if (inFlight) return;
+    inFlight = syncPendingHumanSignals(apiUrl).finally(() => {
+      inFlight = null;
+    });
+  };
+
+  window.addEventListener(HUMAN_SIGNAL_RECORDED_EVENT, () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(syncAll, RECORD_DEBOUNCE_MS);
+  });
+
+  const start = () => {
+    // Registered after every component script has run, so pagehide recorders
+    // (e.g. abandon candidates) store their event before this batch is read.
+    window.addEventListener('pagehide', () => {
+      void syncHumanSignalBatch(apiUrl);
+    });
+    syncAll();
+  };
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start, { once: true });
 }
