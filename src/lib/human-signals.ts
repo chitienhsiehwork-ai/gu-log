@@ -8,7 +8,7 @@ export type HumanSignalKind =
 export type GuLogLang = 'zh-tw' | 'en';
 export type ReaderTrustTier = 'owner_trusted' | 'owner_approved' | 'guest_reference' | 'unknown';
 export type SignalSyncStatus = 'local_only' | 'synced' | 'sync_failed';
-export type SignalTransport = 'local_storage';
+export type SignalTransport = 'local_storage' | 'gu_log_api';
 
 export type ArticleVersionSnapshot = {
   postId: string;
@@ -358,30 +358,46 @@ function articleVersionKey(event: HumanSignalEvent): string {
   ].join('|');
 }
 
+/** Events still waiting to be sent. `sync_failed` means the backend rejected it: never resend. */
 export function getPendingHumanSignalEvents(): HumanSignalEvent[] {
-  return getStore().events.filter((event) => event.syncStatus !== 'synced');
+  return getStore().events.filter((event) => event.syncStatus === 'local_only');
 }
 
-function markHumanSignalEventSyncStatus(eventId: string, syncStatus: SignalSyncStatus): boolean {
+/**
+ * Apply a backend sync response in one write: accepted → synced via the API,
+ * rejected → sync_failed. Events in neither list stay pending.
+ */
+export function applyHumanSignalSyncResult(result: {
+  accepted?: readonly string[];
+  rejected?: readonly string[];
+}): number {
+  const accepted = new Set(result.accepted ?? []);
+  const rejected = new Set(result.rejected ?? []);
   const store = getStore();
+  let changed = 0;
   for (const event of store.events) {
-    if (event.eventId === eventId) {
-      event.syncStatus = syncStatus;
-      store.lastUpdated = nowIso();
-      saveStore(store);
-      return true;
+    if (accepted.has(event.eventId)) {
+      event.syncStatus = 'synced';
+      event.transport = 'gu_log_api';
+      changed += 1;
+    } else if (rejected.has(event.eventId)) {
+      event.syncStatus = 'sync_failed';
+      changed += 1;
     }
   }
-
-  return false;
+  if (changed > 0) {
+    store.lastUpdated = nowIso();
+    saveStore(store);
+  }
+  return changed;
 }
 
 export function markHumanSignalEventSynced(eventId: string): boolean {
-  return markHumanSignalEventSyncStatus(eventId, 'synced');
+  return applyHumanSignalSyncResult({ accepted: [eventId] }) > 0;
 }
 
 export function markHumanSignalEventFailed(eventId: string): boolean {
-  return markHumanSignalEventSyncStatus(eventId, 'sync_failed');
+  return applyHumanSignalSyncResult({ rejected: [eventId] }) > 0;
 }
 
 export function appendHumanSignalEvent(

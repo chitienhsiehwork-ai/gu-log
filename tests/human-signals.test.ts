@@ -215,7 +215,7 @@ describe('human signals', () => {
     expect(getHumanSignalEvents()).toEqual([v1, v2]);
   });
 
-  it('lists local-only and failed human-signal events as pending sync work', async () => {
+  it('lists only local-only events as pending; synced and rejected events are never resent', async () => {
     const {
       getPendingHumanSignalEvents,
       markHumanSignalEventSynced,
@@ -244,9 +244,7 @@ describe('human signals', () => {
     ]);
     expect(markHumanSignalEventSynced(first.eventId)).toBe(true);
     expect(markHumanSignalEventFailed(second.eventId)).toBe(true);
-    expect(getPendingHumanSignalEvents()).toEqual([
-      expect.objectContaining({ eventId: second.eventId, syncStatus: 'sync_failed' }),
-    ]);
+    expect(getPendingHumanSignalEvents()).toEqual([]);
   });
 
   it('marks human-signal sync status by eventId without changing event semantics', async () => {
@@ -270,7 +268,11 @@ describe('human signals', () => {
     expect(markHumanSignalEventFailed('missing-event-id')).toBe(false);
     expect(markHumanSignalEventFailed(event.eventId)).toBe(true);
     expect(markHumanSignalEventSynced(event.eventId)).toBe(true);
-    expect(getHumanSignalEvents()[0]).toEqual({ ...before, syncStatus: 'synced' });
+    expect(getHumanSignalEvents()[0]).toEqual({
+      ...before,
+      syncStatus: 'synced',
+      transport: 'gu_log_api',
+    });
   });
 
   it('treats corrupted human-signal storage as an empty pending queue', async () => {
