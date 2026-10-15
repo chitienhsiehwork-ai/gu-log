@@ -8,10 +8,10 @@
 
 ## 2. 一鍵回饋
 
-- [ ] 2.1 新增 `OwnerFeedback.astro`（好看／普通／難看想重寫 + 選填備註，最長 280 字），未登入時 `hidden`，送出後顯示已記錄；放進 `ArticleActionArea`；驗證：Playwright 測試未登入看不到、設定 `gu-log-jwt` 後看得到且點擊會寫入 `feedback_comment`（`source: first_party`、正確 polarity、帶 reader revision）
-- [ ] 2.2 zh-tw／en 文案；驗證：2.1 的 Playwright 測試加一個 en 文章頁案例，斷言按鈕為英文標籤
-- [ ] 2.3 跑 `uiux-auditor`（雙主題、WCAG 對比）並修掉 must-fix；驗證：audit 無 must-fix
-- [ ] 2.4 回饋備註最長 280 字元（`maxlength` 與 `recordFeedbackComment` 端截斷）；驗證：unit test 送 300 字備註，事件只存 280 字
+- [x] 2.1 新增 `OwnerFeedback.astro`（好看／普通／難看想重寫 + 選填備註，最長 280 字），未登入時 `hidden`，送出後顯示已記錄；放進 `ArticleActionArea`；驗證：Playwright 測試未登入看不到、設定 `gu-log-jwt` 後看得到且點擊會寫入 `feedback_comment`（`source: first_party`、正確 polarity、帶 reader revision）
+- [x] 2.2 zh-tw／en 文案；驗證：2.1 的 Playwright 測試加一個 en 文章頁案例，斷言按鈕為英文標籤
+- [x] 2.3 跑 `uiux-auditor`（雙主題、WCAG 對比）並修掉 must-fix；驗證：audit 無 must-fix
+- [x] 2.4 回饋備註最長 280 字元（`maxlength` 與 `recordFeedbackComment` 端截斷）；驗證：unit test 送 300 字備註，事件只存 280 字
 
 ## 3. 送出通道
 

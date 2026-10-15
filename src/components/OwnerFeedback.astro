@@ -1,0 +1,200 @@
+---
+import { FEEDBACK_NOTE_MAX_LENGTH } from '../lib/human-signals';
+
+interface Props {
+  lang?: 'zh-tw' | 'en';
+  postId: string;
+  ticketId?: string;
+  postVersion: number;
+  readerRevision?: string | null;
+  pathname: string;
+}
+
+const { lang = 'zh-tw', postId, ticketId, postVersion, readerRevision, pathname } = Astro.props;
+
+const i18n = {
+  'zh-tw': {
+    prompt: '這篇你覺得怎麼樣？',
+    positive: '好看',
+    neutral: '普通',
+    rewrite: '難看想重寫',
+    note: '補一句（選填）',
+    recorded: '已記錄：',
+  },
+  en: {
+    prompt: 'How was this one?',
+    positive: 'Loved it',
+    neutral: "It's OK",
+    rewrite: 'Needs a rewrite',
+    note: 'Add a note (optional)',
+    recorded: 'Recorded: ',
+  },
+};
+
+const t = i18n[lang];
+const options = [
+  { polarity: 'positive', label: t.positive },
+  { polarity: 'unknown', label: t.neutral },
+  { polarity: 'rewrite_needed', label: t.rewrite },
+] as const;
+---
+
+<div
+  class="owner-feedback"
+  data-owner-feedback
+  data-lang={lang}
+  data-post-id={postId}
+  data-ticket-id={ticketId}
+  data-post-version={postVersion}
+  data-reader-revision={readerRevision}
+  data-pathname={pathname}
+  data-recorded-prefix={t.recorded}
+  hidden
+>
+  <p class="owner-feedback-prompt" id="owner-feedback-prompt">{t.prompt}</p>
+  <input
+    type="text"
+    class="owner-feedback-note"
+    maxlength={FEEDBACK_NOTE_MAX_LENGTH}
+    placeholder={t.note}
+    aria-label={t.note}
+    autocomplete="off"
+  />
+  <div class="owner-feedback-options" role="group" aria-labelledby="owner-feedback-prompt">
+    {
+      options.map((option) => (
+        <button
+          type="button"
+          class="owner-feedback-option"
+          data-polarity={option.polarity}
+          aria-pressed="false"
+        >
+          {option.label}
+        </button>
+      ))
+    }
+  </div>
+  <p class="owner-feedback-status" role="status" aria-live="polite"></p>
+</div>
+
+<script>
+  import { getGuLogSessionToken } from '../lib/gist-sync';
+  import { recordFeedbackComment } from '../lib/human-signals';
+  import type { CommentPolarity, GuLogLang } from '../lib/human-signals';
+
+  function initOwnerFeedback() {
+    const root = document.querySelector<HTMLElement>('[data-owner-feedback]');
+    if (!root || !getGuLogSessionToken()) return;
+    root.hidden = false;
+
+    const note = root.querySelector<HTMLInputElement>('.owner-feedback-note')!;
+    const status = root.querySelector<HTMLElement>('.owner-feedback-status')!;
+    const buttons = root.querySelectorAll<HTMLButtonElement>('.owner-feedback-option');
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const text = note.value.trim();
+        recordFeedbackComment(
+          {
+            postId: root.dataset.postId || '',
+            ticketId: root.dataset.ticketId || undefined,
+            lang: (root.dataset.lang || 'zh-tw') as GuLogLang,
+            pathname: root.dataset.pathname || window.location.pathname,
+            postVersion: root.dataset.postVersion || '1',
+            readerRevision: root.dataset.readerRevision || null,
+          },
+          {
+            source: 'first_party',
+            polarity: button.dataset.polarity as CommentPolarity,
+            commentText: text || undefined,
+          }
+        );
+        buttons.forEach((other) => other.setAttribute('aria-pressed', String(other === button)));
+        note.value = '';
+        status.textContent = `${root.dataset.recordedPrefix ?? ''}${button.textContent?.trim()}`;
+      });
+    });
+  }
+
+  initOwnerFeedback();
+</script>
+
+<style>
+  .owner-feedback {
+    margin-top: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+  }
+
+  .owner-feedback[hidden] {
+    display: none;
+  }
+
+  .owner-feedback-prompt {
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+    font-size: 0.85rem;
+  }
+
+  .owner-feedback-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .owner-feedback-option {
+    min-height: 44px;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  .owner-feedback-option:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .owner-feedback-option:focus-visible,
+  .owner-feedback-note:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .owner-feedback-option[aria-pressed='true'] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-faint-bg);
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  .owner-feedback-note {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 44px;
+    margin-bottom: 0.6rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  .owner-feedback-note::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  .owner-feedback-status {
+    min-height: 1.2em;
+    margin: 0.5rem 0 0;
+    color: var(--color-status-success);
+    font-size: 0.8rem;
+  }
+</style>
