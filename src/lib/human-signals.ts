@@ -446,10 +446,13 @@ export function appendHumanSignalEvent(
       }
     }
     if (existingIndex >= 0) {
-      const upserted = {
-        ...event,
-        eventId: store.events[existingIndex].eventId,
-      } as HumanSignalEvent;
+      const existing = store.events[existingIndex];
+      // Once the old event left the outbox, the backend keeps the first copy of
+      // its eventId, so updated metrics must travel under a fresh id.
+      const upserted =
+        existing.syncStatus === 'local_only'
+          ? ({ ...event, eventId: existing.eventId } as HumanSignalEvent)
+          : event;
       store.events[existingIndex] = upserted;
       store.lastUpdated = nowIso();
       saveStore(store);

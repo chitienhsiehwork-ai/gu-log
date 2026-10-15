@@ -196,6 +196,40 @@ describe('human signals', () => {
     });
   });
 
+  it('sends updated abandon metrics under a new eventId once the old one was synced', async () => {
+    const {
+      applyHumanSignalSyncResult,
+      getHumanSignalEvents,
+      getPendingHumanSignalEvents,
+      recordReadAbandonCandidate,
+    } = await import('../src/lib/human-signals');
+    const snapshot = {
+      postId: 'gp-790-synced-abandon.mdx',
+      lang: 'zh-tw' as const,
+      pathname: '/posts/gp-790-synced-abandon/',
+      postVersion: 2,
+    };
+    const first = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 31_000,
+      maxScrollPercent: 30,
+    });
+    applyHumanSignalSyncResult({ accepted: [first.eventId] });
+    const second = recordReadAbandonCandidate(snapshot, {
+      activeReadMs: 45_000,
+      maxScrollPercent: 50,
+    });
+
+    expect(second.eventId).not.toBe(first.eventId);
+    expect(getHumanSignalEvents()).toEqual([second]);
+    expect(getPendingHumanSignalEvents()).toEqual([
+      expect.objectContaining({
+        eventId: second.eventId,
+        maxScrollPercent: 50,
+        syncStatus: 'local_only',
+      }),
+    ]);
+  });
+
   it('keeps abandon candidates for different article versions as separate events', async () => {
     const { recordReadAbandonCandidate, getHumanSignalEvents } =
       await import('../src/lib/human-signals');
