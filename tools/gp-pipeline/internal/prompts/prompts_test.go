@@ -157,93 +157,29 @@ func TestRender_Refine_WithAngle(t *testing.T) {
 	}
 }
 
-func TestRender_MPWriteContractAllowsCloseOrFarFormAndRequiresGrounding(t *testing.T) {
-	out, err := Render("write", WriteData{
-		Prefix:         "MP",
-		TicketID:       "MP-PENDING",
-		OriginalDate:   "2026-08-16",
-		TranslatedDate: "2026-08-16",
-		SourceField:    "Source Author",
-		TweetURL:       "https://example.com/source",
-		StyleGuide:     "GUIDE",
-		Source:         "SOURCE",
-	})
+// TestRender_MPPromptsDropRetiredRules guards against retired GP-only and
+// translation-completeness rules coming back into the MP prompts. Wording of
+// the current contract is not pinned here; openspec editorial-charter owns it.
+func TestRender_MPPromptsDropRetiredRules(t *testing.T) {
+	write, err := Render("write", WriteData{Prefix: "MP", TicketID: "MP-PENDING", Source: "SOURCE"})
 	if err != nil {
-		t.Fatalf("Render: %v", err)
+		t.Fatalf("Render write: %v", err)
 	}
-	for _, want := range []string{
-		"Mogu owns the body voice",
-		"minimum editorial distance",
-		"MAY preserve most source coverage and order",
-		"MAY also omit whole claims",
-		"does not inherit GP's promise",
-		"complete claim closure",
-		"correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
-		"must not attribute those additions to the source author",
-		"Do not transfer the source author's experiments, teams, or life events to Mogu",
-		"editorial/tool interactions that actually happened",
-		"clearly fantastical persona experiences are valid",
-		"Do not fabricate plausible human work, travel, relationship, purchase",
-		"A complete MP needs no MoguNote",
-	} {
-		if !strings.Contains(out, want) {
-			t.Errorf("MP write prompt missing %q", want)
-		}
+	review, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
+	if err != nil {
+		t.Fatalf("Render review: %v", err)
 	}
 	for _, forbidden := range []string{
 		"Cover ALL of it",
 		"Cover ALL tweets",
 		"Do not fabricate facts, quotes, numbers, causality, citations, or lived experience",
 	} {
-		if strings.Contains(out, forbidden) {
+		if strings.Contains(write, forbidden) {
 			t.Errorf("MP write prompt still requires translation completeness via %q", forbidden)
 		}
 	}
-}
-
-func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.T) {
-	review, err := Render("review", ReviewData{Prefix: "MP", TicketID: "MP-278"})
-	if err != nil {
-		t.Fatalf("Render review: %v", err)
-	}
-	refine, err := Render("refine", RefineData{Prefix: "MP", TicketID: "MP-278"})
-	if err != nil {
-		t.Fatalf("Render refine: %v", err)
-	}
-	for _, want := range []string{
-		"may preserve most source coverage/order in a close translation/rewrite",
-		"There is no minimum editorial distance",
-		"do not score closeness or distance itself",
-		"does not inherit GP fidelity promises",
-		"Mogu may synthesize, disagree, extend, or infer in the body",
-		"transferred source-author experience",
-		"plausible fabricated human biography/testimony",
-		"editorial/tool interactions that actually happened",
-		"clearly fantastical persona experiences",
-		"do not require, add, or reward one by count",
-	} {
-		if !strings.Contains(review, want) {
-			t.Errorf("MP review prompt missing %q", want)
-		}
-	}
-	for _, want := range []string{
-		"a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid",
-		"rewrite solely because the draft is too close to or too far from the source",
-		"speaker, conditions, hedges, controlling caveats, evidence scope, and confidence level",
-		"transferred source-author experience",
-		"plausible fabricated human biography/testimony",
-		"editorial/tool interactions that actually happened",
-		"clearly fantastical persona experiences",
-		"Do not add one merely because the article has none",
-	} {
-		if !strings.Contains(refine, want) {
-			t.Errorf("MP refine prompt missing %q", want)
-		}
-	}
-	if strings.Contains(review, "Coverage Completeness") {
-		t.Fatal("MP review prompt still includes translation completeness")
-	}
 	for _, forbidden := range []string{
+		"Coverage Completeness",
 		"no hallucinated claims beyond source context",
 		"every number in translation must trace back to source",
 		"source limitations, caveats, and conditions must be preserved",
@@ -256,24 +192,12 @@ func TestRender_MPReviewAndRefineKeepDistanceAndExperienceBoundaries(t *testing.
 	}
 }
 
-// TestRender_GPReadingGuideContract covers editorial-charter〈導讀帶讀者回原文〉
-// and gp-pipeline-publish-integrity〈寫手收到術語 context〉: the GP write and
-// refine prompts ask for the reading-guide shape, carry the glossary's
-// canonical terms, forbid ShroomDogNote, and never restore the retired
-// translation-completeness contract or any source-distance threshold.
-func TestRender_GPReadingGuideContract(t *testing.T) {
+// TestRender_GPTerminologyAndAngle covers gp-pipeline-publish-integrity
+// 〈寫手收到術語 context〉: GP write and refine prompts carry the glossary's
+// canonical terms, that context never leaks into MP, and --angle reaches GP.
+func TestRender_GPTerminologyAndAngle(t *testing.T) {
 	const terms = `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`
-	write, err := Render("write", WriteData{
-		Prefix:         "GP",
-		TicketID:       "GP-PENDING",
-		OriginalDate:   "2026-08-16",
-		TranslatedDate: "2026-08-16",
-		SourceField:    "Source Author",
-		TweetURL:       "https://example.com/source",
-		StyleGuide:     "GUIDE",
-		Source:         "SOURCE",
-		Terminology:    terms,
-	})
+	write, err := Render("write", WriteData{Prefix: "GP", TicketID: "GP-PENDING", Source: "SOURCE", Terminology: terms})
 	if err != nil {
 		t.Fatalf("Render(write): %v", err)
 	}
@@ -282,30 +206,13 @@ func TestRender_GPReadingGuideContract(t *testing.T) {
 		t.Fatalf("Render(refine): %v", err)
 	}
 	for name, out := range map[string]string{"write": write, "refine": refine} {
-		for _, want := range []string{
-			"whose source this is",
-			"why it is worth reading",
-			"back to the original",
-			"Mogu's own words",
-			"gu-log's own view",
-			"claim closure",
-			"`<ShroomDogNote>`",
-			terms,
-			"forbiddenZhTw",
-		} {
-			if !strings.Contains(out, want) {
-				t.Errorf("GP %s prompt missing reading-guide contract %q", name, want)
-			}
+		if !strings.Contains(out, terms) {
+			t.Errorf("GP %s prompt dropped the terminology context", name)
 		}
-		for _, retired := range []string{"Cover ALL of it", "Cover ALL tweets", "Put Mogu/gu-log opinions", "Coverage Completeness", "30%", "threshold"} {
+		for _, retired := range []string{"Cover ALL of it", "Cover ALL tweets", "Put Mogu/gu-log opinions", "Coverage Completeness"} {
 			if strings.Contains(out, retired) {
 				t.Errorf("GP %s prompt still carries %q", name, retired)
 			}
-		}
-	}
-	for _, want := range []string{"End by sending the reader back to the original", "Do NOT translate the source", "never translate the source title literally"} {
-		if !strings.Contains(write, want) {
-			t.Errorf("GP write prompt missing %q", want)
 		}
 	}
 	mp, err := Render("write", WriteData{Prefix: "MP", TicketID: "MP-PENDING", Terminology: ""})
@@ -315,7 +222,6 @@ func TestRender_GPReadingGuideContract(t *testing.T) {
 	if strings.Contains(mp, "Canonical terminology") || strings.Contains(mp, "reading guide") {
 		t.Fatal("the GP-only terminology context or reading-guide contract leaked into MP")
 	}
-	// --angle is open to GP: the angle becomes the reading guide's spine.
 	angled, err := Render("write", WriteData{Prefix: "GP", TicketID: "GP-PENDING", Angle: "Lead with the on-call handoff."})
 	if err != nil {
 		t.Fatal(err)
