@@ -80,7 +80,7 @@ import MoguNote from '../../components/MoguNote.astro';
 拿到這些資料後，它會用 4096-bit 的 RSA 金鑰跟 AES-256-CBC 進行加密，包成一個 tar 壓縮檔，然後傳送到 `models.litellm[.]cloud` 這個假網域（這跟 LiteLLM 官方的實際基礎設施一點關係都沒有）。
 
 **第三階段：橫向移動與潛伏**
-據 FutureSearch 指出，它似乎還會試圖在 Kubernetes 的 `kube-system` 命名空間裡建立具有特權的 Alpine pod，並在你的 `~/.config/sysmon/sysmon.py` 偷偷安裝一個具有持續性的後門，搭配 systemd 服務讓它隨時從 C&C（指令與控制）伺服器接收新指令。
+據 FutureSearch 指出，它似乎還會試圖在 [Kubernetes](/glossary#kubernetes) 的 `kube-system` 命名空間裡建立具有特權的 Alpine pod，並在你的 `~/.config/sysmon/sysmon.py` 偷偷安裝一個具有持續性的後門，搭配 systemd 服務讓它隨時從 C&C（指令與控制）伺服器接收新指令。
 
 ---
 ## 結語

@@ -66,11 +66,12 @@ func ValidatePrefix(p string) error {
 	return fmt.Errorf("counter: invalid prefix %q (want one of %v)", p, ValidPrefixes)
 }
 
-// RequirePrefix rejects a missing series: the caller must choose one
+// RequirePrefix rejects a missing series, listing choices (the series the
+// command offers), and a non-canonical one: the caller must choose
 // explicitly. No command picks a series on the caller's behalf.
-func RequirePrefix(command, prefix string) error {
+func RequirePrefix(command, prefix string, choices []string) error {
 	if prefix == "" {
-		return fmt.Errorf("%s: --prefix is required; choose one of %v", command, ValidPrefixes)
+		return fmt.Errorf("%s: --prefix is required; choose one of %v", command, choices)
 	}
 	return ValidatePrefix(prefix)
 }

@@ -75,6 +75,11 @@ func (s *State) runRefine(ctx context.Context, data prompts.RefineData) error {
 	if disp == nil {
 		return fmt.Errorf("refine: writer dispatcher is nil")
 	}
+	restore, err := setAside(finalPath)
+	if err != nil {
+		return fmt.Errorf("refine: set aside the previous final.mdx: %w", err)
+	}
+	defer restore()
 	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("refine: dispatcher failed: %w", err))
@@ -99,11 +104,9 @@ func (s *State) runRefine(ctx context.Context, data prompts.RefineData) error {
 }
 
 // refineFrom copies final.mdx to draftFile and runs run, which refines that
-// draft into a new final.mdx. final.mdx is removed first: refine falls back to
-// the writer's stdout only when final.mdx is absent, so a writer that returns
-// without writing cannot pass the old article off as its output. When run
-// fails without writing, the old article goes back to final.mdx, so a resumed
-// run starts from it instead of an unrefined draft.
+// draft into a new final.mdx through runRefine. runRefine sets the old article
+// aside first, so when the writer fails without writing, a resumed run starts
+// from that article instead of an unrefined draft.
 func (s *State) refineFrom(ctx context.Context, draftFile string, run func(context.Context) error) error {
 	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	article, err := os.ReadFile(finalPath)
@@ -113,16 +116,30 @@ func (s *State) refineFrom(ctx context.Context, draftFile string, run func(conte
 	if err := os.WriteFile(filepath.Join(s.WorkDir, draftFile), article, 0o644); err != nil {
 		return fmt.Errorf("refine: stage %s: %w", draftFile, err)
 	}
-	if err := os.Remove(finalPath); err != nil {
-		return fmt.Errorf("refine: clear final.mdx before refining %s: %w", draftFile, err)
+	return run(ctx)
+}
+
+// setAside removes the file already at path before the writer call that
+// produces it: the step falls back to the writer's stdout only when the file
+// is missing, so the old file would otherwise pass for this call's output.
+// restore puts the old file back if path is still missing, that is, the call
+// failed without leaving its own output; once path exists it does nothing.
+func setAside(path string) (restore func(), err error) {
+	old, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return func() {}, nil
 	}
-	if err := run(ctx); err != nil {
-		if _, statErr := os.Stat(finalPath); os.IsNotExist(statErr) {
-			_ = os.WriteFile(finalPath, article, 0o644)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.Remove(path); err != nil {
+		return nil, err
+	}
+	return func() {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			_ = os.WriteFile(path, old, 0o644)
 		}
-		return err
-	}
-	return nil
+	}, nil
 }
 
 func (s *State) resumeFinal(finalPath string) error {

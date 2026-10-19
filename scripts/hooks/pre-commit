@@ -251,9 +251,11 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Post links may update labels only when the staged target's canonical
-    # ticket, title, language, and filename prove the new identity. The shared
-    # validator also preserves glossary behavior and surrounding prose equality.
+    # The link-only proof (isLinkOnlyChange in scripts/check-glossary-links.mjs)
+    # proves the staged edit only adds, removes, or corrects glossary links
+    # (checked against the staged glossary) or moves internal post links to the
+    # staged target's canonical identity. With those links stripped, the whole
+    # file must still match HEAD exactly.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
@@ -391,7 +393,10 @@ if [ "${#SCORE_MISSING[@]}" -gt 0 ]; then
     echo "tribunal, or score manually with:"
     echo "  node scripts/frontmatter-scores.mjs write <file> vibe '<json>'"
     echo ""
-    echo "To bypass in emergency: git commit --no-verify"
+    echo "Pure link maintenance skips this gate automatically. If this edit should"
+    echo "only add, remove, or fix glossary / internal post links, revert every"
+    echo "other change in the file and make sure each link target exists for the"
+    echo "post's language."
     exit 1
 fi
 echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
@@ -582,7 +587,9 @@ else
             echo "   Full result:"
             printf '%s\n' "$RESULT"
             echo ""
-            echo "This looks like a duplicate topic. Use a different source/topic, or bypass with --no-verify if intentional."
+            echo "This looks like a duplicate topic. Pick a different source or angle,"
+            echo "or update the matching post instead. If the match is wrong, fix the"
+            echo "scoring in scripts/topic-dedup-check.mjs."
             exit 1
         fi
 

@@ -69,7 +69,7 @@ Two subcommands:
 }
 
 func runCounterNext(state *rootState, prefix string) error {
-	if err := counter.RequirePrefix("counter next", prefix); err != nil {
+	if err := counter.RequirePrefix("counter next", prefix, counter.ValidPrefixes); err != nil {
 		emitCounterReport(state, counterReport{Operation: "next", Prefix: prefix, Error: err.Error()})
 		return err
 	}
@@ -97,7 +97,7 @@ func runCounterNext(state *rootState, prefix string) error {
 func runCounterBump(state *rootState, prefix string) error {
 	// A missing series fails before the counter lock; nothing is allocated
 	// for a series nobody chose (openspec: gp-pipeline-publish-integrity).
-	if err := counter.RequirePrefix("counter bump", prefix); err != nil {
+	if err := counter.RequirePrefix("counter bump", prefix, counter.ValidPrefixes); err != nil {
 		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
 		return err
 	}

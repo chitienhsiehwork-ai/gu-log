@@ -574,6 +574,22 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
 4. `systemctl --user daemon-reload` 後再啟動 service，跑 doctor、monitor 與
    bounded smoke；provider contract 必須如實顯示該 rollback release 的行為。
 
+## Owner 閱讀回饋與校準報告
+
+ShroomDog 在文章底部按的一鍵回饋、已讀、分享與中途離開，都會記成 human-signal 事件（綁 reader revision）。這些訊號目前**只拿來檢驗 Tribunal 準不準，不會影響 Tribunal**：human-signal automation 開關預設關閉，關閉時任何 human signal 都不進 judge／writer context、不 requeue、不擋發布。`rewrite_needed` 只會出現在校準報告的分歧清單，由 ShroomDog 自己決定要不要動那篇。開關的條件與打開後的行為以 [`tribunal-human-signal-loop` spec](../openspec/specs/tribunal-human-signal-loop/spec.md) 為準。
+
+怎麼跑：
+
+1. 在登入狀態開 `/reading-tracker`，按「匯出閱讀紀錄」下載 JSON（後端 `/human-signals/export` 上線後也輸出同一格式）。
+2. 在 repo 裡跑：
+
+   ```bash
+   pnpm reader:calibrate -- --events ~/Downloads/gu-log-human-signals-YYYY-MM-DD.json
+   # 機器可讀版加 --json；樣本門檻用 --min-sample 調
+   ```
+
+報告是唯讀的，只印到 stdout。怎麼讀（版本分類、樣本不足時不下結論、分歧的定義）以 [`reader-signal-calibration` spec](../openspec/specs/reader-signal-calibration/spec.md) 為準，預設門檻與欄位看 `src/lib/reader-signal-calibration.ts`。
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
