@@ -18,11 +18,10 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const lvPosts = getListablePosts(allPostsFull, 'zh-tw')
     .filter((post) => post.data.ticketId?.startsWith('Lv-'))
     .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
-  return paginate(lvPosts, { pageSize: 20 });
+  return paginate(lvPosts, { pageSize: 20, props: { allPostsFull } });
 }
 
-const { page } = Astro.props;
-const allPostsFull = await getCollection('posts');
+const { page, allPostsFull } = Astro.props;
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---

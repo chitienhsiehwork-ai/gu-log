@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import Fuse, { type FuseResult, type FuseResultMatch } from 'fuse.js';
+import type { FuseResult, FuseResultMatch } from 'fuse.js';
+import Fuse from 'fuse.js/basic';
 import { fuseOptions, type SearchEntry } from '../src/config/fuse-options';
 import { classifySearchQuery, rankSearchResults } from '../src/lib/search-ranking';
 

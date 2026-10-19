@@ -9,17 +9,39 @@
   margin-bottom: 1rem;
 }
 
-/* Controls */
-.glossary-controls {
+/* 控制列：搜尋、分類按鈕與 A–Z 列捲動時固定在上方。
+   錨點目標不被蓋住，靠這一頁的 scroll-padding-top（等於控制列高度；script 量好後寫進
+   --glossary-toolbar-height，沒有 JS 時用預設值）。不要在詞條上加 scroll-margin-top，
+   它會跟 scroll-padding-top 疊加。
+   這一頁不用全站的平滑捲動：從網址錨點進來時瀏覽器也會慢慢捲，捲到一半網頁字型換上去、
+   版面位移，目標就停在控制列底下。直接跳過去，瀏覽器才會在載入期間持續對齊錨點。 */
+html:has(.glossary-page) {
+  scroll-padding-top: var(--glossary-toolbar-height, 6.6rem);
+  scroll-behavior: auto;
+}
+
+.glossary-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0 0.35rem;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toolbar-search {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
 }
 
 .glossary-search {
-  width: 100%;
-  padding: 0.45rem 0.7rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.7rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   background: var(--color-surface);
@@ -34,24 +56,31 @@
 }
 
 .glossary-search::placeholder {
+  /* 搜尋框底色是 --color-surface，--color-text-muted 在深色主題對比不到 4.5:1 */
+  color: var(--color-surface-meta);
+}
+
+.glossary-count {
+  flex: none;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
-  opacity: 0.7;
+  white-space: nowrap;
 }
 
-.controls-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
+/* 分類按鈕與 A–Z 各佔一行；手機上放不下的分類按鈕左右滑。 */
 .category-pills {
   display: flex;
-  flex-wrap: wrap;
   gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.category-pills::-webkit-scrollbar {
+  display: none;
 }
 
 .category-pill {
+  flex: none;
   padding: 0.2rem 0.6rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -69,33 +98,26 @@
 
 .category-pill[aria-pressed='true'] {
   background: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-color: var(--color-accent);
 }
 
-.glossary-count {
-  font-size: 0.7rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  opacity: 0.6;
-}
-
-/* Alphabet jump bar */
+/* A–Z：字母平分一行的寬度，手機上也不用左右滑 */
 .alpha-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem;
-  padding: 0.4rem 0;
-  margin-bottom: 0.25rem;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .alpha-link {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 2.25rem;
   font-size: 0.7rem;
   font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
   color: var(--color-text-muted);
   text-decoration: none;
-  padding: 0.15rem 0.35rem;
+  padding: 0.15rem 0;
   border-radius: 3px;
   transition: all 0.1s;
 }
@@ -105,11 +127,6 @@
   background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
-/* Letter sections */
-.letter-section {
-  scroll-margin-top: 1rem;
-}
-
 .letter-heading {
   font-size: 1.1rem;
   font-weight: 800;
@@ -117,7 +134,6 @@
   margin: 0.75rem 0 0 0;
   padding-bottom: 0.2rem;
   border-bottom: 2px solid color-mix(in srgb, var(--color-accent) 40%, transparent);
-  opacity: 0.9;
 }
 
 /* Entries */
@@ -135,41 +151,116 @@
   border-bottom: none;
 }
 
-dt {
+/* 詞條列：名稱、英文名、分類 label 與展開記號。沒有 JS 時是 <a>，有 JS 時是 <button>。 */
+.entry-head {
   display: flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
   margin: 0;
 }
 
-.term-link {
+.entry-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  row-gap: 0.1rem;
+  padding: 0.15rem 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.entry-toggle:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 展開記號：收起時朝下，展開時朝上 */
+.entry-toggle::after {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: 0 0.35rem 0 auto;
+  border-right: 2px solid var(--color-text-muted);
+  border-bottom: 2px solid var(--color-text-muted);
+  transform: translateY(-25%) rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.term-name {
   font-weight: 700;
   font-size: 0.95rem;
-  color: var(--color-text);
-  text-decoration: none;
   transition: color 0.15s;
 }
 
-.term-link:hover {
+.entry-toggle:hover .term-name {
   color: var(--color-accent);
-}
-
-.term-link.copied::after {
-  content: ' ✓ copied';
-  color: var(--color-accent);
-  font-size: 0.65rem;
-  font-weight: 400;
 }
 
 .term-en {
   font-size: 0.78rem;
   color: var(--color-text-muted);
   font-weight: 400;
-  opacity: 0.7;
 }
 
-/* Inline category badges */
+/* 每列的複製連結按鈕，由 script 加上 */
+.entry-copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin: -0.25rem 0;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.entry-copy:hover,
+.entry-copy.copied {
+  color: var(--color-accent);
+}
+
+.entry-copy:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.entry-copy svg {
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.entry-copy .icon-check,
+.entry-copy.copied .icon-link {
+  display: none;
+}
+
+.entry-copy.copied .icon-check {
+  display: block;
+}
+
+/* 分類標籤：字色是分類色，底色是同一個顏色的 15%；每個分類只指定 --cat-color */
 .term-cat {
   font-size: 0.6rem;
   font-weight: 600;
@@ -178,50 +269,83 @@ dt {
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 15%, transparent);
 }
 
 .cat-tools {
-  color: var(--color-cat-tools);
-  background: color-mix(in srgb, var(--color-cat-tools) 15%, transparent);
+  --cat-color: var(--color-cat-tools);
 }
 
 .cat-concepts {
-  color: var(--color-cat-concepts);
-  background: color-mix(in srgb, var(--color-cat-concepts) 15%, transparent);
+  --cat-color: var(--color-cat-concepts);
 }
 
 .cat-methods {
-  color: var(--color-cat-methods);
-  background: color-mix(in srgb, var(--color-cat-methods) 15%, transparent);
+  --cat-color: var(--color-cat-methods);
+}
+
+.cat-products {
+  --cat-color: var(--color-cat-products);
+}
+
+.cat-models {
+  --cat-color: var(--color-cat-models);
 }
 
 .cat-platforms {
-  color: var(--color-cat-platforms);
-  background: color-mix(in srgb, var(--color-cat-platforms) 15%, transparent);
+  --cat-color: var(--color-cat-platforms);
 }
 
 .cat-people {
-  color: var(--color-cat-people);
-  background: color-mix(in srgb, var(--color-cat-people) 15%, transparent);
+  --cat-color: var(--color-cat-people);
 }
 
-dd {
+.glossary-entry dd {
   margin: 0.1rem 0 0 0;
 }
 
-.term-def {
+/* 精簡列只顯示定義的前兩行；完整定義、MoguNote 與連結收在 .entry-details。
+   選擇器要蓋過 global.css 的 [lang='zh-TW'] p 行高。 */
+.glossary-entry .term-def {
   font-size: 0.85rem;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--color-text-muted);
   margin: 0;
   white-space: pre-line;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
-.term-meta {
-  font-size: 0.72rem;
+.entry-details {
+  display: none;
+}
+
+/* 展開：從錨點進來（:target）或按了展開（.is-open）。
+   .is-collapsed 蓋過 :target，讓從錨點展開的詞條也收得起來。 */
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .term-def {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
+  overflow: visible;
+}
+
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .entry-details {
+  display: block;
+}
+
+.glossary-entry:is(:target, .is-open):not(.is-collapsed) .entry-toggle::after {
+  transform: translateY(25%) rotate(-135deg);
+}
+
+.glossary-entry .term-meta {
+  font-size: 0.75rem;
+  line-height: 1.6;
   color: var(--color-text-muted);
-  margin: 0.1rem 0 0 0;
-  opacity: 0.55;
+  margin: 0.25rem 0 0 0;
 }
 
 .term-meta a {
@@ -231,20 +355,35 @@ dd {
 
 .term-meta a:hover {
   text-decoration: underline;
-  opacity: 1;
 }
 
-/* Compact MoguNote inside glossary entries */
-.glossary-entry :global(blockquote.mogu-note) {
+/* 詞條裡的 MoguNote 縮小一點，前綴和內文之間也收緊 */
+.glossary-entry blockquote.mogu-note {
   margin: 0.4rem 0 0.2rem 0;
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
+}
+
+.glossary-entry .mogu-note .mogu-note-content {
+  margin-top: 0.35rem;
 }
 
 .glossary-empty {
   color: var(--color-text-muted);
   font-size: 0.85rem;
   padding: 1rem 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .glossary-footer {

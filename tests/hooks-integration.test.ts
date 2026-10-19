@@ -12,12 +12,17 @@ import { describe, expect, it } from 'vitest';
 import { execSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import * as os from 'node:os';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
+const CANONICAL_TARGET_SLUG = 'mp-316-20260213-openclaw-setup-guide-audit';
+const CANONICAL_TARGET_TITLE = 'AI 指南沒有一半都在瞎掰，先翻車的是查核方法';
+const CANONICAL_TARGET_LABEL = `MP-316: ${CANONICAL_TARGET_TITLE}`;
+const CANONICAL_TARGET_URL = `/posts/${CANONICAL_TARGET_SLUG}/`;
+const makeTempDirectory = useTestTempDirectories();
 
 function makeFakeRepo(): string {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-'));
+  const tmp = makeTempDirectory('gu-log-hook-');
   execSync('git init -q', { cwd: tmp });
   execSync('git config user.email test@example.com && git config user.name Test', { cwd: tmp });
   // Symlink the real repo's hooks so we exercise the actual hooks.
@@ -38,7 +43,7 @@ function makeFakeRepo(): string {
 }
 
 function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
-  const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-bin-'));
+  const bin = makeTempDirectory('gu-log-hook-bin-');
   for (const name of ['gitleaks', 'node', 'npx']) {
     const tool = path.join(bin, name);
     const body =
@@ -53,6 +58,101 @@ function makeFastHookEnv(argvLog?: string): NodeJS.ProcessEnv {
     PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
     ...(argvLog ? { HOOK_ARGV_LOG: argvLog } : {}),
   };
+}
+
+function makeScoreGateProbeEnv(stampVerifyExit = 0): NodeJS.ProcessEnv {
+  const bin = makeTempDirectory('gu-log-hook-score-bin-');
+  for (const name of ['gitleaks', 'npx']) {
+    const tool = path.join(bin, name);
+    fs.writeFileSync(tool, '#!/bin/sh\nexit 0\n');
+    fs.chmodSync(tool, 0o755);
+  }
+
+  const node = path.join(bin, 'node');
+  fs.writeFileSync(
+    node,
+    `#!/bin/sh
+case "$1" in
+  */check-staged-internal-post-links.mjs)
+    exec "$REAL_NODE" "$@"
+    ;;
+  */reader-revision-of-stdin.mjs)
+    cksum | awk '{ print $1 ":" $2 }'
+    exit 0
+    ;;
+  */score-floor-check.mjs)
+    echo score-check-sentinel
+    exit 1
+    ;;
+  */source-distance.mjs)
+    shift
+    echo "stamp-verify-sentinel $*" >&2
+    exit "$STAMP_VERIFY_EXIT"
+    ;;
+esac
+if [ "$2" = "--check-canonical-staged-file" ]; then
+  exit 1
+fi
+exit 0
+`
+  );
+  fs.chmodSync(node, 0o755);
+
+  return {
+    ...process.env,
+    PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
+    REAL_NODE: process.execPath,
+    STAMP_VERIFY_EXIT: String(stampVerifyExit),
+  };
+}
+
+function seedLinkMaintenanceRepo(
+  repo: string,
+  sourceLabel = 'GP-53: 舊標題',
+  sourceUrl = '/posts/gp-53-20260213-openclaw-setup-guide-review/'
+): string {
+  const post = path.join(repo, 'src', 'content', 'posts', 'mp-162-related-reading.mdx');
+  const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
+  fs.mkdirSync(path.join(repo, 'src', 'data'), { recursive: true });
+  fs.mkdirSync(path.join(repo, 'scripts'), { recursive: true });
+  fs.symlinkSync(
+    path.join(REPO_ROOT, 'scripts', 'check-staged-internal-post-links.mjs'),
+    path.join(repo, 'scripts', 'check-staged-internal-post-links.mjs')
+  );
+  fs.writeFileSync(path.join(repo, 'src', 'data', 'post-versions.json'), '{}\n');
+  fs.writeFileSync(path.join(repo, 'src', 'data', 'post-reader-revisions.json'), '{}\n');
+  fs.writeFileSync(
+    post,
+    `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${sourceLabel}](${sourceUrl})\n`
+  );
+  fs.writeFileSync(
+    target,
+    `---\nticketId: MP-316\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\n目標文章\n`
+  );
+  commitAll(repo, 'base related-reading post');
+  return post;
+}
+
+function runLinkMaintenanceHook(repo: string, post: string, line: string) {
+  fs.writeFileSync(post, `---\nticketId: MP-162\nlang: zh-tw\n---\n${line}\n`);
+  execSync('git add -A', { cwd: repo });
+  return runStagedLinkMaintenanceHook(repo);
+}
+
+function runStagedLinkMaintenanceHook(repo: string) {
+  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    cwd: repo,
+    env: makeScoreGateProbeEnv(),
+    encoding: 'utf-8',
+  });
+}
+
+function runLinkValidator(repo: string, post: string) {
+  return spawnSync(
+    process.execPath,
+    [path.join(repo, 'scripts', 'check-staged-internal-post-links.mjs'), path.relative(repo, post)],
+    { cwd: repo, encoding: 'utf-8' }
+  );
 }
 
 function commitAll(repo: string, message: string): string {
@@ -132,6 +232,354 @@ describe('pre-commit: Gitleaks staged scan', () => {
     expect(fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'))).toEqual(
       fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'))
     );
+  });
+});
+
+describe('pre-commit: internal post-link maintenance exemption', () => {
+  it('allows the real canonical post label and destination to change together', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(0);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+  });
+
+  it('rejects reordered canonical-link lines even when every added link validates', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n第一筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第二筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n`
+    );
+    commitAll(repo, 'base ordered canonical links');
+
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n第二筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第一筆：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n`
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects prose-only reordering when no internal post link changed', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第一段\n第二段\n`
+    );
+    commitAll(repo, 'base prose order');
+
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})\n第二段\n第一段\n`
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects a label-only arbitrary prose change', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo, CANONICAL_TARGET_LABEL, CANONICAL_TARGET_URL);
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[這段文案與 canonical identity 無關](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it.each([
+    ['wrong ticket', `GP-316: ${CANONICAL_TARGET_TITLE}`, CANONICAL_TARGET_URL],
+    ['wrong title', 'MP-316: 這不是 target frontmatter 的標題', CANONICAL_TARGET_URL],
+    ['missing target', 'MP-999: 不存在的文章', '/posts/mp-999-missing-target/'],
+    ['noncanonical URL', CANONICAL_TARGET_LABEL, `/posts/${CANONICAL_TARGET_SLUG}`],
+    ['locale/path mismatch', CANONICAL_TARGET_LABEL, `/en/posts/${CANONICAL_TARGET_SLUG}/`],
+  ])('rejects %s', (_name, label, url) => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const r = runLinkMaintenanceHook(repo, post, `延伸閱讀：[${label}](${url})`);
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects malformed target frontmatter', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'mp-317-malformed-target.mdx'),
+      '---\nticketId: "MP-317\ntitle: malformed\nlang: zh-tw\n---\nbody\n'
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      '延伸閱讀：[MP-317: malformed](/posts/mp-317-malformed-target/)'
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+  });
+
+  it.each([
+    ['a malformed canonical ticketId', 'NOT-A-CANONICAL-TICKET'],
+    ['a ticketId that disagrees with the mp-316 filename', 'MP-317'],
+  ])('rejects %s in staged target frontmatter', (_name, ticketId) => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
+    fs.writeFileSync(
+      target,
+      `---\nticketId: ${ticketId}\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\ninvalid identity\n`
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[${ticketId}: ${CANONICAL_TARGET_TITLE}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('rejects an ambiguous staged target route', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG.toUpperCase()}.mdx`),
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify(CANONICAL_TARGET_TITLE)}\nlang: zh-tw\n---\nambiguous\n`
+    );
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+  });
+
+  it('still gates surrounding prose changes made beside a valid post link update', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const r = runLinkMaintenanceHook(
+      repo,
+      post,
+      `推薦閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(1);
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('SCORE GATE FAILED');
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
+  });
+
+  it('reads canonical target identity from the staged index rather than the worktree', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    const target = path.join(repo, 'src', 'content', 'posts', `${CANONICAL_TARGET_SLUG}.mdx`);
+    const stagedTitle = `${CANONICAL_TARGET_TITLE}（staged）`;
+    fs.writeFileSync(
+      target,
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify(stagedTitle)}\nlang: zh-tw\n---\nstaged target\n`
+    );
+    fs.writeFileSync(
+      post,
+      `---\nticketId: MP-162\nlang: zh-tw\n---\n延伸閱讀：[MP-316: ${stagedTitle}](${CANONICAL_TARGET_URL})\n`
+    );
+    execSync('git add -A', { cwd: repo });
+
+    fs.writeFileSync(
+      target,
+      `---\nticketId: MP-316\ntitle: ${JSON.stringify('worktree-only title')}\nlang: zh-tw\n---\nworktree target\n`
+    );
+
+    expect(runLinkValidator(repo, post).status).toBe(0);
+  });
+});
+
+describe('pre-commit: glossary link-only edits go through a real git commit', () => {
+  // openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械證明並略過內容品質
+  // gate〉：舊文沒有 scores，只要證明不成立，score gate 的 sentinel 就會擋下這次 commit。
+  // 這裡只驗 hook 的接線（讀 staged 版本、證明不成立就擋），證明本身的案例在
+  // tests/link-only-proof.test.ts。
+  const LEGACY_FRONTMATTER = 'ticketId: MP-212\nlang: zh-tw';
+  const CODEX = {
+    term: 'Codex',
+    en: 'Codex',
+    category: 'products',
+    linking: { enabled: true, anchor: 'codex', match: ['Codex'], caseSensitive: true },
+  };
+  const KUBERNETES = {
+    term: 'Kubernetes',
+    en: 'Kubernetes',
+    aliases: ['K8s'],
+    category: 'platforms',
+  };
+
+  function writeGlossary(repo: string, entries: object[]): void {
+    fs.writeFileSync(
+      path.join(repo, 'src', 'data', 'glossary.json'),
+      `${JSON.stringify(entries, null, 2)}\n`
+    );
+  }
+
+  function writeLegacyPost(post: string, body: string): void {
+    fs.writeFileSync(post, `---\n${LEGACY_FRONTMATTER}\n---\n${body}\n`);
+  }
+
+  function seedLegacyGlossaryPost(body: string, glossary = [CODEX, KUBERNETES]) {
+    const repo = makeFakeRepo();
+    seedLinkMaintenanceRepo(repo);
+    writeGlossary(repo, glossary);
+    const post = path.join(repo, 'src', 'content', 'posts', 'mp-212-legacy-glossary.mdx');
+    writeLegacyPost(post, body);
+    commitAll(repo, 'base legacy post without scores');
+    return { repo, post };
+  }
+
+  function commitThroughHook(repo: string) {
+    const head = () => execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf-8' }).trim();
+    execSync('git add -A', { cwd: repo });
+    const before = head();
+    const r = spawnSync(
+      'git',
+      ['-c', 'core.hooksPath=.githooks', 'commit', '-q', '-m', 'glossary link maintenance'],
+      { cwd: repo, env: makeScoreGateProbeEnv(), encoding: 'utf-8' }
+    );
+    return { status: r.status, output: r.stdout + r.stderr, committed: head() !== before };
+  }
+
+  function expectCommitted(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status, r.output).toBe(0);
+    expect(r.committed).toBe(true);
+    expect(r.output).not.toContain('score-check-sentinel');
+  }
+
+  function expectGated(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status).not.toBe(0);
+    expect(r.committed).toBe(false);
+    expect(r.output).toContain('SCORE GATE FAILED');
+    expect(r.output).toContain('score-check-sentinel');
+    expect(r.output).not.toContain('--no-verify');
+  }
+
+  it('commits a new entry together with its backfilled link in a legacy post', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。', [CODEX]);
+    writeGlossary(repo, [CODEX, KUBERNETES]);
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會把狀態拉回來。');
+
+    expectCommitted(commitThroughHook(repo));
+    expect(
+      execSync('git show HEAD:src/data/glossary.json', { cwd: repo, encoding: 'utf-8' })
+    ).toContain('"term": "Kubernetes"');
+  });
+
+  it('commits an anchor case fix that keeps the original link text', () => {
+    const { repo, post } = seedLegacyGlossaryPost('詳見 [glossary 有完整拆解](/glossary#Codex)。');
+    writeLegacyPost(post, '詳見 [glossary 有完整拆解](/glossary#codex)。');
+
+    expectCommitted(commitThroughHook(repo));
+  });
+
+  it('gates a backfill that also edits prose', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。');
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會自動把狀態拉回來。');
+
+    expectGated(commitThroughHook(repo));
+  });
+});
+
+describe('pre-commit: every staged post goes through the source-distance stamp check', () => {
+  // 只改站內連結的 GP 會被 content gate 放過（不跑 validate-posts），但連結文字可能在
+  // 投影裡，所以驗章要另外跑、而且擋得住（openspec source-distance-stamp）。
+  function stageLinkOnlyGpEdit(repo: string) {
+    seedLinkMaintenanceRepo(repo);
+    const gp = path.join(repo, 'src', 'content', 'posts', 'gp-162-related-reading.mdx');
+    const write = (line: string) =>
+      fs.writeFileSync(gp, `---\nticketId: GP-162\nlang: zh-tw\n---\n${line}\n`);
+    write('延伸閱讀：[GP-53: 舊標題](/posts/gp-53-20260213-openclaw-setup-guide-review/)');
+    commitAll(repo, 'base GP post');
+    write(`延伸閱讀：[${CANONICAL_TARGET_LABEL}](${CANONICAL_TARGET_URL})`);
+    execSync('git add -A', { cwd: repo });
+    return gp;
+  }
+
+  it('verifies a link-only GP edit that the content gate skips, and blocks a bad stamp', () => {
+    const repo = makeFakeRepo();
+    const gp = stageLinkOnlyGpEdit(repo);
+    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+      cwd: repo,
+      env: makeScoreGateProbeEnv(5),
+      encoding: 'utf-8',
+    });
+
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+    expect(r.stderr).toContain(`stamp-verify-sentinel verify --file ${fs.realpathSync(gp)}`);
+    expect(r.stdout).toContain('Source-distance stamp check FAILED');
+    expect(r.status).toBe(1);
+  });
+
+  it('lets the same edit through when the stamp check passes', () => {
+    const repo = makeFakeRepo();
+    stageLinkOnlyGpEdit(repo);
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.stderr).toContain('stamp-verify-sentinel verify --file');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+});
+
+describe('pre-commit: taken-down posts skip reader-content gates (post-takedown)', () => {
+  it('lets a takedown commit through without a Tribunal score', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      '---\nticketId: MP-162\nlang: zh-tw\nstatus: "taken-down"\ntakenDownAt: "2026-09-27"\n---\n'
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  it('still gates a rewrite that only mentions taken-down in the body', () => {
+    const repo = makeFakeRepo();
+    const post = seedLinkMaintenanceRepo(repo);
+    fs.writeFileSync(
+      post,
+      '---\nticketId: MP-162\nlang: zh-tw\n---\nstatus: taken-down 只是正文裡的一行字\n'
+    );
+    execSync('git add -A', { cwd: repo });
+    const r = runStagedLinkMaintenanceHook(repo);
+
+    expect(r.status).toBe(1);
+    expect(r.stdout + r.stderr).toContain('score-check-sentinel');
   });
 });
 
@@ -325,7 +773,7 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     // about to become remote content and must be inspected.
     const repo = makeFakeRepo();
 
-    const originDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-hook-origin-'));
+    const originDir = makeTempDirectory('gu-log-hook-origin-');
     execSync(`git init -q --bare "${originDir}"`);
     execSync(`git remote add origin "${originDir}"`, { cwd: repo });
 
@@ -358,6 +806,41 @@ describe('pre-push: PENDING ticketId guard (Step 0) — real committed diff', ()
     expect(r.stdout + r.stderr).not.toMatch(/PENDING ticketId in commits/);
     expect(r.status).toBe(0);
   }, 15_000);
+});
+
+describe('pre-push: post version manifest freshness', () => {
+  it('fails closed when a shallow clone cannot fetch full history', () => {
+    const source = makeFakeRepo();
+    commitAll(source, 'shallow source base');
+    fs.writeFileSync(path.join(source, 'tracked.txt'), 'second commit\n');
+    const headSha = commitAll(source, 'shallow source head');
+
+    const clone = makeTempDirectory('gu-log-hook-shallow-');
+    execSync(`git clone -q --depth 1 "file://${source}" "${clone}"`);
+    expect(
+      execSync('git rev-parse --is-shallow-repository', {
+        cwd: clone,
+        encoding: 'utf-8',
+      }).trim()
+    ).toBe('true');
+
+    const missingOrigin = path.join(clone, 'missing-origin.git');
+    execSync(`git remote set-url origin "${missingOrigin}"`, { cwd: clone });
+    const stdin = `refs/heads/feature-x ${headSha} refs/heads/feature-x ${'0'.repeat(40)}\n`;
+
+    const result = runPrePush(clone, stdin);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout + result.stderr).toContain(
+      'Full Git history is unavailable; cannot verify post-versions.json freshness.'
+    );
+    expect(
+      execSync('git rev-parse --is-shallow-repository', {
+        cwd: clone,
+        encoding: 'utf-8',
+      }).trim()
+    ).toBe('true');
+  });
 });
 
 describe('pre-push: Tribunal PASS artifact audit', () => {
@@ -434,6 +917,16 @@ describe('pre-push: Tribunal PASS artifact audit', () => {
 
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/progress-only Tribunal PASS commit/);
+  });
+});
+
+describe('pre-commit: failure messages point to a fix', () => {
+  it('never suggests bypassing the hook with --no-verify', () => {
+    const messages = fs
+      .readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'), 'utf-8')
+      .split('\n')
+      .filter((line) => /^\s*echo\b/.test(line));
+    expect(messages.filter((line) => line.includes('--no-verify'))).toEqual([]);
   });
 });
 

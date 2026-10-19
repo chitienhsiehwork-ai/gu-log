@@ -69,12 +69,12 @@ test.describe('/api/posts/[slug].json', () => {
   });
 
   test('returns an English-localized URL for an English post', async ({ request }) => {
-    const r = await request.get('/api/posts/en-gp-7-20260130-clawdbot-architecture-deep-dive.json');
+    const r = await request.get('/api/posts/en-mp-291-20260414-anthropic-.json');
     expect(r.status()).toBe(200);
     const body = await r.json();
     expect(body.schemaVersion).toBe(2);
-    expect(body.ticketId).toBe('GP-7');
-    expect(body.url).toBe('/en/posts/en-gp-7-20260130-clawdbot-architecture-deep-dive');
+    expect(body.ticketId).toBe('MP-291');
+    expect(body.url).toBe('/en/posts/en-mp-291-20260414-anthropic-');
   });
 
   test('returns 404 for unknown slug', async ({ request }) => {

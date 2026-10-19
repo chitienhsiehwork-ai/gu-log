@@ -8,7 +8,7 @@ import { test, expect } from './fixtures';
  */
 
 test.describe('Post Page', () => {
-  const testPostUrl = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+  const testPostUrl = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
   test('GIVEN a valid post URL WHEN page loads THEN title should be visible', async ({ page }) => {
     await page.goto(testPostUrl);
@@ -44,7 +44,7 @@ test.describe('Post Page', () => {
     await page.goto(testPostUrl);
 
     // Check for source link or attribution
-    const sourceLink = page.locator('a[href*="anthropic.com"]');
+    const sourceLink = page.locator('a.source-citation[href*="pivot-to-ai.com"]');
     await expect(sourceLink).toBeVisible();
   });
 

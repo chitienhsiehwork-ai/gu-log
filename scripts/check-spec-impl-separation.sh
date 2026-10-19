@@ -18,7 +18,18 @@
 set -euo pipefail
 
 BASE="${1:-origin/main}"
-range="${BASE}...HEAD"
+
+if ! base_sha="$(git rev-parse --verify --end-of-options "${BASE}^{commit}" 2>/dev/null)"; then
+  echo "❌ 無法解析 base commit：$BASE" >&2
+  exit 2
+fi
+
+# 只檢查 HEAD 相對 base 新增的 commits。三點 range 是 symmetric difference，
+# base 分岔後新增的 commits 也會被掃入，反而會把非本分支的歷史誤判成違規。
+if ! commits="$(git rev-list "${base_sha}..HEAD")"; then
+  echo "❌ 無法列出 base..HEAD commit range：${base_sha}..HEAD" >&2
+  exit 2
+fi
 
 # 實作檔 = 真 code 的根目錄；openspec/ .agents/ docs/ .claude/ .github/ 都不算合約下的「實作」
 IMPL_RE='^(src|scripts|tools)/'
@@ -27,7 +38,8 @@ DELTA_RE='^openspec/changes/[^/]+/specs/.*\.md$'
 ARCHIVE_RE='^openspec/changes/archive/'
 
 violations=0
-for sha in $(git rev-list "$range" 2>/dev/null); do
+while IFS= read -r sha; do
+  [[ -z "$sha" ]] && continue
   files="$(git show --name-only --format= "$sha" | sed '/^$/d')"
   delta="$(printf '%s\n' "$files" | grep -E "$DELTA_RE" | grep -Ev "$ARCHIVE_RE" || true)"
   impl="$(printf '%s\n' "$files" | grep -E "$IMPL_RE" || true)"
@@ -37,7 +49,7 @@ for sha in $(git rev-list "$range" 2>/dev/null); do
     printf '%s\n' "$impl"  | sed 's/^/     impl: /'
     violations=$((violations + 1))
   fi
-done
+done <<< "$commits"
 
 if [[ "$violations" -gt 0 ]]; then
   echo ""

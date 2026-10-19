@@ -6,6 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BATCH_RUNNER="$ROOT_DIR/scripts/tribunal-batch-runner.sh"
+QUOTA_LOOP="$ROOT_DIR/scripts/tribunal-quota-loop.sh"
 HELPERS="$ROOT_DIR/scripts/tribunal-helpers.sh"
 
 # shellcheck source=scripts/tribunal-helpers.sh
@@ -19,6 +20,14 @@ quota_section=$(awk '
   capture { print }
 ' "$BATCH_RUNNER")
 eval "$quota_section"
+
+# Load the selector without executing the batch runner's main program.
+selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Main/ { exit }
+  capture { print }
+' "$BATCH_RUNNER")
+eval "$selector_section"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -38,7 +47,6 @@ export USAGE_MONITOR QUOTA_FLOOR_PCT
 ACTIVE_GLOBAL_PROVIDER=codex
 ACTIVE_VIBE_PROVIDER=codex
 ACTIVE_WRITER_MODE=none
-ACTIVE_WRITER_PROVIDER=claude
 CLAUDE_AVAILABLE=true
 GP_JUDGE_ALLOW_CLAUDE=0
 LOG_OUTPUT=""
@@ -67,13 +75,6 @@ tribunal_writer_mode() {
   printf '%s\n' "$ACTIVE_WRITER_MODE"
 }
 
-tribunal_writer_provider() {
-  case "$ACTIVE_WRITER_PROVIDER" in
-    codex|claude) printf '%s\n' "$ACTIVE_WRITER_PROVIDER" ;;
-    *) return 1 ;;
-  esac
-}
-
 tribunal_claude_cmd() {
   [ "$CLAUDE_AVAILABLE" = true ] || return 1
   printf '%s\n' claude
@@ -91,6 +92,8 @@ fail() {
 pass() {
   echo "ok $*"
 }
+
+declare -F get_unscored_articles >/dev/null || fail "batch selector section was not loaded"
 
 run_case() {
   local global_provider="$1"
@@ -179,22 +182,145 @@ run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct
 pass "enabled Claude judge fallback joins active providers"
 GP_JUDGE_ALLOW_CLAUDE=0
 
-ACTIVE_WRITER_MODE=cli
+ACTIVE_WRITER_MODE=claude
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "CLI writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "CLI writer provider joins active providers"
+[ "$CASE_RC" -eq 2 ] || fail "Claude-model writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
+run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70},{"provider":"claude","status":"ok","five_hr_remaining_pct":60,"weekly_remaining_pct":50}]'
+[ "$CASE_RC" -eq 0 ] || fail "Claude-model writer with healthy telemetry should pass; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=50"*) ;; *) fail "Claude-model writer did not join the strict minimum: $LOG_OUTPUT" ;; esac
+pass "Claude-model writer provider joins active providers"
 
-ACTIVE_WRITER_MODE=codex
-run_case claude claude '[{"provider":"claude","status":"ok","five_hr_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "Codex writer must require OpenAI telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "Codex writer provider joins active providers"
-
-ACTIVE_WRITER_MODE=subagent
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 0 ] || fail "external writer broker must not invent an in-process provider; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "external writer broker does not invent a provider"
+for retired_mode in subagent cli codex grok; do
+  ACTIVE_WRITER_MODE="$retired_mode"
+  run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+  [ "$CASE_RC" -eq 2 ] || fail "retired $retired_mode writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+done
+pass "retired subagent/cli/Codex/Grok writer modes fail closed"
 
 ACTIVE_WRITER_MODE=unknown
 run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
 [ "$CASE_RC" -eq 2 ] || fail "unknown writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "unknown writer mode fails closed"
+
+# The bounded batch stops, with a reason, on a quota suspension or anything a
+# person must fix, and never starts an article during a Claude writer pause.
+stop_progress="$tmp_dir/stop-progress.json"
+jq -n '{
+  "suspended.mdx": {status: "QUOTA_SUSPENDED", failedStage: "vibe",
+    stages: {vibe: {status: "quota_suspended",
+      error: "writer: provider=claude tier=unknown reason=Claude reported a temporary error"}}},
+  "locked.mdx": {status: "PENDING"}
+}' > "$stop_progress"
+stop_rc=0
+stop_note="$(PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 75 suspended.mdx)" || stop_rc=$?
+[ "$stop_rc" -eq 75 ] || fail "a quota-suspended article must stop the batch with rc 75, got $stop_rc"
+case "$stop_note" in
+  *"Claude reported a temporary error"*) ;;
+  *) fail "batch stop reason lost the suspension reason: $stop_note" ;;
+esac
+PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 75 locked.mdx >/dev/null ||
+  fail "a per-article lock collision must not stop the batch"
+stop_rc=0
+stop_note="$(PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason 78 locked.mdx)" || stop_rc=$?
+[ "$stop_rc" -eq 78 ] || fail "an operator-action exit must stop the batch with rc 78, got $stop_rc"
+case "$stop_note" in
+  *"claude auth login"*) ;;
+  *) fail "operator-action stop gave no actionable reason: $stop_note" ;;
+esac
+# suspended.mdx keeps a stale QUOTA_SUSPENDED ledger entry: only rc 75 may read
+# it, so a later rc 0/1/2 on that article (e.g. a taken-down post) must not stop.
+for rc in 0 1 2; do
+  PROGRESS_FILE="$stop_progress" tribunal_batch_stop_reason "$rc" suspended.mdx >/dev/null ||
+    fail "article result rc=$rc must not stop the batch, even with a stale QUOTA_SUSPENDED entry"
+done
+export TRIBUNAL_MAIN_REPO="$tmp_dir/main"
+if tribunal_batch_claude_pause >/dev/null; then
+  fail "the batch saw a Claude writer pause that does not exist"
+fi
+tribunal_claude_pause_write 600 "Claude reported the reset: fixture"
+pause_note="$(tribunal_batch_claude_pause)" ||
+  fail "the batch ignored an active Claude writer pause"
+case "$pause_note" in
+  *"Claude reported the reset: fixture"*) ;;
+  *) fail "Claude writer pause note lost its reason: $pause_note" ;;
+esac
+unset TRIBUNAL_MAIN_REPO
+main_section="$(sed -n '/^# ─── Main/,$p' "$BATCH_RUNNER")"
+pause_line="$(grep -n 'tribunal_batch_claude_pause' <<<"$main_section" | head -1 | cut -d: -f1)"
+run_line="$(grep -n 'bash "$SCRIPT_DIR/tribunal.sh"' <<<"$main_section" | head -1 | cut -d: -f1)"
+stop_line="$(grep -n 'tribunal_batch_stop_reason "$rc"' <<<"$main_section" | head -1 | cut -d: -f1)"
+if [ -z "$pause_line" ] || [ -z "$run_line" ] || [ -z "$stop_line" ] ||
+   [ "$pause_line" -ge "$run_line" ] || [ "$stop_line" -le "$run_line" ]; then
+  fail "batch main loop must check the Claude pause before and the stop reason after each article"
+fi
+grep -q '^exit "$STOP_RC"$' "$BATCH_RUNNER" ||
+  fail "batch runner must exit with the stop code after its summary"
+pass "batch stops with a reason on quota suspensions, Claude pauses and operator-action exits"
+
+selector_posts="$tmp_dir/posts"
+selector_progress="$tmp_dir/progress.json"
+mkdir -p "$selector_posts"
+
+write_selector_post() {
+  local file="$1"
+  local translated_date="$2"
+  local status="${3:-}"
+  {
+    printf '%s\n' '---'
+    printf 'title: %s\n' "$file"
+    printf 'translatedDate: %s\n' "$translated_date"
+    [ -n "$status" ] && printf 'status: %s\n' "$status"
+    printf '%s\n' '---' 'body'
+  } > "$selector_posts/$file"
+}
+
+write_selector_post pending.mdx 2026-01-08
+write_selector_post legacy-exhausted.mdx 2026-01-07
+write_selector_post current-exhausted.mdx 2026-01-06
+write_selector_post current-pass.mdx 2026-01-05
+write_selector_post deprecated-unquoted.mdx 2026-01-04 deprecated
+write_selector_post deprecated-single-quoted.mdx 2026-01-03 "'deprecated'"
+write_selector_post deprecated-double-quoted.mdx 2026-01-02 '"deprecated"'
+write_selector_post taken-down-unquoted.mdx 2026-01-09 taken-down
+write_selector_post taken-down-double-quoted.mdx 2026-01-10 '"taken-down"'
+
+cat > "$selector_progress" <<'JSON'
+{
+  "legacy-exhausted.mdx": {
+    "tribunalVersion": 8,
+    "status": "EXHAUSTED"
+  },
+  "current-exhausted.mdx": {
+    "tribunalVersion": 9,
+    "status": "EXHAUSTED"
+  },
+  "current-pass.mdx": {
+    "tribunalVersion": 9,
+    "status": "PASS"
+  }
+}
+JSON
+
+POSTS_DIR="$selector_posts"
+PROGRESS_FILE="$selector_progress"
+ROOT_DIR="$tmp_dir"
+TRIBUNAL_VERSION=9
+
+selector_output=$(get_unscored_articles)
+expected_selector_output=$(printf '%s\n' pending.mdx legacy-exhausted.mdx)
+[ "$selector_output" = "$expected_selector_output" ] ||
+  fail "selector included deprecated/taken-down/current terminal entries: $selector_output"
+pass "selector excludes deprecated, taken-down and current-version terminal entries"
+
+# The quota loop keeps its own copy of the selector; it must agree with the
+# batch runner, including the taken-down exclusion (openspec: post-takedown).
+quota_loop_selector_section=$(awk '
+  /^# ─── Build Unscored/ { capture=1 }
+  capture && /^# ─── Dry Run/ { exit }
+  capture { print }
+' "$QUOTA_LOOP")
+eval "$quota_loop_selector_section"
+quota_loop_output=$(get_unscored_articles)
+[ "$quota_loop_output" = "$expected_selector_output" ] ||
+  fail "quota-loop selector disagrees with the batch runner: $quota_loop_output"
+pass "quota-loop selector also excludes taken-down posts"

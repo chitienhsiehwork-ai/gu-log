@@ -3,16 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
@@ -36,12 +33,12 @@ func newRefineCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "refine",
-		Short: "Apply non-GP review feedback and produce final.mdx",
-		Long: `refine is the legacy full-draft correction command for non-GP series. GP
-uses bounded patches in the canonical run command. This command reads draft-v1.mdx and review.md
-from the work directory and asks the LLM to produce final.mdx with the
-review's issues fixed. The prompt does NOT embed the draft or review
-contents — the LLM reads them from --work-dir.`,
+		Short: "Apply review feedback and produce final.mdx",
+		Long: fmt.Sprintf(`refine applies review feedback to a %s draft; the
+--ticket-id series picks the prompt contract. This command reads draft-v1.mdx
+and review.md from the work directory and asks the LLM to produce final.mdx
+with the review's issues fixed. The prompt does NOT embed the draft or review
+contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, angle)
 		},
@@ -57,23 +54,7 @@ contents — the LLM reads them from --work-dir.`,
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	if err := counter.ValidateTicketID(ticketID); err != nil {
-		return err
-	}
-	if strings.HasPrefix(ticketID, "GP-") {
-		return errors.New("refine: GP corrections must be evidence-bounded patches in the canonical pipeline; standalone full-draft refine is forbidden")
-	}
-	absDraft, err := filepath.Abs(draftPath)
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(absDraft); err != nil {
-		return fmt.Errorf("refine: draft not found at %s", absDraft)
-	}
-	if workDir == "" {
-		workDir = filepath.Dir(absDraft)
-	}
-	workDir, err = filepath.Abs(workDir)
+	prefix, workDir, err := draftIngress("refine", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}
@@ -100,6 +81,7 @@ func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, wor
 	s.WriterDispatcher = disp
 	s.WorkDir = workDir
 	s.PromptTicketID = ticketID
+	s.Prefix = prefix
 	s.Angle = angle
 
 	stepCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)

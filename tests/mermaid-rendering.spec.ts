@@ -77,6 +77,9 @@ test.describe('Mermaid rendering', () => {
 
       const overlay = diagram.locator('xpath=following-sibling::*[1]');
       await expect(overlay).toHaveClass(/mermaid-overlay/);
+      await expect(overlay).toHaveAttribute('role', 'dialog');
+      await expect(overlay).toHaveAttribute('aria-modal', 'true');
+      await expect(overlay).toHaveAttribute('aria-label', /.+/);
       await expect(overlay.locator('.mermaid-close-btn')).toHaveAttribute(
         'aria-label',
         labels.close
@@ -184,5 +187,52 @@ test.describe('Mermaid rendering', () => {
     const overlay = diagram.locator('xpath=following-sibling::*[1]');
     await expect(overlay).toBeVisible();
     await expect(overlay).toHaveCSS('background-color', await resolveColorVariable('--color-bg'));
+  });
+
+  test('GIVEN a pre-existing scroll style and focused opener WHEN fullscreen is used with the keyboard THEN focus is contained and state is restored', async ({
+    page,
+  }) => {
+    await page.goto('/posts/levelup-20260608-12-llm-internals/');
+
+    const diagram = page.locator('.mermaid-wrapper').first();
+    const opener = diagram.locator('.mermaid-expand-btn');
+    const overlay = diagram.locator('xpath=following-sibling::*[1]');
+    const close = overlay.locator('.mermaid-close-btn');
+    const content = overlay.locator('.mermaid-overlay-content');
+
+    await expect(diagram.locator('svg.flowchart')).toBeVisible({ timeout: 60_000 });
+    await page.evaluate(() => {
+      document.body.style.overflow = 'scroll';
+    });
+
+    await opener.focus();
+    await opener.click();
+
+    await expect(overlay).toBeVisible();
+    await expect(close).toBeFocused();
+    await expect(content).toHaveAttribute('tabindex', '0');
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+
+    await page.keyboard.press('Tab');
+    await expect(content).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(close).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(content).toBeFocused();
+
+    const renderTarget = diagram.locator('.mermaid-render');
+    const markupBeforeThemeChange = await renderTarget.innerHTML();
+    await page.evaluate(() => {
+      const root = document.documentElement;
+      root.setAttribute('data-theme', root.dataset.theme === 'dark' ? 'light' : 'dark');
+    });
+    await expect.poll(() => renderTarget.innerHTML()).not.toBe(markupBeforeThemeChange);
+    await expect(overlay).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    await expect(overlay).toBeHidden();
+    await expect(opener).toBeFocused();
+    await expect.poll(() => page.evaluate(() => document.body.style.overflow)).toBe('scroll');
   });
 });

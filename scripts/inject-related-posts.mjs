@@ -10,10 +10,13 @@
  *   node scripts/inject-related-posts.mjs --input /tmp/crosslink-suggestions.json
  *   node scripts/inject-related-posts.mjs --dry-run          # generates suggestions inline
  *   node scripts/inject-related-posts.mjs --file src/content/posts/gp-123-foo.mdx --dry-run
+ *   node scripts/inject-related-posts.mjs --file /tmp/gp-work/final.mdx
  *
  * Options:
  *   --input <file>    Path to suggestions JSON (default: generate inline)
- *   --file <path>     Only process one post file
+ *   --file <path>     Only process one post file. A file outside src/content/posts/
+ *                     (e.g. the gp-pipeline work-dir draft) gets related posts picked
+ *                     from the posts/ corpus and is edited in place.
  *   --dry-run         Print diffs without writing files
  *   --limit <n>       Only process first N eligible posts (default: all)
  */
@@ -22,6 +25,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { execFileSync } from 'child_process';
+import { loadPosts, postInfo, suggestFor } from './suggest-crosslinks.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
@@ -32,7 +36,8 @@ const DRY_RUN = args.includes('--dry-run');
 const inputIdx = args.indexOf('--input');
 const INPUT_FILE = inputIdx !== -1 ? args[inputIdx + 1] : null;
 const fileIdx = args.indexOf('--file');
-const ONLY_FILE = fileIdx !== -1 ? path.basename(args[fileIdx + 1]) : null;
+const FILE_ARG = fileIdx !== -1 ? args[fileIdx + 1] : null;
+const ONLY_FILE = FILE_ARG ? path.basename(FILE_ARG) : null;
 const limitIdx = args.indexOf('--limit');
 const LIMIT = limitIdx !== -1 ? parseInt(args[limitIdx + 1], 10) : Infinity;
 
@@ -61,8 +66,8 @@ function buildSection(lang, suggestedLinks) {
 
 // ─── Injection logic ─────────────────────────────────────────────────
 /**
- * Finds the position just before the LAST <MoguNote> block,
- * or falls back to the very end of the file.
+ * Finds the position just before the LAST <MoguNote> block when that note
+ * closes the article, or falls back to the very end of the file.
  */
 function findInsertionPoint(content) {
   // Find all <MoguNote> occurrences in the body
@@ -73,6 +78,12 @@ function findInsertionPoint(content) {
   const lastIdx = body.lastIndexOf('<MoguNote>');
   if (lastIdx === -1) {
     // No MoguNote — append at end
+    return content.length;
+  }
+  // 最後一則 MoguNote 後面還有正文（例如 GP 導讀收在「回原文」段落）時，插在它前面會把
+  // 延伸閱讀塞進文章中間，所以改放文末。
+  const closeIdx = body.indexOf('</MoguNote>', lastIdx);
+  if (closeIdx !== -1 && body.slice(closeIdx + '</MoguNote>'.length).trim()) {
     return content.length;
   }
 
@@ -96,6 +107,51 @@ function injectSection(content, lang, suggestedLinks) {
   const insertPos = findInsertionPoint(content);
   return content.slice(0, insertPos) + '\n' + section + content.slice(insertPos);
 }
+
+// ─── A file outside posts/ ───────────────────────────────────────────
+/**
+ * `--file` 指到 posts/ 以外（例如 gp-pipeline 工作目錄的 final.mdx）時，相關文章照舊從
+ * posts/ 語料挑，只改這一個檔。回傳 true 表示已處理，posts/ 內的檔案走原本的流程。
+ */
+function processOutsideFile(filePath) {
+  const resolved = path.resolve(filePath);
+  if (path.dirname(resolved) === path.resolve(POSTS_DIR)) return false;
+
+  // Read directly instead of existsSync-then-read so the check and the write
+  // below act on the same file (no check-then-use race).
+  let content;
+  try {
+    content = fs.readFileSync(resolved, 'utf-8');
+  } catch (error) {
+    if (error.code === 'ENOENT') return false;
+    throw error;
+  }
+  const post = postInfo(path.basename(resolved), content);
+  const label = path.basename(resolved);
+  if (!post) {
+    process.stderr.write(`${label}: no frontmatter, or taken down; nothing to inject\n`);
+    return true;
+  }
+  if (hasInternalLinks(getBody(content))) {
+    process.stderr.write(`${label}: already links to other posts; skipped\n`);
+    return true;
+  }
+  const suggestedLinks = suggestFor(post, loadPosts(POSTS_DIR));
+  if (!suggestedLinks.length) {
+    process.stderr.write(`${label}: no related posts found; skipped\n`);
+    return true;
+  }
+  if (DRY_RUN) {
+    console.log(`DRY RUN: ${label} (${post.lang})`);
+    console.log(buildSection(post.lang, suggestedLinks));
+  } else {
+    fs.writeFileSync(resolved, injectSection(content, post.lang, suggestedLinks), 'utf-8');
+    console.log(`Injected: ${label}`);
+  }
+  return true;
+}
+
+if (FILE_ARG && processOutsideFile(FILE_ARG)) process.exit(0);
 
 // ─── Load suggestions ────────────────────────────────────────────────
 let suggestions;

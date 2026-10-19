@@ -499,7 +499,9 @@ func findRealPost(t *testing.T) string {
 	}
 	dir := cwd
 	for i := 0; i < 6; i++ {
-		candidate := filepath.Join(dir, "src", "content", "posts", "gp-170-20260411-nickbaumann-codex-bespoke-cli-skill.mdx")
+		// A ShroomDog original: GP posts are taken down (empty body), so they
+		// cannot exercise body preservation.
+		candidate := filepath.Join(dir, "src", "content", "posts", "sd-10-20260322-ralph-loop-quality-system.mdx")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
@@ -644,5 +646,32 @@ func TestRepairSingleQuotedScalars_LeavesValidBlockAlone(t *testing.T) {
 	}
 	if !bytes.Equal(f.Bytes(), src) {
 		t.Fatalf("bytes changed: %q", f.Bytes())
+	}
+}
+
+func TestRemoveBlock(t *testing.T) {
+	raw := []byte(`---
+title: "Hello"
+sourceDistance:
+  policy: 'source-distance/v1'
+  metrics:
+    maxRun: 2
+lang: "en"
+---
+body
+`)
+	f, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if !f.RemoveBlock("sourceDistance") {
+		t.Fatal("RemoveBlock reported the block missing")
+	}
+	want := "---\ntitle: \"Hello\"\nlang: \"en\"\n---\nbody\n"
+	if got := string(f.Bytes()); got != want {
+		t.Fatalf("after RemoveBlock:\n%s\nwant:\n%s", got, want)
+	}
+	if f.RemoveBlock("sourceDistance") {
+		t.Fatal("RemoveBlock reported a removed block as present")
 	}
 }

@@ -6,22 +6,35 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import * as vModule from '../scripts/validate-posts.mjs';
+import { writeStamp } from '../scripts/lib/source-distance.mjs';
+import { getNeutralSummary } from '../src/lib/tombstone-copy.mjs';
+import { validStamp, withValidStamp } from './helpers/source-distance-stamp';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Single sandboxed tmpdir for the whole suite. CodeQL's js/path-injection
 // only stays clean when destination paths are joined under a path returned
 // from os.mkdtempSync — string-concat to "/tmp/..." trips it because the
 // filename half is treated as a (test-controlled) tainted source.
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'guvp-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('guvp-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
 
 // validate-posts.mjs is plain JS without .d.ts; widen to any.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const v = vModule as any;
-const { parseFrontmatter, getBaseFilename, getContentBody, validatePost, CJK_GRANDFATHERED_LINES } =
-  v;
+const {
+  parseFrontmatter,
+  getBaseFilename,
+  getContentBody,
+  getFrontmatterBlock,
+  getFrontmatterFingerprint,
+  validatePost,
+  loadActiveZhTwArticles,
+  findDuplicateGroups,
+  CJK_GRANDFATHERED_LINES,
+} = v;
 
 const KAOMOJI = '(◕‿◕)';
 
@@ -144,6 +157,13 @@ describe('getContentBody', () => {
   });
 });
 
+describe('getFrontmatterBlock', () => {
+  it('distinguishes a missing block from an empty block', () => {
+    expect(getFrontmatterBlock('body only')).toBeNull();
+    expect(getFrontmatterBlock('---\n\n---\nbody')).toBe('---\n\n---');
+  });
+});
+
 describe('validatePost — pass case', () => {
   it('passes a fully-valid zh-tw post', () => {
     const filepath = tmpPath('gp-1-20260401-x.mdx');
@@ -188,6 +208,81 @@ describe('validatePost — invalid YAML (gu-log #546)', () => {
     const r = validatePost(filepath, []);
     expect(r.errors.length).toBeGreaterThan(0);
     expect(r.errors.some((e: string) => /Invalid YAML/.test(e))).toBe(true);
+  });
+
+  it('reparses when the current frontmatter differs from the preloaded block', () => {
+    const filepath = tmpPath('gp-3-20260401-preloaded.mdx');
+    const preloadedContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:')),
+      'ticketId: GP-3',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    const currentContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    fs.writeFileSync(filepath, currentContent);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: parseFrontmatter(preloadedContent),
+        error: null,
+        fingerprint: getFrontmatterFingerprint(preloadedContent),
+      },
+    });
+
+    expect(r.errors.some((error: string) => error.includes('Invalid YAML'))).toBe(true);
+  });
+
+  it('does not replay a preloaded invalid-YAML error after the block is fixed', () => {
+    const filepath = tmpPath('gp-3-20260401-cached-error.mdx');
+    const preloadedContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    const currentContent = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:')),
+      'ticketId: GP-3',
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ]);
+    fs.writeFileSync(filepath, currentContent);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: null,
+        error: new Error('Invalid YAML in frontmatter: cached sentinel'),
+        fingerprint: getFrontmatterFingerprint(preloadedContent),
+      },
+    });
+
+    expect(r.errors).not.toContain('Invalid YAML in frontmatter: cached sentinel');
+    expect(r.errors).toEqual([]);
+  });
+
+  it('replays a preloaded invalid-YAML diagnostic when the fingerprint matches', () => {
+    const filepath = tmpPath('gp-3-20260401-matching-error.mdx');
+    const content = makePost([
+      ...validFm.filter((line) => !line.startsWith('ticketId:') && !line.startsWith('source:')),
+      'ticketId: GP-3',
+      "source: 'unterminated",
+    ]);
+    fs.writeFileSync(filepath, content);
+
+    const r = validatePost(filepath, [{ filename: path.basename(filepath), ticketId: 'GP-3' }], {
+      preloadedFrontmatter: {
+        frontmatter: null,
+        error: new Error('Invalid YAML in frontmatter: cached sentinel'),
+        fingerprint: getFrontmatterFingerprint(content),
+      },
+    });
+
+    expect(r.errors).toEqual(['Invalid YAML in frontmatter: cached sentinel']);
   });
 });
 
@@ -599,6 +694,138 @@ describe('validatePost — canonical filename gate (GP/MP)', () => {
   });
 });
 
+// ════════════════════════════════════════════════════════════════════════════
+// 來源距離章（openspec: source-distance-stamp）：有外部來源、沒下架的 GP 繁中與
+// 英文檔都要帶有效的章；GP-1 這類示範來源、下架文章與非 GP 不需要，非 GP 帶章失敗。
+// ════════════════════════════════════════════════════════════════════════════
+describe('validatePost — source-distance stamp', () => {
+  const EXTERNAL = 'https://keeper-notes.test/posts/logbook-on-call';
+  const guideFm = (ticketId: string, lang: 'zh-tw' | 'en', sourceUrl = EXTERNAL) => [
+    `ticketId: "${ticketId}"`,
+    'title: "燈塔日誌教會值班的一件事"',
+    'originalDate: "2026-08-30"',
+    'translatedDate: "2026-09-28"',
+    'source: "Mara Quill"',
+    `sourceUrl: "${sourceUrl}"`,
+    'summary: "沒事也要寫一行"',
+    `lang: ${lang}`,
+    'translatedBy:',
+    '  model: Opus 5.5',
+    '  harness: Claude Code',
+  ];
+  const write = (name: string, content: string) => {
+    const filepath = tmpPath(name);
+    fs.writeFileSync(filepath, content);
+    return filepath;
+  };
+  const stampErrors = (r: { errors: string[] }) =>
+    r.errors.filter((e) => e.includes('sourceDistance'));
+
+  it('GP 缺章：繁中與英文檔都失敗，訊息指出蓋章指令', () => {
+    for (const [name, lang] of [
+      ['gp-pending-20260928-logbook.mdx', 'zh-tw'],
+      ['en-gp-pending-20260928-logbook.mdx', 'en'],
+    ] as const) {
+      const r = validatePost(write(name, makePost(guideFm('GP-PENDING', lang))), []);
+      const errors = stampErrors(r);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('gp-pipeline stamp --file');
+      expect(errors[0]).toContain(name);
+    }
+  });
+
+  it('帶有效章的 GP 通過，改了正文就過期', () => {
+    const post = makePost(guideFm('GP-PENDING', 'zh-tw'));
+    const stamped = withValidStamp(post);
+    const r = validatePost(write('gp-pending-20260928-logbook.mdx', stamped), []);
+    expect(r.errors).toEqual([]);
+
+    const edited = stamped.replace('Body content with kaomoji', 'Edited body with kaomoji');
+    const stale = validatePost(write('gp-pending-20260928-logbook.mdx', edited), []);
+    expect(stampErrors(stale).join('\n')).toMatch(/stale/);
+  });
+
+  it('不需要章的文章：GP-1 這類示範來源、下架文章與 MP', () => {
+    const demo = makePost(guideFm('GP-1', 'zh-tw', 'https://example.com/original-article'));
+    expect(stampErrors(validatePost(write('gp-1-20260128-demo.mdx', demo), []))).toEqual([]);
+
+    const mp = makePost(guideFm('MP-40', 'zh-tw'));
+    expect(stampErrors(validatePost(write('mp-40-20260928-logbook.mdx', mp), []))).toEqual([]);
+
+    const tombstone = [
+      '---',
+      ...guideFm('GP-273', 'zh-tw').map((line) =>
+        line.startsWith('summary:')
+          ? `summary: ${JSON.stringify(getNeutralSummary({ ticketId: 'GP-273', lang: 'zh-tw' }))}`
+          : line
+      ),
+      'status: "taken-down"',
+      'takenDownAt: "2026-09-27"',
+      'sourceTitle: "The logbook on call"',
+      '---',
+      '',
+    ].join('\n');
+    const r = validatePost(write('gp-273-20260813-logbook.mdx', tombstone), []);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('下架文章留著章：由下架欄位規則擋下', () => {
+    const tombstone = [
+      '---',
+      ...guideFm('GP-274', 'zh-tw').map((line) =>
+        line.startsWith('summary:')
+          ? `summary: ${JSON.stringify(getNeutralSummary({ ticketId: 'GP-274', lang: 'zh-tw' }))}`
+          : line
+      ),
+      'status: "taken-down"',
+      'takenDownAt: "2026-09-27"',
+      'sourceTitle: "The logbook on call"',
+      '---',
+      '',
+    ].join('\n');
+    const withStamp = writeStamp(tombstone, validStamp(makePost(guideFm('GP-274', 'zh-tw'))));
+    const r = validatePost(write('gp-274-20260813-logbook.mdx', withStamp), []);
+    expect(r.errors).toEqual(['sourceDistance must be removed when status is taken-down']);
+  });
+
+  it('被連結的文章改標題、被下架或被刪，GP 的章仍有效', () => {
+    const target = 'mp-41-20260928-pager.mdx';
+    const url = '/posts/mp-41-20260928-pager/';
+    const writeTarget = (title: string, extra: string[] = []) =>
+      write(
+        target,
+        makePost([
+          ...guideFm('MP-41', 'zh-tw').map((l) =>
+            l.startsWith('title:') ? `title: "${title}"` : l
+          ),
+          ...extra,
+        ])
+      );
+    writeTarget('告警疲勞是設計問題');
+    const post = makePost(
+      guideFm('GP-PENDING', 'zh-tw'),
+      `之前 [MP-41](${url}) 講過，[MP-41: 告警疲勞是設計問題](${url}) 也值得看 ${KAOMOJI}.\n\n## 延伸閱讀\n\n- [MP-41: 告警疲勞是設計問題](${url})`
+    );
+    const gp = write('gp-pending-20260928-logbook.mdx', withValidStamp(post));
+    const stampStillValid = () => expect(stampErrors(validatePost(gp, []))).toEqual([]);
+
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題');
+    stampStillValid();
+    writeTarget('告警疲勞其實是設計問題', ['status: "taken-down"', 'takenDownAt: "2026-09-27"']);
+    stampStillValid();
+    fs.rmSync(tmpPath(target));
+    stampStillValid();
+    expect(fs.readFileSync(gp, 'utf8')).toBe(withValidStamp(post));
+  });
+
+  it('非 GP 文章帶章失敗', () => {
+    const mp = makePost(guideFm('MP-40', 'zh-tw'));
+    const r = validatePost(write('mp-40-20260928-logbook.mdx', withValidStamp(mp)), []);
+    expect(stampErrors(r).join('\n')).toMatch(/only allowed on GP/);
+  });
+});
+
 describe('validatePost — retired series tags', () => {
   it.each(['clawd-picks', 'mogu-picks', 'shroom-picks', 'shroomdog-picks', 'gu-log-picks'])(
     'rejects retired content-type tag %s (series identity comes from ticketId)',
@@ -678,5 +905,212 @@ describe('validatePost — cross-file rules', () => {
     expect(r.errors.some((e: string) => e.includes('Translation pair ticketId mismatch'))).toBe(
       true
     );
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// taken-down（openspec: post-takedown）：保留原 frontmatter、清空正文，
+// 只檢查下架欄位與翻譯配對一致，跳過只對正文有意義的規則。
+// ════════════════════════════════════════════════════════════════════════════
+describe('validatePost — taken-down posts', () => {
+  const ZH_FILE = 'gp-273-20260813-human-loop.mdx';
+  const EN_FILE = `en-${ZH_FILE}`;
+  const takenDownFm = (lang: 'zh-tw' | 'en', overrides: Record<string, string | null> = {}) => {
+    const fields: Record<string, string | null> = {
+      ticketId: '"GP-273"',
+      title: lang === 'en' ? '"The human is the loop, explained"' : '"人，才是那個迴圈"',
+      originalDate: '"2026-08-10"',
+      translatedDate: '"2026-08-13"',
+      source: '"Brent Fitzgerald"',
+      sourceUrl: '"https://brentfitzgerald.com/posts/the-human-is-the-loop/"',
+      summary: JSON.stringify(getNeutralSummary({ ticketId: 'GP-273', lang })),
+      lang: lang === 'en' ? 'en' : 'zh-tw',
+      tags: '["agents"]',
+      status: '"taken-down"',
+      takenDownAt: '"2026-09-27"',
+      sourceTitle: '"The human is the loop"',
+      ...overrides,
+    };
+    return [
+      ...Object.entries(fields)
+        .filter(([, value]) => value !== null)
+        .map(([key, value]) => `${key}: ${value}`),
+      'translatedBy:',
+      '  model: Opus 4.6',
+      '  harness: Claude Code',
+    ];
+  };
+  const pairEntry = (overrides: Record<string, string> = {}) => ({
+    filename: EN_FILE,
+    ticketId: 'GP-273',
+    status: 'taken-down',
+    takenDownAt: '2026-09-27',
+    sourceUrl: 'https://brentfitzgerald.com/posts/the-human-is-the-loop/',
+    sourceTitle: 'The human is the loop',
+    ...overrides,
+  });
+  const write = (name: string, fmLines: string[], body = '') => {
+    const filepath = tmpPath(name);
+    fs.writeFileSync(filepath, `---\n${fmLines.join('\n')}\n---\n${body}`);
+    return filepath;
+  };
+
+  it('passes an empty-body tombstone without body rules (length, kaomoji)', () => {
+    const filepath = write(ZH_FILE, takenDownFm('zh-tw'), '\n');
+    const r = validatePost(filepath, [{ filename: ZH_FILE, ticketId: 'GP-273' }, pairEntry()]);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('passes the en sidecar with the English neutral summary', () => {
+    const filepath = write(EN_FILE, takenDownFm('en'));
+    const r = validatePost(filepath, [
+      { ...pairEntry(), filename: ZH_FILE },
+      { filename: EN_FILE, ticketId: 'GP-273' },
+    ]);
+    expect(r.errors).toEqual([]);
+  });
+
+  it('rejects any leftover body, including import lines', () => {
+    for (const body of [
+      '殘留的譯文段落 (◕‿◕)\n',
+      "import MoguNote from '../../components/MoguNote.astro';\n",
+    ]) {
+      const filepath = write(ZH_FILE, takenDownFm('zh-tw'), body);
+      const r = validatePost(filepath, [pairEntry()]);
+      expect(r.errors.some((e: string) => e.includes('body must be empty'))).toBe(true);
+    }
+  });
+
+  it('rejects a summary that is not the neutral sentence', () => {
+    const filepath = write(ZH_FILE, takenDownFm('zh-tw', { summary: '"原本的譯文摘要"' }));
+    const r = validatePost(filepath, [pairEntry()]);
+    expect(r.errors.some((e: string) => e.includes('neutral sentence'))).toBe(true);
+  });
+
+  it('rejects missing takenDownAt / sourceTitle and a sourceTitle equal to the gu-log title', () => {
+    const noDate = validatePost(write(ZH_FILE, takenDownFm('zh-tw', { takenDownAt: null })), []);
+    expect(noDate.errors.some((e: string) => e.includes('requires takenDownAt'))).toBe(true);
+
+    const noTitle = validatePost(write(ZH_FILE, takenDownFm('zh-tw', { sourceTitle: null })), []);
+    expect(noTitle.errors.some((e: string) => e.includes('non-empty sourceTitle'))).toBe(true);
+
+    const sameTitle = validatePost(
+      write(ZH_FILE, takenDownFm('zh-tw', { sourceTitle: '"人，才是那個迴圈"' })),
+      []
+    );
+    expect(sameTitle.errors.some((e: string) => e.includes('not the gu-log title'))).toBe(true);
+  });
+
+  it('rejects fields that conflict with taken-down', () => {
+    const filepath = write(
+      ZH_FILE,
+      takenDownFm('zh-tw', { deprecatedBy: '"GP-105"', deprecatedReason: '"dup"' })
+    );
+    const r = validatePost(filepath, [pairEntry()]);
+    expect(r.errors).toContain('deprecatedBy must be removed when status is taken-down');
+    expect(r.errors).toContain('deprecatedReason must be removed when status is taken-down');
+  });
+
+  it('rejects a translation pair taken down on one side only or with different fields', () => {
+    const zh = write(ZH_FILE, takenDownFm('zh-tw'));
+    const oneSided = validatePost(zh, [pairEntry({ status: 'published' })]);
+    expect(oneSided.errors.some((e: string) => e.includes('must also be taken-down'))).toBe(true);
+
+    const differentDate = validatePost(zh, [pairEntry({ takenDownAt: '2026-09-28' })]);
+    expect(differentDate.errors.some((e: string) => e.includes('different takenDownAt'))).toBe(
+      true
+    );
+
+    const livePair = write(
+      EN_FILE,
+      [
+        ...validFm.map((line) =>
+          line.startsWith('ticketId:')
+            ? 'ticketId: GP-273'
+            : line.replace('lang: zh-tw', 'lang: en')
+        ),
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ],
+      `${'Plenty of body text. '.repeat(20)} (◕‿◕)\n`
+    );
+    const reverse = validatePost(livePair, [
+      { ...pairEntry(), filename: ZH_FILE },
+      { filename: EN_FILE, ticketId: 'GP-273' },
+    ]);
+    expect(
+      reverse.errors.some((e: string) => e.includes('is taken-down but this post is not'))
+    ).toBe(true);
+  });
+
+  it('only supports GP/MP takedowns and rejects takenDownAt on live posts', () => {
+    const sd = write('sd-9-20260401-x.mdx', takenDownFm('zh-tw', { ticketId: '"SD-9"' }));
+    const sdResult = validatePost(sd, []);
+    expect(sdResult.errors.some((e: string) => e.includes('only supported for GP/MP'))).toBe(true);
+
+    const live = tmpPath('gp-1-20260401-x.mdx');
+    fs.writeFileSync(
+      live,
+      makePost([
+        ...validFm,
+        'takenDownAt: "2026-09-27"',
+        'translatedBy:',
+        '  model: Opus 4.6',
+        '  harness: Claude Code',
+      ])
+    );
+    const liveResult = validatePost(live, []);
+    expect(liveResult.errors).toContain('takenDownAt is only allowed when status is taken-down');
+  });
+});
+
+describe('duplicate scan — taken-down posts are blocked sources, not duplicates', () => {
+  const makeDupDir = useTestTempDirectories({ cleanup: 'afterAll' });
+  const SHARED_URL = 'https://code.claude.com/docs/en/agent-teams';
+  const post = (ticketId: string, title: string, extra: string[] = []) =>
+    [
+      '---',
+      `ticketId: "${ticketId}"`,
+      `title: "${title}"`,
+      'lang: zh-tw',
+      `sourceUrl: "${SHARED_URL}"`,
+      'tags: ["claude-code", "agent-teams"]',
+      ...extra,
+      '---',
+      '',
+    ].join('\n');
+  const writePair = (gp35Extra: string[], gp105Extra: string[]) => {
+    const dir = makeDupDir('guvp-dup-');
+    fs.writeFileSync(
+      path.join(dir, 'gp-35-20260206-anthropic-agent-teams-deep-dive.mdx'),
+      post('GP-35', 'Claude Code Agent Teams 官方文件深入解析：什麼時候用、怎麼用', gp35Extra)
+    );
+    fs.writeFileSync(
+      path.join(dir, 'gp-105-20260305-claude-code-agent-teams.mdx'),
+      post('GP-105', 'Claude Code Agent Teams：當 AI 自己開公司、自己上班', gp105Extra)
+    );
+    return dir;
+  };
+
+  it('flags the same pair while both are live (control)', () => {
+    const dir = writePair([], []);
+    const groups = findDuplicateGroups(loadActiveZhTwArticles(dir));
+    expect(groups).toHaveLength(1);
+  });
+
+  it('does not flag GP-35 (formerly deprecated → GP-105) once both are taken down', () => {
+    const takenDown = ['status: "taken-down"', 'takenDownAt: "2026-09-27"'];
+    const dir = writePair(takenDown, takenDown);
+    const articles = loadActiveZhTwArticles(dir);
+    expect(articles).toEqual([]);
+    expect(findDuplicateGroups(articles)).toEqual([]);
+  });
+
+  it('does not treat a taken-down post as a live duplicate of a published one', () => {
+    const dir = writePair(['status: "taken-down"', 'takenDownAt: "2026-09-27"'], []);
+    const articles = loadActiveZhTwArticles(dir);
+    expect(articles.map((article: { ticketId: string }) => article.ticketId)).toEqual(['GP-105']);
+    expect(findDuplicateGroups(articles)).toEqual([]);
   });
 });

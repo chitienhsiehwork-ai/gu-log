@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js/basic';
 import { fuseOptions, type SearchEntry } from '../src/config/fuse-options';
 import { rankSearchResults } from '../src/lib/search-ranking';
 import { getSearchIndex } from './helpers/search-index-loader';

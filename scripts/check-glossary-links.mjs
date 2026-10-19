@@ -2,22 +2,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { isDeepStrictEqual } from 'node:util';
+import { createRequire } from 'node:module';
 import { isScalar, isSeq, parseDocument } from 'yaml';
+import { glossaryAnchor } from '../src/lib/glossary-anchor.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
-
-function slugify(value) {
-  return String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 function parseArgs(argv) {
   const args = {
@@ -98,6 +90,20 @@ export function loadGlossary(glossaryPath = GLOSSARY_PATH) {
   return JSON.parse(fs.readFileSync(glossaryPath, 'utf8'));
 }
 
+/**
+ * The glossary as staged in `cwd`'s index, so pre-commit proofs validate links
+ * against the same version as the staged post. Empty when the index has none.
+ */
+export function loadStagedGlossary(cwd = REPO_ROOT) {
+  const spec = ':src/data/glossary.json';
+  try {
+    execFileSync('git', ['cat-file', '-e', spec], { cwd, stdio: 'ignore' });
+  } catch {
+    return [];
+  }
+  return JSON.parse(execFileSync('git', ['show', spec], { cwd, encoding: 'utf8' }));
+}
+
 export function normalizeGlossary(glossary) {
   return glossary
     .filter((entry) => entry && entry.term && entry.linking?.enabled !== false)
@@ -116,7 +122,7 @@ export function normalizeGlossary(glossary) {
         Array.isArray(linking.match) && linking.match.length ? linking.match : [entry.term];
       return {
         term: entry.term,
-        anchor: linking.anchor || slugify(entry.term),
+        anchor: glossaryAnchor(entry),
         matches: matches.filter(Boolean),
         caseSensitive: linking.caseSensitive !== false,
         forbiddenZhTw: Array.isArray(entry.forbiddenZhTw)
@@ -148,49 +154,237 @@ function maskRegex(content, mask, re) {
   while ((match = re.exec(content))) markRange(mask, match.index, match.index + match[0].length);
 }
 
-export function buildUnsafeMask(content) {
-  const mask = new Array(content.length).fill(false);
+function frontmatterEnd(content) {
+  if (!content.startsWith('---\n')) return 0;
+  const end = content.indexOf('\n---', 4);
+  if (end < 0) return 0;
+  const after = content.indexOf('\n', end + 4);
+  return after >= 0 ? after + 1 : content.length;
+}
 
-  if (content.startsWith('---\n')) {
-    const end = content.indexOf('\n---', 4);
-    if (end >= 0) {
-      const after = content.indexOf('\n', end + 4);
-      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
-    }
-  }
+function isEscaped(content, index) {
+  let backslashes = 0;
+  while (content[index - 1 - backslashes] === '\\') backslashes += 1;
+  return backslashes % 2 === 1;
+}
 
-  maskRegex(content, mask, /```[\s\S]*?```/g);
-  maskRegex(content, mask, /`[^`\n]+`/g);
-  maskRegex(content, mask, /!?\[[^\]\n]*\]\([^)\n]+\)/g);
-  maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
+function isBlankLineAt(content, lineStart) {
+  const lineEnd = content.indexOf('\n', lineStart);
+  return /^[ \t]*$/.test(content.slice(lineStart, lineEnd < 0 ? content.length : lineEnd));
+}
 
-  const lines = content.split(/\n/);
-  let offset = 0;
-  let inMdxComponent = false;
-  for (const line of lines) {
-    const lineEnd = offset + line.length;
-    const startsMdxComponent = /^\s*<[A-Z][\w.:-]*\b/.test(line);
-    const endsMdxComponent = /\/?>\s*$/.test(line) && !/[{(]\s*$/.test(line);
-
-    if (
-      inMdxComponent ||
-      startsMdxComponent ||
-      /^\s*>/.test(line) ||
-      /^\s*(import|export)\b/.test(line) ||
-      /^\s*<\/?[A-Z][^>]*>\s*$/.test(line)
+// A fence closes only with the same character at least as long as the opener, so a longer
+// outer fence can wrap shorter ones; an unclosed fence runs to the end of the file.
+// Indentation is not limited because list items indent their fences.
+function fencedCodeRanges(content, from) {
+  const ranges = [];
+  let open = null;
+  let offset = from;
+  for (const line of content.slice(from).split('\n')) {
+    const fence = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line);
+    if (!open) {
+      // A backtick fence's info string can't hold a backtick; such a line is inline code.
+      if (fence && !(fence[1][0] === '`' && fence[2].includes('`'))) {
+        open = { start: offset, char: fence[1][0], length: fence[1].length };
+      }
+    } else if (
+      fence &&
+      fence[1][0] === open.char &&
+      fence[1].length >= open.length &&
+      /^[ \t]*$/.test(fence[2])
     ) {
-      markRange(mask, offset, lineEnd);
-      if (startsMdxComponent && !endsMdxComponent) inMdxComponent = true;
-      if (inMdxComponent && endsMdxComponent) inMdxComponent = false;
-    } else {
-      let tagMatch;
-      const tagRe = /<\/?[A-Za-z][^>]*>/g;
-      while ((tagMatch = tagRe.exec(line)))
-        markRange(mask, offset + tagMatch.index, offset + tagMatch.index + tagMatch[0].length);
+      ranges.push({ start: open.start, end: offset + line.length });
+      open = null;
     }
-    offset = lineEnd + 1;
+    offset += line.length + 1;
   }
+  if (open) ranges.push({ start: open.start, end: content.length });
+  return ranges;
+}
 
+// End of the inline code span opening at `start`: the next backtick run of the same length
+// in the same paragraph, or -1 when there is none and the backticks are plain text.
+function codeSpanEnd(content, start, mask) {
+  let i = start;
+  while (content[i] === '`') i += 1;
+  const length = i - start;
+  while (i < content.length && !mask[i]) {
+    if (content[i] === '`') {
+      const run = i;
+      while (content[i] === '`') i += 1;
+      if (i - run === length) return i;
+    } else {
+      if (content[i] === '\n' && isBlankLineAt(content, i + 1)) return -1;
+      i += 1;
+    }
+  }
+  return -1;
+}
+
+// Index of the quote closing the JavaScript string that opens at `start`. A quote that never
+// closes (for ' and ", not on its own line: an apostrophe in JSX text) starts no string, so
+// `start` comes back and the quote reads as a plain character.
+function stringEnd(content, start, multiline) {
+  const quote = content[start];
+  for (let i = start + 1; i < content.length; i += 1) {
+    if (content[i] === quote) return i;
+    if (content[i] === '\\') i += 1;
+    else if (content[i] === '\n' && !multiline) break;
+  }
+  return start;
+}
+
+// End of the MDX expression `{…}` opening at `start`, or -1: braces balance outside
+// JavaScript strings and comments.
+function expressionEnd(content, start) {
+  let depth = 0;
+  for (let i = start; i < content.length; i += 1) {
+    const char = content[i];
+    if (char === '{') depth += 1;
+    else if (char === '}') {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    } else if (char === '/' && content[i + 1] === '*') {
+      i = content.indexOf('*/', i + 2);
+      if (i < 0) return -1;
+      i += 1;
+    } else if (char === '"' || char === "'" || char === '`') {
+      i = stringEnd(content, i, char === '`');
+    }
+  }
+  return -1;
+}
+
+// End of the JSX tag opening at `start` (`<div …>`, `</div>`, `<>`), or -1: attribute
+// strings and `{…}` values may hold `>` and span lines.
+function tagEnd(content, start) {
+  for (let i = start + 1; i < content.length; i += 1) {
+    const char = content[i];
+    if (char === '>') return i + 1;
+    if (char === '{') {
+      const end = expressionEnd(content, i);
+      if (end < 0) return -1;
+      i = end - 1;
+    } else if (char === '"' || char === "'") {
+      i = stringEnd(content, i, true);
+    }
+  }
+  return -1;
+}
+
+/**
+ * Frontmatter and code (fenced blocks and inline code spans), where link syntax is text.
+ * Inline code is read in source order together with MDX expressions and JSX tags, as the
+ * MDX parser does: whichever starts first wins, so a `{` inside code is text and a backtick
+ * inside `{…}` or an attribute is JavaScript. Those ranges come back too, so the other
+ * masks build on this one instead of scanning again.
+ */
+function frontmatterAndCodeMask(content) {
+  const mask = new Array(content.length).fill(false);
+  const bodyStart = frontmatterEnd(content);
+  markRange(mask, 0, bodyStart);
+  for (const fence of fencedCodeRanges(content, bodyStart)) markRange(mask, fence.start, fence.end);
+
+  const found = { code: [], expressions: [], tags: [] };
+  for (let i = bodyStart; i < content.length; i += 1) {
+    if (mask[i]) continue;
+    const char = content[i];
+    if (char === '\\') {
+      i += 1;
+      continue;
+    }
+    let kind = null;
+    let end = -1;
+    if (char === '`') [kind, end] = ['code', codeSpanEnd(content, i, mask)];
+    else if (char === '{') [kind, end] = ['expressions', expressionEnd(content, i)];
+    else if (char === '<' && /[A-Za-z/>]/.test(content[i + 1] ?? '')) {
+      [kind, end] = ['tags', tagEnd(content, i)];
+    }
+    if (end > i) {
+      found[kind].push({ start: i, end });
+      i = end - 1;
+    } else {
+      // A backtick run with no closing run is text as a whole.
+      while (char === '`' && content[i + 1] === '`') i += 1;
+    }
+  }
+  for (const span of found.code) markRange(mask, span.start, span.end);
+  return { mask, expressions: found.expressions, tags: found.tags };
+}
+
+function closingBracket(content, open, mask) {
+  let depth = 0;
+  for (let i = open; i < content.length; i += 1) {
+    const char = content[i];
+    if (mask[i]) continue;
+    if (char === '\n' && isBlankLineAt(content, i + 1)) return -1;
+    if ((char !== '[' && char !== ']') || isEscaped(content, i)) continue;
+    depth += char === '[' ? 1 : -1;
+    if (depth === 0) return i;
+  }
+  return -1;
+}
+
+function closingParen(content, open) {
+  let depth = 0;
+  for (let i = open; i < content.length && content[i] !== '\n'; i += 1) {
+    if (content[i] === '\\') i += 1;
+    else if (content[i] === '(') depth += 1;
+    else if (content[i] === ')') {
+      depth -= 1;
+      if (depth === 0) return i + 1;
+    }
+  }
+  return -1;
+}
+
+// Links and images, text and destination both: a link inside another link's text does not
+// render. The text may wrap onto the next line, but not past a blank line. An image's
+// description is masked up to its `]` whatever follows (`(…)`, `[…]`, `[]` or nothing): it
+// renders as plain text, and the structure comparison cannot tell a link written there from none.
+function linkRanges(content, mask) {
+  const ranges = [];
+  for (let i = 0; i < content.length; i += 1) {
+    if (content[i] !== '[' || mask[i] || isEscaped(content, i)) continue;
+    const close = closingBracket(content, i, mask);
+    if (close < 0) continue;
+    const image = content[i - 1] === '!';
+    const destinationEnd = content[close + 1] === '(' ? closingParen(content, close + 1) : -1;
+    if (destinationEnd < 0 && !image) continue;
+    const end = destinationEnd < 0 ? close + 1 : destinationEnd;
+    ranges.push({ start: image ? i - 1 : i, end });
+    i = end - 1;
+  }
+  return ranges;
+}
+
+/**
+ * Where a glossary link must not go: frontmatter, code, MDX expressions, JSX tags, the text
+ * of other links (an `<a>` element's content included) and of images, autolinks, blockquotes,
+ * import/export lines and lines that open an MDX component. findSafeOccurrences adds the
+ * characters a link can't touch; together they are the one placement rule.
+ */
+function buildUnsafeMask(content) {
+  const { mask, expressions, tags } = frontmatterAndCodeMask(content);
+  for (const range of [...expressions, ...tags]) markRange(mask, range.start, range.end);
+  for (const [index, tag] of tags.entries()) {
+    if (!/^<a[\s>]/.test(content.slice(tag.start, tag.end))) continue;
+    const close = tags
+      .slice(index + 1)
+      .find((other) => /^<\/a\s*>$/.test(content.slice(other.start, other.end)));
+    if (close) markRange(mask, tag.start, close.end);
+  }
+  for (const link of linkRanges(content, mask)) markRange(mask, link.start, link.end);
+  maskRegex(content, mask, /(?:https?:\/\/|www\.)[^\s)]+/g);
+  maskRegex(content, mask, /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g);
+
+  let offset = 0;
+  for (const line of content.split('\n')) {
+    if (/^\s*(?:<[A-Z]|>|(?:import|export)\b)/.test(line)) {
+      markRange(mask, offset, offset + line.length);
+    }
+    offset += line.length + 1;
+  }
   return mask;
 }
 
@@ -199,32 +393,11 @@ export function buildUnsafeMask(content) {
 // syntax is unsafe. Keep this mask separate so the long-standing link fixer does
 // not start mutating quotations or component bodies.
 export function buildCanonicalUnsafeMask(content) {
-  const mask = new Array(content.length).fill(false);
-  const expressions = mdxExpressionRanges(content);
-
-  if (content.startsWith('---\n')) {
-    const end = content.indexOf('\n---', 4);
-    if (end >= 0) {
-      const after = content.indexOf('\n', end + 4);
-      markRange(mask, 0, after >= 0 ? after + 1 : content.length);
-    }
-  }
-
-  maskRegex(content, mask, /```[\s\S]*?```/g);
-  maskRegex(content, mask, /~~~[\s\S]*?~~~/g);
-  const inlineCodeRe = /`[^`\n]+`/g;
-  let inlineCode;
-  while ((inlineCode = inlineCodeRe.exec(content))) {
-    const start = inlineCode.index;
-    const end = start + inlineCode[0].length;
-    if (expressions.some((range) => start >= range.start && end <= range.end)) continue;
-    markRange(mask, start, end);
-  }
+  const { mask, expressions, tags } = frontmatterAndCodeMask(content);
   maskRegex(content, mask, /<!--[\s\S]*?-->/g);
   // MDX expressions are code. Only a standalone string/template literal is
   // statically guaranteed to render as reader-visible prose; strings nested
-  // inside program logic remain syntax and stay masked.
-  maskRegex(content, mask, /\{\/\*[\s\S]*?\*\/\}/g);
+  // inside program logic (and `{/* comments */}`) remain syntax and stay masked.
   for (const expression of expressions) {
     const raw = content.slice(expression.start, expression.end);
     const visibleLiteral = raw.match(/^\{\s*(?:(['"])([\s\S]*?)\1|`([\s\S]*?)`)\s*\}$/);
@@ -241,7 +414,7 @@ export function buildCanonicalUnsafeMask(content) {
     markRange(mask, expression.start, expression.end);
     if (visibleRange) unmarkRange(mask, visibleRange.start, visibleRange.end);
   }
-  maskRegex(content, mask, /<[^>]*>/g);
+  for (const tag of tags) markRange(mask, tag.start, tag.end);
   maskRegex(content, mask, /https?:\/\/[^\s)]+/g);
 
   const linkRe = /!?\[[^\]\n]*\]\(([^)\n]+)\)/g;
@@ -292,41 +465,6 @@ export function frontmatterReaderVisibleRanges(content) {
   return ranges;
 }
 
-function mdxExpressionRanges(content) {
-  const ranges = [];
-  for (let start = 0; start < content.length; start += 1) {
-    if (content[start] !== '{' || content.startsWith('{/*', start)) continue;
-    let depth = 1;
-    let quote = null;
-    let escaped = false;
-    for (let index = start + 1; index < content.length; index += 1) {
-      const char = content[index];
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (quote) {
-        if (char === '\\') escaped = true;
-        else if (char === quote) quote = null;
-        continue;
-      }
-      if (char === "'" || char === '"' || char === '`') {
-        quote = char;
-      } else if (char === '{') {
-        depth += 1;
-      } else if (char === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          ranges.push({ start, end: index + 1 });
-          start = index;
-          break;
-        }
-      }
-    }
-  }
-  return ranges;
-}
-
 function isBoundaryChar(ch) {
   return !ch || !/[\p{L}\p{N}_-]/u.test(ch);
 }
@@ -336,8 +474,21 @@ function rangeIsSafe(mask, start, end) {
   return true;
 }
 
-export function findSafeOccurrences(content, term, matchText, options = {}) {
-  const mask = options.mask ?? buildUnsafeMask(content);
+// `*`, `_` or `~` next to the term are emphasis or strikethrough delimiters that the link
+// syntax would pull apart. Before the term, `\` would escape the `[` and `!` would turn the
+// link into an image.
+const GLUED_BEFORE = /[*_~\\!]/u;
+const GLUED_AFTER = /[*_~]/u;
+
+/**
+ * Occurrences of `matchText` a glossary link can wrap: the placement rule the checker, the
+ * fixer and the link-only proof share. Outside `mask` (buildUnsafeMask of `content`), on word
+ * boundaries, and not touching the characters above. The proof applies it to the post with
+ * glossary links turned back into text, so a term next to a glossary link is judged by that
+ * link's text. When the first occurrence can't take a link, the next one that can is first in
+ * the list.
+ */
+function findSafeOccurrences(content, term, matchText, mask) {
   const flags = term.caseSensitive ? 'g' : 'gi';
   const re = new RegExp(matchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
   const out = [];
@@ -346,7 +497,10 @@ export function findSafeOccurrences(content, term, matchText, options = {}) {
     const start = match.index;
     const end = start + match[0].length;
     if (!rangeIsSafe(mask, start, end)) continue;
-    if (!isBoundaryChar(content[start - 1]) || !isBoundaryChar(content[end])) continue;
+    const before = content[start - 1] ?? '';
+    const after = content[end] ?? '';
+    if (!isBoundaryChar(before) || !isBoundaryChar(after)) continue;
+    if (GLUED_BEFORE.test(before) || GLUED_AFTER.test(after)) continue;
     const line = content.slice(0, start).split('\n').length;
     out.push({ start, end, text: match[0], line });
   }
@@ -417,22 +571,326 @@ function ignoredTerms(content, frontmatter) {
   return ignored;
 }
 
-export function expectedHref(term, filePath, frontmatter) {
-  return `${isEnglishPost(filePath, frontmatter) ? '/en/glossary' : '/glossary'}#${term.anchor}`;
+/** The glossary link to an anchor for a post in this language. */
+export function expectedHref(anchor, english) {
+  return `${english ? '/en/glossary' : '/glossary'}#${anchor}`;
+}
+
+// A Markdown link as posts write it; captures the text and the href. Neither holds a `[`:
+// a bracket that opens no link (`[Kubernetes] 是…`, `arr[` in code) is not part of the next
+// link, and a link left open (`[文件](官網…`) does not swallow the next one. Global: use matchAll.
+const MARKDOWN_LINK = /\[([^[\]\n]+)\]\(([^[)\n]+)\)/gu;
+// A glossary href; captures the /en prefix and the anchor.
+const GLOSSARY_HREF = /^\/(en\/)?glossary#(.*)$/u;
+// An internal post link's href.
+const INTERNAL_POST_PREFIX = /^\/(?:en\/)?posts(?:\/|$)/u;
+
+// Loaded on first use: only the structure comparison needs the parser, and many runs never get
+// there (the canonical-term check never does; a prose edit fails the text comparison first).
+const require = createRequire(import.meta.url);
+let markdown;
+function markdownParser() {
+  markdown ??= require('unified')
+    .unified()
+    .use(require('remark-parse').default)
+    .use(require('remark-mdx').default)
+    .use(require('remark-gfm').default);
+  return markdown;
+}
+
+// The mdast a reader gets, with links the proof has dealt with taken out: a glossary link
+// becomes its children, an internal post link one placeholder node. Adjacent text merges,
+// and positions go (with `data`, where MDX keeps its estree and that tree's offsets).
+function readerChildren(children) {
+  const out = [];
+  for (const child of children) {
+    let nodes;
+    if (child.type === 'link' && GLOSSARY_HREF.test(child.url)) {
+      nodes = readerChildren(child.children);
+    } else if (child.type === 'link' && INTERNAL_POST_PREFIX.test(child.url)) {
+      nodes = [{ type: 'internalPostLink' }];
+    } else {
+      nodes = [readerTree(child)];
+    }
+    for (const node of nodes) {
+      const previous = out.at(-1);
+      if (node.type === 'text' && previous?.type === 'text') {
+        out[out.length - 1] = { type: 'text', value: previous.value + node.value };
+      } else {
+        out.push(node);
+      }
+    }
+  }
+  return out;
+}
+
+function readerTree(value) {
+  if (Array.isArray(value)) return value.map(readerTree);
+  if (!value || typeof value !== 'object') return value;
+  const node = {};
+  for (const [key, child] of Object.entries(value)) {
+    if (key === 'position' || key === 'data') continue;
+    node[key] = key === 'children' ? readerChildren(child) : readerTree(child);
+  }
+  return node;
+}
+
+/**
+ * Whether two versions of a post parse, with the site's parser, to the same structure once
+ * glossary links become their text and internal post links one placeholder: the link-only
+ * proof's last step. Only the body is parsed; a body that does not parse proves nothing.
+ */
+function hasSameReaderStructure(before, after) {
+  // Outside the try: a parser that cannot load is an error, not a difference.
+  const parser = markdownParser();
+  try {
+    return isDeepStrictEqual(
+      readerTree(parser.parse(parseFrontmatter(before).body)),
+      readerTree(parser.parse(parseFrontmatter(after).body))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resolve a glossary link target for a post: the path must follow the post language
+ * and the anchor must belong to an enabled entry (case-sensitive). Returns
+ * `{ entry }` with the normalized entry, or `{ error }` explaining the rejection.
+ */
+function resolveGlossaryLinkTarget(href, { english, glossary }) {
+  const anchor = GLOSSARY_HREF.exec(href)?.[2];
+  if (anchor === undefined) return { error: `${JSON.stringify(href)} is not a glossary link` };
+  if (href !== expectedHref(anchor, english)) {
+    return { error: `${href} must be ${expectedHref(anchor, english)} for this post` };
+  }
+  const target = glossary.find((entry) => entry?.term && glossaryAnchor(entry) === anchor);
+  if (!target) return { error: `no glossary entry has anchor #${anchor}` };
+  const [entry] = normalizeGlossary([target]);
+  if (!entry) return { error: `${target.term} has automatic linking disabled` };
+  return { entry };
+}
+
+// Private-use code points never appear in prose, so the placeholder cannot collide with
+// text. A post that contains one anyway is not proven: it could be faking the placeholder.
+const PLACEHOLDER_MARK = '\uE000';
+const POST_LINK_PLACEHOLDER = `${PLACEHOLDER_MARK}INTERNAL_POST_LINK\uE001`;
+
+/**
+ * Replace glossary links with their text and internal post links with a placeholder.
+ * Positions are recorded in the stripped text, keyed by `start:end`.
+ */
+function stripLinks(content) {
+  const glossaryLinks = new Map();
+  const postLinks = new Map();
+  let text = '';
+  let last = 0;
+  for (const match of content.matchAll(MARKDOWN_LINK)) {
+    const [raw, label, href] = match;
+    if (content[match.index - 1] === '!') continue;
+    const isGlossary = GLOSSARY_HREF.test(href);
+    if (!isGlossary && !INTERNAL_POST_PREFIX.test(href)) continue;
+    text += content.slice(last, match.index);
+    const start = text.length;
+    text += isGlossary ? label : POST_LINK_PLACEHOLDER;
+    const link = { start, end: text.length, label, href, raw };
+    (isGlossary ? glossaryLinks : postLinks).set(`${start}:${link.end}`, link);
+    last = match.index + raw.length;
+  }
+  return { text: text + content.slice(last), glossaryLinks, postLinks };
+}
+
+function isLinkableOccurrence(text, entry, link, mask) {
+  return entry.matches.some((matchText) =>
+    findSafeOccurrences(text, entry, matchText, mask).some(
+      (occurrence) => occurrence.start === link.start && occurrence.end === link.end
+    )
+  );
+}
+
+/**
+ * The link-only proof (openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械
+ * 證明並略過內容品質 gate〉〈只改連結的證明 SHALL 確認文章解析出來的結構沒有其他變化〉): whether
+ * `after` differs from `before` only by adding, removing or correcting glossary links, or by
+ * retargeting internal post links to validated canonical posts. New and changed links are
+ * validated, then stripped: glossary links become their text and internal post links one
+ * placeholder, and the two stripped files must match exactly, frontmatter included. Last, the
+ * bodies must parse to the same structure, which stops edits that strip the same but render
+ * differently.
+ *
+ * @param {string} before
+ * @param {string} after
+ * @param {{
+ *   filePath: string,
+ *   glossary: object[],
+ *   validatePostLink: (label: string, href: string) => void,
+ * }} options `glossary` is the glossary as stored, the same revision as `after`;
+ *   `validatePostLink` throws when a changed internal post link does not resolve to its
+ *   canonical target.
+ */
+export function isLinkOnlyChange(before, after, { filePath, glossary, validatePostLink }) {
+  // Nothing changed, so nothing to prove: a pure taxonomy rename ends up here.
+  if (before === after) return true;
+  if (before.includes(PLACEHOLDER_MARK) || after.includes(PLACEHOLDER_MARK)) return false;
+  const previous = stripLinks(before);
+  const current = stripLinks(after);
+  if (current.text !== previous.text) return false;
+
+  const english = isEnglishPost(filePath, parseFrontmatter(after).data);
+  const mask = buildUnsafeMask(current.text);
+
+  for (const [key, link] of current.glossaryLinks) {
+    const old = previous.glossaryLinks.get(key);
+    if (old?.href === link.href) continue;
+    if (!rangeIsSafe(mask, link.start, link.end)) return false;
+    const { entry } = resolveGlossaryLinkTarget(link.href, { english, glossary });
+    if (!entry) return false;
+    // A new wrapper must cover text the checker itself links to this entry, at a spot the
+    // placement rule allows; a link whose target is corrected keeps the text it already had.
+    if (!old && !isLinkableOccurrence(current.text, entry, link, mask)) return false;
+  }
+
+  // Unwrapping is only link maintenance where a real link could live, not inside code.
+  for (const [key, link] of previous.glossaryLinks) {
+    if (!current.glossaryLinks.has(key) && !rangeIsSafe(mask, link.start, link.end)) return false;
+  }
+
+  for (const [key, link] of current.postLinks) {
+    if (previous.postLinks.get(key)?.raw === link.raw) continue;
+    try {
+      validatePostLink(link.label, link.href);
+    } catch {
+      return false;
+    }
+  }
+  return hasSameReaderStructure(before, after);
+}
+
+/**
+ * Glossary links that lead nowhere: the anchor must belong to some entry (entries with
+ * automatic linking disabled still exist; case must match), and the path must follow
+ * the post language.
+ */
+export function checkLinkTargets(content, options = {}) {
+  const filePath = options.filePath ?? 'post.mdx';
+  const glossary = options.glossary ?? loadGlossary();
+  const anchors = new Set(glossary.filter((entry) => entry?.term).map(glossaryAnchor));
+  const english = isEnglishPost(filePath, parseFrontmatter(content).data);
+  const { mask } = frontmatterAndCodeMask(content);
+  const violations = [];
+  for (const match of content.matchAll(MARKDOWN_LINK)) {
+    const glossaryLink = GLOSSARY_HREF.exec(match[2]);
+    if (!glossaryLink || mask[match.index]) continue;
+    const [href, , anchor] = glossaryLink;
+    const line = content.slice(0, match.index).split('\n').length;
+    if (!anchors.has(anchor)) {
+      violations.push({ kind: 'dead-anchor', file: filePath, line, href, anchor });
+    } else if (href !== expectedHref(anchor, english)) {
+      violations.push({
+        kind: 'wrong-language',
+        file: filePath,
+        line,
+        href,
+        anchor,
+        expectedHref: expectedHref(anchor, english),
+      });
+    }
+  }
+  return { violations };
+}
+
+/** `related` names that are not glossary entries. */
+export function findMissingRelated(glossary) {
+  const terms = new Set(glossary.map((entry) => entry?.term));
+  const violations = [];
+  for (const entry of glossary) {
+    for (const name of Array.isArray(entry?.related) ? entry.related : []) {
+      if (!terms.has(name)) {
+        violations.push({
+          kind: 'missing-related',
+          file: GLOSSARY_PATH,
+          term: entry.term,
+          missing: name,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
+/** `content` with the text of each link (`{ start, end, text, href }`) wrapped in it. */
+export function writeGlossaryLinks(content, links) {
+  let output = '';
+  let last = 0;
+  for (const link of [...links].sort((a, b) => a.start - b.start)) {
+    output += `${content.slice(last, link.start)}[${link.text}](${link.href})`;
+    last = link.end;
+  }
+  return output + content.slice(last);
+}
+
+// Writing glossary links leaves internal post links alone, so the proof never has one to
+// validate for a candidate. If it asks, that is a bug, and the candidate is not taken.
+function noPostLinkChanges() {
+  throw new Error('writing a glossary link changed an internal post link');
+}
+
+/**
+ * The links the checker reports missing and the fixer writes: for each term the post
+ * neither links nor ignores, its first occurrence that findSafeOccurrences allows, that a
+ * longer term has not claimed, and that the link-only proof accepts. Each candidate is written
+ * in after the links picked before it and must pass isLinkOnlyChange against the post without
+ * it; if not, the next occurrence gets its turn. That catches what the mask does not know,
+ * such as reference links, definitions, footnotes, or a URL or email address that only forms
+ * once glossary links turn back into text. Every step strips to the same text, so the fixer's
+ * post passes the proof against the original as well.
+ *
+ * @param {string} content
+ * @param {object[]} glossary the glossary as stored, the form isLinkOnlyChange takes
+ * @param {{ filePath: string, terms?: string[] }} options
+ */
+export function missingGlossaryLinks(content, glossary, { filePath, terms = [] }) {
+  const termFilter = new Set(terms);
+  const { data: frontmatter } = parseFrontmatter(content);
+  const english = isEnglishPost(filePath, frontmatter);
+  const ignored = ignoredTerms(content, frontmatter);
+  const mask = buildUnsafeMask(content);
+  const occupied = new Array(content.length).fill(false);
+  const proofOptions = { filePath, glossary, validatePostLink: noPostLinkChanges };
+  const links = [];
+  let linked = content;
+
+  for (const term of normalizeGlossary(glossary)) {
+    if (termFilter.size && !termFilter.has(term.term)) continue;
+    if (ignored.has(term.term)) continue;
+    const href = expectedHref(term.anchor, english);
+    if (hasCoverage(content, term, href)) continue;
+
+    const occurrences = term.matches
+      .flatMap((matchText) => findSafeOccurrences(content, term, matchText, mask))
+      .filter((occurrence) => rangeIsSafe(occupied, occurrence.start, occurrence.end))
+      .sort((a, b) => a.start - b.start);
+    for (const occurrence of occurrences) {
+      const link = { ...occurrence, term: term.term, href };
+      const withLink = writeGlossaryLinks(content, [...links, link]);
+      if (!isLinkOnlyChange(linked, withLink, proofOptions)) continue;
+      markRange(occupied, link.start, link.end);
+      links.push(link);
+      linked = withLink;
+      break;
+    }
+  }
+  return links;
 }
 
 export function checkContent(content, options = {}) {
   const filePath = options.filePath ?? 'post.mdx';
-  const glossary = normalizeGlossary(options.glossary ?? loadGlossary());
+  const glossary = options.glossary ?? loadGlossary();
   const termFilter = new Set(options.terms ?? []);
-  const { data: frontmatter } = parseFrontmatter(content);
-  const ignored = ignoredTerms(content, frontmatter);
-  const mask = buildUnsafeMask(content);
-  const occupied = new Array(content.length).fill(false);
   const violations = [];
 
-  if (!isEnglishPost(filePath, frontmatter)) {
-    for (const term of glossary) {
+  if (!isEnglishPost(filePath, parseFrontmatter(content).data)) {
+    for (const term of normalizeGlossary(glossary)) {
       if (termFilter.size && !termFilter.has(term.term)) continue;
       for (const forbidden of term.forbiddenZhTw) {
         for (const occurrence of findCanonicalOccurrences(content, forbidden)) {
@@ -444,39 +902,22 @@ export function checkContent(content, options = {}) {
             forbidden,
             line: occurrence.line,
             text: occurrence.text,
-            expectedHref: `/glossary#${term.anchor}`,
+            expectedHref: expectedHref(term.anchor, false),
           });
         }
       }
     }
   }
 
-  for (const term of glossary) {
-    if (termFilter.size && !termFilter.has(term.term)) continue;
-    if (ignored.has(term.term)) continue;
-    const href = expectedHref(term, filePath, frontmatter);
-    if (hasCoverage(content, term, href)) continue;
-
-    let first = null;
-    for (const matchText of term.matches) {
-      const occurrences = findSafeOccurrences(content, term, matchText, { mask });
-      for (const occ of occurrences) {
-        let overlaps = false;
-        for (let i = occ.start; i < occ.end; i += 1) if (occupied[i]) overlaps = true;
-        if (overlaps) continue;
-        if (!first || occ.start < first.start) first = occ;
-      }
-    }
-    if (!first) continue;
-    markRange(occupied, first.start, first.end);
+  for (const link of missingGlossaryLinks(content, glossary, { filePath, terms: options.terms })) {
     violations.push({
       kind: 'missing-link',
       file: filePath,
-      term: term.term,
-      line: first.line,
-      text: first.text,
-      expectedHref: href,
-      command: `node scripts/apply-glossary-links.mjs --term ${JSON.stringify(term.term)} ${JSON.stringify(filePath)}`,
+      term: link.term,
+      line: link.line,
+      text: link.text,
+      expectedHref: link.href,
+      command: `node scripts/apply-glossary-links.mjs --term ${JSON.stringify(link.term)} ${JSON.stringify(filePath)}`,
     });
   }
   return { violations };
@@ -497,16 +938,20 @@ export function listPostFiles() {
 
 function gitChangedFiles(base, pattern = 'src/content/posts') {
   try {
-    const out = execFileSync('git', ['diff', '--name-only', `${base}...HEAD`, '--', pattern], {
-      cwd: REPO_ROOT,
-      encoding: 'utf8',
-    });
+    const out = execFileSync(
+      'git',
+      ['diff', '--name-only', '--end-of-options', `${base}...HEAD`, '--', pattern],
+      {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+      }
+    );
     return out
       .split('\n')
       .filter(Boolean)
       .map((p) => path.join(REPO_ROOT, p));
   } catch {
-    return [];
+    throw new Error(`Could not enumerate changed posts from Git base ${JSON.stringify(base)}`);
   }
 }
 
@@ -665,7 +1110,7 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
         cwd: REPO_ROOT,
         encoding: 'utf8',
       });
-      return isCanonicalTerminologyOnlyChange(before, after, glossary) ? 0 : 1;
+      return isCanonicalTerminologyOnlyChange(before, after, loadStagedGlossary()) ? 0 : 1;
     } catch {
       return 1;
     }
@@ -682,7 +1127,14 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
   files = [...new Set(files)].filter((f) => f.endsWith('.mdx') && fs.existsSync(f));
 
   const violations = [];
-  for (const file of files) violations.push(...checkFile(file, { glossary, terms }).violations);
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf8');
+    violations.push(
+      ...checkContent(content, { filePath: file, glossary, terms }).violations,
+      ...checkLinkTargets(content, { filePath: file, glossary }).violations
+    );
+  }
+  violations.push(...findMissingRelated(glossary));
 
   if (args.format === 'json') {
     io.log(JSON.stringify({ ok: violations.length === 0, violations }, null, 2));
@@ -692,6 +1144,18 @@ export function runCLI(argv, io = { log: console.log, error: console.error }) {
       if (v.kind === 'canonical-term') {
         io.error(
           `${path.relative(REPO_ROOT, v.file)}:${v.line} forbidden ${JSON.stringify(v.forbidden)} → ${v.canonicalTerm} (${v.expectedHref})`
+        );
+      } else if (v.kind === 'dead-anchor') {
+        io.error(
+          `${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.href} → no glossary entry has #${v.anchor} (anchors are case-sensitive)`
+        );
+        io.error('  fix: point it at an existing anchor, or remove the link and keep its text');
+      } else if (v.kind === 'wrong-language') {
+        io.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.href} → ${v.expectedHref}`);
+        io.error("  fix: link the glossary in the post's language");
+      } else if (v.kind === 'missing-related') {
+        io.error(
+          `${path.relative(REPO_ROOT, v.file)}: ${v.term} lists related ${JSON.stringify(v.missing)}, which is not a glossary entry`
         );
       } else {
         io.error(`${path.relative(REPO_ROOT, v.file)}:${v.line} ${v.term} → ${v.expectedHref}`);

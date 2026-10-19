@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"os"
 	"testing"
 )
 
@@ -40,10 +41,8 @@ func TestWritingChainUsesSingleResolvedWriter(t *testing.T) {
 	if len(chain) != 1 {
 		t.Fatalf("WritingChain length = %d, want exactly 1 resolved writer", len(chain))
 	}
-	switch chain[0].Name() {
-	case "claude-opus", "codex-gpt-5.5":
-	default:
-		t.Fatalf("WritingChain writer = %q, want claude-opus or codex-gpt-5.5", chain[0].Name())
+	if chain[0].Name() != "claude-opus" {
+		t.Fatalf("WritingChain writer = %q, want claude-opus regardless of PATH", chain[0].Name())
 	}
 }
 
@@ -87,27 +86,21 @@ func TestProbeChainKeepsCodexPrimary(t *testing.T) {
 }
 
 func TestEffectiveStampLabels(t *testing.T) {
-	// EffectiveStamp never invents an unknown label; it returns one of the two
-	// known provider identities. We can't force PATH here, so we just assert
-	// the result is internally consistent (model/harness from the same family).
-	model, harness, err := EffectiveStamp()
-	if err != nil {
-		t.Fatalf("EffectiveStamp: %v", err)
-	}
+	// The writer is always the pinned Claude build, with or without claude on
+	// PATH, so the stamp is the pinned build's display name — never the bare
+	// alias string (the provenance bug this guards against) and never a Codex
+	// label for a run Codex cannot write.
 	pinnedClaudeDisplay := DisplayName(ModelID(ClaudeOpusPinned))
-	switch model {
-	case "GPT-5.5":
-		if harness != "Codex CLI" {
-			t.Fatalf("GPT-5.5 stamped with harness %q, want Codex CLI", harness)
-		}
-	// When claude is on PATH the writer is the pinned build, so the stamp is the
-	// pinned build's display name — never the bare alias string (that was the
-	// provenance bug this guards against).
-	case pinnedClaudeDisplay:
-		if harness != "Claude Code CLI" {
-			t.Fatalf("%s stamped with harness %q, want Claude Code CLI", model, harness)
-		}
-	default:
-		t.Fatalf("EffectiveStamp model = %q, want GPT-5.5 or %s", model, pinnedClaudeDisplay)
+	for name, path := range map[string]string{"ambient PATH": os.Getenv("PATH"), "empty PATH": t.TempDir()} {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv("PATH", path)
+			model, harness, err := EffectiveStamp()
+			if err != nil {
+				t.Fatalf("EffectiveStamp: %v", err)
+			}
+			if model != pinnedClaudeDisplay || harness != "Claude Code CLI" {
+				t.Fatalf("EffectiveStamp = (%q, %q), want (%q, Claude Code CLI)", model, harness, pinnedClaudeDisplay)
+			}
+		})
 	}
 }

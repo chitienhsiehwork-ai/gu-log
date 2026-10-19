@@ -3,7 +3,10 @@ import { isBelowPublishBar } from './tribunal-scores';
 
 type PostEntry = CollectionEntry<'posts'>;
 type PostLang = PostEntry['data']['lang'];
-export type PostStatus = 'published' | 'deprecated' | 'retired';
+// `taken-down` 是下架成墓碑頁（openspec: post-takedown），不是貼標籤：
+// 它和 `deprecated` 一樣不進列表，也和其他非 published 狀態一樣不進 feed、
+// 搜尋與導覽。`deprecated`／`retired` 仍公開全文並顯示狀態標籤。
+export type PostStatus = 'published' | 'deprecated' | 'retired' | 'taken-down';
 
 export interface ResolvedPostStatus {
   status: PostStatus;
@@ -24,7 +27,9 @@ function comparePostDatesDescending(a: PostEntry, b: PostEntry): number {
 }
 
 function normalizeStatus(status?: string): PostStatus {
-  return status === 'deprecated' || status === 'retired' ? status : 'published';
+  return status === 'deprecated' || status === 'retired' || status === 'taken-down'
+    ? status
+    : 'published';
 }
 
 function findPostByTicketId(
@@ -92,8 +97,12 @@ export function resolvePostStatus(post: PostEntry, posts: PostEntry[]): Resolved
     replacementPost,
     replacementTicketId,
     reason:
-      status === 'deprecated' ? sourcePost.data.deprecatedReason : sourcePost.data.retiredReason,
-    retiredAt: sourcePost.data.retiredAt,
+      status === 'deprecated'
+        ? sourcePost.data.deprecatedReason
+        : status === 'retired'
+          ? sourcePost.data.retiredReason
+          : undefined,
+    retiredAt: status === 'retired' ? sourcePost.data.retiredAt : undefined,
   };
 }
 
@@ -103,6 +112,10 @@ export function getPostStatus(post: PostEntry, posts?: PostEntry[]): PostStatus 
 
 export function isPostNonPublished(post: PostEntry, posts: PostEntry[]): boolean {
   return getPostStatus(post, posts) !== 'published';
+}
+
+export function isPostTakenDown(post: PostEntry, posts?: PostEntry[]): boolean {
+  return getPostStatus(post, posts) === 'taken-down';
 }
 
 export function getPublishedPosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
@@ -134,10 +147,13 @@ export function getNavigablePostsFromBaseline(
   return [...baseline.publishedPosts, currentPost].sort(comparePostDatesDescending);
 }
 
+const UNLISTABLE_STATUSES: ReadonlySet<PostStatus> = new Set(['deprecated', 'taken-down']);
+
 export function getListablePosts(posts: PostEntry[], lang?: PostLang): PostEntry[] {
   return posts.filter(
     (post) =>
-      (!lang || post.data.lang === lang) && resolvePostStatus(post, posts).status !== 'deprecated'
+      (!lang || post.data.lang === lang) &&
+      !UNLISTABLE_STATUSES.has(resolvePostStatus(post, posts).status)
   );
 }
 

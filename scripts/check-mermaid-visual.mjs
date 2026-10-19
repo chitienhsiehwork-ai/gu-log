@@ -27,6 +27,7 @@ import { readdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn, spawnSync } from 'child_process';
+import { waitForHttpReady } from './lib/wait-for-http-ready.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -253,23 +254,6 @@ function judgeWithClaudeCli(base64Image) {
   });
 }
 
-/**
- * Wait for dev server to be ready
- */
-async function waitForServer(url, timeoutMs = 30_000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const resp = await fetch(url);
-      if (resp.ok) return true;
-    } catch {
-      // not ready yet
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  return false;
-}
-
 // ─── Main ────────────────────────────────────────────────────────
 
 async function main() {
@@ -304,7 +288,7 @@ async function main() {
 
   // 3. Check if dev server is running, start if needed
   let serverProcess = null;
-  const serverUp = await waitForServer(BASE_URL, 3_000);
+  const serverUp = await waitForHttpReady(BASE_URL, { timeoutMs: 3_000 });
 
   if (!serverUp) {
     console.log('🚀 Starting dev server...');
@@ -314,7 +298,7 @@ async function main() {
       detached: true,
     });
 
-    const ready = await waitForServer(BASE_URL, 60_000);
+    const ready = await waitForHttpReady(BASE_URL, { timeoutMs: 60_000 });
     if (!ready) {
       console.error('❌ Dev server failed to start within 60s');
       serverProcess.kill();

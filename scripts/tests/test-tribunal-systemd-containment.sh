@@ -44,7 +44,9 @@ pid_file="$(printf '%s\n' "$prompt" | sed -n 's/^PID_FILE=//p')"
 prompt_file="$(printf '%s\n' "$prompt" | sed -n 's/^PROMPT_FILE=//p')"
 [ -n "$pid_file" ] && [ -n "$prompt_file" ] || exit 64
 printf '%s\n' "$prompt" > "$prompt_file"
-setsid /bin/sh -c 'trap "" TERM; while :; do sleep 1; done' &
+# Survive the parent shell's HUP, but accept the cgroup stop signal. Ignoring
+# TERM would turn the successful containment path into a unit timeout.
+setsid /bin/sh -c 'trap "" HUP; while :; do sleep 1; done' &
 printf '%s\n' "$!" > "$pid_file"
 FAKE_CODEX
 chmod +x "$TMP/bin/codex"

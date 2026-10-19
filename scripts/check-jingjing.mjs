@@ -31,6 +31,7 @@
 // Exit codes:
 //   0 — no violations (or no zh-tw files staged)
 //   1 — violations found; see stderr
+//   2 — a file could not be read or scanned
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,6 +48,21 @@ const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
 const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
+// Read the accepted-English policy inputs once, so every file in a scan is
+// judged against the same glossary and taxonomy policy.
+const GLOSSARY_SNAPSHOT = fs.readFileSync(GLOSSARY_PATH);
+const TAXONOMY_POLICY_SNAPSHOT = fs.readFileSync(TAXONOMY_POLICY_PATH);
+const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
+const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
+
+function gitFetchTimeoutMs() {
+  const raw = process.env.CHECK_JINGJING_FETCH_TIMEOUT_MS;
+  if (!raw || !/^[1-9]\d*$/.test(raw)) return DEFAULT_GIT_FETCH_TIMEOUT_MS;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed <= MAX_GIT_FETCH_TIMEOUT_MS
+    ? parsed
+    : DEFAULT_GIT_FETCH_TIMEOUT_MS;
+}
 
 // ── Hardcoded allowlist ────────────────────────────────────────────
 //
@@ -168,6 +184,10 @@ VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
 tmux monorepo BEAM OTP DAG IETF RFC
 BeautifulSoup
+# Kubernetes 生態系的軟體／公司名，以及來源作者 handle — Lv（2026-10-11）
+# @livingdevops 的 Kubernetes 概念鏈：Ingress 控制器（Nginx／Traefik）、服務網格
+# Istio、節點自動擴縮 Karpenter，以及有官方 Karpenter 實作的 Oracle
+Nginx NGINX Traefik Istio Karpenter Oracle livingdevops
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
@@ -771,6 +791,22 @@ OneDrive Outlook DMZ
 #   LINE Developers / Messaging API = LINE's developer-console + product-API
 #     proper nouns (same category as the Microsoft product names above).
 Developers Messaging
+# Added 2026-10-08 for MP-318 (Obie Fernandez "You're Already a Meat Proxy").
+# Bona-fide proper nouns named in the single source, none with a natural zh-tw
+# translation (writer-prompt rule #2: people / products stay English):
+#   Obie Fernandez = the author (person). Chad Fowler = his friend writing the
+#   regenerative-software book (person). Confluence = Atlassian's wiki product
+#   (same category as Jira). Rails = Ruby on Rails, the web framework.
+#   Emily Bender / Timnit Gebru = authors of the "stochastic parrots" paper
+#   cited in a MoguNote (people).
+Obie Fernandez
+Chad Fowler
+Confluence Rails
+Emily Bender Timnit Gebru
+# Added 2026-10-08 for the Kun Chen "stop writing tests" MP.
+#   DeepSWE = the coding-agent eval set the source ran its experiment on
+#   (benchmark name, same category as SWE-bench; no natural zh-tw translation).
+DeepSWE
 `;
 
 const HARDCODED = new Set();
@@ -792,7 +828,7 @@ for (const line of ALLOWLIST_RAW.split('\n')) {
 
 const GLOSSARY_TERMS = new Set();
 try {
-  const glossary = JSON.parse(fs.readFileSync(GLOSSARY_PATH, 'utf8'));
+  const glossary = JSON.parse(GLOSSARY_SNAPSHOT.toString('utf8'));
   for (const t of glossary) {
     if (t.term) {
       GLOSSARY_TERMS.add(t.term);
@@ -1008,13 +1044,19 @@ function readBaselineFile(repoRelative, baselineRef) {
   });
 }
 
+const baselineRefreshAttempts = new Set();
+
 function ensureRemoteBaselineRef(baselineRef) {
   const match = baselineRef.match(/^origin\/(.+)$/);
   if (!match) return;
+  if (baselineRefreshAttempts.has(baselineRef)) return;
+  baselineRefreshAttempts.add(baselineRef);
   const branch = match[1];
   execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'ignore', 'ignore'],
+    timeout: gitFetchTimeoutMs(),
+    killSignal: 'SIGKILL',
   });
 }
 
@@ -1161,7 +1203,7 @@ function filterBaselineViolations(violations, baseline) {
 function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
   if (violations.length === 0) return violations;
   const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
-  const activePolicy = policy ?? JSON.parse(fs.readFileSync(TAXONOMY_POLICY_PATH, 'utf8'));
+  const activePolicy = policy ?? JSON.parse(TAXONOMY_POLICY_SNAPSHOT.toString('utf8'));
   const findings = scanLegacyText(repoRelative, raw);
   const budgets = new Map();
 

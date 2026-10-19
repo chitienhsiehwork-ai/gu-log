@@ -11,46 +11,45 @@ import { test, expect } from './fixtures';
  * Run with: npx playwright test tests/series-nav.spec.ts
  */
 
-// ECC Series: GP-143 is order 1, GP-144 is order 2, GP-153 is order 8
-// Use GP-144 (order 2) as a mid-series post for prev/next tests
-const ECC_MID_POST = '/posts/gp-144-20260402-ecc-instinct-system';
-const ECC_FIRST_POST = '/posts/gp-143-20260402-ecc-autonomous-loops';
-const ECC_LAST_POST = '/posts/gp-153-20260402-ecc-iterative-retrieval';
-
-// SD Deep Dive: SD-11 is order 1, SD-12 is order 2, SD-16 is order 6
+// SD Deep Dive: SD-11 is order 1, SD-12 is order 2, SD-13 is order 3, SD-16 is
+// order 6 (last). It replaced the ECC GP series as the fixture once GP
+// translations were taken down (openspec: post-takedown).
+const SERIES_NAME = 'Claude Code Deep Dive';
+const SERIES_LENGTH = 6;
 const SD_MID_POST = '/posts/sd-12-20260402-claude-code-bad-patterns';
 const SD_FIRST_POST = '/posts/sd-11-20260402-ai-agent-memory-architecture';
+const SD_LAST_POST = '/posts/sd-16-20260402-can-ai-test-itself';
 
 // Post WITHOUT series
-const NO_SERIES_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const NO_SERIES_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 const RELATED_RANKING_FIXTURE = '/artifacts/related-articles-ranking-fixture/';
 
 // EN version
-const ECC_MID_POST_EN = '/en/posts/en-gp-144-20260402-ecc-instinct-system';
+const SD_MID_POST_EN = '/en/posts/en-sd-12-20260402-claude-code-bad-patterns';
 
 test.describe('SeriesNav Component — Presence', () => {
   test('1. Post with series shows SeriesNav component', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     const seriesNav = page.locator('[data-series-nav]');
     await expect(seriesNav).toBeVisible();
   });
 
   test('2. SeriesNav displays correct series name', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     const seriesNav = page.locator('[data-series-nav]');
-    await expect(seriesNav).toContainText('Everything Claude Code 全解析');
+    await expect(seriesNav).toContainText(SERIES_NAME);
   });
 
   test('3. SeriesNav shows progress indicator', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
-    // GP-144 is order 2 of 8 in ECC series
+    // SD-12 is order 2 of 6 in the SD Deep Dive series
     const progressIndicator = page.locator('[data-series-progress]');
     await expect(progressIndicator).toBeVisible();
     await expect(progressIndicator).toContainText('2');
-    await expect(progressIndicator).toContainText('8');
+    await expect(progressIndicator).toContainText(String(SERIES_LENGTH));
   });
 
   test('8. Post WITHOUT series does NOT show SeriesNav', async ({ page }) => {
@@ -65,39 +64,39 @@ test.describe('SeriesNav Component — Prev/Next Navigation', () => {
   test('4. Series prev link points to correct series sibling (not chronological)', async ({
     page,
   }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
-    // GP-144 (order 2) prev should be GP-143 (order 1), not chronological neighbor
+    // SD-12 (order 2) prev should be SD-11 (order 1), not chronological neighbor
     const seriesPrevLink = page.locator('[data-series-prev]');
     await expect(seriesPrevLink).toBeVisible();
 
     const href = await seriesPrevLink.getAttribute('href');
-    expect(href).toContain('gp-143');
+    expect(href).toContain('sd-11');
   });
 
   test('5. Series next link points to correct series sibling', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
-    // GP-144 (order 2) next should be GP-146 (order 3)
+    // SD-12 (order 2) next should be SD-13 (order 3)
     const seriesNextLink = page.locator('[data-series-next]');
     await expect(seriesNextLink).toBeVisible();
 
     const href = await seriesNextLink.getAttribute('href');
-    expect(href).toContain('gp-146');
+    expect(href).toContain('sd-13');
   });
 
   test('6. First post in series has no series-prev link', async ({ page }) => {
-    await page.goto(ECC_FIRST_POST);
+    await page.goto(SD_FIRST_POST);
 
-    // GP-143 is order 1, should have no prev
+    // SD-11 is order 1, should have no prev
     const seriesPrevLink = page.locator('[data-series-prev]');
     await expect(seriesPrevLink).not.toBeVisible();
   });
 
   test('7. Last post in series has no series-next link', async ({ page }) => {
-    await page.goto(ECC_LAST_POST);
+    await page.goto(SD_LAST_POST);
 
-    // GP-153 is order 8 (last), should have no next
+    // SD-16 is order 6 (last), should have no next
     const seriesNextLink = page.locator('[data-series-next]');
     await expect(seriesNextLink).not.toBeVisible();
   });
@@ -107,7 +106,7 @@ test.describe('SeriesNav Component — Article List', () => {
   test('9. Original PrevNextNav still exists on posts with series (both navs coexist)', async ({
     page,
   }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     // SeriesNav should be present
     const seriesNav = page.locator('[data-series-nav]');
@@ -119,9 +118,9 @@ test.describe('SeriesNav Component — Article List', () => {
   });
 
   test('10. SeriesNav shows full series article list', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
-    // ECC series has 8 articles - ensure list is visible (expand if collapsed)
+    // The series has SERIES_LENGTH articles - ensure list is visible (expand if collapsed)
     const seriesList = page.locator('[data-series-list]');
     const isListVisible = await seriesList.isVisible();
     if (!isListVisible) {
@@ -132,11 +131,11 @@ test.describe('SeriesNav Component — Article List', () => {
     await expect(seriesList).toBeVisible();
 
     const listItems = seriesList.locator('[data-series-item]');
-    await expect(listItems).toHaveCount(8);
+    await expect(listItems).toHaveCount(SERIES_LENGTH);
   });
 
   test('11. Series list marks current article distinctly', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     // Ensure list is visible (expand if collapsed)
     const seriesList = page.locator('[data-series-list]');
@@ -146,13 +145,13 @@ test.describe('SeriesNav Component — Article List', () => {
       await toggleBtn.click();
     }
 
-    // Current article (GP-144) should be marked distinctly (e.g., aria-current or class)
+    // Current article (SD-12) should be marked distinctly (e.g., aria-current or class)
     const currentItem = page.locator('[data-series-current]');
     await expect(currentItem).toBeVisible();
   });
 
   test('12. Read/unread indicators present in series list', async ({ page }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     // Ensure list is visible (expand if collapsed)
     const seriesList = page.locator('[data-series-list]');
@@ -171,13 +170,13 @@ test.describe('SeriesNav Component — Article List', () => {
 
 test.describe('SeriesNav Component — English Version', () => {
   test('13. English version (/en/posts/) shows SeriesNav correctly', async ({ page }) => {
-    await page.goto(ECC_MID_POST_EN);
+    await page.goto(SD_MID_POST_EN);
 
     const seriesNav = page.locator('[data-series-nav]');
     await expect(seriesNav).toBeVisible();
 
     // Should show series name
-    await expect(seriesNav).toContainText('Everything Claude Code');
+    await expect(seriesNav).toContainText(SERIES_NAME);
   });
 });
 
@@ -185,7 +184,7 @@ test.describe('SeriesNav Component — Mobile Responsive', () => {
   test('14. Mobile responsive — series list does not overflow', async ({ page }) => {
     // Use mobile viewport
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     const seriesNav = page.locator('[data-series-nav]');
     await expect(seriesNav).toBeVisible();
@@ -231,43 +230,88 @@ test.describe('Related Articles — Non-series Posts', () => {
     expect(count).toBeLessThanOrEqual(3);
   });
 
-  test('R4. Unread articles appear before read articles in the list', async ({ page }) => {
-    await page.goto(NO_SERIES_POST);
-
-    // Mark the first related item as read
-    const relatedSection = page.locator('[data-related-articles]');
-    const firstLink = relatedSection.locator('[data-related-item]').first();
-    const firstSlug = await firstLink.getAttribute('data-slug');
-    expect(firstSlug).toBeTruthy();
-
-    // Set it as read via localStorage (matching reading-tracker's STORAGE_KEY)
-    await page.evaluate((slug) => {
+  test('R4. Related articles read the tracker once while preserving read state', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
       const key = 'gu-log-read-articles';
-      const store = { version: 1, slugs: [slug!], lastUpdated: new Date().toISOString() };
-      localStorage.setItem(key, JSON.stringify(store));
-    }, firstSlug);
+      const readSlug = 'fixture-overlap-3-oldest';
+      const timestamp = '2026-07-29T00:00:00.000Z';
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          version: 2,
+          slugs: [readSlug],
+          records: [
+            {
+              slug: readSlug,
+              method: 'manual_mark_read',
+              confidence: 'legacy_or_manual',
+              readAt: timestamp,
+              lastReadAt: timestamp,
+              readRevision: null,
+              revisionState: 'unknown',
+            },
+          ],
+          lastUpdated: timestamp,
+        })
+      );
 
-    // Reload so the page picks up the read status
-    await page.reload();
+      const originalGetItem = Storage.prototype.getItem;
+      let readStoreGetCount = 0;
+      Storage.prototype.getItem = function (storageKey) {
+        if (storageKey === key) readStoreGetCount += 1;
+        return originalGetItem.call(this, storageKey);
+      };
+      Object.defineProperty(window, '__readStoreGetCount', {
+        get: () => readStoreGetCount,
+      });
+    });
+    await page.goto(RELATED_RANKING_FIXTURE);
 
-    // The previously-read item should now show as read (has is-read class on indicator)
-    // Note: data-read-indicator is a sibling of data-related-item inside .related-item
-    const readIndicator = page
-      .locator(`[data-related-articles] [data-read-indicator][data-slug="${firstSlug}"]`)
-      .first();
+    const relatedSection = page.locator('[data-related-articles]');
+    const relatedItems = relatedSection.locator('[data-related-item]');
+    await expect(relatedItems).toHaveCount(3);
+    expect(
+      await relatedItems.evaluateAll((items) => items.map((item) => item.dataset.slug))
+    ).toEqual(['fixture-overlap-2-middle', 'fixture-overlap-1-newest', 'fixture-overlap-3-oldest']);
 
-    // Wait for client-side hydration
-    await page.waitForTimeout(500);
+    const readIndicator = relatedSection.locator(
+      '[data-read-indicator][data-slug="fixture-overlap-3-oldest"]'
+    );
+    const unreadIndicator = relatedSection.locator(
+      '[data-read-indicator][data-slug="fixture-overlap-2-middle"]'
+    );
+    await expect(readIndicator).toHaveClass(/is-read/);
+    await expect(readIndicator).toHaveAttribute('title', 'Read');
+    await expect(unreadIndicator).not.toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Unread');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __readStoreGetCount?: number }).__readStoreGetCount
+      )
+    ).toBe(1);
 
-    const indicatorClass = await readIndicator.getAttribute('class');
-    // After reload, the read item's indicator should have is-read class
-    expect(indicatorClass).toContain('is-read');
+    await page.evaluate(() => {
+      window.dispatchEvent(
+        new CustomEvent('read-status-changed', {
+          detail: { slug: 'fixture-overlap-2-middle', read: true },
+        })
+      );
+    });
+    await expect(unreadIndicator).toHaveClass(/is-read/);
+    await expect(unreadIndicator).toHaveAttribute('title', 'Read');
+    expect(
+      await page.evaluate(
+        () => (window as Window & { __readStoreGetCount?: number }).__readStoreGetCount
+      )
+    ).toBe(1);
   });
 
   test('R5. Post with series does NOT show Related Articles (shows SeriesNav instead)', async ({
     page,
   }) => {
-    await page.goto(ECC_MID_POST);
+    await page.goto(SD_MID_POST);
 
     const relatedSection = page.locator('[data-related-articles]');
     await expect(relatedSection).not.toBeVisible();

@@ -195,6 +195,8 @@ deployed_runtime_preflight() {
   fi
   write_writer_preflight_state "passed" "$detail" || true
   tlog "Writer preflight passed: $detail"
+  # The canary just reached Claude, so an old quota pause is over.
+  rm -f "$(tribunal_claude_pause_file)"
 }
 
 # ─── Graceful stop control ───────────────────────────────────────────────────
@@ -997,11 +999,12 @@ spawn_worker() {
   return 0
 }
 
-# Wait for ANY worker to finish. Releases its claim, logs outcome, clears
-# tracking state. Classifies the runner's watchdog-marked rc=70 as rc=124,
-# then propagates rc=77/70/124 into drain mode.
+# Wait for ANY worker to finish. Releases its claim only after attributable
+# completion; attribution failures retain claim/evidence and force fatal drain.
+# Classifies the runner's watchdog-marked rc=70 as rc=124, then propagates
+# rc=77/70/124 into drain mode.
 wait_any_worker() {
-  local claimed_marker finished_id pid article_slug worker_result_log tracking_file rc
+  local claimed_marker finished_id recorded_rc pid article_slug worker_result_log tracking_file rc
   tribunal_wait_for_worker_completion "$WORKER_COMPLETION_DIR" "$LOG_FILE"
   if [ "$TRIBUNAL_WORKER_COMPLETION_KIND" = "missing_marker" ]; then
     finished_id="$TRIBUNAL_COMPLETED_WORKER_ID"
@@ -1023,12 +1026,17 @@ wait_any_worker() {
   fi
   claimed_marker="$TRIBUNAL_WORKER_COMPLETION_MARKER"
   finished_id="$(sed -n 's/^worker_id=//p' "$claimed_marker" | head -1)"
+  recorded_rc="$(sed -n 's/^rc=//p' "$claimed_marker" | head -1)"
+  case "$recorded_rc" in
+    ''|*[!0-9]*) recorded_rc=invalid ;;
+  esac
   if [ -z "$finished_id" ] || [ -z "${WORKER_PID[$finished_id]:-}" ]; then
     tlog "ERROR: completion marker does not match an active worker: $claimed_marker"
     stop_requested=true
     stop_source="${stop_source:-worker-attribution-error}"
-    rc_write_state "draining" "worker_attribution_error marker=$claimed_marker"
-    rm -f "$claimed_marker"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_attribution_error worker=${finished_id:-unknown} marker_rc=$recorded_rc marker=$claimed_marker"
+    rc_write_state "draining" "$fatal_worker_detail"
     return 70
   fi
 
@@ -1038,12 +1046,14 @@ wait_any_worker() {
   tracking_file="${WORKER_TRACKING[$finished_id]}"
   if ! tribunal_collect_worker_completion \
     "$claimed_marker" "$finished_id" "$pid" "$worker_result_log" "$LOG_FILE" "$tracking_file"; then
-    tlog "ERROR: worker completion attribution/flush failed for worker-$finished_id pid=$pid"
+    tlog "ERROR: worker completion attribution failed for worker-$finished_id pid=$pid article=$article_slug; retaining claim and worker log"
     stop_requested=true
     stop_source="${stop_source:-worker-attribution-error}"
-    rc_write_state "draining" "worker_attribution_error worker=$finished_id pid=$pid"
-    rm -f "$worker_result_log" "$claimed_marker"
-    rc_release_claim "$article_slug"
+    fatal_worker_rc=70
+    fatal_worker_detail="worker_attribution_error worker=$finished_id pid=$pid article=$article_slug marker_rc=$recorded_rc claim_retained=true result_log=$worker_result_log"
+    rc_write_state "draining" "$fatal_worker_detail"
+    wait "$pid" 2>/dev/null || true
+    [ -n "$tracking_file" ] && rm -f "$tracking_file"
     unset "WORKER_PID[$finished_id]"
     unset "WORKER_ARTICLE[$finished_id]"
     unset "WORKER_RESULT_LOG[$finished_id]"
@@ -1069,7 +1079,21 @@ wait_any_worker() {
          stop_source="${stop_source:-worker-stall}"
          rc_write_state "draining" "worker_stall article=$article_slug"
          ;;
-    75) tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)" ;;
+    75) # tribunal.sh exits 75 for both a held article lock and a quota
+        # suspension; the ledger tells them apart.
+        if [ "$(jq -r --arg a "$article_slug.mdx" '.[$a].status // ""' "$PROGRESS_FILE" 2>/dev/null || true)" = QUOTA_SUSPENDED ]; then
+          tlog "  [worker-$finished_id] $article_slug — QUOTA_SUSPENDED (rc=75); not a failure, retried after the quota recovers"
+        else
+          tlog "  [worker-$finished_id] $article_slug — skipped (lock collision)"
+        fi
+        ;;
+    78) tlog "  [worker-$finished_id] $article_slug — needs operator action (rc=78; see the worker log above: run \`claude auth login\` as ${USER:-$(id -un)}, or fix the Claude plan, admin settings or model pin); draining and claiming no new articles."
+        stop_requested=true
+        stop_source="${stop_source:-worker-config-error}"
+        fatal_worker_rc=78
+        fatal_worker_detail="worker_needs_operator_action article=$article_slug rc=78"
+        rc_write_state "draining" "$fatal_worker_detail"
+        ;;
     77) tlog "  [worker-$finished_id] $article_slug — stopped_by_request propagated."
         stop_requested=true
         stop_source="${stop_source:-propagated-from-worker}"
@@ -1128,19 +1152,9 @@ get_unscored_articles() {
   local article full_path status
   for article in $all_zh_articles; do
     full_path="$POSTS_DIR/$article"
-    # Skip deprecated posts. Frontmatter may use quoted or unquoted YAML
-    # scalars, so parse only the first frontmatter block instead of matching
-    # one exact string.
-    if awk '
-      /^---$/ { c++; if (c == 2) exit; next }
-      c == 1 && /^status:/ {
-        sub(/^status:[[:space:]]*/, "", $0)
-        gsub(/^[[:space:]"'\''"]+|[[:space:]"'\''"]+$/, "", $0)
-        if ($0 == "deprecated") found = 1
-        exit
-      }
-      END { exit(found ? 0 : 1) }
-    ' "$full_path" 2>/dev/null; then
+    # Skip deprecated and taken-down posts: Tribunal scope is decided by
+    # frontmatter status alone (tribunal_post_outside_scope).
+    if tribunal_post_outside_scope "$full_path"; then
       continue
     fi
     # Skip already passed or permanently exhausted only for the current
@@ -1271,6 +1285,24 @@ while true; do
     else
       tlog "$TOTAL unscored articles remaining. in-flight=$IN_FLIGHT workers=$WORKERS"
     fi
+  fi
+
+  # ── Claude writer pause ───────────────────────────────────────────────────
+  # A writer that hit the Claude quota recorded when it resets, or a short
+  # pause after a temporary Claude error. Hold new dispatch until then instead
+  # of judging more articles into the same error; the controller below only
+  # sees Codex quota.
+  if CLAUDE_PAUSE_LEFT="$(tribunal_claude_pause_remaining)"; then
+    if (( IN_FLIGHT > 0 )); then
+      tlog "Claude writer pause active (${CLAUDE_PAUSE_LEFT}s left); waiting for in-flight workers."
+      wait_any_worker
+      continue
+    fi
+    CLAUDE_PAUSE_WAIT=$(( CLAUDE_PAUSE_LEFT < 1800 ? CLAUDE_PAUSE_LEFT : 1800 ))
+    tlog "Claude writer pause: holding dispatch for ${CLAUDE_PAUSE_LEFT}s; re-checking in ${CLAUDE_PAUSE_WAIT}s (interruptible)."
+    rc_write_state "stopped_by_quota" "claude_writer_quota remaining=${CLAUDE_PAUSE_LEFT}s"
+    rc_interruptible_sleep "$CLAUDE_PAUSE_WAIT" || true
+    continue
   fi
 
   # ── Check quota ────────────────────────────────────────────────────────────

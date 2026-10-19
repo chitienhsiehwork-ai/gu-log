@@ -24,9 +24,12 @@
  * exec writes its score to a file and only greps stdout for quota errors, so it
  * can't cheaply parse JSON metadata). It is used ONLY for recording.
  *
- * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it.
+ * ⚠️ BUMP THIS when a newer Opus ships and the `opus` alias moves to it; keep
+ * the display fallback for the bare alias in
+ * tools/gp-pipeline/internal/llm/models.go in step (a Go test compares them).
+ * Records already stamped with an older build stay as they are.
  */
-export const OPUS_ALIAS_CURRENT = 'claude-opus-5';
+export const OPUS_ALIAS_CURRENT = 'claude-opus-5-5';
 
 /**
  * Resolve a model selector to the concrete id used for RECORDING. The literal
@@ -51,6 +54,10 @@ export const MODEL_MAP = {
   // Claude 5 generation drops the decimal minor version (whole-number release
   // names), unlike the 4.x Opus/Sonnet line above — see validate-posts.mjs
   // Rule 15, which treats every MODEL_MAP value as a complete display name.
+  // Point releases (claude-opus-5-5) must come before their whole-number
+  // family: formatModelName's partial match takes the first key the id
+  // contains, so 'claude-opus-5' listed first would display 5-5 as "Opus 5".
+  'claude-opus-5-5': 'Opus 5.5',
   'claude-opus-5': 'Opus 5',
   'claude-sonnet-5': 'Sonnet 5',
   'claude-fable-5': 'Fable 5',

@@ -18,7 +18,7 @@
 
 ## gu-log 是什麼？
 
-gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，做成忠實繁中翻譯，或由 Mogu 消化後重寫成自己的文章；每篇都保留來源連結。另外也有原創文和入門教學。**每篇文章都同時產出 `zh-tw` 和 `en` 兩版。**
+gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，寫成帶讀者回原文的導讀，或由 Mogu 消化後重寫成自己的文章；每篇都保留來源連結。另外也有原創文和入門教學。**每篇文章都同時產出 `zh-tw` 和 `en` 兩版。**
 
 名字由來：**`gu` = 菇**，取自香菇大狗狗的「菇」。所以 `gu-log` = 菇 log = 香菇的紀錄本。🍄
 
@@ -48,7 +48,7 @@ gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，做成忠實繁
       <strong>品牌本人</strong>。一朵頂著終端機提示符的香菇 —— 一半療癒、一半命令列。它就是這個 blog。
     </td>
     <td align="center" valign="top">
-      <strong>人類作者</strong>。負責挑哪些文章值得翻、定下編輯標準，並給出校準一切的修稿回饋。
+      <strong>人類作者</strong>。負責挑哪些文章值得讀、定下編輯標準，並給出校準一切的修稿回饋。
     </td>
     <td align="center" valign="top">
       <strong>AI 夥伴</strong>。一隻戴香菇帽的小刺蝟，負責寫作、翻譯與維護整座網站 —— 還會在 <code>&lt;MoguNote&gt;</code> 裡吐槽補刀。
@@ -64,7 +64,7 @@ gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，做成忠實繁
 
 | 前綴 | 系列 | 誰挑 | 誰寫 |
 |---|---|---|---|
-| **GP** | Gu-log Picks | ShroomDog 挑 | Mogu 翻譯 |
+| **GP** | Gu-log Picks | ShroomDog 挑 | Mogu 寫導讀，帶讀者回原文 |
 | **MP** | Mogu Picks | Mogu 自主挑 | Mogu 消化來源後寫作 |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog 原創 |
 | **Lv** | Level-Up | — | 入門教學 |

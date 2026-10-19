@@ -85,7 +85,7 @@ jobs:
 
       - name: Set up Node.js
         if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
@@ -122,6 +122,10 @@ jobs:
         run: pnpm run lint
       - name: Prettier check
         run: pnpm run format:check
+      - name: level-up skill mirror matches dotfiles pin
+        # .claude/skills/level-up/ is a mirror of ChiTienHsieh/dotfiles; edits
+        # belong upstream, then scripts/sync-level-up-skill.sh re-syncs.
+        run: bash scripts/sync-level-up-skill.sh --check
 
   type-check:
     runs-on: ubuntu-latest
@@ -139,7 +143,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
       - name: WCAG AA contrast check
@@ -163,6 +167,19 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
+      - name: Takedown ratchet (PR only — tombstones stay tombstones)
+        # Same executable as pre-commit step -3.5, but PR base → head: a
+        # taken-down post must stay taken-down with an empty body, new posts
+        # may not reuse a taken-down source (except a stamped GP whose
+        # matching takedowns are all GP), and sources/ only grows under
+        # sources/chatgpt/ (openspec: post-takedown).
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_SHA"
+          node scripts/check-takedown-ratchet.mjs "--base=$BASE_SHA"
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
       - name: Block retired brand taxonomy contracts
@@ -281,6 +298,25 @@ jobs:
       - name: Vitest unit tests
         run: pnpm exec vitest run --reporter=default
 
+  # gp-pipeline 的 Go 測試會呼叫 repo 的 Node 腳本（例如 dedup-gate 要用
+  # gray-matter），所以先用 setup-pnpm 裝好 Node 與 node_modules，否則這些測試
+  # 會被略過或失敗。-count=1 停用測試快取：setup-go 會還原 GOCACHE，而子行程
+  # 讀的 repo 檔案改了 Go 也看不出來，可能沿用過期的通過結果（openspec:
+  # gp-pipeline-publish-integrity）。
+  gp-pipeline-go-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-pnpm
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: tools/gp-pipeline/go.mod
+          cache-dependency-path: tools/gp-pipeline/go.sum
+      - name: gp-pipeline Go tests
+        working-directory: tools/gp-pipeline
+        run: go test -count=1 ./...
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -306,7 +342,7 @@ jobs:
         run: pnpm run build
 
       - name: Upload dist for downstream jobs
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
@@ -326,7 +362,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
       - name: Verify Playwright spec ownership
@@ -385,10 +421,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
@@ -403,10 +439,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
@@ -429,6 +465,7 @@ jobs:
       - security-gate
       - gitleaks
       - unit-tests
+      - gp-pipeline-go-tests
       - build
       - internal-links
       - bundle-budget

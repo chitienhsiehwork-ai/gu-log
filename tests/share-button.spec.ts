@@ -1,6 +1,60 @@
 import { expect, test } from './fixtures';
 
 test.describe('ShareButton fallback', () => {
+  test('uses the public canonical URL for every share target', async ({ page }) => {
+    await page.addInitScript(() => {
+      const captured: { shared?: string; copied?: string } = {};
+      Object.defineProperty(window, '__shareButtonCapturedUrls', { value: captured });
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: (data: ShareData) => {
+          captured.shared = data.url;
+          return Promise.resolve();
+        },
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: (value: string) => {
+            captured.copied = value;
+            return Promise.resolve();
+          },
+        },
+      });
+    });
+
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies?token=private#access-token');
+
+    const expected = await page.locator('link[rel~="canonical"]').getAttribute('href');
+    expect(expected).toBe('https://gu-log.vercel.app/posts/mp-25-20260204-cursor-vibe-coding-lies');
+
+    await page.locator('.share-native').click();
+    await page.locator('.share-copy').evaluate((button: HTMLButtonElement) => button.click());
+
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              window as Window & {
+                __shareButtonCapturedUrls?: { shared?: string; copied?: string };
+              }
+            ).__shareButtonCapturedUrls
+        )
+      )
+      .toEqual({ shared: expected, copied: expected });
+
+    for (const { selector, parameter } of [
+      { selector: '.share-x', parameter: 'url' },
+      { selector: '.share-fb', parameter: 'u' },
+      { selector: '.share-line', parameter: 'url' },
+    ]) {
+      const href = await page.locator(selector).getAttribute('href');
+      expect(href).not.toBeNull();
+      expect(new URL(href!).searchParams.get(parameter)).toBe(expected);
+    }
+  });
+
   test('resets copied feedback two seconds after the latest successful copy', async ({ page }) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'share', {
@@ -16,7 +70,7 @@ test.describe('ShareButton fallback', () => {
     });
     await page.clock.install();
 
-    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
     const copyButton = page.locator('.share-copy');
     const copyText = copyButton.locator('.copy-text');
@@ -92,7 +146,7 @@ test.describe('ShareButton fallback', () => {
         });
       }, outcome);
 
-      await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+      await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
       const copyButton = page.locator('.share-copy');
       await expect(copyButton).toBeVisible();

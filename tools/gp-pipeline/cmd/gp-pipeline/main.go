@@ -1,5 +1,6 @@
-// Command gp-pipeline is gu-log's GP translation and MP writing pipeline CLI; the canonical
-// entrypoint is the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
+// Command gp-pipeline is gu-log's source-grounded writing pipeline CLI for
+// GP/MP/SD; Lv only uses its non-writing steps. The canonical entrypoint is
+// the self-compiling wrapper tools/gp-pipeline/gp-pipeline.
 // See tools/gp-pipeline/README.md for the migration history and
 // tools/gp-pipeline/SKILL.md for the agent-facing subcommand contract.
 package main
@@ -10,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,6 +19,7 @@ import (
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // Version is kept explicit until release automation injects a tagged build.
@@ -54,11 +57,13 @@ func buildRoot() *cobra.Command {
 
 	root := &cobra.Command{
 		Use:   "gp-pipeline",
-		Short: "gu-log GP translation and MP source-grounded writing pipeline",
-		Long: `gp-pipeline is the Go implementation of gu-log's GP faithful-translation
-and MP source-grounded writing flows. The canonical entrypoint is
-tools/gp-pipeline/gp-pipeline; ticket prefixes are GP/MP and post filename
-slugs are gp-/mp-.
+		Short: "gu-log source-grounded writing pipeline",
+		Long: fmt.Sprintf(`gp-pipeline is the Go implementation of gu-log's source-grounded writing
+flow for %s; Lv is written by hand (see CONTRIBUTING.md).
+The canonical entrypoint is tools/gp-pipeline/gp-pipeline; ticket prefixes
+are GP/MP/SD/Lv and post filename slugs are gp-/mp-/sd-/lv- (existing Lv
+posts keep levelup-). Commands that start without a file require --prefix:
+no command picks a series on its own.
 
 It is split into composable subcommands so an agent (or a human) can run
 one step at a time without inheriting the whole pipeline's side effects:
@@ -66,21 +71,23 @@ one step at a time without inheriting the whole pipeline's side effects:
   fetch      capture a tweet / article into a work directory
   candidate  preflight one YouTube video without entering the writing pipeline
   status     inspect an active/recent run from work-dir + repo artifacts
-  eval       decide whether a source is GP-worthy
+  eval       decide whether a source is worth an article
   dedup      check whether the source is already covered
-  write      legacy/non-GP editorial draft step
-  review     legacy/non-GP editorial review step
-  refine     legacy/non-GP full-article refine step
-  ralph      run the 4-judge tribunal
+  write      draft an article
+  review     review a draft
+  refine     refine a draft into final.mdx
+  ralph      run the 4-judge tribunal (GP is score-only)
   translate  produce the en sidecar, but only after ralph passed
              (zh-tw-first: never translates an unstable draft)
   deploy     validate, build, commit, push
   run        run the whole pipeline end-to-end
+  stamp      check an existing GP post against its source and write its
+             source-distance stamp (the body is never changed)
   doctor     check that every external dependency is reachable
   counter    read / bump the ticket counter
 
 Use --help on any subcommand for details. See tools/gp-pipeline/README.md
-for the migration history and current operational notes.`,
+for the migration history and current operational notes.`, authorableSeries(" / ")),
 		Version:       Version,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -139,6 +146,7 @@ for the migration history and current operational notes.`,
 	root.AddCommand(newTranslateCmd(state))
 	root.AddCommand(newDeployCmd(state))
 	root.AddCommand(newRunCmd(state))
+	root.AddCommand(newStampCmd(state))
 
 	return root
 }
@@ -170,8 +178,8 @@ func newExitError(code int, err error) *ExitError {
 	return &ExitError{Code: code, Err: err}
 }
 
-// exitCodeFor maps known error types to documented exit codes. See
-// SKILL.md for the full exit code contract.
+// exitCodeFor maps known error types to documented exit codes. `run --help`
+// lists the full exit code contract.
 func exitCodeFor(err error) int {
 	if err == nil {
 		return 0
@@ -184,6 +192,12 @@ func exitCodeFor(err error) int {
 		return 124
 	}
 	return 1
+}
+
+// authorableSeries joins pipeline.AuthorablePrefixes with sep, so the help
+// text names exactly the series the pipeline writes.
+func authorableSeries(sep string) string {
+	return strings.Join(pipeline.AuthorablePrefixes, sep)
 }
 
 func truthyEnv(key string) bool {

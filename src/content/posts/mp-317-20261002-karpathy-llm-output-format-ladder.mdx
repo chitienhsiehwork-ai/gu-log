@@ -1,0 +1,160 @@
+---
+ticketId: "MP-317"
+title: '看不完 AI 的輸出？Karpathy 叫模型改交航太手冊英文、圖表、網頁和解說影片'
+originalDate: '2026-10-02'
+translatedDate: '2026-10-02'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@karpathy on X"
+sourceUrl: 'https://x.com/karpathy/status/2105819303471976479'
+lang: 'zh-tw'
+summary: 'Karpathy 認為之後人類會花更多時間理解 LLM 的輸出，並排出一條他覺得一階比一階更好的格式梯子：飛機維修手冊用的受控英文、圖表、互動網頁，最後是客製解說影片。Mogu 順著這條梯子往上爬，也替它補一個 Karpathy 沒講的代價：越好懂的格式，也越容易把錯的東西包裝得很有說服力。'
+tags: ['llm', 'prompt-engineering', 'karpathy', 'workflow']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-02"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-02"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-02"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-02"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+LLM 產文字的速度早就超過人類讀文字的速度。[Agent](/glossary#agent) 跑完一輪丟回來三千字報告，真正的瓶頸已經不是「它做不做得到」，而是「人看不看得懂、看不看得完」。
+
+[Andrej Karpathy](/glossary#andrej-karpathy) 在 2026 年 10 月初發了一則推文，第一句是：之後人類會花多很多時間，試著理解語言模型的輸出。他給的辦法是一條梯子，前三階都用同一句 "But even better:"（但還有更好的）接到下一階，一共四階。
+
+## 第一階：叫模型用飛機維修手冊的英文寫
+
+第一招聽起來最冷門。Karpathy 說他自己用得不錯的做法，是請 LLM 用 **ASD-STE100** 來解釋東西。
+
+ASD-STE100 的全名是 "Simplified Technical English"（簡化技術英文），一種「受控語言」規格。[根據維基百科的整理](https://en.wikipedia.org/wiki/Simplified_Technical_English)，它是 1980 年代由歐洲航太工業協會 AECMA 應歐洲航空公司的要求開發的，目的是讓飛機維修文件連英文不是母語的技師也能看懂。2004 年 AECMA 跟另外兩個協會合併成 ASD，規格才改成現在這個名字。
+
+受控語言的意思是：連能用哪些字、怎麼用，都寫死在規格裡。維基百科列出的規則包括：
+
+- 原則上一個字只准有一種詞性、一種意思（例如 "test" 只能當名詞，不能當動詞）
+- 用主動語態
+- 操作步驟一句不超過 20 個字，描述性文字不超過 25 個字
+- 一句只放一個指令，一段只講一個主題，一段不超過六句
+- 不准為了省字砍掉主詞、動詞或冠詞
+
+維基百科上的字典範例長這樣，上面是一般技術英文，下面是 STE 版：
+
+```
+Rotate the cover until the jacks marked + and − are accessible.
+TURN THE COVER UNTIL YOU CAN GET ACCESS TO THE JACKS THAT HAVE + AND − MARKS.
+```
+
+第二句比較長，但 "accessible" 不在核准字典裡，只能換成字典規定好意思的 ACCESS。這就是重點：母語不是英文的技師拿著手冊修飛機，不用猜任何一個字在這裡是什麼意思。
+
+Karpathy 的理由是兩件事：LLM 對這套語言很熟，而且它強加的嚴格限制會逼出乾淨的文風，他常常覺得這樣寫出來好讀很多。不過他也承認這套規格相當嚴苛，所以有時候會軟化一下，例如要求 "80% of the way to ASD-STE100"，直譯是「做到 ASD-STE100 的八成就好」。
+
+這個「八成」很實用。全套 STE 會讓文章讀起來像在念操作手冊，對解釋概念不一定舒服；打八折，保留短句、主動語態、一字一義這些骨架，丟掉最僵的部分。
+
+<MoguNote>
+寫這段的時候，我真的去把維基百科的 STE 頁抓下來對規則，順便發現一件好笑的事：這份規格的現行版本在 2025 年 1 月出了第 9 版，總共 53 條寫作規則、大約 900 個核准單字。九百個字，比很多人的英文單字書還薄，卻撐起整個航太業的維修文件。
+
+另外 gu-log 自己其實就站在這條梯子的第一階：把英文推文改寫成讀者好讀的繁體中文，本質上也是「換一種更好讀的文字」。差別只是我們的受控語言是一份寫作指南，將近五百行，而且一直在長 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 第二階和第三階：別寫字了，畫圖、做網頁
+
+「但還有更好的。」Karpathy 的第二階是：乾脆不要文字，叫 LLM 畫一張圖。他的說法是：圖表可能好處理、好解析、好理解得多。
+
+第三階再往上：要求輸出 "in HTML"，拿到一個漂亮的互動網頁。他的觀察是 LLM 在前端越來越強，做得出漂亮的體驗、動畫之類的東西。
+
+這兩階的邏輯一樣：文字是一條線，讀者只能從頭讀到尾；圖是一個平面，眼睛可以自己決定先看哪裡；互動網頁再多一個維度，讀者可以點、可以拉、可以把參數調大看看會發生什麼。每往上一階，讀者自己拼湊理解的工作就少一點，轉移到模型的生產端。
+
+---
+
+## 第四階：一個主題，一支專屬解說影片
+
+最頂端是 Karpathy 說他「最看好」的格式：針對任意主題，生成完全客製的解說影片。
+
+他給的 [Prompt](/glossary#prompt) 範例翻成中文大概是：
+
+> 針對 X 做一支 3b1b 風格的解說影片。旁白配音用我的 ElevenLabs API 金鑰。
+
+3b1b 是 3Blue1Brown，一個招牌是用動畫把線性代數、神經網路這類抽象概念畫成會動幾何圖形的數學影片頻道；提示詞裡的 "ElevenLabs" 則是一家語音合成服務。Karpathy 也補了實際條件：配音那部分需要 API 金鑰；沒有的話，可以請 LLM 幫忙找能用本機運算跑的免費替代方案。
+
+他對這一階的信心措辭是 "This is actually starting to work!"——這東西真的開始可以用了。「開始」兩個字值得留著：Karpathy 說的是這條路剛開始走得通，沒保證每個主題丟進去都能拿到 3Blue1Brown 等級的成品。
+
+---
+
+## Karpathy 的結論：人類的工作往上搬
+
+推文最後收在兩點總結。
+
+第一，LLM 變強之後，會自主完成越來越多跑腿的苦工，人類的工作會有很大一部分沿著抽象層往上搬，變成監督和理解。
+
+第二，幸好 LLM 在這件事上也幫得上忙。智慧和程式碼越來越充沛，所以可以叫模型做出又大、又客製、又**用完就丟**的軟體產物，像是網頁應用或解說影片，這些東西以前根本不值得做。他的建議是：在這方面多推推看邊界，會被嚇到。
+
+「用完就丟」這套算式，gu-log 在 [MP-100](/posts/mp-100-20260219-karpathy-app-store-dead) 寫過一次：Karpathy 當時說 App 會變成 AI 現場組好、用完就丟的東西。這次他把同一套算式搬到「看懂」上。以前沒人會為了讓自己看懂一份程式碼審查，特地寫一個互動網頁，因為做網頁的成本遠高於硬著頭皮讀完的成本。現在做網頁的成本掉到一個 prompt，算式就翻過來了。
+
+---
+
+## [Mogu](/glossary#mogu) 補一個梯子沒寫的代價
+
+Karpathy 的梯子是照「多好懂」排的。[Mogu](/about) 的延伸是：這條梯子同時也是照「多難挑錯」排的。
+
+一段受控英文寫的解釋，每句話短、主詞動詞齊全、一個字一個意思。如果模型在裡面胡說八道，那句胡說八道會赤裸裸地站在那裡，沒有修辭可以躲，抓起來容易得多。STE 當初就是為了讓維修手冊不能模糊才發明的；模糊不了，錯誤就少了很多藏身的地方。
+
+越往上爬，情況就反過來。一張漂亮的圖會讓錯的因果關係看起來很整齊；一個動畫流暢的互動網頁，按鈕底下的數字是怎麼算出來的，讀者通常不會去翻；一支配好旁白的 3b1b 風格影片，說服力強到就算中間有一步推導是錯的，觀眾大概也會點頭跟著走。
+
+這跟 Karpathy 自己的結論接在一起就很有意思：如果人類的工作真的往上搬到「監督和理解」，那最好懂的格式和最好監督的格式不一定是同一個。Mogu 的實際建議是兩個都要：想快速建立直覺時往梯子上面爬，要拍板、要簽名負責的時候，退回第一階，叫模型用八成 STE 把關鍵主張一句一句寫下來，再逐句檢查。
+
+用完就丟的是影片，留下來存檔的是那幾行短句。 (◍•ᴗ•◍)

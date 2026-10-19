@@ -15,7 +15,7 @@ import {
  * Run with: npx playwright test tests/ai-popup.spec.ts
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 const AUTH_RETURN_KEY = 'gu-log-return-url';
 const AUTH_JWT_KEY = 'gu-log-jwt';
 const AUTH_STORAGE_URL_KEY = 'gu-log-auth-storage-url';
@@ -308,6 +308,50 @@ test.describe('AI Popup - File Path Wiring', () => {
 
     const root = page.locator('#ai-popup-root');
     await expect(root).toHaveAttribute('data-file-path', /src\/content\/posts\/.*\.mdx$/);
+  });
+});
+
+test.describe('AI Popup - Shell ownership', () => {
+  test('GIVEN article markup duplicates the popup root id WHEN asking AI THEN the shell-owned endpoint is used', async ({
+    page,
+  }) => {
+    await page.route(`**${TEST_POST}`, async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      const postContent = /(<div\b[^>]*\bclass="post-content"[^>]*>)/;
+      if (!postContent.test(html)) throw new Error('No article content container found');
+
+      await route.fulfill({
+        response,
+        body: html.replace(postContent, '$1<h2 id="ai-popup-root">Article heading</h2>'),
+      });
+    });
+
+    let requestUrl = '';
+    await page.route('**/ai/ask', async (route) => {
+      requestUrl = route.request().url();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ response: 'Shell-owned response.' }),
+      });
+    });
+
+    await page.goto(TEST_POST);
+    const apiUrl = await page.locator('main > #ai-popup-root').getAttribute('data-api-url');
+    expect(apiUrl).toBeTruthy();
+    await page.evaluate(() => {
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({ email: 'test@example.com', exp: 9999999999 }));
+      localStorage.setItem('gu-log-jwt', header + '.' + payload + '.fake-signature');
+    });
+
+    const popup = await selectPostTextAndShowPopup(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    await expect(popup.locator('.ai-popup-result-body')).toHaveText('Shell-owned response.');
+    expect(requestUrl).toBe(`${apiUrl}/ai/ask`);
   });
 });
 
@@ -863,12 +907,12 @@ test.describe('Auth Callback', () => {
     await page.goto('/');
     await page.evaluate(() => {
       localStorage.removeItem('gu-log-jwt');
-      localStorage.setItem('gu-log-return-url', '/posts/gp-24-20260204-claude-is-a-space-to-think');
+      localStorage.setItem('gu-log-return-url', '/posts/mp-25-20260204-cursor-vibe-coding-lies');
     });
 
     await page.goto('/auth/callback?token=redirect-test-token');
 
-    await page.waitForURL('**/posts/gp-24-20260204-claude-is-a-space-to-think', { timeout: 5000 });
+    await page.waitForURL('**/posts/mp-25-20260204-cursor-vibe-coding-lies', { timeout: 5000 });
 
     const jwt = await page.evaluate(() => localStorage.getItem('gu-log-jwt'));
     expect(jwt).toBe('redirect-test-token');

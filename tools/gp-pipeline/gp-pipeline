@@ -2,14 +2,15 @@
 # gp-pipeline — self-compiling wrapper around the Go binary.
 #
 # "GP" = Gu-log Picks, matching the blog's brand. This is the ONLY entry
-# point for the GP translation / MP writing pipeline — no scripts/ wrapper, no legacy shim.
+# point for the GP/MP/SD writing pipeline — no scripts/ wrapper, no legacy shim.
+# Lv is written by hand (CONTRIBUTING.md) and only uses the non-writing steps.
 #
 # First call on a fresh checkout builds the binary into ./bin/; subsequent calls
 # reuse it. Go's incremental build cache makes the "is the binary stale?" check
 # effectively free. This exists so that CCC (Cloud Claude Code) spawning a brand
 # new sandbox does not need a prebuilt binary checked into git — just run:
 #
-#   tools/gp-pipeline/gp-pipeline run <tweet_url>
+#   tools/gp-pipeline/gp-pipeline run <tweet_url> --prefix <GP|MP|SD>
 #
 # and the first call takes ~3 seconds cold, everything after that is instant.
 set -euo pipefail
@@ -32,7 +33,9 @@ if [ -z "${TRIBUNAL_RUNTIME_PROFILE:-}" ]; then
 fi
 if [ "$TRIBUNAL_RUNTIME_PROFILE" = "vm-codex" ] &&
    [ -z "${GP_WRITER_MODE:-}" ]; then
-  export GP_WRITER_MODE=grok
+  # Tribunal rewrites triggered by `run` must use the Claude model; see
+  # openspec claude-prose-writing-runtime.
+  export GP_WRITER_MODE=claude
 fi
 
 need_rebuild() {

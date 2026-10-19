@@ -98,6 +98,7 @@ Fixture 一旦 commit 進 git，SHALL NOT 被自動化工具修改。允許的�
 - 人類發現 fixture 本身的 `expectedClass` 判錯 → 可修正 + commit message SHALL 以 `fix(fixture): <slug>` 開頭並說明改動原因
 - 新增 fixture → 照正常新增流程
 - 刪除過時 fixture（例如對應 post 已從 corpus 永久下架）→ commit message SHALL 以 `chore(fixture): remove <slug>` 開頭並說明原因
+- fixture 的 `contentSnapshot` 含第三方原文或已依 `post-takedown` 下架的譯文 → 可換成保留原本判斷關係的合成摘要，`expectedClass`、`expectedAction`、`humanReasoning` 與 `sourceRef` 不變；commit message SHALL 以 `fix(fixture): <slug>` 開頭並說明是為了移除下架內容
 
 #### Scenario: Ralph Loop 不得改 fixture 內文
 
@@ -112,13 +113,18 @@ Fixture 一旦 commit 進 git，SHALL NOT 被自動化工具修改。允許的�
 - **THEN** commit message SHALL 為 `fix(fixture): gemma-4-dual-post — reclassify soft-dup → clean-diff`
 - **AND** commit body SHALL 說明重新判定的理由（避免未來對 fixture 版本演進失去追溯性）
 
----
+#### Scenario: 移除 fixture 裡的下架譯文
+
+- **WHEN** 一筆 fixture 的 `contentSnapshot` 是已下架 GP 的譯文段落
+- **THEN** 人類 MAY 把它換成自寫的合成摘要，讓兩篇之間的主題與差異關係維持可判斷
+- **AND** `expectedClass`、`expectedAction`、`humanReasoning` 與 `sourceRef` SHALL 不變
+- **AND** commit message SHALL 以 `fix(fixture):` 開頭並說明是為了移除下架內容
 
 ### Requirement: Bootstrap 初始批次
 
-> **非規範性歷史註記：** 以下 bootstrap 門檻與表格記錄本 change archive 時的歷史狀態；其中 `待定` / `outstanding` 不代表目前 `main` 的 fixture 現況。
-
 本 change archive 前，`tribunal/fixtures/` 下 SHALL 至少存在以下 4 筆 fixture 之 3 筆（第 4 筆為 outstanding item，可在 Level D 執行階段補齊或延至 Level E 前補齊）：
+
+> **非規範性歷史註記：** 以下 bootstrap 門檻與表格記錄本 change archive 時的歷史狀態；其中 `待定` / `outstanding` 不代表目前 `main` 的 fixture 現況。
 
 | 分類                 | 檔名                     | 來源                                                                   |
 | -------------------- | ------------------------ | ---------------------------------------------------------------------- |

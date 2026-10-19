@@ -4,22 +4,11 @@ import { readFile } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseIsoDay } from './lib/iso-day.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_MAX_AGE_DAYS = 3;
-
-function parseIsoDay(value, label) {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new Error(`${label} must be a YYYY-MM-DD string, got ${JSON.stringify(value)}`);
-  }
-
-  const timestamp = Date.parse(`${value}T00:00:00Z`);
-  if (!Number.isFinite(timestamp) || new Date(timestamp).toISOString().slice(0, 10) !== value) {
-    throw new Error(`${label} is not a real calendar date: ${value}`);
-  }
-  return timestamp;
-}
 
 export function latestCoverageHistoryDate(history) {
   if (!Array.isArray(history) || history.length === 0) {

@@ -145,6 +145,30 @@ pass "sync reports one install failure but continues updating other workers"
   fail "worker-a did not record its successful retry"
 pass "same-SHA sync retries and records a recovered dependency install"
 
+pnpm_calls_before_same_sha_reset="$(wc -l <"$pnpm_calls")"
+printf 'poisoned index\n' >"$TMP/gu-log-worker-a/file.txt"
+git -C "$TMP/gu-log-worker-a" add file.txt
+printf 'poisoned worktree\n' >>"$TMP/gu-log-worker-a/file.txt"
+(
+  cd "$repo"
+  PATH="$fake_pnpm_bin:$PATH" \
+    PNPM_CALLS="$pnpm_calls" \
+    PNPM_FAILED_ONCE="$pnpm_failed_once" \
+    TRIBUNAL_WORKER_SYNC_REF=HEAD \
+    bash scripts/tribunal-worker-bootstrap.sh sync a
+) >"$TMP/same-sha-reset.out" 2>&1
+git -C "$TMP/gu-log-worker-a" diff --quiet ||
+  fail "same-SHA sync preserved a tracked worktree edit"
+git -C "$TMP/gu-log-worker-a" diff --cached --quiet ||
+  fail "same-SHA sync preserved a tracked index edit"
+cmp -s "$TMP/gu-log-worker-a/file.txt" "$repo/file.txt" ||
+  fail "same-SHA sync did not restore the target blob"
+[ -e "$a_ready_marker" ] ||
+  fail "same-SHA reset invalidated an unchanged dependency receipt"
+[ "$(wc -l <"$pnpm_calls")" -eq "$pnpm_calls_before_same_sha_reset" ] ||
+  fail "same-SHA reset reran an unnecessary dependency install"
+pass "same-SHA sync discards tracked poison without reinstalling dependencies"
+
 create_pnpm_bin="$TMP/create-pnpm-bin"
 create_calls="$TMP/create-pnpm-calls"
 create_failed_once="$TMP/create-pnpm-failed-once"
@@ -210,6 +234,40 @@ printf '%s\n' \
   ': > "$PREFIX_SIDE_EFFECT"' \
   'exit 0' >"$prefix_fake_bin/pnpm"
 chmod +x "$prefix_fake_bin/pnpm"
+
+prefix_git_dir="$(git -C "$prefix_path" rev-parse --absolute-git-dir)"
+prefix_ready_marker="$prefix_git_dir/tribunal-dependencies-ready"
+: >"$prefix_ready_marker"
+printf 'standalone staged poison\n' >"$prefix_path/file.txt"
+git -C "$prefix_path" add file.txt
+printf 'standalone worktree poison\n' >>"$prefix_path/file.txt"
+prefix_head_before_sync="$(git -C "$prefix_path" rev-parse HEAD)"
+prefix_status_before_sync="$(git -C "$prefix_path" status --porcelain=v1)"
+prefix_content_before_sync="$(cat "$prefix_path/file.txt")"
+
+prefix_sync_output="$TMP/prefix-sync-collision.out"
+if (
+  cd "$repo"
+  PATH="$prefix_fake_bin:$PATH" \
+    PREFIX_SIDE_EFFECT="$prefix_side_effect" \
+    TRIBUNAL_WORKER_SYNC_REF=HEAD \
+    bash scripts/tribunal-worker-bootstrap.sh sync prefix
+) >"$prefix_sync_output" 2>&1; then
+  fail "sync accepted a standalone repo through a worktree path prefix collision"
+fi
+grep -F 'ERROR: refusing to sync unregistered directory' "$prefix_sync_output" >/dev/null ||
+  fail "sync prefix collision did not emit the unregistered-directory diagnostic"
+[ "$(git -C "$prefix_path" rev-parse HEAD)" = "$prefix_head_before_sync" ] ||
+  fail "sync prefix collision changed the standalone repo HEAD"
+[ "$(git -C "$prefix_path" status --porcelain=v1)" = "$prefix_status_before_sync" ] ||
+  fail "sync prefix collision changed tracked standalone repo state"
+[ "$(cat "$prefix_path/file.txt")" = "$prefix_content_before_sync" ] ||
+  fail "sync prefix collision changed tracked standalone repo content"
+[ -e "$prefix_ready_marker" ] ||
+  fail "sync prefix collision removed the standalone repo readiness sentinel"
+[ ! -e "$prefix_side_effect" ] ||
+  fail "sync prefix collision reached dependency installation"
+pass "sync requires an exact registered worktree path"
 
 prefix_output="$TMP/prefix-collision.out"
 if (

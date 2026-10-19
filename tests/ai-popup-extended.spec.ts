@@ -18,7 +18,7 @@ import {
  * - Clicking outside during result state (should NOT close)
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
 /** Helper to set up logged-in state and select text */
 async function setupLoggedInWithSelection(page: import('@playwright/test').Page) {

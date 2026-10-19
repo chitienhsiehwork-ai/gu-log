@@ -7,7 +7,7 @@ set -euo pipefail
 export TZ=Asia/Taipei
 export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 export TRIBUNAL_RUNTIME_PROFILE="${TRIBUNAL_RUNTIME_PROFILE:-legacy}"
-export GP_WRITER_MODE="${GP_WRITER_MODE:-codex}"
+export GP_WRITER_MODE="${GP_WRITER_MODE:-claude}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GU_LOG_DIR="${GU_LOG_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -45,14 +45,14 @@ if [ "${1:-}" = "--doctor" ]; then
     "$unit_environment" TRIBUNAL_STRICT_ROLE_PROVIDERS "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-1}")"
   export GP_WRITER_MODE
   GP_WRITER_MODE="$(tribunal_effective_runtime_value \
-    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-codex}")"
+    "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-claude}")"
   failed=0
   unit_enabled="$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)"
   [ -n "$unit_enabled" ] || unit_enabled="unknown"
   printf 'unit_enabled=%s\n' "$unit_enabled"
   [ "$unit_enabled" = "enabled" ] || failed=1
   if command -v loginctl >/dev/null 2>&1; then
-    linger="$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)"
+    linger="$(loginctl show-user "${USER:-$(id -un)}" -p Linger --value 2>/dev/null || true)"
     [ -n "$linger" ] || linger="unknown"
     printf 'linger=%s\n' "$linger"
     [ "$linger" = "yes" ] || failed=1
@@ -68,6 +68,75 @@ if [ "${1:-}" = "--doctor" ]; then
     printf 'systemd_containment=failed slice=tribunal-runtime.slice\n'
     failed=1
   fi
+  read_service_contract_snapshot() {
+    local fragment_property need_reload_property drop_ins_property
+    fragment_property="$(
+      systemctl --user show tribunal-loop.service \
+        -p FragmentPath 2>/dev/null
+    )" || return 1
+    need_reload_property="$(
+      systemctl --user show tribunal-loop.service \
+        -p NeedDaemonReload 2>/dev/null
+    )" || return 1
+    drop_ins_property="$(
+      systemctl --user show tribunal-loop.service \
+        -p DropInPaths 2>/dev/null
+    )" || return 1
+    case "$fragment_property" in
+      FragmentPath=*) service_fragment="${fragment_property#FragmentPath=}" ;;
+      *) return 1 ;;
+    esac
+    case "$need_reload_property" in
+      NeedDaemonReload=*) service_need_reload="${need_reload_property#NeedDaemonReload=}" ;;
+      *) return 1 ;;
+    esac
+    case "$drop_ins_property" in
+      DropInPaths=*) service_drop_ins="${drop_ins_property#DropInPaths=}" ;;
+      *) return 1 ;;
+    esac
+    [ -n "$service_fragment" ] && [ -n "$service_need_reload" ]
+  }
+
+  expected_service_fragment="$HOME/.config/systemd/user/tribunal-loop.service"
+  service_fragment=""
+  service_need_reload=""
+  service_drop_ins=""
+  if ! read_service_contract_snapshot; then
+    printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=query-failed\n'
+    failed=1
+  elif [ "$service_fragment" != "$expected_service_fragment" ] ||
+       [ -L "$service_fragment" ] ||
+       [ ! -f "$service_fragment" ] ||
+       [ ! -r "$service_fragment" ] ||
+       [ ! -f "$SCRIPT_DIR/tribunal-loop.service" ] ||
+       [ ! -r "$SCRIPT_DIR/tribunal-loop.service" ]; then
+    printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=fragment-mismatch FragmentPath=%s ExpectedFragmentPath=%s\n' \
+      "${service_fragment:-unknown}" "$expected_service_fragment"
+    failed=1
+  elif [ "$service_need_reload" != "no" ] || [ -n "$service_drop_ins" ]; then
+    printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=unreviewed-drift NeedDaemonReload=%s DropInPaths=%s\n' \
+      "${service_need_reload:-unknown}" "${service_drop_ins:-<none>}"
+    failed=1
+  elif ! cmp -s -- "$SCRIPT_DIR/tribunal-loop.service" "$service_fragment"; then
+    printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=fragment-mismatch FragmentPath=%s\n' \
+      "${service_fragment:-unknown}"
+    failed=1
+  else
+    service_fragment_before="$service_fragment"
+    service_need_reload_before="$service_need_reload"
+    service_drop_ins_before="$service_drop_ins"
+    if ! read_service_contract_snapshot; then
+      printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=query-failed\n'
+      failed=1
+    elif [ "$service_fragment" != "$service_fragment_before" ] ||
+         [ "$service_need_reload" != "$service_need_reload_before" ] ||
+         [ "$service_drop_ins" != "$service_drop_ins_before" ]; then
+      printf 'systemd_service_contract=failed unit=tribunal-loop.service reason=snapshot-changed\n'
+      failed=1
+    else
+      printf 'systemd_service_contract=passed unit=tribunal-loop.service\n'
+    fi
+  fi
   if ! tribunal_validate_role_provider_contract >/dev/null; then
     printf 'role_provider_contract=failed\n'
     failed=1
@@ -75,7 +144,45 @@ if [ "${1:-}" = "--doctor" ]; then
     printf 'role_provider_contract=passed\n'
   fi
   if [ "$live_probe" = "1" ]; then
-    probe_output="$(tribunal_writer_preflight 2>/dev/null || true)"
+    # Probe in the daemon's own environment (openspec tribunal-24-7-operations).
+    # systemd builds it from the user manager's environment, the unit's
+    # Environment= settings and its EnvironmentFile (tribunal.env, which
+    # overrides them); this wrapper then sets TZ and prefixes PATH. Rebuild it
+    # the same way from nothing, so the operator's shell adds nothing and a
+    # passing probe means the daemon's writer preflight passes too.
+    daemon_env=("HOME=$HOME")
+    while IFS= read -r assignment; do
+      case "$assignment" in
+        [A-Za-z_]*=*) daemon_env+=("$assignment") ;;
+      esac
+    done < <(systemctl --user show-environment 2>/dev/null || true)
+    for assignment in $unit_environment; do
+      case "$assignment" in
+        [A-Za-z_]*=*) daemon_env+=("$assignment") ;;
+      esac
+    done
+    env_file="$(
+      systemctl --user show tribunal-loop -p EnvironmentFiles --value 2>/dev/null |
+        sed -n '1s/ (ignore_errors=[a-z]*)$//p'
+    )"
+    probe_output="$(
+      env -i "${daemon_env[@]}" TRIBUNAL_DAEMON_ENV_FILE="$env_file" \
+        "${BASH:-/bin/bash}" -c '
+          if [ -n "$TRIBUNAL_DAEMON_ENV_FILE" ] && [ -r "$TRIBUNAL_DAEMON_ENV_FILE" ]; then
+            set -a
+            # shellcheck source=/dev/null
+            . "$TRIBUNAL_DAEMON_ENV_FILE"
+            set +a
+          fi
+          unset TRIBUNAL_DAEMON_ENV_FILE
+          export TZ=Asia/Taipei
+          export PATH="$HOME/.local/bin:$HOME/bin:${PATH:-/usr/bin:/bin}"
+          export GP_WRITER_MODE="${GP_WRITER_MODE:-claude}"
+          # shellcheck source=scripts/tribunal-helpers.sh
+          . "$1/tribunal-helpers.sh"
+          tribunal_writer_preflight 2>/dev/null
+        ' _ "$SCRIPT_DIR"
+    )" || true
     if [ "$probe_output" = "OK" ]; then
       printf 'writer_preflight=passed source=live result=OK\n'
     else

@@ -24,8 +24,10 @@ const artifactRoutes = readdirSync(artifactsDir)
 
 const ROUTES = [
   '/',
-  '/posts/gp-245-20260624-mattpocockuk-skill-no-op/',
-  '/posts/gp-275-20260817-article-qwen-3-8-27b/',
+  // Long CLI lines and many external links: the riskiest public posts left
+  // after the GP takedown (openspec: post-takedown).
+  '/posts/mp-61-20260211-simonw-showboat-rodney/',
+  '/posts/mp-310-20260620-alisa-industry-job-search/',
   ...artifactRoutes,
 ];
 

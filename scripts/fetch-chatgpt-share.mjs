@@ -40,6 +40,7 @@ function parseArgs(argv) {
 }
 
 const INVALID_SHARE_URL = 'Expected a canonical ChatGPT share URL: https://chatgpt.com/share/<id>';
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 
 export function parseChatGPTShareUrl(value) {
   let parsed;
@@ -266,10 +267,15 @@ function renderMarkdown(record) {
   return lines.join('\n');
 }
 
-export async function main(argv = process.argv.slice(2), fetchImpl = fetch) {
+export async function main(
+  argv = process.argv.slice(2),
+  fetchImpl = fetch,
+  timeoutMs = DEFAULT_FETCH_TIMEOUT_MS
+) {
   const args = parseArgs(argv);
   const { sourceUrl, shareId } = parseChatGPTShareUrl(args.url);
   const response = await fetchImpl(sourceUrl, {
+    signal: globalThis.AbortSignal.timeout(timeoutMs),
     headers: {
       'user-agent': 'Mozilla/5.0 (compatible; gu-log-chatgpt-share-fetch/1.0)',
       accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',

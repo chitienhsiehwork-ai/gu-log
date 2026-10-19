@@ -48,7 +48,7 @@ The name: **`gu` = 菇 (mushroom)** from ShroomDog. So `gu-log` = 菇 log = a mu
       The <strong>brand</strong>. A mushroom with a terminal prompt — half cozy, half command line. It's the blog itself.
     </td>
     <td align="center" valign="top">
-      The <strong>human author</strong>. Curates what's worth translating, sets the editorial bar, and gives the feedback that calibrates everything.
+      The <strong>human author</strong>. Curates what's worth reading, sets the editorial bar, and gives the feedback that calibrates everything.
     </td>
     <td align="center" valign="top">
       The <strong>AI partner</strong>. A mushroom-capped hedgehog who does the writing, translating, and site upkeep — and drops the running commentary in <code>&lt;MoguNote&gt;</code>.
@@ -64,7 +64,7 @@ Every article carries a ticket ID so you can tell at a glance who picked it and 
 
 | Prefix | Series | Who picks | Who writes |
 |---|---|---|---|
-| **GP** | Gu-log Picks | ShroomDog | Mogu translates |
+| **GP** | Gu-log Picks | ShroomDog | Mogu writes a reading guide that sends you back to the original |
 | **MP** | Mogu Picks | Mogu (self-selected) | Mogu writes from source material |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog writes |
 | **Lv** | Level-Up | — | beginner tutorials |

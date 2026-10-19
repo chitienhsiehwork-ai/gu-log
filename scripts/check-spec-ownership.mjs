@@ -29,6 +29,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parseIsoDay } from './lib/iso-day.mjs';
 import { VALID_CLASSES, validateWorkflowRunBlocks } from './spec-ownership-workflow.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -142,9 +143,17 @@ for (const [spec, entry] of Object.entries(specs)) {
   }
 
   if (entry.class === 'quarantined') {
-    if (!entry.expiry || !/^\d{4}-\d{2}-\d{2}$/.test(entry.expiry)) {
-      fail(`MISSING/INVALID EXPIRY: ${spec} is quarantined but has no valid YYYY-MM-DD expiry.`);
-    } else if (entry.expiry < today) {
+    let expiryIsValid = false;
+    try {
+      parseIsoDay(entry.expiry, `${spec} quarantine expiry`);
+      expiryIsValid = true;
+    } catch (error) {
+      fail(
+        `MISSING/INVALID EXPIRY: ${spec} is quarantined but has no valid YYYY-MM-DD expiry ` +
+          `(${error.message}).`
+      );
+    }
+    if (expiryIsValid && entry.expiry < today) {
       fail(
         `EXPIRED QUARANTINE: ${spec} expired on ${entry.expiry}. Quarantine is not a permanent exemption — ` +
           `re-run it, fix it, promote it to blocking/nightly, or delete it and extend the expiry with a fresh reason.`

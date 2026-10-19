@@ -20,7 +20,7 @@ const LV_POSTS = [
 ];
 
 // A regular (non-Lv) post known to have both h2 and h3 headings
-const REGULAR_POST_WITH_H3 = '/posts/gp-7-20260130-clawdbot-architecture-deep-dive';
+const REGULAR_POST_WITH_H3 = '/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools';
 
 test.describe('Lv-series TOC: only Floor headings', () => {
   for (const postUrl of LV_POSTS) {

@@ -71,7 +71,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、來源誠實性、GP／MP 編輯邊界、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
-| **GP 翻譯／MP 來源寫作 pipeline（`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
+| **來源寫作 pipeline（GP 導讀／MP／SD；`gp-pipeline` 用法、subcommand、exit code、來源距離章與 `stamp`）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)；Lv 不走 pipeline 寫作，看 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈新增入門教學（Lv）〉 |
 | **User 只丟 URL／只問是否值得收錄 → 先翻譯與評估** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
@@ -100,4 +100,4 @@ User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓�
 
 ## Quality: Vibe Scoring + Tribunal
 
-品質管理用 4-judge tribunal（Vibe Scorer / Fact Checker / Librarian / Fresh Eyes）；任何新增或實質改寫文章都要跑、結果寫回 frontmatter。**不在 Tier-0 複述維度 / 分數門檻 / model 版本（複述 = drift 源）**——judge model SSOT = `.claude/agents/*.md` 的 `model:` frontmatter，評分標準 = `scripts/vibe-scoring-standard.md`，兩層門檻（floor ≥3 ship / PASS ≥8 上首頁）見 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉，跑法 / daemon / worker worktree 見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)（特別是 worker worktree 不會跟 main 自動更新、要手動 sync 的雷）。
+品質管理用 4-judge tribunal（Vibe Scorer / Fact Checker / Librarian / Fresh Eyes）；任何新增或實質改寫文章都要跑、結果寫回 frontmatter（`status: taken-down` 的下架文章不在範圍內，見 `post-takedown` spec）。**不在 Tier-0 複述維度 / 分數門檻 / model 版本（複述 = drift 源）**——judge model SSOT = `.claude/agents/*.md` 的 `model:` frontmatter，評分標準 = `scripts/vibe-scoring-standard.md`，兩層門檻（floor ≥3 ship / PASS ≥8 上首頁）見 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉，跑法 / daemon / worker worktree 見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)（特別是 worker worktree 不會跟 main 自動更新、要手動 sync 的雷）。

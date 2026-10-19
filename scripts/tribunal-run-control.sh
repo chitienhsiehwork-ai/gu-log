@@ -166,12 +166,34 @@ rc_exit_stopped() {
 # defense-in-depth across supervisor, worker-worktree, and manual invocations.
 : "${RC_CLAIMS_DIR:=$RC_ROOT_DIR/.score-loop/claims}"
 : "${RC_CLAIM_STALE_SEC:=21600}"   # 6 hours — beyond longest article run
+: "${RC_CLAIMS_LOCK:=$RC_ROOT_DIR/.score-loop/claims.lock}"
 : "${RC_PROGRESS_LOCK:=$RC_ROOT_DIR/.score-loop/progress.lock}"
 : "${RC_PUSH_LOCK:=$RC_ROOT_DIR/.score-loop/push.lock}"
 mkdir -p "$RC_CLAIMS_DIR"
 # Ensure lock files exist so flock doesn't race on file creation.
+: >>"$RC_CLAIMS_LOCK"
 : >>"$RC_PROGRESS_LOCK"
 : >>"$RC_PUSH_LOCK"
+
+# Remove a claim while the caller already holds RC_CLAIMS_LOCK.
+_rc_release_claim_locked() {
+  local slug="$1"
+  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+  rm -f "$claim_dir/meta" "$claim_dir/.meta."* 2>/dev/null
+  rmdir "$claim_dir" 2>/dev/null || true
+}
+
+# Serialize stale recheck + delete with normal acquisition and owner release.
+# Without a single lifecycle lock, a late release/reacquire can replace the
+# directory between the stale check and destructive cleanup.
+_rc_release_stale_claim_if_current() {
+  local slug="$1"
+  (
+    flock -x 9 || exit 1
+    rc_claim_is_stale "$slug" || exit 1
+    _rc_release_claim_locked "$slug"
+  ) 9>>"$RC_CLAIMS_LOCK"
+}
 
 # Usage: rc_try_claim <slug> [worker_id]
 # Returns 0 if claim acquired, 1 if already held (by another worker).
@@ -179,49 +201,53 @@ mkdir -p "$RC_CLAIMS_DIR"
 rc_try_claim() {
   local slug="$1"
   local worker="${2:-$$}"
-  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+  (
+    flock -x 9 || exit 1
+    local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+    local recovered_stale=0
 
-  if mkdir "$claim_dir" 2>/dev/null; then
-    # Got the claim. Write meta atomically.
-    local ts
+    if ! mkdir "$claim_dir" 2>/dev/null; then
+      rc_claim_is_stale "$slug" || exit 1
+      _rc_release_claim_locked "$slug"
+      mkdir "$claim_dir" 2>/dev/null || exit 1
+      recovered_stale=1
+    fi
+
+    local ts tmp
     ts=$(date -Iseconds 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
-    local tmp
     tmp=$(mktemp "$claim_dir/.meta.XXXXXX") || {
       rmdir "$claim_dir" 2>/dev/null || true
-      return 1
+      exit 1
     }
-    printf 'pid=%d\nworker=%s\nstarted=%s\n' "$$" "$worker" "$ts" > "$tmp"
-    mv "$tmp" "$claim_dir/meta"
-    return 0
-  fi
-
-  # mkdir failed — either already claimed, or it's stale from a crashed worker.
-  if rc_claim_is_stale "$slug"; then
-    rc_release_claim "$slug"
-    # One more attempt after GC.
-    if mkdir "$claim_dir" 2>/dev/null; then
-      local ts tmp
-      ts=$(date -Iseconds 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
-      tmp=$(mktemp "$claim_dir/.meta.XXXXXX") || {
-        rmdir "$claim_dir" 2>/dev/null || true
-        return 1
-      }
+    if [ "$recovered_stale" -eq 1 ]; then
       printf 'pid=%d\nworker=%s\nstarted=%s\nrecovered_stale=1\n' \
-        "$$" "$worker" "$ts" > "$tmp"
-      mv "$tmp" "$claim_dir/meta"
-      return 0
+        "$$" "$worker" "$ts" >"$tmp"
+    else
+      printf 'pid=%d\nworker=%s\nstarted=%s\n' "$$" "$worker" "$ts" >"$tmp"
     fi
-  fi
-  return 1
+    mv "$tmp" "$claim_dir/meta" || {
+      rm -f "$tmp"
+      rmdir "$claim_dir" 2>/dev/null || true
+      exit 1
+    }
+  ) 9>>"$RC_CLAIMS_LOCK"
 }
 
 # Usage: rc_release_claim <slug>
-# Idempotent — OK to call even if claim wasn't held.
+# Idempotent for a missing claim. A live claim is released only by the
+# supervisor PID recorded at acquisition, so a late old owner cannot delete a
+# replacement claim. Stale recovery uses the locked internal helper above.
 rc_release_claim() {
   local slug="$1"
-  local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
-  rm -f "$claim_dir/meta" "$claim_dir/.meta."* 2>/dev/null
-  rmdir "$claim_dir" 2>/dev/null || true
+  (
+    flock -x 9 || exit 1
+    local claim_dir="$RC_CLAIMS_DIR/${slug}.claim"
+    local owner_pid
+    [ -d "$claim_dir" ] || exit 0
+    owner_pid=$(awk -F= '/^pid=/{print $2}' "$claim_dir/meta" 2>/dev/null)
+    [ -n "$owner_pid" ] && [ "$owner_pid" = "$$" ] || exit 1
+    _rc_release_claim_locked "$slug"
+  ) 9>>"$RC_CLAIMS_LOCK"
 }
 
 # Usage: rc_claim_is_stale <slug>
@@ -276,11 +302,10 @@ rc_gc_stale_claims() {
   for claim_dir in "$RC_CLAIMS_DIR"/*.claim; do
     [ -d "$claim_dir" ] || continue
     slug=$(basename "$claim_dir" .claim)
-    if rc_claim_is_stale "$slug"; then
+    if _rc_release_stale_claim_if_current "$slug"; then
       if declare -f tlog >/dev/null 2>&1; then
         tlog "Releasing stale claim: $slug"
       fi
-      rc_release_claim "$slug"
     fi
   done
 }

@@ -10,10 +10,11 @@
 
 正式 Tribunal runner SHALL 逐一依評審解析執行供應端與 model：
 
-- **VibeScorer、Librarian、FactChecker、FreshEyes** 在部署嚴格模式 SHALL 全部透過 Codex 執行，model SHALL 來自各自對應的 `.codex/agents/<role>.toml`。
+- **VibeScorer、Librarian、FactChecker、FreshEyes** 在部署嚴格模式 SHALL 全部透過 Codex 執行。model SHALL 來自各自對應的 `.codex/agents/<role>.toml`；啟用 VM runtime profile 時，改由 `config/llm-pipeline.json` 該 profile 的角色設定決定。
 - Provider／model 解析 SHALL 集中在能辨識 agent 身份的 helper，不得在 router 寫死 model 版本。
-- 部署嚴格模式的 Codex 評審 SHALL 將文章視為不可信輸入，並在只有一次性評審工作區可寫、正式 repo 唯讀、無網路、無 slash tmp／`TMPDIR` 自動寫入例外、approval `never` 的 `workspace-write` 沙箱執行；評審與寫手 SHALL 共用同一個沙箱指令建構器。
-- 每次部署版 Codex 評審／寫手／canary 呼叫 SHALL 使用 parent-generated identity 的暫態 systemd service；unit SHALL 以 control-group 回收所有後代行程，並與 supervisor 共用受版控的總體資源 slice。
+- 部署嚴格模式的 Codex 評審 SHALL 將文章視為不可信輸入，並在只有一次性評審工作區可寫、正式 repo 唯讀、無網路、無 slash tmp／`TMPDIR` 自動寫入例外、approval `never` 的 `workspace-write` 沙箱執行；所有 Codex 評審 SHALL 共用同一個沙箱指令建構器。
+- Tribunal 寫手 SHALL 依 `claude-prose-writing-runtime` 使用受限 Claude 執行器；正式寫手與部署版寫入 canary SHALL 共用同一個 Claude 執行器。
+- 每次部署版評審／寫手／canary 呼叫 SHALL 使用 parent-generated identity 的暫態 systemd service；unit SHALL 以 control-group 回收所有後代行程，並與 supervisor 共用受版控的總體資源 slice。
 - Provider／model／reasoning SHALL 在派送前解析一次；執行參數、來源與 runner label SHALL 使用同一份不可變描述，不得在成功後重讀角色設定或環境 reasoning。
 - `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` SHALL 是部署嚴格模式的唯一開關。未設定時 MAY 保留 Codex 不可用時的 CCC 相容備援，但進度與分數來源 SHALL 記錄實際 provider／model。
 - `TRIBUNAL_FORCE_PROVIDER` 與 `GP_CODEX_MODEL` MAY 作為明示的單次執行覆寫；覆寫 SHALL 記錄實際來源。`TRIBUNAL_FORCE_PROVIDER` 與部署嚴格模式 SHALL NOT 同時啟用。
@@ -21,7 +22,7 @@
 #### Scenario: 在部署嚴格模式跑完整 Tribunal
 
 - **WHEN** operator 設定 `TRIBUNAL_STRICT_ROLE_PROVIDERS=1` 執行正式 Tribunal runner
-- **THEN** VibeScorer / Librarian / FactChecker / FreshEyes SHALL 全部透過 Codex 與各自 TOML 宣告的 model 執行
+- **THEN** VibeScorer / Librarian / FactChecker / FreshEyes SHALL 全部透過 Codex 與各自角色設定的 model 執行
 - **AND** frontmatter、進度紀錄與 stage log SHALL 誠實記錄各階段的實際 Codex provider/model
 
 #### Scenario: 不可信文章不能取得 judge 主機權限
@@ -34,17 +35,17 @@
 
 #### Scenario: Model 行程以 setsid 離開原 process group
 
-- **WHEN** 部署版 Codex 評審或寫手的後代行程呼叫 `setsid()`，並在 main process 結束後繼續執行
+- **WHEN** 部署版評審或寫手的後代行程呼叫 `setsid()`，並在 main process 結束後繼續執行
 - **THEN** 暫態 service SHALL 以 `KillMode=control-group` 回收該後代行程
 - **AND** watchdog SHALL 以 parent-held unit identity 取消停滯呼叫
 - **AND** SHALL NOT 備援到 numeric PGID cleanup
 
 #### Scenario: 部署版角色共用一個總體資源邊界
 
-- **WHEN** 部署版 supervisor、worker／build 子行程與暫態 Codex 呼叫同時執行
+- **WHEN** 部署版 supervisor、worker／build 子行程與暫態評審／寫手呼叫同時執行
 - **THEN** 它們 SHALL 全部隸屬 tracked `tribunal-runtime.slice`
 - **AND** autoscaler SHALL 從該 slice 讀取 aggregate MemoryCurrent／MemoryMax
-- **AND** 每個 transient Codex service SHALL 另有更窄的 Memory／CPU／Tasks limits
+- **AND** 每個暫態評審／寫手 service SHALL 另有更窄的 Memory／CPU／Tasks limits
 
 #### Scenario: 部署版 cgroup 前置條件無法使用
 
@@ -54,7 +55,7 @@
 
 #### Scenario: 角色設定在執行中改變
 
-- **WHEN** 評審或寫手已用 model A 派送，且角色 TOML 在呼叫完成前改成 model B
+- **WHEN** 評審或寫手已用 model A 派送，且角色設定（Codex TOML 或 Claude agent frontmatter）在呼叫完成前改成 model B
 - **THEN** executor argv、provenance 與 runner label SHALL 都使用 dispatch 時的 provider、model A 與 reasoning
 - **AND** SHALL NOT 重讀 model B 或其他 ambient reasoning
 

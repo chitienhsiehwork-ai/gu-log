@@ -16,6 +16,11 @@ import (
 // newTestState returns a State + fake dispatcher wired up to a temp work
 // directory that already contains a plausible source-tweet.md and an
 // empty GU-LOG_WRITER_PROMPT.md pointer.
+// testGlossary is the canonical-term fixture GP write/refine prompts carry.
+const testGlossary = `[{"term":"Agent","definition":"must not leak","forbiddenZhTw":["代理人"]}]`
+
+const testTerminologyContext = `[{"term":"Agent","forbiddenZhTw":["代理人"]}]`
+
 func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	t.Helper()
 	tmp := t.TempDir()
@@ -38,6 +43,7 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
 		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
 		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
+		"src/data/glossary.json":                   testGlossary,
 	} {
 		path := filepath.Join(tmp, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -55,7 +61,8 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	}
 
 	s := NewState()
-	s.LegacyShadow = true
+	s.Prefix = "GP"
+	s.PromptTicketID = "GP-PENDING"
 	s.WorkDir = workDir
 	s.SourcePath = sourcePath
 	s.TweetURL = "https://x.com/fakeauthor/status/1"
@@ -63,8 +70,11 @@ func newTestState(t *testing.T) (*State, *llm.FakeProvider, string) {
 	s.SourceIsX = true
 	s.OriginalDate = "2026-04-11"
 	s.TranslatedDate = "2026-04-11"
+	// A GP refine runs the content checks; stubs stand in for them.
+	installContentLintStubs(t, filepath.Join(tmp, "scripts"))
 	s.Cfg = &config.Config{
 		RepoRoot:     tmp,
+		ScriptsDir:   filepath.Join(tmp, "scripts"),
 		WritingGuide: styleGuide,
 		PostsDir:     filepath.Join(tmp, "posts"),
 	}
@@ -388,5 +398,140 @@ func TestRefine_ResumeFromDraft(t *testing.T) {
 	finalPath := filepath.Join(workDir, "final.mdx")
 	if _, err := os.Stat(finalPath); err != nil {
 		t.Errorf("final.mdx should have been copied from draft: %v", err)
+	}
+}
+
+// TestGPWriteAndRefineCarryCanonicalTerminology covers
+// gp-pipeline-publish-integrity〈寫手收到術語 context〉.
+func TestGPWriteAndRefineCarryCanonicalTerminology(t *testing.T) {
+	s, fake, workDir := newTestState(t)
+	fake.WithResponses(
+		llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\ndraft\n", WriteFile: "draft-v1.mdx"},
+		llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\nfinal\n", WriteFile: "final.mdx"},
+	)
+	if err := s.Write(context.Background()); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(workDir, "review.md"), []byte("ok"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Refine(context.Background()); err != nil {
+		t.Fatalf("Refine: %v", err)
+	}
+	for i, call := range fake.Called {
+		if !strings.Contains(call.Prompt, testTerminologyContext) {
+			t.Errorf("GP call %d prompt lacks the canonical terminology context", i)
+		}
+		if strings.Contains(call.Prompt, "must not leak") {
+			t.Errorf("GP call %d prompt leaked a glossary definition", i)
+		}
+	}
+
+	mp, mpFake, _ := newTestState(t)
+	mp.Prefix, mp.PromptTicketID = "MP", "MP-PENDING"
+	mpFake.WithResponses(llm.FakeResponse{Output: "---\ntitle: \"x\"\n---\ndraft\n", WriteFile: "draft-v1.mdx"})
+	if err := mp.Write(context.Background()); err != nil {
+		t.Fatalf("MP Write: %v", err)
+	}
+	if strings.Contains(mpFake.Called[0].Prompt, testTerminologyContext) {
+		t.Error("MP write prompt picked up the GP-only terminology context")
+	}
+}
+
+// TestGPWriteAndRefineRejectShroomDogNote covers editorial-charter〈自動化輸出
+// ShroomDogNote〉: the step fails and the output never becomes the draft.
+func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
+	withNote := "---\ntitle: \"x\"\n---\nbody\n\n<ShroomDogNote>\n代寫的看法\n</ShroomDogNote>\n"
+	for _, step := range []string{"write", "refine"} {
+		t.Run(step, func(t *testing.T) {
+			s, fake, workDir := newTestState(t)
+			output := "draft-v1.mdx"
+			run := s.Write
+			if step == "refine" {
+				output = "final.mdx"
+				run = s.Refine
+				if err := os.WriteFile(filepath.Join(workDir, "draft-v1.mdx"), []byte("draft"), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			fake.WithResponses(llm.FakeResponse{Output: withNote, WriteFile: output})
+			err := run(context.Background())
+			var stepErr *StepError
+			if !errors.As(err, &stepErr) || stepErr.Code != 14 || !strings.Contains(err.Error(), "ShroomDogNote") {
+				t.Fatalf("%s error = %v, want the step-14 ShroomDogNote rejection", step, err)
+			}
+			if _, statErr := os.Stat(filepath.Join(workDir, output)); !os.IsNotExist(statErr) {
+				t.Fatalf("%s left %s in place for later steps: %v", step, output, statErr)
+			}
+			rejected := strings.TrimSuffix(output, ".mdx") + ".rejected-shroomdognote.mdx"
+			if _, statErr := os.Stat(filepath.Join(workDir, rejected)); statErr != nil {
+				t.Fatalf("%s did not keep the rejected output as evidence: %v", step, statErr)
+			}
+		})
+	}
+}
+
+// TestWriteReviewAndRefineSetAsideAnEarlierOutput covers
+// gp-pipeline-publish-integrity〈write、review 與 refine SHALL NOT 把工作目錄裡的
+// 舊產物當成這次的輸出〉: a writer that answers on stdout alone replaces the
+// file an earlier run left in the work dir, here an Lv post, and a writer that
+// fails without writing leaves that file as it was.
+func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
+	const earlier = "---\ntitle: \"Earlier\"\nticketId: Lv-PENDING\n---\nearlier body\n"
+	const fresh = "---\ntitle: \"Fresh\"\n---\nfresh body\n"
+	for _, step := range []struct {
+		name, output string
+		run          func(*State, context.Context) error
+	}{
+		{name: "write", output: "draft-v1.mdx", run: (*State).Write},
+		{name: "review", output: "review.md", run: (*State).Review},
+		{name: "refine", output: "final.mdx", run: (*State).Refine},
+	} {
+		for _, tc := range []struct {
+			name     string
+			response llm.FakeResponse
+			wantErr  bool
+			want     string
+		}{
+			{name: "stdout only", response: llm.FakeResponse{Output: fresh}, want: fresh},
+			{name: "writer fails", response: llm.FakeResponse{Err: "writer crashed"}, wantErr: true, want: earlier},
+			{name: "no file, no stdout", response: llm.FakeResponse{}, wantErr: true, want: earlier},
+		} {
+			t.Run(step.name+" "+tc.name, func(t *testing.T) {
+				s, fake, workDir := newTestState(t)
+				path := filepath.Join(workDir, step.output)
+				if err := os.WriteFile(path, []byte(earlier), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				fake.WithResponses(tc.response)
+				if err := step.run(s, context.Background()); (err != nil) != tc.wantErr {
+					t.Fatalf("%s error = %v, want error %v", step.name, err, tc.wantErr)
+				}
+				if got := mustRead(t, path); got != tc.want {
+					t.Fatalf("%s = %q, want %q", step.output, got, tc.want)
+				}
+				if isLv, _ := isLvFile(path); isLv && !tc.wantErr {
+					t.Fatalf("%s is still the earlier Lv post", step.output)
+				}
+			})
+		}
+	}
+}
+
+// TestContentLintFixKeepsTheArticleWhenTheWriterFails: the fix of what the
+// content checks flag also goes through runRefine, so a writer that fails
+// without writing leaves the refined article in final.mdx.
+func TestContentLintFixKeepsTheArticleWhenTheWriterFails(t *testing.T) {
+	s, fake, workDir := newTestState(t)
+	refined := "---\ntitle: \"x\"\n---\n" + lintFlaggedLine
+	fake.WithResponses(
+		llm.FakeResponse{Output: refined, WriteFile: "final.mdx"},
+		llm.FakeResponse{Err: "writer crashed"},
+	)
+	if err := s.Refine(context.Background()); err == nil {
+		t.Fatal("Refine succeeded although the content-check fix failed")
+	}
+	if got := mustRead(t, filepath.Join(workDir, "final.mdx")); got != refined {
+		t.Fatalf("final.mdx = %q, want the refined article back", got)
 	}
 }

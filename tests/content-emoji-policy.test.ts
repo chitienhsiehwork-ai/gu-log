@@ -1,7 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -22,11 +21,13 @@ import {
   sha256Line,
 } from '../scripts/check-content-emoji.mjs';
 import { collectTrustedComponentStaticStrings } from './helpers/trusted-component-static-strings.mjs';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const POST_PATH = 'src/content/posts/gp-999-emoji-test.mdx';
 const MARKDOWN_POST_PATH = 'src/content/posts/gp-997-emoji-test.md';
 const BACKSLASH = String.fromCharCode(92);
+const makeTempDirectory = useTestTempDirectories();
 
 function writeApprovalCorpus(
   root: string,
@@ -83,7 +84,7 @@ function checkFixture(options: {
   approvalDecisions?: Array<Record<string, unknown>>;
   root?: string;
 }) {
-  const root = options.root ?? fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-policy-'));
+  const root = options.root ?? makeTempDirectory('gu-log-emoji-policy-');
   writeApprovalCorpus(root, options.approvalDecisions);
   return checkContentChanges({
     changes: [
@@ -2372,7 +2373,7 @@ describe('staged and PR-base CLI use the same validator', () => {
   ])(
     'fails the same emoji change in staged and PR-base modes for %s posts',
     (_label, postPath, changedLine) => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-git-'));
+      const root = makeTempDirectory('gu-log-emoji-git-');
       fs.mkdirSync(path.join(root, 'src', 'content', 'posts'), { recursive: true });
       fs.mkdirSync(path.join(root, 'quality'), { recursive: true });
       writeApprovalCorpus(root);
@@ -2421,7 +2422,7 @@ describe('staged and PR-base CLI use the same validator', () => {
   );
 
   it('does not let unstaged approval files authorize a staged post or committed PR head', () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-emoji-snapshot-'));
+    const root = makeTempDirectory('gu-log-emoji-snapshot-');
     fs.mkdirSync(path.join(root, 'src', 'content', 'posts'), { recursive: true });
     fs.mkdirSync(path.join(root, 'quality'), { recursive: true });
     fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
@@ -2474,6 +2475,34 @@ describe('staged and PR-base CLI use the same validator', () => {
     );
     expect(pr.status, pr.stdout + pr.stderr).toBe(1);
     expect(pr.stderr).toContain('未授權 emoji');
+  });
+
+  it('checks a draft outside git line by line, and exits 2 when it cannot finish', () => {
+    const root = makeTempDirectory('gu-log-emoji-draft-');
+    const draft = path.join(root, 'final.mdx');
+    const run = (file: string) =>
+      spawnSync(
+        process.execPath,
+        [path.join(REPO_ROOT, 'scripts', 'check-content-emoji.mjs'), file],
+        {
+          cwd: root,
+          encoding: 'utf8',
+        }
+      );
+    const clean = '---\ntitle: test\nlang: zh-tw\n---\nclean (◕‿◕)\n';
+
+    fs.writeFileSync(draft, `${clean}new ❤️\n`);
+    const flagged = run(draft);
+    expect(flagged.status, flagged.stdout + flagged.stderr).toBe(1);
+    expect(flagged.stderr).toContain(`${draft}:6 未授權 emoji`);
+
+    fs.writeFileSync(draft, clean);
+    const passed = run(draft);
+    expect(passed.status, passed.stdout + passed.stderr).toBe(0);
+
+    const unreadable = run(path.join(root, 'missing.mdx'));
+    expect(unreadable.status, unreadable.stdout + unreadable.stderr).toBe(2);
+    expect(unreadable.stderr).toContain('無法完成');
   });
 
   it('wires pre-commit and CI to the same executable SSOT', () => {

@@ -19,26 +19,29 @@ import (
 
 // runReport is the JSON shape emitted by `gp-pipeline run --json`.
 type runReport struct {
-	OK                  bool                        `json:"ok"`
-	Step                string                      `json:"step"`
-	TicketID            string                      `json:"ticketId,omitempty"`
-	Filename            string                      `json:"filename,omitempty"`
-	ENFilename          string                      `json:"enFilename,omitempty"`
-	WorkDir             string                      `json:"workDir,omitempty"`
-	CodexPrimaryVerdict string                      `json:"codexPrimaryVerdict,omitempty"`
-	CodexVerdict        string                      `json:"codexVerdict,omitempty"`
-	DedupVerdict        string                      `json:"dedupVerdict,omitempty"`
-	RalphPassed         bool                        `json:"ralphPassed,omitempty"`
-	GPProfile           string                      `json:"gpProfile,omitempty"`
-	GateManifest        string                      `json:"gateManifest,omitempty"`
-	RoleRuns            map[string]pipeline.RoleRun `json:"roleRuns,omitempty"`
-	TranslateModel      string                      `json:"translateModel,omitempty"`
-	TranslateHarness    string                      `json:"translateHarness,omitempty"`
-	Timings             map[string]int              `json:"timings,omitempty"`
-	ElapsedMs           int64                       `json:"elapsedMs"`
-	ErrorCode           int                         `json:"errorCode,omitempty"`
-	Error               string                      `json:"error,omitempty"`
-	DryRun              bool                        `json:"dryRun,omitempty"`
+	OK                  bool   `json:"ok"`
+	Step                string `json:"step"`
+	TicketID            string `json:"ticketId,omitempty"`
+	Filename            string `json:"filename,omitempty"`
+	ENFilename          string `json:"enFilename,omitempty"`
+	WorkDir             string `json:"workDir,omitempty"`
+	CodexPrimaryVerdict string `json:"codexPrimaryVerdict,omitempty"`
+	CodexVerdict        string `json:"codexVerdict,omitempty"`
+	DedupVerdict        string `json:"dedupVerdict,omitempty"`
+	RalphPassed         bool   `json:"ralphPassed,omitempty"`
+	// SourceDistance is the GP source-distance outcome (verdict, rewrite
+	// rounds, aligner calls and the evidence directory in the work dir).
+	SourceDistance *pipeline.SourceDistanceOutcome `json:"sourceDistance,omitempty"`
+	// EnglishCheck is the GP English verbatim check: PASS, or
+	// SKIPPED_VERBATIM when the English version was dropped.
+	EnglishCheck     string         `json:"englishCheck,omitempty"`
+	TranslateModel   string         `json:"translateModel,omitempty"`
+	TranslateHarness string         `json:"translateHarness,omitempty"`
+	Timings          map[string]int `json:"timings,omitempty"`
+	ElapsedMs        int64          `json:"elapsedMs"`
+	ErrorCode        int            `json:"errorCode,omitempty"`
+	Error            string         `json:"error,omitempty"`
+	DryRun           bool           `json:"dryRun,omitempty"`
 }
 
 // stepNameToInt maps the --from-step string values (names or numbers) to
@@ -50,12 +53,10 @@ var stepNameToInt = map[string]int{
 	"1.5": pipeline.StepEval, "eval": pipeline.StepEval,
 	"1.7": pipeline.StepDedup, "dedup": pipeline.StepDedup,
 	"2": pipeline.StepWrite, "write": pipeline.StepWrite,
-	"source-translate": pipeline.StepSourceTranslate,
-	"3":                pipeline.StepReview, "review": pipeline.StepReview,
-	"source-preservation": pipeline.StepSourceGate, "source-gate": pipeline.StepSourceGate,
+	"3": pipeline.StepReview, "review": pipeline.StepReview,
 	"4": pipeline.StepRefine, "refine": pipeline.StepRefine,
-	"enrich": pipeline.StepEnrich,
-	"4.7":    pipeline.StepRalph, "ralph": pipeline.StepRalph,
+	"source-distance": pipeline.StepSourceDistance,
+	"4.7":             pipeline.StepRalph, "ralph": pipeline.StepRalph,
 	"4.8": pipeline.StepTranslate, "translate": pipeline.StepTranslate,
 	"5": pipeline.StepDeploy, "deploy": pipeline.StepDeploy,
 }
@@ -74,51 +75,73 @@ func newRunCmd(state *rootState) *cobra.Command {
 		skipDedup    bool
 		angle        string
 		sourceLabel  string
-		legacyShadow bool
 	)
 	cmd := &cobra.Command{
 		Use:   "run [tweet_url]",
 		Short: "Run the full pipeline end-to-end",
-		Long: `run wires the individual step subcommands into a single monolithic
+		Long: fmt.Sprintf(`run wires the individual step subcommands into a single monolithic
 invocation covering the whole pipeline (step sequence, prompt templates,
 frontmatter shape, commit message, exit codes).
 
-GP steps, in order:
-  1     fetch      capture the tweet into the work directory
-  1.5   eval       evaluate worthiness (skipped with --force)
-  1.7   dedup      check the dedup gate
-  2     source-translate  translate the complete source without rebuilding it
-  3     source-preservation  source + natural-zh gates and bounded correction
-  4     enrich     navigation wrappers and optional isolated MoguNote
-  4.6   credits    stamp pipeline credits into the frontmatter
-  4.7   ralph      run the 4-stage tribunal without GP rewrite authority
-  4.8   translate  produce the en sidecar (only when the tribunal passed;
-                   skipped otherwise — zh-tw deploys alone)
-  5     deploy     allocate ticket ID, rename, validate, build, commit, push
+Steps, in order:
+  1     fetch            capture the source into the work directory
+  1.5   eval             evaluate worthiness (skipped with --force)
+  1.7   dedup            check the dedup gate
+  2     write            draft the zh-tw article from the source
+  3     review           review the draft
+  4     refine           apply the review and write final.mdx
+  4.2   post-fixer       GP only: kaomoji, glossary links and related reading,
+                         applied to final.mdx in the work dir
+  4.4   source-distance  GP only: pair, score and stamp final.mdx (see below)
+  4.6   credits          stamp pipeline credits into the frontmatter
+  4.7   ralph            run the 4-stage tribunal (GP: scores only, never
+                         rewrites or re-fixes the stamped body)
+  4.8   translate        produce the en sidecar (only when the tribunal passed;
+                         skipped otherwise — zh-tw deploys alone)
+  5     deploy           allocate ticket ID, rename, validate, build, commit, push
+
+GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀),
+not a translation. Every GP refine output must pass the content checks the
+pre-commit hook runs on a post: what they flag goes back to refine,
+at most %[3]d times, and a body that still fails them is never paired or
+stamped (exit 14). After the post-fixer, source-distance asks a
+pinned Claude aligner which guide sentences restate which source sentences,
+and the program scores that: a draft that reads like a translation goes back
+to refine with only the flagged passages, then through the post-fixer again,
+at most %[1]d rewrites. Zero alignments, or a draft still failing after the last
+rewrite, stops with exit %[2]d: nothing is deployed and the counter is untouched;
+every round's evidence stays in the work dir. A GP English version must pass a
+verbatim check against the source; one that does not is dropped without a
+retranslation, the zh-tw stamp records englishSkipped: verbatim, and zh-tw
+deploys alone.
+
+Without --file, --prefix is required and names a series the pipeline writes
+(%[4]s): a run never picks a series on its own, and a missing
+--prefix fails before any work dir, fetch, or model call.
 
 --from-step resumes partway through a previous run. --file is required
-when --from-step skips the fetch stage and no tweet URL is given.
-For GP, every recovery point at or after source-preservation revalidates the
-source and canonical-body hashes in gp-publish-gate.json. Use the original
---work-dir; stale or missing verdicts fail closed.
-
-MP/SD/Lv retain write → review → refine. --legacy-shadow exposes that retired
-flow for GP comparison, always implies --dry-run, and can never deploy.
+when --from-step skips the fetch stage and no tweet URL is given. With
+--file, the file's series (gp-/mp-/sd-/lv-/levelup-) decides the run, and an
+explicit --prefix must match it. Lv is written by hand (see CONTRIBUTING.md),
+so an Lv file only resumes from translate or deploy.
+--from-step source-distance (GP only) re-pairs and re-scores the work dir's
+final.mdx without rewriting the draft.
 
 --dry-run stops before the deploy stage (matches bash --dry-run).
 
+Exit codes: 1 ingress or usage error, 2 eval split, 10 fetch failed,
+11 incomplete capture, 12 eval SKIP, 13 dedup BLOCK, 14 a step or the aligner
+failed, 16 validate-posts rejected, 17 build failed, 18 push failed,
+%[2]d GP source distance did not pass, 124 timeout.
+
 Use --fake-provider <json> only to test without spending credits or to pin
-canned responses for regression tests.`,
+canned responses for regression tests.`, pipeline.MaxSourceDistanceRewrites, pipeline.SourceDistanceExitCode, pipeline.MaxContentLintFixes,
+			authorableSeries(" / ")),
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var tweetURL string
 			if len(args) == 1 {
 				tweetURL = args[0]
-			}
-			// Fail at ingress: any non-canonical prefix must not reach the
-			// fetch, evaluation, or writing stages.
-			if err := counter.ValidatePrefix(prefix); err != nil {
-				return err
 			}
 			return runRun(cmd.Context(), state, runOpts{
 				TweetURL:     tweetURL,
@@ -128,29 +151,28 @@ canned responses for regression tests.`,
 				RalphBar:     ralphBar,
 				ExistingFile: existingFile,
 				Prefix:       prefix,
+				PrefixSet:    cmd.Flags().Changed("prefix"),
 				SkipBuild:    skipBuild,
 				SkipPush:     skipPush,
 				SkipValidate: skipValidate,
 				SkipDedup:    skipDedup,
 				Angle:        angle,
 				SourceLabel:  sourceLabel,
-				LegacyShadow: legacyShadow,
 			})
 		},
 	}
-	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/source-translate/source-preservation/enrich/ralph/translate/deploy")
+	cmd.Flags().StringVar(&fromStep, "from-step", "", "resume from step: setup/fetch/eval/dedup/write/review/refine/source-distance (GP)/ralph/translate/deploy")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "stop before the deploy step")
 	cmd.Flags().BoolVar(&force, "force", false, "skip the eval gate (still runs everything else)")
 	cmd.Flags().IntVar(&ralphBar, "bar", 8, "ralph quality bar (advisory — tribunal has its own internal bar)")
-	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing file; GP also requires fresh source/gate artifacts in --work-dir")
-	cmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	cmd.Flags().StringVar(&existingFile, "file", "", "resume from an existing post in src/content/posts/; its filename sets the series")
+	cmd.Flags().StringVar(&prefix, "prefix", "", fmt.Sprintf("ticket prefix (%s); required without --file, and must match the --file series when given", authorableSeries(" / ")))
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "skip pnpm run build in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipPush, "skip-push", false, "skip git push in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "skip validate-posts.mjs in the deploy step (testing only)")
 	cmd.Flags().BoolVar(&skipDedup, "skip-dedup", false, "bypass both dedup gates — only for confirmed false positives (e.g. same-author, different thesis)")
-	cmd.Flags().StringVar(&angle, "angle", "", "optional non-GP narrative angle; GP permits it only in --legacy-shadow")
+	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to make the article spine")
 	cmd.Flags().StringVar(&sourceLabel, "source-label", "", "override the `source:` frontmatter line")
-	cmd.Flags().BoolVar(&legacyShadow, "legacy-shadow", false, "compare the retired GP editorial flow without deploy")
 	return cmd
 }
 
@@ -162,43 +184,59 @@ type runOpts struct {
 	RalphBar     int
 	ExistingFile string
 	Prefix       string
+	// PrefixSet reports an explicit --prefix; only then must it agree with
+	// the series named by --file.
+	PrefixSet    bool
 	SkipBuild    bool
 	SkipPush     bool
 	SkipValidate bool
 	SkipDedup    bool
 	Angle        string
 	SourceLabel  string
-	LegacyShadow bool
 }
 
 func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	start := time.Now()
+	// Fail at ingress: a missing or non-canonical series must not reach the
+	// work dir, fetch, evaluation, or writing stages.
+	prefix, err := resolveSeries("run", opts.Prefix, opts.PrefixSet, "--file", opts.ExistingFile, pipeline.AuthorablePrefixes)
+	if err != nil {
+		return err
+	}
+	opts.Prefix = prefix
 
 	fromStepInt := 0
 	if opts.FromStep != "" {
 		v, ok := stepNameToInt[strings.ToLower(opts.FromStep)]
 		if !ok {
-			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / source-translate / source-preservation / enrich / ralph / translate / deploy", opts.FromStep)
+			return fmt.Errorf("run: unknown step %q; valid: setup / fetch / eval / dedup / write / review / refine / source-distance / ralph / translate / deploy", opts.FromStep)
 		}
 		fromStepInt = v
+	}
+	// The pipeline does not write Lv: an Lv run may only resume an Lv file at
+	// translate or deploy, and the refusal comes before the yt-dlp preflight
+	// and the work dir. Without a file there is nothing to publish, and the
+	// credits step would stamp the work dir's final.mdx.
+	if !pipeline.IsAuthorable(opts.Prefix) && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
+		return pipeline.LvAuthoringError("run")
+	}
+	// A run resumed after write reuses the work dir's draft-v1.mdx and
+	// final.mdx, so an Lv draft left there is refused like an Lv series and
+	// over the same range: without --file, a deploy start also reuses the
+	// work dir's final.mdx, and credits is not skipped.
+	if flagWorkDir != "" && fromStepInt > pipeline.StepWrite && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
+		if err := pipeline.RefuseLvFiles("run", filepath.Join(flagWorkDir, "draft-v1.mdx"), filepath.Join(flagWorkDir, "final.mdx")); err != nil {
+			return err
+		}
+	}
+	if fromStepInt == pipeline.StepSourceDistance && opts.Prefix != "GP" {
+		return fmt.Errorf("run: --from-step source-distance only applies to GP; %s has no source-distance step", opts.Prefix)
 	}
 	if fromStepInt == pipeline.StepTranslate && opts.ExistingFile == "" {
 		return fmt.Errorf("run: --from-step translate requires --file <tribunal-passed zh-tw post>")
 	}
 	if err := counter.ValidatePrefix(opts.Prefix); err != nil {
 		return err
-	}
-	if opts.LegacyShadow && opts.Prefix != "GP" {
-		return fmt.Errorf("run: --legacy-shadow is GP-only")
-	}
-	if opts.Prefix == "GP" && !opts.LegacyShadow {
-		switch strings.ToLower(opts.FromStep) {
-		case "write", "review", "refine":
-			return fmt.Errorf("run: legacy GP step %q is unavailable; use source-translate, source-preservation, or enrich", opts.FromStep)
-		}
-	}
-	if opts.Prefix == "GP" && opts.Angle != "" && !opts.LegacyShadow {
-		return fmt.Errorf("run: --angle is available only in --legacy-shadow for GP")
 	}
 	if opts.TweetURL == "" && opts.ExistingFile == "" && fromStepInt < pipeline.StepWrite {
 		return fmt.Errorf("run: tweet URL is required when not resuming via --file + --from-step")
@@ -224,7 +262,7 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	}
 	s.PromptTicketID = pendingTicketID
 	s.FromStepInt = fromStepInt
-	s.DryRun = opts.DryRun || opts.LegacyShadow
+	s.DryRun = opts.DryRun
 	s.Force = opts.Force
 	s.RalphBar = opts.RalphBar
 	s.ExistingFile = opts.ExistingFile
@@ -234,7 +272,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	s.SkipDedup = opts.SkipDedup
 	s.Angle = opts.Angle
 	s.SourceLabel = opts.SourceLabel
-	s.LegacyShadow = opts.LegacyShadow
 	// Establish the durable workdir before provider/profile preflight so even a
 	// failure before the first content step leaves a report and recovery state.
 	if flagWorkDir != "" {
@@ -252,7 +289,6 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 			Step:      "run",
 			TicketID:  s.PromptTicketID,
 			WorkDir:   s.WorkDir,
-			GPProfile: s.GPProfile,
 			Timings:   s.Timings,
 			ElapsedMs: time.Since(start).Milliseconds(),
 			ErrorCode: 1,
@@ -267,23 +303,17 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		return recordPreflightFailure(string(dispatcherJudge), err)
 	}
 	s.JudgeDispatcher = judgeDisp
-	if opts.Prefix == "GP" && !opts.LegacyShadow {
-		gp, failedRole, err := buildGPDispatchers(state)
+	writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
+	if err != nil {
+		return recordPreflightFailure(string(dispatcherWriter), err)
+	}
+	s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
+	if s.Prefix == "GP" && fromStepInt <= pipeline.StepSourceDistance {
+		alignerDisp, err := buildAlignerDispatcher(ctx, state)
 		if err != nil {
-			return recordPreflightFailure(string(failedRole), err)
+			return recordPreflightFailure(string(dispatcherAligner), err)
 		}
-		s.GPProfile = gp.Profile
-		s.GPProfileSHA256 = gp.ProfileSHA256
-		s.CanonicalTerminology = gp.CanonicalTerminology
-		s.Dispatcher, s.WriterDispatcher = gp.Translator, gp.Translator
-		s.TranslatorDispatcher, s.SourceReviewerDispatcher = gp.Translator, gp.SourceReviewer
-		s.CorrectorDispatcher, s.CommentaryDispatcher, s.VibeScorerDispatcher = gp.Corrector, gp.Commentary, gp.VibeScorer
-	} else {
-		writerDisp, err := buildDispatcherForRole(state, dispatcherWriter)
-		if err != nil {
-			return recordPreflightFailure(string(dispatcherWriter), err)
-		}
-		s.Dispatcher, s.WriterDispatcher = writerDisp, writerDisp
+		s.AlignerDispatcher = alignerDisp
 	}
 
 	runErr := pipeline.Run(ctx, s)
@@ -298,9 +328,8 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		CodexVerdict:        s.CodexVerdict,
 		DedupVerdict:        s.DedupVerdict,
 		RalphPassed:         s.RalphPassed,
-		GPProfile:           s.GPProfile,
-		GateManifest:        s.GateManifestPath,
-		RoleRuns:            s.RoleRuns,
+		SourceDistance:      s.SourceDistanceResult,
+		EnglishCheck:        s.EnglishCheck,
 		TranslateModel:      s.TranslateModel,
 		TranslateHarness:    s.TranslateHarness,
 		Timings:             s.Timings,
@@ -321,6 +350,35 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 	report.OK = true
 	emitRunReport(state, report, s)
 	return nil
+}
+
+// resolveSeries picks the series a run or standalone deploy works on, and the
+// article decides: with a file, its filename series wins and an explicitly set
+// --prefix must agree; without one, --prefix is required and has no default,
+// and the error lists choices (the series the command offers).
+func resolveSeries(command, prefix string, prefixSet bool, fileFlag, filename string, choices []string) (string, error) {
+	if filename == "" {
+		if prefix == "" {
+			return "", fmt.Errorf("%s: --prefix is required without %s; choose one of %v", command, fileFlag, choices)
+		}
+		if err := counter.ValidatePrefix(prefix); err != nil {
+			return "", err
+		}
+		return prefix, nil
+	}
+	if prefixSet {
+		if err := counter.ValidatePrefix(prefix); err != nil {
+			return "", err
+		}
+	}
+	series, err := pipeline.SeriesFromFilename(filename)
+	if err != nil {
+		return "", fmt.Errorf("%s: %s: %w", command, fileFlag, err)
+	}
+	if prefixSet && prefix != series {
+		return "", fmt.Errorf("%s: --prefix %s does not match %s %s (series %s); drop --prefix or pass the matching file", command, prefix, fileFlag, filename, series)
+	}
+	return series, nil
 }
 
 // selectRunReportENFilename reports only an English artifact that exists as

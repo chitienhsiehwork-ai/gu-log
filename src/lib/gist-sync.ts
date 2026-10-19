@@ -4,6 +4,7 @@ const GIST_ID_KEY = 'gu-log-gist-id';
 
 import { importReadStore, parseReadStore } from './reading-tracker';
 import type { ReadRecord, ReadStoreV1, ReadStoreV2 } from './reading-tracker';
+import { PUBLIC_API_AUTH_PATH } from './public-api-url';
 
 export type GistReadStore = ReadStoreV1 | ReadStoreV2;
 export const READER_SYNC_TIMEOUT_MS = 15_000;
@@ -13,11 +14,15 @@ function safeReauthorizeUrl(value: unknown, apiUrl: string): string | undefined 
   try {
     const apiBase = new URL(apiUrl);
     if (apiBase.protocol !== 'https:' && apiBase.protocol !== 'http:') return undefined;
-    if (apiBase.username || apiBase.password) return undefined;
+    if (apiBase.username || apiBase.password || apiBase.search || apiBase.hash) return undefined;
 
-    const candidate = new URL(value, `${apiBase.origin}/`);
+    const basePath = apiBase.pathname.replace(/\/+$/, '');
+    const expectedPath = `${basePath}${PUBLIC_API_AUTH_PATH}`;
+    apiBase.pathname = `${basePath}/`;
+
+    const candidate = new URL(value, apiBase);
     if (candidate.origin !== apiBase.origin) return undefined;
-    if (candidate.pathname !== '/auth/github') return undefined;
+    if (candidate.pathname !== expectedPath) return undefined;
     if (candidate.username || candidate.password) return undefined;
     return candidate.href;
   } catch {
@@ -45,20 +50,27 @@ function timeoutError(): ReaderSyncApiError {
   return new ReaderSyncApiError('同步逾時，請檢查網路後重試', 'READER_SYNC_TIMEOUT');
 }
 
-async function withReaderSyncDeadline<T>(
-  operation: (signal: AbortSignal) => Promise<T>
+/**
+ * Run `operation` with an AbortSignal that fires after `timeoutMs`. On timeout
+ * the returned promise rejects with `makeTimeoutError()` (never a raw
+ * AbortError), and the underlying request is aborted.
+ */
+export async function withDeadline<T>(
+  timeoutMs: number,
+  operation: (signal: AbortSignal) => Promise<T>,
+  makeTimeoutError: () => Error
 ): Promise<T> {
   const controller = new AbortController();
-  let deadlineError: ReaderSyncApiError | undefined;
+  let deadlineError: Error | undefined;
   let timeoutId: ReturnType<typeof setTimeout>;
   const deadline = new Promise<never>((_resolve, reject) => {
     timeoutId = setTimeout(() => {
-      deadlineError = timeoutError();
+      deadlineError = makeTimeoutError();
       reject(deadlineError);
       // Abort the underlying fetch after settling the deadline promise so the
       // caller always receives the typed timeout instead of a raw AbortError.
       controller.abort();
-    }, READER_SYNC_TIMEOUT_MS);
+    }, timeoutMs);
   });
 
   try {
@@ -71,8 +83,16 @@ async function withReaderSyncDeadline<T>(
   }
 }
 
+function withReaderSyncDeadline<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  return withDeadline(READER_SYNC_TIMEOUT_MS, operation, timeoutError);
+}
+
 export function getGuLogSessionToken(): string | null {
-  return localStorage.getItem('gu-log-jwt');
+  try {
+    return localStorage.getItem('gu-log-jwt');
+  } catch {
+    return null;
+  }
 }
 
 async function apiFetch(

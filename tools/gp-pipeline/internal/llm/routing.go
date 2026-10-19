@@ -14,13 +14,11 @@ import (
 type RuntimeRole string
 
 const (
-	RuntimeReviewer       RuntimeRole = "reviewer"
-	RuntimeWriter         RuntimeRole = "writer"
-	RuntimeTranslator     RuntimeRole = "translator"
-	RuntimeSourceReviewer RuntimeRole = "sourceReviewer"
-	RuntimeCorrector      RuntimeRole = "corrector"
-	RuntimeCommentary     RuntimeRole = "commentary"
-	RuntimeVibeScorer     RuntimeRole = "vibeScorer"
+	RuntimeReviewer RuntimeRole = "reviewer"
+	RuntimeWriter   RuntimeRole = "writer"
+	// RuntimeAligner is the source-distance aligner: a Claude call with its
+	// own pin (.claude/agents/source-aligner.md), no tools, structured output.
+	RuntimeAligner RuntimeRole = "aligner"
 )
 
 type ResolvedRuntime struct {
@@ -31,7 +29,6 @@ type ResolvedRuntime struct {
 	ReasoningEffort  string `json:"reasoningEffort"`
 	QuotaTier        string `json:"quotaTier"`
 	RemainingPercent string `json:"remainingPercent"`
-	QuotaAction      string `json:"quotaAction"`
 }
 
 // ResolveRuntime delegates to the Bash router so gp-pipeline and Tribunal use
@@ -45,7 +42,6 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 				RuntimeProfile: "legacy",
 				Role:           string(role),
 				QuotaTier:      "legacy",
-				QuotaAction:    "run",
 			}, nil
 		}
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: %w", role, err)
@@ -70,10 +66,20 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 	if runtime.RuntimeProfile != "legacy" && (runtime.Provider == "" || runtime.Model == "") {
 		return ResolvedRuntime{}, fmt.Errorf("resolve %s runtime: provider/model missing", role)
 	}
-	if runtime.QuotaAction == "" {
-		runtime.QuotaAction = "run"
-	}
 	return runtime, nil
+}
+
+// claudeRuntimeTools is the least-privilege tool set of a Claude route. The
+// router routes only article-writing steps and the source aligner to Claude
+// (the single list lives in scripts/tribunal-model-router.sh). The writer
+// drafts files inside its own work dir; any other role that reaches Claude,
+// including the aligner, gets no tools at all, so an injected source cannot
+// touch the work dir's files.
+func claudeRuntimeTools(role RuntimeRole) []string {
+	if role == RuntimeWriter {
+		return []string{"Read", "Grep", "Glob", "Edit", "Write"}
+	}
+	return []string{}
 }
 
 // ProvidersForRuntime returns a VM-specific provider only when vm-codex is
@@ -88,23 +94,35 @@ func ProvidersForRuntime(
 	if runtime.RuntimeProfile == "legacy" {
 		return nil, false, nil
 	}
-	if runtime.QuotaAction == "pause" || runtime.QuotaAction == "defer" {
-		return nil, true, fmt.Errorf(
-			"%s runtime held by Grok quota policy: action=%s remaining=%s%%",
-			role, runtime.QuotaAction, runtime.RemainingPercent,
-		)
-	}
 	switch runtime.Provider {
+	case "claude":
+		model := ClaudeOpusPinned
+		if role == RuntimeAligner {
+			// The router and AlignerPin read the same agent file, so there is
+			// no drift to compare; AlignerPin still refuses the writer's pin.
+			pin, err := AlignerPin(repoRoot)
+			if err != nil {
+				return nil, true, err
+			}
+			model = pin
+		} else if runtime.Model != ClaudeOpusPinned {
+			// The router reads the writer pin from
+			// .claude/agents/tribunal-writer.md; the Go side pins
+			// ClaudeOpusPinned. Refuse to pick one when they disagree.
+			return nil, true, fmt.Errorf(
+				"Claude model pin drift: the router resolved %q from .claude/agents/tribunal-writer.md but gp-pipeline expects %q; update both pins together",
+				runtime.Model, ClaudeOpusPinned,
+			)
+		}
+		return []Provider{&ClaudeProvider{
+			ModelFlag: model, Contained: true, Tools: claudeRuntimeTools(role),
+		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{
 			ModelName:       runtime.Model,
 			ReasoningEffort: runtime.ReasoningEffort,
 			Sandbox:         "read-only",
 		}}, true, nil
-	case "grok":
-		return []Provider{
-			NewGrok(repoRoot, runtime.Model, runtime.ReasoningEffort),
-		}, true, nil
 	default:
 		return nil, false, fmt.Errorf(
 			"unsupported provider %q for runtime role %s", runtime.Provider, role,

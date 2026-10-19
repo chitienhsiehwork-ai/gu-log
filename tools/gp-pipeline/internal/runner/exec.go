@@ -37,8 +37,12 @@ type Options struct {
 	Stdin []byte
 	// WorkDir is the child process CWD. Empty means inherit the parent.
 	WorkDir string
-	// Env appends KEY=VALUE overrides to the inherited process environment.
+	// Env appends KEY=VALUE overrides to the inherited process environment,
+	// or, with CleanEnv, is the child's whole environment.
 	Env []string
+	// CleanEnv starts the child from an empty environment instead of the
+	// inherited one, so nothing but Env reaches it.
+	CleanEnv bool
 }
 
 // Run executes name with args, using the provided context for cancellation
@@ -59,7 +63,10 @@ func RunWithOptions(ctx context.Context, opts Options) (*Result, error) {
 	if opts.WorkDir != "" {
 		cmd.Dir = opts.WorkDir
 	}
-	if len(opts.Env) > 0 {
+	switch {
+	case opts.CleanEnv:
+		cmd.Env = append([]string{}, opts.Env...)
+	case len(opts.Env) > 0:
 		cmd.Env = append(os.Environ(), opts.Env...)
 	}
 

@@ -88,6 +88,139 @@ describe('reading-tracker', () => {
     expect(m.toggleRead('gp-1')).toBe(false);
   });
 
+  it('fails closed when marking an article read cannot be persisted', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.markAsRead('gp-denied')).toBe(false);
+      expect(m.isRead('gp-denied')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('fails closed when marking an article unread cannot be persisted', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.markAsUnread('gp-existing')).toBe(false);
+      expect(m.isRead('gp-existing')).toBe(true);
+    } finally {
+      setItem.mockRestore();
+    }
+  });
+
+  it('returns no toggled state when either storage write is rejected', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.toggleRead('gp-unread')).toBeNull();
+      expect(m.isRead('gp-unread')).toBe(false);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.markAsRead('gp-read')).toBe(true);
+    const secondSetItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage denied');
+    });
+
+    try {
+      expect(m.toggleRead('gp-read')).toBeNull();
+      expect(m.isRead('gp-read')).toBe(true);
+    } finally {
+      secondSetItem.mockRestore();
+    }
+  });
+
+  it('does not attempt a mutation when storage cannot be read', async () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('storage denied', 'SecurityError');
+    });
+    const setItem = vi.spyOn(localStorage, 'setItem');
+    const m = await import('../src/lib/reading-tracker');
+
+    try {
+      expect(m.markAsRead('gp-read-denied')).toBe(false);
+      expect(m.toggleRead('gp-toggle-denied')).toBeNull();
+      expect(setItem).not.toHaveBeenCalled();
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+    }
+  });
+
+  it('replaces corrupt JSON when storage remains readable and writable', async () => {
+    localStorage.setItem('gu-log-read-articles', '{not valid}');
+    const m = await import('../src/lib/reading-tracker');
+
+    expect(m.markAsRead('gp-recovered')).toBe(true);
+    expect(m.isRead('gp-recovered')).toBe(true);
+  });
+
+  it('persists a bulk read-state update with one storage write', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+    const setItem = vi.spyOn(localStorage, 'setItem');
+
+    try {
+      expect(
+        m.setReadStates([
+          ['gp-existing', false],
+          ['gp-a', true, 'rev-a'],
+          ['gp-b', true, 'rev-b'],
+        ])
+      ).toBe(true);
+      expect(setItem).toHaveBeenCalledTimes(1);
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.getReadSlugs().sort()).toEqual(['gp-a', 'gp-b']);
+    expect(m.getReadState('gp-a', 'rev-a')).toBe('current');
+  });
+
+  it('reports a successful bulk unread as false rather than a persistence failure', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing')).toBe(true);
+
+    expect(m.setReadStates([['gp-existing', false]])).toBe(false);
+    expect(m.isRead('gp-existing')).toBe(false);
+  });
+
+  it('keeps the whole prior store when a bulk write is rejected', async () => {
+    const m = await import('../src/lib/reading-tracker');
+    expect(m.markAsRead('gp-existing', 'manual_mark_read', 'rev-existing')).toBe(true);
+    const before = m.exportJson();
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('storage quota exceeded');
+    });
+
+    try {
+      expect(
+        m.setReadStates([
+          ['gp-existing', false],
+          ['gp-a', true, 'rev-a'],
+          ['gp-b', true, 'rev-b'],
+        ])
+      ).toBeNull();
+    } finally {
+      setItem.mockRestore();
+    }
+
+    expect(m.exportJson()).toBe(before);
+  });
+
   it('getStats reports total + slugs + lastUpdated', async () => {
     const m = await import('../src/lib/reading-tracker');
     m.markAsRead('a');
@@ -364,7 +497,7 @@ describe('reading-tracker', () => {
 // gist-sync
 // ════════════════════════════════════════════════════════════════════════════
 describe('gist-sync', () => {
-  async function backendScopeError(reauthorizeUrl: unknown) {
+  async function backendScopeError(reauthorizeUrl: unknown, apiUrl = 'https://api.shroomdog.dev') {
     (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
     (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -379,7 +512,7 @@ describe('gist-sync', () => {
     });
     const module = await import('../src/lib/gist-sync');
     try {
-      await module.pullFromReaderSyncApi('https://api.shroomdog.dev');
+      await module.pullFromReaderSyncApi(apiUrl);
       throw new Error('expected ReaderSyncApiError');
     } catch (error) {
       return { error, module };
@@ -460,6 +593,19 @@ describe('gist-sync', () => {
     expect(m.getGitHubToken()).toBeNull();
   });
 
+  it('getGuLogSessionToken fails closed when auth storage is unavailable', async () => {
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new DOMException('auth storage denied', 'SecurityError');
+    });
+    const m = await import('../src/lib/gist-sync');
+
+    try {
+      expect(m.getGuLogSessionToken()).toBeNull();
+    } finally {
+      getItem.mockRestore();
+    }
+  });
+
   it('falls through to PAT when JWT lacks token', async () => {
     (globalThis as any).localStorage.setItem('gu-log-github-pat', 'ghp_pat_abc');
     const m = await import('../src/lib/gist-sync');
@@ -495,6 +641,38 @@ describe('gist-sync', () => {
     const { error, module } = await backendScopeError(reauthorizeUrl);
     expect(error).toBeInstanceOf(module.ReaderSyncApiError);
     expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
+  });
+
+  it.each([
+    [
+      'absolute',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+    ],
+    [
+      'same-base relative',
+      'auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/auth/github?reader_sync=1',
+    ],
+  ])(
+    'keeps a valid %s backend reauthorization URL under an API base path',
+    async (_, reauthorizeUrl, expected) => {
+      const { error, module } = await backendScopeError(
+        reauthorizeUrl,
+        'https://api.shroomdog.dev/v1/'
+      );
+      expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+      expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBe(expected);
+    }
+  );
+
+  it('drops an origin-root OAuth URL when the configured API uses a base path', async () => {
+    const { error, module } = await backendScopeError(
+      '/auth/github?reader_sync=1',
+      'https://api.shroomdog.dev/v1/'
+    );
+    expect(error).toBeInstanceOf(module.ReaderSyncApiError);
+    expect((error as { reauthorizeUrl?: string }).reauthorizeUrl).toBeUndefined();
   });
 
   it.each([

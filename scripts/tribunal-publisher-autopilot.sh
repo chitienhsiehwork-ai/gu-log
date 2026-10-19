@@ -107,8 +107,43 @@ audit_event() {
     '{timestamp: $ts, event: $event, detail: $detail}' >> "$AUDIT_LOG"
 }
 
-list_batch_ids() {
-  jq -r '.batches | keys[]?' "$PUBLISHER_STATE_FILE"
+list_active_batch_ids() {
+  jq -r '
+    def has_merge_metadata:
+      ((.prNumber | type) == "number")
+      and ((.mergeCommit | type) == "string")
+      and ((.mergeCommit | length) > 0)
+      and ((.mergedAt | type) == "string")
+      and ((.mergedAt | length) > 0);
+
+    def is_terminal_batch($state; $batch_id):
+      $state.batches[$batch_id] as $batch
+      | if (($batch | type) != "object")
+          or (($batch.entries | type) != "array")
+          or (($batch.entries | length) == 0)
+        then false
+        else
+          ($batch.state == "published")
+          and ($batch | has_merge_metadata)
+          and all($batch.entries[];
+            . as $article
+            | $state.entries[$article] as $entry
+            | (($entry | type) == "object")
+              and ($entry.publishState == "published")
+              and ($entry.batchId == $batch_id)
+              and ($entry | has_merge_metadata)
+              and ($entry.prNumber == $batch.prNumber)
+              and ($entry.mergeCommit == $batch.mergeCommit)
+              and ($entry.mergedAt == $batch.mergedAt)
+          )
+        end;
+
+    . as $state
+    | .batches
+    | keys[]? as $batch_id
+    | select(is_terminal_batch($state; $batch_id) | not)
+    | $batch_id
+  ' "$PUBLISHER_STATE_FILE"
 }
 
 batch_branch() {
@@ -220,7 +255,7 @@ reconcile_merged_batches() {
       tlog "published batch=$batch_id pr=$pr_number"
       audit_event "published" "batch=$batch_id pr=$pr_number branch=$branch"
     fi
-  done < <(list_batch_ids)
+  done < <(list_active_batch_ids)
 }
 
 advance_open_batches() {
@@ -264,7 +299,7 @@ advance_open_batches() {
       tlog "merge-guard defer pr=$pr_number rc=$rc"
       audit_event "merge_guard_defer" "batch=$batch_id pr=$pr_number rc=$rc"
     fi
-  done < <(list_batch_ids)
+  done < <(list_active_batch_ids)
 }
 
 apply_new_batches() {

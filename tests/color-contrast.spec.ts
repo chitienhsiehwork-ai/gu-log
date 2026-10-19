@@ -21,7 +21,7 @@ const PAGES = [
 ];
 
 const THEMES = ['dark', 'light'] as const;
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
 for (const theme of THEMES) {
   test.describe(`Color contrast — ${theme} theme`, () => {

@@ -101,5 +101,8 @@ export default defineConfig({
         command: 'npm run dev -- --host 127.0.0.1',
         url: 'http://127.0.0.1:4321',
         reuseExistingServer: !process.env.CI,
+        // Astro 7 偵測到 AI agent 時會自動把 dev server 丟背景、前景行程立刻結束，
+        // Playwright 會判定 webServer exited early；強制留在前景讓 Playwright 管生命週期。
+        env: { ASTRO_DEV_BACKGROUND: '0' },
       },
 });

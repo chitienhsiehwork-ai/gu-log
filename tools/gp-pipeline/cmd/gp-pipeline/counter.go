@@ -31,14 +31,16 @@ Go-native atomic bump backed by syscall.Flock on /tmp/gu-log-counter.lock.
 
 Two subcommands:
 
-  gp-pipeline counter next --prefix GP
+  gp-pipeline counter next --prefix <GP|MP|SD|Lv>
       Print the value that WILL be allocated next, without mutating the
       file. Useful for dry runs and dashboards.
 
-  gp-pipeline counter bump --prefix GP
+  gp-pipeline counter bump --prefix <GP|MP|SD|Lv>
       Atomically advance the counter by 1 and print the value that WAS
       allocated (the ticketId the caller should use for their new post).
-      This is the write-side primitive that the deploy step uses.`,
+      This is the write-side primitive that the deploy step uses.
+
+--prefix is required for both: the counter never picks a series.`,
 	}
 
 	var prefix string
@@ -50,7 +52,7 @@ Two subcommands:
 			return runCounterNext(state, prefix)
 		},
 	}
-	nextCmd.Flags().StringVar(&prefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	nextCmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
 
 	var bumpPrefix string
 	bumpCmd := &cobra.Command{
@@ -60,13 +62,17 @@ Two subcommands:
 			return runCounterBump(state, bumpPrefix)
 		},
 	}
-	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "GP", "ticket prefix (GP / MP / SD / Lv)")
+	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
 
 	root.AddCommand(nextCmd, bumpCmd)
 	return root
 }
 
 func runCounterNext(state *rootState, prefix string) error {
+	if err := counter.RequirePrefix("counter next", prefix, counter.ValidPrefixes); err != nil {
+		emitCounterReport(state, counterReport{Operation: "next", Prefix: prefix, Error: err.Error()})
+		return err
+	}
 	c := counter.New(state.cfg.CounterFile, "")
 	v, err := c.Next(prefix)
 	if err != nil {
@@ -89,6 +95,12 @@ func runCounterNext(state *rootState, prefix string) error {
 }
 
 func runCounterBump(state *rootState, prefix string) error {
+	// A missing series fails before the counter lock; nothing is allocated
+	// for a series nobody chose (openspec: gp-pipeline-publish-integrity).
+	if err := counter.RequirePrefix("counter bump", prefix, counter.ValidPrefixes); err != nil {
+		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
+		return err
+	}
 	c := counter.New(state.cfg.CounterFile, "")
 	allocated, err := c.Bump(prefix)
 	if err != nil {

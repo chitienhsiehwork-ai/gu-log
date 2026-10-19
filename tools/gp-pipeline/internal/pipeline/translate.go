@@ -94,6 +94,7 @@ func (s *State) Translate(ctx context.Context) error {
 		return fmt.Errorf("translate: writer dispatcher is nil")
 	}
 	prompt, err := prompts.Render("translate", prompts.TranslateData{
+		Prefix:   prefix,
 		TicketID: s.PromptTicketID,
 		Source:   string(source),
 	})
@@ -143,6 +144,23 @@ func (s *State) Translate(ctx context.Context) error {
 	if err := translatedFile.ValidateYAML(); err != nil {
 		return fmt.Errorf("translate: generated English frontmatter is not valid YAML: %w", err)
 	}
+	// The zh-tw source-distance stamp describes the zh-tw body only. Drop any
+	// copy the model made; a GP English version gets its own stamp after the
+	// verbatim check below.
+	translatedFile.RemoveBlock(sourceDistanceField)
+	translatedFile.StripLinesMatching(func(line string) bool {
+		return strings.HasPrefix(line, sourceDistanceField+":")
+	})
+	// sourceUrl decides whether a GP English version takes the verbatim check
+	// and goes into its stamp's fingerprint, so it is the zh-tw value, never
+	// whatever the model wrote.
+	if raw, ok := sourceFile.GetScalar("sourceUrl"); ok {
+		translatedFile.SetScalar("sourceUrl", raw)
+	} else {
+		translatedFile.StripLinesMatching(func(line string) bool {
+			return strings.HasPrefix(line, "sourceUrl:")
+		})
+	}
 	// The model is not authoritative for provenance. Restore the canonical
 	// nested history from the zh-tw source, then stamp only this invocation's
 	// direct translator fields and date.
@@ -162,6 +180,14 @@ func (s *State) Translate(ctx context.Context) error {
 	enPath := filepath.Join(postsDir, s.ActiveENFilename)
 	if err := os.WriteFile(enPath, translated, 0o644); err != nil {
 		return fmt.Errorf("translate: write %s: %w", enPath, err)
+	}
+	if prefix == "GP" {
+		if err := s.checkEnglishVerbatim(ctx, sourcePath, enPath); err != nil {
+			return err
+		}
+		if s.EnglishCheck == EnglishCheckSkippedVerbatim {
+			return nil
+		}
 	}
 
 	s.Log.OK("Step 4.8: %s written by %s", s.ActiveENFilename, s.TranslateModel)
@@ -344,12 +370,46 @@ func findClosingBacktickRun(line []byte, start, width int) int {
 	return -1
 }
 
+// seriesPrefixBySlug maps a post filename's leading slug to its ticket prefix.
+// New Lv files use lv-, while levelup- remains valid for the existing Lv
+// corpus.
+var seriesPrefixBySlug = map[string]string{
+	"gp":      "GP",
+	"mp":      "MP",
+	"sd":      "SD",
+	"lv":      "Lv",
+	"levelup": "Lv",
+}
+
+// SeriesFromFilename returns the ticket prefix (GP/MP/SD/Lv) named by a post
+// basename's leading series slug; an en- sidecar belongs to the same series.
+// Only that first slug is read, never the date/author/title slots. Retired or
+// unknown slugs get counter.ValidatePrefix's actionable taxonomy diagnostic,
+// so every CLI ingress reports them the same way.
+func SeriesFromFilename(filename string) (string, error) {
+	if filename == "" || filepath.Base(filename) != filename {
+		return "", fmt.Errorf("post filename must be a basename in src/content/posts/, got %q", filename)
+	}
+	stem := strings.TrimPrefix(strings.TrimSuffix(filename, ".mdx"), "en-")
+	seriesSlug, _, ok := strings.Cut(stem, "-")
+	if !ok || seriesSlug == "" {
+		return "", fmt.Errorf("filename %q is missing a canonical series prefix", filename)
+	}
+	prefix, canonical := seriesPrefixBySlug[seriesSlug]
+	if !canonical {
+		candidate := strings.ToUpper(seriesSlug)
+		if err := counter.ValidatePrefix(candidate); err != nil {
+			return "", fmt.Errorf("filename %q: %w", filename, err)
+		}
+		return "", fmt.Errorf("filename %q does not use the canonical lowercase slug for %s", filename, candidate)
+	}
+	return prefix, nil
+}
+
 // ValidateTranslationFilenames binds a zh-tw source filename and its optional
-// English output to one GP/MP/SD/Lv series. New Lv files use lv-, while
-// levelup- remains valid for the existing Lv corpus. Retired or unknown
-// prefixes are delegated to counter.ValidatePrefix so every CLI ingress emits
-// the same actionable taxonomy diagnostic instead of creating a legacy en-
-// sidecar. An explicit --en-file must preserve the canonical pair basename.
+// English output to one GP/MP/SD/Lv series (see SeriesFromFilename), so a
+// retired prefix cannot create a legacy en- sidecar. An explicit --en-file
+// must preserve the canonical pair basename.
 func ValidateTranslationFilenames(filename, enFilename string) (string, error) {
 	if filename == "" || filepath.Base(filename) != filename {
 		return "", fmt.Errorf("translate: --file must be a basename in src/content/posts/, got %q", filename)
@@ -357,28 +417,9 @@ func ValidateTranslationFilenames(filename, enFilename string) (string, error) {
 	if !strings.HasSuffix(filename, ".mdx") || strings.HasPrefix(filename, "en-") {
 		return "", fmt.Errorf("translate: --file must name a zh-tw .mdx post, got %q", filename)
 	}
-
-	seriesSlug, _, ok := strings.Cut(strings.TrimSuffix(filename, ".mdx"), "-")
-	if !ok || seriesSlug == "" {
-		return "", fmt.Errorf("translate: filename %q is missing a canonical series prefix", filename)
-	}
-	prefixBySlug := map[string]string{
-		"gp":      "GP",
-		"mp":      "MP",
-		"sd":      "SD",
-		"lv":      "Lv",
-		"levelup": "Lv",
-	}
-	prefix, canonical := prefixBySlug[seriesSlug]
-	if !canonical {
-		candidate := strings.ToUpper(seriesSlug)
-		if err := counter.ValidatePrefix(candidate); err != nil {
-			return "", fmt.Errorf("translate: filename %q: %w", filename, err)
-		}
-		return "", fmt.Errorf("translate: filename %q does not use the canonical lowercase slug for %s", filename, candidate)
-	}
-	if err := counter.ValidatePrefix(prefix); err != nil {
-		return "", fmt.Errorf("translate: filename %q: %w", filename, err)
+	prefix, err := SeriesFromFilename(filename)
+	if err != nil {
+		return "", fmt.Errorf("translate: %w", err)
 	}
 
 	if enFilename != "" {

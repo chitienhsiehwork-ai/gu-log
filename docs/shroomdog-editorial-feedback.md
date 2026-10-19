@@ -14,6 +14,42 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
 
+## 2026-10-12 — Lv-18：寫 Lv 前沒拿同系列比對，寫出一篇掛 Lv 編號的 MP
+
+### Feedback: 「看起來怪，流程也怪，但說不出為什麼」——原因是它根本不是 Lv 的格式
+
+- ShroomDog feedback：「Looks weird. Have u compare them with other lv post? And the flow of this post looks weird as well. I can't quite really tell why tho. Can u?」看完診斷後問：「爆單不知道是不是支語？」接著拍板：「Let's go. Do ur best, let this Lv post match ur best taste.」
+- 情境：第一版 Lv-18（PR #1132）由 gp-pipeline 從 @livingdevops 一則講 Kubernetes 的推文寫成，Tribunal 四位評審全過。拿 Lv-11、Lv-12、Lv-16 比對後才看出問題：(1) 沒有 Lv 的骨架：沒有「第 N 層」、`LevelUpProgress`、每層測驗、`AnalogyBox`，也沒有魔王關，`source` 寫成推文帳號，不是 Level-Up 系列；(2) 入門教學跟維運勘誤表硬黏在一起，「gu-log 補充」占正文三分之一以上；(3) 「推文」出現 17 次，整篇繞著推文轉，不是繞著讀者轉；(4) 九段都是同一個套路，一路平到底，結尾落在 Mogu 吐槽推文；(5) 餐廳裡又插進電話總機跟房屋仲介，比喻疊了三層。根因：gp-pipeline 的寫稿 prompt 沒有 Lv 版本，Lv 跟 MP 共用「依來源寫文章」那套指令，評審也不檢查系列格式。「爆單」出自診斷時提議的魔王關情境，是對岸用語。
+- 修法：Lv-18 整篇重寫成 Lv 導讀：一套餐廳比喻從頭用到尾，六層各由上一層留下的麻煩逼出來，每層一題測驗，最後的魔王關把開場那場午餐事故慢動作重播、逐棒點名；推文只在開頭交代一次來源，gu-log 的補充（`Secret` 預設沒加密、`ingress-nginx` 退休、kubelet 原地重啟）融進正文並標明出處。寫作走固定版本的寫手加詳細 brief，Tribunal 跑了四輪。「爆單」改用「客人擠爆」。pipeline 怎麼修（例如 Lv 在 write 階段先擋下、改走手動 brief）另外請 ShroomDog 拍板。
+- Reusable lesson：寫任何系列之前，先拿同系列近期 2–3 篇對照骨架、元件與節奏，不要只盯著單篇來源。Tribunal 全過不代表格式對：評審評的是「寫得好不好」，不是「是不是這個系列」。原創系列（Lv、SD）的來源只當靈感或骨架，正文要繞著讀者轉。對岸網路用語（例如爆單）換成台灣講法。
+
+## 2026-09-27 — GP 改成 ShroomDog 精選導讀：Mogu 講重點、帶讀者回原文，來源距離章把關
+
+### Feedback: GP 不再翻整篇；「照原文順序、一句對一句」才算翻譯，沒過就擋、自動改寫
+
+- ShroomDog feedback：2026-09-27 在 chat 拍板 GP 的新樣子——ShroomDog 精選導讀：由 Mogu 用自己的話講重點、加上 gu-log 的看法，再帶讀者回原文。翻譯的定義是「照原文順序、一句對一句」；連續 3 句這樣照順序轉述，或重講的量超過原文的 30%，就算翻譯，要擋下、自動改寫，最多三輪；檢查結果要蓋章、綁內容指紋。短來源的規則、墓碑要不要連到新導讀，之後再定。
+- 情境：整篇翻譯的 GP 依 `translation-takedown-tombstone` 全數下架、翻譯流程也退役後，GP 停在「暫停中」。校準實驗：10 篇舊譯文在建議參數下全部被擋；導讀初稿多半第一輪沒過，但改寫一輪就過；推文這類短來源，導讀跟舊譯文的占比都接近 1，分不開。
+- 修法：OpenSpec change `gp-commentary-format`：GP 跟 MP 走同一條 write → review → refine，prompt 換成導讀契約；refine 之後由 pin 住、跟寫手不同 model 的 Claude aligner 配對句子，程式算帳，沒過就只把標出的段落交回 refine 改寫，還是沒過就 exit 19；章（`sourceDistance`）綁 `sourceUrl` 加正文投影的指紋，validate-posts 在 pre-commit 與 CI 驗；手寫、ShroomDog 手加 `ShroomDogNote` 或任何改過正文的 GP，用 `gp-pipeline stamp --file` 重新蓋章。Tribunal 照 MP 規則評 GP、只評分不改寫；英文版另過逐字檢查。前 10 篇舊 GP 改寫成新 ticket 的導讀，不原地復活舊網址。
+- Reusable lesson：「像不像翻譯」交給可重算的檢查，不交給寫手或評審的手感：模型只做句子配對、不打分，門檻由程式算，寫手看不到數字，免得對著門檻壓線。改寫的方向是「一句重點接 gu-log 的看法」，不是換字；轉述來源的主張照樣保留條件與歸屬，不能改掛到 Mogu 名下。
+
+## 2026-09-27 — 整篇翻譯要作者同意：GP 全下架、付費新聞 MP 下架
+
+### Feedback: 沒有作者同意的整篇翻譯不能公開；下架要真的下架，不是貼標籤
+
+- ShroomDog feedback：2026-09-26 在 chat 決定，整篇翻譯屬於改作，要先取得原作者同意；gu-log 的 GP 都沒有取得同意，所以全部下架（GP-1 是自寫示範文、不是翻譯，保留）。直接取材自付費新聞媒體的 MP 也下架；判斷不確定的 MP 先不動，交給之後的 MP 防翻譯檢查。原本「不要刪除任何已發布內容，除非我明確同意」的規則照舊，這次就是明確同意。2026-09-27 再授權：「下架清單不用給我看，直接 e2e 做完」。
+- 情境：網站原本沒有真正的下架。`status: retired`／`deprecated` 只是標籤，全文照樣出現在文章頁、JSON API、`.md` 匯出與 sitemap；公開 repo 的 HEAD 也還留著譯文、第三方原文擷取、測試資料裡的譯文與第三方 prompt 全文。
+- 修法：OpenSpec change `translation-takedown-tombstone` 新增 `status: taken-down`：保留網址與原有 frontmatter，正文清空、摘要換成中性句，原網址改顯示定稿墓碑（200 加 `noindex`），並從列表、feed、搜尋與 sitemap 移除；CI 棘輪擋下架文章被寫回、擋新 GP、擋用已下架來源寫新文章。清單由工具依規則算出（GP 繁中 270、英文 269，MP 4 個 ticket 共 8 檔，合計 547 檔），不逐篇請 owner 確認；同時清掉 repo HEAD 上的第三方原文與譯文副本。git 歷史另案處理（issue #1111）。
+- Reusable lesson：`retired`／`deprecated` 是「仍公開全文」的編輯標籤，不等於下架；下架要關掉每個出口（HTML、JSON、`.md`、feed、搜尋、sitemap、repo HEAD），而且要有棘輪防止自動化寫回去。第三方原文擷取一律留在 repo 外，`sources/` 只放 ShroomDog 自己的 ChatGPT 對話。owner 授權「依規則做完」時，把規則與授權寫進紀錄、讓工具從規則算出清單，不要再加一輪逐篇確認。
+
+## 2026-09-26 — Mogu 撰寫與改寫文章一律使用 Claude 模型
+
+### Feedback: 只有 Claude 寫得出 gu-log 等級的繁中；角色是 Mogu，Claude 是模型
+
+- ShroomDog feedback：「目前前沿模型裡，只有 Claude 寫得出 gu-log 等級的繁體中文。」所以 Mogu 撰寫與改寫文章時，一律使用 Claude 模型；Grok、Codex 不再用於產生或改寫文章內容。接著修正用詞：`寫文章的角色全換成 Claude -> ai model to be specific, the role in gu-log should be Mogu`。
+- 情境：盤點 code 後發現，VM runtime profile 讓 Grok 模型翻 GP 正文、產生 MoguNote／commentary 候選與英文 sidecar，讓 Codex 模型直接改 GP 字句（corrector）；Tribunal 背景改寫與 final-build 修復用哪個模型由 `GP_WRITER_MODE=grok|codex` 決定；本機寫作 chain 找不到 `claude` 時還會默默退回 Codex。第一版 OpenSpec 提案又把決定寫成「文章寫作角色一律改用 Claude」，把模型講成了角色。
+- 修法：OpenSpec change `claude-only-prose-writing` 把決定寫成規範「Mogu 撰寫與改寫文章 SHALL 一律使用 Claude 模型」，並讓 router、gp-pipeline 與 Tribunal 的寫作步驟只接受 Claude，模型一律從 `tribunal-writer` frontmatter／`ClaudeOpusPinned` 讀，不在 config 另存一份；四位評審、eval、source reviewer、natural-zh gate 只打分不改字，維持原本路由。已經寫進 commit 的「角色」說法，用新的 commit 更正，不改寫歷史。
+- Reusable lesson：角色（Mogu）和模型（Claude）是兩件事。作者身份、署名與 voice 屬於 Mogu；Claude 是 Mogu 背後用的 AI 模型，是可以換的實作細節。寫 spec、文件、commit 時要說「Mogu 用 Claude 模型寫」，不要寫「Claude 擔任 writer」「寫作角色改用 Claude」。判斷哪些步驟要守這條時看它會不會改讀者看得到的字：corrector、MoguNote 候選、英文 sidecar、final-build 修復都算寫作。寫作模型是產品決定，fallback 或設定預設值都不能偷偷換掉它；Claude 不能用時要明確失敗，不要改用別的模型硬寫。
+
 ## 2026-08-16 — GP-274：讀者可見內容預設不用 emoji
 
 ### Feedback: 文章不要用未經逐次授權的表情圖示
@@ -699,3 +735,12 @@ Sprin asked whether Tribunal v7 FreshEyes covers “length should be just right,
 - ShroomDog feedback：「鬆一點」沒有說清楚究竟什麼改變，只憑空添加模糊的療癒感；這裡要觀察的本來就只是結果有沒有變化。
 - 修法：把「看看某件事有沒有鬆一點，原本坍塌的選項有沒有重新出現」收斂成「看看結果有沒有變化」。
 - Reusable lesson：不要用「鬆一點、接住、安放、長出空間」之類柔軟但無法指認的詞替代實際 feedback。原意若只是 change，就直接寫「有沒有變化」；清楚本身就可以溫柔。
+
+## 2026-09-27 — writer + vibe scorer 一起升到 Opus 5.5（pin 世代前移，one-taste-loop 不變）
+
+### Feedback: 寫手 pin 從 `claude-opus-4-6` 改成 Opus 5.5，vibe scorer 一起換
+
+- 情境：GP 改成 ShroomDog 精選導讀之前，ShroomDog 在 chat 拍板把寫手換成 Opus 5.5（`claude-opus-5-5`），並照 2026-07-28「寫手與 vibe 評分同一代」的規則讓 vibe scorer 一起換。時間點定在導讀新格式 PR 的第一個 commit，讓前 10 篇導讀改寫前就生效。
+- 修法：pin 的三個家一起改（`.claude/agents/tribunal-writer.md`、`.claude/agents/vibe-opus-scorer.md`、`claude.go` 的 `ClaudeOpusPinned`），PIN 註解寫上 sign-off 日期與世代沿革；新增 Go 測試鎖住 vibe scorer 的 `model:` 也等於 `ClaudeOpusPinned`，同代規則從此有測試守。歷史評分紀錄（文章的 `translatedBy.model`、`scores.*.model`）不改。
+- 撞到的前置 bug：`claude-opus-5-5` 是 5 世代的小版號，`scripts/detect-model.mjs` 的部分比對會先撞到 `claude-opus-5`，把它顯示成「Opus 5」。已在 `MODEL_MAP` 把 `claude-opus-5-5` 排在 `claude-opus-5` 前面並加測試。教訓：**同一個世代開始有小版號時，靠 `includes` 做部分比對的對照表要把長的 key 排前面**。
+- 不改的：`.codex/agents/vibe-opus-scorer.toml`（VM 的 vibe judge 是 Codex，同代規則只在 Claude 路徑成立）；浮動 `opus` alias 的記錄值另案決定。

@@ -84,27 +84,17 @@ tribunal_batch_active_providers() {
   writer_mode=$(tribunal_writer_mode 2>/dev/null) || return 1
   writer_provider=""
   case "$writer_mode" in
-    none|subagent) ;;
-    cli)
-      writer_provider=$(tribunal_writer_provider 2>/dev/null) || return 1
+    none) ;;
+    claude)
+      writer_provider="claude"
       ;;
-    codex)
-      writer_provider="codex"
-      ;;
-    grok)
-      writer_provider="grok"
-      ;;
+    # Retired writer modes (see tribunal_writer_mode_problem) and unknown
+    # values fail closed: gu-log article rewrites use only the Claude model.
     *) return 1 ;;
   esac
 
   for provider in "$global_provider" "$vibe_provider" "$fallback_provider" "$writer_provider"; do
     [ -n "$provider" ] || continue
-    # Grok uses the shared model router's quota policy. CodexBar cannot yet
-    # provide a reliable Grok percentage on this VM, so do not pretend the
-    # usage-monitor payload is authoritative for it.
-    if [ "$provider" = "grok" ]; then
-      continue
-    fi
     case "$provider" in
       codex|claude) ;;
       *) return 1 ;;
@@ -220,13 +210,47 @@ PY
   return 0
 }
 
+# A worker result after which the bounded batch stops instead of moving to the
+# next article (openspec tribunal-24-7-operations): a quota suspension, which
+# includes a Claude quota or temporary-error pause, and anything only a person
+# can fix (rc 78: Claude login, account, model pin or configuration). Prints
+# why and returns the batch exit code; returns 0 when the batch may go on.
+tribunal_batch_stop_reason() {
+  local rc="$1" article="$2" status reason
+  case "$rc" in
+    75)
+      status="$(jq -r --arg a "$article" '.[$a].status // ""' "$PROGRESS_FILE" 2>/dev/null || true)"
+      # Anything else with rc 75 is a per-article lock held elsewhere.
+      [ "$status" = QUOTA_SUSPENDED ] || return 0
+      reason="$(jq -r --arg a "$article" \
+        '.[$a] as $r | ($r.stages[$r.failedStage // ""].error // "")' \
+        "$PROGRESS_FILE" 2>/dev/null || true)"
+      printf 'quota suspended (%s)\n' "${reason:-no reason recorded}"
+      return 75
+      ;;
+    78)
+      printf 'needs operator action (rc=78; see the batch log: run `claude auth login`, or fix the Claude plan, admin settings, model pin or configuration)\n'
+      return 78
+      ;;
+  esac
+  return 0
+}
+
+# Print why an active Claude writer pause holds the batch; fail when none does.
+tribunal_batch_claude_pause() {
+  local left reason
+  left="$(tribunal_claude_pause_remaining)" || return 1
+  reason="$(jq -r '.reason // ""' "$(tribunal_claude_pause_file)" 2>/dev/null || true)"
+  printf 'Claude writer pause active for %ss (%s)\n' "$left" "${reason:-no reason recorded}"
+}
+
 # ─── Build Unscored Article List (newest → oldest) ───────────────────────────
 # Articles that haven't passed all 4 tribunal stages.
 get_unscored_articles() {
   # Ensure progress file exists
   ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
-  # List zh-tw articles (not en-, not deprecated), sorted newest-first by
+  # List zh-tw articles (not en-, not deprecated/taken-down), sorted newest-first by
   # frontmatter translatedDate. Keep in sync with
   # tribunal-quota-loop.sh:get_unscored_articles — this replaces the old
   # filename `sort -V` which grouped by series prefix.
@@ -244,19 +268,20 @@ get_unscored_articles() {
   )
 
   for article in $all_zh_articles; do
-    # Skip deprecated
     local full_path="$POSTS_DIR/$article"
-    if grep -q '^status: "deprecated"' "$full_path" 2>/dev/null; then
+    # Skip deprecated and taken-down posts: Tribunal scope is decided by
+    # frontmatter status alone (tribunal_post_outside_scope).
+    if tribunal_post_outside_scope "$full_path"; then
       continue
     fi
 
-    # Check if already PASS in the current Tribunal version. Older PASS entries
-    # must be reprocessed across the version boundary.
+    # Skip terminal statuses only for the current Tribunal version. Older
+    # terminal entries must be reprocessed across the version boundary.
     local status
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
       'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
-    if [ "$status" = "PASS" ]; then
+    if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi
 
@@ -305,13 +330,20 @@ PROCESSED=0
 PASSED=0
 FAILED=0
 SKIPPED=0
+STOP_RC=0
 
 # Exit-code convention (tribunal.sh):
-#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running)
-#   77=stopped_by_request
+#   0=passed  1=failed  2=EXHAUSTED  75=skipped(already_running) or
+#   QUOTA_SUSPENDED  77=stopped_by_request  78=needs operator action
 for article in "${ARTICLES[@]}"; do
   if [ "$PROCESSED" -ge "$MAX_ARTICLES" ]; then
     tlog "Reached max articles ($MAX_ARTICLES). Stopping."
+    break
+  fi
+
+  if pause_note="$(tribunal_batch_claude_pause)"; then
+    tlog "$pause_note; stopping the batch."
+    STOP_RC=75
     break
   fi
 
@@ -338,6 +370,14 @@ for article in "${ARTICLES[@]}"; do
   # Run tribunal
   rc=0
   bash "$SCRIPT_DIR/tribunal.sh" "$article" >> "$LOG_FILE" 2>&1 || rc=$?
+
+  stop_rc=0
+  stop_note="$(tribunal_batch_stop_reason "$rc" "$article")" || stop_rc=$?
+  if [ "$stop_rc" -ne 0 ]; then
+    tlog "  ■ $article — $stop_note; stopping the batch."
+    STOP_RC="$stop_rc"
+    break
+  fi
 
   case "$rc" in
     0)
@@ -372,3 +412,4 @@ tlog "  Remaining: $((TOTAL - PROCESSED))"
 
 # Cleanup old batch logs (keep last 20)
 ls -t "$LOG_DIR"/tribunal-batch-*.log 2>/dev/null | tail -n +21 | xargs rm -f 2>/dev/null
+exit "$STOP_RC"

@@ -5,7 +5,7 @@
  * Takes screenshots and verifies critical UI elements
  *
  * Usage: node scripts/visual-test.mjs [base-url] [post-path]
- * Default: https://gu-log.vercel.app /posts/gp-25-20260204-recursive-language-models-mit
+ * Default: https://gu-log.vercel.app /posts/mp-25-20260204-cursor-vibe-coding-lies
  *
  * Exit codes:
  *   0 = PASS (all checks passed)
@@ -17,7 +17,7 @@ import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 
 const BASE_URL = process.argv[2] || 'https://gu-log.vercel.app';
-const TEST_PATH = process.argv[3] || '/posts/gp-25-20260204-recursive-language-models-mit';
+const TEST_PATH = process.argv[3] || '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 const REPORT_DIR = path.resolve('.playwright-cli/report');
 
 const VIEWPORTS = [

@@ -24,6 +24,9 @@ export const READER_VISIBLE_FRONTMATTER_KEYS = Object.freeze([
   'translatedBy',
   'stage4Scores',
   'scores',
+  // Rendered on the tombstone of a taken-down post (openspec: post-takedown).
+  'sourceTitle',
+  'takenDownAt',
 ]);
 
 const READER_VISIBLE_FRONTMATTER_KEY_SET = new Set(READER_VISIBLE_FRONTMATTER_KEYS);

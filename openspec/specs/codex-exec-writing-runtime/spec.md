@@ -2,38 +2,15 @@
 
 ## Purpose
 
-定義 GP pipeline 的正式 Codex writer runtime 與乾淨 output capture 契約，避免 CLI noise 混入文章產物或讓 pipeline 誤判寫作結果。
+記錄 GP pipeline 的 Codex 寫作 runtime 已經退役。現行文章寫作 runtime 見 `claude-prose-writing-runtime`；退役原因與取捨見 `openspec/changes/archive/2026-09-26-claude-only-prose-writing/design.md`。
 
 ## Requirements
 
-### Requirement: GP pipeline SHALL 預設使用 Codex GPT-5.5 作為正式 writer runtime
+### Requirement: Codex 寫作 runtime SHALL 維持退役
 
-GP pipeline 在正式 writing、refine、review、probe LLM 呼叫時，SHALL 透過 Codex 與 GPT-5.5 執行，除非操作明確要求 fake/test provider。Legacy CLI 名稱 MAY 為了相容性保留，但 SHALL NOT 讓正式預設路徑離開 Codex。
+本 capability 只保留 Codex 寫作 runtime 的退役紀錄。gp-pipeline 與 Tribunal 的寫作步驟不再以 Codex 模型撰寫或改寫文章，現行寫作 runtime 由 `claude-prose-writing-runtime` 規範。日後要讓 Codex 重新撰寫文章，提案 SHALL 以 delta 修改本 requirement 與 `claude-prose-writing-runtime`，不得只改設定檔或環境變數。
 
-#### Scenario: 預設 writer chain
+#### Scenario: 設定要求以 Codex 撰寫文章
 
-- **WHEN** operator 在沒有 fake/test flags 的情況下執行 GP pipeline
-- **THEN** pipeline SHALL 呼叫 `codex exec` 並使用 model `gpt-5.5`
-- **AND** pipeline SHALL NOT 在正式 writing steps 呼叫 `claude -p`
-
-#### Scenario: Legacy flag compatibility
-
-- **WHEN** 既有 command 傳入 legacy model-selection flag
-- **THEN** CLI MAY 為了相容性接受該 flag
-- **AND** 除非該 flag 明確選擇 fake/test provider，正式預設 provider SHALL 仍然是 Codex/GPT-5.5
-
-### Requirement: Codex writer output SHALL 在沒有 CLI noise 的情況下被 capture
-
-GP pipeline SHALL 透過 deterministic mechanism capture 最終 Codex assistant output，例如 `codex exec -o <file>` 或等效的 output file protocol。除非實作有 tested extractor 能移除 CLI logs，stdout SHALL NOT 被直接當成 article body。
-
-#### Scenario: Codex 輸出 banner 或 warning text
-
-- **WHEN** Codex 把非文章文字寫到 stdout 或 stderr
-- **THEN** pipeline SHALL 從產生的 MDX 與 JSON artifacts 排除那些文字
-- **AND** 產生的 article content SHALL 只包含預期的 final answer
-
-#### Scenario: Output capture 不可用
-
-- **WHEN** 已安裝的 Codex CLI 不支援偏好的 output flag
-- **THEN** pipeline SHALL 以可行動的錯誤失敗，或使用 tested fallback extractor
-- **AND** pipeline SHALL NOT 默默把混有 CLI logs 的內容寫進 article files
+- **WHEN** 設定、旗標或寫手模式要求以 Codex 撰寫或改寫文章（例如 `GP_WRITER_PROVIDER=codex` 或 `GP_WRITER_MODE=codex`）
+- **THEN** 呼叫 SHALL 依 `claude-prose-writing-runtime` 在呼叫任何模型前以已退役的錯誤失敗

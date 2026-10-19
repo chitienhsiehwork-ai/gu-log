@@ -167,9 +167,8 @@ function formatContext(lines, index) {
 function findViolations(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
   // GP body is the source author's voice. First/second-person pronouns are
-  // required when the source uses them; source-preservation gates, rather
-  // than this context-free lint, verify that ownership. Other series retain
-  // the ambiguity guard below.
+  // required when the source uses them, so this context-free lint does not
+  // judge GP ownership. Other series retain the ambiguity guard below.
   if (isGPPost(content)) return [];
   const lines = content.split(/\r?\n/);
   const masked = buildMask(lines);

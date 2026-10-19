@@ -10,14 +10,27 @@
  *   Layer 3: Intra-queue pairwise comparison (--queue flag)
  *
  * CLI:
- *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP]
+ *   node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP|SD|Lv]
  *   node scripts/dedup-gate.mjs --queue '{"url":...}' '{"url":...}'   (batch mode)
  *   node scripts/dedup-gate.mjs ... --dry-run
  *
  * Output (stdout):
  *   BLOCK: Duplicate of GP-127 (URL match)
+ *   BLOCK: Source blocked — GP-35 was taken down (URL match): <title>
+ *   WARN: Source taken down as GP-35 (URL match) — a new GP reading guide needs ...
  *   WARN: Similar to MP-238 (score: 0.24)
  *   PASS
+ *
+ * Taken-down posts (openspec: post-takedown) are blocked sources, not live
+ * articles: Layer 1 still matches their URL / tweet / YouTube identity and
+ * blocks with "Source blocked", while Layer 2 never compares against them
+ * because their content is gone. Layer 1 looks at every article with the same
+ * source. The one exception is a --series GP candidate whose source was taken
+ * down only as GP and matches no live post: it gets a WARN, because a new GP
+ * reading guide may reuse that source with a valid sourceDistance stamp, which
+ * scripts/check-takedown-ratchet.mjs checks at commit. A source also taken down
+ * as MP stays blocked for GP too. This file stays self-contained (the
+ * gp-pipeline Go tests run a lone copy of it), so the status is read inline.
  *
  * Exit codes:
  *   0 = PASS or WARN (pipeline may continue)
@@ -93,6 +106,19 @@ const URL_ALIASES = [
   ],
 ];
 
+// Tracking / share params that never change which article a URL points to
+// (utm_* is stripped by prefix). One list for dedup, validate-posts and the
+// takedown ratchet, so a share link cannot slip past a blocked source.
+const TRACKING_PARAMS = new Set([
+  'ref',
+  'source',
+  'smid', // NYT share links (?smid=url-share)
+  'fbclid',
+  'gclid',
+  'mc_cid',
+  'mc_eid',
+]);
+
 function normalizeUrl(raw) {
   if (!raw) return '';
   const url = raw.trim().replace(/^['"]|['"]$/g, '');
@@ -111,19 +137,9 @@ function normalizeUrl(raw) {
   // Strip www / m subdomain
   let host = parsed.hostname.toLowerCase().replace(/^(www|m)\./, '');
 
-  // Strip tracking params
-  const STRIP_PARAMS = [
-    'utm_source',
-    'utm_medium',
-    'utm_campaign',
-    'utm_content',
-    'utm_term',
-    'ref',
-    'source',
-  ];
   const kept = [];
   for (const [k, v] of parsed.searchParams.entries()) {
-    if (!STRIP_PARAMS.includes(k) && !k.startsWith('utm_')) {
+    if (!TRACKING_PARAMS.has(k) && !k.startsWith('utm_')) {
       kept.push(`${k}=${v}`);
     }
   }
@@ -280,12 +296,27 @@ function computeSimilarity(textA, textB) {
 
 // ─── Article loading ──────────────────────────────────────────────────────────
 
-function loadPublishedArticles() {
-  const files = fs.readdirSync(POSTS_DIR).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
+/**
+ * The Layer 1 identity of a source URL: normalized URL, tweet ID and YouTube
+ * video ID. Anything compared with layer1Match() carries these three fields.
+ */
+function sourceIdentity(sourceUrl) {
+  return {
+    sourceUrl: sourceUrl ?? '',
+    normalizedUrl: normalizeUrl(sourceUrl),
+    tweetId: extractTweetId(sourceUrl),
+    youtubeVideoId: extractYouTubeVideoId(sourceUrl),
+  };
+}
+
+const TAKEN_DOWN_STATUS = 'taken-down';
+
+function loadPublishedArticles(postsDir = POSTS_DIR) {
+  const files = fs.readdirSync(postsDir).filter((f) => f.endsWith('.mdx') && !f.startsWith('en-'));
   const articles = [];
 
   for (const file of files) {
-    const filePath = path.join(POSTS_DIR, file);
+    const filePath = path.join(postsDir, file);
     let data;
     try {
       const raw = fs.readFileSync(filePath, 'utf8');
@@ -298,20 +329,13 @@ function loadPublishedArticles() {
     // Skip deprecated articles (they're excluded from dedup comparisons)
     if (data.status === 'deprecated') continue;
 
-    const sourceUrl = data.sourceUrl ?? '';
-    const normalizedUrl = normalizeUrl(sourceUrl);
-    const tweetId = extractTweetId(sourceUrl);
-    const youtubeVideoId = extractYouTubeVideoId(sourceUrl);
-
     articles.push({
       file,
       ticketId: data.ticketId,
       title: data.title ?? '',
       tags: Array.isArray(data.tags) ? data.tags : [],
-      sourceUrl,
-      normalizedUrl,
-      tweetId,
-      youtubeVideoId,
+      ...sourceIdentity(data.sourceUrl),
+      takenDown: data.status === TAKEN_DOWN_STATUS,
       keywordText: `${data.title ?? ''} ${data.summary ?? ''} ${Array.isArray(data.tags) ? data.tags.join(' ') : ''}`,
     });
   }
@@ -321,17 +345,24 @@ function loadPublishedArticles() {
 
 // ─── Layer 1: URL match ───────────────────────────────────────────────────────
 
+/**
+ * Every article whose source identity equals the candidate's, in corpus
+ * order: callers decide on all of them (a source taken down as both a GP and
+ * an MP stays blocked for a GP reading guide), so the first hit is not enough.
+ */
 function layer1Match(candidateUrl, articles) {
-  if (!candidateUrl) return null;
+  if (!candidateUrl) return [];
 
   const normCandidate = normalizeUrl(candidateUrl);
   const candidateTweetId = extractTweetId(candidateUrl);
   const candidateYouTubeVideoId = extractYouTubeVideoId(candidateUrl);
 
+  const matches = [];
   for (const art of articles) {
     // Tweet ID match (x.com vs twitter.com, mobile vs desktop)
     if (candidateTweetId && art.tweetId && candidateTweetId === art.tweetId) {
-      return { article: art, reason: 'tweet ID match' };
+      matches.push({ article: art, reason: 'tweet ID match' });
+      continue;
     }
 
     // YouTube identity match (watch vs shorts vs youtu.be).
@@ -340,16 +371,49 @@ function layer1Match(candidateUrl, articles) {
       art.youtubeVideoId &&
       candidateYouTubeVideoId === art.youtubeVideoId
     ) {
-      return { article: art, reason: 'YouTube video ID match' };
+      matches.push({ article: art, reason: 'YouTube video ID match' });
+      continue;
     }
 
     // Normalized URL exact match
     if (normCandidate && art.normalizedUrl && normCandidate === art.normalizedUrl) {
-      return { article: art, reason: 'URL match' };
+      matches.push({ article: art, reason: 'URL match' });
     }
   }
 
-  return null;
+  return matches;
+}
+
+const GP_TICKET = /^GP-(?:\d+|PENDING)$/;
+
+/**
+ * The Layer 1 verdict over every article with the candidate's source. A live
+ * duplicate blocks as usual. A GP candidate whose source was taken down only
+ * as GP gets a WARN (the takedown ratchet requires a valid source-distance
+ * stamp at commit); any taken-down non-GP post keeps the source blocked.
+ */
+function layer1Verdict(matches, series) {
+  const live = matches.find(({ article }) => !article.takenDown);
+  if (live) return { verdict: 'BLOCK', line: formatLayer1Block(live) };
+  const nonGp = matches.find(({ article }) => !GP_TICKET.test(article.ticketId));
+  if (series !== 'GP' || nonGp) {
+    return { verdict: 'BLOCK', line: formatLayer1Block(nonGp ?? matches[0]) };
+  }
+  const takenDownAs = matches
+    .map(({ article, reason }) => `${article.ticketId} (${reason})`)
+    .join(', ');
+  return {
+    verdict: 'WARN',
+    line: `WARN: Source taken down as ${takenDownAs} — a new GP reading guide may use it only with a valid sourceDistance stamp (tools/gp-pipeline/gp-pipeline stamp); the takedown ratchet checks it at commit`,
+  };
+}
+
+/** The stdout line for a Layer 1 hit; a taken-down match is a blocked source. */
+function formatLayer1Block({ article, reason }) {
+  if (article.takenDown) {
+    return `BLOCK: Source blocked — ${article.ticketId} was taken down (${reason}): ${article.title}`;
+  }
+  return `BLOCK: Duplicate of ${article.ticketId} (${reason}): ${article.title}`;
 }
 
 // ─── Layer 2: Topic similarity ────────────────────────────────────────────────
@@ -359,6 +423,8 @@ function layer2Match(candidateTitle, candidateTags, articles) {
   let best = { score: 0, enOverlap: 0, article: null };
 
   for (const art of articles) {
+    // A taken-down post's content is gone; only its source identity blocks.
+    if (art.takenDown) continue;
     // Title-to-title (tight match)
     const titleSim = computeSimilarity(candidateTitle, art.title);
     // Full-to-full (broad match)
@@ -469,7 +535,7 @@ function parseArgs(argv) {
       i++;
     } else if (flag === '--series') {
       if (!next || next.startsWith('--')) {
-        throw new Error('--series requires GP or MP');
+        throw new Error('--series requires GP, MP, SD or Lv');
       }
       const series = next.toUpperCase();
       if (series === 'SP') {
@@ -478,10 +544,11 @@ function parseArgs(argv) {
       if (series === 'CP') {
         throw new Error('retired series "CP"; use "MP"');
       }
-      if (!['GP', 'MP'].includes(series)) {
-        throw new Error(`unsupported series "${next}"; expected GP or MP`);
+      const canonical = { GP: 'GP', MP: 'MP', SD: 'SD', LV: 'Lv' }[series];
+      if (!canonical) {
+        throw new Error(`unsupported series "${next}"; expected GP, MP, SD or Lv`);
       }
-      args.series = series;
+      args.series = canonical;
       i++;
     } else if (flag === '--queue') {
       // Consume all remaining positional args after --queue as JSON objects
@@ -535,23 +602,26 @@ function main() {
   // ── Single candidate check ──
   if (!args.url && !args.title) {
     process.stderr.write(
-      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP] [--dry-run]\n'
+      'Usage: node scripts/dedup-gate.mjs --url URL --title TITLE [--tags t1,t2] [--series GP|MP|SD|Lv] [--dry-run]\n'
     );
     process.exit(2);
   }
 
   // Layer 1: URL
-  const urlMatch = layer1Match(args.url, articles);
-  if (urlMatch) {
-    const { article, reason } = urlMatch;
-    const msg = `BLOCK: Duplicate of ${article.ticketId} (${reason}): ${article.title}`;
-    process.stdout.write(msg + '\n');
-    if (!args.dryRun) process.exit(1);
-    process.exit(0);
+  const urlMatches = layer1Match(args.url, articles);
+  let sourceWarning = null;
+  if (urlMatches.length > 0) {
+    const { verdict, line } = layer1Verdict(urlMatches, args.series);
+    if (verdict === 'BLOCK') {
+      process.stdout.write(line + '\n');
+      if (!args.dryRun) process.exit(1);
+      process.exit(0);
+    }
+    sourceWarning = line;
   }
 
   if (args.identityOnly) {
-    process.stdout.write('PASS\n');
+    process.stdout.write(`${sourceWarning ?? 'PASS'}\n`);
     process.exit(0);
   }
 
@@ -568,11 +638,11 @@ function main() {
   if (topicResult.verdict === 'WARN') {
     const { article, score } = topicResult;
     const msg = `WARN: Similar to ${article.ticketId} (score: ${score.toFixed(3)}): ${article.title}`;
-    process.stdout.write(msg + '\n');
+    process.stdout.write([sourceWarning, msg].filter(Boolean).join('\n') + '\n');
     process.exit(0);
   }
 
-  process.stdout.write('PASS\n');
+  process.stdout.write(`${sourceWarning ?? 'PASS'}\n`);
   process.exit(0);
 }
 
@@ -586,7 +656,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   }
 }
 
-// ─── Exports (for use by validate-posts.mjs --check-duplicates) ───────────────
+// ─── Exports (validate-posts.mjs --check-duplicates, check-takedown-ratchet.mjs) ─
 export {
   normalizeUrl,
   extractTweetId,
@@ -597,7 +667,10 @@ export {
   meaningfulOverlap,
   jaccard,
   computeSimilarity,
+  sourceIdentity,
   layer1Match,
+  layer1Verdict,
+  formatLayer1Block,
   layer2Match,
   layer3QueueCheck,
   loadPublishedArticles,

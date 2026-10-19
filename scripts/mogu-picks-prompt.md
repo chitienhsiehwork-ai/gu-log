@@ -17,9 +17,9 @@
 - 優先選有技術深度、可驗證、能帶給讀者新理解的內容；純 announcement、傳聞農場與無完整原文的 preview 不選。
 - 取得完整 source。X／blog 的 fetch fallback 與 completeness gate 依 repo 路由文件執行。
 - 保留 observed／inferred／speculative 邊界；無法確認的數字、日期或產品名稱不得寫成定論。
-- 先找到 Mogu 自己的 thesis，再選擇最適合文章的距離：可以保留大部分來源覆蓋與順序並貼近翻譯／改寫，也可以選材、省略、重排、綜合、反駁或從頭重建。沒有最低改寫幅度，不得只為證明不像 GP 硬改來源骨架。
+- 先找到 Mogu 自己的 thesis，再選擇最適合文章的距離：可以保留大部分來源覆蓋與順序並貼近翻譯／改寫，也可以選材、省略、重排、綜合、反駁或從頭重建。沒有最低改寫幅度，不得只為了跟來源拉開距離硬改來源骨架。
 - 一旦保留 source-derived claim，必須保留正確 speaker、條件、hedge、controlling caveat、證據範圍與信心強度。Mogu 的新分析要歸給 Mogu。
-- close-form MP 仍由 Mogu 擁有正文聲音，不取得 GP 的完整覆蓋、來源順序或原作者 voice fidelity 承諾。
+- close-form MP 仍由 Mogu 擁有正文聲音，不因貼近來源就承諾完整覆蓋、來源順序或原作者 voice fidelity。MP 也不是 GP 導讀：MP 以 Mogu 自己的主張為主軸；帶讀者看重點、再帶回原文的是 ShroomDog 挑來源的 GP。
 - 不得捏造 facts、quotes、numbers、causality、citations，亦不得挪用來源作者經歷或冒充 ShroomDog。新 factual premise 要有可追溯證據。
 - MoguNote 只是選配 aside；一篇完整 MP 沒有 MoguNote 不是缺陷，Mogu 的核心分析要留在 body。MoguNote 可用第一人稱寫反應／立場、實際發生的 editorial／tool interaction，或明顯奇幻 persona 經歷；不得杜撰合理讀者可能信以為真的人類工作、旅行、關係、購買或其他生平證言。
 
@@ -29,7 +29,7 @@
 tools/gp-pipeline/gp-pipeline run "SOURCE_URL" --prefix MP
 ```
 
-Pipeline 沿用既有非 GP 路徑，自己負責 eval、跨系列 dedup、write、review、refine、credits、tribunal、正式 ticket allocation、filename rename、validate、build、commit 與 push。不得新增另一套 MP pipeline、editorial mode 或 frontmatter schema。遵守以下硬規則：
+Pipeline 走 MP 路徑（GP 導讀多出的來源距離配對與蓋章，MP 不跑），自己負責 eval、跨系列 dedup、write、review、refine、credits、tribunal、正式 ticket allocation、filename rename、validate、build、commit 與 push。不得新增另一套 MP pipeline、editorial mode 或 frontmatter schema。遵守以下硬規則：
 
 - 草稿 ticket 是 `MP-PENDING`，檔名是 `mp-pending-*`；正式號碼只由 deploy 配置。
 - 正式 MP 檔名是 `mp-N-*`，ticket 是 `MP-N`。

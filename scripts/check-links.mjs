@@ -18,7 +18,7 @@
  */
 
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -108,6 +108,7 @@ const MANUAL_CHECK_DOMAINS = [
   'deeplearning.ai',
   'news.ycombinator.com',
 ];
+const INTERNAL_ORIGINS = new Set(['https://gu-log.vercel.app', 'https://www.gu-log.vercel.app']);
 
 // Skip these URL patterns entirely (not real links)
 const SKIP_PATTERNS = [
@@ -179,15 +180,12 @@ function extractLinks(content, filePath) {
 
 function isInternalLink(url) {
   if (url.startsWith('/') && !url.startsWith('//')) return true;
-  // Hostname match only — substring matching breaks on URLs that put the
+  // Exact origin matching prevents URLs that put the
   // gu-log.vercel.app domain inside a query parameter (e.g.
   // `https://api.qrserver.com/v1/create-qr-code/?data=https://gu-log.vercel.app`),
-  // which is an EXTERNAL call to api.qrserver.com, not an internal link.
+  // or use a different scheme/port from borrowing a file in dist.
   try {
-    const host = new URL(url).hostname;
-    if (host === 'gu-log.vercel.app' || host === 'www.gu-log.vercel.app') {
-      return true;
-    }
+    return INTERNAL_ORIGINS.has(new URL(url).origin);
   } catch {
     // not a valid absolute URL — fall through
   }
@@ -205,30 +203,31 @@ export function isManualCheckDomain(url) {
 
 // ── Internal Link Validation ─────────────────────────────────────
 
-function checkInternalLink(url) {
-  // Normalize: strip domain if present
-  let path = url;
-  if (url.includes('gu-log.vercel.app')) {
-    try {
-      path = new URL(url).pathname;
-    } catch {
-      return false;
-    }
+export function checkInternalLink(url, distDir = DIST_DIR) {
+  if (!isInternalLink(url)) return false;
+
+  let parsed;
+  try {
+    // WHATWG URL parsing matches the browser: it removes query/fragment data
+    // and normalizes literal or percent-encoded dot segments before the
+    // pathname ever reaches the filesystem.
+    parsed = new URL(url, 'https://gu-log.vercel.app');
+  } catch {
+    return false;
   }
+  if (!INTERNAL_ORIGINS.has(parsed.origin)) return false;
 
-  // Strip hash fragment before filesystem check
-  path = path.replace(/#.*$/, '');
-
-  // Remove trailing slash, add index.html logic
+  let path = parsed.pathname;
   path = path.replace(/\/$/, '') || '/';
+  const distRoot = resolve(distDir);
+  const resolvedPath = resolve(distRoot, `.${path}`);
+  const candidates = [resolvedPath, join(resolvedPath, 'index.html'), resolvedPath + '.html'];
+  const distPrefix = `${distRoot}${sep}`;
 
-  const candidates = [
-    join(DIST_DIR, path),
-    join(DIST_DIR, path, 'index.html'),
-    join(DIST_DIR, path + '.html'),
-  ];
-
-  return candidates.some((c) => existsSync(c));
+  return candidates.some(
+    (candidate) =>
+      (candidate === distRoot || candidate.startsWith(distPrefix)) && existsSync(candidate)
+  );
 }
 
 // ── External Link Validation (with rate limiting) ────────────────
@@ -287,6 +286,7 @@ async function checkExternalLink(url, retries = MAX_RETRIES) {
           signal: controller2.signal,
           redirect: 'follow',
         });
+        await res.body?.cancel();
       } finally {
         clearTimeout(timeout2);
       }

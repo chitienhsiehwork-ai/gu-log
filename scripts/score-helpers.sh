@@ -145,6 +145,13 @@ tribunal_post_pair_snapshot_restore() {
     python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" restore "$1" -
 }
 
+tribunal_writer_frontmatter_policy_for_stage() {
+  case "${1:-}" in
+    factChecker) printf '%s\n' 'paired-summary' ;;
+    *) printf '%s\n' 'preserve-all' ;;
+  esac
+}
+
 tribunal_post_pair_candidate_materialize() {
   printf '%s' "$2" |
     python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
@@ -152,15 +159,17 @@ tribunal_post_pair_candidate_materialize() {
 }
 
 tribunal_post_pair_candidate_capture() {
+  local frontmatter_policy="${3:-preserve-all}"
   printf '%s' "$2" |
     python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
-      capture-candidate "$1" -
+      capture-candidate --frontmatter-policy "$frontmatter_policy" "$1" -
 }
 
 tribunal_post_pair_candidate_apply() {
+  local frontmatter_policy="${4:-preserve-all}"
   printf '%s' "$3" |
     python3 "$SCORE_ROOT/scripts/tribunal-post-pair-snapshot.py" \
-      apply-candidate "$1" "$2" -
+      apply-candidate --frontmatter-policy "$frontmatter_policy" "$1" "$2" -
 }
 
 tribunal_post_pair_candidate_recover_pending() {
@@ -172,6 +181,7 @@ tribunal_post_pair_candidate_rollback() (
   local post_path="$1"
   local baseline_token="$2"
   local expected_candidate_token="$3"
+  local frontmatter_policy="${4:-preserve-all}"
   local rollback_dir rollback_rc=0
 
   rollback_dir="$(mktemp -d "${TMPDIR:-/tmp}/tribunal-rollback.XXXXXX")" ||
@@ -190,7 +200,8 @@ tribunal_post_pair_candidate_rollback() (
     "$rollback_dir" "$baseline_token" || rollback_rc=$?
   if [ "$rollback_rc" -eq 0 ]; then
     tribunal_post_pair_candidate_apply \
-      "$post_path" "$rollback_dir" "$expected_candidate_token" ||
+      "$post_path" "$rollback_dir" "$expected_candidate_token" \
+      "$frontmatter_policy" ||
       rollback_rc=$?
   fi
   rm -rf -- "$rollback_dir"

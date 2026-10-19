@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -82,6 +83,27 @@ func (s *State) stageEditorialContext() error {
 	return nil
 }
 
+// checkExistingSeries fails, wrapped for step, when an existing post's
+// filename names another series than s.Prefix. As in the CLI's series
+// resolution, an existing post's filename decides its series and Prefix only
+// applies to a fresh article. The GP-only steps (post-fixer, source-distance)
+// follow Prefix, so a mismatched Prefix would carry a GP post past its
+// source-distance stamp, or stamp a post of another series. It stays out of
+// prepareExistingPost, which standalone translate calls without a Prefix.
+func (s *State) checkExistingSeries(step string) error {
+	if s.ExistingFile == "" {
+		return nil
+	}
+	series, err := SeriesFromFilename(s.ExistingFile)
+	if err != nil {
+		return fmt.Errorf("%s: %w", step, err)
+	}
+	if series != s.Prefix {
+		return fmt.Errorf("%s: prefix %q does not match series %s of existing file %s", step, s.Prefix, series, s.ExistingFile)
+	}
+	return nil
+}
+
 type pipelineStep struct {
 	name string
 	fn   func(context.Context) error
@@ -93,22 +115,19 @@ func stepsForState(s *State) []pipelineStep {
 		{"dedup-url", s.DedupURL},
 		{"eval", s.Eval},
 		{"dedup", s.Dedup},
+		{"write", s.Write},
+		{"review", s.Review},
+		{"refine", s.Refine},
 	}
-	if s.Prefix == "GP" && !s.LegacyShadow {
-		return append(steps,
-			pipelineStep{"source-translate", s.SourceTranslate},
-			pipelineStep{"source-preservation", s.PreserveGP},
-			pipelineStep{"enrich", s.Enrich},
-			pipelineStep{"credits", s.Credits},
-			pipelineStep{"ralph", s.Ralph},
-			pipelineStep{"translate", s.Translate},
-			pipelineStep{"deploy", s.Deploy},
+	if s.Prefix == "GP" {
+		// The stamp covers the body that ships: the post-fixers run on the
+		// work-dir final.mdx before it, and nothing after it edits the body.
+		steps = append(steps,
+			pipelineStep{"post-fixer", s.PostFix},
+			pipelineStep{"source-distance", s.SourceDistance},
 		)
 	}
 	return append(steps,
-		pipelineStep{"write", s.Write},
-		pipelineStep{"review", s.Review},
-		pipelineStep{"refine", s.Refine},
 		pipelineStep{"credits", s.Credits},
 		pipelineStep{"ralph", s.Ralph},
 		pipelineStep{"translate", s.Translate},
@@ -116,10 +135,10 @@ func stepsForState(s *State) []pipelineStep {
 	)
 }
 
-// Run executes the full pipeline end-to-end. GP uses source-translate and
-// source-preservation gates; MP and the other series retain the existing
-// write-review-refine editorial flow.
-// honors s.FromStepInt so callers can resume partway through.
+// Run executes the full write-review-refine pipeline end-to-end and honors
+// s.FromStepInt so callers can resume partway through. An existing post whose
+// filename names another series than Prefix is refused before any snapshot,
+// recovery hydration, or step (see checkExistingSeries).
 //
 // Run is the single-invocation entrypoint of the pipeline. It
 // does NOT manage work-dir setup — call SetupWorkDir first — and does NOT
@@ -127,6 +146,9 @@ func stepsForState(s *State) []pipelineStep {
 // PrintSummary so the `run` subcommand can emit it in both human and
 // --json shapes.
 func Run(ctx context.Context, s *State) error {
+	if err := s.checkExistingSeries("run"); err != nil {
+		return err
+	}
 	// Hydrate and validate an existing post before any recovery prompt runs.
 	// Otherwise review/refine would still see the fresh-run placeholder (for
 	// example GP-PENDING) and could rewrite an allocated article's identity.
@@ -192,6 +214,36 @@ func (s *State) RecordRunFailure(step string, runErr error) {
 	writeSnapshotBestEffort(s, step, "", "failed", errText)
 }
 
+// roleFailureVersion labels <role>-failure.json for humans; no tool parses it.
+const roleFailureVersion = "gp-pipeline-role-failure/v1"
+
+// RecordRoleFailure persists provider/profile failures before returning so a
+// resumed run has durable evidence instead of only ephemeral stderr.
+func (s *State) RecordRoleFailure(role string, runErr error) {
+	if s == nil || s.WorkDir == "" || runErr == nil {
+		return
+	}
+	_ = writeJSON(filepath.Join(s.WorkDir, role+"-failure.json"), map[string]any{
+		"version":      roleFailureVersion,
+		"role":         role,
+		"error":        runErr.Error(),
+		"completed_at": time.Now().UTC(),
+	})
+}
+
+// writeJSON writes value as two-space indented JSON ending in a newline.
+func writeJSON(path string, value any) error {
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
+}
+
 // PrintSummary writes a human-readable pipeline summary to w, matching
 // the retired bash pipeline's Step 6 field layout. Used by the run
 // subcommand after Run returns.
@@ -205,7 +257,15 @@ func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "Title       : %s\n", nonEmpty(s.Title, "N/A"))
 	fmt.Fprintf(w, "Filename    : %s\n", nonEmpty(s.Filename, nonEmpty(s.ActiveFilename, "N/A (dry-run)")))
 	fmt.Fprintf(w, "Work dir    : %s\n", s.WorkDir)
-	for _, name := range []string{"fetch", "dedup-url", "eval", "dedup", "source-translate", "source-preservation", "enrich", "write", "review", "refine", "credits", "ralph", "translate", "deploy"} {
+	names := []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine"}
+	if s.Prefix == "GP" {
+		names = append(names, "post-fixer", "source-distance")
+	}
+	for _, name := range append(names, "credits", "ralph", "translate", "deploy") {
 		fmt.Fprintf(w, "%-7s time: %ds\n", name, s.Timings[name])
+	}
+	if s.Prefix == "GP" {
+		fmt.Fprintf(w, "Source distance: %s\n", sourceDistanceSummary(s.SourceDistanceResult))
+		fmt.Fprintf(w, "English check  : %s\n", nonEmpty(s.EnglishCheck, "not run"))
 	}
 }

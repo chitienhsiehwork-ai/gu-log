@@ -129,17 +129,41 @@ missing_required_judges() {
   fi
 }
 
+extract_first_frontmatter() {
+  awk '
+    NR == 1 {
+      if ($0 != "---") exit 2
+      next
+    }
+    $0 == "---" {
+      closed = 1
+      exit
+    }
+    { print }
+    END {
+      if (!closed) exit 2
+    }
+  '
+}
+
 assert_complete_score_frontmatter() {
   local rel="$1"
   local content="$2"
-  if ! has_required_score_frontmatter "$content"; then
+  local frontmatter
+  if ! frontmatter="$(extract_first_frontmatter <<<"$content")"; then
+    echo "ERROR: target post artifact lacks a complete first frontmatter block: $rel" >&2
+    echo "       Refusing Tribunal PASS without parseable published frontmatter." >&2
+    return 1
+  fi
+
+  if ! has_required_score_frontmatter "$frontmatter"; then
     echo "ERROR: target post artifact lacks scores.tribunalVersion >= $required_tribunal_version: $rel" >&2
     echo "       Refusing Tribunal PASS without published score frontmatter." >&2
     return 1
   fi
 
   local missing
-  missing="$(missing_required_judges "$content")"
+  missing="$(missing_required_judges "$frontmatter")"
   if [ -n "$missing" ]; then
     echo "ERROR: target post artifact has incomplete Tribunal v${required_tribunal_version}+ scores: $rel" >&2
     echo "       Missing judge block(s): $(tr '\n' ' ' <<<"$missing" | sed 's/[[:space:]]*$//')" >&2

@@ -6,9 +6,10 @@
  */
 
 import { readdirSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { join, extname, relative, sep } from 'node:path';
 
-const DIST_DIR = new URL('../dist/', import.meta.url).pathname;
+const DIST_DIR = fileURLToPath(new URL('../dist/', import.meta.url));
 
 const JS_EXTS = new Set(['.js', '.mjs']);
 const CSS_EXTS = new Set(['.css']);
@@ -21,12 +22,7 @@ function toPosixPath(pathValue) {
 
 function walkDir(dir) {
   const results = [];
-  let entries;
-  try {
-    entries = readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return results;
-  }
+  const entries = readdirSync(dir, { withFileTypes: true });
 
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
@@ -61,7 +57,20 @@ function htmlPathToRoute(htmlPath) {
 }
 
 function analyze() {
-  const files = walkDir(DIST_DIR);
+  let files;
+  try {
+    files = walkDir(DIST_DIR);
+  } catch {
+    console.error('Bundle size analysis failed: unable to scan dist/');
+    process.exitCode = 2;
+    return;
+  }
+
+  if (files.length === 0) {
+    console.error('Bundle size analysis failed: dist/ contains no files');
+    process.exitCode = 2;
+    return;
+  }
 
   let totalSize = 0;
   let jsSize = 0;

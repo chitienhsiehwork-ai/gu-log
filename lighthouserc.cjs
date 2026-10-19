@@ -4,7 +4,7 @@ module.exports = {
       // Use the built static files
       staticDistDir: './dist',
       // Test these URLs (relative paths)
-      url: ['/', '/posts/gp-50-20260212-karpathy-deepwiki-bacterial-code/', '/en/'],
+      url: ['/', '/posts/mp-25-20260204-cursor-vibe-coding-lies/', '/en/'],
       numberOfRuns: 3, // Run 3 times for stability
     },
     assert: {

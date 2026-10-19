@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "engines": {
-    "node": ">=22 <23"
+    "node": ">=22.13.0 <23"
   },
   "scripts": {
     "dev": "astro dev",
@@ -25,6 +25,7 @@
     "test:tribunal-v2": "pnpm exec vitest run tests/tribunal-v2",
     "tribunal:run": "tsx scripts/tribunal-v2-run.ts",
     "tribunal:list": "tsx scripts/tribunal-v2-run.ts --list-in-progress",
+    "reader:calibrate": "tsx scripts/reader-signal-calibration.ts",
     "tribunal:spark-benchmark": "node scripts/spark-tribunal-benchmark.mjs",
     "lint": "eslint middleware.ts src/ scripts/ tests/",
     "lint:fix": "eslint src/ scripts/ tests/ --fix",
@@ -60,47 +61,53 @@
     "redirects:verify": "node scripts/verify-brand-redirects.mjs"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.9",
-    "@astrojs/mdx": "^6.0.3",
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/markdown-remark": "^7.3.1",
+    "@astrojs/mdx": "^8.0.1",
     "@astrojs/rss": "^4.0.19",
-    "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/sitemap": "^3.7.4",
     "@mdx-js/mdx": "^3.1.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "3.7.6",
-    "astro": "^6.4.8",
-    "entities": "6.0.1",
+    "astro": "^7.3.3",
+    "entities": "8.0.0",
     "fuse.js": "^7.5.0",
     "hast-util-from-html": "^2.0.3",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "typescript": "^5.9.3",
     "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.113.0",
-    "@axe-core/playwright": "^4.12.1",
+    "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^9.39.5",
     "@lhci/cli": "^0.15.1",
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.62.1",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-astro": "^1.7.0",
-    "gpt-tokenizer": "^3.4.0",
+    "gpt-tokenizer": "^4.0.0",
     "gray-matter": "^4.0.3",
     "monocart-reporter": "^2.12.3",
-    "playwright": "^1.62.0",
+    "path-to-regexp": "8.4.2",
+    "playwright": "^1.62.1",
     "prettier": "^3.9.6",
     "prettier-plugin-astro": "^0.14.1",
-    "tsx": "^4.23.1",
-    "typescript-eslint": "^8.65.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx": "^3.1.1",
+    "remark-parse": "^11.0.0",
+    "tsx": "^4.23.12",
+    "typescript-eslint": "^8.67.0",
+    "unified": "^11.0.5",
     "vitest": "^4.1.10",
     "yaml": "^2.9.0"
   },
   "packageManager": "pnpm@10.29.3",
   "overrides": {
     "serialize-javascript": "^7.0.3",
-    "tmp": "^0.2.4",
+    "tmp": "^0.2.6",
     "fast-xml-builder": "^1.1.7",
-    "fast-uri": "^3.1.5"
+    "fast-uri": "^3.1.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -108,21 +115,27 @@
       "sharp"
     ],
     "overrides": {
-      "sharp": ">=0.35.0",
-      "svgo": ">=4.0.2",
+      "sharp": ">=0.35.5",
+      "svgo": ">=4.1.0",
       "serialize-javascript": ">=7.0.3",
       "flatted": ">=3.4.2",
       "fast-xml-parser": ">=5.5.6",
       "fast-xml-builder": ">=1.1.7",
-      "fast-uri": ">=3.1.5 <4",
+      "fast-uri": ">=3.1.6 <4",
+      "smol-toml": ">=1.7.1 <2",
+      "tmp@<0.2.6": "0.2.7",
       "h3": ">=1.15.6",
       "defu": ">=6.1.5",
-      "devalue": ">=5.6.4",
-      "brace-expansion@>=1.0.0 <2.0.0": "1.1.18",
-      "brace-expansion@>=5.0.0 <=5.0.8": ">=5.0.9",
-      "js-yaml@>=3.0.0 <3.15.1": "3.15.1",
-      "js-yaml@>=4.0.0 <4.3.1": "4.3.1",
-      "nanoid@>=3.0.0 <3.3.18": "3.3.18"
+      "devalue": ">=5.9.3 <6",
+      "brace-expansion@>=1.0.0 <2.0.0": "1.1.21",
+      "brace-expansion@>=5.0.0 <5.0.11": ">=5.0.11 <6",
+      "js-yaml@>=3.0.0 <3.15.2": "3.15.2",
+      "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18",
+      "http-cache-semantics": "4.3.0",
+      "source-map-js": ">=1.2.2 <2",
+      "proxy-addr": ">=2.0.8 <3",
+      "compression": ">=1.8.2 <2"
     }
   }
 }

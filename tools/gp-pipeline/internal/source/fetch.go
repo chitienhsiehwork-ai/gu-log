@@ -66,7 +66,7 @@ var nonCanonicalIPv4Re = regexp.MustCompile(
 // through FetchX (fxtwitter quality). Allowlisted YouTube hosts always go
 // through FetchYouTube and fail closed; they never fall back to generic HTML,
 // because the resulting page is only a JavaScript shell. Everything else goes
-// through FetchGeneric (curl + minimal HTML cleanup).
+// through FetchGeneric (readability extraction with curl cleanup fallback).
 func Fetch(ctx context.Context, url string, opts FetchOptions) (*FetchResult, error) {
 	if xURLRe.MatchString(url) {
 		return FetchX(ctx, url, opts)
@@ -120,11 +120,11 @@ func FetchX(ctx context.Context, url string, opts FetchOptions) (*FetchResult, e
 	return parsed, nil
 }
 
-// FetchGeneric fetches an arbitrary http(s) URL via curl and writes the
-// result to WorkDir/source-tweet.md with a header compatible with the rest
-// of the pipeline. HTML pages pass through a minimal cleanup (drop script /
-// style / comments, decode entities, collapse whitespace) so the LLM gets
-// readable prose instead of a raw SSR dump.
+// FetchGeneric fetches an arbitrary http(s) URL and writes the result to
+// WorkDir/source-tweet.md with a header compatible with the rest of the
+// pipeline. It prefers the configured readability extractor; when that is
+// unavailable or invalid, curl HTML passes through minimal cleanup (drop
+// script / style / comments, decode entities, collapse whitespace).
 //
 // This is the default fallback when a URL doesn't match the X-specific
 // fetcher. Validation uses ValidateArticleCapture, the looser validator

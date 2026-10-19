@@ -12,11 +12,12 @@
 import { describe, it, expect } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const SCRIPT = path.resolve(__dirname, '../scripts/frontmatter-scores.mjs');
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gufms-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gufms-');
 
 function makePost(name: string, fmExtra = ''): string {
   const p = path.join(TMP, name);

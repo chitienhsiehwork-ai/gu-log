@@ -118,7 +118,11 @@ if [ "$IMPROVED" -eq 1 ] && [ "$FAIL" -eq 0 ]; then
     --argjson f "$CURRENT_FUNCTIONS" \
     --argjson l "$CURRENT_LINES" \
     --arg d "$TODAY" \
-    '.statements = $s | .branches = $b | .functions = $f | .lines = $l | .date = $d' \
+    '.statements = ([.statements, $s] | max)
+      | .branches = ([.branches, $b] | max)
+      | .functions = ([.functions, $f] | max)
+      | .lines = ([.lines, $l] | max)
+      | .date = $d' \
     "$BASELINE_FILE" > "${BASELINE_FILE}.tmp"
   mv "${BASELINE_FILE}.tmp" "$BASELINE_FILE"
   echo "🔼 Baseline ratcheted up!"

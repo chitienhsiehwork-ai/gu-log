@@ -10,7 +10,7 @@ import { selectPostTextAndShowPopup as selectAndShowPopup } from './helpers/ai-p
  * Run with: npx playwright test tests/ai-popup-e2e-flow.spec.ts
  */
 
-const TEST_POST = '/posts/gp-24-20260204-claude-is-a-space-to-think';
+const TEST_POST = '/posts/mp-25-20260204-cursor-vibe-coding-lies';
 
 /** Set a fake JWT so the user appears logged in */
 async function loginWithFakeJWT(page: import('@playwright/test').Page) {

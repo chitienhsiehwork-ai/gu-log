@@ -2,7 +2,6 @@
   "version": 1,
   "profiles": {
     "vm-codex": {
-      "requiredProviders": ["codex", "grok"],
       "reviewer": {
         "provider": "codex",
         "primary": {
@@ -17,51 +16,15 @@
         "quotaUnknownPolicy": "lowQuota"
       },
       "writer": {
-        "provider": "grok",
-        "model": "grok-4.6",
-        "reasoningEffort": "low"
+        "provider": "claude"
       },
-      "translator": {
-        "provider": "grok",
-        "model": "grok-4.6",
-        "reasoningEffort": "low",
-        "promptContract": "source-translate-v2",
-        "outputContract": "source-translation-v1"
-      },
-      "sourceReviewer": {
-        "provider": "codex",
-        "model": "gpt-5.6-sol",
-        "reasoningEffort": "xhigh",
-        "promptContract": "source-review-v2",
-        "outputContract": "gate-envelope-v1"
-      },
-      "corrector": {
-        "provider": "codex",
-        "model": "gpt-5.6-sol",
-        "reasoningEffort": "xhigh",
-        "promptContract": "bounded-correct-v1",
-        "outputContract": "bounded-patch-v1"
-      },
-      "commentary": {
-        "provider": "grok",
-        "model": "grok-4.6",
-        "reasoningEffort": "low",
-        "promptContract": "commentary-candidates-v1",
-        "outputContract": "enrichment-candidates-v1"
+      "aligner": {
+        "provider": "claude"
       },
       "vibeScorer": {
         "provider": "codex",
         "model": "gpt-5.5",
-        "reasoningEffort": "high",
-        "promptContract": "vibe-gate-v1",
-        "outputContract": "gate-envelope-v1"
-      },
-      "grokQuota": {
-        "enabled": false,
-        "source": "codexbar",
-        "reserveWriterBelowRemainingPercent": 20,
-        "pauseWriterBelowRemainingPercent": 10,
-        "deferVibeBelowRemainingPercent": 20
+        "reasoningEffort": "high"
       }
     }
   }

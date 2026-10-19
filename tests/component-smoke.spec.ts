@@ -126,12 +126,12 @@ test.describe('Component smoke — storage fallbacks', () => {
 
       await page.goto(route);
 
-      const link = page.locator('.term-link').first();
-      await link.click();
+      const copyButton = page.locator('.entry-copy').first();
+      await copyButton.click();
       await page.waitForTimeout(100);
 
       await expect(page).toHaveURL(/#.+$/);
-      await expect(link).not.toHaveClass(/copied/);
+      await expect(copyButton).not.toHaveClass(/copied/);
       expect(
         await page.evaluate(
           () => (window as Window & { __clipboardWriteCalls?: number }).__clipboardWriteCalls
@@ -168,11 +168,11 @@ test.describe('Component smoke — storage fallbacks', () => {
 
     await page.goto('/glossary');
 
-    const link = page.locator('.term-link').first();
-    await link.click();
-    await link.click();
+    const copyButton = page.locator('.entry-copy').first();
+    await copyButton.click();
+    await copyButton.click();
     await page.waitForTimeout(100);
-    await expect(link).not.toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/copied/);
 
     await page.evaluate(() => {
       (
@@ -183,7 +183,7 @@ test.describe('Component smoke — storage fallbacks', () => {
     });
     await page.waitForTimeout(100);
 
-    await expect(link).not.toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/copied/);
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
@@ -270,11 +270,49 @@ test.describe('Component smoke — storage fallbacks', () => {
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 
+  test('reading tracker redirects home when auth storage is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/reading-tracker');
+
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/');
+    await expect(page.locator('#tracker-wrap')).toHaveCount(0);
+  });
+
+  test('post read controls stay hidden without crashing when auth storage is unavailable', async ({
+    page,
+  }) => {
+    const errs = attachConsoleErrorWatcher(page);
+    await page.addInitScript(() => {
+      const originalGetItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === 'gu-log-jwt') {
+          throw new DOMException('reader auth storage denied', 'SecurityError');
+        }
+        return originalGetItem.call(this, key);
+      };
+    });
+
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
+
+    await expect(page.locator('article').first()).toBeVisible();
+    await expect(page.locator('[data-read-button]')).toHaveCSS('display', 'none');
+    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
+  });
+
   test('SeriesNav reads the tracker store once and keeps same-tab updates live', async ({
     page,
   }) => {
-    const readSlug = 'gp-143-20260402-ecc-autonomous-loops';
-    const unreadSlug = 'gp-146-20260402-ecc-hook-architecture';
+    const readSlug = 'sd-11-20260402-ai-agent-memory-architecture';
+    const unreadSlug = 'sd-13-20260402-prompt-cache-economics';
 
     await page.addInitScript((preloadedSlug) => {
       localStorage.removeItem('gu-log-jwt');
@@ -300,7 +338,7 @@ test.describe('Component smoke — storage fallbacks', () => {
       });
     }, readSlug);
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
 
     const readIndicator = page.locator(
       `[data-series-nav] [data-read-indicator][data-slug="${readSlug}"]`
@@ -414,7 +452,7 @@ test.describe('Component smoke — shared high-fanout styles', () => {
       expect((await paginationLink.boundingBox())?.height).toBeGreaterThanOrEqual(44);
     }
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
     const seriesToggleIcon = page.locator('.series-list-toggle .toggle-icon');
     await expect(seriesToggleIcon).toBeVisible();
     await expect(seriesToggleIcon).toHaveCSS('border-left-width', '0px');
@@ -469,7 +507,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 
   test('an GP post page renders article body', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
     await expect(page.locator('article').first()).toBeVisible();
     // Body should contain at least one heading
     expect(await page.locator('h2, h3').count()).toBeGreaterThan(0);
@@ -477,7 +515,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
   });
 
   test('comments explain when the Giscus client cannot load', async ({ page }) => {
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     const status = page.locator('.giscus-status');
     await expect(status).toContainText('留言載入中');
@@ -496,7 +534,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         body: '',
       });
     });
-    await page.goto('/posts/gp-100-20260304-berryxia-ai-ai-prompt');
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
 
     const errors = await page.evaluate(async () => {
       const capturedErrors: string[] = [];
@@ -521,12 +559,91 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     expect(errors).toEqual([]);
   });
 
+  test('binds Giscus message traffic to the current comments iframe', async ({ page }) => {
+    await page.route('https://giscus.app/client.js', async (route) => {
+      await route.fulfill({
+        contentType: 'application/javascript',
+        body: '',
+      });
+    });
+    await page.goto('/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools');
+
+    const status = page.locator('.giscus-status');
+    await expect(status).toBeVisible();
+    await expect(status).toContainText('留言載入中');
+
+    const result = await page.evaluate(async () => {
+      const container = document.querySelector('.giscus-container');
+      const status = container?.querySelector<HTMLElement>('.giscus-status');
+      if (!container || !status) throw new Error('Giscus fixture was not rendered');
+
+      const decoyFrame = document.createElement('iframe');
+      decoyFrame.className = 'giscus-frame';
+      decoyFrame.src = 'about:blank';
+      const decoyLoaded = new Promise<void>((resolve) => {
+        decoyFrame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.before(decoyFrame);
+
+      const frame = document.createElement('iframe');
+      frame.className = 'giscus-frame';
+      frame.src = 'about:blank';
+      const loaded = new Promise<void>((resolve) => {
+        frame.addEventListener('load', () => resolve(), { once: true });
+      });
+      container.appendChild(frame);
+      await Promise.all([decoyLoaded, loaded]);
+
+      let decoyMessageCount = 0;
+      let currentMessageCount = 0;
+      decoyFrame.contentWindow!.postMessage = () => {
+        decoyMessageCount += 1;
+      };
+      frame.contentWindow!.postMessage = () => {
+        currentMessageCount += 1;
+      };
+
+      status.hidden = false;
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: window,
+        })
+      );
+      const afterWrongSource = status.hidden;
+
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: 'https://giscus.app',
+          data: { giscus: {} },
+          source: frame.contentWindow,
+        })
+      );
+
+      return {
+        afterWrongSource,
+        afterCurrentSource: status.hidden,
+        decoyMessageCount,
+        currentMessageCount,
+      };
+    });
+
+    expect(result).toEqual({
+      afterWrongSource: false,
+      afterCurrentSource: true,
+      decoyMessageCount: 0,
+      currentMessageCount: 1,
+    });
+    await expect(status).toBeHidden();
+  });
+
   test('read-status consumers ignore malformed global events', async ({ page }) => {
     const errorsByRoute: Record<string, string[]> = {};
 
     for (const [route, consumer] of [
-      ['/posts/gp-100-20260304-berryxia-ai-ai-prompt', '[data-related-articles]'],
-      ['/posts/gp-144-20260402-ecc-instinct-system', '[data-series-nav]'],
+      ['/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools', '[data-related-articles]'],
+      ['/posts/sd-12-20260402-claude-code-bad-patterns', '[data-series-nav]'],
     ] as const) {
       await page.goto(route);
       await expect(page.locator(consumer)).toBeVisible();
@@ -562,8 +679,8 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     }
 
     expect(errorsByRoute).toEqual({
-      '/posts/gp-100-20260304-berryxia-ai-ai-prompt': [],
-      '/posts/gp-144-20260402-ecc-instinct-system': [],
+      '/posts/mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools': [],
+      '/posts/sd-12-20260402-claude-code-bad-patterns': [],
     });
   });
 
@@ -574,7 +691,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
       await page.addInitScript((selectedTheme) => {
         localStorage.setItem('theme', selectedTheme);
       }, theme);
-      await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+      await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
       const pageBackground = page.locator('body');
       const relatedCard = page.locator('.related-card').first();
@@ -594,7 +711,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
         ).toBeGreaterThanOrEqual(4.5);
       }
 
-      await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+      await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
       const seriesCard = page.locator('.series-nav-link').first();
       await seriesCard.hover();
       expect(
@@ -605,7 +722,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
 
   test('mobile article chrome avoids repeated rounded side-tab cards', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/posts/gp-24-20260204-claude-is-a-space-to-think');
+    await page.goto('/posts/mp-25-20260204-cursor-vibe-coding-lies');
 
     for (const locator of [
       page.locator('.source-citation'),
@@ -674,7 +791,7 @@ test.describe('Component smoke — post page (RelatedArticles, ShareButton, Prev
     await expect(mobileToc).toHaveAttribute('data-open', 'false');
     await expect(mobileTocContent).toHaveCSS('border-left-width', '0px');
 
-    await page.goto('/posts/gp-144-20260402-ecc-instinct-system');
+    await page.goto('/posts/sd-12-20260402-claude-code-bad-patterns');
     const seriesNavLink = page.locator('.series-nav-link').first();
     const seriesNavStyles = await seriesNavLink.evaluate((element) => {
       const style = getComputedStyle(element);

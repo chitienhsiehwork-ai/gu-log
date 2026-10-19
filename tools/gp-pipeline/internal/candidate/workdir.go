@@ -156,6 +156,35 @@ func randomHex(bytes int) (string, error) {
 	return hex.EncodeToString(raw), nil
 }
 
+// ResolvesWithin reports whether path lies inside root once symlinks are
+// followed on both sides, the containment test PrepareWorkDir uses. A path that
+// does not exist yet is judged by its nearest existing parent, so a directory
+// about to be created is checked too. Anything that cannot be resolved counts
+// as inside (fail closed).
+func ResolvesWithin(root, path string) bool {
+	rootReal, err := resolvedDirectory(root)
+	if err != nil {
+		return true
+	}
+	current, err := filepath.Abs(path)
+	if err != nil {
+		return true
+	}
+	missing := ""
+	for {
+		real, err := filepath.EvalSymlinks(current)
+		if err == nil {
+			return pathWithin(rootReal, filepath.Join(real, missing))
+		}
+		parent := filepath.Dir(current)
+		if !os.IsNotExist(err) || parent == current {
+			return true
+		}
+		missing = filepath.Join(filepath.Base(current), missing)
+		current = parent
+	}
+}
+
 func pathWithin(root, path string) bool {
 	relative, err := filepath.Rel(root, path)
 	if err != nil {

@@ -34,6 +34,16 @@ echo "🚫 Content emoji policy: checking staged reader-visible lines..."
 node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
 echo ""
 
+# ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
+# A taken-down post must stay a tombstone (still present, still taken-down,
+# empty body); a new post may not reuse a taken-down source, except a GP
+# with a valid source-distance stamp whose matching takedowns are all GP;
+# sources/ only grows under sources/chatgpt/. CI runs the same script with
+# the PR base SHA.
+echo "🪦 Takedown ratchet: checking staged changes against HEAD..."
+node "$REPO_ROOT/scripts/check-takedown-ratchet.mjs" --staged
+echo ""
+
 # ─── Step -3: Regenerate post manifests for staged content changes ──
 # `post-versions.json` is derived from git history. Pre-commit runs before the
 # new commit exists, so the generator includes staged post touches to write the
@@ -241,33 +251,15 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Normalize added/removed lines by stripping internal Markdown links; if the
-    # underlying text is identical, this is maintenance-only.
+    # The link-only proof (isLinkOnlyChange in scripts/check-glossary-links.mjs)
+    # proves the staged edit only adds, removes, or corrects glossary links
+    # (checked against the staged glossary) or moves internal post links to the
+    # staged target's canonical identity. With those links stripped, the whole
+    # file must still match HEAD exactly.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
-
-    git diff --cached --no-color -U0 -- "$file" | python3 -c '
-import re, sys
-lines = []
-for line in sys.stdin:
-    if not (line.startswith("+") or line.startswith("-")):
-        continue
-    if line.startswith("+++ ") or line.startswith("--- "):
-        continue
-    lines.append(line.rstrip("\n"))
-if not lines:
-    sys.exit(0)
-def norm(line):
-    text = line[1:]
-    text = re.sub(r"\[([^\]\n]+)\]\(/(?:en/)?glossary#[^)\n]+\)", r"\1", text)
-    text = re.sub(r"\[([^\]\n]+)\]\(/posts/[^)\n]+\)", r"\1", text)
-    text = re.sub(r"\[([^\]\n]+)\]\(/en/posts/[^)\n]+\)", r"\1", text)
-    return text.strip()
-removed = sorted(norm(line) for line in lines if line.startswith("-"))
-added = sorted(norm(line) for line in lines if line.startswith("+"))
-sys.exit(0 if removed == added else 1)
-'
+    node "$REPO_ROOT/scripts/check-staged-internal-post-links.mjs" "$file" >/dev/null 2>&1
 }
 
 is_existing_ticket_post_addition() {
@@ -311,6 +303,21 @@ is_canonical_terminology_only_diff() {
     node "$REPO_ROOT/scripts/check-glossary-links.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
 }
 
+# is_taken_down_staged FILE → 0 when the staged frontmatter says
+# `status: taken-down` (openspec: post-takedown). A taken-down post has no
+# article body left, so the reader-content gates (score floor, pronoun,
+# 晶晶體, AI tells, glossary coverage, topic dedup) skip it. Frontmatter
+# validation (validate-posts) and the emoji / takedown ratchets still run.
+is_taken_down_staged() {
+    local file="$1"
+    git show ":$file" 2>/dev/null | awk '
+        NR == 1 { if ($0 == "---") { in_fm = 1; next } else { exit 1 } }
+        in_fm && $0 == "---" { exit found ? 0 : 1 }
+        in_fm && /^status:[[:space:]]*["'"'"']?taken-down["'"'"']?[[:space:]]*$/ { found = 1 }
+        END { exit found ? 0 : 1 }
+    '
+}
+
 GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_MODIFIED[@]}")
 
 if [ "${#GATE_CANDIDATES[@]}" -eq 0 ]; then
@@ -321,6 +328,11 @@ else
     for file in "${GATE_CANDIDATES[@]}"; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then continue; fi
+
+        # Taking a post down needs no Tribunal score (openspec: post-takedown).
+        if is_taken_down_staged "$file"; then
+            continue
+        fi
 
         if is_canonical_taxonomy_only_diff "$file"; then
             continue
@@ -381,7 +393,10 @@ if [ "${#SCORE_MISSING[@]}" -gt 0 ]; then
     echo "tribunal, or score manually with:"
     echo "  node scripts/frontmatter-scores.mjs write <file> vibe '<json>'"
     echo ""
-    echo "To bypass in emergency: git commit --no-verify"
+    echo "Pure link maintenance skips this gate automatically. If this edit should"
+    echo "only add, remove, or fix glossary / internal post links, revert every"
+    echo "other change in the file and make sure each link target exists for the"
+    echo "post's language."
     exit 1
 fi
 echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
@@ -398,6 +413,9 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
         case "$file" in
             */en-*) ;; # skip English
             *)
+                if is_taken_down_staged "$file"; then
+                    continue
+                fi
                 if is_canonical_taxonomy_only_diff "$file"; then
                     continue
                 fi
@@ -490,12 +508,19 @@ STAGED_GLOSSARY=()
 while IFS= read -r -d '' file; do
     STAGED_GLOSSARY+=("$file")
 done < <(git diff --cached --name-only -z --diff-filter=ACM -- src/data/glossary.json 2>/dev/null || true)
+GLOSSARY_MDX=()
+for file in "${STAGED_MDX[@]}"; do
+    if is_taken_down_staged "$file"; then
+        continue
+    fi
+    GLOSSARY_MDX+=("$file")
+done
 if [ "$IS_MERGE_COMMIT" != "1" ]; then
-    if [ "${#STAGED_MDX[@]}" -gt 0 ] || [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
+    if [ "${#GLOSSARY_MDX[@]}" -gt 0 ] || [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
         echo "🔗 Glossary links: checking staged post/glossary coverage..."
         GLOSSARY_ARGS=()
-        if [ "${#STAGED_MDX[@]}" -gt 0 ]; then
-            GLOSSARY_ARGS+=("${STAGED_MDX[@]}")
+        if [ "${#GLOSSARY_MDX[@]}" -gt 0 ]; then
+            GLOSSARY_ARGS+=("${GLOSSARY_MDX[@]}")
         fi
         if [ "${#STAGED_GLOSSARY[@]}" -gt 0 ]; then
             GLOSSARY_ARGS+=("--changed-terms=HEAD")
@@ -524,6 +549,10 @@ else
     for file in "${ADDED_ZH_POSTS[@]}"; do
         FULL_PATH="$REPO_ROOT/$file"
         if [ ! -f "$FULL_PATH" ]; then
+            continue
+        fi
+
+        if is_taken_down_staged "$file"; then
             continue
         fi
 
@@ -558,7 +587,9 @@ else
             echo "   Full result:"
             printf '%s\n' "$RESULT"
             echo ""
-            echo "This looks like a duplicate topic. Use a different source/topic, or bypass with --no-verify if intentional."
+            echo "This looks like a duplicate topic. Pick a different source or angle,"
+            echo "or update the matching post instead. If the match is wrong, fix the"
+            echo "scoring in scripts/topic-dedup-check.mjs."
             exit 1
         fi
 
@@ -573,6 +604,12 @@ content_gate_mdx_files() {
     CONTENT_GATE_MDX=()
     local file
     for file in "${STAGED_MDX[@]}"; do
+        # Taken-down posts always go through frontmatter validation: the
+        # validator checks the takedown fields and the empty body.
+        if is_taken_down_staged "$file"; then
+            CONTENT_GATE_MDX+=("$file")
+            continue
+        fi
         if is_canonical_taxonomy_only_diff "$file"; then
             continue
         fi
@@ -671,6 +708,7 @@ if ! npx prettier --check \
     "src/config/**/*.{js,ts}" \
     "src/styles/**/*.css" \
     "scripts/**/*.{js,mjs,cjs,ts}" \
+    "tests/**/*.{js,mjs,cjs,ts}" \
     "*.{mjs,cjs,ts}" 2>&1; then
     echo ""
     echo "❌ Prettier found formatting issues. Fix them before committing."
@@ -701,6 +739,29 @@ else
         echo "❌ Post validation FAILED. Fix errors above before committing."
         exit 1
     fi
+fi
+echo ""
+
+# ─── Step 1.2: Source-distance stamp on every staged post (blocking) ─
+# openspec source-distance-stamp. The content gate above skips terminology-,
+# link- and backend-frontmatter-only edits, but those can still move the body
+# projection or sourceUrl away from a GP's stamp, so every staged post is
+# verified here. Posts that take no stamp (non-GP, demo sources, taken down)
+# pass unless they carry one. Errors go to stderr; the JSON report is dropped.
+STAMP_ARGS=()
+for file in "${STAGED_MDX[@]}"; do
+    if [ -f "$REPO_ROOT/$file" ]; then
+        STAMP_ARGS+=(--file "$REPO_ROOT/$file")
+    fi
+done
+if [ "${#STAMP_ARGS[@]}" -gt 0 ]; then
+    if ! node "$REPO_ROOT/scripts/source-distance.mjs" verify "${STAMP_ARGS[@]}" >/dev/null; then
+        echo ""
+        echo "❌ Source-distance stamp check FAILED. Re-stamp with the command above:"
+        echo "   tools/gp-pipeline/gp-pipeline stamp --file <post>"
+        exit 1
+    fi
+    echo "✓ Source-distance stamps checked"
 fi
 echo ""
 

@@ -11,7 +11,7 @@
  */
 
 import { Hono } from 'hono';
-import { readMetricFile } from '../services/metrics-reader.js';
+import { readMetricFile, readRequiredMetricFile } from '../services/metrics-reader.js';
 import type {
   SecurityBaseline,
   SecurityHistoryEntry,
@@ -30,7 +30,8 @@ import type {
 const overview = new Hono();
 
 overview.get('/', async (c) => {
-  // Read all files in parallel — null if missing
+  // A complete overview requires every baseline/report/policy. Security
+  // history is the only optional input because the baseline is authoritative.
   const [
     securityBaseline,
     securityHistory,
@@ -43,28 +44,21 @@ overview.get('/', async (c) => {
     depsBaseline,
     contentReport,
   ] = await Promise.all([
-    readMetricFile<SecurityBaseline>('security-audit-baseline.json'),
+    readRequiredMetricFile<SecurityBaseline>('security-audit-baseline.json'),
     readMetricFile<SecurityHistoryEntry[]>('security-audit-history.json'),
-    readMetricFile<EslintBaseline>('eslint-baseline.json'),
-    readMetricFile<LighthouseBaseline>('lighthouse-baseline.json'),
-    readMetricFile<CoverageBaseline>('coverage-baseline.json'),
-    readMetricFile<BundleSizeBaseline>('bundle-size-baseline.json'),
-    readMetricFile<BundleBudget>('bundle-budget.json'),
-    readMetricFile<LinksBaseline>('broken-links-baseline.json'),
-    readMetricFile<DependencyBaseline>('dependency-freshness-baseline.json'),
-    readMetricFile<ContentVelocityReport>('content-velocity-report.json'),
+    readRequiredMetricFile<EslintBaseline>('eslint-baseline.json'),
+    readRequiredMetricFile<LighthouseBaseline>('lighthouse-baseline.json'),
+    readRequiredMetricFile<CoverageBaseline>('coverage-baseline.json'),
+    readRequiredMetricFile<BundleSizeBaseline>('bundle-size-baseline.json'),
+    readRequiredMetricFile<BundleBudget>('bundle-budget.json'),
+    readRequiredMetricFile<LinksBaseline>('broken-links-baseline.json'),
+    readRequiredMetricFile<DependencyBaseline>('dependency-freshness-baseline.json'),
+    readRequiredMetricFile<ContentVelocityReport>('content-velocity-report.json'),
   ]);
 
   // ─── Security ──────────────────────────────────────
   const latestSecurity = securityHistory?.[securityHistory.length - 1];
-  const vulns = latestSecurity?.severities ??
-    securityBaseline?.metadata.vulnerabilities ?? {
-      info: 0,
-      low: 0,
-      moderate: 0,
-      high: 0,
-      critical: 0,
-    };
+  const vulns = latestSecurity?.severities ?? securityBaseline.metadata.vulnerabilities;
   const hasHighOrCritical = vulns.high > 0 || vulns.critical > 0;
   const securityStatus = hasHighOrCritical
     ? ('fail' as const)
@@ -73,70 +67,49 @@ overview.get('/', async (c) => {
       : ('pass' as const);
 
   // ─── Code Quality ─────────────────────────────────
-  const eslintData = eslintBaseline?.afterAutoFix.eslint;
+  const eslintData = eslintBaseline.afterAutoFix.eslint;
   const codeQualityStatus =
-    (eslintData?.errors ?? 0) > 0
+    eslintData.errors > 0
       ? ('fail' as const)
-      : (eslintData?.warnings ?? 0) > 0
+      : eslintData.warnings > 0
         ? ('warn' as const)
         : ('pass' as const);
 
   // ─── Lighthouse ───────────────────────────────────
-  const lhPages = lighthouseBaseline
-    ? Object.values(lighthouseBaseline.pages)
-    : [];
+  const lhPages = Object.values(lighthouseBaseline.pages);
   const lhCount = lhPages.length || 1;
   const lhAvg = {
     performance: Math.round(
-      (lhPages.reduce((sum, p) => sum + p.scores.performance, 0) / lhCount) *
-        100
+      (lhPages.reduce((sum, p) => sum + p.scores.performance, 0) / lhCount) * 100
     ),
     accessibility: Math.round(
-      (lhPages.reduce((sum, p) => sum + p.scores.accessibility, 0) / lhCount) *
-        100
+      (lhPages.reduce((sum, p) => sum + p.scores.accessibility, 0) / lhCount) * 100
     ),
     bestPractices: Math.round(
-      (lhPages.reduce((sum, p) => sum + p.scores['best-practices'], 0) /
-        lhCount) *
-        100
+      (lhPages.reduce((sum, p) => sum + p.scores['best-practices'], 0) / lhCount) * 100
     ),
-    seo: Math.round(
-      (lhPages.reduce((sum, p) => sum + p.scores.seo, 0) / lhCount) * 100
-    ),
+    seo: Math.round((lhPages.reduce((sum, p) => sum + p.scores.seo, 0) / lhCount) * 100),
   };
 
   // ─── Coverage ─────────────────────────────────────
-  const cov = coverageBaseline ?? {
-    statements: 0,
-    branches: 0,
-    functions: 0,
-    lines: 0,
-  };
+  const cov = coverageBaseline;
 
   // ─── Bundle ───────────────────────────────────────
-  const totalKB = bundleBaseline?.totalKB ?? 0;
-  const maxKB = bundleBudget?.totalMaxKB ?? Infinity;
+  const totalKB = bundleBaseline.totalKB;
+  const maxKB = bundleBudget.totalMaxKB;
   const withinBudget = totalKB <= maxKB;
 
   // ─── Links ────────────────────────────────────────
-  const internalOk = linksBaseline?.internal.ok ?? 0;
-  const internalBroken = linksBaseline?.internal.broken.length ?? 0;
-  const externalOk = linksBaseline?.external.ok ?? 0;
-  const externalBroken = linksBaseline?.external.broken.length ?? 0;
+  const internalOk = linksBaseline.internal.ok;
+  const internalBroken = linksBaseline.internal.broken.length;
+  const externalOk = linksBaseline.external.ok;
+  const externalBroken = linksBaseline.external.broken.length;
 
   // ─── Dependencies ─────────────────────────────────
-  const deps = depsBaseline ?? {
-    fresh: 0,
-    stale: 0,
-    outdated: 0,
-    deprecated: 0,
-  };
+  const deps = depsBaseline;
 
   // ─── Content ──────────────────────────────────────
-  const contentData = contentReport ?? {
-    productionSpeed: { totalPosts: 0, avgPerWeek: 0 },
-    translationDelay: { avgDays: 0 },
-  };
+  const contentData = contentReport;
 
   // ─── Overall Health ───────────────────────────────
   let overallHealth: OverallHealth = 'healthy';
@@ -163,8 +136,8 @@ overview.get('/', async (c) => {
       },
       codeQuality: {
         status: codeQualityStatus,
-        errors: eslintData?.errors ?? 0,
-        warnings: eslintData?.warnings ?? 0,
+        errors: eslintData.errors,
+        warnings: eslintData.warnings,
       },
       lighthouse: lhAvg,
       coverage: {

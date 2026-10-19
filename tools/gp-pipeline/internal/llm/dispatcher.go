@@ -36,8 +36,9 @@ type RunOptions struct {
 	// child inherits the parent's CWD.
 	WorkDir string
 	// JSONSchema asks providers with native structured-output support to
-	// constrain the response to this schema. Providers that do not support it
-	// must fail explicitly instead of silently ignoring the contract.
+	// constrain the response to this schema and return the structured value
+	// instead of free text (the source-distance aligner). Providers without
+	// that support fail explicitly instead of silently ignoring the contract.
 	JSONSchema string
 }
 
@@ -95,7 +96,11 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 
 	for _, p := range d.providers {
 		if !p.Available() {
-			errs = append(errs, fmt.Sprintf("%s: binary not found on PATH", p.Name()))
+			if isClaudeProviderName(p.Name()) {
+				errs = append(errs, fmt.Sprintf("%s: the claude CLI is not on PATH; install Claude Code and run `claude auth login` (gu-log articles are written only with the Claude model)", p.Name()))
+			} else {
+				errs = append(errs, fmt.Sprintf("%s: binary not found on PATH", p.Name()))
+			}
 			continue
 		}
 	retryProvider:
@@ -123,6 +128,14 @@ func (d *Dispatcher) Run(ctx context.Context, prompt string, opts RunOptions) (*
 				ActualModel:  actualModel,
 				FellBackFrom: fellBack,
 			}, nil
+		}
+		if isClaudeProviderName(p.Name()) {
+			switch ClassifyClaudeFailure(err.Error()) {
+			case ClaudeFailureLogin:
+				return nil, fmt.Errorf("%s: the Claude CLI is not logged in; run `claude auth login` as this user and rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+			case ClaudeFailureConfig:
+				return nil, fmt.Errorf("%s: the Claude account or the pinned model cannot be used as configured; a person must fix the plan, the admin settings or the model pin, then rerun (gu-log articles are written only with the Claude model): %w", p.Name(), err)
+			}
 		}
 		if IsQuotaError(p.Name(), err) {
 			if d.quota.AllowClaudeJudgeFallback && isCodexProvider(p) {

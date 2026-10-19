@@ -157,9 +157,16 @@ echo "snapshot_semantics=read_only_last_observed"
 echo
 
 echo "══════ SERVICE ══════"
+unit_environment_available=false
 if command -v systemctl >/dev/null 2>&1; then
   systemctl --user status tribunal-loop 2>&1 | head -15 || true
-  unit_environment="$(systemctl --user show tribunal-loop -p Environment --value 2>/dev/null || true)"
+  if unit_environment="$(
+    systemctl --user show tribunal-loop -p Environment --value 2>/dev/null
+  )"; then
+    unit_environment_available=true
+  else
+    unit_environment=""
+  fi
   unit_enabled="$(systemctl --user is-enabled tribunal-loop 2>/dev/null || true)"
   [ -n "$unit_enabled" ] || unit_enabled="unknown"
 else
@@ -371,21 +378,28 @@ else
 fi
 echo
 
-effective_quota_floor="$(
-  effective_runtime_value "$unit_environment" QUOTA_FLOOR "${QUOTA_FLOOR:-10}"
-)"
-effective_writer_mode="$(
-  effective_runtime_value "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-none}"
-)"
-effective_strict_roles="$(
-  effective_runtime_value \
-    "$unit_environment" \
-    TRIBUNAL_STRICT_ROLE_PROVIDERS \
-    "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-0}"
-)"
+if [ "$unit_environment_available" = "true" ]; then
+  effective_quota_floor="$(
+    effective_runtime_value "$unit_environment" QUOTA_FLOOR "${QUOTA_FLOOR:-10}"
+  )"
+  effective_writer_mode="$(
+    effective_runtime_value "$unit_environment" GP_WRITER_MODE "${GP_WRITER_MODE:-none}"
+  )"
+  effective_strict_roles="$(
+    effective_runtime_value \
+      "$unit_environment" \
+      TRIBUNAL_STRICT_ROLE_PROVIDERS \
+      "${TRIBUNAL_STRICT_ROLE_PROVIDERS:-0}"
+  )"
+  configured_floor="${effective_quota_floor}%"
+else
+  configured_floor="unavailable"
+  effective_writer_mode="unavailable"
+  effective_strict_roles="unavailable"
+fi
 
 echo "══════ QUOTA ══════"
-echo "configured_floor=${effective_quota_floor}%"
+echo "configured_floor=$configured_floor"
 print_json_file ".score-loop/state/quota-controller.json" "quota-controller.json"
 echo
 

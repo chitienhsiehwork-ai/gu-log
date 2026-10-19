@@ -14,12 +14,17 @@
     "tests/post-video.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "Source demo videos in GP articles must remain playable, lazy-loading, accessible, and free of mobile horizontal overflow."
+      "reason": "Inline post videos must remain playable, lazy-loading, accessible, and free of mobile horizontal overflow; checked on a dedicated noindex fixture page because no public post embeds a video after the GP takedown."
     },
     "tests/post-code-blocks.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
       "reason": "Article code blocks must keep visible line numbers and wrap long commands without horizontal scrolling on mobile or desktop."
+    },
+    "tests/post-tombstone.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "Taken-down posts must render only the tombstone (exactly the text src/lib/tombstone-copy.mjs gives for the post, noindex, no article periphery, unbreakable kaomoji at 390px) and the Gu-log Picks listing must list only public reading guides (never a tombstone or the GP-1 demo) or show the neutral empty state; a regression would republish removed translations or break the owner-approved copy."
     },
     "tests/ios-dynamic-type.spec.ts": {
       "class": "blocking",
@@ -30,6 +35,11 @@
       "class": "blocking",
       "owner": "ShroomDog",
       "reason": "Core search-result rendering; 3 tests, ~1.5s total, no network/mocks, verified green across 4 consecutive --retries=0 runs 2026-07-18."
+    },
+    "tests/glossary-browsing.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "詞彙表的精簡瀏覽（openspec: glossary-browsing）：以 iPhone 13 畫面與關閉 JavaScript 的情境，驗證詞條預設精簡、就地展開與收起、從錨點進來直接展開且不被 sticky 控制列蓋住、篩選切回全部，以及中英文兩頁結構一致；文章裡數千條 /glossary#… 連結都落在這頁，壞了讀者點進來就找不到詞條。"
     },
     "tests/component-smoke.spec.ts": {
       "class": "blocking",
@@ -64,7 +74,7 @@
     "tests/mp-editorial-identity.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "GP／MP 對讀者的來源責任必須在 zh-TW／English 首頁、系列頁、About 與文章頁一致；deterministic cases 固定 translation、source material 與 technical-details pipeline labels。"
+      "reason": "GP／MP 對讀者的來源責任必須在 zh-TW／English 首頁、系列頁、About 與文章頁一致；deterministic cases 固定 reading-guide、source material 與 technical-details pipeline labels。"
     },
     "tests/content-integrity.spec.ts": {
       "class": "nightly",
@@ -176,6 +186,11 @@
       "owner": "ShroomDog",
       "reason": "Core dark/light theme switching, persistence, accessible labels, and action-icon contract; the stale current-state icon expectations were corrected, then all 18 desktop/mobile project cases passed with --retries=0 on 2026-08-17."
     },
+    "tests/levelup-quiz-label.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "LevelUpQuiz answer labels are authored strings, not CSS syntax; this focused regression prevents malformed selectors from breaking answer feedback."
+    },
     "tests/levelup-quiz.spec.ts": {
       "class": "nightly",
       "owner": "ShroomDog",
@@ -194,7 +209,7 @@
     "tests/share-button.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
-      "reason": "ShareButton 是文章共用互動；兩種 Clipboard API 同時失敗時不得產生未處理例外、暫存 DOM 洩漏或錯誤的成功訊號。"
+      "reason": "ShareButton 是文章共用互動；所有分享出口只可送出 public canonical URL，兩種 Clipboard API 同時失敗時也不得產生未處理例外、暫存 DOM 洩漏或錯誤的成功訊號。"
     },
     "tests/reading-progress.spec.ts": {
       "class": "nightly",
@@ -205,6 +220,11 @@
       "class": "nightly",
       "owner": "ShroomDog",
       "reason": "Empty-query assertions count rendered result elements, and the spec now honors Playwright's baseURL so the same coverage runs against local or production targets."
+    },
+    "tests/search-state-ownership.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "Search must restore only the body overflow and inert state it owns so nested dialogs remain locked and focused after search closes."
     },
     "tests/series-nav.spec.ts": {
       "class": "nightly",
@@ -225,6 +245,11 @@
       "class": "nightly",
       "owner": "ShroomDog",
       "reason": "Was quarantined pending a first run (status unknown); executed 2026-07-18 — 5/5 passed, 7.2s. Promoted to nightly."
+    },
+    "tests/owner-reader-feedback.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "owner 一鍵回饋（openspec: owner-reader-feedback）：未登入看不到、登入後寫入帶 reader revision 的 feedback_comment、/human-signals 同步只在登入時送且 404 不影響頁面，以及 Reading Tracker 匯出檔格式；壞了 owner 回饋就收不到或對錯版本。"
     }
   }
 }

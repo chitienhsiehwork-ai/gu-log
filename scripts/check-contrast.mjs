@@ -18,26 +18,50 @@ import { resolve, relative } from 'path';
 
 // ── WCAG math ───────────────────────────────────────────────────────
 
-function hexToRgb(hex) {
-  hex = hex.replace('#', '');
-  if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-  return [
-    parseInt(hex.slice(0, 2), 16) / 255,
-    parseInt(hex.slice(2, 4), 16) / 255,
-    parseInt(hex.slice(4, 6), 16) / 255,
-  ];
+function hexToRgba(hex) {
+  const decodedHex = `#${hex
+    .slice(1)
+    .replace(
+      /\\([0-9a-fA-F]{1,6})(?:[ \t])?|\\([^\r\n\f0-9a-fA-F])/g,
+      (_match, codePoint, escapedCharacter) =>
+        codePoint ? String.fromCodePoint(parseInt(codePoint, 16)) : escapedCharacter
+    )}`;
+  if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(decodedHex)) {
+    throw new Error(`unsupported hex color ${hex}`);
+  }
+
+  let value = decodedHex.slice(1);
+  if (value.length === 3 || value.length === 4) {
+    value = [...value].map((digit) => digit + digit).join('');
+  }
+
+  return {
+    rgb: [
+      parseInt(value.slice(0, 2), 16) / 255,
+      parseInt(value.slice(2, 4), 16) / 255,
+      parseInt(value.slice(4, 6), 16) / 255,
+    ],
+    alpha: value.length === 8 ? parseInt(value.slice(6, 8), 16) / 255 : 1,
+  };
 }
 
-function relativeLuminance(hex) {
-  const [r, g, b] = hexToRgb(hex).map((c) =>
-    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
-  );
+function relativeLuminance(rgb) {
+  const [r, g, b] = rgb.map((c) => (c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 function contrastRatio(fg, bg) {
-  const l1 = relativeLuminance(fg);
-  const l2 = relativeLuminance(bg);
+  const foreground = hexToRgba(fg);
+  const background = hexToRgba(bg);
+  if (background.alpha !== 1) {
+    throw new Error(`background ${bg} must be opaque because its underlay is unknown`);
+  }
+
+  const compositedForeground = foreground.rgb.map(
+    (channel, index) => channel * foreground.alpha + background.rgb[index] * (1 - foreground.alpha)
+  );
+  const l1 = relativeLuminance(compositedForeground);
+  const l2 = relativeLuminance(background.rgb);
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
   return (lighter + 0.05) / (darker + 0.05);
@@ -76,6 +100,27 @@ const MANIFEST = [
     context: 'light --color-mogu-orange on --color-surface',
     file: 'src/components/MoguNote.astro',
     name: 'light-mogu-prefix-on-surface',
+  },
+  // Tombstone inscription (openspec: post-takedown): the stone art is beige in
+  // both themes; --color-tombstone-stone is the average of its inscription face
+  // in src/assets/tombstone/tombstone.webp and also paints the stone when the
+  // art fails to load. Resolve both tokens per theme so a theme-specific
+  // override cannot slip past this gate.
+  {
+    fgVar: '--color-tombstone-ink',
+    bgVar: '--color-tombstone-stone',
+    theme: 'dark',
+    context: 'dark tombstone ink on the stone face',
+    file: 'src/components/PostTombstone.astro',
+    name: 'dark-tombstone-ink-on-stone',
+  },
+  {
+    fgVar: '--color-tombstone-ink',
+    bgVar: '--color-tombstone-stone',
+    theme: 'light',
+    context: 'light tombstone ink on the stone face',
+    file: 'src/components/PostTombstone.astro',
+    name: 'light-tombstone-ink-on-stone',
   },
   {
     fgVar: '--color-on-accent',
@@ -198,11 +243,17 @@ const NAMED_PAIR_MINIMUMS = {
   'light-post-link-external-on-surface': 5,
   'dark-toc-focus-on-surface': 3,
   'light-toc-focus-on-surface': 3,
+  'dark-tombstone-ink-on-stone': 5,
+  'light-tombstone-ink-on-stone': 5,
 };
 
 // ── Auto-scan: extract "color: #xxx; /* ... on #yyy */" patterns ────
 
-const COLOR_ON_BG_RE = /color:\s*(#[0-9a-fA-F]{3,8});\s*\/\*.*?on\s+(#[0-9a-fA-F]{3,8})/g;
+const HEX_COLOR_PATTERN = String.raw`#(?:[A-Za-z0-9_-]|\\(?:[0-9a-fA-F]{1,6}[ \t]?|[^\r\n\f0-9a-fA-F]))+`;
+const COLOR_ON_BG_RE = new RegExp(
+  `color:\\s*(${HEX_COLOR_PATTERN});\\s*\\/\\*.*?on\\s+(${HEX_COLOR_PATTERN})`,
+  'g'
+);
 
 function scanFile(filePath) {
   const pairs = [];
@@ -309,12 +360,22 @@ let checked = 0;
 for (const pair of allPairs) {
   checked++;
   const minimum = (pair.name && NAMED_PAIR_MINIMUMS[pair.name]) || THRESHOLD;
-  const ratio = contrastRatio(pair.fg, pair.bg);
-  const pass = ratio >= minimum;
   const relFile = relative(repoRoot, pair.file);
   const loc = pair.line ? `${relFile}:${pair.line}` : relFile;
+  let ratio;
 
-  if (!pass) {
+  try {
+    ratio = contrastRatio(pair.fg, pair.bg);
+  } catch (error) {
+    failures++;
+    console.error(`❌ FAIL  ${pair.fg} on ${pair.bg} → ${error.message}  ${loc}`);
+    if (pair.context) {
+      console.error(`         ${pair.context}`);
+    }
+    continue;
+  }
+
+  if (ratio < minimum) {
     failures++;
     console.error(
       `❌ FAIL  ${pair.fg} on ${pair.bg} → ${ratio.toFixed(2)}:1 (need ≥${minimum}:1)  ${loc}`

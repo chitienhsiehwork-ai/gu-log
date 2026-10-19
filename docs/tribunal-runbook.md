@@ -6,9 +6,15 @@
 
 ## GP source-preservation boundary
 
-`gp-*` 是明確例外：Tribunal 對 GP 只提供一般品質校準，不擁有來源正文的 rewrite authority。所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕。persona／narrative 低分可以誠實記錄並依 floor policy 發布，但不得補償或蓋過 gp-pipeline 的 source reviewer、natural-zh gate、canonical-body projection 與 freshness hard gates。
+`gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。理由是 GP 導讀帶來源距離章：正文一改，章就失效，只有 gp-pipeline 的導讀流程與 `stamp` 能重新蓋章。所以所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕，`pnpm tribunal:run`（Tribunal v2）對 GP 也只評分，不跑寫手、FactCorrector 與 Librarian 的改動。GP 某一關沒過時分數怎麼寫、其餘評審照不照跑，見 openspec `tribunal-score-persistence`。persona／narrative 低分可以誠實記錄，但不得觸發改寫；要改 GP 正文就回 gp-pipeline，改完重新蓋章。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
-若 GP hard gate 未通過、provider／runner 發生錯誤、缺少有效 verdict，或 source/body hash 已 stale，pipeline 必須停在 deploy 前。修復方式是回到原 workdir 的安全 recovery point 重跑相同角色，不是把 GP 送進通用 writer。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
+## Writer candidate 的 frontmatter 邊界
+
+隔離寫手交易的 frontmatter 權限只由 parent runner 的 stage 決定，寫手、文章內容或 prompt 都不能自行升級。預設保護整份 frontmatter；只有 FactChecker retry 可由 parent transaction 套用 bounded summary policy，其他 judge 與 final-build repair 一律 preserve-all。實際允許的 byte shape 以 `scripts/tribunal-post-pair-snapshot.py`、`scripts/score-helpers.sh` 與 `scripts/tribunal.sh` 為 executable SSOT，正式情境以 `openspec/specs/tribunal-24-7-operations/spec.md` 為準；runbook 不另抄一份 allowlist。
+
+候選仍先通過 post／YAML validation，再由雙語 CAS 套用；English sidecar 存在時，兩邊要原子成功或一起維持原狀。套用後必須讓下一輪 FactChecker 重新評分，摘要變更本身不代表 PASS。Transaction 會從 stage 衍生唯一 policy，並讓 capture、apply 與 validation-failure rollback 共用；restart recovery 只依 journal 內的完整 bytes 與 inode identity 收斂，不解析摘要，也不需要知道是哪個 judge。
+
+若 log 顯示 `unsupported … summary shape`，代表候選不符合 executable policy，不是一般 validator 警告。Canonical pair 會保持不變；先保留 log／journal 證據，透過正常 feature branch／PR 把 canonical summary 收斂成 helper 接受的表示法，再從原 stage 重跑。不要在 live runtime 手改 frontmatter，也不要靠改 prompt、重送相同候選或切換 writer 來升級權限。
 
 **Canonical specs (archived)**
 - `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
@@ -146,6 +152,10 @@ systemctl --user restart tribunal-pass-audit.timer
 loginctl enable-linger "$USER"
 
 systemctl --user start tribunal-loop   # supervisor auto-syncs worker worktrees at startup
+
+# Writing needs the Claude CLI logged in as this user; the doctor live probe
+# below is the check (see the doctor section after this block).
+bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
 DEPLOY
 ```
 
@@ -158,17 +168,18 @@ deploy 時的 timer restart 可能立刻補跑一次 audit。這是預期行為�
 讓 user manager 在未登入時也會於開機後存在。兩個都要有，少一個就
 不能宣稱 reboot-persistent。部署後用 wrapper doctor 驗證 unit、linger、
 strict provider contract、loaded resource slice，以及目前 service PID 寫下
-的 writer preflight 狀態；這個日常檢查不會再執行一次 Codex：
+的 writer preflight 狀態；這個日常檢查不會呼叫任何模型，也不會再跑一次寫入
+canary：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor
 ```
 
-只有需要重新驗證正式 writer CLI/auth 與實際寫入 sandbox 時才明確執行 live
-probe。它會在 disposable workspace 跑 bounded write canary，並重用正式
-writer 的隔離 workspace、non-interactive permission 與 systemd resource
-boundary；canary
-內容完全吻合後才輸出 exact `OK`：
+deploy block 最後會跑一次 live probe 確認 Claude CLI 已登入；之後只有需要重新
+驗證 Claude 登入狀態與實際寫入權限時才手動執行。它用 daemon 自己的環境
+（含 `tribunal.env`）與正式改寫同一個受限 Claude 執行器，在 disposable
+workspace 跑一次 bounded write canary（會實際呼叫一次 Claude 模型），內容完全
+吻合才輸出 exact `OK`：
 
 ```bash
 bash scripts/cc-tribunal-loop-wrapper.sh --doctor --live-probe
@@ -187,12 +198,27 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 狀態則保留 evidence 並在 dispatch 前 fail closed。不要手動刪除
 `src/content/posts/.tribunal-pair-journal-*` 或對應 restore temp。
 
+### VM 上的 Claude CLI 登入
+
+VM 上每個會用 Claude 模型寫作的帳號，都要用自己的身分各執行一次
+`claude auth login`：
+
+- 跑 Tribunal daemon 的使用者（背景改寫、final-build 修復與寫入 canary）。
+- 跑 Mogu gp-pipeline 的帳號（VM profile 的寫作步驟）。
+
+登入狀態留在該帳號自己的 HOME（或 `CLAUDE_CONFIG_DIR`）。用環境變數 token
+或 API key 認證的方式不再適用：寫作呼叫從空的環境啟動，只帶 `HOME`、`PATH`、
+`CLAUDE_CONFIG_DIR` 與 `TZ`，沒登入的帳號會在領文章或寫作步驟開始前失敗。
+daemon 帳號以 deploy block 最後的 live probe 確認；gp-pipeline 帳號在解析
+VM profile 的寫作步驟時會先檢查登入狀態。
+
 部署 checklist：
 
 - `tribunal.env` 的 `GU_LOG_DIR` 存在且指向有效 checkout；不再設定或依賴
   off-repo combined `USAGE_MONITOR`。
-- Codex CLI 與官方 Grok Build CLI 都已安裝、已驗證 non-interactive auth；deployed runtime 不讀
-  Claude CLI、Claude token 或 `~/.cc-cron-token`。
+- Codex CLI 已安裝並驗證 non-interactive auth。
+- Claude Code CLI 已安裝，每個會用 Claude 寫作的帳號都照〈VM 上的 Claude CLI
+  登入〉登入過；deploy block 最後的 live probe 通過才算確認 daemon 帳號。
 - `systemctl --user enable tribunal-loop` 回報 enabled。
 - 下列四個 source-match 都 exit 0：
   - `cmp -s scripts/tribunal-runtime.slice "$HOME/.config/systemd/user/tribunal-runtime.slice"`
@@ -214,29 +240,19 @@ Writer 的雙語 CAS 在第一次 exchange 前會 fsync mode-0600 journal。Star
 - `loginctl enable-linger "$USER"` 後 `loginctl show-user "$USER" -p Linger --value` 回報 yes。
 - `bash scripts/cc-tribunal-loop-wrapper.sh --doctor` 全數通過。
 - 啟動後 monitor 顯示 `TRIBUNAL_RUNTIME_PROFILE=vm-codex`、
-  `GP_WRITER_MODE=grok`、strict role routing 與 writer preflight passed。
+  `GP_WRITER_MODE=claude`、strict role routing 與 writer preflight passed。
 
-Deployed `vm-codex` profile 由 Codex 執行 Fact Checker、Librarian 與 Fresh
-Eyes，由 Grok Build 執行 writer 與 Vibe Scorer。model／effort／quota 門檻的
-單一 SSOT 是 `config/llm-pipeline.json`；升級 model 時只改這裡與 contract
-tests。`.codex/agents/*.toml` 與 `.claude/agents/*.md` 繼續服務 legacy／Claude
-Code Cloud，不受 VM profile 覆寫。`GP_WRITER_MODE=cli` 只保留舊 caller
-相容性，不是 production 可接受的設定；deployed preflight 看到它會在任何
-article claim 前以 rc 78 fail closed。
+文章寫作一律使用 Claude 模型、評審維持 Codex，規則見 openspec
+`claude-prose-writing-runtime`；哪一步走哪個供應端由
+`scripts/tribunal-model-router.sh` 依 `config/llm-pipeline.json` 判定，評審依
+Codex 剩餘額度切換的 model 與門檻也在那份 config。
 
-`vm-codex` 啟動前會同時驗證 Codex 與 Grok CLI、登入狀態及 Grok model
-availability；任一不相容就 fail closed，不會半套啟用新 routing。Codex
-reviewer 取 session／weekly 較低剩餘百分比：`>= 20%` 使用
-`gpt-5.6-sol` + `xhigh`，`< 20%` 使用 `gpt-5.6-luna` + `max`；讀值未知時
-採保守的 Luna。Grok 4.6 writer／Vibe 使用 `low` effort。
-
-Grok 低 quota 政策只有在取得真實百分比時才生效：
-`10% <= remaining < 20%` 保留 writer、延後 Vibe；低於 10% writer 也暫停，
-不會偷換其他 writer。現行 CodexBar
-尚無可靠 Grok Build quota feed，因此 `grokQuota.enabled` 預設為 `false`，
-未知就是 unknown，不捏造百分比。`TRIBUNAL_GROK_REMAINING_PCT` 只供有
-可信外部讀值的 operator 注入與 contract test；CodexBar 日後支援時，再於
-同一份 config 開啟自動 probe。
+Claude 出錯時，daemon 不會只停寫作、繼續評審：登出、帳號設定或 model pin
+不能用時停止領新文章，要照錯誤訊息處理（登入見〈VM 上的 Claude CLI 登入〉）；
+額度用完時暫停派送到 Claude 回報的重置時間，過載、逾時這類暫時性錯誤只短暫
+暫停（quota controller 看不到 Claude 額度）；其他寫手失敗計一次嘗試，但不重評
+沒改過的文章。手動 batch runner 遇到這些情況會停下整批。行為定義見 openspec
+`tribunal-24-7-operations`。
 
 只有 graceful drain 明確卡住時，才由 operator **另跑**以下 recovery；它不會接在正常 deploy 後自動執行：
 
@@ -319,10 +335,15 @@ ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 
 Exit code conventions (from `tribunal-all-claude.sh`):
 - `0` — all 4 stages passed and final full-site build passed
-- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch)
+- `1` — stage or final build gate failed (normal failure, will be retried on next dispatch); also a refused `status: taken-down` post (see the note below)
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
-- `75` — skipped (per-article lock held by another instance)
+- `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
+- `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
 - `77` — stopped_by_request (graceful stop propagated from a long wait)
+
+下架文章（`status: taken-down`）不在 Tribunal 範圍內：`tribunal.sh` 與 `tribunal-v2-run.ts` 在任何 judge 執行、寫 ledger 之前就以 `1` 結束。選文本來就排除下架文章（`post-takedown` spec），只有「選完文之後 HEAD 才前進」的那一輪會碰到，batch 與 loop 記一筆失敗就繼續下一篇。刻意不用 `78`：loop 會當成要 operator 處理而 drain、停止派工；也不用 `75`：batch 與 loop 看到 `75` 會去查 ledger，下架前留下的過期 `QUOTA_SUSPENDED` 會讓 batch 誤停。
+
+若 service 環境把 `TRIBUNAL_WORKER_SYNC_REF` 設成 `origin/main`，而 main repo 的 HEAD 不前進（只 fetch），選文（看 main repo 的工作樹）可能一直挑到已在 origin/main 下架的文章，每輪派工都選中、再被 worker 拒絕；預設的 `HEAD` 沒有這個問題。
 
 ## Worktree lifecycle cheat sheet
 
@@ -376,14 +397,14 @@ Log interpretation:
 - `Acquired build lock after Ns`: worker now owns the exclusive lock; only now does the 900s build timeout start.
 - `Final build failed rc=124`: build execution timed out (`timeout --kill-after=15s 900 ...`), treated as operational/resource, no writer repair.
 - `Final build failed rc=137` or log evidence like `heap out of memory`, `FATAL ERROR`, `SIGKILL`, `oom-kill`: likely resource/OOM, no writer repair.
-- 非 GP build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger up to 2 bounded writer repair attempts. GP 不進 final-build writer repair；build failure 直接保留為阻擋證據，修好 deterministic 問題後從原 workdir 重跑。PASS is never written unless a subsequent final build succeeds.
+- 非 GP build logs mentioning MDX/frontmatter/schema/render/content collection errors are treated as content-actionable and may trigger bounded writer repair。這條 repair 只能修改 body，不能改 `summary` 或任何 frontmatter；GP 不進 final-build writer repair。Build failure 直接保留為阻擋證據，修好 deterministic 問題後從原 workdir 重跑。PASS is never written unless a subsequent final build succeeds.
 
 ## Auto scale-down / up (memory throttle)
 
 When `--workers > 1`, the supervisor samples the shared
 `tribunal-runtime.slice` memory each loop iteration and adjusts a soft cap on
 the active worker count. The slice includes the supervisor/build workers and
-all transient Codex/Grok judge/writer services, so provider RSS cannot disappear from
+all transient judge and writer services, so provider RSS cannot disappear from
 autoscaling or escape the aggregate 4G/200% boundary.
 
 **Decision ladder** (per iteration):
@@ -532,9 +553,9 @@ bash scripts/tribunal-quota-loop.sh --workers 5
 - 調低 `MIN_COOLDOWN` 縮短派送迴圈下限。
 - `AUTOSCALE_OOM_CAP` 仍是記憶體壓力／近期 OOM 下的硬上限；要求 5 workers
   不代表 cgroup 一定允許 5 個同時跑。
-- controller 只控制 OpenAI/Codex quota；Grok 另走上述獨立 gate。deadline
-  burst 不需要、也不得拿 Claude quota 或 credential 當成功條件，也不會
-  自動取消 Grok 的 10% writer reserve。
+- controller 只控制 OpenAI/Codex quota，看不到 Claude 額度。deadline burst
+  只放寬 Codex 評審的派送，不會替 Claude 改寫多生額度；Claude 改寫碰到
+  額度錯誤時照上述規則暫停。
 
 systemd unit 不再接受 off-repo `USAGE_MONITOR`，啟動只需要有效的
 `GU_LOG_DIR`。Quota 讀取由 tracked runtime 的 Codex-only JSON path 負責；
@@ -546,12 +567,28 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
 1. `systemctl --user stop tribunal-loop`，先保留 runtime ledger、recovery
    token 與任何 `.tribunal-restore-*` exchange evidence。
 2. 透過正常 feature branch／PR 將 code 與 OpenSpec 整體 revert 到上一個已知
-   可用 release；不可只在新版 strict mode 加 `--legacy-quota` 或偷切
-   Claude fallback。
+   可用 release；不可只在新版 strict mode 加 `--legacy-quota` 或偷把評審
+   切到 Claude fallback。
 3. VM checkout 同步到該 revert 已 merge 的 exact `origin/main`，重新複製
    匹配版本的 tracked `scripts/tribunal-loop.service`。
 4. `systemctl --user daemon-reload` 後再啟動 service，跑 doctor、monitor 與
    bounded smoke；provider contract 必須如實顯示該 rollback release 的行為。
+
+## Owner 閱讀回饋與校準報告
+
+ShroomDog 在文章底部按的一鍵回饋、已讀、分享與中途離開，都會記成 human-signal 事件（綁 reader revision）。這些訊號目前**只拿來檢驗 Tribunal 準不準，不會影響 Tribunal**：human-signal automation 開關預設關閉，關閉時任何 human signal 都不進 judge／writer context、不 requeue、不擋發布。`rewrite_needed` 只會出現在校準報告的分歧清單，由 ShroomDog 自己決定要不要動那篇。開關的條件與打開後的行為以 [`tribunal-human-signal-loop` spec](../openspec/specs/tribunal-human-signal-loop/spec.md) 為準。
+
+怎麼跑：
+
+1. 在登入狀態開 `/reading-tracker`，按「匯出閱讀紀錄」下載 JSON（後端 `/human-signals/export` 上線後也輸出同一格式）。
+2. 在 repo 裡跑：
+
+   ```bash
+   pnpm reader:calibrate -- --events ~/Downloads/gu-log-human-signals-YYYY-MM-DD.json
+   # 機器可讀版加 --json；樣本門檻用 --min-sample 調
+   ```
+
+報告是唯讀的，只印到 stdout。怎麼讀（版本分類、樣本不足時不下結論、分歧的定義）以 [`reader-signal-calibration` spec](../openspec/specs/reader-signal-calibration/spec.md) 為準，預設門檻與欄位看 `src/lib/reader-signal-calibration.ts`。
 
 ## Troubleshooting
 
@@ -560,6 +597,7 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
 | Workers dispatched but log stays quiet for >1min | Worker sleeping inside `wait_for_*` (quota/quiet-hours left over from old code) | `sync` workers + restart |
 | Service inactive, `rc_exit_stopped` in log, flag still present | Someone touched the flag manually; supervisor cleared it on exit | `systemctl --user start tribunal-loop` |
 | Same article claimed by a dead pid, new workers blocked | Worker crashed without releasing claim | `scripts/tribunal-worker-bootstrap.sh status` to confirm workers are alive; supervisor runs `rc_gc_stale_claims` at startup; to force now: `rm -rf .score-loop/claims/<slug>.claim` |
+| Writer candidate reports `unsupported … summary shape` | 候選不符合 executable frontmatter policy | 保留證據；依 snapshot helper 與 canonical spec 判讀失敗邊界，走正常 branch／PR 收斂 canonical frontmatter 後從原 stage 重跑。不要手改 live runtime 或放寬 prompt。 |
 | `Git drift: state=behind` or `state=diverged` in supervisor log | origin/main advanced while runtime kept local progress / content edits | Expected in fetch-only mode. Runtime keeps processing its current snapshot; use publisher or an explicit operator sync instead of rebasing the daemon worktree. |
 | New code on main isn't reaching running workers | Worker worktrees are stale (see "Worker worktree gotcha" above) | `scripts/tribunal-worker-bootstrap.sh sync` — or restart (supervisor auto-syncs) |
 | Article marked EXHAUSTED after 5 attempts | Real content / scoring issue, or model-induced flakiness | Open the stage log, look at scorer reasons; rewrite manually or flag for human review |

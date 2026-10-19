@@ -4,7 +4,8 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { assertInputSlugSets } from '../scripts/build-post-markdown.mjs';
+import { assertInputSlugSets, buildPostMarkdown } from '../scripts/build-post-markdown.mjs';
+import { getTombstoneCopy } from '../src/lib/tombstone-copy.mjs';
 
 async function fixture() {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gu-log-post-markdown-build-'));
@@ -63,4 +64,65 @@ test('input completeness fails closed on a missing JSON representation', async (
   await fs.rm(path.join(env.jsonDir, 'gp-1.json'));
 
   await assert.rejects(() => assertInputSlugSets(env), /source\/json slug mismatch/);
+});
+
+test('a taken-down post still gets a tombstone Markdown artifact in the same slug set', async (t) => {
+  const env = await fixture();
+  t.after(() => fs.rm(env.root, { recursive: true, force: true }));
+  const slug = 'gp-63-20260214-gp63-fixture';
+  const copy = getTombstoneCopy({ ticketId: 'GP-63', lang: 'zh-tw' });
+  const raw = `---
+ticketId: GP-63
+title: Fixture title
+summary: "${copy.neutralSummary}"
+originalDate: "2026-02-10"
+translatedDate: "2026-02-14"
+source: Fixture source
+sourceUrl: https://example.com/source
+lang: zh-tw
+status: taken-down
+takenDownAt: "2026-09-27"
+sourceTitle: Original fixture title
+---
+`;
+  const json = {
+    schemaVersion: 2,
+    slug,
+    ticketId: 'GP-63',
+    url: `/posts/${slug}`,
+    title: 'Fixture title',
+    summary: copy.neutralSummary,
+    tags: [],
+    lang: 'zh-tw',
+    originalDate: '2026-02-10',
+    translatedDate: '2026-02-14',
+    source: 'Fixture source',
+    sourceUrl: 'https://example.com/source',
+    authorshipNote: null,
+    translatedBy: null,
+    headings: [],
+    body: '',
+  };
+  const html = `<!doctype html><html><head>
+<meta name="robots" content="noindex">
+<link rel="alternate" type="text/markdown" href="https://gu-log.vercel.app/posts/${slug}.md" data-post-markdown-alternate>
+</head><body>
+<article data-post-representation data-post-slug="${slug}" data-post-lang="zh-tw" data-post-status="taken-down" data-replacement-ticket-id="" data-replacement-url="">
+<div data-post-tombstone data-tombstone-series="GP"><span>Original fixture title</span></div>
+</article></body></html>`;
+  await fs.writeFile(path.join(env.postsDir, 'gp-63-20260214-GP63-fixture.mdx'), raw);
+  await fs.writeFile(path.join(env.jsonDir, `${slug}.json`), JSON.stringify(json));
+  await fs.mkdir(path.join(env.distDir, 'posts', slug), { recursive: true });
+  await fs.writeFile(path.join(env.distDir, 'posts', slug, 'index.html'), html);
+
+  const summary = await buildPostMarkdown(env);
+  assert.equal(summary.artifacts, 1);
+  const markdown = await fs.readFile(path.join(env.distDir, 'posts', `${slug}.md`), 'utf8');
+  assert.match(markdown, /^status: taken-down$/m);
+  assert.ok(
+    markdown.split('\n').includes(`[${copy.cardLabel}](https://example.com/source)`),
+    'tombstone Markdown links the card label to the source'
+  );
+  assert.match(markdown, /^Original fixture title$/m);
+  assert.match(markdown, /^example\.com$/m);
 });

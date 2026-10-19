@@ -8,13 +8,19 @@
  */
 import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // Per-suite tmpdir; CodeQL js/path-injection-clean (mkdtempSync is a safe origin).
-const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'gucg-'));
+const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
+const TMP = makeTempDirectory('gucg-');
 const tmpPath = (name: string) => path.join(TMP, path.basename(name));
-import { formatModelName } from '../scripts/detect-model.mjs';
+import {
+  OPUS_ALIAS_CURRENT,
+  formatModelName,
+  resolveRecordedModelId,
+} from '../scripts/detect-model.mjs';
 import * as jjModule from '../scripts/check-jingjing.mjs';
 import * as pronModule from '../scripts/check-pronoun-clarity.mjs';
 import * as tbmModule from '../scripts/check-translatedby-model.mjs';
@@ -48,6 +54,21 @@ describe('detect-model.formatModelName', () => {
 
   it('partial match falls through', () => {
     expect(formatModelName('claude-opus-4-6[1m]')).toBe('Opus 4.6');
+  });
+
+  it('keeps the Claude 5 point release apart from the whole-number family', () => {
+    expect(formatModelName('claude-opus-5-5')).toBe('Opus 5.5');
+    expect(formatModelName('claude-opus-5-5[1m]')).toBe('Opus 5.5');
+    expect(formatModelName('anthropic/claude-opus-5-5')).toBe('Opus 5.5');
+    expect(formatModelName('claude-opus-5')).toBe('Opus 5');
+  });
+
+  it('records the floating opus alias as the build OPUS_ALIAS_CURRENT names', () => {
+    expect(resolveRecordedModelId('opus')).toBe(OPUS_ALIAS_CURRENT);
+    expect(resolveRecordedModelId('anthropic/opus')).toBe(OPUS_ALIAS_CURRENT);
+    expect(formatModelName('opus')).toBe(formatModelName(OPUS_ALIAS_CURRENT));
+    // Concrete ids pass through: scores already stamped with an older build stay as they are.
+    expect(resolveRecordedModelId('claude-opus-5')).toBe('claude-opus-5');
   });
 
   it('unknown id is returned as-is', () => {
@@ -233,6 +254,17 @@ describe('check-jingjing.checkFile', () => {
     const r = jj.checkFile(filepath);
     expect(r.violations).toEqual([]);
   });
+
+  it('prints the line, word, and containing sentence in the text report', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const filepath = tmpPath('jj-text-report.mdx');
+    fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n開頭一句。系統的 traces 要逐筆檢查。\n`);
+    const result = spawnSync(process.execPath, [CLI, '--baseline-ref=HEAD', filepath], {
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('  L4: traces\n    │ 系統的 traces 要逐筆檢查。\n');
+  });
 });
 
 describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
@@ -299,6 +331,53 @@ describe('check-jingjing ALLOWLIST_RAW parsing (line-aware comments)', () => {
     expect(stderr).toMatch(/all detected violations are reported, including historical/);
     expect(stderr).not.toMatch(/only new violations are reported/);
     expect(stderr).not.toMatch(/historical grandfathered violations are ignored/);
+  });
+
+  it('bounds and deduplicates a stalled remote baseline refresh before a full scan', () => {
+    const CLI = path.join(__dirname, '..', 'scripts', 'check-jingjing.mjs');
+    const firstFile = tmpPath('jj-stalled-baseline-fetch-first.mdx');
+    const secondFile = tmpPath('jj-stalled-baseline-fetch-second.mdx');
+    const fakeBin = tmpPath('jj-stalled-baseline-bin');
+    const fetchMarker = tmpPath('jj-stalled-baseline-fetch.marker');
+    fs.mkdirSync(fakeBin, { recursive: true });
+    const fakeGit = path.join(fakeBin, 'git');
+    fs.writeFileSync(
+      fakeGit,
+      `#!/usr/bin/env bash
+if [ "$1" = "fetch" ]; then
+  printf 'fetch\\n' >> "$FETCH_MARKER"
+  exec sleep 2
+fi
+exit 1
+`
+    );
+    fs.chmodSync(fakeGit, 0o755);
+    for (const filepath of [firstFile, secondFile]) {
+      fs.writeFileSync(filepath, `---\nlang: zh-tw\n---\n這個 approach 真的很 solid。\n`);
+    }
+
+    const result = spawnSync(
+      process.execPath,
+      [CLI, '--baseline-ref=origin/main', firstFile, secondFile],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          CHECK_JINGJING_FETCH_TIMEOUT_MS: '50',
+          FETCH_MARKER: fetchMarker,
+          PATH: `${fakeBin}${path.delimiter}${process.env.PATH}`,
+        },
+        timeout: 1_000,
+        killSignal: 'SIGKILL',
+      }
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.status).toBe(1);
+    expect(fs.readFileSync(fetchMarker, 'utf8').trim().split('\n')).toEqual(['fetch']);
+    expect(result.stderr).toMatch(/baseline ref .* could not be resolved/);
+    expect(result.stderr).toMatch(/all detected violations are reported, including historical/);
   });
 
   it('does not call a new file a baseline-ref fallback', () => {

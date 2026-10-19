@@ -1,13 +1,15 @@
 import { expect, test } from '@playwright/test';
 
-const ARTICLE = '/posts/gp-275-20260817-article-qwen-3-8-27b/';
+// Dedicated fixture: no public post embeds PostVideo after the GP takedown
+// (openspec: post-takedown), so the component contract is pinned here.
+const ARTICLE = '/artifacts/post-video-fixture/';
 
 test.describe('PostVideo', () => {
-  test('GIVEN source videos WHEN the GP renders on mobile THEN both stay inline, lazy, and overflow-safe', async ({
+  test('GIVEN source videos WHEN the page renders on mobile THEN both stay inline, lazy, and overflow-safe', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.route('https://static.simonwillison.net/**', (route) => route.abort());
+    await page.route('https://media.example.com/**', (route) => route.abort());
     await page.goto(ARTICLE);
 
     const videos = page.locator('[data-post-video] video');
@@ -15,14 +17,14 @@ test.describe('PostVideo', () => {
 
     const expected = [
       {
-        src: 'https://static.simonwillison.net/static/2026/qwen-animated-small.mp4',
-        poster: 'https://static.simonwillison.net/static/2026/qwen-animated-first-frame.jpg',
+        src: 'https://media.example.com/fixtures/landscape-demo.mp4',
+        poster: 'https://media.example.com/fixtures/landscape-demo-first-frame.jpg',
         width: '720',
         height: '548',
       },
       {
-        src: 'https://static.simonwillison.net/static/2026/circle-web.mp4',
-        poster: 'https://static.simonwillison.net/static/2026/circle-web-first-frame.jpg',
+        src: 'https://media.example.com/fixtures/square-demo.mp4',
+        poster: 'https://media.example.com/fixtures/square-demo-first-frame.jpg',
         width: '1078',
         height: '1080',
       },

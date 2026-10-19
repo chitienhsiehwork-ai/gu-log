@@ -11,10 +11,13 @@ EnvironmentFile=%h/.config/gu-log/tribunal.env
 Environment=TRIBUNAL_DEPLOYED_MODE=1
 Environment=TRIBUNAL_STRICT_ROLE_PROVIDERS=1
 Environment=TRIBUNAL_RUNTIME_PROFILE=vm-codex
-Environment=GP_WRITER_MODE=grok
+Environment=GP_WRITER_MODE=claude
 ExecStart=/bin/bash -c ': "$${GU_LOG_DIR:?Missing GU_LOG_DIR in tribunal.env}"; cd "$$GU_LOG_DIR" && exec bash scripts/cc-tribunal-loop-wrapper.sh --workers 1'
 Restart=on-failure
-RestartSec=60
+# Every failed exit restarts no sooner than 10 minutes later, so a writer
+# preflight that fails before any claim (e.g. the Claude CLI is not logged in,
+# rc=78) backs off instead of retrying every minute forever.
+RestartSec=600
 Environment=TZ=Asia/Taipei
 
 # Graceful stop (see OpenSpec: tribunal-graceful-run-control)
@@ -29,8 +32,9 @@ KillSignal=SIGTERM
 TimeoutStopSec=3600
 
 # Resource limits — sized for --workers 1 (overnight / light mode). This unit
-# and every transient Codex service also share tribunal-runtime.slice, so the
-# autoscaler and aggregate ceiling include sibling Codex cgroups.
+# and every transient judge (Codex) / writer (Claude model) service also share
+# tribunal-runtime.slice, so the autoscaler and aggregate ceiling include those
+# sibling cgroups.
 # A single worker peaks ~400MB (tribunal-writer + pnpm build + Codex CLI),
 # supervisor + shared state ~200MB. 4G cap kept (rather than shrinking to
 # 1G or 2G) so scaling back up to 2–5 workers via `--workers N` only needs

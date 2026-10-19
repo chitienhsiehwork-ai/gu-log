@@ -1,12 +1,15 @@
 package pipeline
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/frontmatter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 )
 
 const ralphFixtureMDX = `---
@@ -353,5 +356,51 @@ func TestFinalPipelineURL_Constant(t *testing.T) {
 	want := "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 	if finalPipelineURL != want {
 		t.Fatalf("finalPipelineURL drift: %q, want %q", finalPipelineURL, want)
+	}
+}
+
+func TestRalphRefusesTakenDownPost(t *testing.T) {
+	postsDir := t.TempDir()
+	name := "gp-63-20260214-GP63-taken-down.mdx"
+	content := "---\nticketId: \"GP-63\"\nstatus: \"taken-down\"\ntakenDownAt: \"2026-09-27\"\n---\n"
+	if err := os.WriteFile(filepath.Join(postsDir, name), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := NewState()
+	s.Cfg = &config.Config{PostsDir: postsDir, RepoRoot: t.TempDir()}
+	s.Log = logx.New()
+	s.WorkDir = t.TempDir()
+	s.ExistingFile = name
+
+	err := s.Ralph(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "taken-down") {
+		t.Fatalf("Ralph() error = %v, want taken-down refusal", err)
+	}
+}
+
+func TestPostIsTakenDown(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	cases := map[string]bool{
+		write("quoted.mdx", "---\nstatus: \"taken-down\"\n---\n"):           true,
+		write("plain.mdx", "---\nstatus: taken-down\n---\n"):                true,
+		write("retired.mdx", "---\nstatus: retired\n---\nbody\n"):           false,
+		write("body.mdx", "---\nticketId: GP-1\n---\nstatus: taken-down\n"): false,
+		filepath.Join(dir, "missing.mdx"):                                   false,
+	}
+	for path, want := range cases {
+		got, err := postIsTakenDown(path)
+		if err != nil {
+			t.Fatalf("postIsTakenDown(%s): %v", path, err)
+		}
+		if got != want {
+			t.Errorf("postIsTakenDown(%s) = %v, want %v", filepath.Base(path), got, want)
+		}
 	}
 }

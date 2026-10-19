@@ -178,6 +178,11 @@ cmd_sync() {
     fi
     any=1
 
+    if ! is_registered_worktree "$dir"; then
+      echo "  ERROR: refusing to sync unregistered directory: $dir" >&2
+      sync_failed=1
+      continue
+    fi
     if ! ready_marker=$(dependency_ready_marker "$dir"); then
       echo "  ERROR: cannot resolve git directory for worker-$id" >&2
       sync_failed=1
@@ -189,10 +194,6 @@ cmd_sync() {
     fi
 
     before_sha=$(git -C "$dir" rev-parse HEAD 2>/dev/null || echo "unknown")
-    if [ "$before_sha" = "$target_sha" ] && [ "$install_required" -eq 0 ]; then
-      echo "worker-$id: already at ${target_sha:0:8} ($SYNC_REF) — nothing to do"
-      continue
-    fi
 
     # Detect lockfile / package.json drift BEFORE reset so we can decide
     # whether to re-run pnpm install after the reset.

@@ -362,6 +362,179 @@ grep '^pr list ' "$gh_log" | grep -- '--state merged' | grep -q -- '--base main'
   || fail "live merged PR lookup must constrain base to main"
 pass "autopilot constrains live PR lookup to the main base"
 
+published_state="$TMP/published-only.json"
+published_state_before="$TMP/published-only.before"
+published_triage="$TMP/published-only-triage.json"
+published_triage_before="$TMP/published-only-triage.before"
+published_gh_log="$TMP/published-only-gh.log"
+published_audit_log="$TMP/published-only-audit.jsonl"
+cat > "$published_state" <<'JSON'
+{
+  "schemaVersion": 1,
+  "entries": {
+    "gp-4-test.mdx": {
+      "publishState": "published",
+      "batchId": "batch-4",
+      "prNumber": 44,
+      "mergeCommit": "published-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  },
+  "batches": {
+    "batch-4": {
+      "batchId": "batch-4",
+      "branch": "publisher/batch-4",
+      "entries": ["gp-4-test.mdx"],
+      "state": "published",
+      "prNumber": 44,
+      "mergeCommit": "published-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  }
+}
+JSON
+printf '%s\n' '{ "schemaVersion": 1, "events": {} }' > "$published_triage"
+cp "$published_state" "$published_state_before"
+cp "$published_triage" "$published_triage_before"
+
+for cycle in 1 2; do
+  (cd "$runtime" && \
+    PUBLISHER_STATE_FILE="$published_state" \
+    TRIAGE_EVENTS_FILE="$published_triage" \
+    GH_LOG="$published_gh_log" \
+    GH_BIN="$TMP/gh-hook.sh" \
+    GU_LOG_GH_TOKEN="fixture-token" \
+    TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE="$TMP/published-only-$cycle.lock" \
+    TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$published_audit_log" \
+    bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+done
+
+if [ -e "$published_gh_log" ]; then
+  cat "$published_gh_log" >&2
+  fail "terminal published batches must not spend GitHub API calls in later cycles"
+fi
+cmp -s "$published_state_before" "$published_state" \
+  || fail "terminal published cycles must leave publisher state byte-identical"
+cmp -s "$published_triage_before" "$published_triage" \
+  || fail "terminal published cycles must leave triage state byte-identical"
+[ ! -e "$published_audit_log" ] \
+  || fail "terminal published cycles must not duplicate audit events"
+pass "autopilot skips terminal published batches without GitHub API calls"
+
+incomplete_state="$TMP/incomplete-published.json"
+incomplete_state_before="$TMP/incomplete-published.before"
+incomplete_triage="$TMP/incomplete-published-triage.json"
+incomplete_gh_log="$TMP/incomplete-published-gh.log"
+cat > "$incomplete_state" <<'JSON'
+{
+  "schemaVersion": 1,
+  "entries": {
+    "gp-partial-entry.mdx": {
+      "publishState": "pr_open",
+      "batchId": "batch-partial-entry",
+      "prNumber": 51,
+      "mergeCommit": "partial-entry-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "gp-missing-metadata.mdx": {
+      "publishState": "published",
+      "batchId": "batch-missing-metadata",
+      "prNumber": 52,
+      "mergeCommit": "missing-metadata-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "gp-inconsistent-entry.mdx": {
+      "publishState": "published",
+      "batchId": "batch-inconsistent-entry",
+      "prNumber": 55,
+      "mergeCommit": "stale-entry-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "gp-unknown-state.mdx": {
+      "publishState": "published",
+      "batchId": "batch-unknown-state",
+      "prNumber": 53,
+      "mergeCommit": "unknown-state-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "gp-missing-state.mdx": {
+      "publishState": "published",
+      "batchId": "batch-missing-state",
+      "prNumber": 54,
+      "mergeCommit": "missing-state-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  },
+  "batches": {
+    "batch-partial-entry": {
+      "branch": "publisher/batch-partial-entry",
+      "entries": ["gp-partial-entry.mdx"],
+      "state": "published",
+      "prNumber": 51,
+      "mergeCommit": "partial-entry-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "batch-missing-metadata": {
+      "branch": "publisher/batch-missing-metadata",
+      "entries": ["gp-missing-metadata.mdx"],
+      "state": "published",
+      "prNumber": 52,
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "batch-inconsistent-entry": {
+      "branch": "publisher/batch-inconsistent-entry",
+      "entries": ["gp-inconsistent-entry.mdx"],
+      "state": "published",
+      "prNumber": 55,
+      "mergeCommit": "current-batch-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "batch-unknown-state": {
+      "branch": "publisher/batch-unknown-state",
+      "entries": ["gp-unknown-state.mdx"],
+      "state": "unknown",
+      "prNumber": 53,
+      "mergeCommit": "unknown-state-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    },
+    "batch-missing-state": {
+      "branch": "publisher/batch-missing-state",
+      "entries": ["gp-missing-state.mdx"],
+      "prNumber": 54,
+      "mergeCommit": "missing-state-commit",
+      "mergedAt": "2026-05-24T09:00:00Z"
+    }
+  }
+}
+JSON
+printf '%s\n' '{ "schemaVersion": 1, "events": {} }' > "$incomplete_triage"
+cp "$incomplete_state" "$incomplete_state_before"
+
+(cd "$runtime" && \
+  PUBLISHER_STATE_FILE="$incomplete_state" \
+  TRIAGE_EVENTS_FILE="$incomplete_triage" \
+  GH_LOG="$incomplete_gh_log" \
+  GH_BIN="$TMP/gh-hook.sh" \
+  GU_LOG_GH_TOKEN="fixture-token" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_LOCK_FILE="$TMP/incomplete-published.lock" \
+  TRIBUNAL_PUBLISHER_AUTOPILOT_AUDIT_LOG="$TMP/incomplete-published-audit.jsonl" \
+  bash scripts/tribunal-publisher-autopilot.sh --skip-apply)
+
+for branch in \
+  publisher/batch-partial-entry \
+  publisher/batch-missing-metadata \
+  publisher/batch-inconsistent-entry \
+  publisher/batch-unknown-state \
+  publisher/batch-missing-state; do
+  grep '^pr list ' "$incomplete_gh_log" | grep -F -- "--head $branch" | grep -q -- '--state merged' \
+    || fail "incomplete batch $branch must remain eligible for merged-PR reconciliation"
+  grep '^pr list ' "$incomplete_gh_log" | grep -F -- "--head $branch" | grep -q -- '--state open' \
+    || fail "incomplete batch $branch must remain eligible for open-PR reconciliation"
+done
+cmp -s "$incomplete_state_before" "$incomplete_state" \
+  || fail "a no-result reconciliation pass must not mutate incomplete publisher state"
+pass "autopilot skips only terminal-complete published batches"
+
 corrupt_publisher_state="$TMP/corrupt-publisher-state.json"
 corrupt_publisher_before="$TMP/corrupt-publisher-state.before"
 missing_triage_state="$TMP/autopilot-missing-triage-state.json"

@@ -42,8 +42,8 @@ For X / Twitter URLs it shells out to scripts/fetch-x-article.sh (fxtwitter
 with vxtwitter fallback), then runs the tweet-specific validator. Allowlisted
 single-video YouTube URLs require yt-dlp and fail closed when metadata or
 captions cannot support a complete source capture; they never fall back to a
-generic JavaScript shell. Other http(s) URLs use curl + a minimal HTML cleanup
-pass and the looser article validator.
+generic JavaScript shell. Other http(s) URLs prefer the readability extractor,
+fall back to curl + minimal HTML cleanup, and use the looser article validator.
 
 On validation failure it exits with code 11 so callers can distinguish
 "fetch returned but the content looks contaminated" from "fetch itself
@@ -79,6 +79,7 @@ func runFetch(ctx context.Context, state *rootState, url string) error {
 	res, err := source.Fetch(stepCtx, url, source.FetchOptions{
 		WorkDir:             workDir,
 		FetchXArticleScript: state.cfg.FetchXArticle,
+		FetchArticleScript:  state.cfg.FetchArticle,
 	})
 
 	report := fetchReport{

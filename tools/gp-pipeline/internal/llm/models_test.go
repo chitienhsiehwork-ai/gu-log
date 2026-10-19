@@ -1,6 +1,11 @@
 package llm
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"testing"
+)
 
 // TestDisplayNameWholeNumberReleases locks the Claude 5 generation naming:
 // those builds ship as whole-number release names (claude-opus-5) with no
@@ -35,17 +40,23 @@ func TestHarnessNameWholeNumberReleases(t *testing.T) {
 	}
 }
 
-func TestGrokVersionedProvenance(t *testing.T) {
-	cases := map[ModelID]string{
-		"grok-4.5":  "Grok 4.5",
-		ModelGrok46: "Grok 4.6",
+// TestAliasDisplayMatchesOpusAliasCurrent keeps the display fallback for the
+// bare `opus` alias on the build scripts/detect-model.mjs records for it
+// (OPUS_ALIAS_CURRENT, the SSOT), so a run that never learns the concrete
+// build is not stamped with an older Opus.
+func TestAliasDisplayMatchesOpusAliasCurrent(t *testing.T) {
+	src, err := os.ReadFile(filepath.Join(repoRootForRoutingTest(t), "scripts", "detect-model.mjs"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	for id, want := range cases {
-		if got := DisplayName(id); got != want {
-			t.Errorf("DisplayName(%q) = %q, want %q", id, got, want)
-		}
-		if got := HarnessName(id); got != "Grok Build CLI" {
-			t.Errorf("HarnessName(%q) = %q, want Grok Build CLI", id, got)
+	m := regexp.MustCompile(`export const OPUS_ALIAS_CURRENT = '([^']+)';`).FindSubmatch(src)
+	if m == nil {
+		t.Fatal("OPUS_ALIAS_CURRENT not found in scripts/detect-model.mjs")
+	}
+	want := DisplayName(ModelID(m[1]))
+	for _, alias := range []ModelID{ModelClaudeOpus, "opus", "anthropic/opus"} {
+		if got := DisplayName(alias); got != want {
+			t.Errorf("DisplayName(%q) = %q, want %q (OPUS_ALIAS_CURRENT %s)", alias, got, want, m[1])
 		}
 	}
 }

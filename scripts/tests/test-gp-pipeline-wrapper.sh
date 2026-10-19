@@ -79,4 +79,24 @@ if [ ! -f "$TEST_ROOT/go-called" ]; then
   exit 1
 fi
 
+# On the Tribunal VM the wrapper defaults Tribunal rewrites triggered by `run`
+# to the Claude model, and keeps an explicit writer mode.
+cat > "$PIPELINE_DIR/bin/gp-pipeline" <<'ENV_BINARY'
+#!/usr/bin/env bash
+printf '%s\n' "${GP_WRITER_MODE:-unset}"
+ENV_BINARY
+chmod +x "$PIPELINE_DIR/bin/gp-pipeline"
+writer_mode="$(env -u GP_WRITER_MODE TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  bash "$PIPELINE_DIR/gp-pipeline" run --help)"
+if [ "$writer_mode" != claude ]; then
+  printf 'expected the vm-codex wrapper to default GP_WRITER_MODE=claude, got: %s\n' "$writer_mode" >&2
+  exit 1
+fi
+writer_mode="$(GP_WRITER_MODE=none TRIBUNAL_RUNTIME_PROFILE=vm-codex \
+  bash "$PIPELINE_DIR/gp-pipeline" run --help)"
+if [ "$writer_mode" != none ]; then
+  printf 'expected the wrapper to keep an explicit GP_WRITER_MODE, got: %s\n' "$writer_mode" >&2
+  exit 1
+fi
+
 printf 'gp-pipeline wrapper regression test passed\n'

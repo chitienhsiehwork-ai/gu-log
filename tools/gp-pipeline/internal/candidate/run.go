@@ -78,9 +78,11 @@ func Run(ctx context.Context, opts Options) (*Outcome, error) {
 		dedupErr = fmt.Errorf("candidate: dedup script path is required")
 	} else {
 		check, err := dedup.Check(ctx, dedup.Options{
-			ScriptPath:   opts.DedupScript,
-			URL:          parsed.CanonicalURL,
-			Series:       "GP",
+			ScriptPath: opts.DedupScript,
+			URL:        parsed.CanonicalURL,
+			// The preflight picks no series (the canonical run names it), so
+			// the GP-only takedown exception does not apply here.
+			Series:       dedup.AnySeries,
 			IdentityOnly: true,
 		})
 		if err != nil {

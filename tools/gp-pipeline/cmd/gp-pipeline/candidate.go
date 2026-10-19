@@ -28,7 +28,7 @@ func newCandidateCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "candidate <youtube-url>",
 		Short: "Preflight one YouTube source for human review",
-		Long: `candidate preflights exactly one allowlisted YouTube video.
+		Long: fmt.Sprintf(`candidate preflights exactly one allowlisted YouTube video.
 
 It requires yt-dlp and writes only review evidence to a fresh private 0700
 work directory outside the repository: candidate-manifest.json, raw VTT, a
@@ -40,15 +40,15 @@ hashes, deterministic video-ID dedup, and writeEligible.
 This command is review-only. It never calls an LLM and never runs Eval, Write,
 Review, Refine, Credits, Ralph, Translate, Deploy, git, ticket allocation, or
 article mutation. writeEligible is not approval. After human approval, start a
-separate canonical run:
+separate canonical run that names the series chosen for the source:
 
-  gp-pipeline run <youtube-url> --prefix GP
+  gp-pipeline run <youtube-url> --prefix <%s>
 
 Use --work-dir only with an existing writable parent outside this repo;
 candidate always creates a new private leaf below it. Missing captions,
 short/oversized transcripts, and live/upcoming videos still return a
 reviewable manifest; inspect writeEligible and failure instead of treating
-exit 0 as publication approval.`,
+exit 0 as publication approval.`, authorableSeries("|")),
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCandidate(cmd.Context(), state, args[0])

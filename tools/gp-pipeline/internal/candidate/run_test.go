@@ -41,6 +41,31 @@ func TestPrepareWorkDirRejectsRepoAndSymlinkIntoRepo(t *testing.T) {
 	}
 }
 
+func TestResolvesWithinFollowsSymlinksAndMissingPaths(t *testing.T) {
+	repo := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(repo, "src"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	link := filepath.Join(outside, "repo-link")
+	if err := os.Symlink(filepath.Join(repo, "src"), link); err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]bool{
+		repo:                       true,
+		filepath.Join(repo, "src"): true,
+		filepath.Join(repo, "not", "made", "yet"): true,
+		link:                               true,
+		filepath.Join(link, "capture.txt"): true,
+		outside:                            false,
+		filepath.Join(outside, "not", "made", "yet"): false,
+	} {
+		if got := ResolvesWithin(repo, path); got != want {
+			t.Errorf("ResolvesWithin(repo, %s) = %v, want %v", path, got, want)
+		}
+	}
+}
+
 func TestInvalidURLWritesNullableFailureManifestInSafeWorkDir(t *testing.T) {
 	repo := t.TempDir()
 	workDir := t.TempDir()

@@ -54,9 +54,14 @@ zh-tw body
 		t.Fatal(err)
 	}
 
+	// A GP English version goes through the verbatim check, which asks the
+	// real source-distance CLI whether the post needs a stamp.
+	scriptsDir := filepath.Join(tmp, "scripts")
+	installSourceDistanceCLI(t, tmp, scriptsDir)
+
 	s := NewState()
 	s.Log = logx.New()
-	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir}
+	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir, ScriptsDir: scriptsDir}
 	s.WorkDir = workDir
 	s.WriterDispatcher = disp
 	s.Dispatcher = disp
@@ -165,18 +170,51 @@ func TestTranslate_FromStepTranslateRequiresExistingFile(t *testing.T) {
 	}
 }
 
+func TestSeriesFromFilename(t *testing.T) {
+	for filename, want := range map[string]string{
+		"gp-7-example.mdx":                       "GP",
+		"mp-pending-20260723-author-title.mdx":   "MP",
+		"en-sd-3-example.mdx":                    "SD",
+		"lv-2-example.mdx":                       "Lv",
+		"levelup-20260701-core-dump-anatomy.mdx": "Lv",
+		"en-levelup-20260701-core-dump.mdx":      "Lv",
+	} {
+		if got, err := SeriesFromFilename(filename); err != nil || got != want {
+			t.Errorf("SeriesFromFilename(%q) = %q, %v; want %q", filename, got, err, want)
+		}
+	}
+
+	for filename, wantErr := range map[string]string{
+		"../mp-9-example.mdx":                 "basename",
+		"":                                    "basename",
+		"readme.mdx":                          "missing a canonical series prefix",
+		"GP-7-example.mdx":                    "canonical lowercase slug",
+		strings.ToLower("S"+"P") + "-7-x.mdx": `use "GP"`,
+		"en-" + strings.ToLower("C"+"P") + "-9.mdx": `use "MP"`,
+		"blog-7-example.mdx":                        "invalid prefix",
+	} {
+		if got, err := SeriesFromFilename(filename); err == nil || !strings.Contains(err.Error(), wantErr) {
+			t.Errorf("SeriesFromFilename(%q) = %q, %v; want error containing %q", filename, got, err, wantErr)
+		}
+	}
+}
+
 func TestValidateTranslationFilenamesCanonicalFamiliesAndRetiredIngress(t *testing.T) {
-	for _, filename := range []string{
-		"gp-7-example.mdx",
-		"mp-9-example.mdx",
-		"sd-3-example.mdx",
-		"lv-2-example.mdx",
-		"levelup-20260213-01-oauth-complete-guide.mdx",
-		"levelup-20260701-core-dump-anatomy.mdx",
+	for filename, want := range map[string]string{
+		"gp-7-example.mdx": "GP",
+		"mp-9-example.mdx": "MP",
+		"sd-3-example.mdx": "SD",
+		"lv-2-example.mdx": "Lv",
+		"levelup-20260213-01-oauth-complete-guide.mdx": "Lv",
+		"levelup-20260701-core-dump-anatomy.mdx":       "Lv",
 	} {
 		t.Run(filename, func(t *testing.T) {
-			if _, err := ValidateTranslationFilenames(filename, "en-"+filename); err != nil {
+			got, err := ValidateTranslationFilenames(filename, "en-"+filename)
+			if err != nil {
 				t.Fatalf("canonical filename rejected: %v", err)
+			}
+			if got != want {
+				t.Fatalf("series = %q, want %q", got, want)
 			}
 		})
 	}
@@ -358,8 +396,8 @@ exit 0
 	if err == nil {
 		t.Fatal("Translate should fail when explicit Claude routing is unavailable")
 	}
-	if !strings.Contains(err.Error(), "binary not found") {
-		t.Fatalf("Translate error = %q, want missing-Claude diagnostic", err)
+	if !strings.Contains(err.Error(), "claude CLI is not on PATH") || !strings.Contains(err.Error(), "claude auth login") {
+		t.Fatalf("Translate error = %q, want the actionable missing-Claude diagnostic", err)
 	}
 	if _, err := os.Stat(filepath.Join(postsDir, "en-"+s.ActiveFilename)); !os.IsNotExist(err) {
 		t.Fatalf("missing Claude produced an English sidecar: %v", err)
@@ -581,6 +619,16 @@ func TestTranslate_NormalizesEnglishGlossaryTargetsBeforeWritingSidecar(t *testi
 	s, fake, postsDir := newTranslateTestState(t)
 	s.RalphPassed = true
 	fake.ModelID = llm.ModelID("claude-opus-5")
+	// The English sourceUrl comes from zh-tw; give it a /glossary# shape so the
+	// test still proves frontmatter is left alone by the glossary rewrite.
+	zhPath := filepath.Join(postsDir, s.ActiveFilename)
+	zh, err := os.ReadFile(zhPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(zhPath, []byte(strings.Replace(string(zh), "https://example.com/post", "https://example.com/glossary#source", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	fake.WithResponses(llm.FakeResponse{Output: `---
 title: "Fake Title"
@@ -609,5 +657,64 @@ Read [Agent](/glossary#agent), not ` + "`/glossary#inline`" + `.
 	}
 	if strings.Contains(string(sidecar), `[Agent](/glossary#agent)`) {
 		t.Fatalf("sidecar kept the zh-tw glossary target:\n%s", sidecar)
+	}
+}
+
+// TestTranslate_DropsCopiedSourceDistanceStamp: the zh-tw stamp describes the
+// zh-tw body only; an English version never inherits it from the model.
+func TestTranslate_DropsCopiedSourceDistanceStamp(t *testing.T) {
+	s, fake, postsDir := newTranslateTestState(t)
+	s.RalphPassed = true
+	fake.WithResponses(llm.FakeResponse{Output: `---
+title: "Fake Title"
+ticketId: "GP-252"
+lang: "en"
+sourceUrl: "https://example.com/post"
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  metrics:
+    maxRun: 1
+---
+English body
+`})
+	if err := s.Translate(context.Background()); err != nil {
+		t.Fatalf("Translate: %v", err)
+	}
+	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(sidecar), "sourceDistance") || strings.Contains(string(sidecar), "maxRun") {
+		t.Fatalf("English sidecar kept the copied zh-tw stamp:\n%s", sidecar)
+	}
+	if !strings.Contains(string(sidecar), "English body") {
+		t.Fatalf("sidecar lost its body:\n%s", sidecar)
+	}
+}
+
+// TestTranslate_RestoresSourceURLFromZhTw: the English sourceUrl is the
+// zh-tw value whatever the model wrote, so a model cannot move a GP English
+// version off its source and skip the verbatim check.
+func TestTranslate_RestoresSourceURLFromZhTw(t *testing.T) {
+	for name, line := range map[string]string{
+		"changed": "sourceUrl: \"https://example.org/elsewhere\"\n",
+		"dropped": "",
+	} {
+		t.Run(name, func(t *testing.T) {
+			s, fake, postsDir := newTranslateTestState(t)
+			s.RalphPassed = true
+			fake.WithResponses(llm.FakeResponse{Output: "---\ntitle: \"Fake Title\"\nticketId: \"GP-252\"\nlang: \"en\"\n" + line + "---\nEnglish body\n"})
+			if err := s.Translate(context.Background()); err != nil {
+				t.Fatalf("Translate: %v", err)
+			}
+			sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Count(string(sidecar), "sourceUrl:") != 1 || !strings.Contains(string(sidecar), `sourceUrl: "https://example.com/post"`) {
+				t.Fatalf("English sidecar sourceUrl is not the zh-tw value:\n%s", sidecar)
+			}
+		})
 	}
 }

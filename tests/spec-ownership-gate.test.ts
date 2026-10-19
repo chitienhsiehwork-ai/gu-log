@@ -9,15 +9,70 @@
  * registry/wiring rule. Tests run that validator directly against the real
  * repo and synthetic regression fixtures instead of re-implementing policy.
  */
-import { describe, it, expect } from 'vitest';
-import { execFileSync } from 'node:child_process';
+import { afterEach, describe, expect, it } from 'vitest';
+import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateWorkflowRunBlocks } from '../scripts/spec-ownership-workflow.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
+const tempRoots = new Set<string>();
+
+function makeQuarantineFixture(expiry: string): string {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-spec-ownership-'));
+  tempRoots.add(fixtureRoot);
+
+  for (const relativePath of [
+    'scripts/check-spec-ownership.mjs',
+    'scripts/spec-ownership-workflow.mjs',
+    'scripts/lib/iso-day.mjs',
+  ]) {
+    const source = path.join(ROOT, relativePath);
+    const destination = path.join(fixtureRoot, relativePath);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(source, destination);
+  }
+
+  fs.mkdirSync(path.join(fixtureRoot, '.github/workflows'), { recursive: true });
+  fs.mkdirSync(path.join(fixtureRoot, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(fixtureRoot, 'tests/fixture.spec.ts'), 'fixture\n');
+  fs.writeFileSync(
+    path.join(fixtureRoot, 'tests/spec-ownership.json'),
+    JSON.stringify(
+      {
+        specs: {
+          'tests/fixture.spec.ts': {
+            class: 'quarantined',
+            owner: 'test-owner',
+            reason: 'Synthetic quarantine regression fixture',
+            expiry,
+          },
+        },
+      },
+      null,
+      2
+    )
+  );
+
+  return fixtureRoot;
+}
+
+function runFixture(expiry: string) {
+  return spawnSync('node', ['scripts/check-spec-ownership.mjs'], {
+    cwd: makeQuarantineFixture(expiry),
+    encoding: 'utf8',
+  });
+}
+
+afterEach(() => {
+  for (const tempRoot of tempRoots) {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  }
+  tempRoots.clear();
+});
 
 describe('spec ownership gate', () => {
   it('passes against the real repo state (node scripts/check-spec-ownership.mjs)', () => {
@@ -37,6 +92,25 @@ describe('spec ownership gate', () => {
     );
     expect(needsBlock).toMatch(/- spec-ownership/);
     expect(needsBlock).toMatch(/- e2e-core/);
+  });
+
+  it.each(['9999-99-99', '2026-02-30'])(
+    'rejects impossible quarantine expiry %s instead of treating it as permanently future',
+    (expiry) => {
+      const result = runFixture(expiry);
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('MISSING/INVALID EXPIRY');
+      expect(result.stdout).not.toContain('✓ spec ownership gate passed');
+    }
+  );
+
+  it('accepts a real, unexpired quarantine calendar date', () => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const result = runFixture(tomorrow);
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('1 quarantined');
   });
 
   it('validates every Playwright run block instead of passing file-wide on one correct block', () => {

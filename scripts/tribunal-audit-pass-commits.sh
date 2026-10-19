@@ -52,6 +52,14 @@ fi
 assert_output="$(mktemp "${TMPDIR:-/tmp}/gu-log-tribunal-audit.XXXXXX")"
 trap 'rm -f -- "$assert_output"' EXIT
 
+if pass_commit_log="$(git -C "$repo" log "${log_args[@]}")"; then
+  :
+else
+  log_rc=$?
+  echo "ERROR: git log failed while enumerating Tribunal PASS commits (exit $log_rc)." >&2
+  exit "$log_rc"
+fi
+
 failures=0
 checked=0
 while IFS=$'\t' read -r sha subject; do
@@ -69,7 +77,7 @@ while IFS=$'\t' read -r sha subject; do
     echo "ERROR: progress-only Tribunal PASS commit detected: $sha $subject" >&2
     sed 's/^/       /' "$assert_output" >&2
   fi
-done < <(git -C "$repo" log "${log_args[@]}")
+done <<<"$pass_commit_log"
 
 if [ "$failures" -gt 0 ]; then
   echo "❌ Tribunal PASS artifact audit failed: $failures bad commit(s), checked $checked." >&2

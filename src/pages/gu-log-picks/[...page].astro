@@ -7,6 +7,7 @@ import Toggle from '../../components/Toggle.astro';
 import PostStatusLabel from '../../components/PostStatusLabel.astro';
 import Pagination from '../../components/Pagination.astro';
 import { getListablePosts, getPostStatus, type PostStatus } from '../../utils/post-status';
+import { getGpEmptyNotice, isListedGpTicket } from '../../lib/gp-listing.mjs';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const getTicketNumber = (ticketId: string | undefined) => {
@@ -15,22 +16,30 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     return match ? parseInt(match[0]) : 0;
   };
   const allPostsFull = await getCollection('posts');
+  // 只列公開的 GP 導讀（src/lib/gp-listing.mjs）；一篇都沒有時只產生第 1 頁的空狀態。
   const gpPosts = getListablePosts(allPostsFull, 'zh-tw')
-    .filter((post) => post.data.ticketId?.startsWith('GP-'))
+    .filter((post) => isListedGpTicket(post.data.ticketId))
     .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
-  return paginate(gpPosts, { pageSize: 20 });
+  return paginate(gpPosts, { pageSize: 20, props: { allPostsFull } });
 }
 
-const { page } = Astro.props;
-const allPostsFull = await getCollection('posts');
+const { page, allPostsFull } = Astro.props;
 const getTimelineStyle = (status: PostStatus) =>
   status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
 ---
 
 <BaseLayout title="Gu-log Picks 全部文章">
   <h1><img src="/gu-log-icon-trimmed.png" alt="" class="page-icon" /> Gu-log Picks</h1>
-  <p class="page-subtitle">ShroomDog 精選長文翻譯</p>
-  <p class="post-count">共 {page.total} 篇</p>
+  <p class="page-subtitle">ShroomDog 精選導讀</p>
+  {
+    page.total > 0 ? (
+      <p class="post-count">共 {page.total} 篇</p>
+    ) : (
+      <p class="gp-empty-notice" data-gp-empty-notice>
+        {getGpEmptyNotice('zh-tw')}
+      </p>
+    )
+  }
 
   <a href="/" class="back-link">← 返回首頁</a>
 
@@ -48,7 +57,7 @@ const getTimelineStyle = (status: PostStatus) =>
             </h3>
             <p class="post-meta">
               {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · 翻譯自 {post.data.source}
+              {post.data.translatedDate || post.data.originalDate} · 原文：{post.data.source}
             </p>
             <Toggle title="摘要預覽">
               <p>{post.data.summary}</p>
@@ -68,6 +77,16 @@ const getTimelineStyle = (status: PostStatus) =>
     height: 44px;
     vertical-align: middle;
     margin-right: 0.5rem;
+  }
+
+  .gp-empty-notice {
+    margin: 0.75rem 0 1.25rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+    color: var(--color-mogu-note-text);
+    line-height: 1.7;
   }
 
   .page-subtitle {

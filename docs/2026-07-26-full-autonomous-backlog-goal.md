@@ -34,7 +34,7 @@
 開始任何修改前：
 
 1. 讀 `AGENTS.md`，跑 `./scripts/detect-env.sh --runtime codex`，讀偵測結果對應的 Tier-1 playbook。
-2. 確認 runtime 符合 `package.json#engines` 的 Node `>=22 <23`。目前 system Node 是 26，不受支援；本機已驗證 `npx --yes --package=node@22 --call 'node --version && pnpm --version'` 會提供 Node `v22.23.1` + pnpm `10.29.3`，測試、build 與 `git commit`（讓 hooks 也吃到 Node 22）都從這個 ephemeral shell 執行。若 runner 失效，記 外部阻礙；不改 system Node、系統權限，也不得用 Node 26 的 timeout 當 repo bug。
+2. 確認 runtime 符合 `package.json#engines` 的 Node 範圍；版本 SSOT 不在本文件重複。目前 system Node 是 26，不受支援；本機已驗證 `npx --yes --package=node@22 --call 'node --version && pnpm --version'` 會提供 Node `v22.23.1` + pnpm `10.29.3`，測試、build 與 `git commit`（讓 hooks 也吃到 Node 22）都從這個 ephemeral shell 執行。若 runner 失效，記 外部阻礙；不改 system Node、系統權限，也不得用 Node 26 的 timeout 當 repo bug。
 3. 讀 `docs/agent-discipline.md` 與當前工作主題的 Tier-2 SSOT。
 4. 內容／翻譯工作先讀：
    - `openspec/specs/editorial-charter/spec.md`

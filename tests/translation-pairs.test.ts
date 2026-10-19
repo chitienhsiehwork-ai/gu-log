@@ -26,6 +26,62 @@ function postBody(ticketId: string, marker: string): string {
 }
 
 describe('translation-pair PR scope', () => {
+  it('reports a published English-only paired-series post as missing zh-tw', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      const file = 'en-gp-987654-en-only-probe.mdx';
+      fs.writeFileSync(path.join(postsDir, file), postBody('GP-987654', 'english-only'));
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([
+        {
+          ticketId: 'GP-987654',
+          file,
+          missingLang: 'zh-tw',
+        },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not ask a taken-down post for a sidecar (openspec: post-takedown)', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      fs.writeFileSync(
+        path.join(postsDir, 'mp-987656-taken-down.mdx'),
+        '---\nticketId: MP-987656\nstatus: taken-down\ntakenDownAt: "2026-09-27"\n---\n'
+      );
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not let body text retire an English-only post with no frontmatter status', () => {
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-translation-pairs-posts-'));
+
+    try {
+      const file = 'en-gp-987655-body-status-probe.mdx';
+      fs.writeFileSync(
+        path.join(postsDir, file),
+        '---\nticketId: GP-987655\n---\n\nThe migration note says status: retired, but this post is published.\n'
+      );
+
+      expect(findMissingPairs(loadPostMap(postsDir))).toEqual([
+        {
+          ticketId: 'GP-987655',
+          file,
+          missingLang: 'zh-tw',
+        },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
   it('requires a sidecar for GP PASS or incomplete evidence but allows explicit FAIL', () => {
     const posts = new Map([
       [
@@ -108,6 +164,43 @@ scores:
         { ticketId: 'GP-903', file: 'gp-incomplete.mdx', missingLang: 'en' },
         { ticketId: 'GP-905', file: 'gp-invalid.mdx', missingLang: 'en' },
         { ticketId: 'GP-906', file: 'en-gp-orphan.mdx', missingLang: 'zh-tw' },
+      ]);
+    } finally {
+      fs.rmSync(postsDir, { recursive: true, force: true });
+    }
+  });
+
+  it('lets a Tribunal-passed GP ship zh-tw alone only when its stamp skipped English for verbatim copying', () => {
+    // openspec source-distance-stamp〈略過英文版的 GP 通過翻譯配對檢查〉: --strict fails
+    // exactly when findMissingPairs reports something.
+    const postsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-gp-english-skipped-'));
+    const passed = `
+scores:
+  tribunalVersion: 9
+  librarian: { glossary: 8, crossRef: 8, sourceAlign: 8, attribution: 8, score: 8 }
+  factCheck: { accuracy: 8, fidelity: 8, consistency: 8, sourceBoundary: 8, commentarySeparation: 8, score: 8 }
+  freshEyes: { readability: 8, firstImpression: 8, payoffDensity: 8, lengthFit: 8, clarity: 8, score: 8 }
+  vibe: { persona: 9, moguNote: 8, vibe: 8, narrative: 8, score: 8 }`;
+    const stamp = (extra: string) => `
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'${extra}`;
+    const writePost = (name: string, ticketId: string, frontmatter: string) =>
+      fs.writeFileSync(
+        path.join(postsDir, name),
+        `---\nticketId: ${ticketId}\nstatus: published${frontmatter}\n---\n\nBody\n`
+      );
+
+    try {
+      writePost('gp-910-skipped.mdx', 'GP-910', passed + stamp("\n  englishSkipped: 'verbatim'"));
+      writePost('gp-911-unmarked.mdx', 'GP-911', passed + stamp(''));
+      writePost('gp-912-other-mark.mdx', 'GP-912', passed + stamp("\n  englishSkipped: 'other'"));
+
+      expect(
+        findMissingPairs(loadPostMap(postsDir)).sort((a, b) => a.ticketId.localeCompare(b.ticketId))
+      ).toEqual([
+        { ticketId: 'GP-911', file: 'gp-911-unmarked.mdx', missingLang: 'en' },
+        { ticketId: 'GP-912', file: 'gp-912-other-mark.mdx', missingLang: 'en' },
       ]);
     } finally {
       fs.rmSync(postsDir, { recursive: true, force: true });

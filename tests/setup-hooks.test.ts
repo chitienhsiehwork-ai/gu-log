@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
 import * as path from 'node:path';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const PACKAGE_PREPARE = (
@@ -10,6 +10,7 @@ const PACKAGE_PREPARE = (
     scripts: { prepare: string };
   }
 ).scripts.prepare;
+const makeTempDirectory = useTestTempDirectories();
 
 function git(cwd: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf-8' }).trim();
@@ -38,7 +39,7 @@ function runPrepare(cwd: string) {
 
 describe('prepare lifecycle', () => {
   it('succeeds when the optional hook installer is absent', () => {
-    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prepare-missing-'));
+    const repo = makeTempDirectory('gu-log-prepare-missing-');
 
     try {
       expect(runPrepare(repo).status).toBe(0);
@@ -48,7 +49,7 @@ describe('prepare lifecycle', () => {
   });
 
   it('preserves a hook installer failure status', () => {
-    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-prepare-failure-'));
+    const repo = makeTempDirectory('gu-log-prepare-failure-');
     const scriptsDir = path.join(repo, 'scripts');
 
     try {
@@ -66,7 +67,7 @@ describe('prepare lifecycle', () => {
 
 describe('setup-hooks linked-worktree isolation', () => {
   it('keeps hooksPath per-worktree while merge drivers remain clone-scoped', () => {
-    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-setup-hooks-'));
+    const repo = makeTempDirectory('gu-log-setup-hooks-');
     git(repo, 'init', '-q');
     git(repo, 'config', 'user.email', 'test@example.com');
     git(repo, 'config', 'user.name', 'Test');
@@ -74,7 +75,7 @@ describe('setup-hooks linked-worktree isolation', () => {
     git(repo, 'add', '.');
     git(repo, 'commit', '-q', '-m', 'setup fixture');
 
-    const worktrees = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-linked-worktrees-'));
+    const worktrees = makeTempDirectory('gu-log-linked-worktrees-');
     const first = path.join(worktrees, 'first');
     const second = path.join(worktrees, 'second');
     git(repo, 'worktree', 'add', '-q', '-b', 'test-first', first, 'HEAD');

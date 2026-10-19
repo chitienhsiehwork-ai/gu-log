@@ -44,6 +44,9 @@
   --color-cat-methods: #d6bcff;
   --color-cat-platforms: #34d399;
   --color-cat-people: #ffb3e0;
+  /* 產品、模型分類借用既有色票；兩個主題各自解析，15% 底色上的對比都在 5:1 以上 */
+  --color-cat-products: var(--color-analogy-accent);
+  --color-cat-models: var(--color-technical-model);
 
   /* Semantic status colors — status UI must use these, never series badge tokens */
   --color-status-success: #69d2a0;
@@ -89,6 +92,15 @@
   --color-progress-track: #282a36;
   --color-progress-track-border: #8f98ba;
   --color-progress-muted: #b8c2ea;
+
+  /* Tombstone inscription — the stone art is beige in both themes, so both
+     themes share one dark ink (openspec: post-takedown); the light theme
+     inherits these, do not override them there. The stone token is the
+     average of the art's inscription face and paints the stone while the art
+     is loading or when it fails to load. */
+  --color-tombstone-stone: #e4c6a2;
+  --color-tombstone-ink: #3d4a4e; /* 5.63:1 on #e4c6a2 (--color-tombstone-stone) */
+  --color-tombstone-rule: rgba(61, 74, 78, 0.35);
 
   /* Common */
   --font-sans:

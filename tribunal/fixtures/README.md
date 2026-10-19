@@ -31,6 +31,8 @@ gu-log 重複文章判定系統的 eval harness —— 已知答案的題庫。
 
 `contentSnapshot` 長度建議 200-400 字（title + summary + lead paragraph），不收全文。
 
+GP 系列已依 `post-takedown` 下架：GP 條目的 `summary` 與 `contentSnapshot` 一律用自寫的合成摘要（開頭標「合成摘要」），不放譯文原句。
+
 ## 凍結原則
 
 - Fixture 一旦 commit **SHALL NOT** 被 Ralph Loop / tribunal 修改

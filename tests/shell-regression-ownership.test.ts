@@ -12,6 +12,8 @@ const SHELL_TEST_DIR = path.join(ROOT, 'scripts', 'tests');
 const DEDICATED_CONTRACTS = [
   'test-session-start-context.sh',
   'test-tribunal-deploy-readiness.sh',
+  'test-tribunal-fact-summary-routing.sh',
+  'test-tribunal-run-control-claims.sh',
   'test-tribunal-runner-error-guard.sh',
   'test-tribunal-safety-contract.sh',
 ] as const;
@@ -25,6 +27,7 @@ const PORTABLE_CONTRACTS = [
   'test-quota-controller.sh',
   'test-setup-hooks-worktree.sh',
   'test-tribunal-batch-provider-quota.sh',
+  'test-tribunal-model-cli-env.sh',
   'test-tribunal-model-router.sh',
   'test-tribunal-quota-controller-codexbar.sh',
   'test-tribunal-monitor-snapshot.sh',
@@ -37,7 +40,6 @@ const PORTABLE_CONTRACTS = [
   'test-tribunal-systemd-containment.sh',
   'test-tribunal-vm-routing.sh',
   'test-tribunal-worker-sync-ref.sh',
-  'test-writer-broker.sh',
 ] as const;
 
 // The production scripts exercise associative arrays/mapfile and run on the

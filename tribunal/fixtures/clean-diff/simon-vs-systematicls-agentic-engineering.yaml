@@ -88,30 +88,11 @@ corpusSnapshot:
       source: "@systematicls on X"
       sourceUrl: "https://x.com/systematicls/status/2028814227004395561"
       lang: zh-tw
-      summary: "這篇推文的核心很直接：多數人不是輸在模型太弱，而是輸在 context 管理失控。原作者主張先用最精簡的 CLI 工作流，再用 rules、skills 與明確任務終點逐步迭代。重點不是追新工具，而是把 agent 的行為設計成可控、可驗證、可收斂。"
+      summary: "（合成摘要）GP-102 翻譯 @systematicls 談 agentic engineering 的長推文：與其一直加工具，不如管好 context、把研究和實作分開，並把任務終點寫成可驗證的條件。"
     contentSnapshot: |
-      你有沒有過那種經驗 — 裝了一堆 plugin、寫了三頁的 `CLAUDE.md`、搞了各種 memory 跟 skill，結果
-      agent 的表現反而越來越飄？別人用 Claude 像開鋼彈，你用起來像在搬石頭。問題出在哪？
-
-      這篇推文的作者 @systematicls 說了一句很扎心的話：**你不需要更複雜的工具，你需要的是更乾淨的工作方式。**
-
-      原作者先破題：大家常以為 agent 用不好，是因為 harness 不夠 fancy、plugin 不夠多、設定檔不夠長。
-      於是一路加到爆 — `CLAUDE.md` 寫到跟小說一樣厚，結果效果還是不上不下。
-
-      他的觀察是，真正把 agent 用得猛的人，靠的不是「工具疊羅漢」，而是幾個底層紀律：控制 context、
-      把研究和實作拆開、定義清楚什麼叫「做完」、持續整理 rules 避免自相矛盾。
-
-      Context 是主戰場。原作者反覆強調：agent 表現好不好，關鍵不在模型聰不聰明，在 context 品質。當你
-      把太多歷史紀錄、memory plugin、命名混亂的 skills 一起塞進去，就會 context bloat。結果 agent 明明
-      只要寫一個小功能，卻被迫讀一堆不相干的資訊，注意力直接被稀釋。
-
-      研究歸研究，實作歸實作。推文裡一個超實戰的原則：**不要用模糊任務直接叫 agent 開工**。你說「幫我做
-      auth system」，agent 會先花一大圈搜各種方案，context 很快被候選實作塞滿。但你說「用 JWT + bcrypt-12
-      + refresh token rotation」，agent 就會直接進入執行模式，不亂搜不亂猜。
-
-      Sycophancy：它太想討好你，反而會出事。你直接說「幫我找 bug」，agent 可能會很努力地「找出 bug」，
-      甚至把可疑的地方硬拗成 bug。原作者建議改用中性 prompt，例如先要求逐段檢查邏輯並回報發現，不預設
-      一定有 bug。
-
-      任務終點要可驗證。原作者說 agent 常見的問題不是不會開始，而是不知道什麼時候該停。他的解法是把終點
-      寫成契約：哪些 tests 必須通過、不能改測試來硬過、必要時加 screenshot 驗證行為。
+      （合成摘要，不含譯文原句）這篇 GP 翻譯 @systematicls 一則談 agentic engineering 的長推文。
+      主軸是系統設計與資訊流：作者認為 agent 表現不穩，多半不是模型或工具不夠，而是 context
+      塞了太多不相干的東西。文章依序談到：用精簡的 CLI 工作流起步、把研究和實作拆成不同階段、
+      用中性的提問降低 sycophancy、compaction 之後重讀任務、把「做完」寫成可驗證的條件（測試
+      不得改、必要時截圖），以及定期清掉互相矛盾的 rules。落點在工程紀律與資訊架構，而不是
+      單次對話的技巧。

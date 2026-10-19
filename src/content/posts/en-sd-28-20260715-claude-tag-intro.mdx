@@ -18,50 +18,50 @@ tags: ["shroomdog-original","claude-tag","slack","agent","sandbox","agent-proxy"
 scores:
   tribunalVersion: 9
   factCheck:
-    accuracy: 8
+    accuracy: 7
     fidelity: 8
     consistency: 9
-    sourceBoundary: 9
-    commentarySeparation: 8
+    sourceBoundary: 10
+    commentarySeparation: 9
     score: 8
-    date: "2026-07-15"
-    model: "claude-opus-4-8"
+    date: "2026-08-27"
+    model: "gpt-5.6-sol"
   vibe:
     persona: 8
-    moguNote: 8
+    moguNote: 9
     vibe: 9
     narrative: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-5"
+    date: "2026-08-27"
+    model: "gpt-5.5"
   librarian:
-    glossary: 9
-    crossRef: 9
+    glossary: 7
+    crossRef: 10
     sourceAlign: 8
-    attribution: 8
+    attribution: 7
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-08-27"
+    model: "gpt-5.6-sol"
   freshEyes:
     readability: 8
-    firstImpression: 8
+    firstImpression: 9
     payoffDensity: 8
     lengthFit: 8
-    clarity: 9
+    clarity: 8
     score: 8
-    date: "2026-07-16"
-    model: "claude-opus-4-8"
+    date: "2026-08-27"
+    model: "gpt-5.6-sol"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 import ShroomDogNote from '../../components/ShroomDogNote.astro';
 
-Picture this: an engineer asks Claude a question in a [Slack](/en/glossary#slack) channel, Claude starts digging through the codebase, running tests, pushing branches. Halfway through, a PM realizes the requirements are wrong and types directly into the same thread, "Wait, don't merge that yet, change it to X" — Claude catches it, pivots immediately.
+Picture this: an engineer asks Claude a question in a [Slack](/en/glossary#slack) channel, Claude starts digging through the codebase, running tests, pushing branches. Halfway through, a product manager realizes the requirements are wrong and types directly into the same thread, "Wait, don't merge that yet, change it to X" — Claude catches it, pivots immediately.
 
 This isn't science fiction. It's [Claude Tag](/en/glossary#claude-tag)'s default behavior. And here's the part that breaks your intuition: **Claude isn't anyone's personal secretary. It's a shared teammate for the entire channel.** Whoever speaks in the thread, Claude listens to them. As for how to work with an AI teammate without it making a mess, [SD-23](/en/posts/en-sd-23-20260510-ai-dota-teammates/) covered that — this post focuses on the official product itself.
 
 <MoguNote>
-Claude Tag is the second-generation Claude in Slack, beta-launched in June 2026. The first generation was more like a traditional chatbot: one question, one answer, no persistent work session, no sandbox to run code. The second generation is a redesign from scratch — "Tag" comes from Slack's @ mentions, but the product does way more than just "respond when tagged."
+[Mogu](/en/glossary#mogu) thinks Anthropic got this right: first-generation Claude in Slack was a search box that talked back. The second generation finally admits someone in the channel will change the requirements mid-run. "Tag" comes from Slack @ mentions, but what it actually sells is a **work session that lives in the channel**. Anyone still treating this as a private chatbot is volunteering for chaos.
 </MoguNote>
 
 ## Thread = Work Session, and Anyone Can Steer
@@ -83,7 +83,7 @@ Claude Tag runs in an Anthropic-managed sandbox, the same compute environment as
 How does Claude "remember" what it was doing in a fresh instance? Thread context (the verbatim transcript of everything in that Slack thread) and memory (a cross-session notebook searchable by channel and time). The sandbox can be thrown away and restarted anytime because thread and memory are separate — but this means Claude's workflow has to be "finish and post back": write the code, push it; finish the research, post the conclusion.
 
 <MoguNote>
-Thread is long-term memory. Sandbox is scratch paper. The scratch paper gets collected; only what you write back to the thread survives. Don't leave half-finished work in the sandbox. ╰(°▽°)╯
+Mogu likes how ruthless this is: every wake-up gets a fresh machine, which is Anthropic saying "nothing in the sandbox is trustworthy, and nothing there deserves to be missed." Thread is long-term memory; the sandbox is scratch paper that gets collected. Leaving half-finished work there isn't forgetting to push — it's dating a hard drive that evaporates. ╰(°▽°)╯
 </MoguNote>
 
 ---
@@ -93,7 +93,7 @@ Thread is long-term memory. Sandbox is scratch paper. The scratch paper gets col
 Claude Tag can hit external APIs, connect to GitHub, read private repos — but there are **no credentials whatsoever** inside the sandbox. This is the core of the [Agent Proxy](/en/glossary#agent-proxy) design: when Claude needs to call an API, the request goes through Anthropic's proxy layer, and **credentials get injected only at the network boundary**. The code running in the sandbox never touches a token.
 
 <MoguNote>
-Even if someone hides a prompt injection in a document trying to trick Claude into printing out an API key, Claude can't print it — because the token never entered the sandbox in the first place. This is completely different from the traditional "store token as environment variable" pattern. (◕‿◕)
+Mogu's stance: this is the correct default. Even if someone hides a prompt injection in a document trying to trick Claude into printing an API key, Claude can't — the token never entered the sandbox. Anyone still stuffing tokens into environment variables and hoping the agent behaves is running last decade's threat model. (◕‿◕)
 </MoguNote>
 
 Permission management is per-channel: admins bundle credentials, repo access, and domain allowlists into an Access bundle. Network is default-deny; only allowlisted endpoints can be reached. Credential rotation is painless — update once in Anthropic's admin panel, no sandbox redeployment needed.
@@ -105,7 +105,7 @@ Permission management is per-channel: admins bundle credentials, repo access, an
 The design assumes you're okay with Slack-only and letting Anthropic manage credentials. Build your own, and all of that becomes your responsibility — but you also get to choose: LINE, Teams, intranet, self-managed keys, different models.
 
 <MoguNote>
-Entry requirements: Team or Enterprise plan, both an Anthropic org owner and Slack workspace admin, no ZDR (Zero Data Retention). Billing: channels draw from org quota, DMs from personal accounts. ʕ•ᴥ•ʔ — [ShroomDog](/en/about/)
+Mogu is not reciting the feature list again. The entry requirements *are* the product stance: Team or Enterprise, Anthropic org owner plus Slack workspace admin, no ZDR (Zero Data Retention). Channels bill against org quota; DMs against personal accounts. This was never meant to be a private toy. ʕ•ᴥ•ʔ — [ShroomDog](/en/about/)
 </MoguNote>
 
 Next post, we start building our own. [LINE first](/en/posts/en-sd-29-20260715-openclaw-line-selfhost/), then [Teams](/en/posts/en-sd-30-20260715-openclaw-teams-intranet/) and the [security crisis](/en/posts/en-sd-31-20260715-openclaw-security-crisis/). With tools like [OpenClaw](/en/glossary#openclaw), the same concept moves to any platform, any model, any network environment.

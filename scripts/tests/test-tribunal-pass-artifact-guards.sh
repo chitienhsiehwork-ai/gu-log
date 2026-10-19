@@ -428,9 +428,9 @@ if [ -e "$mktemp_output" ]; then
 fi
 pass "audit uses unique, cleaned scratch output"
 
-# 14. The scheduled production audit must not trust a cached origin/main when
-# its refresh fails. Exercise the systemd unit's inner shell command in both
-# directions so a textual refactor cannot accidentally restore stale auditing.
+# 14. The scheduled production audit must retry a transient origin/main refresh
+# failure, but still fail closed instead of auditing a cached ref after the
+# bounded attempt budget is exhausted.
 service_command="$(
   sed -n "s|^ExecStart=/bin/bash -lc '\\(.*\\)'$|\\1|p" "$AUDIT_SERVICE"
 )"
@@ -457,40 +457,96 @@ service_fixture="$TMP/daily-audit-service"
 service_fake_bin="$service_fixture/bin"
 service_repo="$service_fixture/repo"
 service_audit_sentinel="$service_fixture/audit-argv"
+service_fetch_count="$service_fixture/fetch-count"
+service_fetch_sequence="$service_fixture/fetch-sequence"
+service_sleep_log="$service_fixture/sleep-argv"
 mkdir -p "$service_fake_bin" "$service_repo/scripts"
 cat >"$service_fake_bin/git" <<'SH'
 #!/usr/bin/env bash
 if [ "$#" -eq 3 ] && [ "$1" = "fetch" ] && [ "$2" = "origin" ] && [ "$3" = "main" ]; then
-  exit "${FAKE_GIT_FETCH_RC:?}"
+  count=0
+  if [ -f "${FETCH_COUNT:?}" ]; then
+    count="$(cat "$FETCH_COUNT")"
+  fi
+  count=$((count + 1))
+  printf '%s\n' "$count" >"$FETCH_COUNT"
+  rc="$(sed -n "${count}p" "${FETCH_SEQUENCE:?}")"
+  [ -n "$rc" ] || exit 98
+  if [ "$rc" -ne 0 ]; then
+    echo "fake git fetch failure $count" >&2
+  fi
+  exit "$rc"
 fi
 exit 99
+SH
+cat >"$service_fake_bin/sleep" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"${SLEEP_LOG:?}"
 SH
 cat >"$service_repo/scripts/tribunal-audit-pass-commits.sh" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >"${AUDIT_SENTINEL:?}"
 SH
-chmod +x "$service_fake_bin/git" "$service_repo/scripts/tribunal-audit-pass-commits.sh"
+chmod +x \
+  "$service_fake_bin/git" \
+  "$service_fake_bin/sleep" \
+  "$service_repo/scripts/tribunal-audit-pass-commits.sh"
 
-if PATH="$service_fake_bin:/usr/bin:/bin" \
-  GU_LOG_DIR="$service_repo" \
-  FAKE_GIT_FETCH_RC=42 \
-  AUDIT_SENTINEL="$service_audit_sentinel" \
-  bash -c "$service_command" >"$TMP/daily-audit-fetch-failure.out" 2>&1; then
-  fail "daily PASS audit service accepted a failed origin/main refresh"
-fi
-[ ! -e "$service_audit_sentinel" ] ||
-  fail "daily PASS audit ran after origin/main refresh failed"
-grep -Fq 'unable to refresh origin/main; refusing to audit a cached ref' "$TMP/daily-audit-fetch-failure.out" ||
-  fail "daily PASS audit did not explain its stale-ref refusal"
-
+printf '42\n0\n' >"$service_fetch_sequence"
 PATH="$service_fake_bin:/usr/bin:/bin" \
   GU_LOG_DIR="$service_repo" \
-  FAKE_GIT_FETCH_RC=0 \
+  FETCH_COUNT="$service_fetch_count" \
+  FETCH_SEQUENCE="$service_fetch_sequence" \
+  SLEEP_LOG="$service_sleep_log" \
+  AUDIT_SENTINEL="$service_audit_sentinel" \
+  bash -c "$service_command" >"$TMP/daily-audit-fetch-recovery.out" 2>&1
+[ "$(cat "$service_fetch_count")" = "2" ] ||
+  fail "daily PASS audit did not recover on the second refresh attempt"
+[ "$(cat "$service_sleep_log")" = "30" ] ||
+  fail "daily PASS audit did not apply one bounded retry delay"
+[ "$(cat "$service_audit_sentinel")" = "--range 2b1bc361..origin/main" ] ||
+  fail "daily PASS audit did not scan the exact remote-main range after transient recovery"
+grep -Fq 'unable to refresh origin/main; retrying once in 30 seconds' "$TMP/daily-audit-fetch-recovery.out" ||
+  fail "daily PASS audit did not explain its transient refresh retry"
+
+rm -f "$service_audit_sentinel" "$service_fetch_count" "$service_sleep_log"
+printf '42\n42\n' >"$service_fetch_sequence"
+if PATH="$service_fake_bin:/usr/bin:/bin" \
+  GU_LOG_DIR="$service_repo" \
+  FETCH_COUNT="$service_fetch_count" \
+  FETCH_SEQUENCE="$service_fetch_sequence" \
+  SLEEP_LOG="$service_sleep_log" \
+  AUDIT_SENTINEL="$service_audit_sentinel" \
+  bash -c "$service_command" >"$TMP/daily-audit-fetch-failure.out" 2>&1; then
+  fail "daily PASS audit accepted an exhausted origin/main refresh budget"
+fi
+[ "$(cat "$service_fetch_count")" = "2" ] ||
+  fail "daily PASS audit did not exhaust exactly two refresh attempts"
+[ "$(cat "$service_sleep_log")" = "30" ] ||
+  fail "daily PASS audit retry delay was not bounded to one 30-second wait"
+[ ! -e "$service_audit_sentinel" ] ||
+  fail "daily PASS audit ran after all origin/main refreshes failed"
+grep -Fq 'unable to refresh origin/main; refusing to audit a cached ref' "$TMP/daily-audit-fetch-failure.out" ||
+  fail "daily PASS audit did not explain its stale-ref refusal after retry exhaustion"
+grep -Fq 'fake git fetch failure 2' "$TMP/daily-audit-fetch-failure.out" ||
+  fail "daily PASS audit discarded the final git refresh diagnostic"
+
+rm -f "$service_fetch_count" "$service_sleep_log"
+printf '0\n' >"$service_fetch_sequence"
+PATH="$service_fake_bin:/usr/bin:/bin" \
+  GU_LOG_DIR="$service_repo" \
+  FETCH_COUNT="$service_fetch_count" \
+  FETCH_SEQUENCE="$service_fetch_sequence" \
+  SLEEP_LOG="$service_sleep_log" \
   AUDIT_SENTINEL="$service_audit_sentinel" \
   bash -c "$service_command"
+[ "$(cat "$service_fetch_count")" = "1" ] ||
+  fail "daily PASS audit did not stop refreshing after first-attempt success"
+[ ! -e "$service_sleep_log" ] ||
+  fail "daily PASS audit slept after first-attempt success"
 [ "$(cat "$service_audit_sentinel")" = "--range 2b1bc361..origin/main" ] ||
   fail "daily PASS audit did not scan the exact remote-main range after a successful refresh"
-pass "daily PASS audit fails closed when origin/main cannot be refreshed"
+pass "daily PASS audit retries transient refresh failures and fails closed after exhaustion"
 
 grep -qx 'Persistent=true' "$AUDIT_TIMER" ||
   fail "daily PASS audit timer must catch up after VM downtime"

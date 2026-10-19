@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Behavioral regression for the deployed closed-loop quota controller.
-# All Codex/CodexBar calls are local fakes; the combined monitor is a poison
-# marker so any compatibility-path regression is observable.
+# All Codex/CodexBar/Claude calls are local fakes; the combined monitor and any
+# Claude call other than the writer canary are poison markers so a quota-path
+# regression is observable.
 
 set -euo pipefail
 
@@ -20,7 +21,7 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/gu-tribunal-codexbar-controller.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 FIXTURE_ROOT="$TMP/root"
 mkdir -p "$FIXTURE_ROOT/scripts" "$FIXTURE_ROOT/.codex/agents" \
-  "$FIXTURE_ROOT/src/content/posts" "$TMP/bin"
+  "$FIXTURE_ROOT/.claude/agents" "$FIXTURE_ROOT/src/content/posts" "$TMP/bin"
 cp \
   "$ROOT_DIR/scripts/tribunal-helpers.sh" \
   "$ROOT_DIR/scripts/tribunal-post-pair-snapshot.py" \
@@ -29,8 +30,8 @@ cp \
   "$ROOT_DIR/scripts/tribunal-run-control.sh" \
   "$ROOT_DIR/scripts/tribunal-version.mjs" \
   "$FIXTURE_ROOT/scripts/"
-printf 'model = "gpt-controller-fixture"\n' \
-  > "$FIXTURE_ROOT/.codex/agents/tribunal-writer.toml"
+printf '%s\n' '---' 'model: claude-controller-fixture' '---' \
+  > "$FIXTURE_ROOT/.claude/agents/tribunal-writer.md"
 for role in vibe-opus-scorer fact-checker librarian fresh-eyes; do
   printf 'model = "gpt-%s-controller-fixture"\n' "$role" \
     > "$FIXTURE_ROOT/.codex/agents/$role.toml"
@@ -41,12 +42,7 @@ cat > "$TMP/bin/codex" <<'CODEX'
 if [ "${1:-}" = "exec" ] && [ "${2:-}" = "--help" ]; then
   exit 0
 fi
-prompt="${!#}"
-canary_path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
-canary_token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
-[ -n "$canary_path" ] && [ -n "$canary_token" ] || exit 2
-printf '%s\n' "$canary_token" > "$canary_path"
-printf 'OK\n'
+exit 0
 CODEX
 chmod +x "$TMP/bin/codex"
 
@@ -91,6 +87,18 @@ chmod +x "$TMP/bin/usage-monitor.sh"
 
 cat > "$TMP/bin/claude" <<'CLAUDE'
 #!/usr/bin/env bash
+# The deployed write canary is the only legitimate Claude call here; anything
+# else (for example a Claude quota probe) trips the poison marker.
+if [ "${1:-}" = "-p" ]; then
+  prompt="$(cat)"
+  canary_path="$(printf '%s\n' "$prompt" | sed -n 's/^Canary path: //p')"
+  canary_token="$(printf '%s\n' "$prompt" | sed -n 's/^Canary token: //p')"
+  if [ -n "$canary_path" ] && [ -n "$canary_token" ]; then
+    printf '%s\n' "$canary_token" > "$canary_path"
+    printf 'OK\n'
+    exit 0
+  fi
+fi
 : > "$CLAUDE_CALLED"
 exit 96
 CLAUDE
@@ -149,7 +157,7 @@ run_controller() {
       USAGE_MONITOR="$TMP/bin/usage-monitor.sh" \
       TRIBUNAL_DEPLOYED_MODE=1 \
       TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-      GP_WRITER_MODE=codex \
+      GP_WRITER_MODE=claude \
       TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
       TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
       GP_CODEXBAR_TIMEOUT_SECONDS=1 \
@@ -183,7 +191,7 @@ cmp -s "$TMP/expected.argv" "$TMP/codexbar.argv" ||
 [ ! -e "$TMP/combined-monitor.called" ] ||
   fail "deployed controller invoked the combined usage monitor"
 [ ! -e "$TMP/claude.called" ] ||
-  fail "deployed controller invoked the Claude binary"
+  fail "deployed controller invoked Claude outside the writer canary"
 pass "deployed controller invokes only the exact provider-specific CodexBar command"
 
 rm -f "$TMP/codexbar.argv" "$TMP/combined-monitor.called"
@@ -255,7 +263,7 @@ dry_output="$(
     FAKE_SYSTEMD_FRAGMENT_PATH="$TMP/installed-tribunal-runtime.slice" \
     TRIBUNAL_DEPLOYED_MODE=1 \
     TRIBUNAL_STRICT_ROLE_PROVIDERS=1 \
-    GP_WRITER_MODE=codex \
+    GP_WRITER_MODE=claude \
     TRIBUNAL_WRITER_PREFLIGHT_TIMEOUT_SEC=2 \
     TRIBUNAL_QUOTA_NOW_EPOCH="$now_epoch" \
     TRIBUNAL_QUOTA_CODEXBAR_JSON="$live_primary_null" \
@@ -391,5 +399,5 @@ esac
 [ ! -e "$TMP/combined-monitor.called" ] ||
   fail "rejected deployed --legacy-quota invoked the combined monitor"
 [ ! -e "$TMP/claude.called" ] ||
-  fail "deployed quota regression invoked the Claude binary"
+  fail "deployed quota regression invoked Claude outside the writer canary"
 pass "deployed mode rejects the combined legacy quota path before any probe"
