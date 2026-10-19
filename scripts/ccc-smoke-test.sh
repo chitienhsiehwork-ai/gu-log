@@ -216,7 +216,7 @@ fi
 # ── 5. Git hooks 已掛上且是 canonical 版 ─────────────────────────
 # CCC 開場若沒跑 setup-hooks，commit 會繞過所有品質 gate。這裡確認：
 #   (a) core.hooksPath 指到 .git/hooks
-#   (b) 實際 active 的 hook == tracked canonical (.githooks/)
+#   (b) 實際 active 的 hook == tracked canonical (scripts/hooks/)
 section "5. Git hooks"
 HOOKS_PATH="$(git config core.hooksPath || echo '')"
 if [ -n "$HOOKS_PATH" ]; then
@@ -226,26 +226,13 @@ else
 fi
 for h in pre-commit pre-push; do
   active=".git/hooks/$h"
-  canon=".githooks/$h"
+  canon="scripts/hooks/$h"
   if [ ! -x "$active" ]; then
     fail "$h 未安裝到 .git/hooks/" "跑 setup-hooks 或 --fix"
   elif diff -q "$active" "$canon" >/dev/null 2>&1; then
-    pass "$h active == canonical (.githooks/$h)"
+    pass "$h active == canonical (scripts/hooks/$h)"
   else
-    fail "$h active 與 .githooks/$h 不一致" "active hook 過時，重跑 setup-hooks"
-  fi
-done
-
-# ── 6. Hook source-of-truth drift guard ───────────────────────────
-# setup-hooks.sh 從 scripts/hooks/ 安裝、同步到 .githooks/。如果有人只改
-# 其中一邊（歷史上 b300dab 就只改了 .githooks/ 忘了 scripts/hooks/），CCC
-# 會裝到過時的 hook。這個 check 確保兩份 tracked 副本永遠一致。
-section "6. Hook source drift guard"
-for h in pre-commit pre-push; do
-  if diff -q "scripts/hooks/$h" ".githooks/$h" >/dev/null 2>&1; then
-    pass "scripts/hooks/$h == .githooks/$h"
-  else
-    fail "scripts/hooks/$h 與 .githooks/$h drift" "兩份 tracked hook 不同步——setup-hooks 會裝到舊版"
+    fail "$h active 與 scripts/hooks/$h 不一致" "active hook 過時，重跑 setup-hooks"
   fi
 done
 

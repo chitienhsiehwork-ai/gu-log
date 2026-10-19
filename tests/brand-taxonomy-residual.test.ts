@@ -61,13 +61,12 @@ describe('brand taxonomy residual gate', () => {
     expect(canonicalizeTagValues(originalTags)).toEqual(originalTags);
   });
 
-  it('is wired into the required CI path and both tracked pre-push mirrors', () => {
+  it('is wired into the required CI path and the pre-push hook', () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
     const ci = fs.readFileSync(path.join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
     const validateContent = yamlJobBlock(ci, 'validate-content');
     const aggregateGate = yamlJobBlock(ci, 'ci-passed');
     const sourceHook = fs.readFileSync(path.join(REPO_ROOT, 'scripts/hooks/pre-push'), 'utf8');
-    const mirrorHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks/pre-push'), 'utf8');
 
     expect(packageJson.scripts['taxonomy:check']).toBe(
       'node scripts/check-brand-taxonomy.mjs --check'
@@ -75,7 +74,6 @@ describe('brand taxonomy residual gate', () => {
     expect(validateContent).toContain('run: pnpm run taxonomy:check');
     expect(aggregateGate).toContain('      - validate-content');
     expect(sourceHook).toContain('pnpm run taxonomy:check');
-    expect(mirrorHook).toBe(sourceHook);
   });
 
   it('accepts only one-way semantic series canonicalization', () => {
