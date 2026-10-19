@@ -28,7 +28,7 @@ const EXCLUDES = [
 export const RETIRED = [
   /\bClawdNote\b|\bclawdNote\b|\bCLAWD_NOTE\w*|--color-clawd\b|\.clawd-prefix\b/g,
   /\bShroomClawd\b|\bClawd\b(?!\.rip\b)|\[!clawd\]/g,
-  /\b(?:SP|CP)-(?:\d+|PENDING)\b|\b(?:sp|cp)-(?:\d+|pending)(?=[-./"')\s]|$)/gm,
+  /\b(?:SP|CP)-(?:\d+|N|PENDING)\b|\b(?:sp|cp)-(?:\d+|pending)(?=[-./"')\s]|$)/gm,
   /\b(?:clawd-picks|shroom-picks|shroomdog-picks|Clawd Picks|ShroomDog Picks|Shroom Picks)\b/g,
   /\bsp-pipeline\b/g,
 ];
