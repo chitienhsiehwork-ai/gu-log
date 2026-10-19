@@ -70,7 +70,7 @@ Then developers around the world started running `pip install`.
 
 Here's where it gets serious. When some engineer ran `pip install litellm==1.82.7` in their production environment, then `import litellm` — the moment that import executed, a precision three-stage kill chain went live.
 
-**Stage one: ransack everything.** The malicious code scans the entire machine for anything valuable: SSH keys, cloud credentials, Kubernetes secrets, cryptocurrency wallets, `.env` config files. No pickiness, grab everything. Imagine a burglar breaking into your house and not just checking the safe — but also under the pillows, in the freezer, inside the toilet tank.
+**Stage one: ransack everything.** The malicious code scans the entire machine for anything valuable: SSH keys, cloud credentials, [Kubernetes](/en/glossary#kubernetes) secrets, cryptocurrency wallets, `.env` config files. No pickiness, grab everything. Imagine a burglar breaking into your house and not just checking the safe — but also under the pillows, in the freezer, inside the toilet tank.
 
 **Stage two: expand the foothold.** After grabbing Kubernetes service account tokens, the attack deploys privileged pods on every node in the cluster. One machine compromised, entire cluster falls. From "broke into one room" to "got the master key for the whole building."
 

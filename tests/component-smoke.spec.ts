@@ -126,12 +126,12 @@ test.describe('Component smoke — storage fallbacks', () => {
 
       await page.goto(route);
 
-      const link = page.locator('.term-link').first();
-      await link.click();
+      const copyButton = page.locator('.entry-copy').first();
+      await copyButton.click();
       await page.waitForTimeout(100);
 
       await expect(page).toHaveURL(/#.+$/);
-      await expect(link).not.toHaveClass(/copied/);
+      await expect(copyButton).not.toHaveClass(/copied/);
       expect(
         await page.evaluate(
           () => (window as Window & { __clipboardWriteCalls?: number }).__clipboardWriteCalls
@@ -168,11 +168,11 @@ test.describe('Component smoke — storage fallbacks', () => {
 
     await page.goto('/glossary');
 
-    const link = page.locator('.term-link').first();
-    await link.click();
-    await link.click();
+    const copyButton = page.locator('.entry-copy').first();
+    await copyButton.click();
+    await copyButton.click();
     await page.waitForTimeout(100);
-    await expect(link).not.toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/copied/);
 
     await page.evaluate(() => {
       (
@@ -183,7 +183,7 @@ test.describe('Component smoke — storage fallbacks', () => {
     });
     await page.waitForTimeout(100);
 
-    await expect(link).not.toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/copied/);
     expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
   });
 

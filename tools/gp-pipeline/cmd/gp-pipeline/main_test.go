@@ -9,11 +9,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -481,28 +484,25 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	root := makeFakeRepo(t)
 	source := filepath.Join(root, "source-tweet.md")
 	mustWrite(t, source, "source")
-	trapDir := t.TempDir()
-	for _, name := range []string{"bash", "curl", "yt-dlp", "python3", "node", "codex", "claude", "git", "pnpm"} {
-		writeExecutableFile(t, filepath.Join(trapDir, name), "#!/bin/sh\nprintf '%s\\n' \"$0 $*\" >> \"$GP_INGRESS_TRAP_LOG\"\nexit 99\n")
-	}
 	t.Setenv("GU_LOG_DIR", root)
-	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	trapLog := trapExternalPrograms(t)
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
+	// Writing commands offer only the series the pipeline writes; the counter
+	// still serves every series, Lv included.
 	for _, tc := range []struct {
-		name string
-		args []string
+		name   string
+		args   []string
+		series []string
 	}{
-		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}},
-		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}},
-		{name: "counter bump", args: []string{"counter", "bump"}},
-		{name: "counter next", args: []string{"counter", "next"}},
-		{name: "write", args: []string{"write", "--source", source}},
+		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}, series: pipeline.AuthorablePrefixes},
+		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}, series: pipeline.AuthorablePrefixes},
+		{name: "counter bump", args: []string{"counter", "bump"}, series: counter.ValidPrefixes},
+		{name: "counter next", args: []string{"counter", "next"}, series: counter.ValidPrefixes},
+		{name: "write", args: []string{"write", "--source", source}, series: pipeline.AuthorablePrefixes},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			resetGlobals()
-			trapLog := filepath.Join(t.TempDir(), "trap.log")
-			t.Setenv("GP_INGRESS_TRAP_LOG", trapLog)
 			counterBefore, err := os.ReadFile(counterFile)
 			if err != nil {
 				t.Fatal(err)
@@ -518,15 +518,16 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 			if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "--prefix is required") {
 				t.Fatalf("error = %v (exit %d), want the exit-1 missing --prefix rejection", err, exitCodeFor(err))
 			}
-			if !strings.Contains(err.Error(), "[GP MP SD Lv]") {
-				t.Fatalf("error = %v, want the available series listed", err)
+			if !strings.Contains(err.Error(), fmt.Sprint(tc.series)) {
+				t.Fatalf("error = %v, want the available series %v listed", err, tc.series)
+			}
+			if strings.Contains(err.Error(), "Lv") != slices.Contains(tc.series, "Lv") {
+				t.Fatalf("error = %v, want Lv named only when the command serves it", err)
 			}
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
 				t.Fatalf("missing --prefix created the work dir: %v", statErr)
 			}
-			if raw, readErr := os.ReadFile(trapLog); readErr == nil {
-				t.Fatalf("missing --prefix ran external programs:\n%s", raw)
-			}
+			requireNoExternalCalls(t, trapLog)
 			if counterAfter, err := os.ReadFile(counterFile); err != nil || !bytes.Equal(counterAfter, counterBefore) {
 				t.Fatalf("missing --prefix changed the counter: %v", err)
 			}
@@ -749,15 +750,15 @@ func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 }
 
 // TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
-// series only changes whether Tribunal may rewrite (GP is score-only), and the
-// existing levelup- Lv corpus and en- sidecars must resolve instead of failing.
+// series only changes whether Tribunal may rewrite (GP is score-only), and en-
+// sidecars must resolve instead of failing. The Lv refusal is covered in
+// lv_refusal_test.go.
 func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 	for filename, wantNoRewrite := range map[string]bool{
-		"gp-10-example.mdx":                      true,
-		"mp-20-example.mdx":                      false,
-		"en-sd-30-example.mdx":                   false,
-		"lv-40-example.mdx":                      false,
-		"levelup-20260701-core-dump-anatomy.mdx": false,
+		"gp-10-example.mdx":    true,
+		"mp-20-example.mdx":    false,
+		"sd-30-example.mdx":    false,
+		"en-sd-30-example.mdx": false,
 	} {
 		t.Run(filename, func(t *testing.T) {
 			resetGlobals()
@@ -854,8 +855,10 @@ func TestRunAndDeployRejectPrefixThatContradictsFile(t *testing.T) {
 
 // TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations
 // resumes translation without --prefix: the file names the series (MP, and Lv
-// for the existing levelup- corpus) instead of the GP default
+// for lv- and the existing levelup- corpus) instead of the GP default
 // (openspec: gp-pipeline-publish-integrity「以既有非 GP 檔案恢復時沒帶 prefix」).
+// A hand-written Lv gets its English version this way: the Lv refusal only
+// covers starts before translate.
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
 	for _, tc := range []struct {
 		filename string
@@ -863,6 +866,7 @@ func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t 
 	}{
 		{filename: "mp-10-20260723-recovery-roundtrip.mdx", ticketID: "MP-10"},
 		{filename: "levelup-20260701-core-dump-anatomy.mdx", ticketID: "Lv-13"},
+		{filename: "lv-18-20261011-recovery-roundtrip.mdx", ticketID: "Lv-18"},
 	} {
 		t.Run(tc.filename, func(t *testing.T) {
 			resetGlobals()

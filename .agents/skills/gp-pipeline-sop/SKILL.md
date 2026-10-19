@@ -1,13 +1,13 @@
 ---
 name: gp-pipeline-sop
-description: Route gu-log GP reading-guide, MP, SD, and Lv draft, review, refine, translation, stamp, and publish work without re-pasting long prompts.
+description: Route gu-log GP reading-guide, MP, and SD draft, review, refine, translation, stamp, and publish work, plus Lv translation and publish, without re-pasting long prompts.
 ---
 
 # GP Pipeline SOP
 
 This SOP is an index and workflow contract. It does not replace the writing guide, contribution rules, pipeline CLI docs, or frontmatter schema.
 
-Every mode below applies to all four series. GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀; see `openspec/specs/editorial-charter/spec.md`), not a translation, and it ships only with a valid source-distance stamp.
+The `draft`, `review`, and `refine` modes apply to GP, MP, and SD only: Lv is written by hand (`CONTRIBUTING.md`, 新增入門教學（Lv）), and the pipeline refuses to write, rewrite, or credit it, so Lv only uses `translate-en` and `ship`. GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀; see `openspec/specs/editorial-charter/spec.md`), not a translation, and it ships only with a valid source-distance stamp.
 
 Read `tools/gp-pipeline/SKILL.md` before running commands. CLI flags and behavior are authoritative in the current binary (`gp-pipeline <subcommand> --help`) and Go implementation; prose docs are derived views.
 

@@ -8,7 +8,7 @@
 
 ### Requirement: Tribunal SHALL consume unresolved human signals as deterministic evidence
 
-Tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
+While human-signal automation is enabled, tribunal SHALL include unresolved per-article human signals in judge and writer context as deterministic evidence. Human signals SHALL be read from the configured signal transport or generated packet, not inferred from model intuition. Tribunal-impacting signals SHALL be limited to `owner_trusted` or explicitly owner-approved evidence; `guest_reference` signals SHALL remain reference-only until promoted by ShroomDog / owner approval.
 
 #### Scenario: Human signal SSOT and progress ledger SSOT remain separate
 
@@ -71,7 +71,7 @@ Gu-log SHALL define a routing policy from human signal kinds to Tribunal stages/
 
 ### Requirement: Severe unresolved negative human signals SHALL trigger bounded requeue or review
 
-A PASS article with severe unresolved negative human signals SHALL NOT be treated as fully done merely because model scores passed. The system SHALL choose a bounded resolution path.
+While human-signal automation is enabled, a PASS article with severe unresolved negative human signals SHALL NOT be treated as fully done merely because model scores passed. The system SHALL choose a bounded resolution path.
 
 Valid disposition paths SHALL include:
 
@@ -109,8 +109,6 @@ Valid disposition paths SHALL include:
 - **THEN** the requeue SHALL have a bounded attempt limit or explicit human-approved scope
 - **AND** repeated failures SHALL transition to manual review or EXHAUSTED-like state instead of infinite rewrite
 
----
-
 ### Requirement: Tribunal writer SHALL know which version failed and which version it is producing
 
 When human feedback triggers a rewrite, Tribunal writer SHALL receive the failed version context and SHALL produce a new version candidate rather than editing as if the feedback applies timelessly.
@@ -133,7 +131,7 @@ When human feedback triggers a rewrite, Tribunal writer SHALL receive the failed
 
 ### Requirement: Publisher SHALL respect unresolved human quality blocks
 
-The publishing pipeline SHALL block or flag publication of articles with unresolved severe human quality signals according to policy, even if Tribunal scores pass.
+While human-signal automation is enabled, the publishing pipeline SHALL block or flag publication of articles with unresolved severe human quality signals according to policy, even if Tribunal scores pass.
 
 #### Scenario: Publisher human block carries version binding
 
@@ -155,8 +153,6 @@ The publishing pipeline SHALL block or flag publication of articles with unresol
 - **THEN** publisher MAY proceed if other gates pass
 - **AND** SHALL NOT block solely due to resolved old-version feedback
 
----
-
 ### Requirement: Positive human signals SHALL be preserved and studied
 
 Positive human signals such as finish, share, or positive comment SHALL be preserved as evidence of effective article patterns. Tribunal SHALL NOT automatically rewrite away positively signaled versions without noting the risk.
@@ -174,3 +170,26 @@ Positive human signals such as finish, share, or positive comment SHALL be prese
 - **BUT** it loses human finish/share/comment-positive signals compared with the previous version
 - **THEN** the system SHALL surface this as quality regression risk
 - **AND** human review MAY overrule score-based automation
+
+### Requirement: Human-signal automation SHALL be explicitly enabled before it affects Tribunal
+
+Tribunal judge context, writer context, requeue, and publisher blocks SHALL consume human signals only while human-signal automation is enabled by a configuration owned by the Tribunal runtime. Automation SHALL default to disabled, and enabling it SHALL require a `reader-signal-calibration` report with sufficient sample size.
+
+#### Scenario: Owner leaves rewrite-needed feedback while automation is disabled
+
+- **WHEN** ShroomDog leaves `rewrite_needed` feedback on a PASS article
+- **AND** human-signal automation is disabled
+- **THEN** Tribunal SHALL NOT requeue, rewrite, or block publication of the article because of that feedback
+- **AND** the feedback SHALL appear in the calibration report's disagreement list for ShroomDog to act on
+
+### Requirement: Implicit signals SHALL be enabled separately from explicit feedback
+
+Implicit signals (automatic read finish, suspected abandon, scroll depth, active read time) SHALL stay out of Tribunal even when explicit feedback is enabled, until a calibration report shows they track owner explicit feedback.
+
+#### Scenario: Explicit feedback is enabled but implicit is not
+
+- **WHEN** automation is enabled for explicit owner feedback only
+- **AND** an article has owner-trusted `abandoned_suspected_boring` events
+- **THEN** judges SHALL NOT receive the abandon events
+- **AND** explicit owner feedback MAY reach judges as quoted, versioned evidence, never as numeric targets to optimise
+- **AND** any free-text note SHALL be treated as untrusted data, not as instructions

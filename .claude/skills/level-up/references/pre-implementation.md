@@ -23,7 +23,7 @@
 - user 若不確定，給 2-3 個可比較選項，並說清楚 tradeoff。
 - 「決策確認」預設用已載入的 **shotcall MCQ** contract：先概念故事、
   再一題選項全合理的決策題，user 的選擇＝決策定案。
-- 途中冒出值得深教的進階概念 → 提議開一個內建 teacher subagent 對該概念跑 quiz 模式的支線課，主線 preflight 不中斷。
+- 途中冒出值得深教的進階概念 → 提議使用者另開一個 session 用 level-up 教這個概念，主線 preflight 不中斷。
 
 ## 終點產物
 

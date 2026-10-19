@@ -58,7 +58,7 @@ So let me get this straight — a hacker group that specifically targets securit
 
 Now let's look at what this thing actually does to your machine. Think of it as a highly trained operative breaking into your house — not just stealing stuff, but changing the locks and inviting friends to move in.
 
-**Act One: Ransack.** It sweeps your environment variables for API keys, digs through `~/.ssh/id_rsa` for your private keys, grabs your Git credentials. Then it hits AWS, GCP, and Azure tokens — none spared — plus your Kubernetes service account tokens. It even takes your shell history and crypto wallets. In one sentence: anything on your machine that looks like a secret, it takes. This isn't a burglary. This is a professional moving crew.
+**Act One: Ransack.** It sweeps your environment variables for API keys, digs through `~/.ssh/id_rsa` for your private keys, grabs your Git credentials. Then it hits AWS, GCP, and Azure tokens — none spared — plus your [Kubernetes](/en/glossary#kubernetes) service account tokens. It even takes your shell history and crypto wallets. In one sentence: anything on your machine that looks like a secret, it takes. This isn't a burglary. This is a professional moving crew.
 
 **Act Two: Package and ship.** Everything gets encrypted with 4096-bit RSA plus AES-256-CBC, compressed into a tar archive, and sent to `models.litellm[.]cloud` — a fake domain with zero connection to the real LiteLLM. The encryption spec is higher than what a lot of legitimate companies use internally. Yes, the thieves care more about securing your stolen data than your company does about protecting it (￣▽￣)／
 

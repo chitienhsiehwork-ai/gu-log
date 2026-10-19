@@ -33,6 +33,18 @@ function makeRepo(): string {
   return repo;
 }
 
+function writeGlossary(repo: string, terms: string[]): void {
+  fs.mkdirSync(path.join(repo, 'src', 'data'), { recursive: true });
+  fs.writeFileSync(
+    path.join(repo, 'src', 'data', 'glossary.json'),
+    `${JSON.stringify(
+      terms.map((term) => ({ term, en: term, category: 'concepts' })),
+      null,
+      2
+    )}\n`
+  );
+}
+
 function runGate(repo: string, baseRef = 'base'): string[] {
   const output = execFileSync('node', [SCRIPT, `--base=${baseRef}`], {
     cwd: repo,
@@ -212,6 +224,98 @@ describe('list-content-gate-posts fail-closed base contract', () => {
   });
 });
 
+describe('list-content-gate-posts link-only proof', () => {
+  // 只驗 CI 的接線（glossary 與站內文章目標都讀 head），證明本身的案例在
+  // tests/link-only-proof.test.ts。
+  const TARGET_FILE = 'src/content/posts/mp-316-target.mdx';
+  const TARGET_LINK = '[MP-316: 目標文章](/posts/mp-316-target/)';
+
+  function seedLegacyPost(repo: string, terms: string[], extra: string): string {
+    const file = 'src/content/posts/mp-4-legacy.mdx';
+    writeGlossary(repo, terms);
+    fs.writeFileSync(
+      path.join(repo, TARGET_FILE),
+      '---\nticketId: "MP-316"\ntitle: "目標文章"\nlang: "zh-tw"\n---\n\n目標\n'
+    );
+    fs.writeFileSync(path.join(repo, file), post('MP-4', 'legacy', extra));
+    git(repo, ['add', '.']);
+    git(repo, ['commit', '-qm', 'seed legacy post without scores']);
+    git(repo, ['branch', 'base']);
+    return file;
+  }
+
+  it('exempts a legacy post that only gains a link to an entry added in the same PR', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = seedLegacyPost(repo, ['Mogu'], 'Kubernetes keeps state\n');
+      writeGlossary(repo, ['Mogu', 'Kubernetes']);
+      fs.writeFileSync(
+        path.join(repo, file),
+        post('MP-4', 'legacy', '[Kubernetes](/glossary#kubernetes) keeps state\n')
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'add Kubernetes and backfill links']);
+
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('exempts a corrected glossary anchor beside a retargeted internal post link', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = seedLegacyPost(
+        repo,
+        ['Kubernetes'],
+        '[Kubernetes](/glossary#Kubernetes) keeps state\n延伸閱讀：[GP-53: 舊標題](/posts/gp-53-old/)\n'
+      );
+      fs.writeFileSync(
+        path.join(repo, file),
+        post(
+          'MP-4',
+          'legacy',
+          `[Kubernetes](/glossary#kubernetes) keeps state\n延伸閱讀：${TARGET_LINK}\n`
+        )
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'fix links']);
+
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
+  it('still gates a wrong glossary anchor even when the internal post link is valid', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = seedLegacyPost(
+        repo,
+        ['Kubernetes'],
+        'Kubernetes keeps state\n延伸閱讀：[GP-53: 舊標題](/posts/gp-53-old/)\n'
+      );
+      fs.writeFileSync(
+        path.join(repo, file),
+        post(
+          'MP-4',
+          'legacy',
+          `[Kubernetes](/glossary#kube) keeps state\n延伸閱讀：${TARGET_LINK}\n`
+        )
+      );
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'link the wrong anchor']);
+
+      expect(runGate(repo)).toEqual([file]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+});
+
 describe('list-content-gate-posts taxonomy migration scope', () => {
   it('exempts path-changing taxonomy-only renames above the configured rename limit', () => {
     const repo = makeRepo();
@@ -251,6 +355,7 @@ describe('list-content-gate-posts taxonomy migration scope', () => {
     try {
       const oldFile = 'src/content/posts/sp-1-migration.mdx';
       const newFile = 'src/content/posts/gp-1-migration.mdx';
+      writeGlossary(repo, ['Mogu']);
       fs.writeFileSync(path.join(repo, oldFile), post('SP-1', 'post-1', 'Mogu says hi\n'));
       git(repo, ['add', '.']);
       git(repo, ['commit', '-qm', 'seed legacy post']);
@@ -276,6 +381,7 @@ describe('list-content-gate-posts taxonomy migration scope', () => {
     try {
       const oldFile = 'src/content/posts/sp-1-migration.mdx';
       const newFile = 'src/content/posts/gp-1-migration.mdx';
+      writeGlossary(repo, ['Mogu']);
       fs.writeFileSync(path.join(repo, oldFile), post('SP-1', 'post-1', 'Mogu says hi\n'));
       git(repo, ['add', '.']);
       git(repo, ['commit', '-qm', 'seed legacy post']);

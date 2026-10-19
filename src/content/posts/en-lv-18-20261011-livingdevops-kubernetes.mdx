@@ -1,0 +1,430 @@
+---
+ticketId: 'Lv-18'
+title: 'Kubernetes Is Really a Restaurant: Every Term Was Forced Into Existence by the Last Problem'
+originalDate: '2026-10-10'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Author"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "Claude Code"
+source: "Level-Up Series / @livingdevops"
+sourceUrl: 'https://x.com/livingdevops/status/2108920063441137762'
+lang: 'en'
+summary: 'Friday lunch: a breaker trips, three cooks vanish, and nobody panics. This piece builds Kubernetes as a restaurant where each term is forced into existence by the previous problem. Then replay that lunch, name who does what, and see why a default Secret is not actually locked.'
+tags: ['level-up', 'kubernetes', 'devops', 'infrastructure', 'tutorial', 'security']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-12"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+Friday, lunchtime. The breaker in Kitchen 2 trips.
+
+The three grill cooks working in that kitchen, pans and all, drop off the restaurant's books in an instant. What happens next is: nothing dramatic. Nobody calls the owner. Nobody runs into the back yelling. A few tables wait a little longer for their food, and then everything carries on. Three new cooks start work in another kitchen, plates keep coming out of the same pass, and the host at the door keeps seating people. The restaurant even opens an extra kitchen on its own, then quietly closes it once the lunch rush dies down.
+
+This restaurant is called [Kubernetes](/en/glossary#kubernetes). Hidden inside that little lunch incident is the entire list of terms that makes newcomers' eyes glaze over: `Pod`, `Deployment`, `Service`, `Ingress`, `ConfigMap`, `Secret`, HPA, Karpenter. Every single one.
+
+The skeleton of this piece comes from [a post on X](https://x.com/livingdevops/status/2108920063441137762) by @livingdevops. It opens with this line:
+
+> Every Concept Has a Story, you just don't know it yet.
+
+The post walks through each term as "the fix that the previous problem forced on you," one after another. gu-log follows that thread and builds it into an actual restaurant. By the end of seven levels, you should be able to replay that Friday lunch from start to finish and name who did every single thing.
+
+Let's rewind to opening day. Back then the restaurant had one kitchen, and that kitchen had one cook.
+
+## Level 1: Cooks Go Down
+
+<LevelUpProgress current={1} total={7} title="Opening the Kubernetes Restaurant" />
+
+The opening-day setup was honest about how bare-bones it was. Head office has a standard training program, and every cook trained on it has identical knife skills, heat control, and plating. That training program is the **container image**. The actual cook who went through it and is now standing at the stove is called a `Pod`, the smallest unit Kubernetes can schedule. (Strictly speaking, a Pod runs containers, and one Pod can hold several. But most of the time one Pod is one container, so for now just think of it as one cook.)
+
+The kitchen the cook works in is what Kubernetes calls a **node** (`Node`): a real machine running programs. The burners are CPU; the counter space is memory. Put several kitchens together, the whole restaurant, and you have a **cluster** (`Cluster`).
+
+The post is pretty cold about this cook's fate: once a Pod dies, "nobody restarts it. It is just gone."
+
+That line deserves a bit more precision, so here's a gu-log addition. If the cook zones out and burns a pot, meaning the program inside the container crashes, the kitchen's floor supervisor, `kubelet`, tells that cook to start over right where they stand. Same cook, same Pod. What truly never comes back is **the whole cook disappearing**: the kitchen loses power, the Pod gets deleted, or the cook gets evicted from the kitchen. That one is gone for good, and nobody goes looking to bring "that particular cook" back.
+
+So the restaurant manager hangs a big whiteboard in the office and writes the first line: "Grill station: 3 cooks at all times." In Kubernetes, that line is a `Deployment`. Then the restaurant manager hires a shift manager whose only job is watching that line and filling gaps. That shift manager is its controller. Whiteboard says 3, floor has 2, and the shift manager immediately brings in another. Who went missing, and why, is none of the shift manager's business. The only job is counting to 3.
+
+<AnalogyBox title="The Whiteboard and the Shift Manager">
+What's written on the whiteboard is the **desired state**, and it actually lives in the cluster's database, `etcd`. The shift manager doesn't cook. They do exactly one thing: keep comparing the whiteboard against the floor, and whenever the two disagree, change the floor until it matches the whiteboard.
+
+Kubernetes has a general name for this "watch one line on the whiteboard" role: a `controller`. The restaurant will hire several more of them, and each one only watches its own line.
+</AnalogyBox>
+
+The shift manager has two more habits worth knowing. First, under the shift manager is a team lead whose job is the headcount, called a `ReplicaSet`. The team lead is the one actually doing the counting. Second, when head office updates the training (ships a new image), the shift manager doesn't swap out the whole grill station at once. Cooks get replaced in batches. Each outgoing cook first gets a "wrap it up" notice, `SIGTERM`, and [by default has 30 seconds](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow) to finish the plate in front of them. Only if they're still there when time runs out do they get shown the door, which is `SIGKILL`. [Lv-11](/en/posts/en-levelup-20260312-11-unix-signals-process-management/) covered the difference between those two signals.
+
+<MoguNote summary="Ignore ReplicaSet on day one; even the official docs say use Deployment.">
+Even [the official docs say it themselves](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/): use a `Deployment` and don't manage `ReplicaSet` directly. If the docs are telling you to leave it alone, a beginner can safely treat the team lead as invisible on day one.
+
+Honestly, I think a lot of tutorials scare people off by opening with a three-tier org chart of `Deployment`, `ReplicaSet`, and Pod. Every fact on it is correct, and it still drives people away. It's like walking into a noodle shop wanting a bowl of beef noodle soup and having the server hand you the kitchen's HR structure first. Someday you'll run into a `ReplicaSet` with a ridiculously long name in your `kubectl` output, and "oh, that's the team lead" is all you need to know ┐(￣ヘ￣)┌
+</MoguNote>
+
+The shift manager fills gaps fast, and the 3 on the whiteboard always holds. The catch is that every replacement is a **new** cook: new name, and a new phone extension.
+
+<LevelUpQuiz
+  question="Which situation gets you a brand-new Pod (new name, new IP)?"
+  options={[
+    { label: "A", text: "The program inside the container crashes once" },
+    { label: "B", text: "The entire node that Pod runs on loses power" },
+    { label: "C", text: "The container goes over its memory limit and gets killed" },
+    { label: "D", text: "The cook gets a customer complaint and quits on the spot" },
+  ]}
+  answer="B"
+  explanation="When a node loses power, the Pods on it are gone with it and won't come back. The shift manager can only follow the whiteboard and start a new Pod, with a new name and a new IP. A and C are only container problems: the kitchen's floor supervisor, kubelet, restarts the container in place inside the same Pod, so the Pod's name and IP stay the same. D is dramatic, but Kubernetes doesn't accept resignations."
+/>
+
+---
+
+## Level 2: New Cook, New Extension
+
+<LevelUpProgress current={2} total={7} title="Opening the Kubernetes Restaurant" />
+
+The front-of-house lead picks up the phone and dials the grill station at extension 117. It rings forever. Finally someone picks up, sounding confused: "117? That guy left last week."
+
+The diligence from the last level comes back to bite here. Every cook has their own extension, meaning every Pod has its own IP, and each time the shift manager brings in a replacement, the number changes. IPs keep shifting, and once you have more than a few services, hardcoding those numbers into anyone else's config is simply not workable.
+
+<MoguNote summary="Hardcoded Pod IPs don't fail now; they fail at the worst possible moment.">
+The nastiest thing about a hardcoded IP is that it doesn't break the system right away. Tests pass, the deploy runs, everything looks great, and then it picks the least convenient moment to break. Usually that's the exact moment some Pod gets replaced, and that moment usually happens to be the middle of the night.
+
+So my stance is simple: if you see a hardcoded Pod IP in code, treat it as a landmine that hasn't gone off yet. If you can call the station by name, don't memorize the number.
+</MoguNote>
+
+The fix is a **station hotline**, which Kubernetes calls a `Service`. The hotline doesn't remember anyone's number. It only recognizes aprons. Every grill cook's apron has the same line stitched on it: `station: grill`. That line is a `label`. The hotline picks people by label: any cook currently on shift with `grill` on their apron, whoever's free gets the call. Cooks come and go; the hotline number never changes.
+
+Even a fixed number is too much hassle for humans. So the restaurant also has a PA system, which is DNS: no need to memorize a number, just call out `grill`. Within the same namespace (think of it as the same floor for now), calling the station name is enough. The full name looks like this: `grill.default.svc.cluster.local`.
+
+<AnalogyBox title="The Hotline Knows Aprons, Not People">
+The roster on the hotline's end updates itself: a new cook with the right stitching on their apron goes on the roster automatically, and when someone goes down, their name disappears automatically.
+
+The trouble is in "the right stitching." The hotline is looking for `station: grill`, but the new batch of aprons came stitched `station: gril`, one letter short. Every cook is on shift and working hard, yet the hotline's roster is empty, and calls just ring and ring. That's exactly what happens when a `Service`'s `selector` and a Pod's `label` differ by a single character, and nothing anywhere throws an error to warn you.
+</AnalogyBox>
+
+The hotline is handy, but it has a limit: with the default type, `ClusterIP`, the hotline only works inside the restaurant. The grill station and the soup station can call each other, but customers out on the street don't even know where the front door is.
+
+<LevelUpQuiz
+  question="Why does a Service find Pods by label instead of just remembering their IPs?"
+  options={[
+    { label: "A", text: "Because IPs are confidential data and Kubernetes forbids storing them" },
+    { label: "B", text: "Because label lookups are faster than connecting by IP" },
+    { label: "C", text: "Because a replaced Pod gets a new IP, while a label follows the station, not the person" },
+    { label: "D", text: "Because embroidered aprons are classier than memorized numbers" },
+  ]}
+  answer="C"
+  explanation="Pods can be replaced at any moment, and a new Pod usually gets a new IP, so remembering an IP means remembering an extension that can go dead at any time. A label marks the type of work, so any new cook with the right apron gets picked up by the hotline automatically. A is wrong: IPs aren't secret, they just change. B is wrong too: labels are about stability, not speed."
+/>
+
+---
+
+## Level 3: Which Door Do Customers Come In Through?
+
+<LevelUpProgress current={3} total={7} title="Opening the Kubernetes Restaurant" />
+
+End of the month. The bill arrives.
+
+To let customers in from the street, the grill station, the soup station, the dessert station... all ten stations each opened their own door onto the street, and each door had its own doorman. That's what exposing a `Service` as type `LoadBalancer` does: the cloud provider spins up a public load balancer for every `Service`, and each one is billed separately. Of the ten doors, six barely see a customer all day. The post adds a line about that bill:
+
+> Your cloud bill does not care that 6 of them handle almost no traffic.
+
+The fix is to seal the ten doors down to a single main entrance and post a **seating chart** at it: guests looking for a domain starting with `api.` go to the API station, guests whose URL path is `/menu` go to the menu station, everyone else goes to the main dining room. That chart is called `Ingress`. Based on the domain and URL path a guest is looking for, it routes them to the right hotline.
+
+The chart is posted. Customers are standing at the door. Nobody pays them any attention.
+
+This is the funniest scene in the whole restaurant, and the one where the most people get stuck: an `Ingress` is just rules. On its own, it doesn't execute anything. The seating chart is paper, and paper doesn't seat anyone. You need a **host** actually standing at the door, reading the chart and leading guests in. Kubernetes calls that an `Ingress controller`. The post names Nginx, Traefik, and `AWS Load Balancer Controller` as candidates.
+
+The host has one special distinction: they're the first manager this restaurant has to **hire on its own**. The shift manager and that whole crew of controllers clock in when the restaurant opens. The host doesn't. Which one, from where, and how to set them up is up to you.
+
+<AnalogyBox title="The Seating Chart and the Host">
+The seating chart (`Ingress`) says "which kind of guest goes to which hotline." The host (the `Ingress` controller) is an actual program running in the restaurant that reads the chart and personally walks each guest to the right place.
+
+Post the chart without hiring a host, and the door just has a nice-looking sign. Hire a host without posting a chart, and they stand there with no idea who goes where. You need both before the front door actually works.
+</AnalogyBox>
+
+Speaking of picking a host: the veteran that most restaurants hired, the community-maintained `ingress-nginx`, [announced its retirement](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/) in November 2025. Starting March 2026, no new releases, no bug fixes, no security patches. The ones already at the door can keep seating guests, just with no warranty from here on. Don't mix it up with the wrong person, either: it isn't the nginx web server itself, and it isn't F5's similarly named `NGINX Ingress Controller`. The official recommended path is switching to Gateway API (the next-generation format for seating rules), or interviewing a different `Ingress` controller.
+
+<MoguNote summary="gu-log missed the ingress-nginx retirement; the lesson is to separate rules from executors.">
+Time for a confession. When gu-log introduced `Ingress` controllers in [Lv-03](/posts/levelup-20260213-03-one-domain-multi-services/), it described NGINX as "the oldest and most widely used." That piece was written on February 13, 2026, and the retirement announcement went up on November 11, 2025. In other words, the notice had been hanging on the bulletin board for three months, and gu-log walked right past it without looking up (￣▽￣)／
+
+Still, I think this embarrassment illustrates something nicely: the thing worth remembering was never "which host is the most popular." The candidates change; even the veterans retire. What doesn't change is the design of keeping rules separate from whoever executes them. As long as you remember that a seating chart needs a host, then when the host changes someday, you just interview a new one. No need to reopen the restaurant.
+</MoguNote>
+
+<LevelUpQuiz
+  question="Ingress rules have been applied to the cluster, but no outside traffic gets in at all. What's the most likely cause?"
+  options={[
+    { label: "A", text: "Ingress rules don't take effect until the next day" },
+    { label: "B", text: "There are too many Services, and an Ingress can only handle one at a time" },
+    { label: "C", text: "The front door still has a \"Closed today\" sign on it" },
+    { label: "D", text: "No Ingress controller is installed in the cluster" },
+  ]}
+  answer="D"
+  explanation="An Ingress is just a seating chart. The one who actually seats guests by it is the Ingress controller, and unlike the built-in controllers, it doesn't clock in automatically with the cluster: you have to choose and install it yourself. No host, and the rules go unexecuted no matter how well written they are. A is wrong: rules have no waiting period. B is wrong too: a single Ingress can route traffic to many Services, which is exactly why it exists."
+/>
+
+---
+
+## Level 4: Recipes and Passwords Can't Live in Your Head
+
+<LevelUpProgress current={4} total={7} title="Opening the Kubernetes Restaurant" />
+
+The grill station at the Xinyi branch places its usual supply order. At noon the truck pulls up, and what it unloads is the flagship location's ingredients, ordered from the flagship's supplier.
+
+The reason is dumb: "which supplier to order from" was baked straight into the standard training. Back in the software world, that's hardcoding configuration into the container image: the test environment connects to the wrong database, production uses the wrong API key, and every config change means rebuilding the image. It's like sending every cook in the restaurant back to head office for retraining every time the menu changes.
+
+The fix is to pull the things that change out of the training and write them on a **work order** pinned to the kitchen wall: today's soup, which supplier, which database. That work order is called a `ConfigMap`. Cooks check the wall when they start work, not their memory, so the same training can be sent straight to dev, test, and production, and each branch just pins up its own work order.
+
+The work order is so convenient that people start pinning everything on the wall, including database passwords. The problem is that a `ConfigMap` was never meant to keep anything secret. [The official docs state plainly that it provides no secrecy or encryption](https://kubernetes.io/docs/concepts/configuration/configmap/). Anyone with basic `kubectl` access can walk past the wall and copy it down. The post's verdict on this practice:
+
+> That is not a mistake. That is a security incident.
+
+The post's fix is to put passwords in a **safe**, which is a `Secret`: sensitive data stored separately from regular config, with its own access controls, and completely out of reach of the image itself. At this point the story seems wrapped up.
+
+gu-log wants to add one more cut here, because the part the story leaves out is exactly where things most often go wrong. On a fresh Kubernetes install, `Secret`s are **not encrypted** by default. They just sit in the cluster's database, `etcd`, as is. That value that looks like gibberish is base64, and base64 is encoding, not encryption. One line turns it back:
+
+```bash
+$ echo -n 'hunter2' | base64
+aHVudGVyMg==
+$ echo 'aHVudGVyMg==' | base64 -d
+hunter2
+```
+
+<AnalogyBox title="A Work Order on the Wall, a See-Through Safe">
+A `ConfigMap` is a work order pinned to the kitchen wall. Anyone walking by can read it, and it was designed to be read by everyone.
+
+A `Secret` is a safe, but by default it's made of clear acrylic: the lock is there, but you can see right through the box. Funnier still, what's inside the safe is really just another line on the restaurant manager's whiteboard (every line on the whiteboard is stored in the `etcd` database), only written in pig Latin. At a glance it doesn't look like normal words, but anyone who knows the trick reads it instantly. Base64 is that pig Latin.
+</AnalogyBox>
+
+Anyone who can access the API or `etcd` can read what's in the box. And there's a sneakier path: anyone with permission to create Pods in a namespace can read every `Secret` in that namespace, and even indirect permissions like "can create a `Deployment`" count. Whoever can call a cook in to work can send that cook to open the safe.
+
+The fixes follow those two paths.
+
+The path of flipping through the whiteboard (`etcd`) directly gets blocked with [encryption at rest](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/). Before the API server writes a `Secret` into `etcd`, it encrypts it first, which is like actually locking up those lines on the whiteboard. The key is best kept by a KMS (key management service) outside the cluster, not in the same office as the safe. But encryption only stops people who get hold of `etcd` or its backups. It doesn't stop people who have permission to read through the API.
+
+The path of reading through the API, or sending a cook to open the safe, gets blocked with RBAC (permissions that decide who can do what based on role). Who can read `Secret`s, and who can create workloads like Pods and `Deployment`s, should all follow least privilege.
+
+To be fair, a `Secret` is managed separately, can have its permissions locked down on its own, and only gets sent to the nodes that need it. A `ConfigMap` gives you none of that. What a `Secret` is missing is just the **lock** it should have shipped with.
+
+<MoguNote summary="Secret's name oversells its defaults; enable encryption at rest and RBAC on day one.">
+I think the name `Secret` owes the world an apology.
+
+It's named "secret," the docs say you should turn on encryption, and yet out of the box it isn't encrypted. The sense of security the name gives you is miles away from how it actually ships, and most people only remember the name. It's like a locksmith naming a clear plastic box "The Vault" and then printing a tiny line on page eight of the manual: "lock sold separately."
+
+So my advice is blunt: treat enabling encryption at rest and tightening RBAC as things you do the day you build the cluster. Don't wait for a security audit to come knocking before you remember.
+</MoguNote>
+
+<LevelUpQuiz
+  question="On a freshly installed Kubernetes with nothing extra configured, what state is a Secret in when stored in etcd?"
+  options={[
+    { label: "A", text: "Not encrypted, just base64-encoded" },
+    { label: "B", text: "Already AES-encrypted and perfectly safe" },
+    { label: "C", text: "Visible only to cluster admins" },
+    { label: "D", text: "Stored in the cloud provider's vault" },
+  ]}
+  answer="A"
+  explanation="By default, Secrets are stored unencrypted in etcd. Base64 is just a different way of writing the same thing, and one command turns it back. The encryption in B only exists if you turn on encryption at rest yourself. C is wrong too: anyone who can create Pods in a namespace can read that namespace's Secrets, not just admins. D requires setting up a KMS separately before the key lives in a vault outside the cluster; by default, nothing like that happens."
+/>
+
+---
+
+## Level 5: One Cook Takes Over the Whole Kitchen
+
+<LevelUpProgress current={5} total={7} title="Opening the Kubernetes Restaurant" />
+
+There's a cook in Kitchen 3 who is especially fired up today. Their ingredients spread from their own counter onto the fry station next door, then all the way over to the dessert station and the dish pit. No bad intent. Nobody ever told them their counter had a boundary. Before long, nobody else in the kitchen has room to chop anything.
+
+The post puts this scenario last: some Pod eats 4GB of memory, and nobody ever told Kubernetes that was not okay. Every other Pod on the same node starves, and the chain reaction begins. The fix is `requests` and `limits`. gu-log moves this section ahead of autoscaling for a practical reason: when the HPA in the next level calculates a percentage, the denominator is `requests`.
+
+`requests` is the **sign-up sheet** before starting work: "This cook needs at least two burners and one counter." The `Scheduler`, who decides which kitchen each new cook goes to, reads exactly this sheet, and only sends a cook to a kitchen that still has room for what they signed up for.
+
+`limits` is the **cap**, enforced by the kitchen's floor supervisor, `kubelet`. Going over the cap means completely different things for CPU and memory:
+
+- **Over on CPU**: throttled. The burner gets turned down, food comes out slower, but the cook stays.
+- **Over on memory**: the container may get `OOMKilled`. The counter overflows, the cook gets shown out, then starts over in place.
+
+Shown out, start over, shown out again, and the status becomes `CrashLoopBackOff`: each restart waits longer than the last, [10 seconds, 20, 40... capped at 5 minutes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy), so that one broken container doesn't drag the whole kitchen into an endless restart loop.
+
+<MoguNote summary="CrashLoopBackOff is brutally honest; measure real memory use before setting limits.">
+`CrashLoopBackOff` might be the most honest status name in Kubernetes. In plain English: "I keep falling down, and I'm getting less and less interested in getting back up."
+
+My advice on memory limits leans conservative: measure actual usage first, then set the limit. Don't squeeze it based on a hunch. Setting it too tight barely saves any memory. All it gets you is a night of watching the same Pod's restart count climb in `kubectl get pods`, keeping it company through every replay (ง •̀_•́)ง
+</MoguNote>
+
+What about setting no `limits` at all? Then one container can eat the entire kitchen's counter space, and every other cook in that kitchen suffers for it. That's exactly how the Kitchen 3 disaster happened.
+
+<AnalogyBox title="Burners and Counter Space">
+Burners (CPU) can be shared: turn the flame down and the food still gets cooked, just slower.
+
+Counter space (memory) can't be shared that way: once stuff is piled on it, the only way to free up room is to clear it all off. That's why the penalty for going over on CPU is "slow down," and the penalty for going over on memory is "get shown out."
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="What's most likely to happen when a container uses more memory than its limit?"
+  options={[
+    { label: "A", text: "It gets throttled: slower, but it keeps running" },
+    { label: "B", text: "Kubernetes automatically gives it a bit more memory" },
+    { label: "C", text: "The container may get OOMKilled and then restart in place" },
+    { label: "D", text: "The other cooks chip in to buy it a new counter" },
+  ]}
+  answer="C"
+  explanation="When memory goes over the limit, the container may get killed with the status OOMKilled, and kubelet restarts it in place. If that keeps repeating, it ends up in CrashLoopBackOff. A is what happens when CPU goes over its limit, not memory. B doesn't happen: a limit is a limit, and Kubernetes won't quietly give the container more."
+/>
+
+---
+
+## Level 6: Crowds Come and Go
+
+<LevelUpProgress current={6} total={7} title="Opening the Kubernetes Restaurant" />
+
+Saturday night: ten thousand customers. Tuesday night: a hundred.
+
+On Saturday, the restaurant manager manually bumped the grill station up to 8 cooks and barely made it through the peak. Then there's the other picture: 8 cooks standing around a nearly empty kitchen, idle all night, still on the payroll. Nobody can sit next to the cluster babysitting it forever.
+
+The fix is a **temp staffing coordinator**, called HPA (the horizontal autoscaler, formally `HorizontalPodAutoscaler`). What this coordinator does is much simpler than the name suggests: it **changes the number on the whiteboard**. If the grill station is too busy, it changes "3 cooks" to "5 cooks," which means changing the `Deployment`'s `replicas` from 3 to 5. The shift manager then sees the whiteboard changed and fills the gap as usual. When the crowd thins out, it changes the number back.
+
+How busy counts as busy is up to you: you set a busy line. The post uses CPU 70% as its example; [the official tutorial uses 50%](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/). The key is how that percentage is calculated: CPU utilization = actual usage ÷ `requests`. If the cooks never filled in `requests`, HPA can't compute the metric and won't do anything. That's why the previous level had to cover the sign-up sheet first.
+
+A new problem shows up right behind it. HPA changes the whiteboard to 8, the shift manager starts 8 Pods, but every kitchen is full. The new cooks are stuck at the door and can't get in, with status `Pending`. HPA did its job. The shift manager did their job. The restaurant just has no room.
+
+So you also need **someone to open more kitchens**, and this restaurant has two candidates. [Karpenter](https://karpenter.sh/) (originally built by AWS, now living at `kubernetes-sigs/karpenter`) is like a contractor who builds kitchens to order: it sees `Pending` cooks at the door and, based on what they signed up for, builds a new kitchen of exactly the right size. When the crowd leaves, it consolidates and closes the empty kitchens. `Cluster Autoscaler` is more like ordering from a catalog: the restaurant prepares a few kitchen sizes ahead of time, and when it's out of room, it picks one of them to add. Like the host at the front door, neither of these clocks in when the restaurant opens. You have to hire them yourself.
+
+<MoguNote summary="Autoscaling bills by the kitchen, not the dish, and needs requests to work.">
+The post says that with autoscaling, "You only pay for what you actually use." I'd knock a bit off that claim.
+
+The bill counts kitchens, not dishes. A kitchen that's open costs a whole kitchen even if only half its burners are in use. What autoscaling can cut is that huge stretch of idle on Tuesday night, and the system will always keep a little room free for the next customer anyway. The more important point: turn on autoscaling without setting `requests`, and HPA can't tell how busy things are, and Karpenter doesn't know how big a kitchen to open. You're basically running the restaurant blindfolded.
+</MoguNote>
+
+<LevelUpQuiz
+  question="A Deployment has no CPU requests set at all, but its HPA is configured to add Pods when CPU goes over 70%. What happens?"
+  options={[
+    { label: "A", text: "HPA uses the whole node's CPU as the denominator instead and works as normal" },
+    { label: "B", text: "HPA can't calculate CPU utilization and takes no action on that metric" },
+    { label: "C", text: "HPA scales the Pods up to the maximum all at once" },
+    { label: "D", text: "HPA calls head office and demands every cook be retrained" },
+  ]}
+  answer="B"
+  explanation="HPA calculates CPU utilization by dividing actual usage by requests. No requests means no denominator, so there's no percentage, and HPA takes no action on that metric. A is wrong: HPA doesn't swap in a different denominator on its own. C is wrong too: when HPA can't compute a metric, it doesn't add Pods at random. It just doesn't move."
+/>
+
+---
+
+## Final Boss: Friday Lunch, in Slow Motion
+
+<LevelUpProgress current={7} total={7} title="Opening the Kubernetes Restaurant" />
+
+Back to that Friday lunch. This time we slow it down and name every move.
+
+The breaker in Kitchen 2 trips. The first thing the office with the whiteboard notices is "Kitchen 2 isn't responding," so it pulls that kitchen's three grill cooks off the hotline roster first, and front-of-house calls stop being routed to them.
+
+Then comes a deliberate wait. [By default it waits another 5 minutes](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-based-evictions) to make sure Kitchen 2 really isn't coming back before those three Pods are marked for removal. (Why not replace them right away? Swapping out an entire kitchen's staff every time the network hiccups costs far more than waiting a bit.)
+
+The shift manager glances at the whiteboard: the grill station needs 3 cooks, and has 0. Start 3 new Pods.
+
+The Scheduler takes the three new cooks' sign-up sheets and looks for a kitchen. Every other kitchen is full, so the three new cooks have to wait at the door, status `Pending`.
+
+Karpenter sees people queuing at the door and, based on the needs on their sign-up sheets, opens a new kitchen of exactly the right size.
+
+The new kitchen's floor supervisor, `kubelet`, uses the standard training (the image) to bring the three cooks up, pins the work order (`ConfigMap`) on the wall, and hands the contents of the safe (`Secret`) to the cooks who need them. Work begins.
+
+The three new cooks have `station: grill` stitched on their aprons, so the hotline automatically starts routing calls to them. The host at the front door never noticed anything went wrong and keeps seating guests.
+
+Then the lunch rush hits and CPU climbs. HPA changes the 3 on the whiteboard to 5, and the same relay runs again: the shift manager starts Pods, the Scheduler finds kitchens, and if there's no room, Karpenter opens one. When the crowd thins out, HPA changes 5 back to 3, and Karpenter closes the empty kitchen.
+
+<Mermaid chart={`graph TD\n    A[Kitchen 2 loses power] --> B[Unreachable cooks removed from hotline roster]\n    B --> C[Pods removed after confirmation wait]\n    C --> D[Shift manager starts new Pods per whiteboard]\n    D --> E[Scheduler finds no room: Pending]\n    E --> F[Karpenter opens a new kitchen]\n    F --> G[kubelet puts new cooks to work]\n    G --> H[Hotline routes by apron automatically]\n    I[HPA changes whiteboard headcount] --> D`} caption="The Friday lunch relay: each runner handles only their own leg" />
+
+<LevelUpQuiz
+  question="After Kitchen 2 loses power, which sequence is closest to what actually happens?"
+  options={[
+    { label: "A", text: "HPA notices three Pods are missing and is responsible for bringing them back" },
+    { label: "B", text: "Karpenter opens a new node first, then discovers the grill station is three cooks short" },
+    { label: "C", text: "Remove unreachable Pods → start new Pods → Pending → open new node" },
+    { label: "D", text: "The owner bursts into the kitchen, throws off the suit jacket, and starts cooking" },
+  ]}
+  answer="C"
+  explanation="The whole relay is one handoff after another: the outage is detected and the Pods are removed, the shift manager fills the gap per the whiteboard, the Scheduler can't find room so the Pods go Pending, Karpenter sees Pending and opens a node, and once the new Pods are working, the Service routes to them automatically. A has the wrong person: replacing dead Pods is the shift manager's job, while HPA only watches how busy things are and changes the headcount on the whiteboard. B has the order backwards: Karpenter only acts after it sees Pending. D is the one person this restaurant needs least."
+/>
+
+What keeps showing up in this relay is really one trick: **one line on the whiteboard, paired with a manager who watches only that line**. The manager doesn't care how things broke, only about changing reality back to what the whiteboard says. `Deployment` pairs with the shift manager, `Ingress` pairs with the host, HPA's busy line pairs with the temp staffing coordinator, and Karpenter's `NodePool` pairs with the person who opens new kitchens. That ignored seating chart at the door back in Level 3 is what you get with a whiteboard and no manager: nothing happens.
+
+Here's what the grill station's line on the whiteboard actually looks like:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grill            # grill station
+spec:
+  replicas: 3            # whiteboard: 3 cooks at all times
+  selector:
+    matchLabels:
+      station: grill
+  template:
+    metadata:
+      labels:
+        station: grill   # the station stitched on the apron
+    spec:
+      containers:
+        - name: cook
+          image: grill-cook:1.4      # standard training (the image)
+          resources:
+            requests:
+              cpu: 200m              # sign-up sheet: guaranteed burner (CPU)
+              memory: 256Mi          # sign-up sheet: guaranteed counter space (memory)
+            limits:
+              memory: 512Mi          # counter space stops here
+```
+
+And the whiteboard can keep getting new columns. Kubernetes lets users define their own resource types, called CRDs (`CustomResourceDefinition`): add a new kind of column to the whiteboard, hire a new manager to watch it, and you have another pair. Gateway API, and the `NodePool` Karpenter uses to describe kitchen specs, both joined the restaurant this way. Since the whiteboard can keep adding columns, the restaurant's vocabulary will only keep growing. Next time you run into an unfamiliar name in the kitchen, don't rush to memorize its definition. First ask which problem forced it into existence.
+
+---
+
+## Further Reading
+
+- [Lv-03: One Domain, Multiple Services](/posts/levelup-20260213-03-one-domain-multi-services/) (the whole building of `Ingress` and domain routing, built up from DNS)
+- [Lv-11: Unix Signals and Process Management](/en/posts/en-levelup-20260312-11-unix-signals-process-management/) (which signal a cook actually receives when they get the "wrap it up" notice)
+- [SD-18 "Permission Engineering"](/en/posts/en-sd-18-20260403-permission-engineering-for-ai-agents/) (the "least privilege" yardstick from Level 4 gets an order of magnitude harder when the one holding the keys is an AI agent; the piece also touches on K8s RBAC)

@@ -121,22 +121,20 @@ Because current Giscus configuration maps comments by pathname, Gu-log SHALL NOT
 
 ### Requirement: Article version semantics SHALL support content-oriented feedback
 
-Gu-log SHALL define whether a feedback record binds to file touch version, content version, or both. Long-term, feedback about readability SHOULD bind to content version rather than metadata-only file changes.
+Gu-log SHALL bind feedback to both the file-touch `postVersion` and the content version. The content version SHALL be the reader revision: the reader-facing content hash published in the reader revision manifest, which excludes metadata such as Tribunal scores. Where other specs refer to `contentVersion` or `contentHash`, the reader revision SHALL satisfy them. Readability feedback SHALL be judged against the reader revision rather than metadata-only file changes.
 
 #### Scenario: Metadata-only score update changes file version
 
 - **WHEN** Tribunal updates only frontmatter scores without changing article body
 - **THEN** the system MAY bump `fileVersion`
-- **BUT** SHOULD keep `contentVersion` unchanged
-- **AND** readability feedback SHOULD remain associated with the unchanged content version
+- **BUT** SHALL keep the reader revision unchanged
+- **AND** readability feedback SHALL remain associated with the unchanged reader revision
 
 #### Scenario: Body rewrite changes content version
 
 - **WHEN** Tribunal rewrites article body text
-- **THEN** the system SHALL create or resolve a new content version
-- **AND** future comments SHALL bind to the new content version
-
----
+- **THEN** the reader revision SHALL change
+- **AND** future feedback SHALL bind to the new reader revision
 
 ### Requirement: Feedback records SHALL have explicit resolution state
 
