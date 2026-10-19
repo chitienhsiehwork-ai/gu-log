@@ -159,7 +159,7 @@ jobs:
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
-      - name: Reader-visible emoji policy (PR added-line ratchet)
+      - name: Post emoji check (added lines)
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
