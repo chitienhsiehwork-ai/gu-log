@@ -249,11 +249,14 @@ if [ -n "$HOOKS_PATH" ]; then
 else
   fail "core.hooksPath 未設" "跑 'bash scripts/setup-hooks.sh' 或 --fix"
 fi
+# linked worktree 的 .git 是檔案不是目錄，hook 實際裝在 core.hooksPath
+# （setup-hooks 設成該 worktree 自己的 git-dir/hooks），不能寫死 .git/hooks。
+ACTIVE_HOOKS_DIR="${HOOKS_PATH:-$(git rev-parse --absolute-git-dir)/hooks}"
 for h in pre-commit pre-push; do
-  active=".git/hooks/$h"
+  active="$ACTIVE_HOOKS_DIR/$h"
   canon="scripts/hooks/$h"
   if [ ! -x "$active" ]; then
-    fail "$h 未安裝到 .git/hooks/" "跑 setup-hooks 或 --fix"
+    fail "$h 未安裝到 $ACTIVE_HOOKS_DIR/" "跑 setup-hooks 或 --fix"
   elif diff -q "$active" "$canon" >/dev/null 2>&1; then
     pass "$h active == canonical (scripts/hooks/$h)"
   else
