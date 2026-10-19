@@ -12,11 +12,11 @@ LINKED_WORKTREE="$TMP_ROOT/linked"
 git init -q "$MAIN_REPO"
 git -C "$MAIN_REPO" config user.name "Hook Test"
 git -C "$MAIN_REPO" config user.email "hook-test@example.invalid"
-mkdir -p "$MAIN_REPO/scripts/hooks" "$MAIN_REPO/.githooks"
+mkdir -p "$MAIN_REPO/scripts/hooks"
 cp "$REPO_ROOT/scripts/setup-hooks.sh" "$MAIN_REPO/scripts/setup-hooks.sh"
 cp "$REPO_ROOT/scripts/hooks/pre-commit" "$MAIN_REPO/scripts/hooks/pre-commit"
 cp "$REPO_ROOT/scripts/hooks/pre-push" "$MAIN_REPO/scripts/hooks/pre-push"
-git -C "$MAIN_REPO" add scripts .githooks
+git -C "$MAIN_REPO" add scripts
 git -C "$MAIN_REPO" commit -q -m "fixture"
 git -C "$MAIN_REPO" worktree add -q -b linked "$LINKED_WORKTREE"
 

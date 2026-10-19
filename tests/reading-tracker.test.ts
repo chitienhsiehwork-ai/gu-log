@@ -325,22 +325,6 @@ describe('reading-tracker', () => {
     ['array root', []],
     ['unknown version', { version: 99, slugs: [], lastUpdated: '2026-07-27T00:00:00.000Z' }],
     [
-      'mixed slug types',
-      {
-        version: 1,
-        slugs: ['valid', { slug: 'poisoned' }],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-    [
-      'duplicate slugs',
-      {
-        version: 1,
-        slugs: ['duplicate', 'duplicate'],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-    [
       'non-array records',
       {
         version: 2,
@@ -349,87 +333,7 @@ describe('reading-tracker', () => {
         lastUpdated: '2026-07-27T00:00:00.000Z',
       },
     ],
-    ['missing fields', { version: 1, slugs: ['poisoned'] }],
-    [
-      'invalid store timestamp',
-      { version: 1, slugs: ['poisoned'], lastUpdated: 'not-a-timestamp' },
-    ],
-    [
-      'invalid record timestamp',
-      {
-        version: 2,
-        slugs: ['poisoned'],
-        records: [
-          {
-            slug: 'poisoned',
-            method: 'manual_mark_read',
-            confidence: 'legacy_or_manual',
-            readAt: 'not-a-timestamp',
-            lastReadAt: '2026-07-27T00:00:00.000Z',
-            readRevision: null,
-            revisionState: 'unknown',
-          },
-        ],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-    [
-      'mismatched current record timestamps',
-      {
-        version: 2,
-        slugs: ['poisoned'],
-        records: [
-          {
-            slug: 'poisoned',
-            method: 'manual_mark_read',
-            confidence: 'legacy_or_manual',
-            readAt: '2026-07-27T00:00:00.000Z',
-            lastReadAt: '2026-07-27T00:00:01.000Z',
-            readRevision: null,
-            revisionState: 'unknown',
-          },
-        ],
-        lastUpdated: '2026-07-27T00:00:01.000Z',
-      },
-    ],
-    [
-      'missing record fields',
-      {
-        version: 2,
-        slugs: ['poisoned'],
-        records: [{ slug: 'poisoned', readAt: '2026-07-27T00:00:00.000Z' }],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-    [
-      'record-only slug',
-      {
-        version: 2,
-        slugs: [],
-        records: [
-          {
-            slug: 'poisoned',
-            method: 'manual_mark_read',
-            confidence: 'legacy_or_manual',
-            readAt: '2026-07-27T00:00:00.000Z',
-            lastReadAt: '2026-07-27T00:00:00.000Z',
-            readRevision: null,
-            revisionState: 'unknown',
-          },
-        ],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-    [
-      'slug without record',
-      {
-        version: 2,
-        slugs: ['poisoned'],
-        records: [],
-        lastUpdated: '2026-07-27T00:00:00.000Z',
-      },
-    ],
-  ])('strict parser rejects %s and import leaves existing state unchanged', async (_, input) => {
+  ])('rejects %s and import leaves existing state unchanged', async (_, input) => {
     const m = await import('../src/lib/reading-tracker');
     m.markAsRead('existing', 'manual_mark_read', 'rev-existing');
     const before = m.exportJson();
@@ -439,7 +343,43 @@ describe('reading-tracker', () => {
     expect(m.exportJson()).toBe(before);
   });
 
-  it('strict parser accepts complete v1 and v2 stores', async () => {
+  it('keeps every readable record when some stored records are malformed', async () => {
+    localStorage.setItem(
+      'gu-log-read-articles',
+      JSON.stringify({
+        version: 2,
+        slugs: ['good', 'bad-timestamp', 'listed-only'],
+        records: [
+          {
+            slug: 'good',
+            method: 'active_scroll_end',
+            confidence: 'active_finish',
+            readAt: '2026-07-27T00:00:00.000Z',
+            lastReadAt: '2026-07-27T00:00:00.000Z',
+            readRevision: 'rev-1',
+            revisionState: 'current',
+          },
+          { slug: 'bad-timestamp', method: 'manual_mark_read', readAt: 'not-a-timestamp' },
+          { slug: 'good', method: 'manual_mark_read' },
+          { slug: '' },
+          'not-a-record',
+        ],
+        lastUpdated: '2026-07-27T00:00:01.000Z',
+      })
+    );
+    const m = await import('../src/lib/reading-tracker');
+
+    m.markAsRead('new-read');
+
+    expect(m.getReadSlugs().sort()).toEqual(['bad-timestamp', 'good', 'listed-only', 'new-read']);
+    expect(m.getReadRecordMap()['good']).toMatchObject({ method: 'manual_mark_read' });
+    expect(m.getReadRecordMap()['bad-timestamp']).toMatchObject({
+      readAt: '2026-07-27T00:00:01.000Z',
+      revisionState: 'unknown',
+    });
+  });
+
+  it('parser accepts complete v1 and v2 stores', async () => {
     const m = await import('../src/lib/reading-tracker');
     const v1 = {
       version: 1 as const,
@@ -686,8 +626,6 @@ describe('gist-sync', () => {
         lastUpdated: '2026-07-27T00:00:00.000Z',
       },
     ],
-    ['missing fields', { version: 1, slugs: ['poisoned'] }],
-    ['invalid timestamp', { version: 1, slugs: ['poisoned'], lastUpdated: 'not-a-timestamp' }],
   ])('pullFromReaderSyncApi rejects %s as an invalid payload', async (_, store) => {
     (globalThis as any).localStorage.setItem('gu-log-jwt', 'header.payload.sig');
     (globalThis as any).fetch = vi.fn().mockResolvedValue({

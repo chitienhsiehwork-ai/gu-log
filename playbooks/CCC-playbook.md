@@ -164,7 +164,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 - ❌「Tribunal 跳過」「先 merge 再補分數」「這次例外」— 全不行；至少要有 floor 可驗證的真分數。
 - ❌「只跑 vibe 就好」「不跑 FreshEyes」— 四個都要跑，缺一不可。
 
-**必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content.config.ts`）。pre-commit 的 score gate（`.githooks/pre-commit` 第 60 行起）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
+**必附證據**：PR body 或一個隨 PR 的 commit 要包含四個 judge 的分數 + verdict，並把 `scores.vibe` / `scores.factCheck` / `scores.librarian` / `scores.freshEyes` 寫進文章 frontmatter（用 `scripts/frontmatter-scores.mjs write <file> <judge> <score_json>`，schema 見 `src/content.config.ts`）。pre-commit 的 score gate（`scripts/hooks/pre-commit`）會擋掉**新增**且 ticketId 非 PENDING 的 zh-tw 文章 commit，所以 swap PENDING → 真號那個 commit 之前，分數要先進 frontmatter。
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
@@ -403,7 +403,7 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 # 加 --full 會多跑 lint + astro check（較慢）
 ```
 
-全綠才開工。任何 ✗ 多半 `--fix` 能自動補；補不掉的（例如外網被擋、hook source drift）照訊息修。這支 script 也守住 hook source-of-truth drift（`scripts/hooks/` vs `.githooks/`），避免 setup-hooks 裝到過時的 pre-commit。
+全綠才開工。任何 ✗ 多半 `--fix` 能自動補；補不掉的（例如外網被擋、hook source drift）照訊息修。這支 script 也會確認裝好的 hook 跟 `scripts/hooks/` 一致，避免用到過時的 pre-commit。
 
 然後看 task description 決定要做什麼。
 

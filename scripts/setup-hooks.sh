@@ -40,18 +40,6 @@ for hook in "$HOOKS_DIR"/*; do
     fi
 done
 
-# Also sync to .githooks/ for repo tracking
-if [ -d "$SCRIPT_DIR/../.githooks" ]; then
-    for hook in "$HOOKS_DIR"/*; do
-        if [ -f "$hook" ]; then
-            hookname=$(basename "$hook")
-            cp "$hook" "$SCRIPT_DIR/../.githooks/$hookname"
-            chmod +x "$SCRIPT_DIR/../.githooks/$hookname"
-        fi
-    done
-    echo "✓ Synced to .githooks/"
-fi
-
 # ── Custom merge driver: post-versions-regen ────────────────────────
 # .gitattributes marks `src/data/post-versions.json` as needing this
 # driver. Configure the driver command in the local .git/config so the
