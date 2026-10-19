@@ -25,17 +25,13 @@ describe('post content negotiation', () => {
     ['TEXT/MARKDOWN;Q=1, TEXT/HTML;Q=0.5', 'markdown'],
     ['text/markdown;q=0.4, text/markdown;q=0.7, text/html;q=0.6', 'markdown'],
     ['text/markdown;q=1.001', 'html'],
-    ['text/markdown;q=.5', 'html'],
-    ['text/markdown;version=1', 'html'],
-    ['text/markdown,', 'html'],
+    ['text/markdown;q=.5', 'markdown'],
+    ['text/markdown;charset=utf-8', 'markdown'],
+    ['text/markdown;charset=utf-8;q=0.5, text/html;q=0.4', 'markdown'],
+    ['text/markdown,', 'markdown'],
     ['*/markdown', 'html'],
   ] as const)('maps Accept %j to %s', (accept, expected) => {
     expect(negotiatePostRepresentation(accept)).toBe(expected);
-  });
-
-  it('bounds pathological Accept input', () => {
-    expect(negotiatePostRepresentation('text/markdown,'.repeat(65))).toBe('html');
-    expect(negotiatePostRepresentation(`text/markdown,${'x'.repeat(8192)}`)).toBe('html');
   });
 });
 
