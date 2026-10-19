@@ -42,6 +42,7 @@ pre-commit 與 CI SHALL 使用同一支檢查腳本，檢查 `src/content/posts/
 - **BUT** 該行在目前變更中沒有新增或修改
 - **THEN** 檢查腳本 SHALL NOT 阻擋這次變更
 - **AND** 之後修改該行時 SHALL 要求移除 emoji 或取得核准
+- **AND** 只改檔名、內容不變的文章 SHALL 視為沒有新增行（改 slug 不必先清舊 emoji）
 
 #### Scenario: Local and CI results stay aligned
 
