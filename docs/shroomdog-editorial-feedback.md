@@ -12,7 +12,7 @@
 - 這是 repo-tracked source of truth。不要把新的 gu-log 寫作回饋只記在聊天紀錄、個人 memory、未追蹤檔案或單一 agent 的私人筆記裡。
 - 寫 GP / MP / SD / Lv 前，如果任務涉及文章品質或風格，先快速掃這份檔案的近期條目。
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
-- 只有「保留特定 emoji occurrence」的決策需要 executable approval marker；精確 schema 由 `scripts/check-content-emoji.mjs` 與 allowlist 管理。移除決策只留原始 feedback、實際修法與 git history，不建立無作用的 machine marker。
+- ShroomDog 核准某篇文章保留某個 emoji 時，照常把回饋記在這裡，另外在 `scripts/check-content-emoji.mjs` 的核准清單加一筆（路徑、emoji、理由）。
 
 ## 2026-10-19 — MP-214／MP-123：讀完會想轉傳的結構，和最好笑那段越過的事實邊界
 

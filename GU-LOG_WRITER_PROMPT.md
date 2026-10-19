@@ -251,7 +251,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
 - 原文有幽默感 → 翻譯也要有
 - 原文很無聊 → 在不扭曲原意的前提下改善呈現
-- **讀者可見內容預設不用 Unicode emoji**：title、summary、正文、MoguNote／ShroomDogNote、component props、圖片替代文字與 code block 都適用。Kaomoji 是文字型品牌語彙，不在此禁令內。只有 ShroomDog 對指定文章、指定字形與 occurrence 做出明確授權，而且已寫進 repo 的 executable allowlist 並指向 feedback corpus 決策時，才能保留；writer 不得自行推定或用 frontmatter flag 放行。這個例外是 top-level editorial `MAY` 能力，不代表每條 pipeline 都支援；目前 gp-pipeline 的自動寫作與英文翻譯不支援保留 glyph，一律省略裝飾字形或把必要語意寫成文字。
+- **讀者可見內容預設不用 Unicode emoji**：title、summary、正文、MoguNote／ShroomDogNote、component props、圖片替代文字與 code block 都適用。Kaomoji 是文字型品牌語彙，不在此禁令內。只有 ShroomDog 明確核准某篇文章保留某個 emoji、並記進 `scripts/check-content-emoji.mjs` 的核准清單時，才能保留；writer 不得自行推定、自己加紀錄或用 frontmatter flag 放行。gp-pipeline 的自動寫作與英文翻譯沒有這個例外，一律省略裝飾字形或把必要語意寫成文字。
 - ❌ **不要用反問句問讀者顯而易見的答案**（如「不覺得很虧嗎？」「那不就是最好的投資嗎？」）— 像在把讀者當笨蛋。直接陳述：「虧爛」「窩想起來這樣感覺沒那麼浪費」
 
 ### 術語處理（晶晶體防線：glossary 是唯一英文 allowlist）
