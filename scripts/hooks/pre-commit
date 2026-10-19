@@ -26,7 +26,7 @@ while IFS= read -r -d '' file; do
     STAGED_POST_CHANGES+=("$file")
 done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
-# ─── Step -4: Reader-visible emoji ratchet ────────────────────────
+# ─── Step -4: Post emoji check ─────────────────────────────────
 # Runs before any generator mutates the index. CI runs the same script with
 # the PR base SHA (openspec: editorial-charter).
 echo "🚫 Content emoji policy: checking staged post lines..."

@@ -2,7 +2,7 @@
 // 文章不放 emoji（openspec: editorial-charter）。用法：
 //   node scripts/check-content-emoji.mjs --staged         # pre-commit：暫存區新增的行
 //   node scripts/check-content-emoji.mjs --base=<commit>  # CI：<commit>..HEAD 新增的行
-//   node scripts/check-content-emoji.mjs <file>...        # gp-pipeline 草稿：整份檔案，不套核准清單
+//   node scripts/check-content-emoji.mjs <file>...        # gp-pipeline 草稿：整份檔案
 // Exit：0 通過、1 有未核准 emoji、2 檢查跑不完（例如 base 解析不到）。
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -73,7 +73,7 @@ function main(args) {
         .split('\n')
         .map((text, index) => ({ path, line: index + 1, text }))
     );
-    found = findUnapprovedEmoji(added, []);
+    found = findUnapprovedEmoji(added);
   } else {
     throw new Error('用法：--staged、--base=<commit> 或要檢查的檔案');
   }
