@@ -41,67 +41,35 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function isValidTimestamp(value: unknown): value is string {
-  return typeof value === 'string' && Number.isFinite(Date.parse(value));
+const READ_METHODS: readonly string[] = ['manual_mark_read', 'legacy_import', 'active_scroll_end'];
+const REVISION_STATES: readonly string[] = ['current', 'stale', 'unknown'];
+
+function timestampOr(value: unknown, fallback: string): string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : fallback;
 }
 
-function isValidSlugList(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((slug) => typeof slug === 'string' && slug.length > 0);
-}
-
-function parseReadRecord(value: unknown): ReadRecord | null {
+// Lenient on purpose: one odd record must not cost the reader their whole read history.
+function parseReadRecord(value: unknown, fallbackTime: string): ReadRecord | null {
   if (!value || typeof value !== 'object') return null;
-  const record = value as Partial<ReadRecord>;
-  const hasSharedFields =
-    typeof record.slug === 'string' &&
-    record.slug.length > 0 &&
-    (record.method === 'manual_mark_read' ||
-      record.method === 'legacy_import' ||
-      record.method === 'active_scroll_end') &&
-    (record.confidence === 'legacy_or_manual' || record.confidence === 'active_finish') &&
-    isValidTimestamp(record.lastReadAt);
-  if (!hasSharedFields) return null;
-
-  if (
-    isValidTimestamp(record.readAt) &&
-    record.readAt === record.lastReadAt &&
-    (record.readRevision === null || typeof record.readRevision === 'string') &&
-    (record.revisionState === 'current' ||
-      record.revisionState === 'stale' ||
-      record.revisionState === 'unknown')
-  ) {
-    return {
-      slug: record.slug!,
-      method: record.method!,
-      confidence: record.confidence!,
-      readAt: record.readAt,
-      lastReadAt: record.lastReadAt!,
-      readRevision: record.readRevision,
-      revisionState: record.revisionState,
-    };
-  }
-
-  const legacy = value as {
-    readAt?: unknown;
-    readRevision?: unknown;
-    revisionState?: unknown;
+  const record = value as Record<string, unknown>;
+  if (typeof record.slug !== 'string' || !record.slug) return null;
+  const method = READ_METHODS.includes(record.method as string)
+    ? (record.method as ReadMethod)
+    : 'legacy_import';
+  const lastReadAt = timestampOr(record.lastReadAt, timestampOr(record.readAt, fallbackTime));
+  const readRevision = typeof record.readRevision === 'string' ? record.readRevision : null;
+  return {
+    slug: record.slug,
+    method,
+    confidence: method === 'active_scroll_end' ? 'active_finish' : 'legacy_or_manual',
+    readAt: timestampOr(record.readAt, lastReadAt),
+    lastReadAt,
+    readRevision,
+    revisionState:
+      readRevision && REVISION_STATES.includes(record.revisionState as string)
+        ? (record.revisionState as RevisionState)
+        : 'unknown',
   };
-  if (
-    legacy.readAt === undefined &&
-    legacy.readRevision === undefined &&
-    legacy.revisionState === undefined
-  ) {
-    return {
-      slug: record.slug!,
-      method: record.method!,
-      confidence: record.confidence!,
-      readAt: record.lastReadAt!,
-      lastReadAt: record.lastReadAt!,
-      readRevision: null,
-      revisionState: 'unknown',
-    };
-  }
-  return null;
 }
 
 export function parseReadStore(value: unknown): ReadStoreV1 | ReadStoreV2 | null {
@@ -112,36 +80,23 @@ export function parseReadStore(value: unknown): ReadStoreV1 | ReadStoreV2 | null
     records?: unknown;
     lastUpdated?: unknown;
   };
-  if (!isValidSlugList(store.slugs) || !isValidTimestamp(store.lastUpdated)) return null;
-  const slugs = store.slugs;
-  if (new Set(slugs).size !== slugs.length) return null;
-  if (store.version === 1) {
-    return { version: 1, slugs: [...slugs], lastUpdated: store.lastUpdated };
+  const lastUpdated = timestampOr(store.lastUpdated, nowIso());
+  if (store.version === 1 && Array.isArray(store.slugs)) {
+    return { version: 1, slugs: uniqueSlugs(store.slugs), lastUpdated };
   }
-  if (store.version === 2 && Array.isArray(store.records)) {
-    const records: ReadRecord[] = [];
-    for (const record of store.records) {
-      const parsed = parseReadRecord(record);
-      if (!parsed) return null;
-      records.push(parsed);
-    }
-    const recordSlugs = records.map((record) => record.slug);
-    const recordSlugSet = new Set(recordSlugs);
-    if (
-      recordSlugSet.size !== recordSlugs.length ||
-      recordSlugSet.size !== slugs.length ||
-      slugs.some((slug) => !recordSlugSet.has(slug))
-    ) {
-      return null;
-    }
-    return {
-      version: 2,
-      slugs: [...slugs],
-      records,
-      lastUpdated: store.lastUpdated,
-    };
+  if (store.version !== 2 || !Array.isArray(store.records)) return null;
+
+  const records = new Map<string, ReadRecord>();
+  for (const raw of store.records) {
+    const record = parseReadRecord(raw, lastUpdated);
+    if (record) records.set(record.slug, record);
   }
-  return null;
+  for (const slug of uniqueSlugs(store.slugs)) {
+    if (!records.has(slug)) {
+      records.set(slug, makeRecord(slug, lastUpdated, 'legacy_import', 'legacy_or_manual', null));
+    }
+  }
+  return { version: 2, slugs: [...records.keys()], records: [...records.values()], lastUpdated };
 }
 
 function uniqueSlugs(slugs: unknown): string[] {
@@ -182,7 +137,7 @@ function makeRecord(
   };
 }
 
-function migrateV1(v1: ReadStoreV1): ReadStoreV2 {
+export function migrateV1(v1: ReadStoreV1): ReadStoreV2 {
   const slugs = uniqueSlugs(v1.slugs);
   const importedAt = typeof v1.lastUpdated === 'string' ? v1.lastUpdated : nowIso();
   const records = slugs.map((slug) =>
