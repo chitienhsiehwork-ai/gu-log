@@ -117,11 +117,7 @@ function makeRepo() {
   for (const dir of ['.claude/agents', '.codex/agents']) {
     fs.cpSync(path.join(ROOT, dir), path.join(root, dir), { recursive: true });
   }
-  for (const file of [
-    'config/llm-pipeline.json',
-    'src/data/glossary.json',
-    'quality/brand-taxonomy-residual-allowlist.json',
-  ]) {
+  for (const file of ['config/llm-pipeline.json', 'src/data/glossary.json']) {
     fs.mkdirSync(path.dirname(path.join(root, file)), { recursive: true });
     fs.copyFileSync(path.join(ROOT, file), path.join(root, file));
   }

@@ -165,21 +165,6 @@ describe('check-jingjing.filterBaselineViolations', () => {
     expect(jjModule.filterBaselineViolations(current, baseline)).toEqual([]);
   });
 
-  it('grandfathers taxonomy-only context and post-path canonicalization', () => {
-    const retiredSeries = 'S' + 'P';
-    const retiredComponent = 'Cla' + 'wdNote';
-    const baseline = baselineOf(
-      v(
-        'foundation',
-        `到 [${retiredSeries}-42](/posts/${retiredSeries.toLowerCase()}-42-old-taxonomy) 看 ${retiredComponent} 的 foundation。`
-      )
-    );
-    const canonical = [
-      v('foundation', '到 [GP-42](/posts/gp-42-old-taxonomy) 看 MoguNote 的 foundation。'),
-    ];
-    expect(jjModule.filterBaselineViolations(canonical, baseline)).toEqual([]);
-  });
-
   it('flags a new occurrence after consuming its exact baseline occurrence', () => {
     const shared = v('foundation', '舊句保留 foundation。');
     const added = v('foundation', '新句新增 foundation。');
@@ -191,39 +176,6 @@ describe('check-jingjing.filterBaselineViolations', () => {
     const baseline = baselineOf(v('foundation', '轉為 foundation 舊句子'));
     const current = [v('solid', '很 solid 的新句子')];
     expect(jjModule.filterBaselineViolations(current, baseline)).toEqual(current);
-  });
-});
-
-describe('check-jingjing.filterTaxonomyExactResiduals', () => {
-  const file = path.join(process.cwd(), 'src/content/posts/gp-taxonomy-exception-test.mdx');
-  const retiredPersona = 'Cla' + 'wd';
-  const policy = (expectedCount: number) => ({
-    exactExceptions: [
-      {
-        path: 'src/content/posts/gp-taxonomy-exception-test.mdx',
-        rule: 'persona',
-        token: retiredPersona,
-        expectedCount,
-        reason: 'test fixture',
-      },
-    ],
-  });
-
-  it('suppresses the same occurrence when an exact taxonomy exception is satisfied', () => {
-    const raw = `事實上這個舊名字是 ${retiredPersona}。`;
-    const violations = [{ word: retiredPersona, line: 1, context: raw }];
-    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual([]);
-  });
-
-  it('fails closed when the taxonomy exception count is stale', () => {
-    const raw = `第一個 ${retiredPersona}，第二個 ${retiredPersona}。`;
-    const violations = [
-      { word: retiredPersona, line: 1, context: raw },
-      { word: retiredPersona, line: 1, context: raw },
-    ];
-    expect(jjModule.filterTaxonomyExactResiduals(file, raw, violations, policy(1))).toEqual(
-      violations
-    );
   });
 });
 
