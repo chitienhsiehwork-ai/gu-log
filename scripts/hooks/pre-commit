@@ -27,10 +27,9 @@ while IFS= read -r -d '' file; do
 done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
 # ─── Step -4: Reader-visible emoji ratchet ────────────────────────
-# Fail closed before any generator mutates the index. CI invokes this exact
-# executable with the PR base SHA, so detector and exception semantics cannot
-# drift between local commits and pull requests.
-echo "🚫 Content emoji policy: checking staged reader-visible lines..."
+# Runs before any generator mutates the index. CI runs the same script with
+# the PR base SHA (openspec: editorial-charter).
+echo "🚫 Content emoji policy: checking staged post lines..."
 node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
 echo ""
 
