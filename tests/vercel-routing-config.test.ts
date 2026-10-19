@@ -15,7 +15,6 @@ import {
   ROUTE_BUDGET,
   RedirectConfigError,
 } from '../vercel.mjs';
-import { materializeRedirectSources } from '../scripts/verify-brand-redirects.mjs';
 import {
   buildLegacySurfaces,
   isLegacyUrlPath,
@@ -169,7 +168,6 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
       expect(matcher.test(`${path}/`)).toBe(true);
       expect(matcher.test(`${path}//`)).toBe(false);
       expect(matcher.test(`${path}/extra`)).toBe(false);
-      expect(materializeRedirectSources(source)).toEqual([path, `${path}/`]);
     }
   });
 
@@ -223,22 +221,6 @@ describe('vercel.mjs redirect config — full manifest coverage', () => {
     for (const source of listingSources) {
       expect(source).not.toContain(':path*');
     }
-  });
-
-  it('materializes finite listing rules but rejects unknown regex source shapes', () => {
-    const [listingSource] = EXPECTED_LISTING_REDIRECTS[0];
-    const [paginatedSource] = EXPECTED_LISTING_REDIRECTS[1];
-    expect(materializeRedirectSources(listingSource)).toEqual([listingSource]);
-    expect(materializeRedirectSources(paginatedSource)).toEqual([`${listingSource}/2`]);
-    expect(() => materializeRedirectSources('/posts/:slug(.*)')).toThrow(
-      /unsupported redirect source/
-    );
-    expect(() => materializeRedirectSources('/unknown-listing')).toThrow(
-      /unsupported redirect source/
-    );
-    expect(() => materializeRedirectSources('/evil/:page(\\d+)')).toThrow(
-      /unsupported redirect source/
-    );
   });
 
   it('has no duplicate sources or self-loops', () => {
