@@ -218,8 +218,8 @@ node scripts/allocate-ticket.mjs GP --dry-run        # 先預覽不動檔案
 
 **Gate 行為**：
 - `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
-- `.githooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
-- `.githooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
+- `scripts/hooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
+- `scripts/hooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
 
 **什麼時候可以跳過 PENDING？** 幾乎不需要。預設一律走 PENDING（流程一致、不用每次判斷）。真的只有「100% 確定沒有任何並行工作、而且你就是要立刻給號」時，直接用真號才不算錯——但這沒有省到什麼，還得自己記得 bump counter，所以不建議當習慣。**有疑慮就用 PENDING。**
 
