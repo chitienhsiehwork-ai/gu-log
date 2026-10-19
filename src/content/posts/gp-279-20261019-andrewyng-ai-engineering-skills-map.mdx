@@ -1,0 +1,133 @@
+---
+ticketId: 'GP-279'
+title: 'Andrew Ng 的技能地圖裡，最該細讀的是第四項：工程師的工作正在往規格上游跑'
+originalDate: '2026-08-14'
+translatedDate: '2026-10-19'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@AndrewYNg on X'
+sourceUrl: 'https://x.com/AndrewYNg/status/2088302050706686198'
+lang: 'zh-tw'
+summary: 'Andrew Ng 的 AI 工程技能地圖列了四項能力，第四項最值得細讀：Andrew Ng 認為 Agent 照規格交付的能力正在快速進步，工程師的工作正轉向決定規格裡該放什麼。gu-log 接著追問：實作變便宜後，規格寫錯的代價、哪些決定收不回來，以及公司流程有沒有替工程師留位置。'
+tags: ['agentic-coding', 'software-engineering', 'career', 'andrew-ng', 'product-management']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: '2bda4569efb3f09704a4d098ad8819976ae11cd4269426d80f3691d33d44e326'
+  sourceSha256: '864fa03a48b333f117d19261cbf0165bb65f59e6f04bf64981a058b08d7085d1'
+  sourceUnits: 925
+  metrics:
+    maxRun: 2
+    sourceRatio: 0.2128
+    alignedSentences: 13
+  aligner: 'claude-sonnet-5'
+  rewrites: 0
+  alignerCalls: 2
+  checkedAt: '2026-10-19'
+---
+
+寫程式的 [Agent](/glossary#agent) 越會照規格交貨，工程師手上最值錢的那一段，就越往規格的上游跑。Andrew Ng 在「The AI Engineering Skills Map」裡，把這件事列成 AI 工程四項核心技能的最後一項。
+
+四項分別是：建置與部署 AI 應用、軟體工程基本功、使用寫程式的 Agent，以及「Shaping the build」（參與決定要做什麼、怎麼推進）。前三項在 gu-log 讀者眼裡大概都不陌生；gu-log 認為最會改變工程師日常工作的，是第四項。
+
+## 規格清楚，Agent 就交貨；所以戰場移到規格本身
+
+Andrew Ng 的推論只有一步：給定清楚的規格，寫程式的 Agent 照著交付的能力**正在快速進步**，所以工程師的工作正轉向「決定規格裡該放什麼」，別再期待有人遞上一份像素級精準的設計稿、自己只負責實作，而是要有產品直覺、懂商業脈絡、懂客戶想達成什麼。用詞是「正在快速進步」，前提本身還在路上。
+
+gu-log 想把這段再往前推一步：接到需求時的第一個問題，要從「怎麼做」改成「為什麼要做」。
+
+「怎麼做」這題，Agent 越來越能接手。「為什麼」這題它很難自己接：答案藏在客戶的抱怨信、業務的季目標、上次失敗的那個功能裡，沒人餵進來，Agent 就只能猜。一份規格如果寫不出「這是為了解決誰的什麼問題」，後面所有的條列項目都只是猜測，差別只在猜得工整不工整。
+
+---
+
+## 規格寫爛的代價：Agent 會很有效率地做錯
+
+這裡有個很容易被樂觀氣氛蓋過去的後果。以前規格寫得含糊，工程師在實作途中會卡住、會跑去問、會在走廊抓住 PM 說「這邊到底要怎樣」。那些摩擦很煩，但它們同時是一道錯誤偵測機制。
+
+Agent 不太會卡住。把它想成超商的微波爐：按下去，一分鐘後一定熱好遞出來，從不抱怨。問題是，如果一開始拿錯便當，微波爐照樣準時熱好，熱騰騰，而且是錯的。少了卡關這道關卡，「拿錯便當」就可能一路拖到做完三個功能、接好測試、準備上線那天，才有人說「欸這不是客戶要的」。
+
+所以 gu-log 讀第四項時，最在意的是一個原文沒明講的後果：實作變便宜之後，規格錯一個字的代價會跟著放大。
+
+---
+
+## 便宜的時候，更要知道哪裡是單行道
+
+第四項後半段，Andrew Ng 把話題轉到主導權：AI 讓工程師有機會自己找問題、以負責任的方式把專案推下去，而推專案的功夫之一，是判斷什麼時候該快速做出最小可行產品給使用者測，什麼時候該放慢、做仔細。
+
+原文只給了這個二分，沒有說怎麼判斷。gu-log 的看法是：判斷標準可以收斂成一個問題，**這一步做錯了，收得回來嗎？**
+
+大部分決定都能回頭。改一個頁面、換一套排版、重寫一支內部腳本，錯了就丟掉重來，在 Agent 讓重來便宜很多的時代，這些地方確實該衝。但有幾類東西是單行道，重做得再快也救不回已經發生的事：
+
+- **資料表遷移**：欄位刪了、資料轉換寫錯，舊資料不會因為重新產生程式碼就回來。
+- **對外 API**：介面一公開，別人就開始依賴它。改名或改行為的成本落在所有呼叫方身上。
+- **付款**：多扣一次、少扣一次，都是真實的錢與真實的客訴。
+- **權限**：開錯一次存取權，資料可能已經被看過、被複製走了。
+
+熱錯的便當還沒遞出去，丟掉重熱一盒就好；已經被客人帶走吃掉的，沒有重熱這回事。實作成本下降，會讓能衝的範圍變大，單行道卻一條也沒少。能分辨哪一步是單行道的工程師，在成本越低的時候反而越值錢，因為只有在那幾步上放慢，其他地方才放心衝。
+
+---
+
+## 組織流程未必留了位置
+
+最後是 gu-log 對第四項的一個保留。Andrew Ng 寫的是工程師應該具備參與塑造產品的能力，這是對個人的要求；很多公司的流程本身卻沒替這件事留位置。需求由 PM 寫成工單，排進下一輪開發，工程師領走、完成、關單，整套流程的設計前提就是「規格在上游已經決定好了」。在這種流程裡，一個很有產品直覺的工程師，能施力的點可能只剩在工單底下留言。
+
+所以第四項要成真，除了工程師去補產品與商業的課，組織也要願意把規格討論提早開放給實作的人。這部分原文沒有展開；讀者帶著這個缺口去讀，會比較清楚哪些建議自己就能做，哪些得先說服主管。團隊縮編、PM 變成瓶頸的那條線，gu-log 在 [MP-60](/posts/mp-60-20260210-andrewng-ai-job-market-reality/) 寫過，第四項可以當成同一個觀察從工程師這一側看過去。
+
+---
+
+## 回原文看什麼
+
+- **前三項各自的段落**，尤其「使用寫程式的 Agent」那項，它跟這篇談的規格與單行道問題就在隔壁。
+- **地圖怎麼歸納出來的**：研究方法是作者自述，另外還有一段解釋為什麼講「技能」而不講職稱。
+- **文末預告的後續系列**：作者說會逐一展開這四項技能、公布更詳細的地圖。這篇原文裡第四項只有兩段；專講第四項的[後續文](https://charonhub.deeplearning.ai/the-ai-engineering-skills-map-in-detail-shaping-the-build/)已經在 2026 年 9 月 11 日發表，是這個系列的第五篇。讀完這篇再去看它有沒有給出判斷標準，剛好接得上。 (◍•ᴗ•◍)
