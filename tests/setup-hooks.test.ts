@@ -20,7 +20,6 @@ function copySetupFixture(repo: string): void {
   const scriptsDir = path.join(repo, 'scripts');
   const hooksDir = path.join(scriptsDir, 'hooks');
   fs.mkdirSync(hooksDir, { recursive: true });
-  fs.mkdirSync(path.join(repo, '.githooks'));
 
   fs.copyFileSync(
     path.join(REPO_ROOT, 'scripts', 'setup-hooks.sh'),
