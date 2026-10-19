@@ -36,6 +36,11 @@
       "owner": "ShroomDog",
       "reason": "Core search-result rendering; 3 tests, ~1.5s total, no network/mocks, verified green across 4 consecutive --retries=0 runs 2026-07-18."
     },
+    "tests/glossary-browsing.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "詞彙表的精簡瀏覽（openspec: glossary-browsing）：以 iPhone 13 畫面與關閉 JavaScript 的情境，驗證詞條預設精簡、就地展開與收起、從錨點進來直接展開且不被 sticky 控制列蓋住、篩選切回全部，以及中英文兩頁結構一致；文章裡數千條 /glossary#… 連結都落在這頁，壞了讀者點進來就找不到詞條。"
+    },
     "tests/component-smoke.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
@@ -240,6 +245,11 @@
       "class": "nightly",
       "owner": "ShroomDog",
       "reason": "Was quarantined pending a first run (status unknown); executed 2026-07-18 — 5/5 passed, 7.2s. Promoted to nightly."
+    },
+    "tests/owner-reader-feedback.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "owner 一鍵回饋（openspec: owner-reader-feedback）：未登入看不到、登入後寫入帶 reader revision 的 feedback_comment、/human-signals 同步只在登入時送且 404 不影響頁面，以及 Reading Tracker 匯出檔格式；壞了 owner 回饋就收不到或對錯版本。"
     }
   }
 }

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -19,6 +20,7 @@ from urllib.parse import urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 POSTS_DIR = ROOT / "src" / "content" / "posts"
 GLOSSARY_PATH = ROOT / "src" / "data" / "glossary.json"
+GLOSSARY_CHECKER = ROOT / "scripts" / "check-glossary-links.mjs"
 
 FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n", re.S)
 LINK_RE = re.compile(r"\]\((/[^)]+)\)")
@@ -109,6 +111,38 @@ def slug_for(path: Path) -> str:
     return path.stem
 
 
+def unlinked_glossary_terms(post_path: Path) -> tuple[list[str], str | None]:
+    """Ask the glossary checker which enabled terms this post mentions without a link.
+
+    The checker owns the anchor rule (src/lib/glossary-anchor.mjs) and the safe-region
+    scan, so this function never derives anchors or matches terms itself.
+    """
+    try:
+        result = subprocess.run(
+            ["node", str(GLOSSARY_CHECKER), "--format", "json", str(post_path)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return [], f"glossary checker did not run: {error}"
+    # The checker exits 1 when it reports violations; anything else is a failure.
+    if result.returncode not in (0, 1):
+        return [], f"glossary checker exited {result.returncode}"
+    try:
+        report = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return [], "glossary checker returned invalid JSON"
+    terms: list[str] = []
+    for violation in report.get("violations", []):
+        term = violation.get("term")
+        if violation.get("kind") == "missing-link" and term and term not in terms:
+            terms.append(term)
+    return terms, None
+
+
 def main() -> int:
     if len(sys.argv) != 2:
         print("Usage: tribunal-librarian-packet.py <post-filename-or-path>", file=sys.stderr)
@@ -128,13 +162,8 @@ def main() -> int:
 
     glossary_terms = load_glossary_terms()
     lower_body = target_body.lower()
-    matched_terms = []
-    unlinked_terms = []
-    for term in glossary_terms:
-        if term.lower() in lower_body:
-            matched_terms.append(term)
-            if f"](/glossary#{term.lower().replace(' ', '-')}" not in lower_body and f"/glossary" not in lower_body[max(0, lower_body.find(term.lower())-80):lower_body.find(term.lower())+120]:
-                unlinked_terms.append(term)
+    matched_terms = [term for term in glossary_terms if term.lower() in lower_body]
+    unlinked_terms, unlinked_error = unlinked_glossary_terms(post_path)
 
     candidates = []
     post_routes = set()
@@ -183,7 +212,10 @@ def main() -> int:
 
     print("## Deterministic checks")
     print(f"- glossary terms detected: {', '.join(matched_terms[:40]) or 'none'}")
-    print(f"- possibly unlinked glossary terms: {', '.join(unlinked_terms[:30]) or 'none'}")
+    if unlinked_error:
+        print(f"- possibly unlinked glossary terms: unavailable ({unlinked_error})")
+    else:
+        print(f"- possibly unlinked glossary terms: {', '.join(unlinked_terms[:30]) or 'none'}")
     print(f"- internal links checked: {len(links)}")
     print(f"- broken internal links: {', '.join(broken) or 'none'}")
     print()

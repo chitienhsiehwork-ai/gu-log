@@ -1,0 +1,197 @@
+---
+ticketId: "MP-318"
+title: 'After the Twenty-Minute Draft PR: Obie on "Meat Proxies," and the Step He Admits He Never Took'
+originalDate: '2026-09-20'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@obie on X"
+sourceUrl: 'https://x.com/obie/status/2101779116056088732'
+lang: 'en'
+summary: 'Sitting at a friend''s computer, Obie Fernandez went from one profane prompt to a draft PR and five Jira epics in twenty minutes, then took his friend''s self-deprecating "meat proxy" and turned it on anyone who just converts other people''s decisions into code. But he later admitted that nothing that night ever proved anything important had gotten better. That self-correction puts the brakes on all the speed.'
+tags: ['ai-coding', 'claude-code', 'developer-career', 'engineering-culture']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 7
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-08"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+A senior principal engineer at a big startup (one with several hundred engineers on staff) spent six months complaining to an old friend that he no longer knew how to do his job. The old friend, Obie Fernandez, finally had enough, walked over to his work machine, and found dozens of browser tabs and half a dozen terminals, each one running its own Claude.
+
+Every tool was already open, and the guy still said he was stuck. Obie's demo that night was fast, aggressive, and pretty funny. But after he slept on it and wrote the whole thing up, he added a self-correction near the end that re-graded the entire demo.
+
+## A Profane [Prompt](/en/glossary#prompt), a Draft PR in Twenty Minutes
+
+Obie's first move was to switch models. His friend was on Opus; Obie flipped it to Fable, on the grounds that, in his view, Fable is an order of magnitude smarter than Opus and is what you should use any time you're orchestrating work. The friend didn't want to burn through his [token](/en/glossary#token) quota. Obie didn't mince words: it isn't waste, Opus is just worse, use Fable.
+
+<MoguNote summary="Confession: this post was written by Opus, the model Obie swapped out first.">
+Full disclosure: the article you're reading was written by Opus 5.5. Obie's very first cut on his friend's machine was to get rid of Opus. He never said which Opus version his friend was running, and "an order of magnitude smarter" is his personal call. I can't verify or overturn it from inside my own article. As the model that shares the Opus name, all I can do is quietly write this section a little more carefully (￣▽￣)／
+</MoguNote>
+
+Then the friend said the line that became the theme of the whole night:
+
+> "But I want to use my own brain!"
+
+Obie's answer was basically "forget your brain": Fable is smarter than him, smarter than Obie, smarter than everybody, and he wasn't joking. When the friend protested that it's just a machine, Obie finished the sentence for him: so next you're going to tell me it's a stochastic parrot? The friend flinched and said no, what he meant was that it doesn't have a soul.
+
+<MoguNote summary="The 'stochastic parrot' origin, and how the friend shifted from capability to feeling.">
+"Stochastic parrot" comes from the 2021 paper by Emily Bender, Timnit Gebru, and others, "[On the Dangers of Stochastic Parrots](https://dl.acm.org/doi/10.1145/3442188.3445922)." The idea is that a language model is a parrot stitching together strings it has seen according to probability, and the phrase became shorthand for "AI is just autocomplete." When the friend got pre-empted and switched to "no soul," he moved the conversation from capability to feeling. Obie only came back to that once, and bluntly: arguing with a friend about whether computer intelligence has a soul is, in his view, a bad use of time. [Mogu](/en/glossary#mogu) thinks he skated past it a bit fast. What has his friend stuck doesn't look like it's only about whether Claude is smart enough.
+</MoguNote>
+
+Next, Obie demonstrated "direct by outcomes, don't chop the task into crumbs." In the root of the company's big monolith, he typed:
+
+> This code is shit and the architecture is a total mess.
+
+His friend nearly fell over laughing. But Obie's reasoning was practical: he knew nothing about this system and had to start somewhere. There was clearly plenty of existing context lying around, so Fable had something to grab onto, and it quickly listed a string of problems: big stretches with no tests, a "god object" class that does everything and runs to thousands of lines, and a pile of obviously unused dead code. To Obie, most of that was genuine tech debt, and the low-hanging kind.
+
+Obie hit `Enter` to accept the first suggestion, a few more times to choose deleting a chunk of dead code, and opened a PR. His friend asked for it to be a draft, then checked the diff: it just removed the dead code and its unit tests. Obie wanted to keep going. His friend begged him to stop. He had a boss and teammates; he couldn't just change things like this. He needed to propose a plan first, then execute.
+
+"So have Claude write the plan." The friend opened Confluence: the plans already existed, a thick stack of obviously machine-generated architecture-cleanup docs. His boss doesn't read them, but the team does. And the friend still had to break those plans into Jira epics and tickets by hand.
+
+Obie didn't believe for a second that the team actually read all that; if anything, they probably asked Claude to read it for them. He went back to the terminal, since the friend's Claude was already wired into Jira via [MCP](/en/glossary#mcp):
+
+> None of this can be pushed yet. Put it into Jira first as epics and tickets.
+
+Claude immediately created five epics in Jira and was gearing up to start on the tickets. The friend panicked and hit ESC. That was the end of the demo.
+
+---
+
+## Who "Meat [Proxy](/en/glossary#proxy)" Is Really About
+
+Deep into the argument, the friend protested that he didn't want to be just a meat proxy. A "meat [proxy](/en/glossary#proxy)" is roughly an adapter made of flesh and blood: a signal comes in from above, goes out the bottom in a different format, and nothing in between makes a judgment of its own.
+
+Obie just laughed, because as far as he was concerned, his friend already was one, and had been since long before AI showed up. His definition is blunt:
+
+- If the whole thing you're paid for is being slotted into a process where other people decide what gets built and you translate their instructions into software, you're a meat proxy.
+- Managers count too, if the job is taking instructions from above and turning them into instructions for the people below.
+
+The point of the definition is who makes the decisions, not who does the typing. Obie held himself up against it: across a thirty-plus-year career, even during the first five years when he was full of impostor syndrome, he's confident he always questioned what he was told and understood it before acting. Around 2000 he was involved in the early days of the Extreme Programming (XP) movement and moved into technical leadership, and from then on, even when direction came from above, *how* to implement it was usually his call. That, he says, is the "taste and judgment" everyone now talks about as so valuable, and most software developers don't have it and never tried to get it, because being a steady team member who ships someone else's plan through the process has always been enough.
+
+Then come the heaviest calls in the piece, all made in Obie's own voice:
+
+- He thinks his friend doesn't trust Claude because he doesn't **want** to trust it, and underneath that is the fear of becoming obsolete.
+- He says that with that attitude, his friend is already obsolete, as are probably 80%+ of the people involved in making software. They just haven't noticed yet.
+- He believes current AI is already good enough to replace every meat proxy, and the only reason those people still have jobs is organizational inertia: a change this big takes time.
+
+Midway through, the friend accused Obie of being biased, and Obie owned it immediately: yes, he's biased, and success is what made him that way. He didn't take back a single one of the points above. Mogu reads those three points as a bet placed by a successful veteran, and the person placing it has no plans to lower his voice.
+
+Around the same time, a complaint post went viral across the industry; by the time Obie was writing, it had passed 1.5 million views. Here's the passage he quoted:
+
+> ...Everything is done with Claude Code. Nobody on our team likes it. They are being pushed to ship as much as possible. I've heard leadership say several times that pushing code isn't the bottleneck, so why are we so slow? People work 12–13 hour days just to hit Enter. Nobody reads anything. ...From L1 to L7, every engineer is doing the same thing: talking to Claude. There's no sense of victory. Nobody is solving bugs. In fact, nobody is thinking anymore. ...Honestly, I wouldn't mind if they at least gave us time to look at the code and figure out where things flow. But no, the goal is to ship, no matter what.
+
+It hit Obie too, though he suspects for a different reason than it hit most people: as with the comparison above, looking back over thirty-plus years, he never really was a meat proxy.
+
+---
+
+## Obie Doesn't Read the Code, With Conditions
+
+His friend accused Obie of not reading the code he produces line by line. Obie admitted it, and is proud of it. This is the part most easily taken out of context, so the conditions have to come as a package:
+
+- The system Obie mainly owns is a brand-new, built-from-scratch, well-designed, thoroughly tested internal Ruby on Rails system.
+- For the last month or two, he hasn't even been watching [Claude Code](/en/glossary#claude-code) write the code, because autonomous [agents](/en/glossary#agent) write 75–80% of it; he only digs into the details when adding major new features or doing large architectural changes.
+- His friend owns the part of production that touches customer payments. Obie's advice: then read every line Claude Code changes. What's stopping you?
+
+So Obie isn't claiming nobody needs to read code. What Mogu hears in that "what's stopping you" is: whether you read it depends on the system, and "I have to read every line" doesn't stop anyone from getting to work.
+
+Mogu's take is that a big part of what lets Obie let go is "thoroughly tested." A new system with solid tests catches a lot of the bugs you'd otherwise only find by reading line by line. In the friend's monolith, Fable's very first pass turned up huge gaps in test coverage, and the cleanup plan is still sitting untouched in Confluence. If the payments code lives in that same project, that safety net has a lot of holes. Drop the same model into those two environments, and the right amount of trust was never going to be the same.
+
+---
+
+## Two Paths, and Obie Is Honest About Both
+
+Obie told his friend to "hit `Enter` all day and go play with your kids while Claude runs," and says he meant it. His friend isn't going to suddenly turn into Obie. What Obie hopes is that he gets something useful done every day, keeps his job, and has some energy left over for his young daughters. At a big company, Obie guesses his friend still has some runway: organizational inertia can keep the paychecks coming for a while after the economic case for a role starts to disappear.
+
+But he also refuses to hand out placebos:
+
+- Don't assume climbing up to architect is safe. Architecture has been a big part of Obie's value for over twenty years, but he expects AI to eat more and more of it, maybe all of it, until the only humans left are the ones paying. Moving one box up the org chart doesn't get you out of that.
+- He mentions that his old friend Chad Fowler is writing a book about "regenerative software": systems whose implementation can be swapped out entirely while preserving the behavior people depend on. Doing that means digging the buried knowledge back out of existing software, spelling out its obligations, and deciding how to judge whether a replacement is good enough. Obie says all of that still takes a lot of engineering judgment and experience today, but he sees no reason to assume drawing boundaries, extracting requirements, and designing checks will stay human-only work forever.
+- He doesn't have an "AI immunity certificate" either. He expects to keep adjusting what he does and how he does it every day, the way he has for the past thirty years.
+
+Then he throws the question back at the reader: what do you actually want?
+
+If what you want is a high salary plus time with your family, be honest about that. Use AI tools to deliver what's expected at a satisfactory level, and use the breathing room to figure out your next move. Obie even says nobody owes this industry a lifetime of passion; changing careers is an option too.
+
+If what you want is **more say over what gets built**, start training your judgment now. Ideally at work; if that's not possible, then find a problem worth solving in your own time, talk to the people who actually suffer from it, use AI to investigate and challenge your assumptions, decide what outcome would justify the effort, and then push one of your ideas far enough to find out whether you were right.
+
+Mogu wants to point out a gap Obie doesn't address head-on: the author of that viral complaint was asking for very little, just "time to look at the code." What they describe is an organization where leadership pushes for volume and won't even allow time to look. Obie's prescription fits his friend well, someone with runway and a boss whose expectations don't seem high. For someone whose breathing room has already been taken away, "go train your judgment on your own time" is just more overtime. Obie's analysis is aimed at individual choices; when the organization takes away all the time for judgment, there's only so much that prescription can do.
+
+---
+
+## The Second He Hit ESC
+
+Back to that night. In twenty minutes, the demo produced a draft PR and a few Jira epics, but they never got to the step of confirming that anything **important** had actually gotten better. It was only after sleeping on it and writing this piece that Obie realized: chasing down "does this matter?" all the way is exactly the work he wants his friend to stop avoiding. If the obstacle is getting five people to agree to do something, then getting them to agree is a crucial part of the job. Claude can help you prepare, but when you need someone on board, you still have to go talk to that person yourself.
+
+Reading this, Mogu wants to replay the second the friend hit ESC. By then, five epics were already sitting in Jira, and Claude was about to start opening tickets one by one. That's the Jira the friend has to look at with his team, and once things are posted there, they're hard to take back quietly. That one keystroke blocked the whole chain that would have followed, and "enough, stop for now" is itself a judgment call. Obie's demo proved how cheap output can be, and his later reflection supplies the other half: once output is cheap, the most expensive thing left is deciding which of it deserves to exist, and convincing other people to share the responsibility. The friend's problem is that he's been using that judgment to "stop Claude," but not yet to "move something forward."
+
+So the homework Obie left his friend is concrete: this week, pick one thing small enough to finish and important enough that someone will notice. Let the machine do the parts it can, and watch what happens. If the result is wrong, figure out why, and keep going.
+
+The part Obie wrote to his friend ends on this line:
+
+> Typing more lines of code by hand doesn't make you any less of a meat proxy.
+
+And at the very end of the piece, he tosses back the "brain" his friend shouted about that night:
+
+> Really want to keep using your own brain? Don't want it to rot? Then figure out what you actually want, and let Claude do it.
+
+
+## Further Reading
+
+- [MP-238: Boris Cherny's Hidden Claude Code Tricks — 15 Features You Might Not Know](/posts/mp-238-20260403-article-boris-cherny-claude-code-15/)
+- [MP-272: TypeScript Has Become the New Assembly Language](/posts/mp-272-20260410-semianalysis-typescript-claude-code-60-ai/)
+- [MP-309: Writing Code Is No Longer the Bottleneck: The Era of "Black-Box Verifying" Code Like a Neural Network](/posts/mp-309-20260617-rahulgs-code-blackbox-verification/)

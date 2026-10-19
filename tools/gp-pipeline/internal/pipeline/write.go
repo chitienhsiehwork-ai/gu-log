@@ -85,6 +85,11 @@ func (s *State) Write(ctx context.Context) error {
 		return fmt.Errorf("write: render prompt: %w", err)
 	}
 
+	restore, err := setAside(draftPath)
+	if err != nil {
+		return fmt.Errorf("write: set aside the previous draft-v1.mdx: %w", err)
+	}
+	defer restore()
 	res, err := disp.Run(ctx, prompt, llm.RunOptions{WorkDir: s.WorkDir})
 	if err != nil {
 		return NewStepError(14, fmt.Errorf("write: dispatcher failed: %w", err))
