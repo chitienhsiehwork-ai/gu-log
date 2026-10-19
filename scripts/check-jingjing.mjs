@@ -184,6 +184,10 @@ VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
 tmux monorepo BEAM OTP DAG IETF RFC
 BeautifulSoup
+# Kubernetes 生態系的軟體／公司名，以及來源作者 handle — Lv（2026-10-11）
+# @livingdevops 的 Kubernetes 概念鏈：Ingress 控制器（Nginx／Traefik）、服務網格
+# Istio、節點自動擴縮 Karpenter，以及有官方 Karpenter 實作的 Oracle
+Nginx NGINX Traefik Istio Karpenter Oracle livingdevops
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
@@ -787,6 +791,22 @@ OneDrive Outlook DMZ
 #   LINE Developers / Messaging API = LINE's developer-console + product-API
 #     proper nouns (same category as the Microsoft product names above).
 Developers Messaging
+# Added 2026-10-08 for MP-318 (Obie Fernandez "You're Already a Meat Proxy").
+# Bona-fide proper nouns named in the single source, none with a natural zh-tw
+# translation (writer-prompt rule #2: people / products stay English):
+#   Obie Fernandez = the author (person). Chad Fowler = his friend writing the
+#   regenerative-software book (person). Confluence = Atlassian's wiki product
+#   (same category as Jira). Rails = Ruby on Rails, the web framework.
+#   Emily Bender / Timnit Gebru = authors of the "stochastic parrots" paper
+#   cited in a MoguNote (people).
+Obie Fernandez
+Chad Fowler
+Confluence Rails
+Emily Bender Timnit Gebru
+# Added 2026-10-08 for the Kun Chen "stop writing tests" MP.
+#   DeepSWE = the coding-agent eval set the source ran its experiment on
+#   (benchmark name, same category as SWE-bench; no natural zh-tw translation).
+DeepSWE
 `;
 
 const HARDCODED = new Set();

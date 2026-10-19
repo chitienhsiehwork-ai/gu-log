@@ -50,20 +50,27 @@ function timeoutError(): ReaderSyncApiError {
   return new ReaderSyncApiError('同步逾時，請檢查網路後重試', 'READER_SYNC_TIMEOUT');
 }
 
-async function withReaderSyncDeadline<T>(
-  operation: (signal: AbortSignal) => Promise<T>
+/**
+ * Run `operation` with an AbortSignal that fires after `timeoutMs`. On timeout
+ * the returned promise rejects with `makeTimeoutError()` (never a raw
+ * AbortError), and the underlying request is aborted.
+ */
+export async function withDeadline<T>(
+  timeoutMs: number,
+  operation: (signal: AbortSignal) => Promise<T>,
+  makeTimeoutError: () => Error
 ): Promise<T> {
   const controller = new AbortController();
-  let deadlineError: ReaderSyncApiError | undefined;
+  let deadlineError: Error | undefined;
   let timeoutId: ReturnType<typeof setTimeout>;
   const deadline = new Promise<never>((_resolve, reject) => {
     timeoutId = setTimeout(() => {
-      deadlineError = timeoutError();
+      deadlineError = makeTimeoutError();
       reject(deadlineError);
       // Abort the underlying fetch after settling the deadline promise so the
       // caller always receives the typed timeout instead of a raw AbortError.
       controller.abort();
-    }, READER_SYNC_TIMEOUT_MS);
+    }, timeoutMs);
   });
 
   try {
@@ -74,6 +81,10 @@ async function withReaderSyncDeadline<T>(
   } finally {
     clearTimeout(timeoutId!);
   }
+}
+
+function withReaderSyncDeadline<T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  return withDeadline(READER_SYNC_TIMEOUT_MS, operation, timeoutError);
 }
 
 export function getGuLogSessionToken(): string | null {

@@ -1,4 +1,6 @@
 const SIGNAL_STORAGE_KEY = 'gu-log-human-signals';
+/** Window event fired after an event is stored, so the sync layer can debounce a send. */
+export const HUMAN_SIGNAL_RECORDED_EVENT = 'gu-log:human-signal-recorded';
 
 export type HumanSignalKind =
   | 'read_finish'
@@ -8,7 +10,7 @@ export type HumanSignalKind =
 export type GuLogLang = 'zh-tw' | 'en';
 export type ReaderTrustTier = 'owner_trusted' | 'owner_approved' | 'guest_reference' | 'unknown';
 export type SignalSyncStatus = 'local_only' | 'synced' | 'sync_failed';
-export type SignalTransport = 'local_storage';
+export type SignalTransport = 'local_storage' | 'gu_log_api';
 
 export type ArticleVersionSnapshot = {
   postId: string;
@@ -17,6 +19,8 @@ export type ArticleVersionSnapshot = {
   pathname: string;
   postVersion: number | string;
   contentVersion?: number | string;
+  /** Reader-facing content hash from post-reader-revisions.json (metadata excluded). */
+  readerRevision?: string | null;
 };
 
 type BaseHumanSignalEvent = {
@@ -29,6 +33,7 @@ type BaseHumanSignalEvent = {
   pathname: string;
   postVersion: number;
   contentVersion?: number;
+  readerRevision?: string;
   occurredAt: string;
   reader?: string;
   readerTrustTier: ReaderTrustTier;
@@ -77,6 +82,17 @@ export type ShareIntentEvent = BaseHumanSignalEvent & {
 
 export type CommentPolarity = 'unknown' | 'positive' | 'negative' | 'rewrite_needed';
 
+/** Longest note a reader may attach to feedback, in characters (code points). */
+export const FEEDBACK_NOTE_MAX_LENGTH = 280;
+
+function truncateNote(text: string | undefined): string | undefined {
+  if (text === undefined) return undefined;
+  const chars = Array.from(text);
+  return chars.length > FEEDBACK_NOTE_MAX_LENGTH
+    ? chars.slice(0, FEEDBACK_NOTE_MAX_LENGTH).join('')
+    : text;
+}
+
 export type FeedbackCommentEvent = BaseHumanSignalEvent & {
   kind: 'feedback_comment';
   source: 'giscus' | 'first_party';
@@ -114,6 +130,7 @@ export type HumanSignalTribunalPacketSignal = Readonly<
     | 'pathname'
     | 'postVersion'
     | 'contentVersion'
+    | 'readerRevision'
     | 'occurredAt'
     | 'reader'
     | 'readerTrustTier'
@@ -160,12 +177,28 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+/** Read the version snapshot that article controls render as data-* attributes. */
+export function snapshotFromDataset(data: DOMStringMap): ArticleVersionSnapshot {
+  return {
+    postId: data.postId || data.slug || '',
+    ticketId: data.ticketId || undefined,
+    lang: (data.lang || 'zh-tw') as GuLogLang,
+    pathname: data.pathname || window.location.pathname,
+    postVersion: data.postVersion || '1',
+    readerRevision: data.readerRevision || null,
+  };
+}
+
 function makeEventId(kind: HumanSignalKind): string {
   const random = Math.random().toString(36).slice(2, 10);
   return `hs_${kind}_${Date.now().toString(36)}_${random}`;
 }
 
 function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
+  const readerRevision =
+    typeof snapshot.readerRevision === 'string' && snapshot.readerRevision.trim()
+      ? snapshot.readerRevision.trim()
+      : undefined;
   return {
     postId: snapshot.postId,
     ticketId: snapshot.ticketId,
@@ -176,6 +209,7 @@ function normalizeSnapshot(snapshot: ArticleVersionSnapshot) {
       snapshot.contentVersion === undefined
         ? undefined
         : toPositiveInteger(snapshot.contentVersion),
+    ...(readerRevision ? { readerRevision } : {}),
   };
 }
 
@@ -226,6 +260,7 @@ function toTribunalPacketSignal(event: HumanSignalEvent): HumanSignalTribunalPac
     pathname: event.pathname,
     postVersion: event.postVersion,
     contentVersion: event.contentVersion,
+    readerRevision: event.readerRevision,
     occurredAt: event.occurredAt,
     reader: event.reader,
     readerTrustTier: event.readerTrustTier,
@@ -317,8 +352,25 @@ function saveStore(store: HumanSignalStore): void {
   }
 }
 
+function announceRecorded(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(HUMAN_SIGNAL_RECORDED_EVENT));
+  }
+}
+
 export function getHumanSignalEvents(): HumanSignalEvent[] {
   return [...getStore().events];
+}
+
+/** File format shared by the Reading Tracker export and the backend export endpoint. */
+export type HumanSignalExport = {
+  exportSchemaVersion: 1;
+  exportedAt: string;
+  events: HumanSignalEvent[];
+};
+
+export function buildHumanSignalExport(): HumanSignalExport {
+  return { exportSchemaVersion: 1, exportedAt: nowIso(), events: getHumanSignalEvents() };
 }
 
 type EventUpsertOptions = {
@@ -331,35 +383,44 @@ function articleVersionKey(event: HumanSignalEvent): string {
     event.postId,
     event.postVersion,
     event.contentVersion ?? '',
+    event.readerRevision ?? '',
     event.pathname,
     event.reader ?? '',
   ].join('|');
 }
 
+/** Events still waiting to be sent. `sync_failed` means the backend rejected it: never resend. */
 export function getPendingHumanSignalEvents(): HumanSignalEvent[] {
-  return getStore().events.filter((event) => event.syncStatus !== 'synced');
+  return getStore().events.filter((event) => event.syncStatus === 'local_only');
 }
 
-function markHumanSignalEventSyncStatus(eventId: string, syncStatus: SignalSyncStatus): boolean {
+/**
+ * Apply a backend sync response in one write: accepted → synced via the API,
+ * rejected → sync_failed. Events in neither list stay pending.
+ */
+export function applyHumanSignalSyncResult(result: {
+  accepted?: readonly string[];
+  rejected?: readonly string[];
+}): number {
+  const accepted = new Set(result.accepted ?? []);
+  const rejected = new Set(result.rejected ?? []);
   const store = getStore();
+  let changed = 0;
   for (const event of store.events) {
-    if (event.eventId === eventId) {
-      event.syncStatus = syncStatus;
-      store.lastUpdated = nowIso();
-      saveStore(store);
-      return true;
+    if (accepted.has(event.eventId)) {
+      event.syncStatus = 'synced';
+      event.transport = 'gu_log_api';
+      changed += 1;
+    } else if (rejected.has(event.eventId)) {
+      event.syncStatus = 'sync_failed';
+      changed += 1;
     }
   }
-
-  return false;
-}
-
-export function markHumanSignalEventSynced(eventId: string): boolean {
-  return markHumanSignalEventSyncStatus(eventId, 'synced');
-}
-
-export function markHumanSignalEventFailed(eventId: string): boolean {
-  return markHumanSignalEventSyncStatus(eventId, 'sync_failed');
+  if (changed > 0) {
+    store.lastUpdated = nowIso();
+    saveStore(store);
+  }
+  return changed;
 }
 
 export function appendHumanSignalEvent(
@@ -377,19 +438,24 @@ export function appendHumanSignalEvent(
       }
     }
     if (existingIndex >= 0) {
-      const upserted = {
-        ...event,
-        eventId: store.events[existingIndex].eventId,
-      } as HumanSignalEvent;
+      const existing = store.events[existingIndex];
+      // Once the old event left the outbox, the backend keeps the first copy of
+      // its eventId, so updated metrics must travel under a fresh id.
+      const upserted =
+        existing.syncStatus === 'local_only'
+          ? ({ ...event, eventId: existing.eventId } as HumanSignalEvent)
+          : event;
       store.events[existingIndex] = upserted;
       store.lastUpdated = nowIso();
       saveStore(store);
+      announceRecorded();
       return upserted;
     }
   }
   store.events.push(event);
   store.lastUpdated = nowIso();
   saveStore(store);
+  announceRecorded();
   return event;
 }
 
@@ -501,7 +567,7 @@ export function recordFeedbackComment(
     kind: 'feedback_comment',
     source: comment.source,
     commentId: comment.commentId,
-    commentText: comment.commentText,
+    commentText: truncateNote(comment.commentText),
     polarity: comment.polarity || 'unknown',
   };
   return appendHumanSignalEvent(event) as FeedbackCommentEvent;

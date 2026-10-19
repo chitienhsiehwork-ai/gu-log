@@ -421,6 +421,98 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
   });
 });
 
+describe('pre-commit: glossary link-only edits go through a real git commit', () => {
+  // openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械證明並略過內容品質
+  // gate〉：舊文沒有 scores，只要證明不成立，score gate 的 sentinel 就會擋下這次 commit。
+  // 這裡只驗 hook 的接線（讀 staged 版本、證明不成立就擋），證明本身的案例在
+  // tests/link-only-proof.test.ts。
+  const LEGACY_FRONTMATTER = 'ticketId: MP-212\nlang: zh-tw';
+  const CODEX = {
+    term: 'Codex',
+    en: 'Codex',
+    category: 'products',
+    linking: { enabled: true, anchor: 'codex', match: ['Codex'], caseSensitive: true },
+  };
+  const KUBERNETES = {
+    term: 'Kubernetes',
+    en: 'Kubernetes',
+    aliases: ['K8s'],
+    category: 'platforms',
+  };
+
+  function writeGlossary(repo: string, entries: object[]): void {
+    fs.writeFileSync(
+      path.join(repo, 'src', 'data', 'glossary.json'),
+      `${JSON.stringify(entries, null, 2)}\n`
+    );
+  }
+
+  function writeLegacyPost(post: string, body: string): void {
+    fs.writeFileSync(post, `---\n${LEGACY_FRONTMATTER}\n---\n${body}\n`);
+  }
+
+  function seedLegacyGlossaryPost(body: string, glossary = [CODEX, KUBERNETES]) {
+    const repo = makeFakeRepo();
+    seedLinkMaintenanceRepo(repo);
+    writeGlossary(repo, glossary);
+    const post = path.join(repo, 'src', 'content', 'posts', 'mp-212-legacy-glossary.mdx');
+    writeLegacyPost(post, body);
+    commitAll(repo, 'base legacy post without scores');
+    return { repo, post };
+  }
+
+  function commitThroughHook(repo: string) {
+    const head = () => execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf-8' }).trim();
+    execSync('git add -A', { cwd: repo });
+    const before = head();
+    const r = spawnSync(
+      'git',
+      ['-c', 'core.hooksPath=.githooks', 'commit', '-q', '-m', 'glossary link maintenance'],
+      { cwd: repo, env: makeScoreGateProbeEnv(), encoding: 'utf-8' }
+    );
+    return { status: r.status, output: r.stdout + r.stderr, committed: head() !== before };
+  }
+
+  function expectCommitted(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status, r.output).toBe(0);
+    expect(r.committed).toBe(true);
+    expect(r.output).not.toContain('score-check-sentinel');
+  }
+
+  function expectGated(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status).not.toBe(0);
+    expect(r.committed).toBe(false);
+    expect(r.output).toContain('SCORE GATE FAILED');
+    expect(r.output).toContain('score-check-sentinel');
+    expect(r.output).not.toContain('--no-verify');
+  }
+
+  it('commits a new entry together with its backfilled link in a legacy post', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。', [CODEX]);
+    writeGlossary(repo, [CODEX, KUBERNETES]);
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會把狀態拉回來。');
+
+    expectCommitted(commitThroughHook(repo));
+    expect(
+      execSync('git show HEAD:src/data/glossary.json', { cwd: repo, encoding: 'utf-8' })
+    ).toContain('"term": "Kubernetes"');
+  });
+
+  it('commits an anchor case fix that keeps the original link text', () => {
+    const { repo, post } = seedLegacyGlossaryPost('詳見 [glossary 有完整拆解](/glossary#Codex)。');
+    writeLegacyPost(post, '詳見 [glossary 有完整拆解](/glossary#codex)。');
+
+    expectCommitted(commitThroughHook(repo));
+  });
+
+  it('gates a backfill that also edits prose', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。');
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會自動把狀態拉回來。');
+
+    expectGated(commitThroughHook(repo));
+  });
+});
+
 describe('pre-commit: every staged post goes through the source-distance stamp check', () => {
   // 只改站內連結的 GP 會被 content gate 放過（不跑 validate-posts），但連結文字可能在
   // 投影裡，所以驗章要另外跑、而且擋得住（openspec source-distance-stamp）。
@@ -825,6 +917,16 @@ describe('pre-push: Tribunal PASS artifact audit', () => {
 
     expect(r.status).toBe(1);
     expect(r.stdout + r.stderr).toMatch(/progress-only Tribunal PASS commit/);
+  });
+});
+
+describe('pre-commit: failure messages point to a fix', () => {
+  it('never suggests bypassing the hook with --no-verify', () => {
+    const messages = fs
+      .readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'), 'utf-8')
+      .split('\n')
+      .filter((line) => /^\s*echo\b/.test(line));
+    expect(messages.filter((line) => line.includes('--no-verify'))).toEqual([]);
   });
 });
 

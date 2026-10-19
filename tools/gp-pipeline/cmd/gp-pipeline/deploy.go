@@ -125,7 +125,7 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 	if err := deploypkg.ValidatePostBasenames(opts.ActiveFilename, opts.ActiveENFilename); err != nil {
 		return newExitError(1, err)
 	}
-	prefix, err := resolveSeries("deploy", opts.Prefix, opts.PrefixSet, "--active-file", opts.ActiveFilename)
+	prefix, err := resolveSeries("deploy", opts.Prefix, opts.PrefixSet, "--active-file", opts.ActiveFilename, counter.ValidPrefixes)
 	if err != nil {
 		return newExitError(1, err)
 	}

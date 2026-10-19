@@ -1,0 +1,436 @@
+---
+ticketId: 'Lv-18'
+title: 'Kubernetes 其實是一家餐廳：每個名詞，都是被上一個麻煩逼出來的'
+originalDate: '2026-10-10'
+translatedDate: '2026-10-12'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Author"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "Claude Code"
+source: "Level-Up 系列 / @livingdevops"
+sourceUrl: 'https://x.com/livingdevops/status/2108920063441137762'
+lang: 'zh-tw'
+summary: '星期五中午，二號廚房的電箱跳了，三位廚師瞬間消失，店裡卻沒人慌張，餐照樣出、客人照樣帶位。這篇把 Kubernetes 蓋成一家餐廳，從 Pod、Service、Ingress、Secret 一路走到自動擴縮，看每個名詞是被哪個麻煩逼出來的。走完七層，讀者能把那場午餐事故慢動作重播一次，叫出每個動作背後是誰，也會知道預設的 Secret 其實沒有上鎖。'
+tags: ['level-up', 'kubernetes', 'devops', 'infrastructure', 'tutorial', 'security']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 9
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-12"
+    model: "claude-opus-5-5"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+import Mermaid from '../../components/Mermaid.astro';
+
+星期五中午，二號廚房的電箱跳了。
+
+那間廚房裡三位燒烤站的廚師，連同手上的鍋子，一起從這家店的帳上消失。接下來沒有人打電話叫老闆，也沒有人衝進後場大喊。有幾桌的餐慢了一點，然後一切照常：新的三位廚師在別的廚房開工，餐照樣從同一個出餐口出來，門口的領檯照樣帶位。店裡甚至自己多開了一間廚房，等中午這波人潮散了，又自己收掉。
+
+這家店叫 [Kubernetes](/glossary#kubernetes)。剛剛那段午餐小事故裡，藏著一整串讓新手眼神放空的名詞：`Pod`、`Deployment`、`Service`、`Ingress`、`ConfigMap`、`Secret`、HPA、Karpenter，一個都沒少。
+
+這篇的骨架，來自 @livingdevops 在 X 上的[一則推文](https://x.com/livingdevops/status/2108920063441137762)。推文開頭第一句是：
+
+> Every Concept Has a Story, you just don't know it yet.
+>
+> （每個概念背後都有一段故事，只是你還不知道而已。）
+
+推文把每個名詞寫成「被上一個麻煩逼出來的解法」，一個接一個。gu-log 沿著這條線，把它蓋成一家真的餐廳。走完七層，應該能自己把那個星期五中午從頭重播一次，而且每個動作都叫得出是誰做的。
+
+先倒帶，回到開幕第一天。那天店裡只有一間廚房，廚房裡只有一位廚師。
+
+## 第 1 層：廚師會倒
+
+<LevelUpProgress current={1} total={7} title="Kubernetes 餐廳開張記" />
+
+開幕第一天的配置寒酸得很誠實。總部有一套標準訓練，照它訓練出來的廚師，刀工、火候、擺盤一模一樣，這套訓練就是**容器映像檔**。照著這套訓練、實際站上爐台的那一位廚師，叫 `Pod`，是 Kubernetes 能調度的最小單位。（嚴格說，Pod 裡面跑的是容器，一個 Pod 可以裝好幾個；但多數時候一個 Pod 就是一個容器，先當成一位廚師就好。）
+
+廚師站的那間廚房，Kubernetes 叫**節點**（`Node`），也就是一台真正跑程式的機器：爐口是 CPU，檯面是記憶體。好幾間廚房加起來、整家店，叫**叢集**（`Cluster`）。
+
+推文對這位廚師的命運寫得很冷：Pod 當掉之後，"nobody restarts it. It is just gone."（沒有人會重啟它，它就這樣不見了。）
+
+這句要稍微精確一點，算是 gu-log 的補充。廚師恍神、把一鍋菜燒焦，也就是容器裡的程式當掉，廚房的現場主管 `kubelet` 會叫這位廚師原地重來，人還是同一位，Pod 也還是同一個。真正回不來的，是**整位廚師不見了**：廚房斷電、Pod 被刪掉、或被趕出廚房。那一位就永遠走了，沒有人會去把「那一位」找回來。
+
+於是店長在辦公室掛了一塊大白板，寫上第一行：「燒烤站：隨時 3 人」。這一行，Kubernetes 叫 `Deployment`。再請一位排班經理專門盯這一行、少人就補，這位經理是它的控制器。白板寫 3、現場只剩 2，經理立刻再開一位。少掉的是誰、為什麼少，經理一概不問，只負責數到 3。
+
+<AnalogyBox title="白板與排班經理">
+白板上寫的是**想要的狀態**（`desired state`），實際存在叢集的資料庫 `etcd` 裡。排班經理自己不炒菜，只做一件事：反覆比對白板跟現場，兩邊對不上，就動手把現場改成白板寫的樣子。
+
+這種「盯著白板某一行」的角色，Kubernetes 統稱為控制器（`controller`）。這家店接下來還會再請好幾位，每一位都只盯自己那一行。
+</AnalogyBox>
+
+排班經理還有兩個習慣，順便認識一下。第一，經理底下有個專門點人頭的班長，叫 `ReplicaSet`，真正去數人數的是班長。第二，總部改版訓練內容（推出新版映像檔）時，經理不會把燒烤站一口氣換光，而是分批換人。被換下來的舊廚師會先收到一張「準備下班」的通知，也就是 `SIGTERM`，[預設有 30 秒](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination-flow)把手上那盤菜做完；時間到還沒走，才會被直接請出去，也就是 `SIGKILL`。這兩種信號的差別，[Lv-11](/posts/levelup-20260312-11-unix-signals-process-management/) 講過。
+
+<MoguNote>
+`ReplicaSet` 這個職位，[官方文件自己都寫了](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)：建議用 `Deployment`，不要直接操作 `ReplicaSet`。官方都叫人別碰了，初學者第一天就放心把班長當空氣吧。
+
+我甚至覺得，很多教材一開場就畫出 `Deployment`、`ReplicaSet`、Pod 三層組織圖，是在用完全正確的資訊把人嚇跑。這就像客人進門想點一碗牛肉麵，店員先遞上一張廚房人事架構表。哪天在 `kubectl` 的輸出裡撞見一串名字很長的 `ReplicaSet`，知道「喔，那是班長」就夠了 ┐(￣ヘ￣)┌
+</MoguNote>
+
+排班經理補人補得飛快，白板上的 3 永遠守得住。只是補上來的，每次都是一位**新的**廚師：新名字，還有一支新的分機號碼。
+
+<LevelUpQuiz
+  question="哪一種情況，會換來一個全新的 Pod（新名字、新 IP）？"
+  options={[
+    { label: "A", text: "容器裡的程式當掉一次" },
+    { label: "B", text: "那個 Pod 所在的整個節點斷電" },
+    { label: "C", text: "容器用的記憶體超過上限被砍掉" },
+    { label: "D", text: "廚師被客訴，當場遞辭呈" },
+  ]}
+  answer="B"
+  explanation="節點斷電時，上面的 Pod 整個跟著沒了，不會復活，排班經理只能照白板開一個新的 Pod，名字跟 IP 都是新的。A 跟 C 都只是容器出事，廚房的現場主管 kubelet 會在同一個 Pod 裡把容器原地重啟，Pod 的名字跟 IP 都不變。D 很有戲，但 Kubernetes 不收辭呈。"
+/>
+
+---
+
+## 第 2 層：每次換人就換分機
+
+<LevelUpProgress current={2} total={7} title="Kubernetes 餐廳開張記" />
+
+外場領班拿起電話，撥燒烤站的分機 117。響了很久，接起來的人一臉茫然：「117？那位上週就不在了。」
+
+上一層的盡責，在這裡反咬一口。每位廚師都有自己的分機，也就是每個 Pod 自己的 IP；排班經理每補一位新人，號碼就跟著換一次。IP 一直在變，服務一多，根本不可能把號碼寫死在別人的設定裡。
+
+<MoguNote>
+寫死 IP 最陰的地方是：它不會讓系統當場壞掉。測試會過、上線會跑、一切看起來都很好，然後它會挑一個最不方便的時間點壞掉，通常是某個 Pod 剛好被換掉的那個瞬間，而那個瞬間通常剛好是半夜。
+
+所以我對這件事的態度很簡單：程式裡看到寫死的 Pod IP，就當成一顆還沒爆的地雷處理。站名喊得出來，就別背號碼。
+</MoguNote>
+
+解法是一條**站別專線**，Kubernetes 叫它 `Service`。這條專線不記任何人的號碼，它只認圍裙。燒烤站每位廚師的圍裙上都繡著同一行字：`station: grill`，這行字就是 `label`（標籤）。專線靠標籤挑人，圍裙繡著 `grill`、此刻在班的廚師，誰有空電話就轉給誰。廚師來來去去，專線號碼從來不換。
+
+光有固定號碼，人類還是嫌麻煩。所以店裡還有一套廣播系統，也就是 DNS：不用背號碼，直接喊 `grill` 就好。同一個命名空間（先想成同一層樓）裡喊站名就通；要寫全名的話，長這樣：`grill.default.svc.cluster.local`。
+
+<AnalogyBox title="專線只認圍裙，不認人">
+專線那頭的名單會自動更新：新廚師只要圍裙繡對，就自動上名單；有人倒下，名字自動消失。
+
+麻煩在「繡對」兩個字。專線找的是 `station: grill`，新來的一批圍裙卻繡成 `station: gril`，少一個字母。廚師個個在班、手腳俐落，專線名單上卻一個人都沒有，電話打過去只有一直響。`Service` 的 `selector` 跟 Pod 的 `label` 只要差一個字，就是這個下場，而且不會有任何地方跳出錯誤提醒。
+</AnalogyBox>
+
+專線很好用，但有個限制：預設型別 `ClusterIP` 的專線，只有店內打得通。燒烤站跟湯品站可以互相打電話，可是街上的客人，連店門在哪都不知道。
+
+<LevelUpQuiz
+  question="Service 為什麼用 label 找 Pod，而不是直接記住 Pod 的 IP？"
+  options={[
+    { label: "A", text: "因為 IP 屬於機密資料，Kubernetes 規定不能存" },
+    { label: "B", text: "因為用 label 查詢比用 IP 連線更快" },
+    { label: "C", text: "因為 Pod 換人就換 IP，label 跟著站別走，不跟著人走" },
+    { label: "D", text: "因為圍裙繡字比背號碼有質感" },
+  ]}
+  answer="C"
+  explanation="Pod 隨時會被換掉，新的 Pod 通常拿到新的 IP，記 IP 等於記一支隨時會失效的分機。label 標的是工作性質，新廚師只要圍裙繡對，就自動被專線找到。A 不對，IP 不是機密，只是會變。B 也不對，用 label 圖的是穩定，跟速度無關。"
+/>
+
+---
+
+## 第 3 層：街上的客人從哪個門進來
+
+<LevelUpProgress current={3} total={7} title="Kubernetes 餐廳開張記" />
+
+月底，帳單寄來了。
+
+為了讓街上的客人進得來，燒烤站、湯品站、甜點站……十個站各自對街開了一扇門，每扇門口還請了一位門房。這就是把 `Service` 開成 `LoadBalancer` 型別：雲端供應商替每個 `Service` 開一台對外的負載平衡器，每一台都另外收錢。十扇門裡，有六扇整天幾乎沒有客人走進來。推文替這張帳單補了一句：
+
+> Your cloud bill does not care that 6 of them handle almost no traffic.
+>
+> （雲端帳單才不管其中六個幾乎沒流量。）
+
+收法是把十扇門封到只剩一扇大門，門口貼一張**帶位規則表**：找 `api.` 開頭網域的帶去 API 站，網址路徑是 `/menu` 的帶去菜單站，其餘的帶去大廳。這張表叫 `Ingress`，它依照客人要找的網域跟網址路徑，把人帶到對的專線。
+
+規則表貼好了。客人站在門口。沒有人理他們。
+
+這是整家店最好笑、也最多人卡關的一幕：`Ingress` 只是規則，本身不會執行任何事。規則表是紙，紙不會帶位。要有一位真的站在門口、照著規則表把客人領進去的**領檯**，Kubernetes 叫它 `Ingress` 控制器（`Ingress controller`）。推文舉的人選是 Nginx、Traefik、`AWS Load Balancer Controller`。
+
+領檯還有一個特殊身分：這家店第一位得**自己請**的經理。排班經理那一票控制器，跟著店一起開門上班；領檯不會。要哪一位、從哪裡請、怎麼裝，得自己挑。
+
+<AnalogyBox title="規則表與領檯">
+規則表（`Ingress`）寫的是「什麼樣的客人帶去哪條專線」。領檯（`Ingress` 控制器）是一個真的在店裡跑的程式，讀這張表，然後親手把每一位客人領到對的地方。
+
+只貼表不請人，門口就是一張很漂亮的告示；只請人不貼表，領檯就站在那邊不知道該帶誰去哪。兩個都要有，大門才會動起來。
+</AnalogyBox>
+
+說到挑領檯，門口最多店家請的那位老牌領檯，社群維護的 `ingress-nginx`，已經在 2025 年 11 月[公告退休](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/)：2026 年 3 月起不再出新版本、不修 bug、不補安全漏洞，已經站在門口的還能繼續帶位，只是從此沒有保固。別認錯人，它不是 nginx 網頁伺服器本身，也不是 F5 那位名字很像的 `NGINX Ingress Controller`。官方建議的出路，是換成 Gateway API（新一代的帶位規則格式），或另外面試一位 `Ingress` 控制器。
+
+<MoguNote>
+這裡要先自首。gu-log 在 [Lv-03](/posts/levelup-20260213-03-one-domain-multi-services/) 介紹 `Ingress` 控制器時，把 NGINX 寫成「最老牌、最多人用」。那篇是 2026 年 2 月 13 日寫的，而退休公告 2025 年 11 月 11 日就貼出來了。也就是說，公告在佈告欄上掛了三個月，gu-log 從它面前走過去，沒抬頭 (￣▽￣)／
+
+不過我覺得這個糗事剛好說明一件事：該記的從來不是「哪一家領檯最紅」。人選會換，連老牌都會退休；不會換的是「規則跟執行者分開」這個設計。只要記得規則表要配一位領檯，哪天領檯換人，重新面試一位就好，店不用重開。
+</MoguNote>
+
+<LevelUpQuiz
+  question="Ingress 規則已經套用到叢集，外面的流量卻完全進不來，最可能的原因是什麼？"
+  options={[
+    { label: "A", text: "Ingress 規則要等隔天才會生效" },
+    { label: "B", text: "Service 太多，Ingress 一次只能接一個" },
+    { label: "C", text: "大門還貼著「本日公休」" },
+    { label: "D", text: "叢集裡根本沒裝 Ingress 控制器" },
+  ]}
+  answer="D"
+  explanation="Ingress 只是一張規則表，真正照表帶位的是 Ingress 控制器，而它不像其他內建控制器會跟著叢集自動上班，要自己選、自己裝。沒裝領檯，規則寫得再漂亮也沒人執行。A 不對，規則沒有等待期。B 也不對，一張 Ingress 本來就能把流量分給很多個 Service，這正是它存在的理由。"
+/>
+
+---
+
+## 第 4 層：食譜跟密碼不能背在腦袋裡
+
+<LevelUpProgress current={4} total={7} title="Kubernetes 餐廳開張記" />
+
+信義分店的燒烤站照常叫貨。中午貨車到了，卸下來的卻是總店的食材，訂單也是照總店的供應商下的。
+
+原因很蠢：「跟哪家供應商叫貨」被直接寫進了標準訓練。換回程式的世界，就是把設定寫死在容器映像檔裡：測試環境連到錯的資料庫、正式環境用了錯的 API 金鑰，而且每改一次設定，就得重建一次映像檔。等於每換一次菜單，就把全店廚師送回總部重新受訓。
+
+解法是把這些會變的東西，從訓練裡拿出來，寫成一張貼在廚房牆上的**工作單**：今天的湯、找哪家供應商、連哪個資料庫。這張工作單叫 `ConfigMap`。廚師上工時看牆，不看腦袋，所以同一套訓練可以直接派到開發、測試、正式環境，每家分店貼自己的工作單就好。
+
+工作單太好用，大家開始什麼都往牆上貼，包括資料庫密碼。問題是 `ConfigMap` 本來就不是拿來保密的，[官方文件明講它不提供保密或加密](https://kubernetes.io/docs/concepts/configuration/configmap/)；有基本 `kubectl` 權限的人，路過牆邊就能抄走。推文對這種做法的評語是：
+
+> That is not a mistake. That is a security incident.
+>
+> （這不是失誤，這是資安事件。）
+
+推文給的解法，是把密碼收進**保險箱**，也就是 `Secret`：機密資料跟一般設定分開放，有自己的存取控管，映像檔本身完全碰不到它。故事寫到這裡，像是結案了。
+
+gu-log 要在這裡補一刀，因為故事沒講到的那部分，正好最容易出事。剛裝好的 Kubernetes，`Secret` 預設是**沒有加密**的，就這樣存在叢集的資料庫 `etcd` 裡。那串看起來像亂碼的值是 base64，而 base64 是編碼，不是加密，一行就能轉回來：
+
+```bash
+$ echo -n 'hunter2' | base64
+aHVudGVyMg==
+$ echo 'aHVudGVyMg==' | base64 -d
+hunter2
+```
+
+<AnalogyBox title="牆上的工作單，透明的保險箱">
+`ConfigMap` 是貼在廚房牆上的工作單，誰經過都看得到，本來就是設計給大家看的。
+
+`Secret` 是保險箱，但預設是透明壓克力做的：鎖頭有裝，箱子看得穿。更好笑的是，保險箱裡的東西，其實也是店長白板上的一行（白板上的每一行，都存在 `etcd` 這個資料庫裡），只是用注音寫：乍看不像國字，認得注音的人一眼就讀得出來。base64 就是那層注音。
+</AnalogyBox>
+
+能存取 API 或 `etcd` 的人，都讀得到箱子裡的東西。還有一條更隱蔽的路：在某個命名空間裡有權限建立 Pod 的人，就能讀到那個命名空間裡所有的 `Secret`，連「能建立 `Deployment`」這種間接權限都算。能叫廚師來上班的人，就能叫廚師去開保險箱。
+
+補法就照著這兩條路來。
+
+直接翻白板（`etcd`）那條，靠[靜態加密](https://kubernetes.io/docs/tasks/administer-cluster/encrypt-data/)（`encryption at rest`）堵。API 伺服器把 `Secret` 寫進 `etcd` 之前，先加密一次，等於把白板上那幾行真的鎖起來。鑰匙最好交給叢集外的 KMS（金鑰管理服務）保管，不跟保險箱放在同一間辦公室。不過加密只擋得住拿到 `etcd` 或它備份的人，擋不住有權限從 API 讀的人。
+
+從 API 讀、或叫廚師去開保險箱那條，要靠 RBAC（依角色決定誰能做什麼的權限設定）堵。誰能讀 `Secret`、誰能建立 Pod 跟 `Deployment` 這類工作負載，都照最小權限給。
+
+公平地說，`Secret` 分開管、能單獨收權限、只送到需要它的節點，這些 `ConfigMap` 都給不了。它缺的，只是出廠那把**鎖**。
+
+<MoguNote>
+我認為 `Secret` 這個名字欠全世界一個道歉。
+
+取名叫「秘密」，文件裡寫著要開加密，結果出廠預設沒加密。名字給人的安全感，跟它出廠的實際狀態差了一大截，而一般人只會記得名字。這就像一家鎖店把透明塑膠盒取名叫「金庫」，然後在說明書第八頁小小寫一行「建議另購鎖頭」。
+
+所以我的建議很直接：把「開靜態加密、收 RBAC」當成建叢集那天就做的事，不要等資安稽核來敲門才想起來。
+</MoguNote>
+
+<LevelUpQuiz
+  question="剛裝好、什麼都沒另外設定的 Kubernetes，Secret 存在 etcd 裡是什麼狀態？"
+  options={[
+    { label: "A", text: "沒有加密，只是 base64 編碼過" },
+    { label: "B", text: "已經用 AES 加密，安全無虞" },
+    { label: "C", text: "只有叢集管理員看得到" },
+    { label: "D", text: "存在雲端廠商的金庫裡" },
+  ]}
+  answer="A"
+  explanation="Secret 預設以未加密的形式存在 etcd，base64 只是換一種寫法，一行指令就轉回來。B 的加密要自己開啟靜態加密才會有。C 也不對，能在某個命名空間建立 Pod 的人，就能讀到那個命名空間的 Secret，不只管理員。D 要另外設定 KMS，鑰匙才會放進叢集外的金庫，預設沒有這回事。"
+/>
+
+---
+
+## 第 5 層：一位廚師占掉整間廚房
+
+<LevelUpProgress current={5} total={7} title="Kubernetes 餐廳開張記" />
+
+三號廚房有一位廚師，今天特別有幹勁。食材從自己的檯面攤到隔壁的炸物站，再一路鋪到甜點站跟洗碗區。這位廚師沒有惡意，只是從來沒有人說過檯面有界線。沒過多久，整間廚房的其他人都沒地方切菜了。
+
+這個場景在推文裡排在最後一個：某個 Pod 吃到 4GB 記憶體，而從來沒有人告訴 Kubernetes 這樣不行；同一台節點上的其他 Pod 全被餓死，連鎖反應就此開始。解法是 `requests` 跟 `limits`。gu-log 把這段提前到自動擴縮之前，理由很實際：下一層的 HPA 算百分比時，分母就是 `requests`。
+
+`requests` 是開工前的**登記表**：「這位廚師至少要兩口爐、一張檯面。」負責分派新廚師去哪間廚房的排程員（`Scheduler`），看的就是這張登記表，只會把廚師派到還塞得下這份登記的廚房。
+
+`limits` 是**上限**，由廚房的現場主管 `kubelet` 執行。CPU 跟記憶體超過上限的下場完全不同：
+
+- **CPU 超過**：被限速。爐火被調小，菜出得慢，但人還在。
+- **記憶體超過**：容器可能被 `OOMKilled`。檯面堆爆，人被請出去，接著原地重來。
+
+一直被請出去、一直重來，狀態就會變成 `CrashLoopBackOff`：每次重來之前等得更久，[10 秒、20 秒、40 秒……最多等到 5 分鐘](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy)，免得一個壞掉的容器把整間廚房拖進無限重啟。
+
+<MoguNote>
+`CrashLoopBackOff` 大概是 Kubernetes 裡最誠實的狀態名。翻成白話就是：「我一直倒，而且越來越不想爬起來。」
+
+我對記憶體上限的建議偏保守：先量實際用量，再設上限，不要憑感覺壓。壓太緊省不了多少記憶體，只會換來在 `kubectl get pods` 裡看著同一個 Pod 的重啟次數一路往上跳，陪它重播一整晚 (ง •̀_•́)ง
+</MoguNote>
+
+完全不設 `limits` 呢？那一個容器可以把整間廚房的檯面吃光，同一間廚房的其他廚師跟著遭殃。三號廚房那場災難，就是這樣來的。
+
+<AnalogyBox title="爐火與檯面">
+爐火（CPU）可以分著用：火被調小，菜照樣煮得出來，只是慢一點。
+
+檯面（記憶體）沒辦法分著用：東西已經堆在上面了，要騰出空間只能整個清掉。所以 CPU 超標的懲罰是「變慢」，記憶體超標的懲罰是「被請出去」。
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="容器用的記憶體超過 limit，最可能發生什麼事？"
+  options={[
+    { label: "A", text: "被限速，跑得比較慢但不會停" },
+    { label: "B", text: "Kubernetes 自動幫它多加一點記憶體" },
+    { label: "C", text: "容器可能被 OOMKilled，接著原地重啟" },
+    { label: "D", text: "其他廚師集資幫它買一張新檯面" },
+  ]}
+  answer="C"
+  explanation="記憶體超過 limit 時，容器可能被砍掉，狀態顯示 OOMKilled，再由 kubelet 原地重啟；一直重複就會進入 CrashLoopBackOff。A 是 CPU 超過上限的下場，不是記憶體。B 不會發生，limit 就是上限，Kubernetes 不會替容器偷偷加碼。"
+/>
+
+---
+
+## 第 6 層：客人忽多忽少
+
+<LevelUpProgress current={6} total={7} title="Kubernetes 餐廳開張記" />
+
+週六晚上，一萬位客人。週二晚上，一百位。
+
+週六那天，店長手動把燒烤站加到 8 位廚師，總算撐過尖峰。然後是另一個畫面：8 位廚師站在幾乎沒人的廚房裡，閒了一整晚，薪水照付。人不可能永遠守在叢集旁邊顧。
+
+解法是一位**臨時工調度**，叫 HPA（水平自動擴縮器，正式名稱 `HorizontalPodAutoscaler`）。這位調度員做的事，比名字聽起來單純很多：它**去改白板上的數字**。燒烤站太忙，就把白板的「3 人」改成「5 人」，也就是把 `Deployment` 的 `replicas` 從 3 改成 5；接下來排班經理看到白板變了，照常補人。人潮散了，再把數字改回來。
+
+多忙算忙，由人自己設一條忙碌線，推文舉的例子是 CPU 70%，[官方教學範例用的是 50%](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale-walkthrough/)。關鍵在這個百分比怎麼算：CPU 使用率 = 實際用量 ÷ `requests`。廚師沒登記 `requests`，HPA 就算不出這個指標，什麼都不會做。上一層要先講登記表，就是為了這一刻。
+
+新麻煩緊接著來。HPA 把白板改成 8 位，排班經理也開了 8 個 Pod，可是每間廚房都滿了，新廚師卡在門口進不去，狀態顯示 `Pending`。HPA 盡責了，排班經理也盡責了，是店裡沒有位子。
+
+所以還需要一位**加開廚房的人**，這家店有兩種人選。[Karpenter](https://karpenter.sh/)（最早由 AWS 做出來，現在在 `kubernetes-sigs/karpenter`）像是現場訂做廚房的包商：看到門口有 `Pending` 的廚師，就照他們登記的需求，蓋一間大小剛好的新廚房；人潮散了，再把空下來的廚房合併、收掉。`Cluster Autoscaler` 比較像照型錄叫貨：店裡事先備好幾種廚房規格，缺位子就從裡面挑一種加開。這兩位跟門口的領檯一樣，不會跟著店一起開門，得自己請。
+
+<MoguNote>
+推文說自動擴縮之後 "You only pay for what you actually use."（只為真正用到的付錢。）這句我要打點折扣。
+
+帳單算的是廚房，不是菜。一間廚房開著，就算只用到一半爐口，也是整間廚房的錢；自動擴縮砍得掉的，是週二晚上那一大片閒置；而且系統永遠會留一點空間給下一位客人。另一件更要緊的事：沒設 `requests` 就開自動擴縮，HPA 量不出忙不忙，Karpenter 也不知道該開多大的廚房，等於矇著眼開店。
+</MoguNote>
+
+<LevelUpQuiz
+  question="某個 Deployment 完全沒設 CPU requests，HPA 卻設定成 CPU 超過 70% 就加 Pod，會發生什麼事？"
+  options={[
+    { label: "A", text: "HPA 改用整台節點的 CPU 當分母，照樣運作" },
+    { label: "B", text: "HPA 算不出 CPU 使用率，對這個指標不會有動作" },
+    { label: "C", text: "HPA 會一口氣把 Pod 加到最大數量" },
+    { label: "D", text: "HPA 打電話到總部，要求重新培訓所有廚師" },
+  ]}
+  answer="B"
+  explanation="HPA 的 CPU 使用率是拿實際用量除以 requests 算出來的，沒有 requests 就沒有分母，算不出百分比，HPA 對這個指標就不採取動作。A 不對，HPA 不會自己換一個分母。C 也不對，算不出指標時 HPA 不會亂加 Pod，它只是不動。"
+/>
+
+---
+
+## 最終魔王：星期五中午，慢動作重播
+
+<LevelUpProgress current={7} total={7} title="Kubernetes 餐廳開張記" />
+
+回到那個星期五中午。這次放慢速度，每個動作都點名。
+
+二號廚房的電箱跳了。掛著白板的那間辦公室最先發現的是「二號廚房聯絡不上」，於是先把那間廚房的三位燒烤站廚師從專線名單上拿掉，外場的電話不再轉給他們。
+
+接著是一段刻意的等待。[預設再等 5 分鐘](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/#taint-based-evictions)，確定二號廚房真的回不來，那三個 Pod 才被判定撤掉。（為什麼不立刻換？網路抖一下就把整間廚房的人全部換掉，代價比多等一下大得多。）
+
+排班經理看了一眼白板：燒烤站要 3 位，現在 0 位。開 3 個新 Pod。
+
+排程員拿著三位新廚師的登記表找廚房，其他廚房都滿了，三位新廚師只能站在門口，狀態 `Pending`。
+
+Karpenter 看到門口有人在排隊，照登記表上的需求，開了一間大小剛好的新廚房。
+
+新廚房的現場主管 `kubelet` 照著標準訓練（映像檔）把三位廚師叫起來，把工作單（`ConfigMap`）貼上牆，把保險箱（`Secret`）裡的東西交給需要的廚師。開工。
+
+三位新廚師的圍裙上繡著 `station: grill`，專線自動開始把電話轉給他們。門口的領檯從頭到尾都沒發現出過事，照樣帶位。
+
+然後午餐尖峰到了，CPU 一路往上衝。HPA 把白板上的 3 改成 5，同一套接力再跑一輪：排班經理開 Pod、排程員找廚房、找不到就 Karpenter 開廚房。人潮散了，HPA 把 5 改回 3，Karpenter 把空下來的廚房收掉。
+
+<Mermaid chart={`graph TD\n    A[二號廚房斷電] --> B[失聯的廚師從專線名單移除]\n    B --> C[等待確認後 Pod 被撤掉]\n    C --> D[排班經理照白板開新 Pod]\n    D --> E[排程員找不到位子 Pending]\n    E --> F[Karpenter 開新廚房]\n    F --> G[kubelet 讓新廚師上工]\n    G --> H[專線依圍裙自動轉接]\n    I[HPA 改白板人數] --> D`} caption="星期五中午的接力：每一棒只管自己那一段" />
+
+<LevelUpQuiz
+  question="二號廚房斷電後，哪一個順序最接近實際發生的事？"
+  options={[
+    { label: "A", text: "HPA 發現少了三個 Pod，負責把它們補回來" },
+    { label: "B", text: "Karpenter 先開好新節點，才發現燒烤站少了三個人" },
+    { label: "C", text: "撤掉失聯 Pod → 開新 Pod → Pending → 開新節點" },
+    { label: "D", text: "老闆親自衝進廚房，脫下西裝外套開始炒菜" },
+  ]}
+  answer="C"
+  explanation="整串接力是一棒接一棒：先發現失聯、撤掉 Pod，排班經理照白板補人，排程員找不到位子才變 Pending，Karpenter 看到 Pending 才去開節點，新 Pod 上工後 Service 自動轉給它們。A 搞錯人，補回死掉的 Pod 是排班經理的工作，HPA 只看忙不忙、改白板上的人數。B 的順序反了，Karpenter 是看到 Pending 才動手。D 是這家店最不需要的那個人。"
+/>
+
+這場接力裡反覆出現的，其實是同一招：**一行白板，配一位專門盯它的經理**。經理不管事情怎麼壞，只管把現實改回白板寫的樣子。`Deployment` 配排班經理，`Ingress` 配領檯，HPA 的忙碌線配臨時工調度，Karpenter 的 `NodePool` 配加開廚房的人。第 3 層門口那張沒人理的規則表，就是只有白板、沒有經理的下場：什麼都不會發生。
+
+燒烤站在白板上的那一行，真的長這樣：
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grill            # 燒烤站
+spec:
+  replicas: 3            # 白板：隨時要有 3 位廚師
+  selector:
+    matchLabels:
+      station: grill
+  template:
+    metadata:
+      labels:
+        station: grill   # 圍裙上的站別
+    spec:
+      containers:
+        - name: cook
+          image: grill-cook:1.4      # 標準訓練（映像檔）
+          resources:
+            requests:
+              cpu: 200m              # 登記：保證的爐火
+              memory: 256Mi          # 登記：保證的檯面
+            limits:
+              memory: 512Mi          # 檯面最多到這裡
+```
+
+這塊白板還可以再加新的欄位。Kubernetes 允許使用者自己定義新的資源種類，叫 CRD（`CustomResourceDefinition`）：在白板上加一種新欄位，再請一位新經理來盯它，又是一對。Gateway API、Karpenter 用來描述廚房規格的 `NodePool`，都是這樣加進這家店的。白板能一直加欄位，店裡的新名詞只會越來越多；下次在廚房撞見一個沒看過的名字，先別急著背它的定義，先問它是被哪一場麻煩逼出來的。
+
+---
+
+## 延伸閱讀
+
+- [Lv-03：一個網域，多個服務](/posts/levelup-20260213-03-one-domain-multi-services/)（`Ingress` 跟網域分流那一整棟，從 DNS 一路蓋上去）
+- [Lv-11：Unix 信號與行程管理](/posts/levelup-20260312-11-unix-signals-process-management/)（廚師收到「準備下班」通知時，實際收到的是哪一個信號）
+- [SD-18「Permission Engineering」](/posts/sd-18-20260403-permission-engineering-for-ai-agents/)（第 4 層「照最小權限給」那把尺，換成 AI agent 拿鑰匙，會難上一個量級；文中也提到 K8s RBAC）

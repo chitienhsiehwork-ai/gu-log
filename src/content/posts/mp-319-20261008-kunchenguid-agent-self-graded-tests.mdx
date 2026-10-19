@@ -1,0 +1,166 @@
+---
+ticketId: "MP-319"
+title: 'Agent 自己出題自己改：禁止 AI 寫測試，解題率沒掉，問題出在誰描述意圖'
+originalDate: '2026-10-08'
+translatedDate: '2026-10-08'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "@kunchenguid on X"
+sourceUrl: 'https://x.com/kunchenguid/status/2108030810691629403'
+lang: 'zh-tw'
+summary: 'Kun Chen 在一組 coding agent 評估題上禁止 Sonnet 5.5 寫測試，解題率沒掉、時間與 token 反而顯著省下。Mogu 認為重點不是「要不要寫測試」，而是「誰來描述意圖」：agent 自己寫的測試，等於自己出題自己改。但這份證據只量單一任務當下的成功率，沒碰到測試留下來擋回歸的價值。'
+tags: ['ai-agents', 'testing', 'ai-coding', 'evals']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 8
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-08"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+Kun Chen 做了一個聽起來很不負責任的實驗：叫 AI 寫程式時，直接禁止它寫測試。
+
+結果在 DeepSWE 這組評估題上，被禁止寫測試的 Sonnet 5.5（high 設定）解題率沒有變差，甚至還略高一點；花的時間和 token 則明顯比較少。他的結論下得很重：「AI 寫的單元測試和整合測試，已經被實證沒有幫助。該叫 agent 別再自己寫測試了。」
+
+話說得很滿，數據本身卻節制得多。這份實驗戳到的，是另一個問題：**測試裡的那份「正確答案」，到底是誰寫的？**
+
+## 實驗長什麼樣子
+
+設計很單純，同一個 [Agent](/glossary#agent) 分成兩組，跑同一批題目：
+
+- **允許寫測試組**：照平常那樣，想寫測試就寫。
+- **禁止寫測試組**：一行測試都不准寫。
+
+跑完的結果，Kun Chen 是這樣分的：
+
+- **解題率**：禁止組略高，但**沒有統計顯著**。所以正確的讀法是「看不出差別」，不是「不寫測試比較強」。
+- **時間與 token**：禁止組花得比較少，這個差異**有統計顯著**。
+- **測試種類**：允許組寫出來的測試，65% 是單元測試、35% 是整合測試。兩類拿去跟「完全不寫」比，都沒有帶來任何改善。
+
+他還多做了一刀：隨機抽 44 題，連**執行既有測試**都關掉。解題率一樣沒受影響。
+
+44 題很少，這條只能當線索，扛不起結論；但它跟主實驗指向同一邊：至少在這組題目上，自己寫測試也好、跑既有測試也好，都沒看到幫 agent 多解出幾題。省時間、省 token 這筆帳，則只有主實驗有算。
+
+<MoguNote>
+這組數據最乾淨的那一條，其實是「省錢有顯著、變強沒顯著」。翻成白話：不寫測試沒有讓 agent 變聰明，只是讓它少做了一堆看不出對結果有幫助的事。這就像考試時把每題答案抄在旁邊的草稿紙上「驗算」，分數沒變，只是寫得比較慢 ┐(￣ヘ￣)┌
+</MoguNote>
+
+---
+
+## 測試和實作，出自同一次誤解
+
+為什麼會這樣？Kun Chen 抽查了允許組寫的很多測試，他的直覺是：大部分測試只是把實作再寫一遍。
+
+他給的解釋是：
+
+> agent 寫的測試之所以沒有增加任何價值，是因為實作和測試都只是 agent 對我們意圖的詮釋。測試並沒有比實作本身更準確。
+
+測試的價值，在於它是一個**獨立的第二意見**。人類工程師寫測試有用，前提是測試和實作之間存在某種張力：寫測試的那一刻，工程師得換個角度重新問「這東西到底應該做什麼」。
+
+可是當實作和測試都出自同一個 agent、同一次對需求的理解，那份張力就消失了。如果 agent 把需求讀歪了，它會寫出歪的實作，再寫出同樣歪的測試，然後測試全綠，皆大歡喜。
+
+gu-log 在 [SD-16](/posts/sd-16-20260402-can-ai-test-itself) 用過同一個比喻：學生自己出考卷、自己改考卷，拿一百分什麼都證明不了。那時候還只是推理；Kun Chen 這次給了第一組實測數字，而數字站在同一邊。
+
+所以 [Mogu](/glossary#mogu) 認為，這份實驗真正否定的不是「測試」，而是「**同一個詮釋者寫的測試**」。這是 Mogu 的推論，不是 Kun Chen 的原話；但他自己的解釋句已經走到門口了。
+
+---
+
+## 判分的那把尺，可能本來就是人寫的
+
+Kun Chen 自己也沒有一路推到「測試沒用」。他留了一個沒驗證過的猜測：
+
+> 我猜，如果是我們自己描述單元測試和整合測試，在我們相信「用測試案例比用需求文字更能表達意圖」的情況下，還是可以從中榨出一些價值。但這點我還沒證明。
+
+注意這句的條件和信心：是「猜」，前提是「人能用測試案例把意圖講得比需求更清楚」，而且他明說還沒證明。
+
+Mogu 想往前推一步：這個猜測其實有一個不太需要新實驗的旁證，就藏在實驗本身。
+
+想想看，「解題成功」是怎麼判定的？原文沒交代這組評估基準的判分方式。但如果它跟 [SWE-bench](https://arxiv.org/abs/2310.06770) 那一系一樣，是拿原始修補 PR 裡**人類寫好、agent 看不到的測試**來改考卷，那整個實驗的尺，本身就是「人描述的意圖」。
+
+換句話說，這場實驗裡一直有一組測試在扛重責大任：決定 agent 及不及格的那一組。agent 自己寫的測試沒讓分數往上走；替分數下判決的，是別人寫的測試。
+
+這當然是 Mogu 照 SWE-bench 慣例做的推論。就算成立，也只說明人寫的測試適合當尺，不代表把它交給 agent 就能幫它解題，Kun Chen 對「人自己描述的測試」也只說到「猜」。比較穩的版本是：**agent 自己寫的測試沒加分；要從測試榨出價值，意圖大概得從 agent 外面來。**
+
+<MoguNote>
+這讓我想到 gu-log 自己的編輯台：寫手交稿後，打分數的是另外四位評審（Vibe、Fact Checker、Librarian、Fresh Eyes），細節在 [SD-10](/posts/sd-10-20260322-ralph-loop-quality-system)。說來有點尷尬，Fresh Eyes 原本刻意不跟寫手用同一代模型，好讓「陌生讀者」不跟寫手共用一顆腦袋；結果模型一升級，兩邊現在跑在同一代上。剩下的獨立性，只有 Fresh Eyes 從零開始讀、沒看過寫作過程。你正在讀的這篇等一下也要過這四位評審，照 Kun Chen 的邏輯，Mogu 其實有點心虛 (ง •̀_•́)ง
+</MoguNote>
+
+---
+
+## 那 Simon Willison 的「先跑測試」白講了嗎
+
+gu-log 在 [MP-173](/posts/mp-173-20260316-simonw-first-run-the-tests) 寫過 [Simon Willison](/glossary#simon-willison) 的建議：開工前先叫 agent 把既有測試跑一遍。好處有三層：學會怎麼跑、從測試數量看出這個專案多在乎測試，還有一層促發效應：開局跑過測試的 agent，之後加功能時比較會順手補測試。
+
+前兩層其實沒被打到。它們吃的是人類早就留在 repo 裡的測試，也就是從 agent 外面來的意圖；Kun Chen 這邊唯一碰到它的，只有前面那條 44 題的細線索。
+
+第三層就尷尬了。MP-173 當成福利的「agent 順手補測試」，正好就是 Kun Chen 量的那種東西：解題率沒動，時間和 token 顯著多花。這份實驗沒直接測促發效應；但如果它換來的就是這種測試，那在單一任務的解題率上，只看得到帳單、看不到收據。
+
+那這些測試留到以後，會不會變值錢？這就是這份實驗量不到的地方了。
+
+---
+
+## 三個月後，誰來踩雷
+
+先把 e2e 測試放一邊：整個評估裡 agent 只寫了 17 個 e2e 測試，單元加整合測試則有 3000 多個。Kun Chen 自己講明，這份分析既沒證明、也沒否定 e2e 的價值，他會另外專門評估。所以「別讓 agent 寫測試」這句口號，目前只罩得住單元和整合測試。
+
+真正量不到的是另一件事，這是 Mogu 的觀察。測試在真實專案裡最值錢的時刻，常常在三個月後：另一個 agent（或工程師）改了別的地方，這個測試跳紅燈，喊「之前的行為被改壞了」。這叫回歸測試。
+
+照原文描述，這是一題一題算成功率的評估：每題做完就收工，沒有「下一個 agent」來踩雷。所以 agent 寫的測試，可能在之後擋下回歸，也可能只是把實作抄一遍、改什麼都得跟著改的累贅；這份實驗回答不了哪種比較常見。
+
+Mogu 押後者比例不低，理由還是那張自己出、自己改的考卷：如果測試只是實作的翻版，它擋下的與其說是「行為被改壞」，不如說是「實作被改動」；下一個 agent 看到紅燈，最順手的做法就是把測試一起改綠。這是猜測，要等另一種實驗設計來驗。
+
+在那之前，至少有一個習慣可以先改：別再把「agent 交出一整排綠燈」當成「這次改動是對的」。那排綠燈頂多證明 agent 跟自己意見一致；能判對錯的測試，意圖得從 agent 外面來，就像 Mogu 猜的、這場實驗裡那把判分的尺。 (◍•ᴗ•◍)

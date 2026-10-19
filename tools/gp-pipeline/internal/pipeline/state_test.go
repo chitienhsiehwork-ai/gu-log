@@ -470,3 +470,68 @@ func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
 		})
 	}
 }
+
+// TestWriteReviewAndRefineSetAsideAnEarlierOutput covers
+// gp-pipeline-publish-integrity〈write、review 與 refine SHALL NOT 把工作目錄裡的
+// 舊產物當成這次的輸出〉: a writer that answers on stdout alone replaces the
+// file an earlier run left in the work dir, here an Lv post, and a writer that
+// fails without writing leaves that file as it was.
+func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
+	const earlier = "---\ntitle: \"Earlier\"\nticketId: Lv-PENDING\n---\nearlier body\n"
+	const fresh = "---\ntitle: \"Fresh\"\n---\nfresh body\n"
+	for _, step := range []struct {
+		name, output string
+		run          func(*State, context.Context) error
+	}{
+		{name: "write", output: "draft-v1.mdx", run: (*State).Write},
+		{name: "review", output: "review.md", run: (*State).Review},
+		{name: "refine", output: "final.mdx", run: (*State).Refine},
+	} {
+		for _, tc := range []struct {
+			name     string
+			response llm.FakeResponse
+			wantErr  bool
+			want     string
+		}{
+			{name: "stdout only", response: llm.FakeResponse{Output: fresh}, want: fresh},
+			{name: "writer fails", response: llm.FakeResponse{Err: "writer crashed"}, wantErr: true, want: earlier},
+			{name: "no file, no stdout", response: llm.FakeResponse{}, wantErr: true, want: earlier},
+		} {
+			t.Run(step.name+" "+tc.name, func(t *testing.T) {
+				s, fake, workDir := newTestState(t)
+				path := filepath.Join(workDir, step.output)
+				if err := os.WriteFile(path, []byte(earlier), 0o644); err != nil {
+					t.Fatal(err)
+				}
+				fake.WithResponses(tc.response)
+				if err := step.run(s, context.Background()); (err != nil) != tc.wantErr {
+					t.Fatalf("%s error = %v, want error %v", step.name, err, tc.wantErr)
+				}
+				if got := mustRead(t, path); got != tc.want {
+					t.Fatalf("%s = %q, want %q", step.output, got, tc.want)
+				}
+				if isLv, _ := isLvFile(path); isLv && !tc.wantErr {
+					t.Fatalf("%s is still the earlier Lv post", step.output)
+				}
+			})
+		}
+	}
+}
+
+// TestContentLintFixKeepsTheArticleWhenTheWriterFails: the fix of what the
+// content checks flag also goes through runRefine, so a writer that fails
+// without writing leaves the refined article in final.mdx.
+func TestContentLintFixKeepsTheArticleWhenTheWriterFails(t *testing.T) {
+	s, fake, workDir := newTestState(t)
+	refined := "---\ntitle: \"x\"\n---\n" + lintFlaggedLine
+	fake.WithResponses(
+		llm.FakeResponse{Output: refined, WriteFile: "final.mdx"},
+		llm.FakeResponse{Err: "writer crashed"},
+	)
+	if err := s.Refine(context.Background()); err == nil {
+		t.Fatal("Refine succeeded although the content-check fix failed")
+	}
+	if got := mustRead(t, filepath.Join(workDir, "final.mdx")); got != refined {
+		t.Fatalf("final.mdx = %q, want the refined article back", got)
+	}
+}

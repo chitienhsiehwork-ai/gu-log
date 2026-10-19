@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log 依來源寫作流程（GP 導讀、MP、SD、Lv）的 Go CLI。唯一受支援的執行入口是自編譯 wrapper：
+gu-log 依來源寫作流程（GP 導讀、MP、SD）的 Go CLI；Lv 是手寫的，只用得到它的非寫作步驟（見 [`SKILL.md`](SKILL.md)）。唯一受支援的執行入口是自編譯 wrapper：
 
 ```bash
 tools/gp-pipeline/gp-pipeline --help

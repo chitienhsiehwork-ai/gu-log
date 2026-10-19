@@ -1,4 +1,6 @@
 // Glossary configuration
+// 收錄哪些詞以 src/data/glossary.json 為準；新增詞條的判斷標準見 GU-LOG_WRITER_PROMPT.md 的
+// Glossary creation standard。
 
 const GLOSSARY_INTERNAL_ORIGIN = 'https://gu-log.invalid';
 const ABSOLUTE_HTTP_URL = /^https?:\/\/[^/?#]+/i;
@@ -66,74 +68,41 @@ export function parseGlossaryUrl(
   return invalidGlossaryUrl(field, allowInternal);
 }
 
-// Terms that are common enough to NOT need glossary links
-// These are either:
-// - Too basic (readers should know)
-// - Too specific (model names, product names that are self-explanatory)
-// - Explained inline in context
-export const glossaryExclude = [
-  // Claude model names - readers who read this blog should know
-  'Sonnet',
-  'Haiku',
-  'Opus',
-  'Claude',
+export type GlossaryLang = 'zh-tw' | 'en';
 
-  // Basic AI/ML terms
-  'LLM',
-  'API',
-  'Benchmark',
-  'Token',
-  'Prompt',
-  'Embedding',
+// 詞彙表分類的唯一對照（openspec: glossary-browsing）。篩選按鈕依資料實際用到的分類、
+// 照這裡的順序產生；詞條的分類標籤顯示對應語言的 label。資料用到這裡沒有的分類時，
+// 單元測試會失敗，頁面 build 也會停下來。
+export const GLOSSARY_CATEGORY_LABELS: Record<string, Record<GlossaryLang, string>> = {
+  tools: { 'zh-tw': '工具', en: 'Tools' },
+  concepts: { 'zh-tw': '概念', en: 'Concepts' },
+  methods: { 'zh-tw': '方法', en: 'Methods' },
+  products: { 'zh-tw': '產品', en: 'Products' },
+  models: { 'zh-tw': '模型', en: 'Models' },
+  platforms: { 'zh-tw': '平台', en: 'Platforms' },
+  people: { 'zh-tw': '人物', en: 'People' },
+};
 
-  // Common tools that are self-explanatory
-  'Obsidian',
-  'Notion',
-  'Git',
-  'GitHub',
-  'VS Code',
-  'Terminal',
+interface GlossaryCategoryEntry {
+  category: string;
+}
 
-  // Programming basics
-  'Markdown',
-  'YAML',
-  'JSON',
-  'Bash',
-  'CLI',
-];
+export function glossaryCategoryLabel(category: string, lang: GlossaryLang): string {
+  if (!Object.hasOwn(GLOSSARY_CATEGORY_LABELS, category)) {
+    throw new Error(
+      `Glossary category "${category}" has no label; add it to GLOSSARY_CATEGORY_LABELS`
+    );
+  }
+  return GLOSSARY_CATEGORY_LABELS[category][lang];
+}
 
-// Terms that SHOULD be in glossary (for reference when writing)
-// This is synced with /glossary page.
-// Creation rule: add a term only when it is canonical/reusable, loses useful
-// meaning when translated, and needs a stable gu-log mental-model anchor.
-// Do not add entries merely to silence check-jingjing; translate ordinary
-// English to natural zh-tw instead.
-export const glossaryInclude = [
-  'Ralph',
-  'Vibe Coding',
-  'Vibe Note-Taking',
-  'Thread',
-  'MCP',
-  'RL',
-  'Claude Code',
-  'Codex',
-  'Codex app server',
-  'Linear',
-  'Hooks',
-  'Elixir',
-  'Subagent',
-  'Context Window',
-  'Context Rot',
-  'Test-time Compute',
-  'Tools for Thought',
-  'Zettelkasten',
-  'MOC',
-  'OpenClaw',
-  'Cowork',
-  'Agent',
-  'Agentic Engineering',
-  'Software 3.0',
-  'Andrej Karpathy',
-  'Simon Willison',
-  'Boris Cherny',
-];
+/** 篩選按鈕：資料實際用到的分類（不含「全部」），照 GLOSSARY_CATEGORY_LABELS 的順序。 */
+export function glossaryCategoryFilters(
+  entries: GlossaryCategoryEntry[],
+  lang: GlossaryLang
+): { id: string; label: string }[] {
+  const used = new Set(entries.map((entry) => entry.category));
+  return Object.keys(GLOSSARY_CATEGORY_LABELS)
+    .filter((id) => used.has(id))
+    .map((id) => ({ id, label: glossaryCategoryLabel(id, lang) }));
+}
