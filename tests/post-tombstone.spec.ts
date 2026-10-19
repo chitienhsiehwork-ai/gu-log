@@ -3,7 +3,6 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures';
-import { getGpEmptyNotice } from '../src/lib/gp-listing.mjs';
 import {
   getSourceByline,
   getTombstoneCopy,
@@ -244,20 +243,34 @@ test.describe('Tombstone resilience', () => {
 });
 
 test.describe('Gu-log Picks listing', () => {
-  test('GIVEN only tombstones and the GP-1 demo WHEN the listing opens THEN it shows the neutral empty state and no post', async ({
+  test('GIVEN tombstones, the GP-1 demo and a public reading guide WHEN the listing opens THEN it lists only the public guide', async ({
     page,
     request,
   }) => {
-    // openspec editorial-charter〈讀者開啟 GP 系列頁〉: no tombstone and no GP-1.
+    // openspec editorial-charter〈讀者開啟 GP 系列頁〉: only public reading guides,
+    // no tombstone and no GP-1; the neutral empty state only when none exist.
     const response = await page.goto('/gu-log-picks');
     expect(response?.status()).toBe(200);
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('zh-tw'));
-    await expect(page.locator('main a[href^="/posts/"]')).toHaveCount(0);
+    await expect(page.locator('[data-gp-empty-notice]')).toHaveCount(0);
+    await expect(
+      page
+        .locator('main a[href^="/posts/gp-276-20261019-andrewyng-ai-engineering-skills-map"]')
+        .first()
+    ).toBeVisible();
+    await expect(page.locator('main a[href^="/posts/gp-1-20260128-demo"]')).toHaveCount(0);
+    await expect(
+      page.locator('main a[href^="/posts/gp-185-20260428-andrew-ng-meta-muse-spark-the-batch-349"]')
+    ).toHaveCount(0);
     await expect(page.locator('nav.pagination')).toHaveCount(0);
     expect((await request.get('/gu-log-picks/2')).status()).toBe(404);
 
     await page.goto('/en/gu-log-picks');
-    await expect(page.locator('[data-gp-empty-notice]')).toHaveText(getGpEmptyNotice('en'));
-    await expect(page.locator('main a[href^="/en/posts/"]')).toHaveCount(0);
+    await expect(page.locator('[data-gp-empty-notice]')).toHaveCount(0);
+    await expect(
+      page
+        .locator('main a[href^="/en/posts/en-gp-276-20261019-andrewyng-ai-engineering-skills-map"]')
+        .first()
+    ).toBeVisible();
+    await expect(page.locator('main a[href^="/en/posts/en-gp-1-20260128-demo"]')).toHaveCount(0);
   });
 });
