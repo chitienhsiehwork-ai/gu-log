@@ -332,7 +332,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
-- 讀者可見內容預設不用 Unicode emoji；kaomoji 保留。逐次授權邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，deterministic enforcement 以 `scripts/check-content-emoji.mjs` 為準；沒有 writer 自行開啟的整篇旗標。例外是 top-level editorial `MAY` 能力，不保證每條 pipeline 都支援；目前 gp-pipeline 的自動寫作與英文翻譯一律省略裝飾字形或用自然文字保留語意，不保留 glyph。
+- 文章預設不用 Unicode emoji；kaomoji 照用。規則以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，檢查和核准清單都在 `scripts/check-content-emoji.mjs`（pre-commit 與 CI 只看新增或修改的行）。只有 ShroomDog 能核准某篇文章保留某個 emoji；gp-pipeline 的自動寫作與英文翻譯一律不保留，裝飾用的直接拿掉，有意思的改寫成文字。
 - 正文不要每段都用「原作者說 / 原文提到 / 這篇文章在講」起手；讀者已經看得到原文出處。來源主張的歸屬與必要的 evidence boundary 寫成自然句，讓讀者分得出哪些是來源作者說的、哪些是 Mogu 的看法。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
