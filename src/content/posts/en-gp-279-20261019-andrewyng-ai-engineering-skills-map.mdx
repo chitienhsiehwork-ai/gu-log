@@ -1,0 +1,130 @@
+---
+ticketId: 'GP-279'
+title: "The Part of Andrew Ng's Skills Map Worth Reading Closely Is No. 4: Engineering Work Is Moving Upstream, Toward the Spec"
+originalDate: '2026-08-14'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: '@AndrewYNg on X'
+sourceUrl: 'https://x.com/AndrewYNg/status/2088302050706686198'
+lang: 'en'
+summary: "Andrew Ng's AI engineering skills map lists four abilities, and the fourth deserves the closest read: he argues coding agents are getting rapidly better at delivering to spec, so engineers' work is shifting toward deciding what goes into the spec. gu-log pushes further: once implementation gets cheap, what does a wrong spec cost, which decisions can't be undone, and does your company's process even leave engineers room to do this?"
+tags: ['agentic-coding', 'software-engineering', 'career', 'andrew-ng', 'product-management']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-19"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-19"
+sourceDistance:
+  policy: 'source-distance/v1'
+  verdict: 'PASS'
+  subjectSha256: '5fbacb6054443e1c0aee1650e199f5723501f73f1741ad85eeb536847c54be55'
+  sourceSha256: '864fa03a48b333f117d19261cbf0165bb65f59e6f04bf64981a058b08d7085d1'
+  sourceUnits: 925
+  metrics:
+    ngramContainment: 0.0011
+    maxVerbatimWords: 8
+    quotedWords: 46
+  checkedAt: '2026-10-19'
+---
+
+The better coding [agents](/en/glossary#agent) get at shipping exactly what the spec says, the further upstream an engineer's most valuable work moves, toward the spec itself. In "The AI Engineering Skills Map," Andrew Ng lists this as the last of four core AI engineering skills.
+
+The four are: building and deploying AI applications, software engineering fundamentals, working with coding agents, and "Shaping the build" (having a say in what gets built and how it moves forward). The first three probably sound familiar to gu-log readers. The one gu-log thinks will change an engineer's day-to-day the most is the fourth.
+
+## Give an agent a clear spec and it delivers, so the fight moves to the spec
+
+Andrew Ng's argument takes exactly one step: coding agents are **getting rapidly better** at delivering against a clear spec, so engineers' work is shifting toward "deciding what goes into the spec." Stop waiting for someone to hand you a pixel-perfect design so you can just implement it. You need product instincts, business context, and an understanding of what customers are actually trying to get done. Note the wording, "getting rapidly better": the premise itself is still in progress.
+
+gu-log wants to push this one step further: when a request lands on your desk, your first question should change from "how do we build this?" to "why are we building this?"
+
+Agents can increasingly take over the "how." The "why" is much harder for them to pick up on their own. The answer lives in customer complaint emails, in the sales team's quarterly targets, in that feature that flopped last time. If nobody feeds that in, the agent can only guess. A spec that can't say "this solves what problem, for whom" is just a list of guesses, no matter how many bullet points follow. The only difference is whether the guesses are neatly formatted.
+
+---
+
+## The cost of a bad spec: the agent builds the wrong thing, efficiently
+
+There's a consequence here that the optimism tends to drown out. When a spec used to be vague, engineers would get stuck halfway through, go ask around, corner the PM in the hallway and say "so what exactly are we doing here?" That friction was annoying, but it was also an error-detection mechanism.
+
+Agents don't really get stuck. Think of the microwave at a convenience store: press the button, and one minute later your meal comes out hot, no complaints, every time. The catch is that if you grabbed the wrong boxed lunch to begin with, the microwave still heats it perfectly on schedule: piping hot, and wrong. Without the getting-stuck checkpoint, "grabbed the wrong lunch" can ride all the way through three finished features, wired-up tests, and launch day before someone finally says "wait, this isn't what the customer wanted."
+
+So when gu-log reads the fourth skill, what we care about most is a consequence the original doesn't spell out: once implementation gets cheap, the cost of getting a single word of the spec wrong gets bigger.
+
+---
+
+## When things are cheap, know which roads are one-way
+
+In the second half of the fourth skill, Andrew Ng turns to ownership: AI gives engineers the chance to find problems themselves and drive projects forward responsibly, and part of driving a project is knowing when to ship a quick MVP for users to test and when to slow down and do it carefully.
+
+The original gives only that binary, with nothing on how to decide. gu-log's view is that the call can be boiled down to one question: **if this step goes wrong, can we take it back?**
+
+Most decisions are reversible. Tweak a page, swap a layout, rewrite an internal script: if it's wrong, throw it out and redo it. In an era where agents make redoing things much cheaper, those are exactly the places to move fast. But a few kinds of things are one-way roads, and no matter how fast you can rebuild, you can't undo what already happened:
+
+- **Database migrations**: drop a column or botch a data transformation, and the old data doesn't come back just because you regenerate the code.
+- **Public APIs**: once an interface is public, other people start depending on it. The cost of renaming it or changing its behavior lands on every caller.
+- **Payments**: charge someone twice or not at all, and that's real money and real customer complaints.
+- **Permissions**: grant the wrong access once, and the data may already have been viewed and copied.
+
+If the wrong lunch hasn't left the counter yet, you toss it and heat another. If the customer has already taken it home and eaten it, there's no reheating that. Cheaper implementation widens the area where you can move fast, but it doesn't remove a single one-way road. Engineers who can tell which steps are one-way become more valuable as costs drop, not less, because slowing down on those few steps is exactly what makes it safe to sprint everywhere else.
+
+---
+
+## Your org's process may not have a seat for this
+
+Finally, one reservation gu-log has about the fourth skill. What Andrew Ng describes is that engineers should be able to help shape the product. That's a demand on the individual. But plenty of companies' processes leave no room for it. The PM writes the requirement into a ticket, it gets scheduled into the next sprint, an engineer picks it up, finishes it, closes it. The whole process is built on the assumption that "the spec was already decided upstream." In that kind of setup, an engineer with great product instincts may have nowhere left to push except the comment thread under the ticket.
+
+So for the fourth skill to become real, it's not enough for engineers to brush up on product and business. The organization also has to be willing to open spec discussions to the people doing the implementation, earlier. The original doesn't go into this. If you read it with that gap in mind, it'll be clearer which advice you can act on yourself and which requires convincing your manager first. gu-log covered the thread about teams shrinking and PMs becoming the bottleneck in [MP-60](/en/posts/en-mp-60-20260210-andrewng-ai-job-market-reality/); the fourth skill is the same observation seen from the engineer's side.
+
+---
+
+## What to look for in the original
+
+- **The sections on the first three skills**, especially "working with coding agents," which sits right next door to the spec and one-way-road questions discussed here.
+- **How the map was put together**: the author describes the research method, plus a passage on why the map talks about "skills" rather than job titles.
+- **The follow-up series teased at the end**: the author says he'll expand on each of the four skills and publish a more detailed map. In this post the fourth skill gets only two paragraphs, but the follow-up on it is already out: "[The AI Engineering Skills Map Part 5 — Shaping the Build](https://charonhub.deeplearning.ai/the-ai-engineering-skills-map-in-detail-shaping-the-build/)," published on September 11, 2026. Once you've read this one, check whether that piece offers actual criteria for making the call. (◍•ᴗ•◍)

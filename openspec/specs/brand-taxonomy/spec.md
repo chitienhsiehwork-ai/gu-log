@@ -32,13 +32,13 @@ The application SHALL NOT store a retired taxonomy alias and translate it to GP/
 
 The merge-ready tree SHALL NOT expose `Clawd`, `ClawdNote`, `clawdNote`, ShroomDog Picks / `SP`, or Clawd Picks / `CP` as active persona, component, schema, series, ticket, slug, route, tag, pipeline or authoring contract. Legacy aliases, fallback readers, dual writers, display translations and wrappers SHALL be removed in the same change after data migration succeeds.
 
-The only permitted legacy compatibility surface SHALL be the declarative reader-facing HTTP redirects sourced from `quality/brand-taxonomy-post-migration.json` plus the finite set of actual legacy listing routes. Redirect sources MAY contain retired public URL tokens solely in the centralized routing implementation, tests, specifications and operations evidence. New content, sitemap entries and generated links SHALL remain canonical-only, and deterministic taxonomy checks SHALL reject legacy tokens outside those exact audited exceptions.
+The only permitted legacy compatibility surface SHALL be the declarative reader-facing HTTP redirects sourced from `quality/brand-taxonomy-post-migration.json` plus the finite set of actual legacy listing routes. New content, sitemap entries and generated links SHALL remain canonical-only. A deterministic taxonomy check SHALL reject retired tokens in tracked files, except in a short path exclusion list kept in the scanner itself for files whose job is to handle or record the old names (redirect implementation and manifest, validators that reject retired names, tests, history and verbatim quotations).
 
 #### Scenario: New content attempts to use a retired contract
 
-- **WHEN** a changed post, prompt, fixture or runtime file introduces `ClawdNote`, `clawdNote`, an `SP-N` / `CP-N` ticket, or an `sp-` / `cp-` canonical slug
+- **WHEN** a changed post, prompt, fixture or runtime file outside the exclusion list introduces `ClawdNote`, `clawdNote`, an `SP-N` / `CP-N` ticket, or an `sp-` / `cp-` canonical slug
 - **THEN** the deterministic taxonomy gate SHALL fail
-- **AND** the diagnostic SHALL identify the file, token and expected canonical replacement
+- **AND** the diagnostic SHALL identify the file and token
 
 #### Scenario: Merge-ready site retains only the public URL boundary
 
@@ -50,8 +50,8 @@ The only permitted legacy compatibility surface SHALL be the declarative reader-
 #### Scenario: Taxonomy gate audits intentional redirect sources
 
 - **WHEN** a redirect source contains a retired public slug or listing token
-- **THEN** its file, pattern, reason and expected count SHALL be centralized in the exact residual allowlist
-- **AND** stale, broadened or newly introduced exceptions SHALL fail the taxonomy gate
+- **THEN** it SHALL live only in the redirect implementation, the migration manifest or their tests, which the scanner excludes by path
+- **AND** the same token in any other tracked file SHALL fail the taxonomy gate
 
 ### Requirement: Migration SHALL preserve numeric article identity and pair integrity
 
@@ -85,9 +85,9 @@ A later editorial correction or reclassification MAY replace that article with a
 
 ### Requirement: Factual names and deployment coordinates SHALL not be corrupted by branding migration
 
-The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain retired naming MAY remain only when they are actual deployment coordinates rather than persona branding.
+The migration SHALL preserve accurate references to third-party products and entities, including `Claude`, `Claude Code`, `Anthropic` and `OpenClaw`, and SHALL preserve verbatim source quotations and archived decision evidence. External hostnames, SSH aliases, Unix users and filesystem paths that still contain retired naming MAY remain when they are actual deployment coordinates rather than persona branding.
 
-Immutable history trees such as `sources/**` and archived OpenSpec decision records MAY be named as scanner-scope exclusions. Active code, docs, posts and authoring inputs SHALL NOT use broad directory exclusions: every allowed residual there SHALL be centralized as exact path + exact token/pattern + reason + expected count. The scanner SHALL target semantically explicit ticket, slug, route, tag, label, component, schema-key and command patterns rather than bare `SP` / `CP` substrings.
+The scanner SHALL target semantically explicit ticket, slug, route, tag, component, schema-key and command patterns rather than bare `SP` / `CP` substrings.
 
 #### Scenario: Article discusses Claude Code
 
@@ -100,7 +100,6 @@ Immutable history trees such as `sources/**` and archived OpenSpec decision reco
 - **WHEN** an operator must still connect through an actual legacy SSH alias or host-specific Unix path
 - **THEN** the coordinate MAY remain in local machine context or external runtime config
 - **AND** tracked repo docs / scripts SHALL prefer neutral host/path variables
-- **AND** any unavoidable active-tree coordinate SHALL have an exact allowlist entry and reason
 
 ### Requirement: Canonical series routes, CLI paths and legacy redirects SHALL match the taxonomy
 
