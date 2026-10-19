@@ -51,6 +51,7 @@ function gitDiff(range) {
       'diff',
       ...range,
       '-U0',
+      '-M',
       '--no-color',
       '--diff-filter=ACMR',
       '--',
