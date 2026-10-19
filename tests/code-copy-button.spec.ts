@@ -35,6 +35,107 @@ test.describe('Code copy button theme contract', () => {
     await expect(copyText).toHaveText('Copy');
   });
 
+  test('GIVEN a successful copy THEN the icon swaps to a checkmark and the result is announced politely', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.resolve() },
+      });
+    });
+    await page.goto(TEST_URL);
+
+    const copyButton = page.locator('.copy-button').first();
+    const status = copyButton.locator('xpath=following-sibling::*[@aria-live="polite"]');
+    await expect(status).toHaveText('');
+    await expect(copyButton.locator('.icon-check')).toHaveCSS('opacity', '0');
+
+    const before = await copyButton.boundingBox();
+    await copyButton.click();
+    await expect(copyButton).toHaveClass(/copied/);
+    await expect(copyButton.locator('.icon-check')).toHaveCSS('opacity', '1');
+    await expect(copyButton.locator('.icon-copy')).toHaveCSS('opacity', '0');
+    await expect(status).toHaveText('Code copied to clipboard');
+    const after = await copyButton.boundingBox();
+    expect(after?.height).toBe(before?.height);
+  });
+
+  test('GIVEN the clipboard rejects THEN the button shows a visible failure state and announces it', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.reject(new Error('denied')) },
+      });
+    });
+    await page.clock.install();
+    await page.goto(TEST_URL);
+
+    const copyButton = page.locator('.copy-button').first();
+    const status = copyButton.locator('xpath=following-sibling::*[@aria-live="polite"]');
+    await copyButton.click();
+    await expect(copyButton).toHaveClass(/failed/);
+    await expect(copyButton).not.toHaveClass(/copied/);
+    await expect(copyButton.locator('.copy-text')).toHaveText('Copy failed');
+    await expect(copyButton).toHaveCSS('opacity', '1');
+    await expect(status).toContainText('Copy failed');
+
+    await page.clock.fastForward(2001);
+    await expect(copyButton).not.toHaveClass(/failed/);
+    await expect(copyButton.locator('.copy-text')).toHaveText('Copy');
+  });
+
+  test('GIVEN a slow earlier copy settles after a newer one THEN the stale result is ignored', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      let calls = 0;
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => {
+            calls += 1;
+            if (calls === 1) {
+              return new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 500));
+            }
+            return Promise.resolve();
+          },
+        },
+      });
+    });
+    await page.clock.install();
+    await page.goto(TEST_URL);
+
+    const copyButton = page.locator('.copy-button').first();
+    await copyButton.click();
+    await copyButton.click();
+    await expect(copyButton).toHaveClass(/copied/);
+
+    await page.clock.fastForward(600);
+    await expect(copyButton).toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/failed/);
+
+    await page.clock.fastForward(1300);
+    await expect(copyButton).toHaveClass(/copied/);
+    await page.clock.fastForward(200);
+    await expect(copyButton).not.toHaveClass(/copied/);
+  });
+
+  test('GIVEN prefers-reduced-motion THEN the icon swap has no transition', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto(TEST_URL);
+    const durations = await page
+      .locator('.copy-button')
+      .first()
+      .evaluate((button) => [
+        getComputedStyle(button).transitionDuration,
+        getComputedStyle(button.querySelector('.icon-check')!).transitionDuration,
+      ]);
+    expect(durations.every((d) => d.split(',').every((part) => parseFloat(part) === 0))).toBe(true);
+  });
+
   test('re-running the Astro page-load initializer keeps existing wrappers and initializes new code blocks', async ({
     page,
   }) => {
