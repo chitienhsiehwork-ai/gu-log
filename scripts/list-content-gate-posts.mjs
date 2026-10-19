@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { canonicalizeSeriesTaxonomyText } from './check-brand-taxonomy.mjs';
 import { isCanonicalTerminologyOnlyChange, isLinkOnlyChange } from './check-glossary-links.mjs';
 import { createPostLinkValidator } from './lib/post-link-validator.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
@@ -135,20 +134,6 @@ function isExistingTicketAddition(baseRef, baseFile, currentFile) {
   return ticketExistsAt(baseRef, readTicketId(currentFile), currentFile);
 }
 
-function isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile) {
-  if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return false;
-  const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
-  const newContent = fs.readFileSync(currentFile, 'utf8');
-  // Apply the taxonomy rewrite first; what remains must pass the shared link-only proof
-  // (nothing remains for a pure rename), so a rename can carry link maintenance but any
-  // reader-prose edit still fails.
-  const canonical = canonicalizeSeriesTaxonomyText(oldContent);
-  return (
-    canonical !== oldContent &&
-    isLinkOnlyChange(canonical, newContent, linkProofOptions(currentFile))
-  );
-}
-
 function parseNameStatus(output) {
   const fields = output.split('\0');
   const entries = [];
@@ -196,9 +181,6 @@ const files = parseNameStatus(changed)
   .filter(({ currentFile }) => !path.basename(currentFile).startsWith('en-'))
   .filter(({ currentFile }) => fs.existsSync(currentFile))
   .filter(({ currentFile }) => !isTakenDown(currentFile))
-  .filter(
-    ({ baseFile, currentFile }) => !isCanonicalTaxonomyOnlyChange(baseRef, baseFile, currentFile)
-  )
   .filter(({ baseFile, currentFile }) => {
     if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
     const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
