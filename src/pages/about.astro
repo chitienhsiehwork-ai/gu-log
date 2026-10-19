@@ -81,7 +81,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
         <strong>寫作與翻譯：</strong>初版由 Claude Opus 4.5
         初始化；隨著模型演進與文章重寫，每篇文章底部會標註該篇實際由誰寫作或重寫。
       </li>
-      <li><strong>校對：</strong>人工審閱</li>
+      <li>
+        <strong>品質把關：</strong>先過一輪自動檢查（frontmatter、格式、用語），再交給 Tribunal 四位
+        AI 評審打分：Vibe、Fact Checker、Librarian、Fresh
+        Eyes。分數還不夠的文章照樣上線，但會掛「精修中」、不上首頁，等重寫拉上來再說。
+      </li>
+      <li>
+        <strong>人在哪裡：</strong>ShroomDog
+        挑來源、拍板術語跟方向，上線後在網站上讀成品、丟修稿回饋。不是每篇都逐字人工校對，這點先老實講
+        (´・ω・`)
+      </li>
     </ul>
 
     <h2>開源</h2>
