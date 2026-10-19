@@ -15,7 +15,9 @@ describe('brand taxonomy check', () => {
   });
 
   it('不誤擋現行名稱與無關縮寫', () => {
-    expect(tokens('<MoguNote> GP-12 mp-3-foo gp-pipeline Clawd.rip SP500 cp -r')).toEqual([]);
+    expect(
+      tokens('<MoguNote> GP-12 mp-3-foo gp-pipeline Clawd.rip SP500 cp -r Claude Code')
+    ).toEqual([]);
   });
 
   it('只排除歷史與刻意保留舊名的檔案', () => {

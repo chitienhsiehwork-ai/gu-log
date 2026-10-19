@@ -12,8 +12,6 @@ const EXCLUDES = [
   'openspec/', // spec 與 archive 記錄改名契約與歷史
   'sources/',
   'scores/archive/',
-  '.score-loop/progress/completed/',
-  'quality/coverage-history.json',
   'tests/', // 舊名拒收、舊網址 redirect 的測試 fixture
   '*_test.go',
   'quality/brand-taxonomy-post-migration.json', // 舊網址 redirect 對照表
