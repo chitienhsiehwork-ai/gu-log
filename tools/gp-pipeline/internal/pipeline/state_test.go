@@ -138,6 +138,51 @@ func TestFetch_ExistingCaptureHydratesMetadata(t *testing.T) {
 	}
 }
 
+// A run resumed past fetch (e.g. --from-step source-distance) still names the
+// fresh article's file after the source author, so the skipped step has to
+// read the handle back from the work dir's capture.
+func TestFetch_FromStepSkipHydratesExistingCapture(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	s.FromStepInt = StepSourceDistance
+	s.TweetURL = ""
+	s.AuthorHandle = ""
+	capture := "@kvnkld — 2026-06-16\nSource URL: https://x.com/kvnkld/status/2066863634949779464\nFetched via: fxtwitter\n\n=== MAIN TWEET ===\nEnough existing source material to resume without a network fetch.\n"
+	if err := os.WriteFile(filepath.Join(workDir, "source-tweet.md"), []byte(capture), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.AuthorHandle != "kvnkld" {
+		t.Errorf("AuthorHandle = %q, want kvnkld", s.AuthorHandle)
+	}
+	if s.SourcePath != filepath.Join(workDir, "source-tweet.md") {
+		t.Errorf("SourcePath = %q", s.SourcePath)
+	}
+	if !s.SourceIsX {
+		t.Errorf("SourceIsX = false, want true")
+	}
+}
+
+func TestFetch_FromStepSkipWithoutCaptureIsNoOp(t *testing.T) {
+	s, _, workDir := newTestState(t)
+	if err := os.Remove(filepath.Join(workDir, "source-tweet.md")); err != nil {
+		t.Fatal(err)
+	}
+	s.FromStepInt = StepSourceDistance
+	s.TweetURL = ""
+	s.AuthorHandle = ""
+	s.SourcePath = ""
+
+	if err := s.Fetch(context.Background()); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if s.AuthorHandle != "" || s.SourcePath != "" {
+		t.Errorf("AuthorHandle = %q, SourcePath = %q; want both empty", s.AuthorHandle, s.SourcePath)
+	}
+}
+
 func TestFetch_ExistingCapturePreservesHydratedOriginalDate(t *testing.T) {
 	s, _, workDir := newTestState(t)
 	s.OriginalDate = "2026-08-11"
