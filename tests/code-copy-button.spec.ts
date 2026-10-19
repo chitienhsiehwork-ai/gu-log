@@ -87,6 +87,42 @@ test.describe('Code copy button theme contract', () => {
     await expect(copyButton.locator('.copy-text')).toHaveText('Copy');
   });
 
+  test('GIVEN a slow earlier copy settles after a newer one THEN the stale result is ignored', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      let calls = 0;
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: () => {
+            calls += 1;
+            if (calls === 1) {
+              return new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), 500));
+            }
+            return Promise.resolve();
+          },
+        },
+      });
+    });
+    await page.clock.install();
+    await page.goto(TEST_URL);
+
+    const copyButton = page.locator('.copy-button').first();
+    await copyButton.click();
+    await copyButton.click();
+    await expect(copyButton).toHaveClass(/copied/);
+
+    await page.clock.fastForward(600);
+    await expect(copyButton).toHaveClass(/copied/);
+    await expect(copyButton).not.toHaveClass(/failed/);
+
+    await page.clock.fastForward(1300);
+    await expect(copyButton).toHaveClass(/copied/);
+    await page.clock.fastForward(200);
+    await expect(copyButton).not.toHaveClass(/copied/);
+  });
+
   test('GIVEN prefers-reduced-motion THEN the icon swap has no transition', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto(TEST_URL);

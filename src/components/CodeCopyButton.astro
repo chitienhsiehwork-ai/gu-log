@@ -50,17 +50,26 @@
         status.textContent = announce;
       };
 
+      // Only the latest click may write state, so a slow earlier clipboard
+      // promise can't overwrite it or schedule an early reset.
+      let copyRequest = 0;
+
       button.addEventListener('click', async () => {
         const code = pre.querySelector('code')?.textContent || pre.textContent || '';
-        clearTimeout(copyResetTimer);
+        const request = ++copyRequest;
+        let ok = true;
 
         try {
           await navigator.clipboard.writeText(code);
-          setState('copied', 'Copied!', 'Code copied to clipboard');
         } catch {
-          setState('failed', 'Copy failed', 'Copy failed. Select the code and copy it manually.');
+          ok = false;
         }
+        if (request !== copyRequest) return;
 
+        clearTimeout(copyResetTimer);
+        if (ok) setState('copied', 'Copied!', 'Code copied to clipboard');
+        else
+          setState('failed', 'Copy failed', 'Copy failed. Select the code and copy it manually.');
         copyResetTimer = setTimeout(() => setState('', 'Copy', ''), 2000);
       });
 
