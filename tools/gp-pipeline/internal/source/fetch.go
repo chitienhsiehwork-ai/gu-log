@@ -313,7 +313,9 @@ func ParseCaptureHeader(content []byte) *FetchResult {
 	out := &FetchResult{}
 	lines := strings.SplitN(string(content), "\n", 5)
 
-	handleDateRe := regexp.MustCompile(`^(@[A-Za-z0-9_]+)\s*[—\-]?\s*(\d{4}-\d{2}-\d{2})?`)
+	// Generic captures use the full hostname as the handle (@www.anthropic.com),
+	// so inner dots and hyphens must survive; X handles never contain them.
+	handleDateRe := regexp.MustCompile(`^(@[A-Za-z0-9_](?:[A-Za-z0-9_.\-]*[A-Za-z0-9_])?)\s*[—\-]?\s*(\d{4}-\d{2}-\d{2})?`)
 	fetchedViaRe := regexp.MustCompile(`^Fetched via:\s*(\S+)`)
 	sourceURLRe := regexp.MustCompile(`^Source URL:\s*(\S+)`)
 

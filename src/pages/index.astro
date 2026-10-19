@@ -4,7 +4,12 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Toggle from '../components/Toggle.astro';
 import TicketBadge from '../components/TicketBadge.astro';
 import PostStatusLabel from '../components/PostStatusLabel.astro';
-import { getIndexPosts, getPostStatus, type PostStatus } from '../utils/post-status';
+import {
+  getIndexPosts,
+  getListablePosts,
+  getPostStatus,
+  type PostStatus,
+} from '../utils/post-status';
 import { getGpEmptyNotice, isListedGpTicket } from '../lib/gp-listing.mjs';
 
 const allPostsFull = await getCollection('posts');
@@ -30,8 +35,16 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-// 只列公開的 GP 導讀；一篇都沒有時顯示中性的空狀態（src/lib/gp-listing.mjs）。
-const gpPosts = allPosts.filter((p) => isListedGpTicket(p.data.ticketId)).sort(sortByTicketNumber);
+// GP 只列公開的導讀（src/lib/gp-listing.mjs）。首頁放其中過了 publish bar 的前 3 篇；
+// 系列頁一篇都不會列時才顯示中性的空狀態（openspec: editorial-charter），首頁放不下的
+// 由「查看全部」帶去系列頁。
+const listedGpCount = getListablePosts(allPostsFull, 'zh-tw').filter((p) =>
+  isListedGpTicket(p.data.ticketId)
+).length;
+const gpPosts = allPosts
+  .filter((p) => isListedGpTicket(p.data.ticketId))
+  .sort(sortByTicketNumber)
+  .slice(0, 3);
 
 const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(sortByTicketNumber);
 ---
@@ -45,7 +58,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
     <p class="section-subtitle">ShroomDog 精選導讀</p>
 
     {
-      gpPosts.length === 0 && (
+      listedGpCount === 0 && (
         <p class="gp-empty-notice" data-gp-empty-notice>
           {getGpEmptyNotice('zh-tw')}
         </p>
@@ -53,7 +66,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
     }
 
     {
-      gpPosts.slice(0, 3).map((post) => {
+      gpPosts.map((post) => {
         const status = getPostStatus(post, allPostsFull);
         return (
           <article class="post-preview" style={getTimelineStyle(status)}>
@@ -76,7 +89,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
     }
 
     {
-      gpPosts.length > 3 && (
+      listedGpCount > gpPosts.length && (
         <p class="view-all">
           <a href="/gu-log-picks">查看全部 →</a>
         </p>
