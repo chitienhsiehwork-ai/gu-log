@@ -23,39 +23,48 @@
       button.className = 'copy-button';
       button.setAttribute('aria-label', 'Copy code');
       button.innerHTML = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
+        <span class="copy-icons" aria-hidden="true">
+          <svg class="icon-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg class="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"></path>
+          </svg>
+        </span>
         <span class="copy-text">Copy</span>
       `;
 
-      // Add click handler
+      // Screen readers get the result here; the button's aria-label stays stable.
+      const status = document.createElement('span');
+      status.className = 'copy-status';
+      status.setAttribute('aria-live', 'polite');
+
       let copyResetTimer: ReturnType<typeof setTimeout> | undefined;
+      const textSpan = button.querySelector('.copy-text');
+
+      const setState = (state: 'copied' | 'failed' | '', label: string, announce: string) => {
+        button.classList.remove('copied', 'failed');
+        if (state) button.classList.add(state);
+        if (textSpan) textSpan.textContent = label;
+        status.textContent = announce;
+      };
 
       button.addEventListener('click', async () => {
         const code = pre.querySelector('code')?.textContent || pre.textContent || '';
+        clearTimeout(copyResetTimer);
 
         try {
           await navigator.clipboard.writeText(code);
-          if (copyResetTimer !== undefined) {
-            clearTimeout(copyResetTimer);
-          }
-          button.classList.add('copied');
-          const textSpan = button.querySelector('.copy-text');
-          if (textSpan) textSpan.textContent = 'Copied!';
-
-          copyResetTimer = setTimeout(() => {
-            button.classList.remove('copied');
-            if (textSpan) textSpan.textContent = 'Copy';
-            copyResetTimer = undefined;
-          }, 2000);
-        } catch (err) {
-          console.error('Failed to copy:', err);
+          setState('copied', 'Copied!', 'Code copied to clipboard');
+        } catch {
+          setState('failed', 'Copy failed', 'Copy failed. Select the code and copy it manually.');
         }
+
+        copyResetTimer = setTimeout(() => setState('', 'Copy', ''), 2000);
       });
 
-      wrapper.appendChild(button);
+      wrapper.append(button, status);
     });
   }
 
@@ -80,20 +89,15 @@
     align-items: center;
     gap: 0.25rem;
     padding: 0.25rem 0.5rem;
-    background: rgba(39, 41, 52, 0.96);
+    background: var(--color-code-copy-bg);
     border: 1px solid var(--color-border);
     border-radius: 4px;
-    color: #d9def2;
+    color: var(--color-code-copy-text);
     font-size: 0.75rem;
     font-family: var(--font-sans);
     cursor: pointer;
     transition: all 0.2s ease;
     opacity: 0;
-  }
-
-  [data-theme='light'] .copy-button {
-    background: rgba(253, 246, 227, 0.96);
-    color: #334155;
   }
 
   .code-block-wrapper:hover .copy-button {
@@ -118,9 +122,58 @@
     border-color: var(--color-accent);
   }
 
-  .copy-button svg {
+  .copy-button.failed {
+    background: var(--color-bg);
+    color: var(--color-status-danger);
+    border-color: var(--color-status-danger);
+  }
+
+  .copy-button.copied,
+  .copy-button.failed {
+    opacity: 1;
+  }
+
+  /* Copy and check icons share one slot so the swap never shifts layout. */
+  .copy-icons {
+    display: grid;
     width: 14px;
     height: 14px;
+  }
+
+  .copy-icons svg {
+    grid-area: 1 / 1;
+    width: 14px;
+    height: 14px;
+    transition:
+      opacity 160ms ease-out,
+      transform 160ms ease-out;
+  }
+
+  .copy-button .icon-check,
+  .copy-button.copied .icon-copy {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  .copy-button.copied .icon-check {
+    opacity: 1;
+    transform: none;
+  }
+
+  .copy-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .copy-button,
+    .copy-icons svg {
+      transition: none;
+    }
   }
 
   /* Always show on mobile/touch devices */
