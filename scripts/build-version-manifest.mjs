@@ -3,7 +3,9 @@
  * build-version-manifest.mjs
  *
  * Counts git commits per post file and writes src/data/post-versions.json.
- * Run before `astro build` so Vercel (shallow clone) gets correct version numbers.
+ * Run before `astro build`. On a shallow clone it cannot count history, so it
+ * keeps the committed manifest only when the build declares that is expected
+ * (`VERCEL`, or `POST_VERSIONS_ALLOW_SHALLOW=1`); anywhere else it fails closed.
  *
  * Output format: { "mp-231-20260331-pawelhuryn-vibe-engineering-vibe-coding": 3, ... }
  * Key = post id (filename without .mdx), Value = commit count.
@@ -363,7 +365,18 @@ function readPostContent(postId, revs) {
 
 try {
   if (isShallowRepository()) {
-    console.log('⏭️  Shallow clone detected — using committed post-versions.json');
+    // Only build environments that cannot fetch history may fall back to the
+    // committed manifest. Everywhere else (merge driver, --check, hooks) a
+    // silent skip would keep a stale manifest, so fail closed.
+    if (process.env.VERCEL || process.env.POST_VERSIONS_ALLOW_SHALLOW === '1') {
+      console.log('⏭️  Shallow clone detected — using committed post-versions.json');
+    } else {
+      console.error(
+        '❌ Shallow clone detected — cannot count post history, refusing to keep a possibly stale post-versions.json.\n' +
+          '   Run: git fetch --unshallow origin'
+      );
+      process.exitCode = 1;
+    }
   } else {
     buildManifest();
   }

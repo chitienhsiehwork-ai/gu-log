@@ -107,6 +107,13 @@ function runManifest(repo: string, args: readonly string[], env: NodeJS.ProcessE
   });
 }
 
+function envWithoutShallowOptIn(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  delete env.VERCEL;
+  delete env.POST_VERSIONS_ALLOW_SHALLOW;
+  return env;
+}
+
 function expectSentinelUnchanged(repo: string): void {
   expect(fs.readFileSync(path.join(repo, MANIFEST_PATH), 'utf-8')).toBe(SENTINEL_MANIFEST);
 }
@@ -455,13 +462,23 @@ describe('post version manifest freshness', () => {
 
 describe('post version manifest operational failures', () => {
   for (const { label, args } of MANIFEST_MODES) {
-    it(`keeps the committed manifest on a real shallow clone in ${label}`, () => {
+    it(`keeps the committed manifest on a real shallow clone on Vercel in ${label}`, () => {
       const repo = makeShallowClone();
 
-      const result = runManifest(repo, args);
+      const result = runManifest(repo, args, { ...envWithoutShallowOptIn(), VERCEL: '1' });
 
       expect(result.status).toBe(0);
       expect(result.stdout).toContain('Shallow clone detected');
+      expectSentinelUnchanged(repo);
+    });
+
+    it(`fails closed on a real shallow clone outside Vercel in ${label}`, () => {
+      const repo = makeShallowClone();
+
+      const result = runManifest(repo, args, envWithoutShallowOptIn());
+
+      expectOperationalFailure(result);
+      expect(result.stderr).toContain('git fetch --unshallow origin');
       expectSentinelUnchanged(repo);
     });
 
