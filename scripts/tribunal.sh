@@ -1611,7 +1611,7 @@ PROMPT
     local writer_mode
     writer_mode="$(tribunal_writer_mode)"
     if [ "$writer_mode" = "none" ]; then
-      tlog "  Rewrite skipped (GP_WRITER_MODE=none); failing score-only without invoking tribunal-writer."
+      tlog "  Rewrite skipped (GP_WRITER_MODE=none); failing score-only without invoking tribunal-writer. Set GP_WRITER_MODE=claude to let the writer rewrite (docs/tribunal-runbook.md)."
       write_stage_progress "$post_file" "$stage_key" "fail" "$score_json" "$runner_label" "$attempt"
       rm -f "$score_tmp"
       return 1
