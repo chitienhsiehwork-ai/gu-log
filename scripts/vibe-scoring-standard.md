@@ -102,7 +102,7 @@ Does every technical term that exists in `src/data/glossary.json` get linked or 
 ### crossRef — Internal Cross-References + Corpus Overlap
 Does internal `/posts/slug/` links resolve? Are relevant connections made? Does the post avoid making readers re-read gu-log content that already exists?
 - First mention of **ShroomDog** → must link to `/about`
-- First mention of **Mogu/Mogu** → must link to `/about`
+- First mention of **Mogu** → must link to `/glossary#mogu`（en：`/en/glossary#mogu`；canonical identity 見 openspec `glossary-identity-ssot`，由 glossary link-coverage hook 強制）
 - When an older gu-log post already covers the same core workflow/concept, the new post must cite or contrast it early enough that readers understand what is new.
 - If overlap is substantial, Librarian must name the old post(s), the repeated sections, and the required writer action: early cite, one-sentence recap, compression, contrast, merge, or rejection.
 
