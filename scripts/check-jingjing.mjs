@@ -1043,13 +1043,31 @@ function readBaselineFile(repoRelative, baselineRef) {
 
 const baselineRefreshAttempts = new Set();
 
+function isShallowRepository() {
+  try {
+    return (
+      execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim() === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
+
 function ensureRemoteBaselineRef(baselineRef) {
   const match = baselineRef.match(/^origin\/(.+)$/);
   if (!match) return;
   if (baselineRefreshAttempts.has(baselineRef)) return;
   baselineRefreshAttempts.add(baselineRef);
   const branch = match[1];
-  execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
+  // 完整 clone 上加 --depth=1 會把 repo 變 shallow，害 build-version-manifest 退回舊值、
+  // merge main 變成 unrelated histories；只有本來就 shallow（CI / Vercel）才限深度。
+  const fetchArgs = ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`];
+  if (isShallowRepository()) fetchArgs.push('--depth=1');
+  execFileSync('git', fetchArgs, {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'ignore', 'ignore'],
     timeout: gitFetchTimeoutMs(),
