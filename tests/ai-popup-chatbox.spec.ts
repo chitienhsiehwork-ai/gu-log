@@ -245,3 +245,74 @@ test.describe('AI Popup - Error Detail Display', () => {
     expect(errorText!.length).toBeGreaterThan(5);
   });
 });
+
+test.describe('AI Popup - Bounded follow-up (#75)', () => {
+  test('GIVEN API lacks capabilities.history WHEN answer renders THEN no follow-up input is offered', async ({
+    page,
+  }) => {
+    await page.route('**/ai/ask', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ response: 'Old API answer' }),
+      });
+    });
+
+    const popup = await setupAndSelectText(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('[data-action="submit-ask"]').click();
+
+    await expect(popup.locator('.ai-popup-result-body')).toContainText('Old API answer');
+    await expect(popup.locator('.ai-popup-question-input')).toHaveCount(0);
+  });
+
+  test('GIVEN API reports capabilities.history WHEN user asks follow-ups THEN history is sent, capped, and cleared on close', async ({
+    page,
+  }) => {
+    const bodies: Record<string, unknown>[] = [];
+    await page.route('**/ai/ask', async (route) => {
+      bodies.push(JSON.parse(route.request().postData() || '{}'));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          response: 'Answer ' + bodies.length,
+          capabilities: { history: true },
+        }),
+      });
+    });
+
+    const popup = await setupAndSelectText(page);
+    await popup.locator('[data-action="ask"]').click();
+    await popup.locator('.ai-popup-question-input').fill('第一題');
+    await popup.locator('[data-action="submit-ask"]').click();
+    await expect(popup.locator('.ai-popup-result-body')).toContainText('Answer 1');
+    expect(bodies[0].history).toBeUndefined();
+
+    for (let n = 2; n <= 4; n++) {
+      await popup.locator('.ai-popup-question-input').fill('追問 ' + n);
+      await popup.locator('[data-action="submit-ask"]').click();
+      await expect(popup.locator('.ai-popup-result-body')).toHaveCount(n);
+    }
+
+    expect(bodies[1].history).toEqual([{ question: '第一題', answer: 'Answer 1' }]);
+    expect(bodies[1].text).toBe(bodies[0].text);
+    expect((bodies[3].history as unknown[]).length).toBe(3);
+    await expect(popup.locator('.ai-popup-ask-q')).toHaveText([
+      '第一題',
+      '追問 2',
+      '追問 3',
+      '追問 4',
+    ]);
+    // Bounded: after three follow-ups the input goes away.
+    await expect(popup.locator('.ai-popup-question-input')).toHaveCount(0);
+
+    // Closing and reopening starts a fresh conversation.
+    await popup.locator('.ai-popup-close').click();
+    const reopened = await selectPostTextAndShowPopup(page);
+    await reopened.locator('[data-action="ask"]').click();
+    await reopened.locator('[data-action="submit-ask"]').click();
+    await expect(reopened.locator('.ai-popup-result-body')).toContainText('Answer 5');
+    expect(bodies[4].history).toBeUndefined();
+  });
+});
