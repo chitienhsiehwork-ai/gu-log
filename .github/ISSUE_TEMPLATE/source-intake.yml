@@ -1,0 +1,20 @@
+name: 來源收件（Source intake）
+description: 丟一個想收進 gu-log 的來源網址，agent 會先翻譯與評估值不值得收
+title: 'intake: '
+labels: [intake]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: 來源網址
+      description: 文章、X 貼文、影片或文件的完整網址
+      placeholder: https://
+    validations:
+      required: true
+  - type: input
+    id: why
+    attributes:
+      label: 為什麼想收（選填，一句話）
+      placeholder: 例：講清楚了 agent 怎麼管 context
+    validations:
+      required: false
