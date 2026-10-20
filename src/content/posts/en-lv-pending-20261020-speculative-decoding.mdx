@@ -1,0 +1,424 @@
+---
+ticketId: 'Lv-PENDING'
+title: "Apprentice Scribe Hedgehog at the Oracle Tower: Sneaking in Answers Made the Prophecies Several Times Faster, and the Oracle Didn't Lose a Single Word. Speculative Decoding 101"
+originalDate: '2026-10-20'
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: 'Author'
+      model: 'Opus 5.5'
+      harness: 'Claude Code CLI'
+    - role: 'Orchestrated'
+      model: 'Opus 5.5'
+      harness: 'Claude Code'
+source: 'Level-Up Series'
+sourceUrl: 'https://gu-log.vercel.app/posts/lv-pending-20261020-speculative-decoding'
+lang: 'en'
+summary: "Every time the clockwork Oracle in the Oracle Tower spits out one word, the entire tome has to be hauled up from the bottom of the tower. Mogu, the apprentice scribe hedgehog in the mushroom hat, gets bored enough to start writing answers in advance. The prophecies get several times faster, and not one word changes. This light-novel-style tutorial teaches speculative decoding: why LLM generation is stuck on memory bandwidth, how a small model guesses ahead, how the big model checks a whole row at once, and the acceptance rule that leaves the output probability distribution exactly unchanged."
+tags: ['level-up', 'llm', 'inference', 'speculative-decoding', 'tutorial', 'pilot']
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 9
+    firstImpression: 9
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 9
+    moguNote: 8
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-20"
+---
+
+import LevelUpProgress from '../../components/LevelUpProgress.astro';
+import LevelUpQuiz from '../../components/LevelUpQuiz.astro';
+import MoguNote from '../../components/MoguNote.astro';
+import AnalogyBox from '../../components/AnalogyBox.astro';
+
+At the top of the Oracle Tower, a brass gear clicks to a stop, and a single bronze letter-plate drops out of the output slot: "When."
+
+Then the whole tower starts moving books.
+
+The Great Oracle is a clockwork machine older than the tower itself. It doesn't speak and it has no face. The only thing it does is push out prophecy, one word at a time. The machine remembers nothing on its own. Everything it knows is written in a tome so thick it has to be lifted with a winch, and that tome normally sits locked in the archive at the bottom of the tower. For every word the Oracle produces, the entire tome gets hoisted up the shaft to the top floor, the gears read it from the first page to the last, and then it gets lowered back down. Next word: do it all again.
+
+Next to the output slot is a scribe's desk, and at that desk sits an apprentice scribe hedgehog in a mushroom hat: [Mogu](/en/glossary#mogu). The work rules on the wall are a single line long: "The Oracle speaks one word, you copy one word."
+
+> Day one: copied forty-two words, listened to the winch forty-two times. I'm starting to suspect this tower exists to train hedgehogs in patience.
+
+This tower is what a large language model (LLM) looks like when it generates text. The shortcut Mogu eventually invents to avoid curling up into a bored little ball at the desk is what the industry calls `speculative decoding`. By the time you've climbed all seven floors, you'll know how a small model guesses ahead for a big one, how the big model checks a whole row of guesses in one go, and the most counterintuitive part of the whole trick: with it turned on, the big model produces exactly what it would have produced without it, right down to the probability distribution.
+
+## Floor 1: One Word, One Trip for the Tome
+
+<LevelUpProgress current={1} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+On day three, Mogu has an idea: since the tome is already up here anyway, why not have the Oracle spit out two words at a time?
+
+The idea doesn't survive until lunch. Here's how the machine works: you feed in the entire prophecy so far, and it computes "the next word." That's it. One at a time. The second word has to follow the first, and until the first word has actually dropped out of the slot, not even the machine itself can work out what the second one should be.
+
+LLMs are built exactly the same way. Each step produces one [Token](/en/glossary#token) (think of it as a word or a chunk of a word for now), and producing it means running the entire model from start to finish. That one run is called a `forward pass`. Token t+1 takes token t as input, so generation is inherently one after another: if you want 100 tokens, you run 100 passes, no shortcuts. This produce-one, feed-it-back, produce-the-next style of generation is called `autoregressive` decoding. [Lv-12](/posts/levelup-20260608-12-llm-internals/) walks through this "next token" loop from scratch if you want to shore up the basics first.
+
+<MoguNote summary="Autoregressive means predicting your next output from your own previous outputs.">
+`autoregressive` is easy to remember once you break it apart: `auto` means "self," and `regressive` comes from regression in statistics, which means using past values to predict the next one. Put together: "use what I just spat out to predict what I'll spit out next."
+
+It sounds like going in circles, and it really is going in circles, with a tome hoist on every lap. I figured this out on day three and then stayed in despair until day thirty ┐(￣ヘ￣)┌
+</MoguNote>
+
+A hundred words, a hundred winch trips. The real question is: where is all that time actually going?
+
+<LevelUpQuiz
+  question="Why can't an LLM compute the 2nd and 3rd tokens at the same time as the 1st?"
+  options={[
+    { label: "A", text: "Because a GPU can only do one thing at a time" },
+    { label: "B", text: "Because the 2nd token takes the 1st token as input, and until the 1st is decided there's nothing to compute the 2nd from" },
+    { label: "C", text: "Because model vendors throttle it on purpose to charge more" },
+    { label: "D", text: "Because the Great Oracle is grumpy in the morning" },
+  ]}
+  answer="B"
+  explanation="Every step of autoregressive decoding takes all previously generated tokens as input, so a future token can't be computed until the one before it is decided. A is wrong: GPUs are actually great at doing huge amounts of computation at once, and on Floor 2 you'll see they spend most of their time idle. C is a conspiracy theory. D is wrong too: the Great Oracle is a machine and has no moods."
+/>
+
+---
+
+## Floor 2: The Slow Part Isn't Reading, It's Hauling
+
+<LevelUpProgress current={2} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+Mogu spends a whole day timing things with an hourglass.
+
+The gears reading the entire tome: the blink of an eye. The winch hauling the tome from the bottom of the tower to the top: most of an hourglass. The gears on the top floor spend most of their time standing still, waiting for the book.
+
+> So the tower isn't slow because the Oracle thinks slowly. It's slow because the shaft is too narrow.
+
+When a GPU (the chip on a graphics card that does massive parallel computation) runs an LLM, the situation is almost identical. The model's knowledge lives in its `weights`, and those weights sit in the GPU's high-bandwidth memory (`HBM`). For every token generated, nearly all of the weights have to be shipped from memory into the compute units once. But the amount of actual math per token is small, so the compute units finish almost instantly and then sit around waiting for the next batch of weights to arrive.
+
+The bottleneck is memory bandwidth, not compute. This state is called `memory-bound`. It's most obvious when you're serving only a few requests at once, meaning the `batch` is small, like when you're chatting one-on-one with a model on your own machine. (What happens when the `batch` gets big, we'll settle up on Floor 6.)
+
+<AnalogyBox title="What everything in the tower is in real life">
+- **The Great Oracle (the clockwork machine)**: the big model you're using to generate text. Speculative decoding papers call it the `target model`, and we'll be using that name a lot.
+- **The tome**: the model's weights.
+- **The archive at the bottom of the tower**: GPU memory (`HBM`).
+- **The shaft and winch**: memory bandwidth, i.e. how many weights per second can be sent upstairs.
+- **The gears on the top floor**: the GPU's compute units.
+- **Spitting out one word**: running one `forward pass` to produce one token.
+</AnalogyBox>
+
+<MoguNote summary="Wider shafts, not more gears: memory bandwidth drives local generation speed.">
+So bolting more gears onto this tower does almost nothing for word speed. Widening the shaft is what helps. That's also why, whenever people talk about running models on their own computers, they keep comparing memory bandwidth. When [MP-286](/posts/mp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov/) breaks down why Macs run models fast, unified memory solving the bandwidth bottleneck is the first thing on the list.
+
+I feel bad for those gears. The most expensive part in the whole tower, and it spends most of the day zoning out. Just like me.
+</MoguNote>
+
+<LevelUpQuiz
+  question="Someone is chatting with a model on their own computer, and theirs is the only request. Which upgrade is most likely to make generation noticeably faster?"
+  options={[
+    { label: "A", text: "Faster compute cores, with memory bandwidth unchanged" },
+    { label: "B", text: "Hardware with higher memory bandwidth" },
+    { label: "C", text: "A bigger hard drive" },
+    { label: "D", text: "Oiling the Great Oracle's gears" },
+  ]}
+  answer="B"
+  explanation="With very few requests in flight, generating each token means moving nearly all the weights from memory to the compute units once. The compute units spend most of their time waiting for data, so the bottleneck is memory bandwidth. A adds compute that was already sitting idle. C: the hard drive only matters when loading the model; during generation the weights are already in memory. D is very thoughtful, but the gears weren't busy to begin with."
+/>
+
+---
+
+## Floor 3: One Trip for the Tome, a Whole Row of Stamps
+
+<LevelUpProgress current={3} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+One day, while cleaning the top floor, Mogu finds a long tray on the back of the machine that can hold a whole row of slips at once. A corner of the operating manual explains what it's for: proofreading old prophecies. Put a whole sequence of slips in the tray, hoist the tome up once, and the gears will stamp a word under **every single** slip: "given everything up to this slip, here's the word that would come next."
+
+Out comes the hourglass again. Proofreading a row of five slips takes about as long as producing one new word.
+
+It's not hard to see why: the tome only has to come up once, and the four extra slips use gears that were sitting idle anyway.
+
+Models built on the `Transformer` architecture can do this naturally. Feed one a whole sequence of tokens, run a single `forward pass`, and it computes "the probability distribution for the next token" at **every position**. That's the same ability models rely on during training and when they read in a whole [Prompt](/en/glossary#prompt). When you're memory-bound, a pass over 5 positions takes about as long as a pass over 1, because the weights only have to be moved once and the extra positions eat compute that would have been idle. The DeepMind team's 2023 [paper](https://arxiv.org/abs/2302.01318) states exactly this observation in its abstract: "the latency of parallel scoring of short continuations ... is comparable to that of sampling a single token from the larger target model."
+
+"About as long" isn't "exactly as long," and the tray can't be infinitely long either; pile on too many positions and the gears will eventually get busy. But for a short row of slips, the math works out very much in your favor.
+
+Mogu stares at the tray for a long time. Checking is cheap, generating is expensive. But you can only check something that already exists. What if someone guessed the next few words before the Oracle spoke, and put them in the tray?
+
+Mogu looks down at the pen in hand.
+
+<LevelUpQuiz
+  question="A big model checks 5 positions in one pass in about the same time it takes to generate 1 token. What's the main reason?"
+  options={[
+    { label: "A", text: "The weights only need to be moved once, and the extra positions use compute units that were idle anyway" },
+    { label: "B", text: "Checking doesn't involve computing probabilities, so it's simpler than generating a new token" },
+    { label: "C", text: "The model automatically skips positions that look fine" },
+    { label: "D", text: "The tray is an enchanted elven tray" },
+  ]}
+  answer="A"
+  explanation="When memory-bound, most of the time goes into moving the weights up from memory. Once they're up, computing a few more positions just uses compute that was idle. B is a common misconception: when checking, the model still computes a full probability distribution at every position, the same work it does when generating. C doesn't exist; every position gets computed. D: the tray is made of brass. No magic."
+/>
+
+---
+
+## Floor 4: Let the Hedgehog Guess
+
+<LevelUpProgress current={4} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+Mogu's head is tiny. There's no room in it for a whole tome, just a pocket notebook. But small has its perks: no hoisting required, and the writing goes lightning fast. Plus, a lot of a prophecy takes no thought at all. After "when the north wind" comes "blows." Even a hedgehog can guess that.
+
+The next day, Mogu starts working this way:
+
+1. Every time the Oracle finishes a word, Mogu immediately writes 4 guesses for what comes next in the notebook.
+2. The whole row, "prophecy so far + 4 guess slips," goes into the tray.
+3. The tome comes up once, and the gears stamp the word the Oracle itself would produce under each slip: 5 positions in total, one under each of the 4 slips, plus one more after the last.
+4. Check the answers from left to right.
+
+Today the Oracle is set to "always pick the top-ranked word," a generation mode called `greedy decoding`. So the checking rules are simple:
+
+- If the guess matches the word the Oracle stamped, it gets a "PASS."
+- At the first mismatch, Mogu's slip gets a "REJECT," and the Oracle's stamped word is used instead.
+- Every slip after the "REJECT" gets torn up, no matter how good the guesses were.
+- If all four slips pass, the Oracle already stamped a word in the final position, so that one gets taken too. A free extra.
+
+The tearing-up rule is the one that trips people up. Here's why: the word the Oracle stamped in position 3 was computed assuming positions 1 and 2 were Mogu's words. Once position 2 gets replaced, the premise for everything from position 3 on is gone. Even if Mogu's position-3 guess happens to match the Oracle's, that "match" was built on the wrong context, and it can't be kept.
+
+So every round keeps at least 1 word: even if the very first slip gets rejected, the word the Oracle stamped in that spot is still usable. And at most 5: four passing slips plus the free extra.
+
+In the first week, Mogu averages around three words per tome trip and gets so smug that the mushroom hat ends up crooked. In the second week comes a prophecy in an archaic tongue. Mogu's first slip is wrong every time, all four get torn up, and each round yields just the Oracle's own single word. Exactly as slow as before, plus the time wasted guessing.
+
+<MoguNote summary="Bad guesses only cost speed; every recorded word is still the Oracle's own.">
+I learned two things that week. One: archaic prophecies don't have freebies like "when the north wind blows." Two, the more important one: even when my guesses were a total mess, every word written into the book of prophecy was still a word the Oracle itself would have produced. The rejected slips all went in the trash. Not one of them snuck in.
+
+The only thing I control is how many words each tome trip carries away. What the prophecy says was never up to me. That stung the hedgehog ego a bit at first, but thinking about it later, that's exactly why the whole shortcut is safe to use.
+</MoguNote>
+
+<AnalogyBox title="The apprentice scribe hedgehog's official job title">
+- **Mogu**: the `draft model`, a small, fast model whose job is to guess first.
+- **Writing 4 words ahead in the notebook**: the draft model generates k candidate tokens autoregressively on its own; here k = 4. Because the model is small, each step is cheap.
+- **Tray proofreading**: the big model (`target model`) runs one `forward pass` and verifies k + 1 positions at once.
+- **PASS / REJECT**: `accept` / `reject` a draft token.
+- **The free extra word at the end**: the `bonus token`.
+- **The same set of bronze letter-plates**: the draft model and the big model share the same `tokenizer` and vocabulary. Otherwise there'd be no way to even compare answers.
+</AnalogyBox>
+
+<LevelUpQuiz
+  question="The context is 'When the north wind'. Mogu guesses 'blows, past, the, tower', and the Oracle stamps 'blows, past, seven, gates, of' across the 5 positions. Which words get written into the book of prophecy this round?"
+  options={[
+    { label: "A", text: "blows, past, seven" },
+    { label: "B", text: "blows, past" },
+    { label: "C", text: "blows, past, seven, gates, of" },
+    { label: "D", text: "blows, past, the, tower" },
+  ]}
+  answer="A"
+  explanation="The first two guesses are right, so 'blows' and 'past' are accepted. In position 3, Mogu guessed 'the' and the Oracle stamped 'seven': the first mismatch, so the Oracle's 'seven' is used instead. The Oracle's 'gates' and 'of' after that were computed assuming position 3 was 'the'. That premise no longer holds, so they're all thrown out, and this round keeps 3 words. B leaves out the word the Oracle gave at the mismatch, which can always be kept. C and D both keep words built on the wrong context."
+/>
+
+---
+
+## Floor 5: The Oracle Spins a Wheel
+
+<LevelUpProgress current={5} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+Every full moon, the tower switches to wheel mode.
+
+In this mode the Oracle no longer always picks first place. At each position it spins a wheel. Every candidate word takes up a slice of the wheel sized by its probability, and wherever the needle stops, that's the word. Same context, and this time it might say "round," next time "bright." This is how an LLM generates text with temperature `sampling`, and it's how a lot of chat services normally run.
+
+Mogu's Floor 4 method, "compare against the Oracle's first place," suddenly stops working: in wheel mode there is no single correct answer. And if you just loosen the standard however you like, the prophecy quietly turns into something "sort of Oracle-ish, with a hint of hedgehog mixed in."
+
+This is where speculative decoding gets truly clever. Mogu has a small wheel too, representing the draft model's probabilities, written q. The Oracle's wheel is written p. The rules:
+
+1. Mogu spins their own wheel, draws a word x, and writes it on a slip.
+2. At checking time, look at how big x's slice is on each wheel. If the Oracle gives x at least as much as Mogu does, it always passes. If Mogu gives it more than the Oracle does, it passes with probability p(x) / q(x). As a formula: acceptance probability = `min(1, p(x) / q(x))`.
+3. If it's rejected, you don't just fill in any old word. You draw from a "difference wheel." For each word compute `max(0, p − q)`, keeping only the part where the Oracle gives more than Mogu does, rescale it into a wheel that adds up to 100%, and spin again.
+
+The rules sound a bit convoluted, so let's just run the numbers once. The context is "Tonight the moon looks so," and there are only three candidate words:
+
+```text
+Oracle p: round 50%   bright 30%   lovely 20%
+Mogu q:   round 80%   bright 10%   lovely 10%     (a hedgehog who really loves "round")
+```
+
+Go through what Mogu might draw, one at a time:
+
+```text
+Draws "round" (80%): acceptance probability = 50 / 80 = 62.5%
+    → keep "round":  80% × 62.5% = 50%
+    → rejected:      80% × 37.5% = 30%
+Draws "bright" (10%): Oracle gives 30%, more than Mogu → always passes, keep "bright" 10%
+Draws "lovely" (10%): Oracle gives 20%, more than Mogu → always passes, keep "lovely" 10%
+
+The rejected 30% draws from the difference wheel instead:
+    round  max(0, 50 − 80) = 0
+    bright max(0, 30 − 10) = 20
+    lovely max(0, 20 − 10) = 10    → rescaled to bright 2/3, lovely 1/3
+    → bright: 30% × 2/3 = 20%
+    → lovely: 30% × 1/3 = 10%
+
+Final probability of each word being written into the book:
+    round  50%
+    bright 10% + 20% = 30%
+    lovely 10% + 10% = 20%
+```
+
+That's identical to the Oracle's own wheel: 50 / 30 / 20.
+
+Not "close." Identical. The extra 30 percentage points Mogu piled onto "round" get rejected back out at exactly 30%. What the difference wheel fills in is exactly where Mogu bet too little: "bright" was short by 20, "lovely" by 10. And the total rejected probability exactly equals the total area of the difference wheel: 30% on both sides. That's not a lucky coincidence with these numbers. No matter what the two wheels look like, the total amount Mogu overbets always equals the total amount Mogu underbets, because both wheels add up to 100%.
+
+If all four slips pass, the last position is still a free extra: the Oracle already computed its own wheel for that spot, so just spin it once.
+
+This acceptance rule mathematically guarantees that the probability distribution of the whole prophecy is exactly the same as if the Oracle had spun its wheel alone. The Google team describes the outputs as having no changes at all; the DeepMind team puts it more precisely: it "preserves the target model distribution within hardware numerics." In other words, apart from floating-point rounding error, the speed is free, and not a shred of quality is given up.
+
+<MoguNote summary="It's rejection sampling, upgraded so every round always yields a word.">
+The technical name for this move is `rejection sampling`, an old trick from statistics: when you want to sample from a distribution that's hard to draw from, draw from an easy one first, then decide whether to keep it based on the ratio. In the old version, a rejection means drawing again, and with bad luck you could be drawing until the end of time.
+
+Speculative decoding uses an improved version: the moment something is rejected, it immediately fills in a word from the difference wheel. Every round is guaranteed to yield a word, so no tome trip is ever wasted.
+
+The first time I finished working through those numbers above, I sat frozen at the scribe's desk for a long time. My wheel was that lopsided, I was thinking about nothing but "round" all day, and yet the final book of prophecy had zero hedgehog flavor in it. Lopsided guesses just mean more rejections and slower speed. They never change the taste of the prophecy. That might be the most pleasant time I've ever been told I was wrong (๑•̀ㅂ•́)و✧
+</MoguNote>
+
+<LevelUpQuiz
+  question="Same example as above: Mogu gives 'lovely' 10%, the Oracle gives 'lovely' 20%. When Mogu draws 'lovely', what's the probability that slip gets accepted?"
+  options={[
+    { label: "A", text: "50%" },
+    { label: "B", text: "100%" },
+    { label: "C", text: "20%" },
+    { label: "D", text: "Depends on the Oracle's mood today" },
+  ]}
+  answer="B"
+  explanation="The acceptance probability is min(1, p/q) = min(1, 20/10) = 1. The Oracle giving a higher share than the draft model means the draft model underbet on this word, so drawing it is always accepted. The missing 10 percentage points get filled in by the difference wheel on rejections. A is what you get by flipping the ratio. C is the Oracle's probability itself, not the acceptance probability. D is wrong: the Oracle is a machine, and its wheel only listens to probabilities."
+/>
+
+---
+
+## Floor 6: The Days It's All for Nothing
+
+<LevelUpProgress current={6} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+Free speed doesn't mean you get it every day. Mogu starts keeping the books.
+
+Suppose each slip has the same probability α of being accepted, independently of the others (reality isn't that tidy, but it's great for estimates), and you guess k slips per round. The Google team's paper gives the average number of words you get per tome trip:
+
+```text
+Average words per round = (1 − α^(k+1)) / (1 − α)
+
+α = 0.8, k = 4: (1 − 0.32768) / 0.2 ≈ 3.36
+α = 0.5, k = 4: (1 − 0.03125) / 0.5 ≈ 1.94
+α = 0.8, k = 8: (1 − 0.134)   / 0.2 ≈ 4.33
+```
+
+On good guessing days, one tome trip brings back more than three words; on mediocre days, not even two. The third line deserves a second look: doubling k from 4 to 8 gets you only about one more word per round, while Mogu's writing time doubles and most of the extra slips go straight into the trash.
+
+There's one more line item to remember: 3.36 words per round does not mean 3.36 times faster. Mogu's guessing takes time too, and a few extra positions in the tray aren't completely free either, so the speedup you measure on the wall clock will always be smaller than that number.
+
+The all-for-nothing days come in roughly these flavors:
+
+**Bad guessing days.** Archaic prophecies, or the Oracle's wheel tuned very flat (high temperature, wildly imaginative creative writing). α drops, a round often yields just 1 word, plus you've paid for the draft model's time, and it can end up slower than not using it at all.
+
+**Crowded tower days.** If the tower is producing prophecies for a big crowd of petitioners at once, every tome trip already has the gears working through a thick stack of other people's slips. They're no longer idle. This is the large-`batch` case: the bottleneck moves from memory bandwidth to compute, inference becomes `compute-bound`, the extra guesses in the tray are no longer free, and the speedup shrinks with it.
+
+**Mismatched letter-plate days.** In the standard setup, the draft model has to share a vocabulary with the big model. If the Oracle can't read Mogu's bronze letters, you can't even check the first slip.
+
+Later variants skip hiring a second hedgehog altogether. [`Medusa`](https://arxiv.org/abs/2401.10774) bolts a few extra prediction heads onto the big model so it can guess the next few positions itself along the way. MTP (`Multi-Token Prediction`), covered in [MP-296](/posts/mp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd/), is the same idea: extra prediction heads guess first, the big model verifies its own guesses, and there's no separate draft model to maintain. That post also does the math on why the decode phase is stuck on `HBM` bandwidth. [`EAGLE`](https://arxiv.org/abs/2401.15077) drafts using the big model's internal features, and `n-gram` approaches like `prompt lookup` are even cheaper: they just search the preceding text for chunks likely to repeat and use those as the draft. Wherever the draft comes from, the verification step follows the same rules.
+
+<MoguNote summary="A draft model's worth is its acceptance rate, balanced against its size.">
+After a month of bookkeeping, I reached a slightly sad conclusion: my entire worth in this tower is that α.
+
+When I guess well, I'm the most valuable hedgehog in the tower. When I guess badly, I'm just dead weight that makes the winch wait a little longer. So picking a draft model is a trade-off between "small and fast enough" and "accurate enough": too big and it guesses well but slowly, too small and it guesses fast but keeps getting rejected. The best ones are just like me: small enough to skip the tome hoist, and just knowledgeable enough about prophecy.
+</MoguNote>
+
+<LevelUpQuiz
+  question="In which situation is speculative decoding most likely to give almost no speedup?"
+  options={[
+    { label: "A", text: "One person running a model on their own computer to write code, with only that one request" },
+    { label: "B", text: "A cloud server packed with a huge batch of simultaneous requests, GPU compute already maxed out" },
+    { label: "C", text: "The draft model guesses the same as the big model at most positions" },
+    { label: "D", text: "Mogu just finished three cups of coffee" },
+  ]}
+  answer="B"
+  explanation="Speculative decoding cashes in on compute that sits idle when you're memory-bound. Once there are lots of requests in flight, the compute units are already busy, verifying extra positions is no longer free, and the speedup shrinks. A is the classic few-requests, memory-bound scenario, the best fit. C means a high acceptance rate, so each round keeps more words. D makes no difference: the hedgehog's hands were always fast enough. The problem was never that Mogu writes slowly."
+/>
+
+---
+
+## Boss Level: Replaying a Full Round in Slow Motion
+
+<LevelUpProgress current={7} total={7} title="Field Journal of an Apprentice Scribe Hedgehog at the Oracle Tower" />
+
+Finally, let's string the first six floors together into two real rounds of speculative decoding. The Oracle is in "always pick first place" mode, and Mogu guesses 4 words per round. To keep it readable, each word below counts as one token; a real `tokenizer` would split things differently, but the process is exactly the same.
+
+Already written in the book of prophecy: "When the north wind blows past the seventh bridge, the sleeping".
+
+**Round 1**
+
+1. Mogu (`draft model`) writes 4 guesses in the notebook: "bell," "will," "soon," "ring." That's the draft model running 4 tiny `forward pass`es of its own. Cheap.
+2. "Prophecy so far + 4 slips" goes into the tray, the tome comes up **once** (one `forward pass` of the big model), and the Oracle stamps a word in each of the 5 positions:
+   - after "sleeping": bell
+   - after "bell": will
+   - after "will": ring
+   - after "soon": stamped, but not needed
+   - after "ring": stamped, but not needed
+3. Checking: "bell" passes, "will" passes; in position 3 Mogu wrote "soon" and the Oracle stamped "ring," so it's rejected and "ring" is used instead; Mogu's "ring" slip gets torn up.
+
+Written into the book this round: "bell, will, ring." 3 words.
+
+**Round 2**
+
+1. The prophecy now ends at "...the sleeping bell will ring." Mogu guesses: "again," ",", "waking," "the."
+2. Tray, one tome trip, and the Oracle stamps: again, ",", waking, the, and in the final position, "city."
+3. All four pass, and the "city" in the last position comes free: that's the `bonus token`.
+
+Written into the book this round: 5 words.
+
+Two rounds, 8 words total, and the tome was hoisted only 2 times. Under the old rules, that would have been 8 trips. The extra cost Mogu paid was 8 guesses in the notebook, plus a few extra positions in the tray each time. On a full-moon wheel-mode day the process would be exactly the same, except that the checking in step 3 would use the Floor 5 acceptance rule instead.
+
+Mogu didn't invent any of this. In November 2022, a Google team published a [paper](https://arxiv.org/abs/2211.17192) (later presented at ICML 2023) and called it `speculative decoding`. In February 2023, a DeepMind team published [another one](https://arxiv.org/abs/2302.01318) and called it `speculative sampling`. The two groups arrived at the same idea independently, at roughly the same time. The key observation in the Google team's abstract is exactly what Mogu discovered on Floor 4: "hard language-modeling tasks often include easier subtasks that can be approximated well by more efficient models." With no retraining and no architecture changes, they got a 2X-3X speedup on `T5-XXL` over the standard `T5X` implementation, "with identical outputs." The DeepMind team, running `Chinchilla` 70B in a distributed setup, measured a 2 to 2.5x decoding speedup.
+
+The technique has long since made it from papers into everyday use. In [MP-286](/posts/mp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov/), the author of `llama.cpp` hits 300 tokens per second on a three-year-old Mac, and speculative decoding is part of that stack; according to MP-286, it's a variant called `Prompt Speculative Decoding` that finds drafts in the prompt itself. The ATLAS project broken down in [MP-220](/posts/mp-220-20260328-daniel-mac8-qwen3-14b-rtx-5060-sonnet-4-5-harness/) also runs a patched `llama-server` on a single `RTX 5060 Ti` with speculative decoding turned on, reaching about 100 tokens per second. And when [MP-45](/posts/mp-45-20260208-bcherny-opus-fast-mode/) discusses Opus's fast mode, it lists speculative decoding as one possible approach, though that's an outside observer's guess, not something that's been confirmed.
+
+<LevelUpQuiz
+  question="In one round, Mogu's very first slip is wrong. How many words get written into the book of prophecy this round?"
+  options={[
+    { label: "A", text: "0: the whole round is void and you start over next round" },
+    { label: "B", text: "1: the word the Oracle stamped in the first position" },
+    { label: "C", text: "4: write down what Mogu guessed" },
+    { label: "D", text: "5: the Oracle accepts them all because Mogu tried so hard" },
+  ]}
+  answer="B"
+  explanation="The big model's pass already computed its own token at the first position, so when the first draft token is rejected, that token is used instead. Every round keeps at least 1 word. The worst case is the same as not using speculative decoding at all, just with the draft model's time added on. A is wrong: the big model's pass is never wasted. C would write wrong words into the output, breaking the whole rule set. D: the Oracle is a machine and doesn't grade on effort."
+/>
+
+At the end of the month, the book of prophecy is sent off to the archive as usual.
+
+Every word in it is a word the Oracle itself would have produced. The words from the full-moon days even show up with the same probabilities as if the Oracle had spun its wheel alone. Flip from the first page to the last and you won't find a single word that gives away that Mogu was ever there.
+
+The only thing in the whole tower that remembers Mogu is the winch log by the shaft: same thickness of prophecy, and far fewer tome trips this month.
+
+---
+
+## Further Reading
+
+- [Lv-12: How Does an LLM Actually Run? From Tokens to the Next-Token Loop](/posts/levelup-20260608-12-llm-internals/) (the full version of the "next token" loop, i.e. the inner workings of the tower from Floor 1)
+- [MP-286: What `llama.cpp` Can Really Do: 300 t/s on a Three-Year-Old Mac, Demonstrated by `Georgi Gerganov` Himself](/posts/mp-286-20260413-ggerganov-llama-cpp-mac-300-t-s-georgi-gerganov/) (what memory bandwidth, quantization, and speculative decoding look like stacked together on one Mac)
+- [MP-296: `InferenceX v2`: NVIDIA `Blackwell` Sweeps the Leaderboard, and How AMD Pays Down Its Software Debt](/posts/mp-296-20260415-article-inferencex-v2-nvidia-blackwell-amd/) (MTP, the speculative decoding variant that doesn't need a separate draft model, plus the math on the decode phase being stuck on `HBM` bandwidth)
+- [MP-220: ATLAS: Can One `RTX 5060 Ti` + `Qwen3-14B` Beat Sonnet 4.5 on `LiveCodeBench`? Unpacking the Real Magic of the Harness](/posts/mp-220-20260328-daniel-mac8-qwen3-14b-rtx-5060-sonnet-4-5-harness/) (speculative decoding in practice on a consumer graphics card)
+- [The Google team's speculative decoding paper](https://arxiv.org/abs/2211.17192) and [the DeepMind team's speculative sampling paper](https://arxiv.org/abs/2302.01318) (the formal proofs of the Floor 5 acceptance rule are in both)
