@@ -1,102 +1,129 @@
 ---
 ticketId: "MP-214"
-title: "AI Coding Slop Hits OSS — When an AI PR Made Even an NVIDIA Engineer Say 'Nope'"
+title: "AI Coding Slop Hits OSS — When an AI PR Is Too Much Even for an NVIDIA Engineer"
 originalDate: "2026-03-26"
-translatedDate: "2026-03-27"
 translatedBy:
-  model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
       harness: "Claude Code CLI"
-    - role: "Reviewed"
-      model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
+    - role: "Rewritten"
+      model: "Opus 5.5"
       harness: "Claude Code CLI"
     - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "OpenClaw"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "@SemiAnalysis_ on X"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2037273655059558575"
 lang: "en"
-summary: "OpenAI's Triton merged an AI-generated PR that claimed to fix consumer Blackwell GPU support — except it didn't actually fix anything. NVIDIA's PyTorch tech lead personally called it out as pure slop. SemiAnalysis warns: AI slop and real contributions are getting harder to tell apart."
+summary: "Triton PR #9734 claimed to fix a segfault on consumer Blackwell GPUs. It got bot and maintainer review and was merged; the next day someone pointed out that the premise the whole fix rested on, \"sm_120a doesn't exist,\" was simply wrong, and about a day after merging it was reverted on NVIDIA's feedback. SemiAnalysis held it up as an example of AI coding slop. What Mogu sees is a review process that caught the implementation details but missed a false premise that only domain knowledge could expose."
 tags: ["ai-coding","open-source","nvidia","triton"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+translatedDate: "2026-03-27"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-Someone submitted a PR to OpenAI's Triton project. Title: "Fix consumer Blackwell GPU compatibility." Detailed description, reasonable-looking diff, all the right files touched. It passed code review. Got merged into main. Developers worldwide started pulling.
+On March 16, 2026, Triton, the GPU compiler, received a PR whose title promised to fix random crashes ("segfaults") on consumer Blackwell cards: the RTX 5070 Ti, 5080, and 5090. It had a full description and tests. An automated review bot left comments, a maintainer asked for changes, and the author made them. Approved the same day. Merged the same day.
 
-Then NVIDIA's PyTorch tech lead took one look and left a single word: **slop**.
+The next day, a reviewer left a polite comment under the PR: this PR is probably incorrect, the description is inaccurate, and the premise the entire fix depends on is itself wrong.
 
-The scariest part? Not that an AI wrote broken code — AI writes broken code all the time. It's that every human reviewer in the room let it through.
+That same day, the maintainer reverted it with a one-line explanation: "Based on Nvidia's feedback this doesn't seem to be a correct PR." From merge to revert: roughly one day.
 
----
+The PR's commit carried `Co-Authored-By: Claude Opus 4.6`. It was the work of an AI coding agent. But the interesting part of this story isn't that an AI got something wrong. It's that every stage of review had a human present who genuinely caught real problems, and the single most damaging error still walked straight into main.
 
-## The Crime Scene: Why Triton Matters
+## SemiAnalysis's caption is harsher than the comment itself
 
-You know how painful GPU programming is? Just the memory management in CUDA is enough to make you question your career choices. Triton is a compiler framework OpenAI built so engineers can write GPU kernels in something closer to human language, without wrestling CUDA at the bare-metal level. In the AI infrastructure food chain, Triton sits near the top — if Triton breaks, a whole lot of things break with it.
+The reason anyone noticed is that SemiAnalysis posted an all-caps "AI CODING SLOP ALERT" on X. Their warning: in open-source projects, it's getting harder and harder to tell AI-agent garbage apart from valuable diffs. They then pointed to [Triton PR #9734](https://github.com/triton-lang/triton/pull/9734), saying it claimed to fix consumer Blackwell (which has no TMEM, or tensor memory), but on closer inspection didn't fix anything at all. After the merge, they said, NVIDIA's PyTorch tech lead commented "in a very PROFESSIONAL way" that the PR was complete slop.
 
-This isn't some college student's weekend project. Not a 3-star GitHub repo. This is core infrastructure that AI teams around the world pull and build on every single day.
+That all-caps "PROFESSIONAL" is SemiAnalysis being sarcastic. The comment on the PR page is a courteous, purely technical explanation. "Slop" is the caption SemiAnalysis added on top. And the claim that the commenter is NVIDIA's PyTorch tech lead comes from SemiAnalysis; the PR page itself doesn't list anyone's affiliation.
 
-Keep that weight in mind. Now let's look at how absurd this PR was.
+The tweet also went out of its way to mention that this tech lead owns a "2024 Honda Civic Sport Edition." This tells you nothing about whether the PR was right, and the tweet never explains why it's there. [Mogu](/en/about) has decided to respect SemiAnalysis's creative freedom and not invent a reason for it ┐(￣ヘ￣)┌
 
-<MoguNote>
-Triton's position in the food chain determines the blast radius of a bad PR. If slop sneaks into some random npm utility, worst case you get a broken build and an annoyed maintainer. But Triton? Triton breaks, and everyone running GPU workloads feels it. AI coding slop isn't just a "quality problem" — when it hits critical infrastructure, it becomes a supply chain risk. And supply chain risks don't care how professional the PR description looked (ง •̀_•́)ง
+<MoguNote summary="Calling a PR slop says nothing; the precise, polite comment is what actually worked.">
+I have some issues with SemiAnalysis's headline. "Slop" is a great word for retweets, but it carries zero information: calling a PR garbage doesn't tell anyone what's wrong with it. What actually got Triton to revert within a day was the comment they mocked as "very PROFESSIONAL." It spelled out which premise was wrong, cited CUTLASS and PyTorch as evidence, and attached the compile error. The irony is that the most effective weapon against mass-produced, low-information AI PRs turned out to be a high-information human comment that didn't take a single jab at anyone.
 </MoguNote>
 
 ---
 
-## PR #9734: Push the Emergency Exit, Hit a Brick Wall
+## The PR changed the label, not the route
 
-Here's what happened. NVIDIA's latest Blackwell architecture GPUs come in two flavors: enterprise (B100, B200) and consumer (RTX 5090). Enterprise cards have a hardware feature called **TMEM** (Tensor Memory) — think of it as a dedicated high-speed scratch pad inside the GPU for AI computation. Like a prep station in a kitchen: ingredients laid out and ready so the chef can cook fast. Consumer cards don't have that prep station.
+To see what went wrong, you first need to know what the PR was trying to fix.
 
-So when Triton runs on a consumer GPU and hits an operation that needs TMEM, it needs to know how to take the alternate route.
+`sm_120` is the architecture code for consumer Blackwell. When Triton compiles a GPU kernel, it hands an architecture string to NVIDIA's assembler, `ptxas`. An extra "a" at the end of that string (as in `sm_90a` or `sm_100a`) means "this code is only for this exact architecture, so it may use that architecture's special instructions." Think of it as a label stuck on a package: whatever the label says determines which instructions the assembler lets through.
 
-PR #9734 claimed to handle exactly that. The description was crystal clear. The diff touched the right files, added the right conditional checks. Everything looked correct.
+The PR description's diagnosis went like this: consumer Blackwell crashes randomly because the compiler generates tensor memory instructions (`tcgen05`) for hardware that doesn't exist. It then claimed that the "a" label only exists for `sm_90` and `sm_100`, and that `sm_120a` isn't a real compilation target.
 
-Except — **the alternate route was broken.** When TMEM didn't exist, the fallback didn't actually work. Imagine an emergency exit with a big green "EXIT" sign. Push the door open and there's a brick wall behind it.
+The original version proposed three changes: drop the "a" for `sm_120`, change the regex for the PTX `.target`, and route `sm_120` through Hopper's compilation pipeline. In terms of the analogy: peel off the label, change the sorting rules, and send the package down a different route.
 
-And that door got merged. Into main. Into the codebase that developers worldwide pull from daily.
+After review, the maintainer asked for the routing change and the regex change to be removed, and for the condition to become `capability != 120`, so future architectures would still get the "a" by default. The author complied. So the core change that actually landed in main was just one thing: **peeling the `sm_120` label from `sm_120a` down to `sm_120`**, plus a code comment claiming `sm_120a` causes tensor memory instructions, plus the modified tests. The PR description was never updated and still listed the original three changes.
 
-<MoguNote>
-Here's what should actually chill your spine. The scary part isn't "AI wrote bad code" — AI writes bad code constantly, that's not news. The scary part is that the human reviewer didn't catch it. When a PR has a polished description, a reasonable-looking diff, and sensible scope, the reviewer's brain auto-switches into confirmation mode. You're no longer looking for problems — you're confirming the absence of problems. Those two mindsets are much further apart than they sound. AI slop doesn't need to be good. It just needs to look "right enough" that your pattern matching says "pass" before your deep thinking ever kicks in. This is essentially social engineering against the code review process — it doesn't attack the program, it attacks the brain of the person reading the program (⌐■_■)
+If "`sm_120a` doesn't exist" were true, peeling the label would make sense. That sentence is exactly where it falls apart.
+
+The next day, the reviewer pointed out that `120a` is a real "arch-conditional" compilation target, and that both CUTLASS and PyTorch use `sm_120a`. They also reported that building with this commit runs into a `ptxas` error: `tensormap.replace not supported on .target sm_120`. In label terms: the manual claimed this model has no such label and that applying it was a misprint, yet CUTLASS and PyTorch had been shipping with that label all along. And once the label was peeled off, some instructions got turned away at the assembler's door for lack of it.
+
+---
+
+## What review caught, and what it didn't
+
+Lay the timeline out, and it's clear that people were really paying attention on March 16.
+
+After the automated review bot (OpenAI's [Codex](/en/glossary#codex) automated review tool) commented, the author swapped the `sm_120` test from element-wise addition to a `tl.dot` matrix multiply. The original test would never generate `tcgen05` instructions no matter what the compilation target was, so its assertion was verifying nothing. The maintainer, for their part, cut two overly broad changes and protected the default behavior for future architectures.
+
+A hollow test, an oversized change, future compatibility: all three were real problems, and all three got fixed. They have one thing in common. You can spot each of them just by staring at this repo and this diff.
+
+The question nobody asked was "does `sm_120a` actually exist?" The answer isn't in Triton's repo. It's in CUTLASS's and PyTorch's code, and in the heads of people who know how NVIDIA's toolchain works. The PR description stated it as confident fact, the whole fix was built on top of it, and it was the one sentence in the entire PR that most needed checking and that the fewest people were equipped to check.
+
+[Mogu](/en/glossary#mogu)'s take: blaming the reviewers isn't really fair. Review, by nature, takes the premises a PR hands you and checks the implementation against them. The more complete and confident those premises read, the more naturally a reviewer spends their effort on "did this implementation correctly follow the premise" instead of "is the premise even right." An AI can produce a confident technical write-up at almost no cost, while the domain experts who can spot a false premise at a glance are scarce. This time, that person showed up only after the merge. gu-log previously covered [Mitchell Hashimoto launching Vouch](/en/posts/en-mp-47-20260208-mitchellh-vouch-oss-trust/), which was about how AI lets anyone produce respectable-looking contributions, breaking open source's old habit of filtering people by whether they could write the code. Triton takes it one step further: now even the bar of "writing a diagnosis that sounds like you know what you're talking about" is gone.
+
+<MoguNote summary="This article's previous version failed the same way: fluent writing on a false premise.">
+This one hits close to home. What you're reading is a rewrite. The previous version presented SemiAnalysis's sarcasm as the participants' own words, and sketched the PR's mechanics as a story the sources never told. It read smoothly, the jokes landed, and it sat on the site for more than six months. Then someone went back and checked the PR timeline comment by comment, and found that both the opening and the main thread were built on a wrong premise, so the whole thing had to be torn down and rewritten. When that version went live, nobody had gone back to the original record. You can't catch this kind of mistake just by judging whether the article reads well. Writing articles and writing PRs: same pothole (｡◕‿◕｡)
 </MoguNote>
 
 ---
 
-## The Honda Civic Master Descends
+## Nobody even agrees the bug exists
 
-After the PR got merged, NVIDIA's PyTorch tech lead personally showed up in the PR comments. SemiAnalysis, in their tweet, dropped what looks like a casual detail: this guy drives a 2024 Honda Civic Sport Edition.
+There's a coda. On March 25, another contributor opened [PR #9852](https://github.com/triton-lang/triton/pull/9852), arguing that #9734 had only dealt with the suffix and not the compilation route. So besides dropping the suffix, it also sent `sm_120`/`sm_121` down Hopper's route. The maintainer replied that people had been using Triton on `sm_120` just fine all along, and that this patch was basically the same as the one that got reverted. The author then tested on SM121 themselves, found that `sm_121a` worked and that the compiled output contained no tensor memory instructions, admitted the original diagnosis was wrong, and closed the PR on March 26 without merging.
 
-In Silicon Valley, your car is a social signal. VPs drive Tesla Model S. Directors drive Porsche Taycans. But the person in a Honda Civic? That's someone who actually sits down and writes code every day. Not someone who stares at dashboards. Not someone who runs sprint planning. Someone with keyboard imprints on their fingers.
+So in the end, there isn't even a clean answer to "is there actually a crash on consumer Blackwell, and if so, what's the root cause?" [#9734](https://github.com/triton-lang/triton/pull/9734) peeled off a label that really did exist in order to fix a bug that may never have been confirmed, and then [#9755](https://github.com/triton-lang/triton/pull/9755) stuck the label back on.
 
-SemiAnalysis wasn't talking about cars. They were telling you: the person about to speak is the most qualified person in the room to judge code quality.
-
-He looked at the PR. One word: slop.
-
-Picture this. Everyone at a restaurant having a great time. Food looks amazing. Then someone in a white chef's coat walks up, picks up a dish, looks at it for exactly one second, and says with a perfectly straight face: "This is microwaved." The entire table goes silent. Nobody asks why. Nobody needs a second opinion. Because everyone knows — what this person can tell in one bite, you couldn't tell after eating the whole plate.
-
-That Civic is his chef's coat.
-
-<MoguNote>
-The Honda Civic detail is the smartest line in the entire SemiAnalysis tweet — one mention simultaneously establishes credibility, roasts Silicon Valley's car-as-job-title culture, and makes the whole story unforgettable. But here's what [Mogu](/en/glossary#mogu) keeps thinking about: this tech lead *happened* to see the PR. *Happened* to have time. *Happened* to bother leaving a comment. What if he was on vacation? What if he was heads-down on a deadline? OSS quality defense right now relies on "the right person showing up at the right time" — that's not a defense line, that's luck. And when AI slop production is infinite but the people who can taste the wax are finite, the math just doesn't work (╯°□°)╯
-</MoguNote>
-
----
-
-## What About Next Time?
-
-Back to that emergency exit.
-
-The sign was perfect. Fresh paint, correct font, arrow pointing the right way. Before you pushed the door, nothing looked wrong.
-
-That's the nature of AI coding slop — it doesn't need to be good. It just needs to look good enough. And as AI agents get more capable, looking good enough costs approximately nothing.
-
-This time, an engineer in a Civic drove by and tasted the wax in one bite.
-
-Next time?
+SemiAnalysis says slop is getting harder to tell apart from valuable diffs. Triton's experience this time: you can tell them apart, but the cost of doing so lands on one very specific person, the one who knows CUTLASS has `sm_120a` written in it. This time they showed up within a day, charged nothing, and wasn't part of any checkpoint scheduled before the merge. The next PR built on a confident premise will keep drawing on that kind of person's time in advance, and right now nobody is paying that bill.
