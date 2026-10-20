@@ -9,8 +9,11 @@
  * Key = post id (filename without .mdx), Value = commit count.
  *
  * Merge-aware in two ways:
- * - while a merge is in progress, walk `HEAD MERGE_HEAD` so incoming history is
- *   available to the custom merge driver;
+ * - while a merge is in progress, walk HEAD plus the incoming head(s) so their
+ *   history is available, and take the post path set from those tips instead of
+ *   the worktree. The custom merge driver runs before git writes MERGE_HEAD or
+ *   the other merged files, so it passes the incoming heads explicitly via
+ *   POST_VERSIONS_MERGE_HEADS (see scripts/merge-post-versions.sh);
  * - after a merge, inspect each parent diff (`git log -m`) for rename edges so
  *   a path canonicalised by the merge keeps its second-parent history.
  *
@@ -51,12 +54,11 @@ function isShallowRepository() {
 }
 
 function buildManifest() {
-  // Detect merge-in-progress and include MERGE_HEAD in the walk so the
+  // Detect merge-in-progress and include the incoming head(s) in the walk so the
   // regenerated manifest sees commits from both sides of the merge.
   // `git rev-parse --git-path` is required here: in a linked worktree `.git`
   // is a file and MERGE_HEAD lives under the worktree-specific gitdir.
-  const mergeHeadPath = getGitPath('MERGE_HEAD');
-  const revs = mergeHeadPath && existsSync(mergeHeadPath) ? ['HEAD', 'MERGE_HEAD'] : ['HEAD'];
+  const revs = ['HEAD', ...getMergeHeads()];
   const versions = buildCurrentPostVersions(revs);
 
   const next = JSON.stringify(versions, null, 2) + '\n';
@@ -107,12 +109,21 @@ function getGitPath(name) {
   return isAbsolute(path) ? path : resolve(repoRoot, path);
 }
 
+function getMergeHeads() {
+  // Set by the merge driver: git has not written MERGE_HEAD yet at that point.
+  const fromDriver = (process.env.POST_VERSIONS_MERGE_HEADS ?? '').split(/\s+/).filter(Boolean);
+  if (fromDriver.length > 0) return fromDriver;
+
+  const mergeHeadPath = getGitPath('MERGE_HEAD');
+  return mergeHeadPath && existsSync(mergeHeadPath) ? ['MERGE_HEAD'] : [];
+}
+
 function buildCurrentPostVersions(revs) {
   const history = getPostHistory(revs);
   const mergeHistory = getPostHistory(revs, { mergeDiffs: true });
   const commits = parseHistory(history);
   const mergeCommits = parseHistory(mergeHistory);
-  const mergeInProgress = revs.includes('MERGE_HEAD');
+  const mergeInProgress = revs.length > 1;
   const staged = includeStaged ? getStagedPostChanges(revs) : null;
   const lineage = new PathLineage();
 
@@ -137,7 +148,7 @@ function buildCurrentPostVersions(revs) {
   }
 
   const versions = {};
-  for (const postPath of getCurrentPostPaths()) {
+  for (const postPath of getCurrentPostPaths(revs)) {
     const count = countsByLineage.get(lineage.find(postPath)) ?? 0;
     if (count > 0) versions[postIdFromPath(postPath)] = count;
   }
@@ -171,9 +182,9 @@ function getStagedPostChanges(revs) {
   // In an ordinary commit HEAD is the only useful comparison. During a merge,
   // compare the index with both parents: a resolution that renames an incoming
   // path can look like a plain add relative to HEAD but like a rename relative
-  // to MERGE_HEAD. Both views are needed to preserve lineage before the merge
+  // to the incoming head. Both views are needed to preserve lineage before the merge
   // commit exists.
-  const bases = revs.includes('MERGE_HEAD') ? ['HEAD', 'MERGE_HEAD'] : ['HEAD'];
+  const bases = revs;
   const combined = { paths: new Set(), renames: [] };
 
   for (const base of bases) {
@@ -234,12 +245,58 @@ function incrementTouchedLineages(counts, lineage, paths) {
   for (const root of touched) counts.set(root, (counts.get(root) ?? 0) + 1);
 }
 
-function getCurrentPostPaths() {
-  return readdirSync(postsDir)
-    .filter((file) => file.endsWith('.mdx'))
-    .sort()
-    .map((file) => `src/content/posts/${file}`)
-    .filter((postPath) => !isPendingPost(postIdFromPath(postPath)));
+function getCurrentPostPaths(revs) {
+  const mergeInProgress = revs.length > 1;
+  let paths;
+  if (!mergeInProgress) {
+    paths = readdirSync(postsDir)
+      .filter((file) => file.endsWith('.mdx'))
+      .map((file) => `src/content/posts/${file}`);
+  } else if (includeStaged) {
+    // Pre-commit of a merge commit: the index already holds the resolution
+    // (including renames/deletes the resolver staged), so it is authoritative.
+    paths = listGitPosts(['ls-files', '--', 'src/content/posts/']);
+  } else {
+    // The merge driver runs before git writes the other merged files to the
+    // worktree, so readdir would miss posts that are new on the incoming side.
+    // Derive the merged path set from the tips instead: their union, minus
+    // anything any side deleted (or renamed away) relative to the merge-base.
+    const tips = revs.map((rev) => new Set(listTreePosts(rev)));
+    const mergeBase = getMergeBase(revs);
+    const base = mergeBase ? listTreePosts(mergeBase) : [];
+    const deleted = new Set(base.filter((path) => tips.some((tip) => !tip.has(path))));
+    paths = [...new Set(tips.flatMap((tip) => [...tip]))].filter((path) => !deleted.has(path));
+  }
+
+  return paths.sort().filter((postPath) => !isPendingPost(postIdFromPath(postPath), revs));
+}
+
+function listTreePosts(rev) {
+  return listGitPosts(['ls-tree', '-r', '--name-only', rev, '--', 'src/content/posts/']);
+}
+
+function listGitPosts(args) {
+  return execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    maxBuffer: 50 * 1024 * 1024,
+  })
+    .split('\n')
+    .filter(isPostPath);
+}
+
+function getMergeBase(revs) {
+  try {
+    return execFileSync('git', ['merge-base', '--octopus', ...revs], {
+      cwd: repoRoot,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch (error) {
+    // Exit 1 = unrelated histories (no common ancestor): nothing was deleted.
+    if (error?.status === 1) return '';
+    throw error;
+  }
 }
 
 function isPostPath(path) {
@@ -274,14 +331,34 @@ class PathLineage {
   }
 }
 
-function isPendingPost(postId) {
+function isPendingPost(postId, revs) {
   if (postId.includes('-pending-')) return true;
 
-  const postPath = join(postsDir, `${postId}.mdx`);
-  if (!existsSync(postPath)) return false;
-
-  const content = readFileSync(postPath, 'utf8');
+  const content = readPostContent(postId, revs);
+  if (content === null) return false;
   return /^[ \t]*ticketId:[ \t]*["']?[A-Za-z]+-PENDING["']?[ \t]*$/m.test(content);
+}
+
+function readPostContent(postId, revs) {
+  const postPath = join(postsDir, `${postId}.mdx`);
+  if (existsSync(postPath)) return readFileSync(postPath, 'utf8');
+  if (revs.length < 2) return null;
+
+  // Mid-merge, a post that exists only on one side may not be in the worktree
+  // yet. Read it from the index or one of the merge tips instead.
+  const relPath = `src/content/posts/${postId}.mdx`;
+  for (const spec of [`:${relPath}`, ...revs.toReversed().map((rev) => `${rev}:${relPath}`)]) {
+    try {
+      return execFileSync('git', ['show', spec], {
+        cwd: repoRoot,
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+    } catch {
+      // Not present at this spec; try the next one.
+    }
+  }
+  return null;
 }
 
 try {

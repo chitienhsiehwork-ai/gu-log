@@ -395,6 +395,62 @@ describe('post version manifest freshness', () => {
     expect(manifest['gp-1000-incoming']).toBe(1);
     expect(manifest['gp-1001-local']).toBe(1);
   });
+
+  it('merge driver keeps posts added on MERGE_HEAD before git writes them to the worktree', () => {
+    const repo = makeSyntheticRepo('gp-997-doomed');
+    fs.copyFileSync(
+      path.join(REPO_ROOT, 'scripts', 'merge-post-versions.sh'),
+      path.join(repo, 'scripts', 'merge-post-versions.sh')
+    );
+    fs.writeFileSync(
+      path.join(repo, '.gitattributes'),
+      'src/data/post-versions.json merge=post-versions-regen\n'
+    );
+    run(
+      'git',
+      [
+        'config',
+        'merge.post-versions-regen.driver',
+        'sh scripts/merge-post-versions.sh %O %A %B %P',
+      ],
+      repo
+    );
+    expect(runManifest(repo, []).status).toBe(0);
+    run('git', ['add', '.'], repo);
+    run('git', ['commit', '-qm', 'install driver + fresh manifest'], repo);
+    const localBranch = run('git', ['branch', '--show-current'], repo).trim();
+
+    // Mirrors pre-commit: stage the post change, precompute the manifest.
+    const commitPostChange = (message: string) => {
+      run('git', ['add', '-A', 'src'], repo);
+      expect(runManifest(repo, ['--include-staged']).status).toBe(0);
+      run('git', ['add', MANIFEST_PATH], repo);
+      run('git', ['commit', '-qm', message], repo);
+    };
+
+    // "main" side: adds a new post and deletes an existing one.
+    run('git', ['switch', '-qc', 'main-side'], repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'gp-1002-main.mdx'),
+      '---\ntitle: main side launch notes\n---\nA completely different main-only article.\n'
+    );
+    fs.rmSync(path.join(repo, 'src', 'content', 'posts', 'gp-997-doomed.mdx'));
+    commitPostChange('main adds a post and deletes another');
+
+    // Feature side: adds its own post, so both sides rewrite the manifest.
+    run('git', ['switch', '-q', localBranch], repo);
+    fs.writeFileSync(
+      path.join(repo, 'src', 'content', 'posts', 'gp-1003-feature.mdx'),
+      '---\ntitle: feature branch essay\n---\nSomething only the feature branch wrote.\n'
+    );
+    commitPostChange('feature adds a post');
+
+    run('git', ['merge', '--no-edit', 'main-side'], repo);
+
+    const manifest = JSON.parse(fs.readFileSync(path.join(repo, MANIFEST_PATH), 'utf-8'));
+    expect(manifest).toEqual({ 'gp-1002-main': 1, 'gp-1003-feature': 1 });
+    expect(runManifest(repo, ['--check']).status).toBe(0);
+  }, 20_000);
 });
 
 describe('post version manifest operational failures', () => {
