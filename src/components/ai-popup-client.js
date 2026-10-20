@@ -51,6 +51,7 @@
           networkError: 'Cannot connect to API server. Please check your network.',
           unknownError: 'An unknown error occurred.',
           undoHint: 'You can revert this change from Git history.',
+          followUp: 'Ask a follow-up…',
         }
       : {
           askAi: '🤖 Ask AI',
@@ -85,6 +86,7 @@
           networkError: '無法連線到 API 伺服器，請確認網路連線',
           unknownError: '發生未知錯誤',
           undoHint: '可從 Git 歷史回退此修改。',
+          followUp: '繼續追問…',
         };
 
   let popup = null;
@@ -93,6 +95,10 @@
   let pendingEditId = null;
   let lastEditInstruction = '';
   let lastAskQuestion = '';
+  // Bounded follow-up (#75): turns of the current popup only, cleared on close
+  // or new selection. History is sent only once the API reports support.
+  let askTurns = [];
+  let askHistoryOk = false;
   let errorDismissTimer = null;
   let requestGeneration = 0;
   let selectionGeneration = 0;
@@ -327,6 +333,7 @@
 
   function createPopup() {
     invalidateRequestContext();
+    askTurns = [];
     if (popup) popup.remove();
 
     popup = document.createElement('div');
@@ -413,6 +420,7 @@
     currentState = 'idle';
     pendingEditId = null;
     selectedText = '';
+    askTurns = [];
   }
 
   function isPanel() {
@@ -545,7 +553,7 @@
     positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
   }
 
-  function renderAskResult(response) {
+  function renderAskResult() {
     if (!popup) return;
     clearErrorDismissTimer();
     currentState = 'ask-result';
@@ -560,16 +568,46 @@
     closeBtn.setAttribute('aria-label', closeLabel);
 
     content.appendChild(createSelectionPreview());
-
-    const body = document.createElement('div');
-    body.className = 'ai-popup-result-body';
-    body.appendChild(renderMarkdown(response));
-
     content.appendChild(closeBtn);
-    content.appendChild(body);
+
+    let last = null;
+    askTurns.forEach(function (turn) {
+      if (turn.q) {
+        last = document.createElement('div');
+        last.className = 'ai-popup-ask-q';
+        last.textContent = turn.q;
+        content.appendChild(last);
+      }
+      const body = document.createElement('div');
+      body.className = 'ai-popup-result-body';
+      body.appendChild(renderMarkdown(turn.a));
+      content.appendChild(body);
+      if (!turn.q) last = body;
+    });
+
+    if (askHistoryOk && askTurns.length <= 3) {
+      const row = document.createElement('div');
+      row.className = 'ai-popup-actions';
+      row.innerHTML =
+        '<input type="text" class="ai-popup-question-input" placeholder="' +
+        escapeHtml(t.followUp) +
+        '" aria-label="' +
+        escapeHtml(t.followUp) +
+        '"><button class="ai-popup-btn ai-popup-btn--primary" data-action="submit-ask">' +
+        escapeHtml(t.submit) +
+        '</button>';
+      row.firstChild.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleSubmitAsk();
+        }
+      });
+      content.appendChild(row);
+    }
 
     popup.innerHTML = '';
     popup.appendChild(content);
+    if (askTurns.length > 1 && last) last.scrollIntoView({ block: 'nearest' });
 
     // Re-position for larger content
     positionPopup(getSelectionRect() || { top: 0, left: 0, bottom: 0, width: 0 });
@@ -869,9 +907,25 @@
       if (question) {
         body.question = question;
       }
+      if (askHistoryOk && askTurns.length) {
+        // API caps: 3 turns, 6000 chars total; trim each turn to an equal share.
+        const turns = askTurns.slice(-3);
+        const cap = Math.min(4000, 6000 / turns.length - 500);
+        body.history = turns.map(function (turn) {
+          return {
+            question: (turn.q || 'Explain the selected text.').slice(0, 500),
+            answer: turn.a.slice(0, cap),
+          };
+        });
+      }
       const data = await apiRequest('/ai/ask', body, requestContext.signal);
       if (!isRequestContextCurrent(requestContext)) return;
-      renderAskResult(data.response || data.answer || JSON.stringify(data));
+      askHistoryOk = Boolean(data.capabilities && data.capabilities.history);
+      askTurns.push({
+        q: question,
+        a: String(data.response || data.answer || JSON.stringify(data)),
+      });
+      renderAskResult();
     } catch (err) {
       if (!isRequestContextCurrent(requestContext)) return;
       renderError(err.message);
@@ -990,7 +1044,8 @@
         if (lastEditInstruction) {
           renderEditInput(lastEditInstruction);
         } else {
-          renderAskInput();
+          if (askTurns.length) renderAskResult();
+          else renderAskInput();
           if (lastAskQuestion && popup) {
             const askInput = popup.querySelector('.ai-popup-question-input');
             if (askInput) askInput.value = lastAskQuestion;

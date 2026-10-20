@@ -339,6 +339,10 @@ jobs:
             astro-${{ runner.os }}-
 
       - name: Build
+        # Shallow checkout: keep the committed post-versions.json (freshness is
+        # enforced by the full-history unit tests, not by this build).
+        env:
+          POST_VERSIONS_ALLOW_SHALLOW: '1'
         run: pnpm run build
 
       - name: Upload dist for downstream jobs
