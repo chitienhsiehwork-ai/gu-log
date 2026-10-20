@@ -159,7 +159,7 @@ jobs:
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
-      - name: Reader-visible emoji policy (PR added-line ratchet)
+      - name: Post emoji check (added lines)
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -202,7 +202,7 @@ jobs:
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
       - name: 晶晶體 check (PR only — block decorative English in changed zh-tw posts)
-        # Same scope as the pre-commit hook (.githooks/pre-commit step 0.16):
+        # Same scope as the pre-commit hook (scripts/hooks/pre-commit step 0.16):
         # only PR-changed zh-tw .mdx files are linted. Push to main is skipped
         # because (a) merged content was already gated at PR time and (b) main
         # has 65+ historical posts with grandfathered 晶晶體 that we don't

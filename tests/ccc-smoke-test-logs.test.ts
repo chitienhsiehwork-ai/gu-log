@@ -81,6 +81,8 @@ exit 7
       for (const [name, body] of [
         ['curl', "#!/bin/sh\nprintf '200'\n"],
         ['pgrep', '#!/bin/sh\nexit 1\n'],
+        // fetch-article 套件 probe 會呼叫 python3；用假的立刻失敗，免得真的 import 拖過 timeout。
+        ['python3', '#!/bin/sh\nexit 1\n'],
       ] as const) {
         fs.writeFileSync(path.join(binDir, name), body, { mode: 0o755 });
       }

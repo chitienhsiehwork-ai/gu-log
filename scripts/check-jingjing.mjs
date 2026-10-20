@@ -38,7 +38,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { isCanonicalSeriesTaxonomyOnlyChange, scanLegacyText } from './check-brand-taxonomy.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -47,11 +46,9 @@ const __isCli =
 const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
-const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
 // Read the accepted-English policy inputs once, so every file in a scan is
-// judged against the same glossary and taxonomy policy.
+// judged against the same glossary.
 const GLOSSARY_SNAPSHOT = fs.readFileSync(GLOSSARY_PATH);
-const TAXONOMY_POLICY_SNAPSHOT = fs.readFileSync(TAXONOMY_POLICY_PATH);
 const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
 const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
 
@@ -1161,83 +1158,21 @@ function getBaselineViolations(filePath, baselineRef) {
 function filterBaselineViolations(violations, baseline) {
   if (!baseline) return violations;
 
-  // Each current occurrence must match one concrete baseline occurrence.
-  // Exact context remains grandfathered. Context drift is accepted only when
-  // the brand-taxonomy SSOT can prove the old line canonicalizes exactly to
-  // the current line (including post paths); a same-count word moved to an
-  // unrelated sentence is therefore always new.
+  // Each current occurrence must match one concrete baseline occurrence, so a
+  // same-count word moved to an unrelated sentence is always new.
   const remainingBaseline = [...baseline.violations];
   return violations.filter((violation) => {
-    let matchIndex = remainingBaseline.findIndex(
+    const matchIndex = remainingBaseline.findIndex(
       (candidate) => violationKey(candidate) === violationKey(violation)
     );
-    if (matchIndex < 0) {
-      matchIndex = remainingBaseline.findIndex(
-        (candidate) =>
-          candidate.word.toLowerCase() === violation.word.toLowerCase() &&
-          isCanonicalSeriesTaxonomyOnlyChange(
-            violationContext(candidate),
-            violationContext(violation)
-          )
-      );
-    }
     if (matchIndex < 0) return true;
     remainingBaseline.splice(matchIndex, 1);
     return false;
   });
 }
 
-// The taxonomy residual policy is the SSOT for exact factual uses of retired
-// names. When that stricter scanner proves the path/rule/token count matches an
-// exact exception, Jingjing must not independently reject the same occurrence
-// merely because surrounding prose changed. Match by token + line and consume
-// each approved finding once; stale counts remain violations and are also
-// rejected by taxonomy:check.
-/**
- * @param {string} filePath
- * @param {string} raw
- * @param {Array<{word: string, line: number, context: string, comparisonContext?: string}>} violations
- * @param {{exactExceptions: Array<{path: string, rule: string, token: string, expectedCount: number, reason: string}>} | null} [policy=null]
- * @returns {Array<{word: string, line: number, context: string, comparisonContext?: string}>}
- */
-function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
-  if (violations.length === 0) return violations;
-  const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
-  const activePolicy = policy ?? JSON.parse(TAXONOMY_POLICY_SNAPSHOT.toString('utf8'));
-  const findings = scanLegacyText(repoRelative, raw);
-  const budgets = new Map();
-
-  for (const exception of activePolicy.exactExceptions ?? []) {
-    if (exception?.path !== repoRelative) continue;
-    const matches = findings.filter(
-      (finding) => finding.rule === exception.rule && finding.token === exception.token
-    );
-    if (matches.length !== exception.expectedCount) continue;
-    for (const finding of matches) {
-      const key = `${finding.token.toLowerCase()}\0${finding.line}`;
-      budgets.set(key, (budgets.get(key) ?? 0) + 1);
-    }
-  }
-
-  return violations.filter((violation) => {
-    const key = `${violation.word.toLowerCase()}\0${violation.line}`;
-    const left = budgets.get(key) ?? 0;
-    if (left === 0) return true;
-    budgets.set(key, left - 1);
-    return false;
-  });
-}
-
 // ── Exports for tests ──────────────────────────────────────────────
-export {
-  isAllowed,
-  maskContent,
-  checkText,
-  checkFile,
-  filterBaselineViolations,
-  filterTaxonomyExactResiduals,
-  violationKey,
-};
+export { isAllowed, maskContent, checkText, checkFile, filterBaselineViolations, violationKey };
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -1280,12 +1215,7 @@ if (!__isCli) {
     if (skipped) continue;
     const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
     baselineRefUnavailable ||= refUnavailable;
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const newViolations = filterTaxonomyExactResiduals(
-      filePath,
-      raw,
-      filterBaselineViolations(violations, baseline)
-    );
+    const newViolations = filterBaselineViolations(violations, baseline);
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });
