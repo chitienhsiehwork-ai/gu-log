@@ -16,6 +16,10 @@ gu-log 不再公開全文翻譯：舊 GP 下架成墓碑頁，`sources/` 與測�
 4. **風險低**：2026-09-26 已判斷，作者要求下架時，通常針對的是看得到的檔案；網站上的墓碑頁與 HEAD 清理已經處理這部分。
 5. **依賴歷史的 manifest 要重算**：`src/data/post-versions.json` 等由 git 歷史產生的資料都會變動，連帶影響文章版本號。
 
+## 不在本決定範圍：仍公開的遠端舊分支
+
+本決定只涵蓋「藏在歷史 commit 裡」的舊版內容。有一批遠端 branch（例如 `backup/main-pre-squash`，以及多條下架前就停住的 feature branch）的 **tip** 仍是全文翻譯，任何人點進 branch 就看得到，不需要翻歷史。這批 refs 原本併在 #1111（`2026-09-28-translation-takedown-tombstone` 的 task 12.1），#1111 關閉後改由 #1154 追蹤。刪 remote branch 無法回頭、`backup/main-pre-squash` 又是唯一備份，所以等站長決定刪除或封存，agent 不自行刪除。
+
 ## 被否決的做法
 
 - `git filter-repo` 改寫全部歷史 + force-push + 請 GitHub support 清快取（#1111 原提案）。

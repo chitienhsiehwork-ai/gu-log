@@ -11,6 +11,7 @@ gu-log 改成「導讀＋評論」後，舊 GP 已下架成墓碑頁，原文副
 - 修改 `post-takedown` 的「公開 repo 的 HEAD SHALL NOT 保留下架譯文與未授權的第三方原文全文」：原本只寫「改寫 git 歷史不在本要求範圍內」，改成明確規定下架與原文清理 SHALL NOT 以改寫 git 歷史達成，並寫出重新評估的觸發條件。
 - `design.md` 保留被否決的做法、理由與重開條件。
 - 不改任何程式碼、驗證器或 CI。
+- 仍公開全文的遠端舊分支（branch tip 直接可瀏覽）**不在**本決定範圍，改由 #1154 追蹤，等站長決定刪除或封存。
 
 ## Capabilities
 
@@ -21,4 +22,4 @@ gu-log 改成「導讀＋評論」後，舊 GP 已下架成墓碑頁，原文副
 
 - Spec：`openspec/specs/post-takedown/spec.md`（archive 時同步）。
 - 決策紀錄：`openspec/changes/archive/<date>-reject-git-history-rewrite/design.md`。
-- 關閉 #1111（not planned）。
+- 關閉 #1111（not planned），遠端舊分支的清理移到 #1154。
