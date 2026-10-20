@@ -616,7 +616,9 @@
     "definition": "一組固定或可重複執行的測試，用來比較模型在特定能力上的表現。Benchmark 量到的是模型對這套測試的成績，不會自動等於真實世界的可靠度、安全性或實用性；題目外流、被反覆最佳化或已經飽和後，分數的意義也會下降。",
     "moguNote": "Benchmark 像遊戲裡的木樁傷害榜：很適合比較裝備與配點，但木樁不會反擊、不會改規則，也不會在凌晨三點把 production 弄爆。分數有用，前提是先記得它到底測了哪一小塊世界。",
     "related": ["Frontier Model", "Agent"],
-    "linking": { "enabled": false },
+    "linking": {
+      "enabled": false
+    },
     "definedIn": [
       {
         "slug": "gp-256-20260715-demishassabis-agi-safety-window"
@@ -1073,7 +1075,9 @@
     "definition": "OpenAI 2026 年推出的模型世代，用天體代號區分三個等級：Sol（太陽）最大、最貴、最聰明；Terra（地球）中階通用；Luna（月亮）最小、最便宜、反應最快。三者共用同一個架構，差別在參數量與訓練規模——對應到本文的框架，Sol 的「智慧」最高，Luna 的「智慧」最低，但三者都能獨立調整推理強度。",
     "moguNote": "太陽系家族：Sol 是公司請來的資深顧問，日薪三萬但一針見血；Luna 是實習生，便宜但只會照表操課。Terra 就是你，每天上班。",
     "related": ["Frontier Model", "Benchmark", "Test-time Compute"],
-    "linking": { "anchor": "gpt-5-6" },
+    "linking": {
+      "anchor": "gpt-5-6"
+    },
     "definedIn": [
       {
         "slug": "gp-264-20260728-kunchenguid-model-wisdom-vs-diligence"
@@ -1148,5 +1152,46 @@
     "category": "platforms",
     "enDefinition": "An open-source container orchestration system, originally open-sourced by Google and now hosted by the CNCF (Cloud Native Computing Foundation). Its core idea is declaring a desired state: how many copies to run, how much resource each one needs, and how they are exposed. Controllers then keep pulling the actual state back to match, for example by replacing crashed containers or scheduling work onto machines with room to spare. Often shortened to K8s, since there are exactly eight letters between the K and the s.",
     "enMoguNote": "Kubernetes is basically a restaurant. The boss writes the desired state on a whiteboard, and every line on it gets its own manager. A kitchen loses power, cooks vanish, and the manager never asks why; it just drags reality back to whatever the whiteboard says. As for K8s: typing those eight middle letters was apparently too much work (￣▽￣)"
+  },
+  {
+    "term": "Gradient",
+    "en": "Gradient",
+    "definition": "梯度。函數在某一點往各個方向變化有多快的向量，指向數值上升最快的方向。機器學習訓練時，會沿著 Loss function 梯度的反方向調整參數，一步步把誤差壓低，這就是梯度下降（gradient descent）。",
+    "moguNote": "梯度就是站在山坡上、腳底告訴你「往哪邊最陡」。訓練模型就是蒙著眼下山，每一步都摸一下腳底再走。腳底平到摸不出坡度時，最容易以為自己已經到底了。",
+    "aliases": ["梯度", "gradient", "gradients"],
+    "linking": {
+      "anchor": "gradient",
+      "match": [
+        "梯度",
+        "Gradient descent",
+        "gradient descent",
+        "gradients",
+        "Gradients",
+        "gradient"
+      ],
+      "caseSensitive": true
+    },
+    "related": ["Loss function"],
+    "definedIn": [],
+    "category": "concepts",
+    "enDefinition": "A vector describing how fast a function changes in each direction at a given point; it points in the direction of steepest increase. During machine learning training, parameters are nudged against the gradient of the Loss function to drive the error down step by step, which is gradient descent.",
+    "enMoguNote": "The gradient is your feet telling you which way the slope is steepest. Training a model is walking downhill blindfolded, feeling the ground before every step. When the ground feels perfectly flat, it is very tempting to assume you have already reached the bottom."
+  },
+  {
+    "term": "Loss function",
+    "en": "Loss function",
+    "definition": "損失函數。把模型預測和正確答案之間的差距算成一個數字的函數，數字越小代表越接近目標。訓練就是不斷調整參數讓這個數字下降，所以選什麼 loss function，等於決定模型要把什麼當成「做得好」。",
+    "moguNote": "Loss function 就是評分標準。分數怎麼算，模型就往哪裡長；標準訂歪了，模型會非常認真地朝歪的方向變強。人也一樣：拿舊環境的評分標準打新環境的分數，越努力越卡。",
+    "aliases": ["損失函數", "loss function", "loss functions", "Loss Function"],
+    "linking": {
+      "anchor": "loss-function",
+      "match": ["損失函數", "Loss functions", "loss functions", "Loss function", "loss function"],
+      "caseSensitive": true
+    },
+    "related": ["Gradient"],
+    "definedIn": [],
+    "category": "concepts",
+    "enDefinition": "A function that turns the gap between a model's predictions and the correct answers into a single number, where lower means closer to the target. Training keeps adjusting parameters to push that number down, so choosing a loss function is effectively choosing what the model treats as doing well.",
+    "enMoguNote": "The loss function is the grading rubric. However the score is computed, that is where the model grows; get the rubric wrong and the model will diligently get very good at the wrong thing. People are the same: grade a new environment with the old environment's rubric and every extra bit of effort just digs you in deeper."
   }
 ]
