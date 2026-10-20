@@ -52,7 +52,7 @@ Karpathy explained the core architecture in a follow-up:
 
 Breaking this down:
 
-1. **The entire LLM architecture and loss function are decomposed into the smallest possible math operations** — addition `+`, multiplication `*`, power `**`, logarithm `log`, exponential `exp`
+1. **The entire LLM architecture and [loss function](/en/glossary#loss-function) are decomposed into the smallest possible math operations** — addition `+`, multiplication `*`, power `**`, logarithm `log`, exponential `exp`
 2. **A tiny scalar-valued autograd engine (micrograd) computes all gradients**
 3. **Adam optimizer updates the parameters**
 
@@ -71,7 +71,7 @@ How normal people write deep learning:
 Karpathy's 243-line version:
 - Every number is a native Python `float`
 - Every matrix multiplication is a hand-written for loop
-- Every gradient is manually computed using the chain rule
+- Every [gradient](/en/glossary#gradient) is manually computed using the chain rule
 - Even Adam optimizer's momentum and variance tracking are implemented from scratch
 
 It's like someone saying "I'm going to build a computer starting from sand" — not assembling motherboards, but etching silicon wafers by hand. You say "that's way too slow," and he says "yes, but you'll actually understand what a computer IS when I'm done" (╯°□°)╯

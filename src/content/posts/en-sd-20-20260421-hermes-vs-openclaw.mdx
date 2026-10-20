@@ -197,7 +197,7 @@ Every 10 turns, the agent gets nudged: "Hey, was that worth saving as a skill?" 
 
 The same mechanism applies to memory — the agent periodically asks itself, "is there anything worth updating in `MEMORY.md`?"
 
-**This isn't gradient descent. It isn't fine-tuning. It's the agent writing prompt packs for its future self.**
+**This isn't [gradient descent](/en/glossary#gradient). It isn't fine-tuning. It's the agent writing prompt packs for its future self.**
 
 The key is timing: the "background review" runs *after* the user response is delivered (`_spawn_background_review`, `run_agent.py:11868-11872`) — with an explicit comment: "so it never competes with the user's task for model attention." The user feels no latency; the skill grows quietly during the agent's idle moments.
 
