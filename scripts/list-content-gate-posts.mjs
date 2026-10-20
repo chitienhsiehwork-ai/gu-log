@@ -77,7 +77,7 @@ function splitFrontmatter(content) {
 
 function withoutGateExemptMetadata(frontmatter) {
   return frontmatter.replace(
-    /^(?:status|deprecatedReason|deprecatedBy|series|name|order):[^\r\n]*(?:\r?\n|$)/gm,
+    /^(?:status|deprecatedReason|deprecatedBy|series|name|order|originalDate):[^\r\n]*(?:\r?\n|$)/gm,
     ''
   );
 }

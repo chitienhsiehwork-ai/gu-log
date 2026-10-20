@@ -160,8 +160,8 @@ echo ""
 # does NOT trigger a rescore — only changes a reader would actually see.
 #
 # Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
-# (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
-# gate. The score is about content quality, not bookkeeping. Forcing a
+# (status: deprecated, deprecatedReason, deprecatedBy, series.*) or an
+# originalDate correction skip the gate. The score is about content quality, not bookkeeping. Forcing a
 # rescore just to add a `series.name` to a 4-month-old post is the wrong
 # trade-off.
 #
@@ -241,7 +241,7 @@ is_metadata_only_diff() {
         return 0
     fi
     if printf '%s\n' "$diff_body" \
-        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order):'; then
+        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order|originalDate):'; then
         return 1
     fi
     return 0

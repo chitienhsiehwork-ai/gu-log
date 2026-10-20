@@ -167,6 +167,28 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     }
   });
 
+  it('exempts an originalDate-only correction', () => {
+    const repo = makeRepo();
+
+    try {
+      const file = 'src/content/posts/mp-1-original-date.mdx';
+      const withDate = (date: string) =>
+        post('MP-1', 'stable-post').replace('\n---\n\n', `\noriginalDate: "${date}"\n---\n\n`);
+      fs.writeFileSync(path.join(repo, file), withDate('2026-02-20'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed baseline']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(path.join(repo, file), withDate('2025-06-18'));
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'fix originalDate']);
+
+      expect(runGate(repo)).toEqual([]);
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  });
+
   it('still exempts an allowed frontmatter change when body contains a metadata-like line', () => {
     const repo = makeRepo();
 
