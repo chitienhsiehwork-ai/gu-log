@@ -18,8 +18,8 @@
 #   $4 = %P — pathname in the worktree (for logging)
 #
 # Strategy: throw all three temp inputs away. `build-version-manifest.mjs`
-# recomputes the whole manifest from the full git log (HEAD + MERGE_HEAD
-# during a merge — see the merge-aware branch in that script). Then we copy
+# recomputes the whole manifest from the full git log (HEAD + the incoming
+# heads during a merge — see the merge-aware branch in that script). Then we copy
 # the freshly regenerated worktree file onto %A so git can pick it up.
 #
 # Exit 0 on success. Exit non-zero leaves git in the conflicted state and
@@ -35,9 +35,14 @@ if [ -z "$2" ]; then
     exit 2
 fi
 
-# Regenerate the manifest from the combined git log. This is merge-aware:
-# build-version-manifest.mjs checks for .git/MERGE_HEAD and extends the
-# log range to `HEAD MERGE_HEAD` when it's present.
+# Regenerate the manifest from the combined git log. Git runs this driver
+# before it writes MERGE_HEAD (and before the other merged files reach the
+# worktree), so tell the generator which commits are being merged in.
+# `git merge` exports GITHEAD_<oid>=<name> for every incoming head.
+if [ -z "${POST_VERSIONS_MERGE_HEADS:-}" ]; then
+    POST_VERSIONS_MERGE_HEADS="$(env | sed -n 's/^GITHEAD_\([0-9a-f]\{40,64\}\)=.*/\1/p' | tr '\n' ' ')"
+fi
+export POST_VERSIONS_MERGE_HEADS
 if ! node "$REPO_ROOT/scripts/build-version-manifest.mjs" >&2; then
     echo "merge-post-versions.sh: regenerator failed — leaving conflict for manual resolution" >&2
     exit 1
