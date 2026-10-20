@@ -29,6 +29,18 @@
 - `scripts/tribunal-loop.service` — systemd unit (user-scope).
 - `scripts/cc-tribunal-loop-wrapper.sh` — establishes the systemd PATH and execs the loop without loading Claude credentials.
 
+## 手動跑（CCC／Mac）的寫手開關
+
+`GP_WRITER_MODE` 沒設時，`tribunal.sh` 預設是 `none`：judge 照跑，但某一關沒過就直接以失敗結束，不會叫 tribunal-writer 改寫（判斷邏輯在 `scripts/tribunal-helpers.sh` 的 `tribunal_writer_mode`）。VM daemon 由 systemd unit 和 `cc-tribunal-loop-wrapper.sh` 設成 `claude`，`gp-pipeline` 在 vm-codex profile 也會自己補上；手動在 CCC 或 Mac 跑 `tribunal.sh`、`tribunal-batch-runner.sh` 則不會有人幫你設。
+
+要讓手動跑的 Tribunal 在沒過時改寫（CCC playbook〈沒過 PASS 怎麼辦〉要求的流程），明確帶上：
+
+```bash
+GP_WRITER_MODE=claude bash scripts/tribunal.sh <filename.mdx>
+```
+
+只想評分就維持預設，或用 `--score-only`／`--no-rewrite`。GP 一律只評分，帶了 `claude` 也不會改寫（見上方〈GP source-preservation boundary〉）。預設刻意不依 runtime 自動切換：會改文章的寫手要由呼叫端明確開啟。
+
 ## Deploy
 
 Host and checkout mappings are local-only. Before operating the VM, load
