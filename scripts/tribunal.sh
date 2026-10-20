@@ -342,6 +342,8 @@ MAX_TOP_ATTEMPTS=5
 init_article_progress() {
   local article="$1"
   local article_progress_result="continue"
+  local current_input_fingerprint=""
+  current_input_fingerprint="$(tribunal_reader_input_fingerprint "$ROOT_DIR/src/content/posts" "$article" || true)"
   # Entire init + attempts increment + cap check runs under a single
   # flock so two workers can't both see attempts=N and both bump to N+1.
   {
@@ -388,6 +390,20 @@ init_article_progress() {
       tlog "Reset non-terminal topLevelAttempts for $article after interrupted/non-content run."
     fi
 
+    # A failed GP's attempts and stage results belong to the input it was
+    # judged on. Once its reader content changes, the fixed post is judged
+    # from scratch with a fresh attempt budget.
+    local recorded_input_fingerprint
+    recorded_input_fingerprint="$(jq -r --arg a "$article" '.[$a].inputFingerprint // empty' "$PROGRESS_FILE")"
+    if [ "$article_status" = "FAILED" ] && [ -n "$recorded_input_fingerprint" ] &&
+       [ -n "$current_input_fingerprint" ] &&
+       [ "$recorded_input_fingerprint" != "$current_input_fingerprint" ]; then
+      jq --arg a "$article" '.[$a].topLevelAttempts = 0 | .[$a].stages = {} | del(.[$a].inputFingerprint)' \
+         "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
+      attempts=0
+      tlog "Reset attempts and stages for $article: its reader content changed since the recorded GP failure."
+    fi
+
     tlog "Top-level attempt $((attempts + 1))/$MAX_TOP_ATTEMPTS for $article"
 
     if [ "$article_status" = "FAILED" ] && [ "$attempts" -ge "$MAX_TOP_ATTEMPTS" ]; then
@@ -409,21 +425,25 @@ init_article_progress() {
   fi
 }
 
+# input_fingerprint (optional) is the judged reader input of a GP failure; see
+# tribunal_failed_input_unchanged. Without one, any stale fingerprint is dropped.
 mark_article_failed() {
-  local article="$1" failed_stage="$2"
+  local article="$1" failed_stage="$2" input_fingerprint="${3:-}"
   (
     flock -x 9
     local tmp
     tmp="$(mktemp)"
     jq --arg a "$article" \
        --arg s "$failed_stage" \
+       --arg fp "$input_fingerprint" \
        --argjson tribunalVersion "$TRIBUNAL_VERSION" \
        --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
        '.[$a].topLevelAttempts = ((.[$a].topLevelAttempts // 0) + 1)
         | .[$a].status = "FAILED"
         | .[$a].failedStage = $s
         | .[$a].finishedAt = $ts
-        | .[$a].tribunalVersion = $tribunalVersion' \
+        | .[$a].tribunalVersion = $tribunalVersion
+        | if $fp == "" then del(.[$a].inputFingerprint) else .[$a].inputFingerprint = $fp end' \
        "$PROGRESS_FILE" > "$tmp" && mv "$tmp" "$PROGRESS_FILE"
   ) 9>>"$RC_PROGRESS_LOCK"
 }
@@ -1950,7 +1970,12 @@ done
 
 if [ -n "$GP_FAILED_STAGE" ]; then
   tlog "=== FAILED at stage(s): $GP_FAILED_LABELS (GP score-only: every judge's score is in the frontmatter) ==="
-  mark_article_failed "$POST_FILE" "$GP_FAILED_STAGE"
+  # The daemon will not re-judge this GP until its reader content changes.
+  if ! gp_input_fingerprint="$(tribunal_reader_input_fingerprint "$ROOT_DIR/src/content/posts" "$POST_FILE")"; then
+    tlog "  WARN: could not fingerprint the GP's reader input; the daemon may select it again."
+    gp_input_fingerprint=""
+  fi
+  mark_article_failed "$POST_FILE" "$GP_FAILED_STAGE" "$gp_input_fingerprint"
   commit_progress "tribunal(${POST_FILE%.mdx}): FAILED at $GP_FAILED_LABELS (GP score-only)"
   exit 1
 fi
