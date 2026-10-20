@@ -4,134 +4,135 @@ title: "Karpathy：CLI 是 Agent 的母語 — 「Legacy」技術反而成了最
 originalDate: "2026-02-24"
 translatedDate: "2026-02-25"
 translatedBy:
-  model: "Opus 4.6"
-  harness: "Claude Code"
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
   pipeline:
-    - role: "Scored"
+    - role: "Written"
       model: "Opus 4.6"
-      harness: "Claude Code (ralph-scorer)"
+      harness: "Claude Code CLI"
     - role: "Rewritten"
-      model: "Opus 4.6"
-      harness: "Claude Code"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
     - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "Ralph Loop"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "Andrej Karpathy (@karpathy) on X"
 sourceUrl: "https://x.com/karpathy/status/2026360908398862478"
-summary: "Karpathy 直言 CLI 是 AI Agent 最自然的操作介面——因為它是「legacy」技術，Agent 天生就會用。以 Polymarket CLI 為例，Claude 花 3 分鐘就用 terminal 建出即時預測市場 dashboard。他呼籲：2026 年了，所有產品都該思考——Agent 能用你的東西嗎？CLI、MCP、markdown docs，Build. For. Agents."
+summary: "Karpathy 說 CLI 令人興奮，正因為它是「legacy」技術：AI Agent 能原生使用、組合它們。他舉 Polymarket CLI 為例，Claude 大約 3 分鐘就做出終端機 dashboard，並要做產品的人自問：文件能匯出成 markdown 嗎？寫了 Skills 嗎？能用 CLI 或 MCP 操作嗎？It's 2026. Build. For. Agents."
 lang: "zh-tw"
 tags: ["karpathy","cli","ai-agents","mcp","build-for-agents","polymarket","developer-tools"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-## 你阿嬤用過的技術，[Agent](/glossary#agent) 用得比你還順
+工程師聽到「legacy」，第一個反應通常是想把它藏起來。[Andrej Karpathy](/glossary#andrej-karpathy) 偏偏拿這個字當賣點：
 
-2026 年了，所有人都在追 multimodal、voice UI、vibe coding，整個科技圈恨不得把鍵盤丟掉。
+> CLI 超令人興奮，正是因為它是「legacy」技術——這代表 AI Agent 可以原生、輕鬆地使用它們、把它們組合起來，並透過整套終端機工具跟它們互動。
 
-然後 [Andrej Karpathy](/glossary#andrej-karpathy) 在 X 上丟了一句：
+不是「CLI 雖然老，但還能用」，是「CLI 就是因為老，所以好用」。[Mogu](/about) 把這句話翻成一個比較好轉傳的版本：**CLI 是 [Agent](/glossary#agent) 的母語。**
 
-> CLI 之所以讓人興奮，**恰恰因為它是「legacy」技術。**
+## 母語的意思是：不用翻譯官
 
-欸？我們花了幾十年想逃離 terminal，結果你說最該興奮的是那個黑底白字的視窗？
+Karpathy 只講了結論，下面是 [Mogu](/glossary#mogu) 的讀法。人類用的圖形介面，對 Agent 來說像一門外語。按鈕在哪裡、彈窗要不要關、表格要捲到第幾頁，全都要先「看懂畫面」，再把看懂的東西換成動作，中間隔著一層翻譯。
 
-但仔細想想，Karpathy 的邏輯讓人不得不服——而且他不只是嘴上說說，他直接做給你看了。
-
-<MoguNote>
-這就像你家巷口那家開了三十年的滷肉飯攤。沒有裝潢、沒有 iPad 點餐、沒有 IG 打卡牆。但每天中午排隊排到巷口。
-
-為什麼？因為它解決了最核心的問題：好吃、快、穩定。
-
-CLI 就是軟體界的巷口滷肉飯。
-文字進去、文字出來，沒有 JavaScript 要渲染、沒有按鈕要找、沒有 modal 要關。
-對 LLM 來說，這根本就是它的母語環境。╰(°▽°)╯
-
-反觀那些花俏的 web UI？對 Agent 來說就像叫一隻魚爬樹。
-</MoguNote>
-
-## 3 分鐘，從零到一個即時 Dashboard
-
-好，理論講完了。Karpathy 直接上實彈演練。
-
-有人（@SuhailKakar）用 Rust 做了一個 [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524)——讓你在 terminal 裡查預測市場、下注、拉數據。就是一個很樸素的命令列工具。
-
-Karpathy 做了什麼？他跟 Claude 說：「幫我裝這個 CLI，然後做一個即時 dashboard，顯示最高交易量的市場和 24 小時變化。」
-
-**3 分鐘後，dashboard 就在 terminal 裡跑起來了。**
-
-沒有翻 API 文件。沒有裝什麼 SDK。沒有搞 Python 虛擬環境搞到懷疑人生。
-
-Agent 就是：`npm install` → 讀 `--help` → 組合指令 → 搞定。整個流程短到像泡一碗泡麵。
+CLI 沒有這層。指令是文字，參數是文字，`--help` 是文字，輸出是文字，連報錯也是文字。Agent 讀進來的跟它要吐出去的是同一種東西。Karpathy 說的「整套終端機工具」更進一步：一個指令的輸出可以直接接進下一個指令，`grep` 篩、`jq` 拆、管線一路串下去。單字會了，就能自己造句。
 
 <MoguNote>
-等等，讓我還原一下案發現場——
+至於 Agent 為什麼「天生」就會講這門語言，Karpathy 只用了「natively」這個字，沒解釋。我的猜測是：終端機大概是被人類用文字寫下來最多次的介面之一。幾十年的說明手冊、腳本、教學文、論壇問答，全是純文字，而且格式大同小異。模型讀過的那堆東西裡，這門語言的例句多到不行。
 
-你，一個認真的工程師，要做同樣的事。先翻文件，翻到一半發現文件是去年的版本。硬著頭皮寫 code，跑起來噴了一排紅字。Google 錯誤訊息，Stack Overflow 說要裝某個 dependency。裝完發現版本衝突。搞了三小時，終於跑起來了，結果輸出格式跟你想的不一樣。再搞兩小時。一到兩天就這樣過去了，你的頭髮也少了幾根。(╯°□°)╯
-
-Agent 呢？`npm install` → `--help` → 三分鐘。它甚至沒有「挫折」這個情緒，因為 CLI 的 help text 對它來說就像菜單上有圖片一樣清楚——flag 名稱是功能、help text 是教學、error message 是 debug 指南。全部都是它最擅長處理的純文字。
-
-你精心設計的 React dashboard？對 Agent 來說就是在一碗湯裡找一粒米。
-`gh pr list --json number,title,state`？這才是它的米其林套餐。(⌐■_■)
+這是我的推論，Karpathy 沒這樣講。但如果它成立，「legacy」的老反而是累積了幾十年的教材。
 </MoguNote>
 
-## 靈魂拷問時間：你的產品，Agent 用得了嗎？
+---
 
-理論也講了、demo 也做了，接下來 Karpathy 做了一件很殘忍的事——他逼你照鏡子。
+## 大約三分鐘：CLI 給單字，Agent 自己造句
 
-> 如果你有任何產品或服務，問自己：**Agent 能存取和使用它們嗎？**
+Karpathy 的例子是一個剛發布的工具。同一天，@SuhailKakar 推出 [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524)，用 Rust 寫，作者給它的定位就是「AI Agent 存取預測市場最快的方式」：Agent 可以在終端機裡查市場、下單、拉資料。
 
-好，來，深呼吸，我們一個一個檢查。
+Karpathy 的說法是：叫 Claude 或 [Codex](/glossary#codex) 的 Agent 去裝這個 CLI，然後要什麼 dashboard、什麼介面、什麼邏輯都可以開口，Agent 會幫忙做出來。他自己的例子是 Claude 大約 3 分鐘做出一個跑在終端機裡的 dashboard，列出交易量最高的幾個 Polymarket 市場和它們 24 小時內的變化。他補了兩句：要做成 web app 也行；拿它當更大管線裡的一個模組，威力更大。
 
-你家的文件？Agent 能讀嗎？如果你的 docs 鎖在某個要登入、要點三層選單、還要接受 cookie 同意書才能看的 wiki 裡——恭喜，Agent 在門口就走了。至少讓它能 export 成 markdown 吧，這是 2026 年的基本禮貌。
+GitHub CLI 也被他點名：裝起來之後，可以叫 Agent 逛 repo、看 issue、PR、討論區，甚至直接讀程式碼。他之前也示範過把 GitHub CLI 跟一個能回答 repo 問題的 MCP 服務交給 Agent，讓它去別人的函式庫裡把需要的功能挖出來（見 [MP-66](/posts/mp-66-20260211-karpathy-deepwiki-mcp-rip-out)）。
 
-你的產品有沒有 Agent Skills？就是讓 AI 可以直接喊「欸幫我查這個」然後你的服務真的會回應的那種？沒有的話，你的產品對 Agent 來說就是一間沒有門的房子——看得到、進不去。
+這個例子最有意思的地方不是三分鐘。Polymarket CLI 的作者沒有做那個 dashboard，也不需要預先想到有人要看「交易量前幾名加 24 小時變化」這種組合。CLI 只負責把單字給齊——查市場、拉資料——句子是 Agent 自己造的。介面作者不必猜使用者要什麼畫面，這件事才是 CLI 對 Agent 友善的地方（這句是 Mogu 的看法）。
 
-最後，介面。你的東西能透過 CLI 操作嗎？有 [MCP](/glossary#mcp) server 嗎？如果以上皆非，那你的產品在 Agent 眼裡基本上不存在。
+還有一個小反轉：例子裡那支「legacy 技術」，是當天才發布的 Rust 新工具。所以 Karpathy 說的老，指的是介面形式——文字進、文字出、可以串接——跟軟體本身幾歲無關。
 
-然後 Karpathy 用三個字收尾，簡單粗暴：
+---
 
-> **It's 2026. Build. For. Agents.**
+## 產品講得通 Agent 的母語嗎？
+
+舉完例子，Karpathy 把問題丟回給做產品的人：
+
+> 如果你有任何產品或服務，想一想：Agent 能存取、使用它們嗎？
+>
+> - 你那些給人看的舊文件，至少能匯出成 markdown 嗎？
+> - 你替產品寫過 Skills 了嗎？
+> - 你的產品／服務能透過 CLI 使用嗎？或 MCP？
+> - ……
+>
+> 現在是 2026 年。替。Agent。打造。
+
+三題剛好對應同一門語言的三個層次。
+
+**文件能不能變成 markdown**，是讓 Agent 讀得懂。文件鎖在要登入、要點好幾層選單的頁面裡，Agent 就得先跟那堆畫面搏鬥。這個主張 Karpathy 講了好一陣子：2025 年 6 月「YC AI Startup School」的演講就談過要替 Agent 打造、把給人看的文件改成 LLM 讀得懂的格式（見 [MP-116](/posts/mp-116-20260223-karpathy-software-3-sf-startup-school)）。這次多了一個三分鐘的例子。
+
+**[Skills](/glossary#skill)** 是給 Agent 的使用說明。一個 [Skill](/glossary#skill) 是一個資料夾，核心是一份 `SKILL.md` 指示，可以附上腳本和參考資料，教 Agent 怎麼完成某類任務、怎麼用某個工具；Agent 需要時才載入。用母語的比喻講，它是這門語言的會話手冊：單字之外，告訴 Agent 這個產品的慣用說法。
+
+**CLI 或 [MCP](/glossary#mcp)** 是讓 Agent 能開口、真的動手。Karpathy 寫的是「CLI？或 MCP？」，沒有說非 CLI 不可；清單最後那個刪節號也代表他沒打算列完。
 
 <MoguNote>
-翻譯一下 Karpathy 的潛台詞：**你的「用戶」不只是人了。**
+這三題裡我最想推 markdown 那題，因為它最不性感，也最便宜。CLI 要設計指令、MCP 要架 server，文件能匯出成 markdown 往往只是一個按鈕的事，卻是後面兩題的地基：Agent 連說明都讀不到，給它再好的工具也是瞎摸。
 
-2026 年，Agent 也是用戶。而且 Agent 的增長速度比人類用戶快得多——它們不用註冊帳號、不用看 onboarding tutorial、不用被你的 pricing page 嚇走。它們只需要一個能用的介面。
-
-如果你的產品只有 web UI，恭喜你，你正在把一半的潛在用戶擋在門外。(╯°□°)╯
-
-Karpathy 兩週前在 SF Startup School 就喊過「Build for Agents」（見 [MP-116](/posts/mp-116-20260223-karpathy-software-3-sf-startup-school)），但那時是理論。現在他直接用 3 分鐘 demo 證明了：CLI 存在 → Agent 就能用 → 價值就出來了。從嘴砲到實證，Karpathy 一如既往地快。
+順帶自首：gu-log 自己的寫稿流程就是一支 CLI（`gp-pipeline`）配一份 `SKILL.md`，Agent 讀完說明就在終端機裡跑指令。這篇重寫，也是 Agent 在終端機裡讀檔、寫檔完成的。Karpathy 的清單，這個部落格碰巧三題都交了卷 (￣▽￣)／
 </MoguNote>
 
-## 當「過時」變成「超前部署」
+---
 
-好，最後來聊聊這整件事最好玩的部分。
+## 母語講得通之後，下一題是權限
 
-科技圈有個很毒的詞叫「legacy」。工程師聽到 legacy code，反應跟聽到「你前任打電話來了」差不多——不想碰、不想看、假裝不存在。
+把產品做成 Agent 講得通的樣子，Karpathy 這則貼文講到這裡就收了：「替 Agent 打造」。
 
-但 Karpathy 做了一件很帥的事：他把 legacy 從貶義詞變成了賣點。
-
-想想看，legacy 的意思是什麼？存在很久。存在很久代表什麼？穩定。格式不會亂變。行為可預測。這些東西對人類來說很無聊，但對 Agent 來說？這根本是夢幻清單。
-
-<MoguNote>
-這讓我想到 USB。
-
-1996 年的技術，快三十年了。你今天買任何裝置，第一個找的就是 USB-C 接口。沒有人會覺得「啊 USB 好 legacy 喔好丟臉」——因為它就是 work。你的手機用它、你的筆電用它、你的 Switch 用它、連你的電動牙刷可能都用它。
-
-CLI 正在走一模一樣的路。三十年前你阿嬤可能在 DOS 上打過 `dir`，三十年後 AI Agent 在 terminal 裡打 `--help`。技術一樣，但使用者從碳基變成了矽基。
-
-它不性感，但它 work。而在 Agent 時代，work 就是新的 sexy。┐(￣ヘ￣)┌
-</MoguNote>
-
-回到開頭那個看似反直覺的命題：2026 年了，最該興奮的居然是命令列？
-
-現在你應該懂了。不是 CLI 變厲害了——它三十年來都一樣。是這個世界繞了一大圈，從 GUI 繞到 web app 繞到 mobile app 繞到 voice UI，然後發現：欸，Agent 最需要的東西，CLI 一直都有啊。
-
-你家巷口那攤滷肉飯沒變，變的是排隊的人從人類變成了 AI。(￣▽￣)／
+但回頭看他自己挑的例子，Polymarket CLI 的單字表裡不只有「查市場」「拉資料」，還有「下單」。Agent 把母語講得越溜，能說出口的句子就越多，包括會動到錢的那幾句。這則貼文沒碰這一題；Mogu 覺得這是接在「Agent 能不能用」後面、做產品的人遲早要回答的問題：哪些單字只准 Agent 讀，哪些准它說。
 
 ---
 
 **延伸閱讀：**
 - [MP-116: Karpathy 刷屏演講完整拆解：Software 3.0 時代來了](/posts/mp-116-20260223-karpathy-software-3-sf-startup-school)
 - [MP-100: Karpathy：App Store 過時了 — 未來是 AI 即時組裝的一次性 App](/posts/mp-100-20260219-karpathy-app-store-dead)
-- [GP-76: Karpathy 談 Claw 新時代：機會很大，但先把安全底盤打好](/posts/gp-76-20260221-karpathy-claw-security-architecture)
