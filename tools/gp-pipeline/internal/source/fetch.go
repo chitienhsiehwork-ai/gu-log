@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"net"
 	nethttp "net/url"
 	"os"
 	"os/exec"
@@ -32,6 +31,10 @@ type FetchResult struct {
 	// YouTube captures set it to false so downstream steps do not render
 	// the frontmatter source as "@handle on X".
 	IsX bool
+	// FinalURL is the URL the capture was actually read from, observed by
+	// the transport after validated redirects (generic captures only).
+	// Empty when the adapter has no trusted final-URL observation.
+	FinalURL string
 }
 
 // FetchOptions controls how Fetch behaves.
@@ -120,40 +123,74 @@ func FetchX(ctx context.Context, url string, opts FetchOptions) (*FetchResult, e
 	return parsed, nil
 }
 
+// safeGetFunc is the one network entry point for generic captures. Tests
+// stub it; production always goes through the safe bounded transport.
+var safeGetFunc = func(ctx context.Context, urlStr, userAgent string) (*safeGetResult, error) {
+	return newSafeHTTPClient().get(ctx, urlStr, userAgent)
+}
+
+// SetTransportForTests replaces the generic-capture transport and returns a
+// restore func. Tests outside this package use it to keep captures hermetic;
+// production code must never call it.
+func SetTransportForTests(fn func(ctx context.Context, urlStr, userAgent string) (finalURL string, body []byte, err error)) (restore func()) {
+	prev := safeGetFunc
+	safeGetFunc = func(ctx context.Context, urlStr, userAgent string) (*safeGetResult, error) {
+		finalURL, body, err := fn(ctx, urlStr, userAgent)
+		if err != nil {
+			return nil, err
+		}
+		return &safeGetResult{FinalURL: finalURL, Body: body, ContentType: "text/html"}, nil
+	}
+	return func() { safeGetFunc = prev }
+}
+
 // FetchGeneric fetches an arbitrary http(s) URL and writes the result to
 // WorkDir/source-tweet.md with a header compatible with the rest of the
-// pipeline. It prefers the configured readability extractor; when that is
-// unavailable or invalid, curl HTML passes through minimal cleanup (drop
-// script / style / comments, decode entities, collapse whitespace).
+// pipeline. The bytes come from the safe bounded transport (public IPs
+// bound at dial time, validated redirects, size caps); extraction then runs
+// offline. The readability extractor is preferred; when it is unavailable
+// or its output fails validation, the SAME captured bytes pass through the
+// minimal cleanup fallback. There is no second, unprotected network client.
 //
-// This is the default fallback when a URL doesn't match the X-specific
-// fetcher. Validation uses ValidateArticleCapture, the looser validator
-// designed for generic article captures (paywall / JS-shell detection).
+// Validation uses ValidateArticleCapture, the looser validator designed for
+// generic article captures (paywall / JS-shell detection).
 //
 // User-Agent is pinned to a browser-like string so the fetcher looks real
 // to anti-bot WAFs. This is a capture tool for content the user has already
 // chosen to translate — not a scraper — so a browser UA is appropriate.
 func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*FetchResult, error) {
-	if err := validateSafeHTTPURL(urlStr); err != nil {
-		return nil, fmt.Errorf("fetchgeneric: %w", err)
-	}
 	if opts.WorkDir == "" {
 		return nil, fmt.Errorf("fetchgeneric: WorkDir is required")
 	}
 
-	host := hostname(urlStr)
+	ua := "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) " +
+		"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+	fetched, err := safeGetFunc(ctx, urlStr, ua)
+	if err != nil {
+		return nil, fmt.Errorf("fetchgeneric: %w", err)
+	}
+
+	host := hostname(fetched.FinalURL)
 	date := time.Now().Format("2006-01-02")
 	outPath := filepath.Join(opts.WorkDir, "source-tweet.md")
 
+	// Extraction attempt 1: readability over the captured bytes. The
+	// extractor runs with --extract-only and MUST NOT download anything
+	// itself; the transport above is the only network path.
 	if opts.FetchArticleScript != "" {
 		if _, err := exec.LookPath("python3"); err == nil {
-			if res, runErr := runner.Run(ctx, "python3", opts.FetchArticleScript, urlStr); runErr == nil {
+			// The transport's Content-Type is forwarded so pages that declare
+			// their charset only in the HTTP header decode correctly.
+			res, runErr := runner.RunWithStdin(ctx, fetched.Body,
+				"python3", opts.FetchArticleScript, "--extract-only",
+				"--content-type", fetched.ContentType, fetched.FinalURL)
+			if runErr == nil {
 				body := strings.TrimSpace(string(res.Stdout))
 				if body != "" {
 					if publishedDate := parsePublishedDate(body); publishedDate != "" {
 						date = publishedDate
 					}
-					header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: fetch-article.py\n\n", host, date, urlStr)
+					header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: fetch-article.py\n\n", host, date, fetched.FinalURL)
 					payload := []byte(header + body + "\n")
 					if verr := ValidateArticleCapture(payload); verr == nil {
 						if err := os.WriteFile(outPath, payload, 0o644); err != nil {
@@ -166,6 +203,7 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 							FetchedVia: "fetch-article.py",
 							Bytes:      len(payload),
 							IsX:        false,
+							FinalURL:   fetched.FinalURL,
 						}, nil
 					}
 				}
@@ -173,15 +211,10 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		}
 	}
 
-	ua := "Mozilla/5.0 (compatible; gp-pipeline/1; +https://gu-log.vercel.app)"
-	res, err := runner.Run(ctx, "curl", "-sSL", "--max-time", "60", "-A", ua, urlStr)
-	if err != nil {
-		return nil, fmt.Errorf("fetchgeneric: curl: %w", err)
-	}
+	// Extraction attempt 2: minimal cleanup of the same captured bytes.
+	body := cleanupHTML(fetched.Body)
 
-	body := cleanupHTML(res.Stdout)
-
-	header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: curl\n\n", host, date, urlStr)
+	header := fmt.Sprintf("@%s — %s\nSource URL: %s\nFetched via: safehttp\n\n", host, date, fetched.FinalURL)
 	payload := []byte(header + string(body))
 
 	if verr := ValidateArticleCapture(payload); verr != nil {
@@ -196,9 +229,10 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 		Path:       outPath,
 		Handle:     "@" + host,
 		Date:       date,
-		FetchedVia: "curl",
+		FetchedVia: "safehttp",
 		Bytes:      len(payload),
 		IsX:        false,
+		FinalURL:   fetched.FinalURL,
 	}, nil
 }
 
@@ -213,37 +247,6 @@ func parsePublishedDate(capture string) string {
 		return match[1]
 	}
 	return ""
-}
-
-// validateSafeHTTPURL rejects non-http(s) schemes, malformed URLs, and
-// obvious internal / loopback targets. Not a full SSRF block — DNS
-// rebinding and redirects can still land on private IPs — but it stops
-// the casual ways ("file://", "http://localhost/admin") to misuse the
-// fetcher if this pipeline ever runs somewhere with internal services.
-func validateSafeHTTPURL(raw string) error {
-	u, err := nethttp.Parse(raw)
-	if err != nil {
-		return fmt.Errorf("invalid URL: %w", err)
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return fmt.Errorf("only http(s) URLs are supported, got %q", u.Scheme)
-	}
-	host := u.Hostname()
-	if host == "" {
-		return fmt.Errorf("URL has no host")
-	}
-	lower := strings.ToLower(host)
-	if lower == "localhost" || lower == "localhost.localdomain" {
-		return fmt.Errorf("localhost is not allowed")
-	}
-	if ip := net.ParseIP(host); ip != nil {
-		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsUnspecified() {
-			return fmt.Errorf("internal / loopback IP %s is not allowed", ip)
-		}
-	} else if nonCanonicalIPv4Re.MatchString(host) {
-		return fmt.Errorf("non-canonical IPv4 literal %q is not allowed", host)
-	}
-	return nil
 }
 
 // hostname returns the URL's host (without port) or "unknown" if parsing

@@ -30,6 +30,10 @@ type fetchOutputReport struct {
 	Date       string `json:"date,omitempty"`
 	FetchedVia string `json:"fetchedVia,omitempty"`
 	Bytes      int    `json:"bytes"`
+	// SourceKind is the adapter route: "x", "youtube" or "generic".
+	SourceKind string `json:"sourceKind,omitempty"`
+	// FinalURL is the transport-observed final URL (generic captures only).
+	FinalURL string `json:"finalUrl,omitempty"`
 }
 
 func newFetchCmd(state *rootState) *cobra.Command {
@@ -42,8 +46,10 @@ For X / Twitter URLs it shells out to scripts/fetch-x-article.sh (fxtwitter
 with vxtwitter fallback), then runs the tweet-specific validator. Allowlisted
 single-video YouTube URLs require yt-dlp and fail closed when metadata or
 captions cannot support a complete source capture; they never fall back to a
-generic JavaScript shell. Other http(s) URLs prefer the readability extractor,
-fall back to curl + minimal HTML cleanup, and use the looser article validator.
+generic JavaScript shell. Other http(s) URLs are downloaded once over the
+SSRF-safe transport, preferring the readability extractor and falling back to
+minimal offline HTML cleanup of the same bytes, with the looser article
+validator.
 
 On validation failure it exits with code 11 so callers can distinguish
 "fetch returned but the content looks contaminated" from "fetch itself
@@ -100,12 +106,21 @@ func runFetch(ctx context.Context, state *rootState, url string) error {
 	}
 
 	report.OK = true
+	kind := "generic"
+	switch {
+	case res.IsX:
+		kind = "x"
+	case source.IsYouTubeOwnedHostURL(url):
+		kind = "youtube"
+	}
 	report.Output = fetchOutputReport{
 		SourceFile: res.Path,
 		Handle:     res.Handle,
 		Date:       res.Date,
 		FetchedVia: res.FetchedVia,
 		Bytes:      res.Bytes,
+		SourceKind: kind,
+		FinalURL:   res.FinalURL,
 	}
 	report.ElapsedMs = time.Since(start).Milliseconds()
 	emitFetchReport(state, report)

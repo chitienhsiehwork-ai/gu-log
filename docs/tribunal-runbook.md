@@ -8,6 +8,10 @@
 
 `gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。理由是 GP 導讀帶來源距離章：正文一改，章就失效，只有 gp-pipeline 的導讀流程與 `stamp` 能重新蓋章。所以所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕，`pnpm tribunal:run`（Tribunal v2）對 GP 也只評分，不跑寫手、FactCorrector 與 Librarian 的改動。GP 某一關沒過時分數怎麼寫、其餘評審照不照跑，見 openspec `tribunal-score-persistence`。persona／narrative 低分可以誠實記錄，但不得觸發改寫；要改 GP 正文就回 gp-pipeline，改完重新蓋章。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
+## FactChecker focal-source packet
+
+GP／MP 跑 FactChecker 前，`scripts/tribunal.sh` 會自己經 `gp-pipeline fetch` 擷取完整 focal source，寫進私有 packet（manifest + 全文資料檔），judge 只拿檔案路徑、不自行連網（openspec `tribunal-focal-source-evidence`）。擷取或完整性驗證失敗是 operational error：RUNNER_ERROR、stage attempts 0、不呼叫 judge，reason 形如 `source_capture_failed`／`source_packet_invalid`／`source_packet_tampered`，等來源可取得後正常 requeue 即可，不是文章品質 FAIL。要離線重播就設 `TRIBUNAL_SOURCE_PACKET=<packet dir>`，驗證不過直接失敗、不會回落 live fetch。SD／Lv 不需要 packet，FactChecker 照常評分。helper／schema 以 `scripts/tribunal-helpers.sh` 為 executable SSOT。
+
 ## Writer candidate 的 frontmatter 邊界
 
 隔離寫手交易的 frontmatter 權限只由 parent runner 的 stage 決定，寫手、文章內容或 prompt 都不能自行升級。預設保護整份 frontmatter；只有 FactChecker retry 可由 parent transaction 套用 bounded summary policy，其他 judge 與 final-build repair 一律 preserve-all。實際允許的 byte shape 以 `scripts/tribunal-post-pair-snapshot.py`、`scripts/score-helpers.sh` 與 `scripts/tribunal.sh` 為 executable SSOT，正式情境以 `openspec/specs/tribunal-24-7-operations/spec.md` 為準；runbook 不另抄一份 allowlist。

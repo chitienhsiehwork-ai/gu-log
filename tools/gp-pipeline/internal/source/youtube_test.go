@@ -99,20 +99,17 @@ exit 99
 func TestFetchSuffixConfusionHostUsesGenericRoute(t *testing.T) {
 	workDir := t.TempDir()
 	binDir := t.TempDir()
-	curlLog := filepath.Join(workDir, "curl.log")
 	ytLog := filepath.Join(workDir, "yt.log")
-	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/bin/sh
-printf '%s\n' "$*" > "$SUFFIX_CURL_LOG"
-exit 7
-`)
 	writeExecutable(t, filepath.Join(binDir, "yt-dlp"), `#!/bin/sh
 printf '%s\n' "$*" > "$SUFFIX_YT_LOG"
 exit 99
 `)
-	t.Setenv("SUFFIX_CURL_LOG", curlLog)
 	t.Setenv("SUFFIX_YT_LOG", ytLog)
 	t.Setenv("PATH", binDir)
 
+	// The generic route's safe transport resolves the host itself; a
+	// suffix-confusion host must land there (and fail as a capture error),
+	// never on yt-dlp.
 	_, err := Fetch(
 		context.Background(),
 		"https://youtube.com.evil/watch?v=dQw4w9WgXcQ",
@@ -120,9 +117,6 @@ exit 99
 	)
 	if err == nil || !strings.Contains(err.Error(), "fetchgeneric") {
 		t.Fatalf("suffix-confusion host error = %v, want generic fetch error", err)
-	}
-	if _, err := os.Stat(curlLog); err != nil {
-		t.Fatalf("generic curl route was not invoked: %v", err)
 	}
 	if _, err := os.Stat(ytLog); !os.IsNotExist(err) {
 		t.Fatal("suffix-confusion host was sent to yt-dlp")
