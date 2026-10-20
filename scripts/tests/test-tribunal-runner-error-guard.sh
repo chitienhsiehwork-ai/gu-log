@@ -76,6 +76,35 @@ chmod +x "$fake_bin/codex"
 progress="$TMP/progress.json"
 printf '{}\n' > "$progress"
 
+# gp-1 is a GP, so the FactChecker preflight wants a focal-source packet. This
+# test is about judge-runner crashes, not capture, so hand it a valid packet
+# via the explicit replay entry instead of letting it hit gp-pipeline/network.
+packet_dir="$TMP/source-packet"
+mkdir -p "$packet_dir"
+chmod 700 "$packet_dir"
+printf 'fixture focal source body\n' > "$packet_dir/source-tweet.md"
+packet_bytes="$(stat -c %s "$packet_dir/source-tweet.md")"
+packet_sha="$(sha256sum "$packet_dir/source-tweet.md" | cut -d' ' -f1)"
+# Replay binds the packet to the article: requestedUrl must equal the post's
+# own sourceUrl frontmatter, so read it from the tracked fixture.
+# shellcheck source=scripts/tribunal-helpers.sh
+source "$ROOT_DIR/scripts/tribunal-helpers.sh"
+packet_source_url="$(tribunal_post_frontmatter_value \
+  "$ROOT_DIR/src/content/posts/gp-1-20260128-demo.mdx" sourceUrl)"
+[ -n "$packet_source_url" ] || fail "gp-1 fixture has no sourceUrl frontmatter"
+jq -n --argjson bytes "$packet_bytes" --arg sha "$packet_sha" --arg url "$packet_source_url" '{
+  schemaVersion: 1,
+  sourceKind: "generic",
+  requestedUrl: $url,
+  observedIdentity: { finalUrl: $url },
+  fetchedVia: "fixture",
+  capturedAt: "2026-10-20T00:00:00+08:00",
+  validation: { ok: true },
+  content: { file: "source-tweet.md", bytes: $bytes, sha256: $sha }
+}' > "$packet_dir/manifest.json"
+chmod 0400 "$packet_dir/source-tweet.md" "$packet_dir/manifest.json"
+export TRIBUNAL_SOURCE_PACKET="$packet_dir"
+
 set +e
 PATH="$fake_bin:$PATH" \
 TRIBUNAL_SCORE_ONLY_PROGRESS_FILE="$progress" \
