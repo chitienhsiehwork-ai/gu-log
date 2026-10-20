@@ -47,7 +47,7 @@ Score anchors:
 ### 2. crossRef
 Do `/posts/slug/` links point to real, existing posts? Are relevant connections made?
 - Check first mention of **ShroomDog** → should link to `/about`
-- Check first mention of **Mogu/Mogu** → should link to `/about`
+- Check first mention of **Mogu** → should link to `/glossary#mogu` (en: `/en/glossary#mogu`); the canonical identity anchor is defined by openspec `glossary-identity-ssot` and enforced by the glossary link-coverage hook
 - Verify all internal post links resolve to real slugs in `src/content/posts/`
 - Flag obvious thematic connections that are missing
 - **10** = All refs verified, identity links present, no obvious missing connections
