@@ -81,4 +81,20 @@ describe('file size gate', () => {
     expect(result.stderr).toContain('照「職責」切');
     expect(result.stderr).not.toContain('legacy.mjs');
   });
+
+  it('treats a file moved out of an exempt path as new', () => {
+    const repo = makeTempDir('file-size-rename-');
+    const git = (...args: string[]) =>
+      execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...args], { cwd: repo });
+    git('init', '-q');
+    mkdirSync(join(repo, 'src/content/posts'), { recursive: true });
+    mkdirSync(join(repo, 'scripts'), { recursive: true });
+    writeFileSync(join(repo, 'src/content/posts/large.mdx'), 'x'.repeat(BIG + 10));
+    git('add', '.');
+    git('commit', '-q', '-m', 'init');
+    git('mv', 'src/content/posts/large.mdx', 'scripts/large.mjs');
+    const result = spawnSync('node', [SCRIPT, '--staged'], { cwd: repo, encoding: 'utf8' });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('scripts/large.mjs');
+  });
 });

@@ -73,7 +73,8 @@ function collect(diffRange, oldRef, newRef) {
   return parseNameStatus(output).map(({ status, path, oldPath }) => ({
     path,
     newBytes: blobSize(`${newRef}:${path}`) ?? 0,
-    oldBytes: status.startsWith('A') ? null : blobSize(`${oldRef}:${oldPath}`),
+    // 從豁免路徑搬進受檢路徑的檔案當新檔看，不能沿用舊大小
+    oldBytes: status.startsWith('A') || isExempt(oldPath) ? null : blobSize(`${oldRef}:${oldPath}`),
   }));
 }
 
