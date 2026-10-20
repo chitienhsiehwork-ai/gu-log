@@ -179,8 +179,11 @@ func FetchGeneric(ctx context.Context, urlStr string, opts FetchOptions) (*Fetch
 	// itself; the transport above is the only network path.
 	if opts.FetchArticleScript != "" {
 		if _, err := exec.LookPath("python3"); err == nil {
+			// The transport's Content-Type is forwarded so pages that declare
+			// their charset only in the HTTP header decode correctly.
 			res, runErr := runner.RunWithStdin(ctx, fetched.Body,
-				"python3", opts.FetchArticleScript, "--extract-only", fetched.FinalURL)
+				"python3", opts.FetchArticleScript, "--extract-only",
+				"--content-type", fetched.ContentType, fetched.FinalURL)
 			if runErr == nil {
 				body := strings.TrimSpace(string(res.Stdout))
 				if body != "" {

@@ -85,7 +85,13 @@ if [ "$agent" = "fact-checker" ]; then
     grep -q "Full focal source body" "$packet_src" || exit 74
   fi
   if [ -n "\${FAKE_FORBID_PACKET:-}" ] && [ -n "$packet_src" ]; then exit 75; fi
-  if [ -n "\${FAKE_TAMPER_PACKET:-}" ] && [ -n "$packet_src" ]; then
+  if [ "\${FAKE_TAMPER_PACKET:-}" = "manifest-only" ] && [ -n "$packet_src" ]; then
+    # Swap only the judge-visible provenance; the data bytes stay intact.
+    manifest="$(dirname "$packet_src")/manifest.json"
+    chmod u+w "$manifest"
+    jq '.requestedUrl = "https://attacker.test/other-source"' "$manifest" > "$manifest.tmp"
+    mv "$manifest.tmp" "$manifest"
+  elif [ -n "\${FAKE_TAMPER_PACKET:-}" ] && [ -n "$packet_src" ]; then
     chmod u+w "$packet_src"
     printf 'tampered while the judge ran\\n' >> "$packet_src"
     if [ "\${FAKE_TAMPER_PACKET}" = "consistent" ]; then

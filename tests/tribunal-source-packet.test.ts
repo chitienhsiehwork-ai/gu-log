@@ -55,6 +55,8 @@ describe('focal-source capture failures are operational, never verdicts', () => 
     // The manifest is rewritten to match the tampered bytes: the check must
     // compare against the hash the harness holds in memory, not re-read disk.
     ['data file and manifest consistently', 'consistent'],
+    // Only the judge-visible provenance is swapped; the data bytes are intact.
+    ['manifest only', 'manifest-only'],
   ])(
     'discards the judge output when the packet changes while the judge runs (%s)',
     (_label, tamperMode) => {
@@ -126,6 +128,35 @@ describe('explicit packet replay (TRIBUNAL_SOURCE_PACKET)', () => {
       expect(run.judges, run.output).toEqual(JUDGES);
       expect(run.fetches, 'replay must not fetch the source again').toEqual([]);
       expect(stageEntry(run)?.sourceEvidence?.sourceSha256).toMatch(/^[0-9a-f]{64}$/);
+    },
+    120_000
+  );
+
+  linuxIt(
+    'hands the judge the data file the manifest names, not a hard-coded filename',
+    () => {
+      const repo = makeRepo();
+      const packetDir = preparePacket(repo);
+      // Rename the verified data file and point the manifest at it; a stale
+      // decoy keeps the hard-coded name occupied.
+      const dataPath = path.join(packetDir, 'source-tweet.md');
+      const renamedPath = path.join(packetDir, 'evidence.md');
+      fs.renameSync(dataPath, renamedPath);
+      fs.writeFileSync(dataPath, 'stale decoy that must not be judged\n');
+      const manifestPath = path.join(packetDir, 'manifest.json');
+      fs.chmodSync(manifestPath, 0o600);
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      manifest.content.file = 'evidence.md';
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+
+      const promptDump = path.join(repo.root, 'fact-checker-prompt.txt');
+      const run = runTribunal(repo, {
+        extraEnv: { TRIBUNAL_SOURCE_PACKET: packetDir, FAKE_PROMPT_DUMP: promptDump },
+      });
+      expect(run.result.status, run.output).toBe(0);
+      const prompt = fs.readFileSync(promptDump, 'utf8');
+      expect(prompt).toContain('evidence.md');
+      expect(prompt).not.toContain('source-tweet.md');
     },
     120_000
   );

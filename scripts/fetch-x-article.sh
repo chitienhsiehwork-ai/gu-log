@@ -98,9 +98,10 @@ t = d.get("tweet") or {}
 if not t:
     sys.exit(1)
 # Provider identity check: the payload must describe the requested status.
-# A provider answering with a different tweet is rejected, not rendered.
+# Fail closed: a payload that omits the id is as unacceptable as a wrong one,
+# otherwise a degraded or hostile provider bypasses the check by dropping it.
 got_id = str(t.get("id") or "")
-if got_id and got_id != sys.argv[2]:
+if got_id != sys.argv[2]:
     sys.exit(1)
 # Must have either a populated article or some kind of textual body.
 art = t.get("article") or {}

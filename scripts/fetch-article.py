@@ -479,12 +479,22 @@ def is_garbage(text: str) -> bool:
 def main() -> None:
     args = sys.argv[1:]
     extract_only = False
+    content_type = ""
     if args and args[0] == "--extract-only":
         extract_only = True
         args = args[1:]
+    if extract_only and args and args[0] == "--content-type":
+        # The HTTP charset from the capturing transport: pages that declare
+        # their encoding only in the Content-Type header (no <meta charset>)
+        # would otherwise be mis-decoded via the ISO-8859-1 fallback.
+        if len(args) < 2:
+            print("ERROR: --content-type requires a value", file=sys.stderr)
+            sys.exit(1)
+        content_type = args[1]
+        args = args[2:]
     if not args:
         print(
-            "Usage: python3 fetch-article.py [--extract-only] <url> [output_file]",
+            "Usage: python3 fetch-article.py [--extract-only [--content-type <value>]] <url> [output_file]",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -498,7 +508,7 @@ def main() -> None:
         if len(raw_html) > MAX_BYTES:
             print(f"ERROR: stdin HTML too large (> {MAX_BYTES // (1024 * 1024)} MB)", file=sys.stderr)
             sys.exit(1)
-        final_url, html = url, decode_html(raw_html, "")
+        final_url, html = url, decode_html(raw_html, content_type)
     else:
         try:
             final_url, html = fetch_html(url)
