@@ -19,17 +19,9 @@ concurrency:
 permissions:
   contents: read
 
-# ─── Design note: build vs checks parallelism ──────────────────────────────
-# build runs in parallel with every fast check (lint / type-check / contrast
-# / validate-content / security-gate / unit-tests). A fast check failing
-# does NOT cancel the in-flight build, so we pay the full ~2 min of build
-# runner minutes even when lint errors in 10s. For a solo-author public repo
-# that's fine (GitHub Actions is free on public repos and wall-time for the
-# iterating author matters more than idle runner minutes). If this repo ever
-# goes private or the runner-minute cost starts to bite, add:
-#   needs: [lockfile-consistency, lint]
-# to `build` — those two are the cheapest fail-fast gates.
-# ────────────────────────────────────────────────────────────────────────────
+# Design note: build runs in parallel with every fast check, so a failing check
+# doesn't cancel it. Free on a public repo; if runner minutes ever bite, add
+# `needs: [lockfile-consistency, lint]` to `build` (the cheapest fail-fast gates).
 
 jobs:
   # ─── Tier 1: independent checks (all run in parallel) ────────────────────
@@ -167,6 +159,13 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
+      - name: File size gate (PR only, 5,000 tokens per file)
+        # Same executable as pre-commit step -3.8: new files may not exceed
+        # the cap, files already over it may not grow.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-file-size.mjs "--base=$BASE_SHA"
       - name: Takedown ratchet (PR only — tombstones stay tombstones)
         # Same executable as pre-commit step -3.5, but PR base → head: a
         # taken-down post must stay taken-down with an empty body, new posts

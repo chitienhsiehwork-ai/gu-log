@@ -3,16 +3,7 @@
 #
 # ALL checks are BLOCKING. Quality over speed.
 #
-# Pipeline:
-#   -0.5) tmp/ untracked guard — block staged files under gitignored tmp/
-#   0) Quick ticketId duplicate check (~100ms, shell)
-#   0.1) Score gate for staged zh-tw posts
-#   0.15) Pronoun clarity check for staged zh-tw posts
-#   0.2) Topic dedup gate for newly added zh-tw posts
-#   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
-#   1.5) translatedBy.model consistency check vs runtime model (Node.js)
-#   2) Content integrity BDD tests (Playwright, if available)
-#   3) Mermaid visual quality check — LLM-as-Judge (if ANTHROPIC_API_KEY set)
+# Steps run in the order of the "Step N" headers below.
 
 set -e
 POSTS_DIR="src/content/posts"
@@ -31,6 +22,12 @@ done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter
 # the PR base SHA (openspec: editorial-charter).
 echo "🚫 Content emoji policy: checking staged post lines..."
 node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
+echo ""
+
+# ─── Step -3.8: File size gate (5,000 tokens ≈ 20,000 bytes) ────────
+# New/agent-authored files over the cap are blocked; files already over it may
+# not grow. CI runs the same script against the PR base.
+node "$REPO_ROOT/scripts/check-file-size.mjs" --staged
 echo ""
 
 # ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
