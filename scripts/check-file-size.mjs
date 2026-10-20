@@ -35,6 +35,7 @@ export const tokens = (bytes) => Math.ceil(bytes / BYTES_PER_TOKEN);
 
 // 舊大檔（改之前就超標）只要沒變更大就放行；新檔或從標準內長到超標的才擋。
 // 這樣碰舊大檔修 bug 不會被卡，但也不能繼續往裡面塞東西。
+/** @param {{ path: string; newBytes: number; oldBytes: number | null }[]} files */
 export function findOversized(files) {
   return files.filter(({ path, newBytes, oldBytes }) => {
     if (isExempt(path) || newBytes <= MAX_BYTES) return false;
