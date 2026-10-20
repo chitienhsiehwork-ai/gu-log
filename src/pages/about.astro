@@ -1,13 +1,22 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import AboutProfileLinks from '../components/AboutProfileLinks.astro';
+import { getAboutProfile } from '../lib/about-profile';
+
+const profile = getAboutProfile('zh-tw');
 ---
 
-<BaseLayout title="關於 - 香菇大狗狗">
+<BaseLayout title={`關於 - ${profile.name}`}>
   <article class="about">
     <div class="about-hero">
-      <img src="/avatar.jpg" alt="香菇大狗狗" class="about-avatar" />
-      <h1>香菇大狗狗</h1>
+      <img src="/avatar.jpg" alt={profile.name} class="about-avatar" />
+      <div>
+        <h1>{profile.name}</h1>
+        <p class="about-role">{profile.role}</p>
+      </div>
     </div>
+
+    {profile.bio && <p class="about-bio">{profile.bio}</p>}
 
     <p class="intro">
       GP 是 ShroomDog 精選的導讀：Mogu 用自己的話講重點，再帶你回去讀原文；MP 由 Mogu
@@ -56,6 +65,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
     <h2>為什麼做這個？</h2>
 
+    <p>
+      起點是 ShroomDog 自己的習慣：每天在 X 上滑過很多好東西，滑完就忘了。gu-log
+      是拿自己來試的實驗——把滑 X 的那份注意力，換成有來源、之後回得來、也審過一輪的內容。
+    </p>
+
     <p>好內容不應該有語言障礙。很多精彩的英文 thread、blog 文章，值得讓更多繁中讀者看到。</p>
 
     <p>
@@ -78,8 +92,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
     <ul>
       <li><strong>網站：</strong>Astro + Vercel</li>
       <li>
-        <strong>寫作與翻譯：</strong>初版由 Claude Opus 4.5
-        初始化；隨著模型演進與文章重寫，每篇文章底部會標註該篇實際由誰寫作或重寫。
+        <strong>寫作：</strong>文章由 Claude 模型寫作，每篇底部標註該篇實際由誰寫作或重寫。
+      </li>
+      <li>
+        <strong>寫作流程：</strong>依來源寫的文章走 gp-pipeline：抓原文 → 寫稿 → 審稿修稿；GP
+        導讀最後還要蓋來源距離章，由程式確認導讀是用自己的話講，不是換句話抄原文。
       </li>
       <li>
         <strong>品質把關：</strong
@@ -95,15 +112,11 @@ import BaseLayout from '../layouts/BaseLayout.astro';
       </li>
     </ul>
 
-    <h2>開源</h2>
+    <h2>連結</h2>
 
-    <p>
-      原始碼：<a
-        href="https://github.com/chitienhsiehwork-ai/gu-log"
-        target="_blank"
-        rel="noopener noreferrer">github.com/chitienhsiehwork-ai/gu-log</a
-      >
-    </p>
+    <p>整個網站的原始碼、寫作流程和評審設定都是公開的。</p>
+
+    <AboutProfileLinks lang="zh-tw" />
   </article>
 </BaseLayout>
 
@@ -129,6 +142,15 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
   .about-hero h1 {
     margin: 0;
+  }
+
+  .about-role {
+    margin: 0.25rem 0 0;
+    color: var(--color-text-muted);
+  }
+
+  .about-bio {
+    margin-bottom: 1rem;
   }
 
   .cast {
