@@ -194,7 +194,7 @@ self._skill_nudge_interval = 10    # line 1517
 
 同一個機制也跑在 memory 上——agent 在背景會問自己：「有沒有什麼 `MEMORY.md` 值得更新的？」
 
-**這不是 gradient descent，不是 fine-tune。是 agent 自己會寫 prompt pack 給未來的自己用。**
+**這不是 [gradient descent](/glossary#gradient)，不是 fine-tune。是 agent 自己會寫 prompt pack 給未來的自己用。**
 
 重點是 timing：這個「背景 review」是在 user 的 response 交付之後才 spawn 的（`_spawn_background_review`，`run_agent.py:11868-11872`）——官方 comment 寫明：「so it never competes with the user's task for model attention.」意思是 user 感受不到延遲，skill 是在 agent 閒下來的瞬間偷偷長出來的。
 
