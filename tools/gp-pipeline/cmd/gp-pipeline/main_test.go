@@ -17,6 +17,7 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/source"
 )
 
 func captureProcessStdout(t *testing.T, fn func() error) ([]byte, error) {
@@ -174,17 +175,12 @@ TEXT
 		t.Fatal(err)
 	}
 
-	curlMarker := filepath.Join(t.TempDir(), "curl-called")
-	curlPath := filepath.Join(binDir, "curl")
-	mustWrite(t, curlPath, `#!/usr/bin/env bash
-touch "$FETCH_TEST_CURL_MARKER"
-exit 9
-`)
-	if err := os.Chmod(curlPath, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("FETCH_TEST_CURL_MARKER", curlMarker)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	restore := source.SetTransportForTests(func(ctx context.Context, urlStr, userAgent string) (string, []byte, error) {
+		return urlStr, []byte("<html><body><p>fixture page body</p></body></html>"), nil
+	})
+	t.Cleanup(restore)
 
 	workDir := t.TempDir()
 	cmd := buildRoot()
@@ -199,9 +195,6 @@ exit 9
 	}
 	if !strings.Contains(string(data), "Fetched via: fetch-article.py") {
 		t.Fatalf("standalone fetch did not use the configured article extractor:\n%s", data)
-	}
-	if _, err := os.Stat(curlMarker); !os.IsNotExist(err) {
-		t.Fatalf("standalone fetch unexpectedly invoked curl fallback: %v", err)
 	}
 }
 

@@ -2,13 +2,14 @@ package source
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
 
-func TestValidateSafeHTTPURL(t *testing.T) {
+func TestValidateHopURL(t *testing.T) {
 	cases := []struct {
 		name    string
 		url     string
@@ -29,11 +30,18 @@ func TestValidateSafeHTTPURL(t *testing.T) {
 		{"private RFC1918 rejected", "http://192.168.1.1/", true},
 		{"link-local rejected", "http://169.254.169.254/latest/meta-data/", true},
 		{"no host rejected", "https:///path", true},
+		{"userinfo rejected", "https://user:pass@example.com/", true},
 		{"garbage rejected", "not a url", true},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := validateSafeHTTPURL(c.url)
+			u, perr := url.Parse(c.url)
+			var err error
+			if perr != nil {
+				err = perr
+			} else {
+				err = validateHopURL(u)
+			}
 			if c.wantErr && err == nil {
 				t.Fatalf("want error for %q, got nil", c.url)
 			}
@@ -106,38 +114,46 @@ func TestParsePublishedDateRejectsImpossibleDates(t *testing.T) {
 	}
 }
 
-func TestFetchGeneric_UsesCurlWhenFetchArticleScriptEmpty(t *testing.T) {
-	tmp := t.TempDir()
-	binDir := filepath.Join(tmp, "bin")
-	if err := os.MkdirAll(binDir, 0o755); err != nil {
-		t.Fatal(err)
+func stubSafeGet(t *testing.T, html string) {
+	t.Helper()
+	prev := safeGetFunc
+	safeGetFunc = func(ctx context.Context, urlStr, userAgent string) (*safeGetResult, error) {
+		return &safeGetResult{FinalURL: urlStr, Body: []byte(html), ContentType: "text/html"}, nil
 	}
-	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
-cat <<'HTML'
-<html><body>
-<h1>Curl Article</h1>
-<p>This fake curl article has enough prose to pass the generic source validator.</p>
+	t.Cleanup(func() { safeGetFunc = prev })
+}
+
+const genericFixtureHTML = `<html><body>
+<h1>Captured Article</h1>
+<p>This fake article has enough prose to pass the generic source validator.</p>
 <p>It includes multiple non-empty lines so the capture shape remains realistic.</p>
 <p>The body is intentionally plain and boring because the test only checks routing.</p>
 <p>One more line pads the capture beyond the minimum length without using the network.</p>
-</body></html>
-HTML
-`)
-	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+</body></html>`
+
+func TestFetchGeneric_UsesCleanupFallbackWhenFetchArticleScriptEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	stubSafeGet(t, genericFixtureHTML)
 
 	res, err := FetchGeneric(context.Background(), "https://example.com/article", FetchOptions{WorkDir: tmp})
 	if err != nil {
 		t.Fatalf("FetchGeneric: %v", err)
 	}
-	if res.FetchedVia != "curl" {
-		t.Fatalf("FetchedVia = %q, want curl", res.FetchedVia)
+	if res.FetchedVia != "safehttp" {
+		t.Fatalf("FetchedVia = %q, want safehttp", res.FetchedVia)
+	}
+	if res.FinalURL != "https://example.com/article" {
+		t.Fatalf("FinalURL = %q, want the observed transport URL", res.FinalURL)
 	}
 	data, err := os.ReadFile(res.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "Fetched via: curl") {
-		t.Fatalf("capture missing curl header:\n%s", data)
+	if !strings.Contains(string(data), "Fetched via: safehttp") {
+		t.Fatalf("capture missing safehttp header:\n%s", data)
+	}
+	if !strings.Contains(string(data), "Captured Article") {
+		t.Fatalf("capture missing body:\n%s", data)
 	}
 }
 
@@ -147,7 +163,18 @@ func TestFetchGeneric_UsesFetchArticleScriptWhenValid(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	stubSafeGet(t, genericFixtureHTML)
+	// The extractor must receive the captured bytes on stdin and must not
+	// download anything itself; this fake asserts the extract-only contract.
 	writeExecutable(t, filepath.Join(binDir, "python3"), `#!/usr/bin/env bash
+if [ "$2" != "--extract-only" ]; then
+  echo "extractor was asked to download" >&2
+  exit 12
+fi
+if ! grep -q "Captured Article" <<<"$(cat)"; then
+  echo "extractor did not receive captured bytes on stdin" >&2
+  exit 13
+fi
 cat <<'TEXT'
 Python Article
 Published: 2026-08-16
@@ -157,10 +184,6 @@ The exact body should be preserved because the extractor did the cleanup upstrea
 This line pads the capture to a realistic size for downstream LLM prompts.
 The final line ensures there are more than five non-empty lines in the payload.
 TEXT
-`)
-	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
-echo "curl should not run" >&2
-exit 9
 `)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
@@ -199,19 +222,10 @@ func TestFetchGeneric_FallsBackWhenFetchArticleOutputInvalid(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+	stubSafeGet(t, genericFixtureHTML)
 	writeExecutable(t, filepath.Join(binDir, "python3"), `#!/usr/bin/env bash
+cat >/dev/null
 echo "too short"
-`)
-	writeExecutable(t, filepath.Join(binDir, "curl"), `#!/usr/bin/env bash
-cat <<'HTML'
-<html><body>
-<h1>Fallback Article</h1>
-<p>This fake curl article is long enough to prove invalid Python output falls back.</p>
-<p>It has multiple non-empty lines and contains no blocked markers or code shell.</p>
-<p>The fetcher should validate this fallback payload and write it successfully.</p>
-<p>That keeps Python extractor failures advisory instead of making the pipeline fail.</p>
-</body></html>
-HTML
 `)
 	t.Setenv("PATH", binDir+string(os.PathListSeparator)+os.Getenv("PATH"))
 
@@ -222,14 +236,14 @@ HTML
 	if err != nil {
 		t.Fatalf("FetchGeneric: %v", err)
 	}
-	if res.FetchedVia != "curl" {
-		t.Fatalf("FetchedVia = %q, want curl fallback", res.FetchedVia)
+	if res.FetchedVia != "safehttp" {
+		t.Fatalf("FetchedVia = %q, want cleanup fallback over the same captured bytes", res.FetchedVia)
 	}
 	data, err := os.ReadFile(res.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), "Fallback Article") {
+	if !strings.Contains(string(data), "Captured Article") {
 		t.Fatalf("capture missing fallback body:\n%s", data)
 	}
 }

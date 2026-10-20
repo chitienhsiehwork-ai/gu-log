@@ -86,7 +86,7 @@ trap 'rm -f "$TMP_JSON" "$CURL_ERR"' EXIT
 # those so we fall through to the next path instead of silently emitting an
 # empty body.
 fxtwitter_payload_ok() {
-  python3 - "$TMP_JSON" <<'PY' 2>/dev/null
+  python3 - "$TMP_JSON" "$STATUS_ID" <<'PY' 2>/dev/null
 import json, sys
 try:
     d = json.load(open(sys.argv[1]))
@@ -96,6 +96,11 @@ if d.get("code") != 200:
     sys.exit(1)
 t = d.get("tweet") or {}
 if not t:
+    sys.exit(1)
+# Provider identity check: the payload must describe the requested status.
+# A provider answering with a different tweet is rejected, not rendered.
+got_id = str(t.get("id") or "")
+if got_id and got_id != sys.argv[2]:
     sys.exit(1)
 # Must have either a populated article or some kind of textual body.
 art = t.get("article") or {}
@@ -358,9 +363,10 @@ fi
 if [ -z "$FETCHED_FROM" ]; then
   if curl -fsSL --retry 3 --retry-delay 2 --max-time 20 \
     "https://api.vxtwitter.com/Twitter/status/${STATUS_ID}" > "$TMP_JSON" 2>>"$CURL_ERR"; then
-    if python3 - "$TMP_JSON" <<'PY'
+    if python3 - "$TMP_JSON" "$STATUS_ID" <<'PY'
 import json, sys
 p = sys.argv[1]
+requested_id = sys.argv[2]
 try:
     raw = json.load(open(p))
 except Exception as e:
@@ -369,6 +375,15 @@ except Exception as e:
     # caller sees INCOMPLETE_SOURCE rather than a Python traceback.
     print(f"vxtwitter returned non-JSON: {e}", file=sys.stderr)
     sys.exit(2)
+# Provider identity check: a degraded or hostile provider answering with a
+# different tweet must be rejected, same as the fxtwitter/guest paths.
+got_id = str(raw.get("tweetID") or "")
+if got_id != requested_id:
+    print(
+        f"vxtwitter returned status {got_id or '<missing>'}, requested {requested_id}",
+        file=sys.stderr,
+    )
+    sys.exit(3)
 # vxtwitter returns a flat object; wrap it in fxtwitter-ish shape so the
 # renderer downstream can handle both the same way.
 wrapped = {
