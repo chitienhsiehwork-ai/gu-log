@@ -284,6 +284,10 @@ get_unscored_articles() {
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
       continue
     fi
+    if [ "$status" = "FAILED" ] &&
+       tribunal_failed_input_unchanged "$PROGRESS_FILE" "$POSTS_DIR" "$article"; then
+      continue
+    fi
 
     echo "$article"
   done

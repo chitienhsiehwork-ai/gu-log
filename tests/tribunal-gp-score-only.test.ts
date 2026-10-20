@@ -130,14 +130,16 @@ function makeRepo() {
   fs.writeFileSync(path.join(bin, 'codex'), FAKE_CODEX, { mode: 0o755 });
   fs.writeFileSync(path.join(bin, 'claude'), FAKE_CLAUDE, { mode: 0o755 });
   fs.mkdirSync(path.join(root, 'article-locks'), { mode: 0o700 });
+  // The reader-input fingerprint runs the repo's Node helper.
+  fs.symlinkSync(path.join(ROOT, 'node_modules'), path.join(root, 'node_modules'));
 
   const git = spawnSync('git', ['init', '-q'], { cwd: root, encoding: 'utf8' });
   expect(git.status, git.stderr).toBe(0);
   return { root, bin };
 }
 
-function runTribunal(failingJudge: string) {
-  const { root, bin } = makeRepo();
+function runTribunal(failingJudge: string, repo = makeRepo()) {
+  const { root, bin } = repo;
   const env: NodeJS.ProcessEnv = { ...process.env };
   for (const key of [
     'GP_WRITER_MODE',
@@ -173,6 +175,8 @@ function runTribunal(failingJudge: string) {
   const read = (file: string) =>
     fs.existsSync(path.join(root, file)) ? fs.readFileSync(path.join(root, file), 'utf8') : '';
   return {
+    root,
+    bin,
     result,
     output: result.stdout + result.stderr,
     postPath: path.join(root, 'src/content/posts', POST_FILE),
@@ -217,7 +221,85 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
       const entry = run.progress[POST_FILE];
       expect(entry?.status).toBe('FAILED');
       expect(entry?.failedStage).toBe(failingStage);
+      expect(entry?.inputFingerprint, run.output).toMatch(
+        new RegExp(`^${POST_FILE}=\\w+,${EN_POST_FILE}=\\w+$`)
+      );
       expect(run.output).toContain('GP is score-only');
+    },
+    120_000
+  );
+});
+
+// #1098: Tribunal cannot rewrite a GP, so re-judging unchanged content only
+// re-rolls the judges. The daemon selectors skip a failed GP until its reader
+// content changes.
+describe('a failed GP is not selected again until its content changes', () => {
+  function inputUnchanged(root: string) {
+    const result = spawnSync(
+      'bash',
+      [
+        '-c',
+        'source scripts/tribunal-helpers.sh && tribunal_failed_input_unchanged "$1" "$2" "$3"',
+        'bash',
+        '.score-loop/state/tribunal-progress.json',
+        'src/content/posts',
+        POST_FILE,
+      ],
+      { cwd: root, encoding: 'utf8' }
+    );
+    expect(result.error).toBeUndefined();
+    return result.status === 0;
+  }
+
+  linuxIt(
+    'skips the unchanged GP, then selects it after a zh-tw or English body edit',
+    () => {
+      const run = runTribunal('fact-checker');
+      expect(run.result.status, run.output).toBe(1);
+      // The failing scores were written back, yet the reader input is unchanged.
+      expect(inputUnchanged(run.root), run.output).toBe(true);
+
+      for (const file of [run.postPath, run.enPath]) {
+        const before = fs.readFileSync(file, 'utf8');
+        fs.writeFileSync(file, `${before}\n補一句修正。\n`);
+        expect(inputUnchanged(run.root), file).toBe(false);
+        fs.writeFileSync(file, before);
+        expect(inputUnchanged(run.root), file).toBe(true);
+      }
+    },
+    120_000
+  );
+
+  linuxIt(
+    'gives a fixed GP a fresh attempt budget instead of marking it EXHAUSTED',
+    () => {
+      const first = runTribunal('fact-checker');
+      const progressPath = path.join(first.root, '.score-loop/state/tribunal-progress.json');
+      first.progress[POST_FILE].topLevelAttempts = 5;
+      fs.writeFileSync(progressPath, JSON.stringify(first.progress));
+      fs.writeFileSync(
+        first.postPath,
+        `${fs.readFileSync(first.postPath, 'utf8')}\n補一句修正。\n`
+      );
+      fs.rmSync(path.join(first.root, 'judges.log'));
+
+      const second = runTribunal('fact-checker', { root: first.root, bin: first.bin });
+      expect(second.result.status, second.output).toBe(1);
+      expect(second.judges, second.output).toEqual(JUDGES);
+      expect(second.progress[POST_FILE].status).toBe('FAILED');
+      expect(second.progress[POST_FILE].topLevelAttempts).toBe(1);
+    },
+    120_000
+  );
+
+  linuxIt(
+    'selects a FAILED entry that has no recorded fingerprint',
+    () => {
+      const run = runTribunal('fact-checker');
+      const progressPath = path.join(run.root, '.score-loop/state/tribunal-progress.json');
+      delete run.progress[POST_FILE].inputFingerprint;
+      fs.writeFileSync(progressPath, JSON.stringify(run.progress));
+      expect(inputUnchanged(run.root)).toBe(false);
     },
     120_000
   );

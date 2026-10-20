@@ -75,6 +75,34 @@ tribunal_post_outside_scope() {
   esac
 }
 
+# Reader-visible input of one article (zh-tw post + English sidecar if any),
+# from the shared reader-revision helper, so score write-back alone is not a
+# change. Prints nothing and returns 1 when it cannot be computed.
+tribunal_reader_input_fingerprint() {
+  local posts_dir="$1" article="$2" file rev fingerprint=""
+  for file in "$posts_dir/$article" "$posts_dir/en-$article"; do
+    [ -f "$file" ] || continue
+    rev="$(node "$TRIBUNAL_HELPERS_DIR/reader-revision-of-stdin.mjs" < "$file" 2>/dev/null)" || return 1
+    [ -n "$rev" ] || return 1
+    fingerprint="${fingerprint:+$fingerprint,}$(basename "$file")=$rev"
+  done
+  [ -n "$fingerprint" ] || return 1
+  printf '%s\n' "$fingerprint"
+}
+
+# A failed GP records the input it was judged on. Tribunal never rewrites a GP,
+# so re-judging the same input only re-rolls the judges until EXHAUSTED or a
+# lucky PASS (#1098). Selectors skip it until its content changes, the Tribunal
+# version changes, or an operator runs tribunal.sh on it by hand. Fails open:
+# an unreadable fingerprint lets the article be selected as before.
+tribunal_failed_input_unchanged() {
+  local progress_file="$1" posts_dir="$2" article="$3" recorded current
+  recorded="$(jq -r --arg a "$article" '.[$a].inputFingerprint // empty' "$progress_file" 2>/dev/null)"
+  [ -n "$recorded" ] || return 1
+  current="$(tribunal_reader_input_fingerprint "$posts_dir" "$article")" || return 1
+  [ "$recorded" = "$current" ]
+}
+
 # Classify a full-site build failure for one target article.
 # Operational evidence wins even when the log also names the target. Content
 # evidence is actionable only when one diagnostic line contains both the exact
