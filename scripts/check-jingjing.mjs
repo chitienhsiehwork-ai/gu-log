@@ -804,6 +804,17 @@ Emily Bender Timnit Gebru
 #   DeepSWE = the coding-agent eval set the source ran its experiment on
 #   (benchmark name, same category as SWE-bench; no natural zh-tw translation).
 DeepSWE
+# Added 2026-10-20 for the MP-214／MP-123 rewrite (issue #1145). Bona-fide proper
+# nouns named in the sources, none with a natural zh-tw translation (writer-prompt
+# rule #2: people / products stay English):
+#   Triton = OpenAI's GPU compiler (the repo whose PR #9734 the story is about).
+#   Blackwell / Hopper = NVIDIA GPU architecture names. CUTLASS = NVIDIA's CUDA
+#   template library. RTX 5070 Ti = GPU model name (sibling of allowlisted RTX).
+#   SemiAnalysis = the research firm that posted the source. Polymarket = the
+#   prediction-market product; SuhailKakar = X handle of the Polymarket CLI author.
+Triton Blackwell Hopper CUTLASS
+RTX 5070 Ti
+SemiAnalysis Polymarket SuhailKakar
 `;
 
 const HARDCODED = new Set();
