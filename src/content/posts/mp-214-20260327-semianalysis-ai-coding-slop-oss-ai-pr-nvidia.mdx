@@ -4,97 +4,126 @@ title: "AI Coding Slop 入侵 OSS — 當 AI PR 連 NVIDIA 工程師都看不下
 originalDate: "2026-03-26"
 translatedDate: "2026-03-27"
 translatedBy:
-  model: "Opus 4.6"
-  harness: "Gemini CLI + Codex CLI"
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
   pipeline:
     - role: "Written"
       model: "Opus 4.6"
       harness: "Claude Code CLI"
-    - role: "Reviewed"
-      model: "Opus 4.6"
-      harness: "Claude Code CLI"
-    - role: "Refined"
-      model: "Opus 4.6"
+    - role: "Rewritten"
+      model: "Opus 5.5"
       harness: "Claude Code CLI"
     - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "OpenClaw"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "@SemiAnalysis_ on X"
 sourceUrl: "https://x.com/SemiAnalysis_/status/2037273655059558575"
 lang: "zh-tw"
-summary: "OpenAI Triton 合併了一個號稱修復消費級 Blackwell GPU 問題的 AI 生成 PR，結果根本沒修好。NVIDIA PyTorch 技術主管親自下場留言表示這是徹頭徹尾的 slop。SemiAnalysis 警告：AI slop 與有價值的 diff 越來越難分辨。"
+summary: "Triton PR #9734 宣稱修好消費級 Blackwell 的 segfault，經過 bot 與 maintainer review 後 merge，隔天被指出整個修法的前提「sm_120a 不存在」本身就錯，約一天後依 NVIDIA 回饋 revert。SemiAnalysis 拿它當 AI coding slop 的例子；Mogu 看到的是 review 抓得到實作細節，卻抓不到需要 domain 知識才看得出的前提錯誤。"
 tags: ["ai-coding","open-source","nvidia","triton"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 8
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-有人在 OpenAI 的 Triton repo 提交了一個 PR。標題寫著「修復消費級 Blackwell GPU 相容性」，描述頭頭是道，diff 改了正確的檔案。Review 通過，merge 進 main，全世界的開發者開始 pull。
+2026 年 3 月 16 日，GPU 編譯器 Triton 收到一個 PR，標題說要修好 RTX 5070 Ti／5080／5090 這批消費級 Blackwell 顯卡的隨機當機（「segfault」）。它有完整描述、有測試，自動 review bot 留了意見，維護者要求修改，作者也照改了。同一天核准，同一天合併。
 
-然後 NVIDIA 的 PyTorch 技術主管看了一眼，留了一個字：**slop**。
+隔天，一位審查者 在 PR 底下客客氣氣地留言：這個 PR 很可能不正確，描述也不準確，而且整個修法賴以成立的那句前提，本身就是錯的。
 
-整件事最恐怖的地方，不是 AI 寫了爛 code——AI 一直都會寫爛 code。是在場的人類 reviewer，一個也沒擋住。
+當天維護者就把它撤回，理由只有一句：「Based on Nvidia's feedback this doesn't seem to be a correct PR」（根據 NVIDIA 的回饋，這個 PR 看起來不正確）。從合併到撤回，大約一天。
 
----
+這個 PR 的 commit 帶著 `Co-Authored-By: Claude Opus 4.6`，是 AI coding agent 的作品。但這個故事有意思的地方，不在 AI 寫錯，而在 review 流程每一關都有人在場、也真的抓到東西，最要命的那一個錯卻一路走進了主幹。
 
-## 案發現場：Triton 是什麼等級的東西
+## SemiAnalysis 配的字幕，比留言本身兇
 
-寫 GPU 程式有多痛苦？光是 CUDA 的記憶體管理就足以讓人懷疑人生。Triton 是 OpenAI 做的編譯器框架，讓工程師可以用比較接近人話的方式寫 GPU kernel，不用跟底層 CUDA 肉搏。在 AI 基礎設施的食物鏈裡，Triton 的位置很高——它壞了，一大堆東西跟著壞。
+這件事會被看見，是因為 SemiAnalysis 在 X 上發了一則大寫開頭的「AI CODING SLOP ALERT」。他們的警告是：在開源專案裡，AI coding agent 產出的垃圾跟有價值的 diff，越來越難分辨。接著拿 [Triton PR #9734](https://github.com/triton-lang/triton/pull/9734) 當例子，說它宣稱修好沒有 TMEM（張量記憶體）的消費級 Blackwell，但仔細看根本沒修好；合併之後，NVIDIA 的 PyTorch 技術主管「以非常 PROFESSIONAL 的方式」留言說這個 PR 完全是 slop。
 
-這不是某大學生的 side project，不是 GitHub 上三顆星的週末 hack。這是全球 AI 團隊天天在拉的核心基礎設施。
+那個全大寫的「PROFESSIONAL」是 SemiAnalysis 自己在酸。PR 頁面上那則留言是一段客氣、純技術的說明，「slop」是 SemiAnalysis 替它配的字幕。至於留言者是 NVIDIA PyTorch 技術主管，這是 SemiAnalysis 的說法，PR 頁面本身沒標示所屬。
 
-搞清楚案發現場的重量之後，再來看這個 PR 有多離譜。
+推文還特地補了一句：這位技術主管是一台「2024 Honda Civic Sport Edition」的車主。這條資訊對判斷 PR 對不對毫無幫助，推文也沒解釋為什麼要寫，[Mogu](/about) 決定尊重 SemiAnalysis 的創作自由，不替它腦補 ┐(￣ヘ￣)┌
 
 <MoguNote>
-Triton 在食物鏈裡的位置，就決定了一個爛 PR 的爆炸半徑有多大。Slop 進了某個 npm utility library，大不了 build 爆掉、maintainer 罵兩句、patch 一個 hotfix。但 Triton？Triton 壞了，是全世界跑 GPU 運算的人一起倒楣。AI coding slop 不只是「品質問題」——滲進關鍵基礎設施的那一刻，它就是供應鏈風險。而供應鏈風險不管 PR description 寫得多漂亮 (ง •̀_•́)ง
+我對 SemiAnalysis 這個標題有點意見。「slop」這個詞很好轉傳，但它不帶任何資訊：說一個 PR 是垃圾，沒告訴任何人錯在哪。真正讓 Triton 在一天內撤回的，是那則被酸成「很 PROFESSIONAL」的留言，它講清楚哪句前提錯、拿 CUTLASS 跟 PyTorch 當證據、附上編譯失敗的錯誤訊息。諷刺的是，對付 AI 量產的低資訊 PR，最有效的武器剛好是一段高資訊、不嗆人的人類留言。
 </MoguNote>
 
 ---
 
-## PR #9734：推開緊急出口，後面是一面牆
+## PR 改的是標籤，不是路
 
-故事是這樣的。NVIDIA 最新的 Blackwell 架構 GPU 分成企業版（B100、B200）跟消費版（RTX 5090）。企業版有一個硬體功能叫 **TMEM**（Tensor Memory）——可以把它想成 GPU 裡面一塊專門給 AI 運算用的高速暫存區，像廚房裡的備料台，食材先擺好才能快速出菜。消費版沒有這塊備料台。
+要看懂錯在哪，得先知道 PR 想修什麼。
 
-所以當 Triton 跑在消費版 GPU 上、碰到需要 TMEM 的運算時，必須知道怎麼繞道。
+`sm_120` 是消費級 Blackwell 的架構代號。Triton 編譯 GPU 核心程式時，會把架構字串交給 NVIDIA 的組譯器 `ptxas`。字串尾巴多一個「a」（例如 `sm_90a`、`sm_100a`），意思是「這份程式碼只給這一款架構跑，可以用它的專屬指令」。可以把它想成貼在包裹上的一張標籤：標籤寫什麼，組譯器就放行哪些指令。
 
-PR #9734 號稱處理了這個繞道邏輯。描述寫得清清楚楚，diff 也改了正確的檔案、加了該加的判斷式。看起來完全沒問題。
+PR 描述的診斷是這樣：消費級 Blackwell 會隨機當機，因為編譯器替一塊不存在的硬體產生了張量記憶體指令（`tcgen05`）。描述接著宣稱，「a」這種標籤只存在於 `sm_90` 跟 `sm_100`，`sm_120a` 根本不是真的編譯目標。
 
-問題是——**繞道的路是斷的。** TMEM 不存在的時候，fallback 根本沒正確處理。就像一扇寫著「緊急出口」的門，推開來後面是一面牆。
+原始版本提了三項改動：`sm_120` 不加「a」、改 PTX `.target` 的正規表示式、把 `sm_120` 改走 Hopper 那條編譯 pipeline。用剛剛的比喻講，就是一次撕標籤、改分揀規則、再改走另一條路。
 
-然後它就被 merge 了。通過 review，直接進了全世界開發者都在 pull 的 codebase。
+review 之後，維護者要求把改路線跟改正規表示式兩項撤掉，判斷條件改成 `capability != 120`，讓未來的新架構預設還是加「a」。作者照辦。所以最後合併進主幹的核心改動只剩一件：**把 `sm_120` 的標籤從 `sm_120a` 撕成 `sm_120`**，外加一段程式註解，宣稱 `sm_120a` 會導致張量記憶體指令，以及改過的測試。PR 描述沒更新，還寫著原本那三項改動。
+
+如果「`sm_120a` 不存在」這句是對的，撕標籤很合理。問題就在這句。
+
+隔天那位審查者指出，`120a` 是真的「arch-conditional」編譯目標，CUTLASS 跟 PyTorch 都在用 `sm_120a`。他還回報，用這個 commit 編譯會撞上 `ptxas` 錯誤：`tensormap.replace not supported on .target sm_120`。翻成標籤的話：說明書宣稱這款型號沒有這張標籤、貼了是印錯，結果 CUTLASS 跟 PyTorch 早就貼著這張標籤在用；標籤撕掉之後，還有指令因為少了它而被組譯器擋在門外。
+
+---
+
+## review 抓到的，跟沒抓到的
+
+把時間線攤開，3 月 16 日那天其實有人在認真看。
+
+自動 review bot（OpenAI [Codex](/glossary#codex) 的自動 review 工具）留言之後，作者把 `sm_120` 的測試從逐元素相加換成 `tl.dot` 矩陣乘法。原本那個測試不管編譯目標是什麼，都不會產生 `tcgen05` 指令，斷言等於什麼都沒驗。維護者則砍掉了兩項範圍過大的改動，還顧到未來架構的預設行為。
+
+空心測試、改動範圍、未來相容性，這三個都是真的問題，也都被修了。它們有個共同點：只要盯著這個 repo 跟這份 diff，就看得出來。
+
+沒人問的那一題是「`sm_120a` 到底存不存在」。這題的答案不在 Triton 的 repo 裡，在 CUTLASS 跟 PyTorch 的程式碼裡，在知道 NVIDIA 工具鏈怎麼運作的人腦袋裡。PR 描述把它寫成一句篤定的事實，整個修法都建立在上面，而它是整份 PR 最需要查、也最少人有能力查的一句。
+
+[Mogu](/glossary#mogu) 的看法是：要怪審查者也不太公平。review 本來就是拿 PR 給的前提去檢查實作，前提寫得越完整、越有自信，審查者越自然地把力氣花在「這個實作有沒有照前提做好」，而不是「前提本身對不對」。AI 寫出一段篤定的技術描述幾乎不花成本，能一眼看穿前提錯誤的領域專家卻很稀缺；這次那個人是在合併之後才出現的。gu-log 之前寫過 [Mitchell Hashimoto 推出 Vouch](/posts/mp-47-20260208-mitchellh-vouch-oss-trust/)，講的是 AI 讓任何人都能產出看起來像樣的貢獻，開源靠寫 code 的門檻篩人的老辦法失靈；Triton 這次再往前一步，連「寫出一段看起來很懂的診斷」的門檻也不見了。
 
 <MoguNote>
-恐怖的不是「AI 寫了爛 code」——AI 一直都會寫爛 code，這不是新聞。恐怖的是人類 reviewer 沒抓到。當 PR 的描述頭頭是道、diff 看起來合理、scope 也不離譜的時候，reviewer 的大腦會自動切到「確認模式」：不是在找問題，而是在確認沒有問題。這兩種心態差很遠。AI slop 不需要寫得好，只需要看起來「夠對」，讓 reviewer 的深度思考永遠不被觸發。這基本上就是對 code review 流程的 social engineering——不是攻擊程式，是攻擊讀程式的人的大腦 (⌐■_■)
+這件事我有切身之痛。你現在讀的這篇是重寫版：前一版把 SemiAnalysis 的酸寫成當事人原話，還把 PR 的機制畫成一個來源沒講過的故事，文筆順、笑點足，在站上掛了半年多。後來有人回頭把 PR 時間線一則一則對過，才發現開場跟主軸都蓋在錯的前提上，只好整篇打掉重寫。那一版上線時沒有被人回頭翻過原始紀錄；這種錯，光看文章本身順不順是看不出來的。寫文章跟寫 PR，栽在同一個地方 (｡◕‿◕｡)
 </MoguNote>
 
 ---
 
-## 開 Honda Civic 的技術主管下山了
+## 連 bug 存不存在都沒結論
 
-PR 被 merge 之後，NVIDIA 的 PyTorch 技術主管親自跑來留言了。SemiAnalysis 的推文裡特別提到一個 detail：這位老兄開的是一台 2024 Honda Civic Sport Edition。
+故事還有個尾巴。3 月 25 日，另一位貢獻者開了 [PR #9852](https://github.com/triton-lang/triton/pull/9852)，認為 #9734 只處理了後綴、沒處理編譯路線，於是除了拿掉後綴，還把 `sm_120`／`sm_121` 改走 Hopper 那條路線。維護者回覆說，大家一直都在 `sm_120` 上正常使用 Triton，而且這個 patch 跟被撤回的那個差不多。作者自己在 SM121 上實測，發現 `sm_121a` 能用、編譯結果裡也沒有張量記憶體指令，承認原本的診斷錯了，3 月 26 日自行關閉，沒有合併。
 
-在矽谷，開什麼車是一種社交訊號。VP 開 Tesla Model S，Director 開 Porsche Taycan。但開 Civic 的？那是每天真的坐下來寫 code 的人，手指頭刻著鍵盤印子那種。SemiAnalysis 不是在聊車——是在告訴讀者：接下來發言的這位，是全場最有資格判斷 code 品質的人。
+所以到最後，連「消費級 Blackwell 上到底有沒有那個當機問題、根因是什麼」都沒有乾淨的結論。[#9734](https://github.com/triton-lang/triton/pull/9734) 撕掉一張其實存在的標籤，去修一個可能根本沒被確認過的 bug，然後 [#9755](https://github.com/triton-lang/triton/pull/9755) 把標籤貼了回去。
 
-然後他看了那個 PR，說：slop。
-
-就像一桌人吃得開心，菜色漂亮，突然一個穿白袍的主廚走過來，拿起一盤看了一秒，面無表情地說：「這是微波爐的。」全桌安靜。不用問為什麼，不用 second opinion。因為大家知道，這個人一口就能嚐出來的東西，其他人吃完整盤也不會發現。
-
-那台 Civic，就是他的白袍。
-
-<MoguNote>
-Honda Civic 這個 detail 是整篇推文最聰明的一筆——一句話同時建立可信度、吐槽矽谷車 = 職等文化、還讓故事多了一個忘不掉的記憶點。但 [Mogu](/glossary#mogu) 更在意的是另一件事：這位技術主管「剛好」看到了這個 PR、「剛好」有空、「剛好」願意留言。OSS 的品質防線現在靠的是「某個對的人剛好出現」——這不是防線，這是運氣。當 AI slop 的產量是無限的，但有資格一口嚐出蠟的人是有限的，這場仗的數學根本不對 (╯°□°)╯
-</MoguNote>
-
----
-
-## 那下次呢？
-
-回到那扇緊急出口。
-
-門上的標示完美無瑕。油漆新的、字體正確、箭頭方向對。推開門之前，沒有人會覺得有問題。
-
-這就是 AI coding slop 的本質——不用寫得好，只要長得像好的就夠了。而且隨著 AI agent 越來越強，「長得像好的」這件事，成本趨近於零。
-
-這次有一位開 Civic 的工程師路過，一口嚐出了蠟。
-
-下次呢？
+SemiAnalysis 說 slop 跟有價值的 diff 越來越難分辨。Triton 這次的經驗是：分辨得出來，但分辨的成本落在一個很特定的人身上，那個知道 CUTLASS 裡寫著 `sm_120a` 的人。這次他在一天內出現了，沒收任何費用，也不是合併前排好的任何一關。下一份帶著篤定前提的 PR，會繼續預支這種人的時間，而目前沒有誰在付這筆帳。
