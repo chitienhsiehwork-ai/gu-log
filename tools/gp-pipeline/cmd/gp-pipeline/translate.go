@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -92,8 +93,10 @@ func runTranslate(ctx context.Context, state *rootState, opts translateCmdOpts) 
 
 	workDir := opts.WorkDir
 	if workDir == "" {
-		stamp := time.Now().Unix()
-		workDir = filepath.Join(os.TempDir(), fmt.Sprintf("gp-translate-%d", stamp))
+		workDir, err = defaultTranslateWorkDir(opts.File)
+		if err != nil {
+			return fmt.Errorf("translate: create work dir: %w", err)
+		}
 	}
 	workDir, err = filepath.Abs(workDir)
 	if err != nil {
@@ -153,4 +156,14 @@ func emitTranslateReport(state *rootState, r translateReport) {
 	if r.OK {
 		fmt.Println(r.ENFilename)
 	}
+}
+
+// defaultTranslateWorkDir creates a fresh scratch dir for one translate run.
+// The old default ($TMPDIR/gp-translate-<unix-second>) collided whenever two
+// runs started in the same second, so concurrent runs read each other's
+// English output. os.MkdirTemp guarantees a unique directory per call; the
+// zh-tw file stem stays in the name so a leftover dir is easy to trace.
+func defaultTranslateWorkDir(file string) (string, error) {
+	stem := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+	return os.MkdirTemp("", "gp-translate-"+stem+"-")
 }
