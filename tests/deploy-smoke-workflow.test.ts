@@ -1,5 +1,14 @@
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -88,6 +97,88 @@ exit 1
     const broken = await runListingStep('<main></main>');
     expect(broken.status).not.toBe(0);
     expect(broken.stdout.toString()).toContain('gp listing has neither posts nor the empty state');
+  });
+});
+
+describe('series listing smoke check', () => {
+  // #1164: /en/level-up 在正式站 404 了一段時間都沒被發現，因為上線後的 smoke
+  // test 只檢查部分系列列表頁。路由清單從 src/pages 推出來：頂層目錄底下有
+  // [...page].astro 的就是系列列表頁，新增系列時這支測試會要求 smoke step 一起補上。
+  const PAGES_URL = new URL('../src/pages/', import.meta.url);
+  const seriesListingRoutes = ['', 'en/']
+    .flatMap((prefix) =>
+      readdirSync(new URL(prefix, PAGES_URL), { withFileTypes: true })
+        .filter(
+          (entry) =>
+            entry.isDirectory() &&
+            existsSync(new URL(`${prefix}${entry.name}/[...page].astro`, PAGES_URL))
+        )
+        .map((entry) => `${prefix}${entry.name}`)
+    )
+    .sort();
+
+  async function runSeriesListingStep(failingRoute = '') {
+    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
+    const job = workflow.jobs['smoke-test'] as Job;
+    const step = job.steps.find(
+      (candidate) => candidate.name === 'Smoke test — check canonical series listing pages'
+    );
+    expect(step?.run).toBeDefined();
+
+    const fixtureRoot = mkdtempSync(path.join(tmpdir(), 'gu-log-series-smoke-'));
+    temporaryDirectories.push(fixtureRoot);
+    const binDirectory = path.join(fixtureRoot, 'bin');
+    const curlLog = path.join(fixtureRoot, 'curl.log');
+    mkdirSync(binDirectory);
+    const fakeCurl = path.join(binDirectory, 'curl');
+    writeFileSync(
+      fakeCurl,
+      `#!/bin/sh
+for argument in "$@"; do
+  case "$argument" in
+    https://*)
+      printf '%s\\n' "$argument" >> "$CURL_LOG"
+      if [ "$argument" = "https://gu-log.vercel.app/$FAILING_ROUTE" ]; then
+        printf '404'
+        exit 0
+      fi
+      ;;
+  esac
+done
+printf '200'
+`
+    );
+    chmodSync(fakeCurl, 0o755);
+    const result = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', step?.run ?? 'exit 1'], {
+      cwd: fixtureRoot,
+      env: {
+        ...process.env,
+        CURL_LOG: curlLog,
+        FAILING_ROUTE: failingRoute,
+        PATH: `${binDirectory}:${process.env.PATH}`,
+      },
+      stdio: 'pipe',
+    });
+    const requestedRoutes = readFileSync(curlLog, 'utf8')
+      .trim()
+      .split('\n')
+      .map((url) => url.replace('https://gu-log.vercel.app/', ''));
+    return { result, requestedRoutes };
+  }
+
+  it('requests every zh-tw and en series listing page', async () => {
+    expect(seriesListingRoutes).toContain('level-up');
+    expect(seriesListingRoutes).toContain('en/level-up');
+
+    const { result, requestedRoutes } = await runSeriesListingStep();
+    expect(result.status, result.stdout.toString()).toBe(0);
+    expect([...requestedRoutes].sort()).toEqual(seriesListingRoutes);
+  });
+
+  it('fails when one listing page, such as /en/level-up, is not 200', async () => {
+    const { result } = await runSeriesListingStep('en/level-up');
+    expect(result.status).not.toBe(0);
+    expect(result.stdout.toString()).toContain('::error::🚨 /en/level-up returned HTTP 404');
   });
 });
 
