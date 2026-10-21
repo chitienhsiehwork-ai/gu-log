@@ -128,10 +128,9 @@ exit 7
   });
 });
 
-describe('CCC smoke --fix: fetch-article Python packages', () => {
-  // 假的 python3 只認 smoke test 的兩種呼叫：import 檢查看 state 目錄有沒有 installed，
-  // pip install 把參數記進 pip.calls（FAKE_PIP_FAIL=1 時裝失敗）；其他呼叫一律失敗。
-  const FAKE_PYTHON = `#!/bin/sh
+// 假的 python3 只認 smoke test 的兩種呼叫：import 檢查看 state 目錄有沒有 installed，
+// pip install 把參數記進 pip.calls（FAKE_PIP_FAIL=1 時裝失敗）；其他呼叫一律失敗。
+const FAKE_PYTHON = `#!/bin/sh
 if [ "$1" = "-c" ] && [ "$2" = "import bs4, lxml, readability" ]; then
   [ -f "$FAKE_PY_STATE/installed" ]
   exit $?
@@ -145,62 +144,87 @@ fi
 exit 1
 `;
 
-  async function runFix({
-    remote,
-    installed,
-    pipFails = false,
-  }: {
-    remote: boolean;
-    installed: boolean;
-    pipFails?: boolean;
-  }) {
-    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-ccc-smoke-fetch-deps-'));
-    try {
-      const scriptsDir = path.join(fixtureRoot, 'scripts');
-      const binDir = path.join(fixtureRoot, 'bin');
-      const stateDir = path.join(fixtureRoot, 'python-state');
-      const tmpDir = path.join(fixtureRoot, 'tmp');
-      const homeDir = path.join(fixtureRoot, 'home');
-      for (const directory of [scriptsDir, binDir, stateDir, tmpDir, homeDir]) {
-        fs.mkdirSync(directory, { recursive: true });
-      }
-      fs.copyFileSync(SMOKE_SCRIPT, path.join(scriptsDir, 'ccc-smoke-test.sh'));
-      fs.copyFileSync(
-        path.join(REPO_ROOT, FETCH_ARTICLE_REQUIREMENTS),
-        path.join(fixtureRoot, FETCH_ARTICLE_REQUIREMENTS)
-      );
-      if (installed) fs.writeFileSync(path.join(stateDir, 'installed'), '');
-      // 其他 --fix 步驟一律用假的，測試不會真的裝任何東西。
-      for (const [name, body] of [
-        ['python3', FAKE_PYTHON],
-        ['pnpm', '#!/bin/sh\nexit 0\n'],
-        ['npm', '#!/bin/sh\nexit 1\n'],
-        ['openspec', '#!/bin/sh\nexit 0\n'],
-        ['pgrep', '#!/bin/sh\nexit 1\n'],
-        ['curl', "#!/bin/sh\nprintf '200'\n"],
-      ] as const) {
-        fs.writeFileSync(path.join(binDir, name), body, { mode: 0o755 });
-      }
+// 假的 install-gate-tools.sh：參數記進 gate.calls；--check 依 FAKE_GATE_CHECK_OK 回報，
+// 安裝依 FAKE_GATE_INSTALL_FAIL 決定成敗。
+const FAKE_GATE_TOOLS = `#!/bin/sh
+printf '%s\\n' "$*" >> "$FAKE_PY_STATE/gate.calls"
+if [ "$1" = "--check" ]; then
+  [ "$FAKE_GATE_CHECK_OK" = "1" ] && { echo "$2 pinned-ok"; exit 0; }
+  echo "$2 不在 PATH"
+  exit 1
+fi
+[ "$FAKE_GATE_INSTALL_FAIL" = "1" ] && exit 1
+exit 0
+`;
 
-      const env: NodeJS.ProcessEnv = {
-        ...process.env,
-        HOME: homeDir,
-        PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}`,
-        TMPDIR: tmpDir,
-        PLAYWRIGHT_BROWSERS_PATH: path.join(fixtureRoot, 'no-browsers'),
-        FAKE_PY_STATE: stateDir,
-        FAKE_PIP_FAIL: pipFails ? '1' : '',
-        CLAUDE_CODE_REMOTE: remote ? 'true' : '',
-      };
-      const { output } = await runSmoke(fixtureRoot, env, ['--fix']);
-      const pipCallsPath = path.join(stateDir, 'pip.calls');
-      const pipCalls = fs.existsSync(pipCallsPath) ? fs.readFileSync(pipCallsPath, 'utf-8') : '';
-      return { output, pipCalls };
-    } finally {
-      fs.rmSync(fixtureRoot, { recursive: true, force: true });
+async function runFix({
+  remote,
+  installed,
+  pipFails = false,
+  gateCheckOk = true,
+  gateInstallFails = false,
+}: {
+  remote: boolean;
+  installed: boolean;
+  pipFails?: boolean;
+  gateCheckOk?: boolean;
+  gateInstallFails?: boolean;
+}) {
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'gu-log-ccc-smoke-fetch-deps-'));
+  try {
+    const scriptsDir = path.join(fixtureRoot, 'scripts');
+    const binDir = path.join(fixtureRoot, 'bin');
+    const stateDir = path.join(fixtureRoot, 'python-state');
+    const tmpDir = path.join(fixtureRoot, 'tmp');
+    const homeDir = path.join(fixtureRoot, 'home');
+    for (const directory of [scriptsDir, binDir, stateDir, tmpDir, homeDir]) {
+      fs.mkdirSync(directory, { recursive: true });
     }
-  }
+    fs.copyFileSync(SMOKE_SCRIPT, path.join(scriptsDir, 'ccc-smoke-test.sh'));
+    fs.writeFileSync(path.join(scriptsDir, 'install-gate-tools.sh'), FAKE_GATE_TOOLS, {
+      mode: 0o755,
+    });
+    fs.copyFileSync(
+      path.join(REPO_ROOT, FETCH_ARTICLE_REQUIREMENTS),
+      path.join(fixtureRoot, FETCH_ARTICLE_REQUIREMENTS)
+    );
+    if (installed) fs.writeFileSync(path.join(stateDir, 'installed'), '');
+    // 其他 --fix 步驟一律用假的，測試不會真的裝任何東西。
+    for (const [name, body] of [
+      ['python3', FAKE_PYTHON],
+      ['pnpm', '#!/bin/sh\nexit 0\n'],
+      ['npm', '#!/bin/sh\nexit 1\n'],
+      ['openspec', '#!/bin/sh\nexit 0\n'],
+      ['pgrep', '#!/bin/sh\nexit 1\n'],
+      ['curl', "#!/bin/sh\nprintf '200'\n"],
+    ] as const) {
+      fs.writeFileSync(path.join(binDir, name), body, { mode: 0o755 });
+    }
 
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      HOME: homeDir,
+      PATH: `${binDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      TMPDIR: tmpDir,
+      PLAYWRIGHT_BROWSERS_PATH: path.join(fixtureRoot, 'no-browsers'),
+      FAKE_PY_STATE: stateDir,
+      FAKE_PIP_FAIL: pipFails ? '1' : '',
+      FAKE_GATE_CHECK_OK: gateCheckOk ? '1' : '',
+      FAKE_GATE_INSTALL_FAIL: gateInstallFails ? '1' : '',
+      CLAUDE_CODE_REMOTE: remote ? 'true' : '',
+    };
+    const { output } = await runSmoke(fixtureRoot, env, ['--fix']);
+    const pipCallsPath = path.join(stateDir, 'pip.calls');
+    const pipCalls = fs.existsSync(pipCallsPath) ? fs.readFileSync(pipCallsPath, 'utf-8') : '';
+    const gateCallsPath = path.join(stateDir, 'gate.calls');
+    const gateCalls = fs.existsSync(gateCallsPath) ? fs.readFileSync(gateCallsPath, 'utf-8') : '';
+    return { output, pipCalls, gateCalls };
+  } finally {
+    fs.rmSync(fixtureRoot, { recursive: true, force: true });
+  }
+}
+
+describe('CCC smoke --fix: fetch-article Python packages', () => {
   it('installs the pinned requirements when the import fails, then reports them importable', async () => {
     const { output, pipCalls } = await runFix({ remote: true, installed: false });
 
@@ -234,5 +258,44 @@ exit 1
     expect(pipCalls).toBe('');
     expect(output).not.toContain('fetch-article Python 套件安裝');
     expect(output).toContain('! fetch-article Python 套件缺');
+  });
+});
+
+describe('CCC smoke --fix: gate tools (gitleaks / shellcheck)', () => {
+  it('installs the pinned tools in CCC, then reports each one ready', async () => {
+    const { output, gateCalls } = await runFix({ remote: true, installed: true });
+
+    expect(gateCalls).toBe('\n--check gitleaks\n--check shellcheck\n');
+    expect(output).toContain('✓ gitleaks / shellcheck 釘選版已就緒');
+    expect(output).toContain('✓ gitleaks pinned-ok');
+    expect(output).toContain('✓ shellcheck pinned-ok');
+  });
+
+  it('only warns, never fails, when the install or the readiness check does not pass', async () => {
+    const { output } = await runFix({
+      remote: true,
+      installed: true,
+      gateCheckOk: false,
+      gateInstallFails: true,
+    });
+
+    expect(output).toMatch(
+      /! gitleaks \/ shellcheck 安裝失敗 — 見 .+\/ccc-gate-tools-install\.log/
+    );
+    expect(output).toContain('! gitleaks 不在 PATH');
+    expect(output).toContain('! shellcheck 不在 PATH');
+    expect(output).not.toMatch(/✗ (gitleaks|shellcheck)/);
+  });
+
+  it('leaves local tools alone outside CCC and only reports readiness', async () => {
+    const { output, gateCalls } = await runFix({
+      remote: false,
+      installed: true,
+      gateCheckOk: false,
+    });
+
+    expect(gateCalls).toBe('--check gitleaks\n--check shellcheck\n');
+    expect(output).not.toContain('釘選版已就緒');
+    expect(output).toContain('! gitleaks 不在 PATH');
   });
 });

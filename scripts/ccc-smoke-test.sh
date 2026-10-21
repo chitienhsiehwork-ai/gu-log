@@ -194,6 +194,16 @@ if $FIX; then
       warn "fetch-article Python 套件安裝失敗" "見 $LOG_DIR/ccc-fetch-article-install.log"
     fi
   fi
+
+  # gitleaks / shellcheck（pre-commit secret scan、hook 的 ShellCheck 測試要用）：
+  # 版本 + sha256 釘在 install-gate-tools.sh，已是釘選版就 no-op。只在 CCC 跑。
+  if [ "${CLAUDE_CODE_REMOTE:-}" = "true" ]; then
+    if bash scripts/install-gate-tools.sh >"$LOG_DIR/ccc-gate-tools-install.log" 2>&1; then
+      pass "gitleaks / shellcheck 釘選版已就緒"
+    else
+      warn "gitleaks / shellcheck 安裝失敗" "見 $LOG_DIR/ccc-gate-tools-install.log"
+    fi
+  fi
 fi
 
 # ── 1. 身份 ───────────────────────────────────────────────────────
@@ -262,6 +272,12 @@ for h in pre-commit pre-push; do
   else
     fail "$h active 與 scripts/hooks/$h 不一致" "active hook 過時，重跑 setup-hooks"
   fi
+done
+
+# ── 6. Gate 工具（optional）：缺 gitleaks 時 pre-commit 跳過 secret scan ──
+section "6. Gate 工具"
+for t in gitleaks shellcheck; do
+  if msg=$(bash scripts/install-gate-tools.sh --check "$t" 2>&1); then pass "$msg"; else warn "$msg"; fi
 done
 
 # ── 7. 內容驗證 ───────────────────────────────────────────────────
