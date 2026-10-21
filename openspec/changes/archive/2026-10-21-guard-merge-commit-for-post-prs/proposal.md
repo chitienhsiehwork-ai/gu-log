@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Guard 合併動到 `src/content/posts/` 的 PR 時改用 merge commit；沒動到文章的 PR 維持 squash。
+- Guard 合併動到 `src/content/posts/` 的 PR 時改用 merge commit；沒動到文章的 PR 維持 squash。Audit log 記下這次用的 merge method。
 - Low-risk 情境拿掉「使用 squash merge」，merge method 改由新增的要求決定；「啟用 GitHub auto-merge」改成「合併」，對齊 guard 實際上直接用 `--match-head-commit` 合併、刻意不開 auto-merge 的做法。
 
 ## Capabilities

@@ -4,9 +4,13 @@
 
 會出事的只有 `post-versions.json` 的計數：它數的是碰過每篇文章的非 merge commit。沒動到文章的 PR（glossary、低風險 code）squash 不影響計數，所以維持原本的 squash，變動範圍只限出過事的那一類 PR。
 
-## 沿用 `HAS_POST_CHANGE`
+## 看 PR 的所有路徑，含 rename 前的舊路徑
 
-Guard 原本就用 `HAS_POST_CHANGE` 判斷 PR 有沒有動到 `src/content/posts/` 下的文章（決定 `post-versions.json` 能不能放行）。能被 guard 放行的文章路徑只有這一層的 `.mdx`，巢狀路徑會被 allowlist 擋掉，所以「被放行而且動到文章」跟 `HAS_POST_CHANGE=1` 是同一件事，不用另寫判斷。
+Guard 檢查 PR 的所有路徑（`POLICY_PATHS_JSON`，含 rename 前的舊路徑），只要有一條在 `src/content/posts/` 底下就用 merge commit。不直接沿用 `HAS_POST_CHANGE`：它只看新檔名，用途是決定 `post-versions.json` 能不能放行。PR 如果把文章 rename 移出 `src/content/posts/`，新檔名不在 posts 底下，沿用它就會 squash，跟 spec「修改 `src/content/posts/` 下檔案」的字面對不上。用 merge commit 合併不會讓任何計數出錯，所以判斷寧可寬一點；`HAS_POST_CHANGE` 原本的放行語意不動。
+
+## 決定記進 audit log
+
+Merge method 在寫 audit log 之前決定，紀錄裡的 `mergeMethod` 欄位在 allow 時是 `merge` 或 `squash`，deny 時是 `null`。之後要查某個文章 PR 是怎麼合的，看 `decisions.jsonl` 就好，不用翻 stdout。
 
 ## 明確傳旗標，不靠 repo 預設
 
@@ -14,7 +18,7 @@ Repo 同時允許 merge commit 與 squash。Guard 直接傳 `--merge` 或 `--squ
 
 ## 測試
 
-`scripts/tests/test-auto-merge-guard.sh` 用假的 `gh` 錄下 guard 實際傳出的參數，驗證文章 PR 用 `--merge`、沒動到文章的 PR 用 `--squash`、被拒的 PR 不會呼叫 `gh pr merge`。CI 的 unit-tests job 透過 `tests/shell-regression-ownership.test.ts` 執行這支測試。
+`scripts/tests/test-auto-merge-guard.sh` 用假的 `gh` 錄下 guard 實際傳出的參數，驗證文章 PR 和把文章 rename 移出 posts 的 PR 用 `--merge`、沒動到文章的 PR 用 `--squash`、被拒的 PR 不會呼叫 `gh pr merge`，並檢查 audit log 的 `mergeMethod`。CI 的 unit-tests job 透過 `tests/shell-regression-ownership.test.ts` 執行這支測試。
 
 ## 取捨
 

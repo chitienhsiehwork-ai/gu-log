@@ -1,7 +1,7 @@
 ## 1. 實作
 
-- [x] 1.1 `scripts/gu-log-auto-merge-guard.sh` 在 `HAS_POST_CHANGE=1` 時用 `--merge`，其他 PR 維持 `--squash`。
-- [x] 1.2 `scripts/tests/test-auto-merge-guard.sh` 用假的 `gh` 錄下實際參數：文章 PR 用 `--merge`、沒動到文章的 PR 用 `--squash`、被拒的 PR 不呼叫 `gh pr merge`。
+- [x] 1.1 `scripts/gu-log-auto-merge-guard.sh` 在 PR 任一路徑（含 rename 前的舊路徑）位於 `src/content/posts/` 底下時用 `--merge`，其他 PR 維持 `--squash`；這次的決定寫進 audit log 的 `mergeMethod`。
+- [x] 1.2 `scripts/tests/test-auto-merge-guard.sh` 用假的 `gh` 錄下實際參數：文章 PR 和 rename 移出 posts 的 PR 用 `--merge`、沒動到文章的 PR 用 `--squash`、被拒的 PR 不呼叫 `gh pr merge`；每個案例都檢查 audit log 的 `mergeMethod`。
 
 ## 2. 文件
 
