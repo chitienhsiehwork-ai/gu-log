@@ -196,7 +196,7 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=1
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
-      - name: Content gates (PR only — floor, pronoun, 晶晶體, AI-tells on changed zh-tw posts)
+      - name: Content gates (PR only — changed zh-tw posts)
         # Exemptions mirror pre-commit 0.1–0.165 (list-content-gate-posts.mjs),
         # but renames are stricter: any reader-visible change gets every gate.
         if: github.event_name == 'pull_request'
@@ -215,7 +215,7 @@ jobs:
           for f in $CHANGED_MDX; do
             # Skip PENDING drafts like pre-commit; pending-ticket-guard blocks them.
             grep -qE "^ticketId:[[:space:]]*[\"'][A-Za-z]+-PENDING[\"']" "$f" && continue
-            msg=$(node scripts/score-floor-check.mjs "$f" 3 2>&1) || { echo "::error file=$f::score floor: $msg"; rc=1; }
+            msg=$(node scripts/score-floor-check.mjs "$f" 2>&1) || { echo "::error file=$f::score floor: $msg (see CONTRIBUTING 兩層品質門檻)"; rc=1; }
           done
           node scripts/check-pronoun-clarity.mjs $CHANGED_MDX || rc=1
           node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX || rc=1

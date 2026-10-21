@@ -93,6 +93,8 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     expect(step.run).toContain(
       'node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX'
     );
+    // floor 門檻只放在 score-floor-check.mjs 的預設值，CI 不另外帶一份。
+    expect(step.run).toContain('node scripts/score-floor-check.mjs "$f" 2>&1');
   });
 
   it('still gates a unique new post when git grep returns no match', () => {
@@ -349,7 +351,7 @@ describe('CI Content gates step', () => {
     );
 
     expect(r.stdout).toContain(
-      '::error file=src/content/posts/sd-7-new.mdx::score floor: missing scores.vibe'
+      '::error file=src/content/posts/sd-7-new.mdx::score floor: missing scores.vibe (see CONTRIBUTING'
     );
     expect(r.stdout).not.toContain('sd-pending-draft.mdx::score floor');
     // floor 先失敗，排在最後的 AI-tells 照樣要跑完，結果一起回報。
