@@ -30,7 +30,7 @@
 
 永不准 `--no-verify` / `--no-gpg-sign`（或任何繞過 pre-commit / pre-push hook 的旗標）。**hook 失敗 = 修 code，或修 hook 本身**（hook 邏輯 / 環境壞了就修它，當成這個 PR 的一個 commit），不是跳過。唯一例外：user 逐次明確授權。
 
-> Deterministic enforcement，不只靠自律：Claude Code 端有 PreToolUse hook 直接 deny；server-side CI（`ci-passed`）在 PR 上重跑 hook 檢查，擋髒 commit 進 main。
+> Deterministic enforcement，不只靠自律：Claude Code 端有 PreToolUse hook 直接 deny；PR 要過 server-side CI 才進得了 main，CI 實際擋哪些檢查以 `.github/workflows/ci.yml` 的 `ci-passed.needs` 為準，別假設本機 hook 的每一步 CI 都會重跑。
 
 ## 🧭 SSOT 紀律（摘要 — 全文見 `docs/agent-discipline.md`）
 

@@ -135,21 +135,12 @@ echo "✓ No duplicate ticketIds"
 echo ""
 
 # ─── Step 0.1: Score gate — staged posts must clear the score FLOOR ────
-# Only checks zh-tw primary posts (not en- translations).
-# Minimum: scores.vibe block with persona, moguNote, vibe, clarity,
-# narrative AND composite >= 3 (the FLOOR, not the editorial PASS bar).
+# zh-tw posts only. scripts/score-floor-check.mjs checks the floor, not the
+# ≥8 PASS bar; policy lives in CONTRIBUTING.md〈🎯 兩層品質門檻〉.
 #
-# Philosophy (2026-06-10): the automated gate is a floor, not the ≥8 PASS
-# bar. A post may ship with a sub-8 score — it gets a visible "refining"
-# badge and is held out of the homepage until a background tribunal lifts
-# it to ≥8 (see CLAUDE.md §自動 gate 是 floor). But nothing garbage
-# (composite < 3) or score-less reaches main. The floor check is
-# scripts/score-floor-check.mjs.
-#
-# Scope: enforced on (a) newly ADDED zh-tw posts, and (b) MODIFIED zh-tw
-# posts whose READER-VISIBLE content changed (full rewrites). A rewrite is
-# a "modification" in git's eyes, so the old added-only gate let rewrites
-# slip through unscored (this is how #388 shipped with only 1 of 4 judges).
+# Scope: (a) ADDED or RENAMED zh-tw posts — allocate-ticket's PENDING →
+# number swap is a rename (#1164) — and (b) MODIFIED zh-tw posts whose
+# READER-VISIBLE content changed (full rewrites; #388 shipped one unscored).
 # reader_visible_changed() compares the staged vs HEAD reader revision so a
 # backend-only edit (adding a scores block, fixing source/translatedBy)
 # does NOT trigger a rescore — only changes a reader would actually see.
@@ -187,6 +178,11 @@ STAGED_ZH_POSTS=()
 for file in "${STAGED_ZH_POSTS_ALL[@]}"; do
     case "$file" in */en-*) ;; *) STAGED_ZH_POSTS+=("$file") ;; esac
 done
+# RENAMED ones too, unless the target is still a *-pending-* draft.
+STAGED_ZH_RENAMED=()
+while IFS= read -r -d '' file; do
+    case "$file" in */en-*|*-pending-*) ;; *) STAGED_ZH_RENAMED+=("$file") ;; esac
+done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=R -- "$POSTS_DIR/*.mdx" 2>/dev/null || true)
 # MODIFIED zh-tw posts go through the gate too, but only when their
 # reader-visible content changed (full rewrites) — see reader_visible_changed.
 STAGED_ZH_MODIFIED_ALL=()
@@ -307,7 +303,7 @@ is_taken_down_staged() {
     '
 }
 
-GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_MODIFIED[@]}")
+GATE_CANDIDATES=("${STAGED_ZH_POSTS[@]}" "${STAGED_ZH_RENAMED[@]}" "${STAGED_ZH_MODIFIED[@]}")
 
 if [ "${#GATE_CANDIDATES[@]}" -eq 0 ]; then
     echo "✓ No zh-tw posts staged"

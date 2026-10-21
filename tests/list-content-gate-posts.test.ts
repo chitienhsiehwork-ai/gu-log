@@ -81,9 +81,10 @@ describe('list-content-gate-posts fail-closed base contract', () => {
   it('binds the CI selector and grandfather baseline to the immutable PR base SHA', () => {
     const workflow = parse(fs.readFileSync(CI_WORKFLOW, 'utf8'));
     const step = workflow.jobs['validate-content'].steps.find(({ name }: { name?: string }) =>
-      name?.startsWith('晶晶體 check')
+      name?.startsWith('Content gates')
     );
 
+    expect(step.if).toBe("github.event_name == 'pull_request'");
     expect(step.env.BASE_SHA).toBe('${{ github.event.pull_request.base.sha }}');
     expect(step.run).not.toContain('|| true');
     expect(step.run).toContain('git fetch --no-tags origin "$BASE_SHA"');
@@ -92,6 +93,8 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     expect(step.run).toContain(
       'node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX'
     );
+    // floor 門檻只放在 score-floor-check.mjs 的預設值，CI 不另外帶一份。
+    expect(step.run).toContain('node scripts/score-floor-check.mjs "$f" 2>&1');
   });
 
   it('still gates a unique new post when git grep returns no match', () => {
@@ -225,11 +228,9 @@ describe('list-content-gate-posts fail-closed base contract', () => {
 
     try {
       const file = 'src/content/posts/gp-1-nested-status.mdx';
+      // 掛在讀者看得到的 author 底下；後台欄位底下的變動另由 reader revision 豁免。
       const withNestedStatus = (status: string) =>
-        post('GP-1', 'stable-post').replace(
-          '\n---\n\n',
-          `\nmetadata:\n  status: ${status}\n---\n\n`
-        );
+        post('GP-1', 'stable-post').replace('\n---\n\n', `\nauthor:\n  status: ${status}\n---\n\n`);
       fs.writeFileSync(path.join(repo, file), withNestedStatus('old'));
       git(repo, ['add', '.']);
       git(repo, ['commit', '-qm', 'seed baseline']);
@@ -243,6 +244,124 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     } finally {
       fs.rmSync(repo, { recursive: true, force: true });
     }
+  });
+});
+
+describe('list-content-gate-posts reader-revision exemption', () => {
+  // 跟 pre-commit 的 reader_visible_changed 一樣：只動後台 frontmatter（scores、
+  // pipeline…）的 PR 不重查舊文正文，score floor、代名詞、AI-tells 都不會跑。
+  const SCORES = 'scores:\n  vibe:\n    composite: 8\n';
+
+  function runEdit(before: string, after: string): string[] {
+    const repo = makeRepo();
+
+    try {
+      const file = 'src/content/posts/mp-5-legacy.mdx';
+      fs.writeFileSync(path.join(repo, file), before);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed legacy post']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(path.join(repo, file), after);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'edit legacy post']);
+      return runGate(repo).map((listed) => listed.replace(file, 'FILE'));
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  }
+
+  const withFrontmatter = (extra: string, marker = 'legacy') =>
+    post('MP-5', marker).replace('\n---\n\n', `\n${extra}---\n\n`);
+
+  it('skips a Tribunal publisher PR that only writes back scores', () => {
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(SCORES))).toEqual([]);
+  });
+
+  it('skips a PR that only moves backend frontmatter', () => {
+    const before = withFrontmatter('pipeline:\n  - role: writer\n');
+    const after = withFrontmatter('translatedBy:\n  pipeline:\n    - role: writer\n');
+    expect(runEdit(before, after)).toEqual([]);
+  });
+
+  it('still gates a scores write-back that also edits reader-visible content', () => {
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(SCORES, 'rewritten'))).toEqual(['FILE']);
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(`title: "新標題"\n${SCORES}`))).toEqual([
+      'FILE',
+    ]);
+  });
+});
+
+describe('CI Content gates step', () => {
+  // 把 ci.yml 的 run 原樣搬到假 PR repo 實跑，只把 node scripts/ 指回這個 repo。
+  const STEP_RUN: string = parse(fs.readFileSync(CI_WORKFLOW, 'utf8')).jobs[
+    'validate-content'
+  ].steps.find(({ name }: { name?: string }) => name?.startsWith('Content gates')).run;
+  const zhPost = (ticketId: string, extra = '') =>
+    `---\nticketId: "${ticketId}"\n${extra}---\n\n${Array.from(
+      { length: 12 },
+      (_, i) => `第 ${i} 段正文，講部署流程。`
+    ).join('\n\n')}\n`;
+
+  function runStep(seed: Record<string, string>, change: Record<string, string>) {
+    const repo = makeRepo();
+    const commit = (files: Record<string, string>, message: string) => {
+      for (const [name, text] of Object.entries(files)) {
+        fs.writeFileSync(path.join(repo, 'src', 'content', 'posts', name), text);
+      }
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', message]);
+    };
+
+    try {
+      writeGlossary(repo, []);
+      commit(seed, 'seed base');
+      git(repo, ['branch', 'base']);
+      commit(change, 'pr change');
+      git(repo, ['remote', 'add', 'origin', repo]);
+      // Pass the scripts dir through env so the shell string stays a fixed literal.
+      const run = STEP_RUN.replaceAll('node scripts/', 'node "$GATE_SCRIPTS_DIR"/');
+      return spawnSync('bash', ['-c', run], {
+        cwd: repo,
+        env: {
+          ...process.env,
+          BASE_SHA: git(repo, ['rev-parse', 'base']),
+          GATE_SCRIPTS_DIR: path.dirname(SCRIPT),
+        },
+        encoding: 'utf8',
+      });
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  }
+
+  it('passes a Tribunal publisher PR that only writes back scores', () => {
+    const scores = 'scores:\n  vibe:\n    composite: 8\n';
+    const r = runStep(
+      { 'mp-5-legacy.mdx': zhPost('MP-5') },
+      { 'mp-5-legacy.mdx': zhPost('MP-5', scores) }
+    );
+
+    expect(r.stdout).toContain('skipping content gates');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  it('fails an unscored numbered post, skips PENDING drafts, and still runs every gate', () => {
+    const r = runStep(
+      {},
+      {
+        'sd-7-new.mdx': `${zhPost('SD-7')}\n這套流程被他拆過一遍。\n`,
+        'sd-pending-draft.mdx': zhPost('SD-PENDING'),
+      }
+    );
+
+    expect(r.stdout).toContain(
+      '::error file=src/content/posts/sd-7-new.mdx::score floor: missing scores.vibe (see CONTRIBUTING'
+    );
+    expect(r.stdout).not.toContain('sd-pending-draft.mdx::score floor');
+    // floor 先失敗，排在最後的 AI-tells 照樣要跑完，結果一起回報。
+    expect(r.stdout).toContain('AI-tells check failed');
+    expect(r.status, r.stdout + r.stderr).toBe(1);
   });
 });
 

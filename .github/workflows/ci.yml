@@ -147,8 +147,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Need history + base ref so the translation-pair gate can
-          # diff "newly added in this PR" against the base branch.
+          # Full history: the PR gates below diff the PR base against HEAD.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
       - name: Post emoji check (added lines)
@@ -167,11 +166,8 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/check-file-size.mjs "--base=$BASE_SHA"
       - name: Takedown ratchet (PR only — tombstones stay tombstones)
-        # Same executable as pre-commit step -3.5, but PR base → head: a
-        # taken-down post must stay taken-down with an empty body, new posts
-        # may not reuse a taken-down source (except a stamped GP whose
-        # matching takedowns are all GP), and sources/ only grows under
-        # sources/chatgpt/ (openspec: post-takedown).
+        # Same executable as pre-commit step -3.5, PR base → head; rules live
+        # in openspec: post-takedown.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -200,12 +196,9 @@ jobs:
           git fetch origin ${{ github.base_ref }} --depth=1
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
-      - name: 晶晶體 check (PR only — block decorative English in changed zh-tw posts)
-        # Same scope as the pre-commit hook (scripts/hooks/pre-commit step 0.16):
-        # only PR-changed zh-tw .mdx files are linted. Push to main is skipped
-        # because (a) merged content was already gated at PR time and (b) main
-        # has 65+ historical posts with grandfathered 晶晶體 that we don't
-        # retroactively block. Manual ralph sweep can clean those over time.
+      - name: Content gates (PR only — changed zh-tw posts)
+        # Exemptions mirror pre-commit 0.1–0.165 (list-content-gate-posts.mjs),
+        # but renames are stricter: any reader-visible change gets every gate.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -215,11 +208,19 @@ jobs:
           git cat-file -e "$BASE_SHA^{commit}"
           CHANGED_MDX=$(node scripts/list-content-gate-posts.mjs "--base=$BASE_SHA")
           if [ -z "$CHANGED_MDX" ]; then
-            echo "✓ No zh-tw posts changed in this PR — skipping 晶晶體 check"
+            echo "✓ No zh-tw posts changed in this PR — skipping content gates"
             exit 0
           fi
-          echo "Checking $(echo $CHANGED_MDX | wc -w) zh-tw post(s) for 晶晶體..."
-          node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX
+          rc=0
+          for f in $CHANGED_MDX; do
+            # Skip PENDING drafts like pre-commit; pending-ticket-guard blocks them.
+            grep -qE "^ticketId:[[:space:]]*[\"'][A-Za-z]+-PENDING[\"']" "$f" && continue
+            msg=$(node scripts/score-floor-check.mjs "$f" 2>&1) || { echo "::error file=$f::score floor: $msg (see CONTRIBUTING 兩層品質門檻)"; rc=1; }
+          done
+          node scripts/check-pronoun-clarity.mjs $CHANGED_MDX || rc=1
+          node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX || rc=1
+          node scripts/check-ai-tells.mjs $CHANGED_MDX || rc=1
+          exit "$rc"
 
   pending-ticket-guard:
     runs-on: ubuntu-latest
