@@ -31,12 +31,20 @@ const httpUrl = z
     message: 'URL must use http:// or https://',
   });
 
+// posts 的每一層物件都用 z.strictObject：沒宣告的 key 讓 build 直接失敗，不會被 Zod 默默
+// 丟掉（#1164：頂層 pipeline、scores.全新Eyes 都曾這樣整段消失）。所以這份 schema 就是
+// frontmatter 的欄位清單。站內刻意不輸出的欄位用 notRendered() 宣告：照樣驗型別，parse
+// 完就丟掉，post.data 與讀者看得到的輸出都不會帶到。
+function notRendered<T extends z.ZodType>(schema: T) {
+  return schema.transform(() => undefined).optional();
+}
+
 const scoreDimension = z.number().int().min(0).max(10);
 const retiredClawdNoteKey = z.any().refine(() => false, {
   message: 'Retired score key clawdNote; use moguNote',
 });
 
-const stage4ScoresSchema = z.object({
+const stage4ScoresSchema = z.strictObject({
   persona: scoreDimension,
   moguNote: scoreDimension,
   vibe: scoreDimension,
@@ -47,7 +55,7 @@ const stage4ScoresSchema = z.object({
   clawdNote: retiredClawdNoteKey.optional(),
 });
 
-const librarianScoreSchema = z.object({
+const librarianScoreSchema = z.strictObject({
   glossary: scoreDimension.optional(),
   crossRef: scoreDimension.optional(),
   sourceAlign: scoreDimension.optional(),
@@ -57,7 +65,7 @@ const librarianScoreSchema = z.object({
   model: z.string().optional(),
 });
 
-const factCheckScoreSchema = z.object({
+const factCheckScoreSchema = z.strictObject({
   accuracy: scoreDimension.optional(),
   fidelity: scoreDimension.optional(),
   consistency: scoreDimension.optional(),
@@ -68,7 +76,7 @@ const factCheckScoreSchema = z.object({
   model: z.string().optional(),
 });
 
-const freshEyesScoreSchema = z.object({
+const freshEyesScoreSchema = z.strictObject({
   readability: scoreDimension.optional(),
   firstImpression: scoreDimension.optional(),
   payoffDensity: scoreDimension.optional(),
@@ -79,7 +87,7 @@ const freshEyesScoreSchema = z.object({
   model: z.string().optional(),
 });
 
-const vibeScoreSchema = z.object({
+const vibeScoreSchema = z.strictObject({
   persona: scoreDimension.optional(),
   moguNote: scoreDimension.optional(),
   vibe: scoreDimension.optional(),
@@ -91,8 +99,17 @@ const vibeScoreSchema = z.object({
   clawdNote: retiredClawdNoteKey.optional(),
 });
 
+const legacyRalphScoreSchema = z.strictObject({
+  p: scoreDimension,
+  c: scoreDimension,
+  v: scoreDimension,
+  score: scoreDimension,
+  date: z.string(),
+  model: z.string().optional(),
+});
+
 const dedupSchema = z
-  .object({
+  .strictObject({
     independentDiff: z.string().optional(),
     acknowledgedOverlapWith: z.array(canonicalTicketId).optional(),
     overlapJustification: z.string().optional(),
@@ -100,7 +117,7 @@ const dedupSchema = z
     humanOverrideReason: z.string().optional(),
     commentaryAngle: z.string().optional(),
     tribunalVerdict: z
-      .object({
+      .strictObject({
         class: z.string().optional(),
         action: z.string().optional(),
         matchedSlugs: z.array(z.string()).optional(),
@@ -114,18 +131,18 @@ const dedupSchema = z
 const postsCollection = defineCollection({
   loader: glob({ pattern: '**/[^_]*.{md,mdx}', base: './src/content/posts' }),
   schema: z
-    .object({
+    .strictObject({
       title: z.string(),
       ticketId: canonicalTicketId, // e.g., "GP-15", "MP-1", "SD-1", "Lv-1"
       originalDate: z.string(), // Original publish date (YYYY-MM-DD format)
       translatedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'translatedDate must be YYYY-MM-DD'), // Date we first shipped this post — tribunal sort key (required)
       translatedBy: z
-        .object({
+        .strictObject({
           model: z.string(),
           harness: z.string(),
           pipeline: z
             .array(
-              z.object({
+              z.strictObject({
                 role: z.string(), // e.g., "Written", "Reviewed", "Refined"
                 provider: z.string().optional(),
                 model: z.string(),
@@ -160,11 +177,13 @@ const postsCollection = defineCollection({
         .optional(),
       // 來源自己的標題（墓碑卡片第一行）；不得等於 gu-log 自己的標題。
       sourceTitle: z.string().optional(),
-      // `sourceDistance`（來源距離章，openspec source-distance-stamp）刻意不宣告：站內沒有
-      // 程式讀它，Zod 預設丟掉沒宣告的欄位，post.data 與讀者看得到的輸出就不會帶到；
+      // 來源距離章（openspec source-distance-stamp）：站內沒有程式讀它，不輸出；
       // 內容由 scripts/validate-posts.mjs 驗。
+      sourceDistance: notRendered(z.unknown()),
+      // 只給 scripts/check-glossary-links.mjs 讀的豁免清單，不輸出。
+      glossaryIgnore: notRendered(z.array(z.string())),
       series: z
-        .object({
+        .strictObject({
           name: z.string(),
           order: z.number(),
         })
@@ -180,7 +199,7 @@ const postsCollection = defineCollection({
       seriesId: z.string().optional(),
       dedup: dedupSchema,
       metadata: z
-        .object({
+        .strictObject({
           gateWarnings: z.array(z.string()).optional(),
         })
         .optional(),
@@ -193,7 +212,7 @@ const postsCollection = defineCollection({
       stage4Scores: stage4ScoresSchema.optional(),
 
       scores: z
-        .object({
+        .strictObject({
           // Tribunal version — tracks which scoring rubric was used
           tribunalVersion: z.number().int().positive().optional(),
           // Tribunal judges — uniform: all dims 0-10, score = floor(avg)
@@ -205,12 +224,15 @@ const postsCollection = defineCollection({
           // recorded alongside the AI tribunal. Editorial ground truth /
           // calibration signal against the machine vibe score; not a commit gate.
           shroomDogVibe: z
-            .object({
+            .strictObject({
               score: scoreDimension,
               date: z.string(),
               note: z.string().optional(),
             })
             .optional(),
+          // 2026-04 四評審上線前 Ralph loop 的舊分數（p／c／v 三維）。網站已不顯示，
+          // 舊文保留紀錄；新文章不要再寫。
+          ralph: notRendered(legacyRalphScoreSchema),
         })
         .optional(),
     })
