@@ -2,7 +2,7 @@
 
 > **CCC** = **Cloud Claude Code** — Claude Code 網頁版，在 Anthropic 的 GCP sandbox 跑，每次被叫醒都在 harness 自動建的 `claude/xxx` branch 上。
 >
-> 這份 playbook **只給 CCC 看**。如果你是 local machine actor（例如 `m1-cdx` / `m1-cc`），讀 `local-agent-playbook.md`。用 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 確認自己是誰。
+> 這份 playbook 放 CCC 專屬步驟，也放 local actor 共用的通則。Local machine actor（例如 `m1-cdx` / `m1-cc`）先讀 `local-agent-playbook.md`，那份會列出要回來讀這裡哪幾段。
 
 ## 精神
 

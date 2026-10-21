@@ -28,6 +28,7 @@ Local actor 只要要寫文、修文、改內容規則、writer prompt、judge p
 - Scope ceiling（相關路徑 + prod/CI 緊急事件例外）
 - 品質 gate（不能跳任何 hook 或 tribunal）
 - 失敗處理（forward fix → opus subagent → revert）
+- Merge method 選擇（選錯會讓 main CI 變紅）
 
 ## 環境差異（local Codex actor / local Claude actor 該知道、CCC 不會遇到）
 
