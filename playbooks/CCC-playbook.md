@@ -2,7 +2,7 @@
 
 > **CCC** = **Cloud Claude Code** — Claude Code 網頁版，在 Anthropic 的 GCP sandbox 跑，每次被叫醒都在 harness 自動建的 `claude/xxx` branch 上。
 >
-> 這份 playbook **只給 CCC 看**。如果你是 local machine actor（例如 `m1-cdx` / `m1-cc`），讀 `local-agent-playbook.md`。用 `./scripts/detect-env.sh --runtime <codex|claude-code> --identity` 確認自己是誰。
+> 這份 playbook 放 CCC 專屬步驟，也放 local actor 共用的通則。Local machine actor（例如 `m1-cdx` / `m1-cc`）先讀 `local-agent-playbook.md`，那份會列出要回來讀這裡哪幾段。
 
 ## 精神
 
@@ -73,7 +73,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 ### Merge method 選擇
 
-PR 合併用 `merge_method` 參數指定，三個選項：
+merge method 有三個選項：
 
 | 情況 | 選擇 | 原因 |
 |---|---|---|
@@ -83,7 +83,7 @@ PR 合併用 `merge_method` 參數指定，三個選項：
 
 **判斷規則**：看 PR 的 commit list，每個 commit subject 自己讀都有意義 → `merge`；有廢 commit → `squash`。CCC 理論上不該產廢 commit，所以預設是 `merge`。
 
-**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。呼叫 `enable_pr_auto_merge` 或 `merge_pull_request` 時要明確指定 merge，不要依賴 repo 預設值。
+**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。MCP（`enable_pr_auto_merge`／`merge_pull_request`）或 `gh pr merge --merge` 都要明確指定 merge，不要靠 repo 預設值。
 
 ### CI 等待 timeout
 
