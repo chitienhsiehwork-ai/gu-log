@@ -46,6 +46,11 @@
       "owner": "ShroomDog",
       "reason": "Broad smoke sweep across listing/post/feed page types, including the English tag pagination budget path."
     },
+    "tests/homepage-view-all.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "中英首頁每個 View all 連結都要回 200（#1164：英文首頁 Lv 的 View all 連到不存在的 /en/level-up，PR CI 一路綠到上線才發現）；連結從首頁抓、不寫死系列清單。2 tests，約 3 秒。"
+    },
     "tests/header-login-footer.spec.ts": {
       "class": "blocking",
       "owner": "ShroomDog",
