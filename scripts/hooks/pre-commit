@@ -41,12 +41,10 @@ node "$REPO_ROOT/scripts/check-takedown-ratchet.mjs" --staged
 echo ""
 
 # ─── Step -3: Regenerate post manifests for staged content changes ──
-# `post-versions.json` is derived from git history. Pre-commit runs before the
-# new commit exists, so the generator includes staged post touches to write the
-# same manifest that `git log HEAD` will require after the commit lands.
-# `post-reader-revisions.json` is content-derived and can be regenerated
-# directly from the worktree. Stage both files into the same commit so
-# pre-push/CI stay as safety nets instead of the first place this fails.
+# `post-versions.json` comes from git history, so the generator counts staged
+# post touches to match what `git log HEAD` will show after this commit.
+# `post-reader-revisions.json` is content-derived. Stage both in this commit so
+# pre-push/CI stay safety nets, not the first place this fails.
 if [ "${#STAGED_POST_CHANGES[@]}" -gt 0 ]; then
     echo "🔢 Post manifests: regenerating for staged content changes..."
     node "$REPO_ROOT/scripts/build-version-manifest.mjs" --include-staged
@@ -81,7 +79,7 @@ if command -v gitleaks >/dev/null 2>&1; then
     echo "✓ No secrets detected"
     echo ""
 else
-    echo "⚠️  gitleaks not installed, skipping secret scan"
+    echo "⚠️  gitleaks not installed, skipping secret scan (Linux: bash scripts/install-gate-tools.sh; macOS: brew install gitleaks)"
     echo ""
 fi
 
