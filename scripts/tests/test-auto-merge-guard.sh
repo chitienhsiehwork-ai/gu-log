@@ -225,7 +225,8 @@ cat >"$TMP_DIR/files.json" <<'JSON'
 ]
 JSON
 run_guard_merge >"$TMP_DIR/post-merge.out"
-grep -q "merge method: --merge" "$TMP_DIR/post-merge.out"
+grep -q "merge method: merge" "$TMP_DIR/post-merge.out"
+tail -n 1 "$TMP_DIR/decisions.jsonl" | jq -e '.decision == "allow" and .mergeMethod == "merge"' >/dev/null
 grep -qx -- '--merge' "$TMP_DIR/gh-args"
 if grep -qx -- '--squash' "$TMP_DIR/gh-args"; then
   echo "expected post PR not to be squashed" >&2
@@ -241,7 +242,8 @@ cat >"$TMP_DIR/files.json" <<'JSON'
 [{"filename":"src/data/glossary.json","status":"modified"}]
 JSON
 run_guard_merge >"$TMP_DIR/glossary-merge.out"
-grep -q "merge method: --squash" "$TMP_DIR/glossary-merge.out"
+grep -q "merge method: squash" "$TMP_DIR/glossary-merge.out"
+tail -n 1 "$TMP_DIR/decisions.jsonl" | jq -e '.decision == "allow" and .mergeMethod == "squash"' >/dev/null
 grep -qx -- '--squash' "$TMP_DIR/gh-args"
 if grep -qx -- '--merge' "$TMP_DIR/gh-args"; then
   echo "expected non-post PR to keep squash merge" >&2
@@ -262,7 +264,8 @@ cat >"$TMP_DIR/files.json" <<'JSON'
 ]
 JSON
 run_guard_merge --allow-low-risk-code >"$TMP_DIR/post-rename-out-merge.out"
-grep -q "merge method: --merge" "$TMP_DIR/post-rename-out-merge.out"
+grep -q "merge method: merge" "$TMP_DIR/post-rename-out-merge.out"
+tail -n 1 "$TMP_DIR/decisions.jsonl" | jq -e '.mergeMethod == "merge"' >/dev/null
 grep -qx -- '--merge' "$TMP_DIR/gh-args"
 if grep -qx -- '--squash' "$TMP_DIR/gh-args"; then
   echo "expected PR that moves a post out not to be squashed" >&2
@@ -282,6 +285,7 @@ if [ -e "$TMP_DIR/gh-args" ]; then
   echo "denied PR must not call gh pr merge" >&2
   exit 1
 fi
+tail -n 1 "$TMP_DIR/decisions.jsonl" | jq -e '.decision == "deny" and .mergeMethod == null' >/dev/null
 
 grep -q -- '--match-head-commit' scripts/gu-log-auto-merge-guard.sh
 if grep -q -- '--auto' scripts/gu-log-auto-merge-guard.sh; then
