@@ -144,7 +144,7 @@ jobs:
         if: github.event.deployment_status.state == 'success'
         run: |
           FAILED=0
-          for route in gu-log-picks mogu-picks level-up en/gu-log-picks en/mogu-picks en/level-up; do
+          for route in gu-log-picks mogu-picks shroomdog-originals level-up en/gu-log-picks en/mogu-picks en/shroomdog-originals en/level-up; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://gu-log.vercel.app/$route")
             if [ "$STATUS" != "200" ]; then
               echo "::error::🚨 /$route returned HTTP $STATUS"
