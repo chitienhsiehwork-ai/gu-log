@@ -225,11 +225,9 @@ describe('list-content-gate-posts fail-closed base contract', () => {
 
     try {
       const file = 'src/content/posts/gp-1-nested-status.mdx';
+      // 掛在讀者看得到的 author 底下；後台欄位底下的變動另由 reader revision 豁免。
       const withNestedStatus = (status: string) =>
-        post('GP-1', 'stable-post').replace(
-          '\n---\n\n',
-          `\nmetadata:\n  status: ${status}\n---\n\n`
-        );
+        post('GP-1', 'stable-post').replace('\n---\n\n', `\nauthor:\n  status: ${status}\n---\n\n`);
       fs.writeFileSync(path.join(repo, file), withNestedStatus('old'));
       git(repo, ['add', '.']);
       git(repo, ['commit', '-qm', 'seed baseline']);
@@ -243,6 +241,51 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     } finally {
       fs.rmSync(repo, { recursive: true, force: true });
     }
+  });
+});
+
+describe('list-content-gate-posts reader-revision exemption', () => {
+  // 跟 pre-commit 的 reader_visible_changed 一樣：只動後台 frontmatter（scores、
+  // pipeline…）的 PR 不重查舊文正文，score floor、代名詞、AI-tells 都不會跑。
+  const SCORES = 'scores:\n  vibe:\n    composite: 8\n';
+
+  function runEdit(before: string, after: string): string[] {
+    const repo = makeRepo();
+
+    try {
+      const file = 'src/content/posts/mp-5-legacy.mdx';
+      fs.writeFileSync(path.join(repo, file), before);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'seed legacy post']);
+      git(repo, ['branch', 'base']);
+
+      fs.writeFileSync(path.join(repo, file), after);
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', 'edit legacy post']);
+      return runGate(repo).map((listed) => listed.replace(file, 'FILE'));
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  }
+
+  const withFrontmatter = (extra: string, marker = 'legacy') =>
+    post('MP-5', marker).replace('\n---\n\n', `\n${extra}---\n\n`);
+
+  it('skips a Tribunal publisher PR that only writes back scores', () => {
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(SCORES))).toEqual([]);
+  });
+
+  it('skips a PR that only moves backend frontmatter', () => {
+    const before = withFrontmatter('pipeline:\n  - role: writer\n');
+    const after = withFrontmatter('translatedBy:\n  pipeline:\n    - role: writer\n');
+    expect(runEdit(before, after)).toEqual([]);
+  });
+
+  it('still gates a scores write-back that also edits reader-visible content', () => {
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(SCORES, 'rewritten'))).toEqual(['FILE']);
+    expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(`title: "新標題"\n${SCORES}`))).toEqual([
+      'FILE',
+    ]);
   });
 });
 

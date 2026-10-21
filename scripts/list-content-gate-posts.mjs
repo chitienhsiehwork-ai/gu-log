@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { computeReaderRevisionFromContent } from './build-reader-revision-manifest.mjs';
 import { isCanonicalTerminologyOnlyChange, isLinkOnlyChange } from './check-glossary-links.mjs';
 import { createPostLinkValidator } from './lib/post-link-validator.mjs';
 import { isTakenDownSource } from './lib/taken-down-posts.mjs';
@@ -95,6 +96,23 @@ function isMetadataOnlyDiff(baseRef, baseFile, currentFile) {
   );
 }
 
+// Same exemption as pre-commit's reader_visible_changed: backend-only frontmatter
+// (scores, translatedBy, pipeline, …) is left out of the reader revision, so a
+// Tribunal score write-back or a frontmatter move does not re-lint grandfathered
+// prose. A hash error keeps the post gated.
+function isReaderInvisibleChange(baseRef, baseFile, currentFile) {
+  if (!existsAt(baseRef, baseFile)) return false;
+  try {
+    const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
+    const newContent = fs.readFileSync(currentFile, 'utf8');
+    return (
+      computeReaderRevisionFromContent(oldContent) === computeReaderRevisionFromContent(newContent)
+    );
+  } catch {
+    return false;
+  }
+}
+
 // The PR gate proves link-only edits against the head revision: the glossary and the
 // internal post link targets come from the checked-out tree, like the post itself.
 const headGlossary = fs.existsSync(GLOSSARY_FILE)
@@ -181,6 +199,7 @@ const files = parseNameStatus(changed)
   .filter(({ currentFile }) => !path.basename(currentFile).startsWith('en-'))
   .filter(({ currentFile }) => fs.existsSync(currentFile))
   .filter(({ currentFile }) => !isTakenDown(currentFile))
+  .filter(({ baseFile, currentFile }) => !isReaderInvisibleChange(baseRef, baseFile, currentFile))
   .filter(({ baseFile, currentFile }) => {
     if (!existsAt(baseRef, baseFile) || !fs.existsSync(currentFile)) return true;
     const oldContent = git(['show', `${baseRef}:${baseFile}`], { trim: false });
