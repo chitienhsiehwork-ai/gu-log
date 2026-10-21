@@ -2,6 +2,12 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# 每個情境都要從「沒有 token」開始：gh stub 靠 GH_TOKEN 有沒有值判斷這次呼叫
+# 是不是走 token fallback。CCC sandbox、CI 這類環境本來就帶 GH_TOKEN／GITHUB_TOKEN，
+# 不清掉的話 plain-success 第一次呼叫就會被當成帶 token，回 401 讓測試紅掉。
+unset GH_TOKEN GITHUB_TOKEN GU_LOG_GH_TOKEN
+
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR"' EXIT
 

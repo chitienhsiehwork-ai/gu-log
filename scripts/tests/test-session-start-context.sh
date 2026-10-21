@@ -2,10 +2,22 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
+
+# detect-env 判斷是不是 CCC，看的是 CLAUDE_CODE_REMOTE，以及「branch 是 claude/*、
+# OS 是 Linux、cwd 在 /home/user/ 底下」三條件同時成立。直接在 repo 裡跑，CCC
+# sandbox 會讓下面所有本機 actor 的案例都變成 CCC。所以先清掉宿主環境的
+# CLAUDE_CODE_REMOTE 和 git 環境變數，再到暫存目錄開一個 branch 叫 main 的空 repo，
+# 把要測的檔案連進去、在那裡跑。需要 CCC 的案例自己會明確帶 CLAUDE_CODE_REMOTE=true。
+unset CLAUDE_CODE_REMOTE GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+HERMETIC_REPO="$TMP_DIR/repo"
+git init -q -b main "$HERMETIC_REPO"
+for entry in scripts .codex .claude; do
+  ln -s "$ROOT_DIR/$entry" "$HERMETIC_REPO/$entry"
+done
+cd "$HERMETIC_REPO"
 
 jq -e '
   def covers($source):
