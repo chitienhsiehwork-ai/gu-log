@@ -81,9 +81,10 @@ describe('list-content-gate-posts fail-closed base contract', () => {
   it('binds the CI selector and grandfather baseline to the immutable PR base SHA', () => {
     const workflow = parse(fs.readFileSync(CI_WORKFLOW, 'utf8'));
     const step = workflow.jobs['validate-content'].steps.find(({ name }: { name?: string }) =>
-      name?.startsWith('晶晶體 check')
+      name?.startsWith('Content gates')
     );
 
+    expect(step.if).toBe("github.event_name == 'pull_request'");
     expect(step.env.BASE_SHA).toBe('${{ github.event.pull_request.base.sha }}');
     expect(step.run).not.toContain('|| true');
     expect(step.run).toContain('git fetch --no-tags origin "$BASE_SHA"');
@@ -92,6 +93,21 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     expect(step.run).toContain(
       'node scripts/check-jingjing.mjs "--baseline-ref=$BASE_SHA" $CHANGED_MDX'
     );
+  });
+
+  it('runs the pre-commit score floor, pronoun and AI-tells gates on the same PR selection', () => {
+    const workflow = parse(fs.readFileSync(CI_WORKFLOW, 'utf8'));
+    const { run } = workflow.jobs['validate-content'].steps.find(({ name }: { name?: string }) =>
+      name?.startsWith('Content gates')
+    );
+
+    expect(run).toContain('for f in $CHANGED_MDX; do');
+    expect(run).toContain('-PENDING" "$f" && continue');
+    expect(run).toContain('node scripts/score-floor-check.mjs "$f" 3');
+    expect(run).toContain('node scripts/check-pronoun-clarity.mjs $CHANGED_MDX || rc=1');
+    expect(run).toContain('node scripts/check-ai-tells.mjs $CHANGED_MDX || rc=1');
+    // 每支 gate 都跑完再一起回報；rc 是唯一出口，不能被吞掉。
+    expect(run.trimEnd().endsWith('exit "$rc"')).toBe(true);
   });
 
   it('still gates a unique new post when git grep returns no match', () => {
