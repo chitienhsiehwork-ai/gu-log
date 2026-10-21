@@ -1,0 +1,110 @@
+---
+import { getCollection } from 'astro:content';
+import type { GetStaticPathsOptions } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TicketBadge from '../../../components/TicketBadge.astro';
+import Toggle from '../../../components/Toggle.astro';
+import PostStatusLabel from '../../../components/PostStatusLabel.astro';
+import Pagination from '../../../components/Pagination.astro';
+import { getListablePosts, getPostStatus } from '../../../utils/post-status';
+import type { PostStatus } from '../../../utils/post-status';
+
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const getTicketNumber = (ticketId: string | undefined) => {
+    if (!ticketId) return 0;
+    const match = ticketId.match(/\d+$/);
+    return match ? parseInt(match[0]) : 0;
+  };
+  const allPostsFull = await getCollection('posts');
+  const lvPosts = getListablePosts(allPostsFull, 'en')
+    .filter((post) => post.data.ticketId?.startsWith('Lv-'))
+    .sort((a, b) => getTicketNumber(b.data.ticketId) - getTicketNumber(a.data.ticketId));
+  return paginate(lvPosts, { pageSize: 20, props: { allPostsFull } });
+}
+
+const { page, allPostsFull } = Astro.props;
+const getTimelineStyle = (status: PostStatus) =>
+  status === 'published' ? undefined : 'opacity: 0.6; filter: grayscale(0.22);';
+---
+
+<BaseLayout title="Level-Up - All Posts" lang="en">
+  <h1>⚔️ Level-Up</h1>
+  <p class="page-subtitle">Interactive tech tutorials — learn by climbing the RPG tower</p>
+  <p class="post-count">{page.total} posts</p>
+
+  <a href="/en" class="back-link">← Back to home</a>
+
+  <section class="archive-list">
+    {
+      page.data.map((post) => {
+        const status = getPostStatus(post, allPostsFull);
+        return (
+          <article class="post-preview" style={getTimelineStyle(status)}>
+            <h3>
+              <a href={`/en/posts/${post.id}`}>
+                {post.data.title}
+                {status !== 'published' && <PostStatusLabel status={status} />}
+              </a>
+            </h3>
+            <p class="post-meta">
+              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+              {post.data.translatedDate || post.data.originalDate} · {post.data.source}
+            </p>
+            <Toggle title="Preview">
+              <p>{post.data.summary}</p>
+            </Toggle>
+          </article>
+        );
+      })
+    }
+  </section>
+
+  <Pagination page={page} lang="en" />
+</BaseLayout>
+
+<style>
+  .page-subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-count {
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    color: var(--color-accent);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+  }
+
+  .archive-list {
+    margin-bottom: 2rem;
+  }
+
+  .post-preview {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-divider);
+  }
+
+  .post-preview h3 {
+    line-height: 1.35;
+    margin-bottom: 0.15rem;
+  }
+
+  .post-preview h3 a {
+    color: var(--color-text);
+  }
+
+  .post-preview h3 a:hover {
+    color: var(--color-accent);
+  }
+</style>

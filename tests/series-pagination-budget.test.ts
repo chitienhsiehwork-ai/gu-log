@@ -9,6 +9,7 @@ const routes = [
   'src/pages/en/gu-log-picks/[...page].astro',
   'src/pages/en/mogu-picks/[...page].astro',
   'src/pages/en/shroomdog-originals/[...page].astro',
+  'src/pages/en/level-up/[...page].astro',
 ] as const;
 
 describe('series pagination collection budget', () => {
