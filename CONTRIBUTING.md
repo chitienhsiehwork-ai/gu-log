@@ -141,7 +141,7 @@ slug 使用 kebab-case，簡短描述文章內容。
 
 ### Frontmatter Schema
 
-權威是 `src/content.config.ts`，欄位規則以它為準；寫了沒宣告的欄位（含放錯層），build 直接失敗。`<…>` 換成實際值：
+權威是 `src/content.config.ts`；寫了沒宣告的欄位（含放錯層），build 直接失敗。`<…>` 換成實際值：
 
 ```yaml
 ---
@@ -159,7 +159,7 @@ translatedBy:
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
 sourceUrl: "https://..."
 lang: "zh-tw"  # 或 "en"
-summary: "2–3 句摘要，顯示在首頁 Toggle 預覽"  # 建議 ≤300 字元
+summary: "2–3 句摘要，顯示在首頁 Toggle 預覽"  # 長度提醒見 `scripts/validate-posts.mjs`
 tags: ["tag1", "tag2"]  # 只放主題 tag，系列由 ticketId 決定
 ---
 ```

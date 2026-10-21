@@ -117,7 +117,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 
 ## 📋 MDX Frontmatter 格式（必須完全遵守）
 
-欄位與範例照 `CONTRIBUTING.md`〈Frontmatter Schema〉，權威是 `src/content.config.ts`；沒宣告的欄位會讓 build 失敗。
+欄位與範例見 `CONTRIBUTING.md`〈Frontmatter Schema〉（權威是 `src/content.config.ts`）。`title` 要吸引人但不浮誇。
 
 ---
 
