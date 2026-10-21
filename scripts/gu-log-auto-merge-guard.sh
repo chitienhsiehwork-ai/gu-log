@@ -269,6 +269,16 @@ if [ -n "$deny_reason" ]; then
   decision="deny"
 fi
 
+# Post PRs must not be squashed; see openspec/specs/github-ai-automerge-guard/spec.md.
+# POLICY_PATHS_JSON includes rename sources, so moving a post out also counts.
+merge_method=""
+if [ "$decision" = "allow" ]; then
+  merge_method="squash"
+  if jq -e 'any(.[]; startswith("src/content/posts/"))' <<<"$POLICY_PATHS_JSON" >/dev/null; then
+    merge_method="merge"
+  fi
+fi
+
 mkdir -p "$(dirname "$AUDIT_LOG")"
 jq -nc \
   --arg ts "$(TZ=Asia/Taipei date -Iseconds)" \
@@ -278,6 +288,7 @@ jq -nc \
   --arg reason "${deny_reason:-green-path-guard-passed}" \
   --arg dryRun "$DRY_RUN" \
   --arg headOid "$head_oid" \
+  --arg mergeMethod "$merge_method" \
   --argjson paths "$POLICY_PATHS_JSON" \
   --argjson files "$FILES_JSON" \
   --arg checks "$CHECKS_JSON" \
@@ -289,6 +300,7 @@ jq -nc \
     reason: $reason,
     dryRun: ($dryRun == "1"),
     headOid: $headOid,
+    mergeMethod: (if $mergeMethod == "" then null else $mergeMethod end),
     paths: $paths,
     files: $files,
     checks: ($checks | fromjson)
@@ -299,9 +311,9 @@ if [ "$decision" = "deny" ]; then
   exit 2
 fi
 
-echo "ALLOW: CI green + path guard passed for PR #$PR_NUMBER"
+echo "ALLOW: CI green + path guard passed for PR #$PR_NUMBER (merge method: $merge_method)"
 if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --match-head-commit "$head_oid"
+exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" "--$merge_method" --delete-branch --match-head-commit "$head_oid"
