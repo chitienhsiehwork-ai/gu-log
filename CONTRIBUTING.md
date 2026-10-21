@@ -14,7 +14,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 | 層 | 門檻 | 誰擋 | 沒過會怎樣 |
 |---|---|---|---|
-| **Floor（自動 gate）** | scores.vibe 在 + 該版本要求的 vibe 維齊（v9 = 4 維 persona/moguNote/vibe/narrative；v8 = 5 維含 clarity）+ **composite ≥ 3** | pre-commit hook（`scripts/score-floor-check.mjs`） | **擋 commit**。garbage(<3) 跟無分數一律進不了 main |
+| **Floor（自動 gate）** | scores.vibe 在 + 該版本要求的 vibe 維齊（v9 = 4 維 persona/moguNote/vibe/narrative；v8 = 5 維含 clarity）+ **composite ≥ 3** | pre-commit hook 與 PR CI（`scripts/score-floor-check.mjs`） | **擋 commit 與 PR**。garbage(<3) 跟無分數一律進不了 main |
 | **PASS（編輯標準）** | composite ≥ 8 AND 一維 ≥ 9 AND 沒有維 < 8 | UI / 首頁過濾，不是 commit blocker | sub-8 **照樣 ship**，但加「精修中」badge + **不上首頁/featured**，等背景 tribunal 拉到 ≥8 才上 |
 
 **白話**：
@@ -40,7 +40,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 - gu-log 寫的就是 AI 品質，**把 AI 自評分數攤在陽光下、連 sub-8 的也誠實標記**，本身就是這個 blog 的調性。
 - 背景 tribunal 可以排程慢慢把存量往上拉，不用塞在 ship 的關鍵路徑上。
 
-實作介面：自動 gate = `scripts/score-floor-check.mjs`（pre-commit 呼叫）；首頁過濾 = `getIndexPosts()`（`src/utils/post-status.ts`）；badge = `Sub8RefiningBanner.astro`；composite 計算 = `src/utils/tribunal-scores.ts`。重寫 loop：local Claude actor（例如 `m1-cc`）有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent + `vibe-scorer.sh`。
+實作介面：自動 gate = `scripts/score-floor-check.mjs`；首頁過濾 = `getIndexPosts()`（`src/utils/post-status.ts`）；badge = `Sub8RefiningBanner.astro`；composite 計算 = `src/utils/tribunal-scores.ts`。重寫 loop：local Claude actor（例如 `m1-cc`）有 `bash scripts/tribunal-batch-runner.sh`、CCC 可以呼叫 `tribunal-writer` agent + `vibe-scorer.sh`。
 
 ## 📝 Markdown 文件語言：預設繁中
 
