@@ -117,24 +117,7 @@ Pre-commit hook 會自動檢查。違反會 block commit。
 
 ## 📋 MDX Frontmatter 格式（必須完全遵守）
 
-```yaml
----
-ticketId: 'GP-PENDING' # 寫作期間一律 PENDING；merge 前才用 allocate-ticket.mjs 換真號（見 CONTRIBUTING.md）
-title: '中文標題 — 吸引人但不浮誇'
-originalDate: 'YYYY-MM-DD'
-translatedDate: 'YYYY-MM-DD'
-translatedBy:
-  model: 'Gemini 3.1 Pro'
-  harness: 'Gemini CLI'
-source: '@author on X'
-sourceUrl: 'full_tweet_url'
-pipeline: 'gp-96-pipeline' # Optional
-pipelineUrl: 'https://github.com/...' # Optional
-lang: 'zh-tw'
-summary: '2-3 句摘要（≤300 characters）'
-tags: ['ai-agents', 'developer-tools'] # 僅為範例；只放與文章相關的主題 tag，系列由 ticketId 決定
----
-```
+欄位與範例照 `CONTRIBUTING.md`〈Frontmatter Schema〉，權威是 `src/content.config.ts`；沒宣告的欄位會讓 build 失敗。
 
 ---
 
