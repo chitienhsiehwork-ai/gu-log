@@ -162,6 +162,8 @@ describe('posts schema — ticketId taxonomy', () => {
 
 describe('posts schema — undeclared keys fail instead of being stripped (#1164)', () => {
   const STEP = { role: 'Written', model: 'GPT-5.5', harness: 'Codex CLI' };
+  const JUDGE = { score: 8, date: '2026-07-01' };
+  const STAGE4 = { persona: 8, moguNote: 8, vibe: 8, narrative: 8, isDegraded: false };
 
   it.each([
     ['top-level pipeline', { pipeline: [STEP] }, 'pipeline'],
@@ -177,8 +179,20 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
       { scores: { tribunalVersion: 9, 全新Eyes: { score: 8, date: '2026-05-20' } } },
       '全新Eyes',
     ],
-    ['a judge block', { scores: { vibe: { ...VIBE_V9, harness: 'Codex CLI' } } }, 'harness'],
+    ['scores.vibe', { scores: { vibe: { ...VIBE_V9, harness: 'Codex CLI' } } }, 'harness'],
+    ['scores.librarian', { scores: { librarian: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.factCheck', { scores: { factCheck: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.freshEyes', { scores: { freshEyes: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.shroomDogVibe', { scores: { shroomDogVibe: { ...JUDGE, mood: 'x' } } }, 'mood'],
+    ['stage4Scores', { stage4Scores: { ...STAGE4, overall: 8 } }, 'overall'],
     ['series', { series: { name: 'Agent 入門', order: 1, total: 5 } }, 'total'],
+    ['dedup', { dedup: { independentDiff: 'x', diffNote: 'x' } }, 'diffNote'],
+    [
+      'dedup.tribunalVerdict',
+      { dedup: { tribunalVerdict: { class: 'x', confidence: 1 } } },
+      'confidence',
+    ],
+    ['metadata', { metadata: { gateWarnings: [], gateNotes: [] } }, 'gateNotes'],
   ])('rejects an undeclared key in %s', async (_where, extra, key) => {
     const schema = await loadPostsSchema();
     const r = schema.safeParse({ ...BASE, ticketId: 'MP-1', ...extra });
