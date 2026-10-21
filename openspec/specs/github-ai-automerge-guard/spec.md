@@ -2,7 +2,9 @@
 
 ## Purpose
 定義 gu-log AI operator 的 auto-merge 安全邊界、path allowlist 與可稽核要求。
+
 ## Requirements
+
 ### Requirement: gu-log auto-merge SHALL 要求 CI green 與 branch protection
 
 gu-log 的 AI-driven auto-merge SHALL 只在 required CI checks pass、branch up to date、GitHub 標記 PR mergeable，且 branch protection/rulesets allow merge 後才 merge PR。
@@ -38,7 +40,7 @@ Auto-merge guard SHALL inspect changed paths，並且 SHALL 只 merge 檔案都�
 - **WHEN** PR 只修改 ordinary article content、glossary entries、或 low-risk code paths
 - **AND** PR 沒有 touch denied high-risk paths
 - **AND** all required checks pass
-- **THEN** auto-merge guard MAY 啟用 GitHub auto-merge，使用 squash merge 並 delete branch
+- **THEN** auto-merge guard MAY merge 該 PR 並 delete branch，merge method 依〈Auto-merge SHALL 依 PR 是否動到文章選擇 merge method〉
 
 ### Requirement: Auto-merge decisions SHALL be auditable
 
@@ -53,3 +55,18 @@ Auto-merge guard SHALL inspect changed paths，並且 SHALL 只 merge 檔案都�
 
 - **WHEN** guard 拒絕 merge PR
 - **THEN** guard SHALL 記錄 blocking reason
+
+### Requirement: Auto-merge SHALL 依 PR 是否動到文章選擇 merge method
+
+`src/data/post-versions.json` 依碰過每篇文章的非 merge commit 數算版本；把 PR 上的多個 commit squash 成一個，main 的 manifest freshness 檢查就會失敗。Auto-merge guard 合併動到 `src/content/posts/` 的 PR 時 SHALL 使用 merge commit，SHALL NOT squash。沒動到文章的 PR MAY 使用 squash merge。
+
+#### Scenario: PR 動到文章
+
+- **WHEN** guard 允許合併一個修改 `src/content/posts/` 下檔案的 PR
+- **THEN** guard SHALL 用 merge commit 合併
+- **AND** SHALL NOT squash 該 PR 的 commits
+
+#### Scenario: PR 沒動到文章
+
+- **WHEN** guard 允許合併一個沒有修改 `src/content/posts/` 的 PR
+- **THEN** guard MAY 用 squash merge
