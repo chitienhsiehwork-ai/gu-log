@@ -319,10 +319,15 @@ describe('CI Content gates step', () => {
       git(repo, ['branch', 'base']);
       commit(change, 'pr change');
       git(repo, ['remote', 'add', 'origin', repo]);
-      const run = STEP_RUN.replaceAll('node scripts/', `node ${path.dirname(SCRIPT)}/`);
+      // Pass the scripts dir through env so the shell string stays a fixed literal.
+      const run = STEP_RUN.replaceAll('node scripts/', 'node "$GATE_SCRIPTS_DIR"/');
       return spawnSync('bash', ['-c', run], {
         cwd: repo,
-        env: { ...process.env, BASE_SHA: git(repo, ['rev-parse', 'base']) },
+        env: {
+          ...process.env,
+          BASE_SHA: git(repo, ['rev-parse', 'base']),
+          GATE_SCRIPTS_DIR: path.dirname(SCRIPT),
+        },
         encoding: 'utf8',
       });
     } finally {
