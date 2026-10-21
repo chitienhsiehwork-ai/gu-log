@@ -251,7 +251,7 @@ Google 2017 年丟出這顆核彈後，整個 NLP 界直接進入新紀元。
 - **證據邊界要適量**：個人系統規模、自述使用量、主觀 10x 這類 claim，要保留 uncertainty，但不要用「原作者說 / 原文說」反覆打斷故事，也不要預設讀者會把單一案例誤讀成科學 benchmark。低風險 case-study 數字優先用自然情境標示，例如「這是 Cursor 自家網站的一次遷移帳單」。Benchmark、投資、醫療、安全、公司營收、法律，或讀者可能依數字做現實決策的 claim，才需要硬證據邊界。
 - 原文有幽默感 → 翻譯也要有
 - 原文很無聊 → 在不扭曲原意的前提下改善呈現
-- **讀者可見內容預設不用 Unicode emoji**：title、summary、正文、MoguNote／ShroomDogNote、component props、圖片替代文字與 code block 都適用。Kaomoji 是文字型品牌語彙，不在此禁令內。只有 ShroomDog 對指定文章、指定字形與 occurrence 做出明確授權，而且已寫進 repo 的 executable allowlist 並指向 feedback corpus 決策時，才能保留；writer 不得自行推定或用 frontmatter flag 放行。這個例外是 top-level editorial `MAY` 能力，不代表每條 pipeline 都支援；目前 gp-pipeline 的自動寫作與英文翻譯不支援保留 glyph，一律省略裝飾字形或把必要語意寫成文字。
+- **讀者可見內容預設不用 Unicode emoji**：title、summary、正文、MoguNote／ShroomDogNote、component props、圖片替代文字與 code block 都適用。Kaomoji 是文字型品牌語彙，不在此禁令內。只有 ShroomDog 明確核准某篇文章保留某個 emoji、並記進 `scripts/check-content-emoji.mjs` 的核准清單時，才能保留；writer 不得自行推定、自己加紀錄或用 frontmatter flag 放行。gp-pipeline 的自動寫作與英文翻譯沒有這個例外，一律省略裝飾字形或把必要語意寫成文字。
 - ❌ **不要用反問句問讀者顯而易見的答案**（如「不覺得很虧嗎？」「那不就是最好的投資嗎？」）— 像在把讀者當笨蛋。直接陳述：「虧爛」「窩想起來這樣感覺沒那麼浪費」
 
 ### 術語處理（晶晶體防線：glossary 是唯一英文 allowlist）
@@ -293,7 +293,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 
 - 普通英文有自然中文可寫：`framing` →「包裝」、`takeaway` →「真正的重點」、`generalist` →「通才」。這種要翻，不要建 glossary。
 - 單篇 source 裡的一次性 label、活動名稱、內部專案代號，讀者不需要長期記住；文內解釋一次就好。
-- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist 或 glossaryExclude 就好。
+- 已經是 universally understood acronym / proper noun / model name / product name，而且不需要 gu-log 額外定義；放 allowlist（`scripts/check-jingjing.mjs`）就好。
 - 只是因為 lint 擋住、或 agent 懶得想自然中文。Lint 失敗不是建 glossary 的理由，只是提醒「翻中文」或「提術語決策」。
 
 **文內解釋即可**：
@@ -302,7 +302,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 - 中文翻法雖然不是完美，但讀者能順暢理解，而且不需要拿英文去查外部文件。
 - source-specific 說法只需要保留 attribution，不需要納入 gu-log 詞彙系統。
 
-**PR checklist**：真的新增 glossary term 時，同一個 PR 要更新 `src/data/glossary.json`，必要時更新 `src/config/glossary.ts`，第一次出現連 `/glossary#...`，英文版連 `/en/glossary#...`，並確保 `scripts/check-jingjing.mjs` 通過。若決策來自 ShroomDog feedback，也要 append 到 `docs/shroomdog-editorial-feedback.md`。
+**PR checklist**：真的新增 glossary term 時，同一個 PR 要更新 `src/data/glossary.json`（用到新分類時，在 `src/config/glossary.ts` 補中英文 label），第一次出現連 `/glossary#...`，英文版連 `/en/glossary#...`，並確保 `scripts/check-jingjing.mjs` 通過。若決策來自 ShroomDog feedback，也要 append 到 `docs/shroomdog-editorial-feedback.md`。
 
 **術語 checkpoint（不要硬翻研究論文腔）**：遇到像「擴展測試時運算」這種語意看得懂、但中文讀起來很卡的譯法，先停下來判斷：
 

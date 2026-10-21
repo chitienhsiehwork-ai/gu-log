@@ -20,6 +20,10 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
   zh-tw paraphrase; if the source itself was non-English, translate naturally).
 {{end}}- Preserve every MDX component usage (MoguNote, ShroomDogNote, images, etc.) as-is,
   translating only their text content.
+- English runs longer than Chinese, so a MoguNote short enough in zh-tw can cross the
+  validator's long-note limit in English. Give every English MoguNote a `summary`
+  attribute: translate the zh-tw one if present, otherwise write one short English
+  sentence (under 15 words) that captures the note.
 - Keep code blocks, external URLs, and technical identifiers unchanged except for
   the reader-visible emoji rule below.
 - Do not restore any Unicode emoji glyph from the original source. Omit decorative glyphs;

@@ -25,13 +25,14 @@
     "test:tribunal-v2": "pnpm exec vitest run tests/tribunal-v2",
     "tribunal:run": "tsx scripts/tribunal-v2-run.ts",
     "tribunal:list": "tsx scripts/tribunal-v2-run.ts --list-in-progress",
+    "reader:calibrate": "tsx scripts/reader-signal-calibration.ts",
     "tribunal:spark-benchmark": "node scripts/spark-tribunal-benchmark.mjs",
     "lint": "eslint middleware.ts src/ scripts/ tests/",
     "lint:fix": "eslint src/ scripts/ tests/ --fix",
     "format": "prettier --write \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "format:check": "prettier --check \"src/components/**/*.{astro,js,ts}\" \"src/layouts/**/*.{astro,js,ts}\" \"src/pages/**/*.{astro,js,ts}\" \"src/config/**/*.{js,ts}\" \"src/styles/**/*.css\" \"scripts/**/*.{js,mjs,cjs,ts}\" \"tests/**/*.{js,mjs,cjs,ts}\" \"*.{mjs,cjs,ts}\"",
     "validate:posts": "node scripts/validate-posts.mjs && node scripts/check-glossary-links.mjs --all",
-    "taxonomy:check": "node scripts/check-brand-taxonomy.mjs --check",
+    "taxonomy:check": "node scripts/check-brand-taxonomy.mjs",
     "versions:check": "node scripts/build-version-manifest.mjs --check && node scripts/build-reader-revision-manifest.mjs --check",
     "obsidian:import": "node scripts/obsidian-import.mjs",
     "content:check": "pnpm run validate:posts && pnpm run build",
@@ -56,8 +57,7 @@
     "api:test": "cd sqaa-api && pnpm test",
     "glossary:check": "node scripts/check-glossary-links.mjs --all",
     "glossary:check:changed": "node scripts/check-glossary-links.mjs --changed-terms=origin/main --changed-posts=origin/main",
-    "glossary:fix": "node scripts/apply-glossary-links.mjs --all",
-    "redirects:verify": "node scripts/verify-brand-redirects.mjs"
+    "glossary:fix": "node scripts/apply-glossary-links.mjs --all"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",
@@ -69,7 +69,6 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "3.7.6",
     "astro": "^7.3.3",
-    "entities": "8.0.0",
     "fuse.js": "^7.5.0",
     "hast-util-from-html": "^2.0.3",
     "sharp": "^0.35.4",
@@ -87,19 +86,19 @@
     "eslint-plugin-astro": "^1.7.0",
     "gpt-tokenizer": "^4.0.0",
     "gray-matter": "^4.0.3",
-    "monocart-reporter": "^2.12.3",
+    "monocart-reporter": "^2.14.1",
     "path-to-regexp": "8.4.2",
     "playwright": "^1.62.1",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.10",
     "prettier-plugin-astro": "^0.14.1",
     "remark-gfm": "^4.0.1",
     "remark-mdx": "^3.1.1",
     "remark-parse": "^11.0.0",
-    "tsx": "^4.23.12",
+    "tsx": "^4.23.15",
     "typescript-eslint": "^8.67.0",
     "unified": "^11.0.5",
     "vitest": "^4.1.10",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.1"
   },
   "packageManager": "pnpm@10.29.3",
   "overrides": {
@@ -114,7 +113,7 @@
       "sharp"
     ],
     "overrides": {
-      "sharp": ">=0.35.4",
+      "sharp": ">=0.35.5",
       "svgo": ">=4.1.0",
       "serialize-javascript": ">=7.0.3",
       "flatted": ">=3.4.2",
@@ -125,12 +124,16 @@
       "tmp@<0.2.6": "0.2.7",
       "h3": ">=1.15.6",
       "defu": ">=6.1.5",
-      "devalue": ">=5.6.4",
-      "brace-expansion@>=1.0.0 <2.0.0": "1.1.18",
-      "brace-expansion@>=5.0.0 <=5.0.8": ">=5.0.9",
+      "devalue": ">=5.9.3 <6",
+      "brace-expansion@>=1.0.0 <2.0.0": "1.1.21",
+      "brace-expansion@>=5.0.0 <5.0.11": ">=5.0.11 <6",
       "js-yaml@>=3.0.0 <3.15.2": "3.15.2",
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
-      "nanoid@>=3.0.0 <3.3.18": "3.3.18"
+      "nanoid@>=3.0.0 <3.3.18": "3.3.18",
+      "http-cache-semantics": "4.3.0",
+      "source-map-js": ">=1.2.2 <2",
+      "proxy-addr": ">=2.0.8 <3",
+      "compression": ">=1.8.2 <2"
     }
   }
 }

@@ -1,5 +1,5 @@
 /**
- * End-to-end test for .githooks/pre-commit and .githooks/pre-push.
+ * End-to-end test for scripts/hooks/pre-commit and scripts/hooks/pre-push.
  *
  * Spawns the hooks against synthetic git state and asserts they exit
  * with the documented codes. This is the only safety net that catches
@@ -28,11 +28,11 @@ function makeFakeRepo(): string {
   // Symlink the real repo's hooks so we exercise the actual hooks.
   fs.mkdirSync(path.join(tmp, '.githooks'));
   fs.symlinkSync(
-    path.join(REPO_ROOT, '.githooks', 'pre-commit'),
+    path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'),
     path.join(tmp, '.githooks', 'pre-commit')
   );
   fs.symlinkSync(
-    path.join(REPO_ROOT, '.githooks', 'pre-push'),
+    path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-push'),
     path.join(tmp, '.githooks', 'pre-push')
   );
   // Seed a minimal posts dir so grep -h doesn't blow up on the duplicate-
@@ -140,7 +140,7 @@ function runLinkMaintenanceHook(repo: string, post: string, line: string) {
 }
 
 function runStagedLinkMaintenanceHook(repo: string) {
-  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+  return spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
     cwd: repo,
     env: makeScoreGateProbeEnv(),
     encoding: 'utf-8',
@@ -170,7 +170,7 @@ function writePost(repo: string, filename: string, ticketId: string): void {
 
 function runPrePush(repo: string, stdin: string) {
   linkTribunalAuditScripts(repo);
-  return spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-push')], {
+  return spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-push')], {
     cwd: repo,
     input: stdin,
     env: makeFastHookEnv(),
@@ -217,7 +217,7 @@ describe('pre-commit: Gitleaks staged scan', () => {
     execSync('git add safe.txt', { cwd: repo });
 
     const argvLog = path.join(repo, 'hook-argv.bin');
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeFastHookEnv(argvLog),
       encoding: 'utf-8',
@@ -226,12 +226,6 @@ describe('pre-commit: Gitleaks staged scan', () => {
     expect(r.status, r.stdout + r.stderr).toBe(0);
     const argv = fs.readFileSync(argvLog, 'utf-8').split('\0').filter(Boolean);
     expect(argv.slice(0, 3)).toEqual(['git', '--staged', '--no-banner']);
-  });
-
-  it('keeps the installed and canonical hook copies byte-identical', () => {
-    expect(fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'))).toEqual(
-      fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'))
-    );
   });
 });
 
@@ -421,6 +415,98 @@ describe('pre-commit: internal post-link maintenance exemption', () => {
   });
 });
 
+describe('pre-commit: glossary link-only edits go through a real git commit', () => {
+  // openspec glossary-link-coverage〈只改 glossary 連結的修改 SHALL 可機械證明並略過內容品質
+  // gate〉：舊文沒有 scores，只要證明不成立，score gate 的 sentinel 就會擋下這次 commit。
+  // 這裡只驗 hook 的接線（讀 staged 版本、證明不成立就擋），證明本身的案例在
+  // tests/link-only-proof.test.ts。
+  const LEGACY_FRONTMATTER = 'ticketId: MP-212\nlang: zh-tw';
+  const CODEX = {
+    term: 'Codex',
+    en: 'Codex',
+    category: 'products',
+    linking: { enabled: true, anchor: 'codex', match: ['Codex'], caseSensitive: true },
+  };
+  const KUBERNETES = {
+    term: 'Kubernetes',
+    en: 'Kubernetes',
+    aliases: ['K8s'],
+    category: 'platforms',
+  };
+
+  function writeGlossary(repo: string, entries: object[]): void {
+    fs.writeFileSync(
+      path.join(repo, 'src', 'data', 'glossary.json'),
+      `${JSON.stringify(entries, null, 2)}\n`
+    );
+  }
+
+  function writeLegacyPost(post: string, body: string): void {
+    fs.writeFileSync(post, `---\n${LEGACY_FRONTMATTER}\n---\n${body}\n`);
+  }
+
+  function seedLegacyGlossaryPost(body: string, glossary = [CODEX, KUBERNETES]) {
+    const repo = makeFakeRepo();
+    seedLinkMaintenanceRepo(repo);
+    writeGlossary(repo, glossary);
+    const post = path.join(repo, 'src', 'content', 'posts', 'mp-212-legacy-glossary.mdx');
+    writeLegacyPost(post, body);
+    commitAll(repo, 'base legacy post without scores');
+    return { repo, post };
+  }
+
+  function commitThroughHook(repo: string) {
+    const head = () => execSync('git rev-parse HEAD', { cwd: repo, encoding: 'utf-8' }).trim();
+    execSync('git add -A', { cwd: repo });
+    const before = head();
+    const r = spawnSync(
+      'git',
+      ['-c', 'core.hooksPath=.githooks', 'commit', '-q', '-m', 'glossary link maintenance'],
+      { cwd: repo, env: makeScoreGateProbeEnv(), encoding: 'utf-8' }
+    );
+    return { status: r.status, output: r.stdout + r.stderr, committed: head() !== before };
+  }
+
+  function expectCommitted(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status, r.output).toBe(0);
+    expect(r.committed).toBe(true);
+    expect(r.output).not.toContain('score-check-sentinel');
+  }
+
+  function expectGated(r: ReturnType<typeof commitThroughHook>): void {
+    expect(r.status).not.toBe(0);
+    expect(r.committed).toBe(false);
+    expect(r.output).toContain('SCORE GATE FAILED');
+    expect(r.output).toContain('score-check-sentinel');
+    expect(r.output).not.toContain('--no-verify');
+  }
+
+  it('commits a new entry together with its backfilled link in a legacy post', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。', [CODEX]);
+    writeGlossary(repo, [CODEX, KUBERNETES]);
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會把狀態拉回來。');
+
+    expectCommitted(commitThroughHook(repo));
+    expect(
+      execSync('git show HEAD:src/data/glossary.json', { cwd: repo, encoding: 'utf-8' })
+    ).toContain('"term": "Kubernetes"');
+  });
+
+  it('commits an anchor case fix that keeps the original link text', () => {
+    const { repo, post } = seedLegacyGlossaryPost('詳見 [glossary 有完整拆解](/glossary#Codex)。');
+    writeLegacyPost(post, '詳見 [glossary 有完整拆解](/glossary#codex)。');
+
+    expectCommitted(commitThroughHook(repo));
+  });
+
+  it('gates a backfill that also edits prose', () => {
+    const { repo, post } = seedLegacyGlossaryPost('Kubernetes 會把狀態拉回來。');
+    writeLegacyPost(post, '[Kubernetes](/glossary#kubernetes) 會自動把狀態拉回來。');
+
+    expectGated(commitThroughHook(repo));
+  });
+});
+
 describe('pre-commit: every staged post goes through the source-distance stamp check', () => {
   // 只改站內連結的 GP 會被 content gate 放過（不跑 validate-posts），但連結文字可能在
   // 投影裡，所以驗章要另外跑、而且擋得住（openspec source-distance-stamp）。
@@ -439,7 +525,7 @@ describe('pre-commit: every staged post goes through the source-distance stamp c
   it('verifies a link-only GP edit that the content gate skips, and blocks a bad stamp', () => {
     const repo = makeFakeRepo();
     const gp = stageLinkOnlyGpEdit(repo);
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeScoreGateProbeEnv(5),
       encoding: 'utf-8',
@@ -503,7 +589,7 @@ describe('pre-commit: tmp/ untracked guard (Step -0.5)', () => {
       execSync('git diff --cached -M --name-status', { cwd: repo, encoding: 'utf-8' })
     ).toMatch(/^R\d+\s+tracked\.txt\s+tmp\/renamed\.txt/m);
 
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeFastHookEnv(),
       encoding: 'utf-8',
@@ -522,7 +608,7 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
     for (let i = 0; i < 3; i++) {
       fs.writeFileSync(path.join(postsDir, `dup-${i}.mdx`), `---\nticketId: GP-99\n---\nbody\n`);
     }
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeFastHookEnv(),
       encoding: 'utf-8',
@@ -541,7 +627,7 @@ describe('pre-commit: ticketId duplicate gate (Step 0)', () => {
         `---\nticketId: GP-PENDING\n---\nbody\n`
       );
     }
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeFastHookEnv(),
       encoding: 'utf-8',
@@ -567,7 +653,7 @@ describe('pre-commit: staged filename portability', () => {
     execSync('git add -A', { cwd: repo });
 
     const argvLog = path.join(repo, 'npx-argv.bin');
-    const r = spawnSync('bash', [path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', [path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       cwd: repo,
       env: makeFastHookEnv(argvLog),
       encoding: 'utf-8',
@@ -828,28 +914,37 @@ describe('pre-push: Tribunal PASS artifact audit', () => {
   });
 });
 
+describe('pre-commit: failure messages point to a fix', () => {
+  it('never suggests bypassing the hook with --no-verify', () => {
+    const messages = fs
+      .readFileSync(path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit'), 'utf-8')
+      .split('\n')
+      .filter((line) => /^\s*echo\b/.test(line));
+    expect(messages.filter((line) => line.includes('--no-verify'))).toEqual([]);
+  });
+});
+
 describe('pre-commit: hook script is valid bash', () => {
   it('passes bash syntax validation', () => {
-    const r = spawnSync('bash', ['-n', path.join(REPO_ROOT, '.githooks', 'pre-commit')], {
+    const r = spawnSync('bash', ['-n', path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-commit')], {
       encoding: 'utf-8',
     });
     expect(r.status).toBe(0);
     expect(r.stderr).toBe('');
   });
 
-  it('passes ShellCheck for both synchronized hook copies', () => {
-    const r = spawnSync(
-      'shellcheck',
-      ['--shell=bash', '.githooks/pre-commit', 'scripts/hooks/pre-commit'],
-      { cwd: REPO_ROOT, encoding: 'utf-8' }
-    );
+  it('passes ShellCheck', () => {
+    const r = spawnSync('shellcheck', ['--shell=bash', 'scripts/hooks/pre-commit'], {
+      cwd: REPO_ROOT,
+      encoding: 'utf-8',
+    });
     expect(r.status, r.stdout + r.stderr).toBe(0);
   });
 });
 
 describe('pre-push: hook script is valid bash', () => {
   it('bash -n parses without syntax error', () => {
-    const r = spawnSync('bash', ['-n', path.join(REPO_ROOT, '.githooks', 'pre-push')], {
+    const r = spawnSync('bash', ['-n', path.join(REPO_ROOT, 'scripts', 'hooks', 'pre-push')], {
       encoding: 'utf-8',
     });
     expect(r.status).toBe(0);

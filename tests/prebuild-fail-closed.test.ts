@@ -314,7 +314,7 @@ describe('prebuild handles post versions manifest failures and shallow clones', 
     expect(fs.existsSync(path.join(tmp, 'later-generator-ran'))).toBe(false);
   });
 
-  it('continues to the later generator after confirming a shallow clone', () => {
+  it('continues to the later generator after confirming a shallow clone on Vercel', () => {
     const sentinel = '{\n  "sentinel-post": 42\n}\n';
     const origin = makeSyntheticPrebuildDir({
       copyScripts: [
@@ -340,6 +340,7 @@ describe('prebuild handles post versions manifest failures and shallow clones', 
     const result = spawnSync('sh', ['-c', readPrebuildCommand()], {
       cwd: clone,
       encoding: 'utf-8',
+      env: { ...process.env, VERCEL: '1' },
     });
 
     expect(result.status).toBe(0);

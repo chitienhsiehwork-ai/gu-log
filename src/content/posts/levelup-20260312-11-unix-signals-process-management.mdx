@@ -165,7 +165,7 @@ OS 直接把 FastAPI 的 process 砍了。那個等了 4 秒的使用者，畫�
 使用者完全不會察覺有異狀，拿到正確的 response。
 </AnalogyBox>
 
-這就是為什麼在 Kubernetes (K8s) 或 Docker 裡面，當你下達刪除 container 的指令時，系統的標準 SOP 是：
+這就是為什麼在 [Kubernetes](/glossary#kubernetes) (K8s) 或 Docker 裡面，當你下達刪除 container 的指令時，系統的標準 SOP 是：
 1. 先發 `SIGTERM` 勸退。
 2. 開始倒數計時（通常預設給 30 秒的寬限期）。
 3. 如果 30 秒後 Process 還死賴著不走，再發 `SIGKILL` 強制架走。

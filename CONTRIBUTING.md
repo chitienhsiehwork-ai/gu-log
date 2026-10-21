@@ -66,7 +66,7 @@ Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是
 - **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、Mogu／gu-log 的看法與讀者脈絡；每個系列都依自己的編輯身份寫，不是轉貼。
 - **「二手整理」不是 No-go 理由**：GP 是 Mogu 帶讀者看重點、再帶回原文的導讀，MP 由 Mogu 消化來源後寫成自己的 source-grounded article，SD／Lv 依各自編輯身份寫作；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
 - **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
-- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → Go 就依選定的系列走 gp-pipeline（GP 會多蓋一個來源距離章）並 cite。No-go 要講真正原因。
+- 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → Go 就依選定的系列走 gp-pipeline（GP 會多蓋一個來源距離章；Lv 改走〈新增入門教學（Lv）〉）並 cite。No-go 要講真正原因。
 
 這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`CONTRIBUTING.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
 
@@ -218,8 +218,8 @@ node scripts/allocate-ticket.mjs GP --dry-run        # 先預覽不動檔案
 
 **Gate 行為**：
 - `validate-posts.mjs` 接受 `<PREFIX>-PENDING`，跳過 uniqueness 檢查（讓多條 branch 並行用 PENDING）
-- `.githooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
-- `.githooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
+- `scripts/hooks/pre-commit` 也跳過 PENDING 的 duplicate count 檢查
+- `scripts/hooks/pre-push` **阻擋** PENDING 推上 `main` / `master`——這是 SOP 的 safety net，防止 PENDING 誤入 production
 
 **什麼時候可以跳過 PENDING？** 幾乎不需要。預設一律走 PENDING（流程一致、不用每次判斷）。真的只有「100% 確定沒有任何並行工作、而且你就是要立刻給號」時，直接用真號才不算錯——但這沒有省到什麼，還得自己記得 bump counter，所以不建議當習慣。**有疑慮就用 PENDING。**
 
@@ -332,7 +332,7 @@ import Toggle from '../../components/Toggle.astro';
 - 繁中版：口語化、PTT 說故事風、有梗
 - 英文版：Simple English，非母語者也能讀
 - 每篇文章必須產出 zh-tw + en 雙語版本
-- 讀者可見內容預設不用 Unicode emoji；kaomoji 保留。逐次授權邊界以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，deterministic enforcement 以 `scripts/check-content-emoji.mjs` 為準；沒有 writer 自行開啟的整篇旗標。例外是 top-level editorial `MAY` 能力，不保證每條 pipeline 都支援；目前 gp-pipeline 的自動寫作與英文翻譯一律省略裝飾字形或用自然文字保留語意，不保留 glyph。
+- 文章預設不用 Unicode emoji；kaomoji 照用。規則以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準，檢查和核准清單都在 `scripts/check-content-emoji.mjs`（pre-commit 與 CI 只看新增或修改的行）。只有 ShroomDog 能核准某篇文章保留某個 emoji；gp-pipeline 的自動寫作與英文翻譯一律不保留，裝飾用的直接拿掉，有意思的改寫成文字。
 - 正文不要每段都用「原作者說 / 原文提到 / 這篇文章在講」起手；讀者已經看得到原文出處。來源主張的歸屬與必要的 evidence boundary 寫成自然句，讓讀者分得出哪些是來源作者說的、哪些是 Mogu 的看法。
 - ❌ 不要用反問句問讀者顯而易見的答案
 
@@ -474,12 +474,39 @@ user 要把 URL 寫成 GP 時，照上面的流程跑 `--prefix GP`。系列依 
 5. 過分數後才翻 **en 版**
 6. 更新 counter → validate → build → push
 
+### 新增入門教學（Lv）
+
+Lv 是原創入門教學，系列身份與兩種 mode 以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準。Lv 的正文不走 gp-pipeline 的寫作步驟；pipeline 哪些步驟會擋 Lv、哪些還能用，見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)〈Lv 只用非寫作步驟〉。
+
+1. 依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`；`Lv-guided-reading` 依 charter 規定，開頭一定要 cite 來源
+2. 有來源就先抓完整原文；不論有沒有來源，都要做 overlap evaluation 與 dedup（`gp-pipeline fetch`、`eval`、`dedup --series Lv` 都能用）
+3. 先讀兩三篇近期的 Lv 當範本，對照骨架、元件與節奏，例如 `lv-18-20261011-livingdevops-kubernetes.mdx`（guided-reading）、`levelup-20260608-12-llm-internals.mdx`（guided-reading）、`levelup-20260701-core-dump-anatomy.mdx`（original）
+4. 動筆前先寫設計稿：分幾層、每層回答什麼問題、哪個比喻貫穿全篇、每層考什麼、魔王關怎麼把前面串起來，可以對照下面的〈Lv 常見骨架〉
+5. 正文交給固定版本的寫手，不要由當下 session 的模型自己寫。怎麼呼叫寫手，照各 runtime 的 playbook：CCC 看 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)〈文章寫作 SOP（省 token 版）〉；本機看 [`playbooks/local-agent-playbook.md`](playbooks/local-agent-playbook.md)〈SD 原創文：正文用 Claude 模型，Codex 只編排〉，Lv 也照那套 brief 與寫手流程
+6. 跑確定性檢查：`scripts/validate-posts.mjs`、`check-jingjing.mjs`、`check-pronoun-clarity.mjs`（pre-commit 也會再擋一次），有問題先修完再進 Tribunal
+7. 用 `scripts/tribunal.sh` 跑 Tribunal，跑法見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)；不要用 `gp-pipeline ralph`
+8. 繁中通過後，用 `tools/gp-pipeline/gp-pipeline translate --file <繁中檔名>` 產英文版
+9. 照〈編號分配：PENDING ticket pattern（預設流程）〉配號，再 validate、build、發布
+
+#### Lv 常見骨架
+
+近期的 Lv 大多長這樣。這是常見形狀，不是硬性規則：`editorial-charter` 允許 Lv 自由安排結構，既有文章彼此也不完全一致。
+
+- 一層一層往上爬：每一層都是被上一層留下的問題逼出來的，標題寫成 `Floor N` 或「第 N 層」
+- 一個比喻扛全篇
+- 每層放一個 `LevelUpProgress`，讓讀者知道自己爬到哪
+- 通常每層一題 `LevelUpQuiz`；`explanation` 會原樣顯示，只能寫純文字，不要放 Markdown 或 HTML
+- 比喻的關鍵對照放進 `AnalogyBox`；流程或架構用文字講不清楚時，可以加 `Mermaid`
+- 最後的魔王關把前面每一層串起來
+
 ### gp-pipeline（自動寫作流程）
 
 ```bash
 # Canonical: the Go binary (self-compiling wrapper — first run cold-builds)
-tools/gp-pipeline/gp-pipeline run <tweet_url> --prefix <GP|MP|SD|Lv>
+tools/gp-pipeline/gp-pipeline run <tweet_url> --prefix <GP|MP|SD>
 ```
+
+Lv 的正文不走 pipeline（見〈新增入門教學（Lv）〉）；寫完後仍可用 `translate --file` 產英文版、用 `deploy` 配號發布。
 
 自動流程：抓完整原文 → 評估 → dedup → write → review → refine →（GP：post-fixer → 來源距離配對、計分與蓋章）→ credits → Ralph／Tribunal → **translate（產出 en sidecar；GP 另過英文逐字檢查）** → deploy → commit。沒帶 `--file` 時 `--prefix` 必填，pipeline 不替你選系列。
 

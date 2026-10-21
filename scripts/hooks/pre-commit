@@ -3,16 +3,7 @@
 #
 # ALL checks are BLOCKING. Quality over speed.
 #
-# Pipeline:
-#   -0.5) tmp/ untracked guard — block staged files under gitignored tmp/
-#   0) Quick ticketId duplicate check (~100ms, shell)
-#   0.1) Score gate for staged zh-tw posts
-#   0.15) Pronoun clarity check for staged zh-tw posts
-#   0.2) Topic dedup gate for newly added zh-tw posts
-#   1) Post validator — frontmatter, content rules, cross-file checks (Node.js)
-#   1.5) translatedBy.model consistency check vs runtime model (Node.js)
-#   2) Content integrity BDD tests (Playwright, if available)
-#   3) Mermaid visual quality check — LLM-as-Judge (if ANTHROPIC_API_KEY set)
+# Steps run in the order of the "Step N" headers below.
 
 set -e
 POSTS_DIR="src/content/posts"
@@ -26,12 +17,17 @@ while IFS= read -r -d '' file; do
     STAGED_POST_CHANGES+=("$file")
 done < <(git -c diff.renameLimit=0 diff --cached -M --name-only -z --diff-filter=ACMRD -- "$POSTS_DIR" 2>/dev/null || true)
 
-# ─── Step -4: Reader-visible emoji ratchet ────────────────────────
-# Fail closed before any generator mutates the index. CI invokes this exact
-# executable with the PR base SHA, so detector and exception semantics cannot
-# drift between local commits and pull requests.
-echo "🚫 Content emoji policy: checking staged reader-visible lines..."
+# ─── Step -4: Post emoji check ─────────────────────────────────
+# Runs before any generator mutates the index. CI runs the same script with
+# the PR base SHA (openspec: editorial-charter).
+echo "🚫 Content emoji policy: checking staged post lines..."
 node "$REPO_ROOT/scripts/check-content-emoji.mjs" --staged
+echo ""
+
+# ─── Step -3.8: File size gate (5,000 tokens ≈ 20,000 bytes) ────────
+# New/agent-authored files over the cap are blocked; files already over it may
+# not grow. CI runs the same script against the PR base.
+node "$REPO_ROOT/scripts/check-file-size.mjs" --staged
 echo ""
 
 # ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
@@ -161,8 +157,8 @@ echo ""
 # does NOT trigger a rescore — only changes a reader would actually see.
 #
 # Exemption: posts whose ONLY diff vs HEAD is dedup/series housekeeping
-# (status: deprecated, deprecatedReason, deprecatedBy, series.*) skip the
-# gate. The score is about content quality, not bookkeeping. Forcing a
+# (status: deprecated, deprecatedReason, deprecatedBy, series.*) or an
+# originalDate correction skip the gate. The score is about content quality, not bookkeeping. Forcing a
 # rescore just to add a `series.name` to a 4-month-old post is the wrong
 # trade-off.
 #
@@ -242,7 +238,7 @@ is_metadata_only_diff() {
         return 0
     fi
     if printf '%s\n' "$diff_body" \
-        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order):'; then
+        | grep -vqE '^[+-][[:space:]]*(status|deprecatedReason|deprecatedBy|series|name|order|originalDate):'; then
         return 1
     fi
     return 0
@@ -251,9 +247,11 @@ is_metadata_only_diff() {
 is_internal_post_link_only_diff() {
     local file="$1"
     # Link maintenance should not re-lint grandfathered article prose.
-    # Post links may update labels only when the staged target's canonical
-    # ticket, title, language, and filename prove the new identity. The shared
-    # validator also preserves glossary behavior and surrounding prose equality.
+    # The link-only proof (isLinkOnlyChange in scripts/check-glossary-links.mjs)
+    # proves the staged edit only adds, removes, or corrects glossary links
+    # (checked against the staged glossary) or moves internal post links to the
+    # staged target's canonical identity. With those links stripped, the whole
+    # file must still match HEAD exactly.
     if ! git cat-file -e "HEAD:$file" 2>/dev/null; then
         return 1
     fi
@@ -289,11 +287,6 @@ is_existing_ticket_post_addition() {
         return 1
     fi
     printf '%s\n' "$existing_paths" | grep -vx "$file" >/dev/null 2>&1
-}
-
-is_canonical_taxonomy_only_diff() {
-    local file="$1"
-    node "$REPO_ROOT/scripts/check-brand-taxonomy.mjs" --check-canonical-staged-file "$file" >/dev/null 2>&1
 }
 
 is_canonical_terminology_only_diff() {
@@ -332,9 +325,6 @@ else
             continue
         fi
 
-        if is_canonical_taxonomy_only_diff "$file"; then
-            continue
-        fi
         if is_canonical_terminology_only_diff "$file"; then
             continue
         fi
@@ -391,7 +381,10 @@ if [ "${#SCORE_MISSING[@]}" -gt 0 ]; then
     echo "tribunal, or score manually with:"
     echo "  node scripts/frontmatter-scores.mjs write <file> vibe '<json>'"
     echo ""
-    echo "To bypass in emergency: git commit --no-verify"
+    echo "Pure link maintenance skips this gate automatically. If this edit should"
+    echo "only add, remove, or fix glossary / internal post links, revert every"
+    echo "other change in the file and make sure each link target exists for the"
+    echo "post's language."
     exit 1
 fi
 echo "✓ All staged zh-tw posts clear the score floor (composite >= 3)"
@@ -409,9 +402,6 @@ if [ "${#STAGED_MDX[@]}" -gt 0 ] && [ "$IS_MERGE_COMMIT" != "1" ]; then
             */en-*) ;; # skip English
             *)
                 if is_taken_down_staged "$file"; then
-                    continue
-                fi
-                if is_canonical_taxonomy_only_diff "$file"; then
                     continue
                 fi
                 if is_canonical_terminology_only_diff "$file"; then
@@ -582,7 +572,9 @@ else
             echo "   Full result:"
             printf '%s\n' "$RESULT"
             echo ""
-            echo "This looks like a duplicate topic. Use a different source/topic, or bypass with --no-verify if intentional."
+            echo "This looks like a duplicate topic. Pick a different source or angle,"
+            echo "or update the matching post instead. If the match is wrong, fix the"
+            echo "scoring in scripts/topic-dedup-check.mjs."
             exit 1
         fi
 
@@ -601,9 +593,6 @@ content_gate_mdx_files() {
         # validator checks the takedown fields and the empty body.
         if is_taken_down_staged "$file"; then
             CONTENT_GATE_MDX+=("$file")
-            continue
-        fi
-        if is_canonical_taxonomy_only_diff "$file"; then
             continue
         fi
         if is_canonical_terminology_only_diff "$file"; then

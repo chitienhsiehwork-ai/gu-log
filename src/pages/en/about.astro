@@ -1,13 +1,22 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import AboutProfileLinks from '../../components/AboutProfileLinks.astro';
+import { getAboutProfile } from '../../lib/about-profile';
+
+const profile = getAboutProfile('en');
 ---
 
-<BaseLayout title="About - ShroomDog" lang="en">
+<BaseLayout title={`About - ${profile.name}`} lang="en">
   <article class="about">
     <div class="about-hero">
-      <img src="/avatar.jpg" alt="ShroomDog" class="about-avatar" />
-      <h1>ShroomDog</h1>
+      <img src="/avatar.jpg" alt={profile.name} class="about-avatar" />
+      <div>
+        <h1>{profile.name}</h1>
+        <p class="about-role">{profile.role}</p>
+      </div>
     </div>
+
+    {profile.bio && <p class="about-bio">{profile.bio}</p>}
 
     <p class="intro">
       GP is ShroomDog's curated reading guides: Mogu picks out what matters and sends you back to
@@ -66,6 +75,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <h2>Why does this exist?</h2>
 
     <p>
+      It started with ShroomDog's own habit: scrolling past great stuff on X every day, then
+      forgetting all of it. gu-log is a dogfooding experiment — take the attention that used to go
+      into scrolling X and turn it into content that is sourced, easy to come back to, and reviewed.
+    </p>
+
+    <p>
       Good content deserves a wider audience. Some sources deserve a reading guide that ShroomDog
       picks and Mogu writes to send you to the original; other ideas become stronger after Mogu
       digests, verifies, and rebuilds them into a new article.
@@ -100,21 +115,34 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <ul>
       <li><strong>Website:</strong> Astro + Vercel</li>
       <li>
-        <strong>Writing:</strong> Initialized by Claude Opus 4.5. As models evolve and posts are rewritten,
-        each post includes a footnote showing who wrote or rewrote it.
+        <strong>Writing:</strong> Posts are written with Claude models. Each post has a footnote showing
+        who actually wrote or rewrote it.
       </li>
-      <li><strong>Quality Control:</strong> Human review (when we remember)</li>
+      <li>
+        <strong>Pipeline:</strong> Source-based posts go through gp-pipeline: fetch the source → write
+        → review and refine. GP reading guides then get a source-distance stamp: a program checks that
+        the guide says things in its own words instead of paraphrasing the original line by line.
+      </li>
+      <li>
+        <strong>Quality Control:</strong> Every post goes through automated checks (frontmatter, formatting,
+        wording). New and substantially rewritten posts then face the Tribunal: four AI judges — Vibe,
+        Fact Checker, Librarian, and Fresh Eyes. Posts that don't hit the bar still ship, but wear a "still
+        being refined" badge and stay off the homepage until a rewrite gets them there. Older posts from
+        before the Tribunal existed haven't been scored yet, so they stay as they are until they get their
+        turn.
+      </li>
+      <li>
+        <strong>Where the human is:</strong> ShroomDog picks sources, makes the calls on terminology and
+        direction, and reads the finished posts on the live site to send edit feedback. Not every post
+        gets a line-by-line human proofread — just being honest here (´・ω・`)
+      </li>
     </ul>
 
-    <h2>Open Source</h2>
+    <h2>Links</h2>
 
-    <p>
-      Source code: <a
-        href="https://github.com/chitienhsiehwork-ai/gu-log"
-        target="_blank"
-        rel="noopener noreferrer">github.com/chitienhsiehwork-ai/gu-log</a
-      >
-    </p>
+    <p>The whole site is open source, including the writing pipeline and the judge setup.</p>
+
+    <AboutProfileLinks lang="en" />
   </article>
 </BaseLayout>
 
@@ -140,6 +168,15 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .about-hero h1 {
     margin: 0;
+  }
+
+  .about-role {
+    margin: 0.25rem 0 0;
+    color: var(--color-text-muted);
+  }
+
+  .about-bio {
+    margin-bottom: 1rem;
   }
 
   .cast {

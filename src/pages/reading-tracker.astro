@@ -163,6 +163,9 @@ const totalArticles = allPosts.length;
       </div>
       <div class="tracker-actions">
         <button class="action-btn" id="export-btn" title="匯出 JSON">匯出</button>
+        <button class="action-btn" id="export-signals-btn" title="匯出閱讀紀錄 JSON">
+          匯出閱讀紀錄
+        </button>
         <button class="action-btn" id="import-btn" title="匯入 JSON">匯入</button>
       </div>
     </div>
@@ -224,6 +227,7 @@ const totalArticles = allPosts.length;
 
 <script>
   import { setReadStates, getReadRecordMap, exportJson, importJson } from '../lib/reading-tracker';
+  import { buildHumanSignalExport } from '../lib/human-signals';
   import {
     getGitHubToken,
     getGuLogSessionToken,
@@ -392,15 +396,23 @@ const totalArticles = allPosts.length;
   });
 
   // Export
-  document.getElementById('export-btn')!.addEventListener('click', () => {
-    const json = exportJson();
+  function downloadJson(json: string, name: string) {
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gu-log-reading-tracker-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${name}-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  document.getElementById('export-btn')!.addEventListener('click', () => {
+    downloadJson(exportJson(), 'gu-log-reading-tracker');
+  });
+
+  // Human-signal events for the calibration report (openspec: owner-reader-feedback)
+  document.getElementById('export-signals-btn')!.addEventListener('click', () => {
+    downloadJson(JSON.stringify(buildHumanSignalExport(), null, 2), 'gu-log-human-signals');
   });
 
   // Import

@@ -38,7 +38,6 @@ import path from 'node:path';
 import process from 'node:process';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { isCanonicalSeriesTaxonomyOnlyChange, scanLegacyText } from './check-brand-taxonomy.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -47,11 +46,9 @@ const __isCli =
 const REPO_ROOT = process.cwd();
 const POSTS_DIR = path.join(REPO_ROOT, 'src/content/posts');
 const GLOSSARY_PATH = path.join(REPO_ROOT, 'src/data/glossary.json');
-const TAXONOMY_POLICY_PATH = path.join(REPO_ROOT, 'quality/brand-taxonomy-residual-allowlist.json');
 // Read the accepted-English policy inputs once, so every file in a scan is
-// judged against the same glossary and taxonomy policy.
+// judged against the same glossary.
 const GLOSSARY_SNAPSHOT = fs.readFileSync(GLOSSARY_PATH);
-const TAXONOMY_POLICY_SNAPSHOT = fs.readFileSync(TAXONOMY_POLICY_PATH);
 const DEFAULT_GIT_FETCH_TIMEOUT_MS = 10_000;
 const MAX_GIT_FETCH_TIMEOUT_MS = 120_000;
 
@@ -184,6 +181,10 @@ VS Code JetBrains IntelliJ PyCharm WebStorm Vim Emacs Neovim
 Bash Zsh Fish Chrome DevTools
 tmux monorepo BEAM OTP DAG IETF RFC
 BeautifulSoup
+# Kubernetes 生態系的軟體／公司名，以及來源作者 handle — Lv（2026-10-11）
+# @livingdevops 的 Kubernetes 概念鏈：Ingress 控制器（Nginx／Traefik）、服務網格
+# Istio、節點自動擴縮 Karpenter，以及有官方 Karpenter 實作的 Oracle
+Nginx NGINX Traefik Istio Karpenter Oracle livingdevops
 
 # Benchmarks / evaluations
 Intelligence Index Index Coding Index
@@ -787,6 +788,33 @@ OneDrive Outlook DMZ
 #   LINE Developers / Messaging API = LINE's developer-console + product-API
 #     proper nouns (same category as the Microsoft product names above).
 Developers Messaging
+# Added 2026-10-08 for MP-318 (Obie Fernandez "You're Already a Meat Proxy").
+# Bona-fide proper nouns named in the single source, none with a natural zh-tw
+# translation (writer-prompt rule #2: people / products stay English):
+#   Obie Fernandez = the author (person). Chad Fowler = his friend writing the
+#   regenerative-software book (person). Confluence = Atlassian's wiki product
+#   (same category as Jira). Rails = Ruby on Rails, the web framework.
+#   Emily Bender / Timnit Gebru = authors of the "stochastic parrots" paper
+#   cited in a MoguNote (people).
+Obie Fernandez
+Chad Fowler
+Confluence Rails
+Emily Bender Timnit Gebru
+# Added 2026-10-08 for the Kun Chen "stop writing tests" MP.
+#   DeepSWE = the coding-agent eval set the source ran its experiment on
+#   (benchmark name, same category as SWE-bench; no natural zh-tw translation).
+DeepSWE
+# Added 2026-10-20 for the MP-214／MP-123 rewrite (issue #1145). Bona-fide proper
+# nouns named in the sources, none with a natural zh-tw translation (writer-prompt
+# rule #2: people / products stay English):
+#   Triton = OpenAI's GPU compiler (the repo whose PR #9734 the story is about).
+#   Blackwell / Hopper = NVIDIA GPU architecture names. CUTLASS = NVIDIA's CUDA
+#   template library. RTX 5070 Ti = GPU model name (sibling of allowlisted RTX).
+#   SemiAnalysis = the research firm that posted the source. Polymarket = the
+#   prediction-market product; SuhailKakar = X handle of the Polymarket CLI author.
+Triton Blackwell Hopper CUTLASS
+RTX 5070 Ti
+SemiAnalysis Polymarket SuhailKakar
 `;
 
 const HARDCODED = new Set();
@@ -1026,13 +1054,31 @@ function readBaselineFile(repoRelative, baselineRef) {
 
 const baselineRefreshAttempts = new Set();
 
+function isShallowRepository() {
+  try {
+    return (
+      execFileSync('git', ['rev-parse', '--is-shallow-repository'], {
+        cwd: REPO_ROOT,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim() === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
+
 function ensureRemoteBaselineRef(baselineRef) {
   const match = baselineRef.match(/^origin\/(.+)$/);
   if (!match) return;
   if (baselineRefreshAttempts.has(baselineRef)) return;
   baselineRefreshAttempts.add(baselineRef);
   const branch = match[1];
-  execFileSync('git', ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`, '--depth=1'], {
+  // 完整 clone 上加 --depth=1 會把 repo 變 shallow，害 build-version-manifest 退回舊值、
+  // merge main 變成 unrelated histories；只有本來就 shallow（CI / Vercel）才限深度。
+  const fetchArgs = ['fetch', 'origin', `${branch}:refs/remotes/origin/${branch}`];
+  if (isShallowRepository()) fetchArgs.push('--depth=1');
+  execFileSync('git', fetchArgs, {
     cwd: REPO_ROOT,
     stdio: ['ignore', 'ignore', 'ignore'],
     timeout: gitFetchTimeoutMs(),
@@ -1141,83 +1187,21 @@ function getBaselineViolations(filePath, baselineRef) {
 function filterBaselineViolations(violations, baseline) {
   if (!baseline) return violations;
 
-  // Each current occurrence must match one concrete baseline occurrence.
-  // Exact context remains grandfathered. Context drift is accepted only when
-  // the brand-taxonomy SSOT can prove the old line canonicalizes exactly to
-  // the current line (including post paths); a same-count word moved to an
-  // unrelated sentence is therefore always new.
+  // Each current occurrence must match one concrete baseline occurrence, so a
+  // same-count word moved to an unrelated sentence is always new.
   const remainingBaseline = [...baseline.violations];
   return violations.filter((violation) => {
-    let matchIndex = remainingBaseline.findIndex(
+    const matchIndex = remainingBaseline.findIndex(
       (candidate) => violationKey(candidate) === violationKey(violation)
     );
-    if (matchIndex < 0) {
-      matchIndex = remainingBaseline.findIndex(
-        (candidate) =>
-          candidate.word.toLowerCase() === violation.word.toLowerCase() &&
-          isCanonicalSeriesTaxonomyOnlyChange(
-            violationContext(candidate),
-            violationContext(violation)
-          )
-      );
-    }
     if (matchIndex < 0) return true;
     remainingBaseline.splice(matchIndex, 1);
     return false;
   });
 }
 
-// The taxonomy residual policy is the SSOT for exact factual uses of retired
-// names. When that stricter scanner proves the path/rule/token count matches an
-// exact exception, Jingjing must not independently reject the same occurrence
-// merely because surrounding prose changed. Match by token + line and consume
-// each approved finding once; stale counts remain violations and are also
-// rejected by taxonomy:check.
-/**
- * @param {string} filePath
- * @param {string} raw
- * @param {Array<{word: string, line: number, context: string, comparisonContext?: string}>} violations
- * @param {{exactExceptions: Array<{path: string, rule: string, token: string, expectedCount: number, reason: string}>} | null} [policy=null]
- * @returns {Array<{word: string, line: number, context: string, comparisonContext?: string}>}
- */
-function filterTaxonomyExactResiduals(filePath, raw, violations, policy = null) {
-  if (violations.length === 0) return violations;
-  const repoRelative = path.relative(REPO_ROOT, path.resolve(filePath)).split(path.sep).join('/');
-  const activePolicy = policy ?? JSON.parse(TAXONOMY_POLICY_SNAPSHOT.toString('utf8'));
-  const findings = scanLegacyText(repoRelative, raw);
-  const budgets = new Map();
-
-  for (const exception of activePolicy.exactExceptions ?? []) {
-    if (exception?.path !== repoRelative) continue;
-    const matches = findings.filter(
-      (finding) => finding.rule === exception.rule && finding.token === exception.token
-    );
-    if (matches.length !== exception.expectedCount) continue;
-    for (const finding of matches) {
-      const key = `${finding.token.toLowerCase()}\0${finding.line}`;
-      budgets.set(key, (budgets.get(key) ?? 0) + 1);
-    }
-  }
-
-  return violations.filter((violation) => {
-    const key = `${violation.word.toLowerCase()}\0${violation.line}`;
-    const left = budgets.get(key) ?? 0;
-    if (left === 0) return true;
-    budgets.set(key, left - 1);
-    return false;
-  });
-}
-
 // ── Exports for tests ──────────────────────────────────────────────
-export {
-  isAllowed,
-  maskContent,
-  checkText,
-  checkFile,
-  filterBaselineViolations,
-  filterTaxonomyExactResiduals,
-  violationKey,
-};
+export { isAllowed, maskContent, checkText, checkFile, filterBaselineViolations, violationKey };
 
 // ── Main ───────────────────────────────────────────────────────────
 
@@ -1260,12 +1244,7 @@ if (!__isCli) {
     if (skipped) continue;
     const { baseline, refUnavailable } = getBaselineViolations(filePath, baselineRef);
     baselineRefUnavailable ||= refUnavailable;
-    const raw = fs.readFileSync(filePath, 'utf8');
-    const newViolations = filterTaxonomyExactResiduals(
-      filePath,
-      raw,
-      filterBaselineViolations(violations, baseline)
-    );
+    const newViolations = filterBaselineViolations(violations, baseline);
     if (newViolations.length === 0) continue;
 
     filesWithViolations.push({ filePath, violations: newViolations });

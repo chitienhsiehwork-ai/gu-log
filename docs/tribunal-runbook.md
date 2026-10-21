@@ -8,6 +8,10 @@
 
 `gp-*` 是明確例外：Tribunal 對 GP 只評分，不擁有正文的 rewrite authority（openspec `gp-source-preservation`）。理由是 GP 導讀帶來源距離章：正文一改，章就失效，只有 gp-pipeline 的導讀流程與 `stamp` 能重新蓋章。所以所有 GP 呼叫都必須使用 `--no-rewrite`；`--allow-rewrite`、final-build writer repair、`restructure` 與 `rebuild` routing 對 GP 一律拒絕，`pnpm tribunal:run`（Tribunal v2）對 GP 也只評分，不跑寫手、FactCorrector 與 Librarian 的改動。GP 某一關沒過時分數怎麼寫、其餘評審照不照跑，見 openspec `tribunal-score-persistence`。persona／narrative 低分可以誠實記錄，但不得觸發改寫；要改 GP 正文就回 gp-pipeline，改完重新蓋章。model／provider 選擇仍以 runtime config 與 agent frontmatter 為 SSOT，本節不複製版本快照。
 
+## FactChecker focal-source packet
+
+GP／MP 跑 FactChecker 前，`scripts/tribunal.sh` 會自己經 `gp-pipeline fetch` 擷取完整 focal source，寫進私有 packet（manifest + 全文資料檔），judge 只拿檔案路徑、不自行連網（openspec `tribunal-focal-source-evidence`）。擷取或完整性驗證失敗是 operational error：RUNNER_ERROR、stage attempts 0、不呼叫 judge，reason 形如 `source_capture_failed`／`source_packet_invalid`／`source_packet_tampered`，等來源可取得後正常 requeue 即可，不是文章品質 FAIL。要離線重播就設 `TRIBUNAL_SOURCE_PACKET=<packet dir>`，驗證不過直接失敗、不會回落 live fetch。SD／Lv 不需要 packet，FactChecker 照常評分。helper／schema 以 `scripts/tribunal-helpers.sh` 為 executable SSOT。
+
 ## Writer candidate 的 frontmatter 邊界
 
 隔離寫手交易的 frontmatter 權限只由 parent runner 的 stage 決定，寫手、文章內容或 prompt 都不能自行升級。預設保護整份 frontmatter；只有 FactChecker retry 可由 parent transaction 套用 bounded summary policy，其他 judge 與 final-build repair 一律 preserve-all。實際允許的 byte shape 以 `scripts/tribunal-post-pair-snapshot.py`、`scripts/score-helpers.sh` 與 `scripts/tribunal.sh` 為 executable SSOT，正式情境以 `openspec/specs/tribunal-24-7-operations/spec.md` 為準；runbook 不另抄一份 allowlist。
@@ -28,6 +32,18 @@
 - `scripts/tribunal-batch-runner.sh` — bounded one-shot (cron / manual). **Not a daemon** — use `tribunal-quota-loop.sh` for daemon.
 - `scripts/tribunal-loop.service` — systemd unit (user-scope).
 - `scripts/cc-tribunal-loop-wrapper.sh` — establishes the systemd PATH and execs the loop without loading Claude credentials.
+
+## 手動跑（CCC／Mac）的寫手開關
+
+`GP_WRITER_MODE` 沒設時，`tribunal.sh` 預設是 `none`：judge 照跑，但某一關沒過就直接以失敗結束，不會叫 tribunal-writer 改寫（判斷邏輯在 `scripts/tribunal-helpers.sh` 的 `tribunal_writer_mode`）。VM daemon 由 systemd unit 和 `cc-tribunal-loop-wrapper.sh` 設成 `claude`，`gp-pipeline` 在 vm-codex profile 也會自己補上；手動在 CCC 或 Mac 跑 `tribunal.sh`、`tribunal-batch-runner.sh` 則不會有人幫你設。
+
+要讓手動跑的 Tribunal 在沒過時改寫（CCC playbook〈沒過 PASS 怎麼辦〉要求的流程），明確帶上：
+
+```bash
+GP_WRITER_MODE=claude bash scripts/tribunal.sh <filename.mdx>
+```
+
+只想評分就維持預設，或用 `--score-only`／`--no-rewrite`。GP 一律只評分，帶了 `claude` 也不會改寫（見上方〈GP source-preservation boundary〉）。預設刻意不依 runtime 自動切換：會改文章的寫手要由呼叫端明確開啟。
 
 ## Deploy
 
@@ -336,6 +352,7 @@ ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 Exit code conventions (from `tribunal-all-claude.sh`):
 - `0` — all 4 stages passed and final full-site build passed
 - `1` — stage or final build gate failed (normal failure, will be retried on next dispatch); also a refused `status: taken-down` post (see the note below)
+  - 例外：沒過關的 GP 會在 ledger 記下讀者可見內容的 `inputFingerprint`，內容沒改之前 daemon 不會再領它（Tribunal 不改寫 GP，重評同一份內容只是重擲評審的骰子，見 `gp-source-preservation` spec）。修好正文後它會自動重新排隊，嘗試次數也從 0 重算；要在不改內容的情況下重評，手動跑 `bash scripts/tribunal.sh <file>`。被跳過的 GP 不會出現在「待評」清單裡，要找它們：`jq -r 'to_entries[] | select(.value.status == "FAILED" and .value.inputFingerprint) | .key' <progress file>`。
 - `2` — EXHAUSTED (hit `MAX_TOP_ATTEMPTS=5`; will NOT be retried automatically)
 - `75` — skipped: per-article lock held by another instance, or the article was quota-suspended (the ledger says `QUOTA_SUSPENDED`)
 - `78` — needs operator action before any new claim (e.g. the Claude CLI is not logged in, or the Claude account or model pin cannot be used); the loop drains and stops dispatching
@@ -573,6 +590,22 @@ provider-specific JSON 不可讀時的 `fallback` 會觸發 operator alert，且
    匹配版本的 tracked `scripts/tribunal-loop.service`。
 4. `systemctl --user daemon-reload` 後再啟動 service，跑 doctor、monitor 與
    bounded smoke；provider contract 必須如實顯示該 rollback release 的行為。
+
+## Owner 閱讀回饋與校準報告
+
+ShroomDog 在文章底部按的一鍵回饋、已讀、分享與中途離開，都會記成 human-signal 事件（綁 reader revision）。這些訊號目前**只拿來檢驗 Tribunal 準不準，不會影響 Tribunal**：human-signal automation 開關預設關閉，關閉時任何 human signal 都不進 judge／writer context、不 requeue、不擋發布。`rewrite_needed` 只會出現在校準報告的分歧清單，由 ShroomDog 自己決定要不要動那篇。開關的條件與打開後的行為以 [`tribunal-human-signal-loop` spec](../openspec/specs/tribunal-human-signal-loop/spec.md) 為準。
+
+怎麼跑：
+
+1. 在登入狀態開 `/reading-tracker`，按「匯出閱讀紀錄」下載 JSON（後端 `/human-signals/export` 上線後也輸出同一格式）。
+2. 在 repo 裡跑：
+
+   ```bash
+   pnpm reader:calibrate -- --events ~/Downloads/gu-log-human-signals-YYYY-MM-DD.json
+   # 機器可讀版加 --json；樣本門檻用 --min-sample 調
+   ```
+
+報告是唯讀的，只印到 stdout。怎麼讀（版本分類、樣本不足時不下結論、分歧的定義）以 [`reader-signal-calibration` spec](../openspec/specs/reader-signal-calibration/spec.md) 為準，預設門檻與欄位看 `src/lib/reader-signal-calibration.ts`。
 
 ## Troubleshooting
 

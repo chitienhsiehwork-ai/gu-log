@@ -10,7 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
@@ -35,11 +34,11 @@ func newRefineCmd(state *rootState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "refine",
 		Short: "Apply review feedback and produce final.mdx",
-		Long: `refine applies review feedback to a GP, MP, SD, or Lv draft; the
+		Long: fmt.Sprintf(`refine applies review feedback to a %s draft; the
 --ticket-id series picks the prompt contract. This command reads draft-v1.mdx
 and review.md from the work directory and asks the LLM to produce final.mdx
 with the review's issues fixed. The prompt does NOT embed the draft or review
-contents — the LLM reads them from --work-dir.`,
+contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, angle)
 		},
@@ -55,21 +54,7 @@ contents — the LLM reads them from --work-dir.`,
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	prefix, err := counter.PrefixOfTicketID(ticketID)
-	if err != nil {
-		return err
-	}
-	absDraft, err := filepath.Abs(draftPath)
-	if err != nil {
-		return err
-	}
-	if _, err := os.Stat(absDraft); err != nil {
-		return fmt.Errorf("refine: draft not found at %s", absDraft)
-	}
-	if workDir == "" {
-		workDir = filepath.Dir(absDraft)
-	}
-	workDir, err = filepath.Abs(workDir)
+	prefix, workDir, err := draftIngress("refine", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}

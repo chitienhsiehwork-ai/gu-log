@@ -6,8 +6,15 @@ Falls back to raw HTML stripping if readability fails.
 
 Usage:
     python3 scripts/fetch-article.py <url> [output_file]
+    python3 scripts/fetch-article.py --extract-only <url> < page.html
 
 Output: Clean markdown-ish text suitable for LLM processing.
+
+--extract-only reads the already-captured HTML from stdin and never opens a
+network connection itself: the caller (gp-pipeline's bounded safe transport)
+owns the download, this script owns readability extraction. The <url> is the
+observed final URL, used only for readability's relative-link resolution and
+the output header.
 """
 
 from __future__ import annotations
@@ -470,18 +477,44 @@ def is_garbage(text: str) -> bool:
 
 
 def main() -> None:
-    if len(sys.argv) < 2:
-        print("Usage: python3 fetch-article.py <url> [output_file]", file=sys.stderr)
+    args = sys.argv[1:]
+    extract_only = False
+    content_type = ""
+    if args and args[0] == "--extract-only":
+        extract_only = True
+        args = args[1:]
+    if extract_only and args and args[0] == "--content-type":
+        # The HTTP charset from the capturing transport: pages that declare
+        # their encoding only in the Content-Type header (no <meta charset>)
+        # would otherwise be mis-decoded via the ISO-8859-1 fallback.
+        if len(args) < 2:
+            print("ERROR: --content-type requires a value", file=sys.stderr)
+            sys.exit(1)
+        content_type = args[1]
+        args = args[2:]
+    if not args:
+        print(
+            "Usage: python3 fetch-article.py [--extract-only [--content-type <value>]] <url> [output_file]",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
-    url = sys.argv[1]
-    output_file = sys.argv[2] if len(sys.argv) > 2 else None
+    url = args[0]
+    output_file = args[1] if len(args) > 1 else None
 
-    try:
-        final_url, html = fetch_html(url)
-    except Exception as exc:
-        print(f"ERROR: Failed to fetch {url}: {exc}", file=sys.stderr)
-        sys.exit(1)
+    if extract_only:
+        # No network in this mode: the captured bytes arrive on stdin.
+        raw_html = sys.stdin.buffer.read(MAX_BYTES + 1)
+        if len(raw_html) > MAX_BYTES:
+            print(f"ERROR: stdin HTML too large (> {MAX_BYTES // (1024 * 1024)} MB)", file=sys.stderr)
+            sys.exit(1)
+        final_url, html = url, decode_html(raw_html, content_type)
+    else:
+        try:
+            final_url, html = fetch_html(url)
+        except Exception as exc:
+            print(f"ERROR: Failed to fetch {url}: {exc}", file=sys.stderr)
+            sys.exit(1)
 
     text = ""
     try:

@@ -1,8 +1,8 @@
 import { parseFrontmatter } from 'astro/markdown';
 import { parse } from 'yaml';
 
-// This legacy hash projection is intentionally frozen. Expanding the emoji
-// policy surface must not invalidate every existing Reader Tracker record.
+// This legacy hash projection is intentionally frozen so existing Reader
+// Tracker records stay valid.
 export const READER_REVISION_FRONTMATTER_KEYS = Object.freeze([
   'ticketId',
   'title',

@@ -70,7 +70,7 @@ TeamPCP 沒有去碰 LiteLLM 的程式碼。他們去碰 Trivy 的 GitHub Action
 
 好，重點來了。當某個工程師在自己的 production 環境裡跑了 `pip install litellm==1.82.7`，然後 `import litellm`——那個 import 的瞬間，一場精密的三階段獵殺就啟動了。
 
-**第一階段是翻箱倒櫃**。惡意程式碼會掃描整台機器上每一個值錢的東西：SSH 金鑰、雲端憑證、Kubernetes secrets、加密貨幣錢包、`.env` 設定檔。不挑食，能拿的全拿。想像一個小偷闖進家裡，不是只翻保險箱——是連枕頭底下、冰箱冷凍庫、馬桶水箱裡的東西都翻。
+**第一階段是翻箱倒櫃**。惡意程式碼會掃描整台機器上每一個值錢的東西：SSH 金鑰、雲端憑證、[Kubernetes](/glossary#kubernetes) secrets、加密貨幣錢包、`.env` 設定檔。不挑食，能拿的全拿。想像一個小偷闖進家裡，不是只翻保險箱——是連枕頭底下、冰箱冷凍庫、馬桶水箱裡的東西都翻。
 
 **第二階段是擴大戰果**。拿到 Kubernetes 的 service account token 之後，攻擊程式會在叢集的每個 node 上部署特權 pod。一台機器中招，整個叢集淪陷。從「闖進一間房」變成「拿到整棟大樓的萬能鑰匙」。
 

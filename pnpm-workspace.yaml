@@ -5,9 +5,11 @@ onlyBuiltDependencies:
 # 7 days in minutes; reduces exposure to newly compromised releases.
 minimumReleaseAge: 10080
 
-# Security-only exception: GHSA-2v37-7h3g-55p8 is fixed in nanoid 3.3.18.
+# Security-only exceptions: GHSA-2v37-7h3g-55p8 is fixed in nanoid 3.3.18;
+# GHSA-ch52-4w7c-c8xp (astro runtime dep) is fixed in http-cache-semantics 4.3.0.
 minimumReleaseAgeExclude:
   - nanoid@3.3.18
+  - http-cache-semantics@4.3.0
 
 overrides:
   lodash@>=4.0.0 <=4.17.22: '>=4.17.23'

@@ -75,6 +75,171 @@ tribunal_post_outside_scope() {
   esac
 }
 
+# Reader-visible input of one article (zh-tw post + English sidecar if any),
+# from the shared reader-revision helper, so score write-back alone is not a
+# change. Prints nothing and returns 1 when it cannot be computed.
+tribunal_reader_input_fingerprint() {
+  local posts_dir="$1" article="$2" file rev fingerprint=""
+  for file in "$posts_dir/$article" "$posts_dir/en-$article"; do
+    [ -f "$file" ] || continue
+    rev="$(node "$TRIBUNAL_HELPERS_DIR/reader-revision-of-stdin.mjs" < "$file" 2>/dev/null)" || return 1
+    [ -n "$rev" ] || return 1
+    fingerprint="${fingerprint:+$fingerprint,}$(basename "$file")=$rev"
+  done
+  [ -n "$fingerprint" ] || return 1
+  printf '%s\n' "$fingerprint"
+}
+
+# A failed GP records the input it was judged on. Tribunal never rewrites a GP,
+# so re-judging the same input only re-rolls the judges until EXHAUSTED or a
+# lucky PASS (#1098). Selectors skip it until its content changes, the Tribunal
+# version changes, or an operator runs tribunal.sh on it by hand. Fails open:
+# an unreadable fingerprint lets the article be selected as before.
+tribunal_failed_input_unchanged() {
+  local progress_file="$1" posts_dir="$2" article="$3" recorded current
+  recorded="$(jq -r --arg a "$article" '.[$a].inputFingerprint // empty' "$progress_file" 2>/dev/null)"
+  [ -n "$recorded" ] || return 1
+  current="$(tribunal_reader_input_fingerprint "$posts_dir" "$article")" || return 1
+  [ "$recorded" = "$current" ]
+}
+
+# ─── FactChecker focal-source packet (tribunal-focal-source-evidence) ────────
+# GP/MP FactChecker runs only after the harness captured the complete focal
+# source into a private packet: a data file plus an integrity manifest. The
+# judge reads it as untrusted evidence; a capture or integrity failure is an
+# operational error, never an article-quality verdict.
+
+# Frontmatter field reader (first frontmatter block, first match).
+tribunal_post_frontmatter_value() {
+  local file="$1" key="$2"
+  awk -v key="$key" '
+    /^---$/ { c++; if (c == 2) exit; next }
+    c == 1 && $0 ~ "^" key ":" {
+      sub("^" key ":[[:space:]]*", ""); gsub(/^["'"'"']|["'"'"']$/, "")
+      print; exit
+    }' "$file"
+}
+
+# Prints the ticket series (GP, MP, SD, LV, ...) in upper case, from the
+# ticketId frontmatter — never guessed from the filename or URL.
+tribunal_post_ticket_series() {
+  local file="$1" ticket
+  ticket="$(tribunal_post_frontmatter_value "$file" ticketId)"
+  printf '%s' "${ticket%%-*}" | tr '[:lower:]' '[:upper:]'
+}
+
+# Whether this post needs a focal-source packet before FactChecker.
+tribunal_post_needs_source_packet() {
+  case "$(tribunal_post_ticket_series "$1")" in
+    GP|MP) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+tribunal_source_packet_sha256() {
+  sha256sum "$1" | cut -d' ' -f1
+}
+
+# Capture the focal source for one post into packet_dir and publish the
+# manifest. Prints a stable, de-sensitized failure reason on stderr and
+# returns non-zero on any failure; a partial capture is removed.
+tribunal_source_packet_prepare() {
+  local root_dir="$1" post_path="$2" packet_dir="$3"
+  local source_url fetch_json fetch_rc
+
+  source_url="$(tribunal_post_frontmatter_value "$post_path" sourceUrl)"
+  case "$source_url" in
+    http://*|https://*) ;;
+    *)
+      echo "source_capture_error: missing_or_invalid_source_url" >&2
+      return 1
+      ;;
+  esac
+
+  mkdir -p "$packet_dir" && chmod 700 "$packet_dir" || {
+    echo "source_capture_error: packet_dir_unavailable" >&2
+    return 1
+  }
+
+  fetch_rc=0
+  fetch_json="$("$root_dir/tools/gp-pipeline/gp-pipeline" --json     --work-dir "$packet_dir" fetch "$source_url" 2>>"${LOG_FILE:-/dev/null}")" || fetch_rc=$?
+  if [ "$fetch_rc" -ne 0 ] || ! jq -e '.ok == true' <<<"$fetch_json" >/dev/null 2>&1; then
+    rm -rf "$packet_dir"
+    echo "source_capture_error: fetch_failed_rc${fetch_rc}" >&2
+    return 1
+  fi
+
+  local data_file="$packet_dir/source-tweet.md"
+  if [ ! -f "$data_file" ] || [ -L "$data_file" ] || [ ! -s "$data_file" ]; then
+    rm -rf "$packet_dir"
+    echo "source_capture_error: capture_file_missing" >&2
+    return 1
+  fi
+
+  local bytes sha manifest_tmp
+  bytes="$(stat -c %s "$data_file")"
+  sha="$(tribunal_source_packet_sha256 "$data_file")"
+  manifest_tmp="$(mktemp "$packet_dir/manifest.XXXXXX")"
+  jq -n     --arg requestedUrl "$source_url"     --arg capturedAt "$(TZ=Asia/Taipei date -Iseconds)"     --arg sha256 "$sha"     --argjson bytes "$bytes"     --argjson fetch "$(jq '.output' <<<"$fetch_json")"     '{
+      schemaVersion: 1,
+      sourceKind: ($fetch.sourceKind // "generic"),
+      requestedUrl: $requestedUrl,
+      observedIdentity: {
+        handle: ($fetch.handle // ""),
+        finalUrl: ($fetch.finalUrl // "")
+      },
+      fetchedVia: ($fetch.fetchedVia // ""),
+      capturedAt: $capturedAt,
+      validation: {ok: true, via: "gp-pipeline fetch"},
+      content: {file: "source-tweet.md", bytes: $bytes, sha256: $sha256}
+    }' > "$manifest_tmp" || {
+    rm -rf "$packet_dir"
+    echo "source_capture_error: manifest_write_failed" >&2
+    return 1
+  }
+  mv "$manifest_tmp" "$packet_dir/manifest.json"
+  chmod 0400 "$data_file" "$packet_dir/manifest.json"
+  return 0
+}
+
+# Verify a packet's manifest schema and the data file's identity, bytes and
+# SHA-256. Safe to call before AND after a judge run; any mismatch means the
+# packet cannot back a verdict.
+tribunal_source_packet_verify() {
+  local packet_dir="$1"
+  local manifest="$packet_dir/manifest.json"
+  if [ ! -f "$manifest" ] || [ -L "$manifest" ]; then
+    echo "source_packet_error: manifest_missing" >&2
+    return 1
+  fi
+  if ! jq -e '
+      .schemaVersion == 1
+      and (.sourceKind | type == "string" and length > 0)
+      and (.requestedUrl | type == "string" and startswith("http"))
+      and (.validation.ok == true)
+      and (.content.file | type == "string" and length > 0 and (contains("/") | not) and (startswith(".") | not))
+      and (.content.bytes | type == "number" and . > 0)
+      and (.content.sha256 | type == "string" and test("^[0-9a-f]{64}$"))
+    ' "$manifest" >/dev/null 2>&1; then
+    echo "source_packet_error: manifest_schema_invalid" >&2
+    return 1
+  fi
+  local data_file bytes sha
+  data_file="$packet_dir/$(jq -r '.content.file' "$manifest")"
+  if [ ! -f "$data_file" ] || [ -L "$data_file" ]; then
+    echo "source_packet_error: data_file_invalid" >&2
+    return 1
+  fi
+  bytes="$(jq -r '.content.bytes' "$manifest")"
+  sha="$(jq -r '.content.sha256' "$manifest")"
+  if [ "$(stat -c %s "$data_file")" != "$bytes" ] ||
+     [ "$(tribunal_source_packet_sha256 "$data_file")" != "$sha" ]; then
+    echo "source_packet_error: integrity_mismatch" >&2
+    return 1
+  fi
+  return 0
+}
+
 # Classify a full-site build failure for one target article.
 # Operational evidence wins even when the log also names the target. Content
 # evidence is actionable only when one diagnostic line contains both the exact

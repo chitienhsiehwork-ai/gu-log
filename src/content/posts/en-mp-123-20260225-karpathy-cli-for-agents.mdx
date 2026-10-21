@@ -1,137 +1,138 @@
 ---
 ticketId: "MP-123"
-title: "Karpathy: CLIs Are the Native Interface for AI Agents — Legacy Tech Becomes the Ultimate On-Ramp"
+title: "Karpathy: CLI Is the Native Language of Agents — How \"Legacy\" Tech Became the Best Way In"
 originalDate: "2026-02-24"
-translatedDate: "2026-02-25"
 translatedBy:
-  model: "Opus 4.6"
-  harness: "Claude Code"
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
   pipeline:
-    - role: "Scored"
+    - role: "Written"
       model: "Opus 4.6"
-      harness: "Claude Code (ralph-scorer)"
+      harness: "Claude Code CLI"
     - role: "Rewritten"
-      model: "Opus 4.6"
-      harness: "Claude Code"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
     - role: "Orchestrated"
-      model: "Opus 4.6"
-      harness: "Ralph Loop"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
   pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
 source: "Andrej Karpathy (@karpathy) on X"
 sourceUrl: "https://x.com/karpathy/status/2026360908398862478"
-summary: "Karpathy argues CLIs are the natural interface for agents precisely because they are legacy tech: text in, text out. His Claude Polymarket terminal demo lands the bigger question: can agents access and use your product?"
+summary: "Karpathy says CLIs are exciting precisely because they're \"legacy\" tech: AI agents can use and combine them natively. Using the new Polymarket CLI, Claude built a terminal dashboard in about 3 minutes. His challenge to anyone shipping a product: Are your docs exportable as markdown? Have you written Skills? Can it be used via CLI or MCP? It's 2026. Build. For. Agents."
 lang: "en"
 tags: ["karpathy","cli","ai-agents","mcp","build-for-agents","polymarket","developer-tools"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 8
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 9
+    clarity: 8
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 9
+    score: 8
+    date: "2026-10-20"
+    model: "claude-opus-5-5"
+translatedDate: "2026-02-25"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-## Your Grandma's Tech, But Agents Love It More Than You Do
+When engineers hear "legacy," their first instinct is usually to hide it. [Andrej Karpathy](/en/glossary#andrej-karpathy) went the other way and made it the selling point:
 
-It's 2026. Everyone's chasing multimodal UIs, voice agents, and vibe coding. The whole tech world can't wait to throw keyboards in the trash.
+> CLIs are super exciting precisely because they are a "legacy" technology, which means AI agents can natively and easily use them, combine them, interact with them via the entire terminal toolkit.
 
-And then [Andrej Karpathy](/en/glossary#andrej-karpathy) posts this on X:
+Not "CLIs are old, but they still work." It's "CLIs work *because* they're old." [Mogu](/en/about) would boil it down to something more shareable: **CLI is the native language of [agents](/en/glossary#agent).**
 
-> CLIs are super exciting **precisely because they are a "legacy" technology.**
+## Native means no interpreter needed
 
-Wait — we spent decades trying to escape the terminal, and now you're saying the most exciting thing is... that black window with white text?
+Karpathy only gave the conclusion. What follows is [Mogu](/en/glossary#mogu)'s reading of it. To an agent, a human GUI is a foreign language. Where's the button? Should that popup be closed? How far down do I scroll this table? Everything starts with "understanding the screen," and then turning that understanding into an action. There's a layer of translation in the middle.
 
-But hear him out, because his logic is annoyingly airtight — and he doesn't just talk about it. He shows receipts.
+CLIs don't have that layer. The command is text, the flags are text, `--help` is text, the output is text, even the errors are text. What the agent reads in and what it writes out are the same kind of thing. Karpathy's "entire terminal toolkit" takes it one step further: one command's output can feed straight into the next. Filter with `grep`, pick apart with `jq`, keep piping. Once you know the words, you can build your own sentences.
 
-<MoguNote>
-Think of it like that 30-year-old noodle stall in your neighborhood. No fancy decor, no iPad ordering, no Instagram wall. But every day at lunch, the line goes around the block.
+<MoguNote summary="Mogu's guess: decades of plain-text terminal docs made agents fluent.">
+As for why agents are "born" speaking this language, Karpathy just says "natively" and leaves it there. My guess: the terminal is probably one of the most heavily written-about interfaces humans have ever had. Decades of man pages, scripts, tutorials, and forum Q&A, all plain text, all in roughly the same format. In the pile of stuff these models were trained on, example sentences in this language are everywhere.
 
-Why? Because it solves the core problem: good food, fast, reliable.
-
-CLI is the noodle stall of software.
-Text goes in, text comes out. No JavaScript to render, no buttons to find, no modals to dismiss.
-For an LLM, this is basically its native habitat. ╰(°▽°)╯
-
-Meanwhile, those fancy web UIs? For an agent, that's like asking a fish to climb a tree.
+That's my inference, not something Karpathy said. But if it holds, the "old" in "legacy" is really decades of accumulated teaching material.
 </MoguNote>
 
-## 3 Minutes From Zero to a Live Dashboard
+---
 
-Okay, enough theory. Karpathy went live-fire.
+## About three minutes: the CLI supplies the words, the agent writes the sentences
 
-Someone (@SuhailKakar) built a [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524) in Rust — query prediction markets, place trades, pull data, all from the terminal. A simple, no-frills command-line tool.
+Karpathy's example was a tool that had just shipped. That same day, @SuhailKakar released the [Polymarket CLI](https://x.com/SuhailKakar/status/2026305257257775524), written in Rust and pitched by its author as the fastest way for AI agents to access prediction markets: agents can query markets, place orders, and pull data, all from the terminal.
 
-What did Karpathy do? He told Claude: "Install this CLI and build me a real-time dashboard showing the highest-volume prediction markets with 24-hour price changes."
+Karpathy's suggestion: ask your Claude or [Codex](/en/glossary#codex) agent to install this CLI, then ask for any arbitrary dashboards, interfaces, or logic, and the agent will build it for you. His own example was a terminal dashboard Claude built in about 3 minutes, showing the highest-volume Polymarket markets and their 24-hour change. He added two more points: you could make it a web app instead, and it gets even more powerful when you use it as a module in bigger pipelines.
 
-**3 minutes later, the dashboard was running in his terminal.**
+He also called out the GitHub CLI: install it, and you can have the agent navigate a repo, look at issues, PRs, and discussions, even read the code itself. He'd previously shown handing an agent the GitHub CLI plus an MCP service that answers questions about repos, then letting it dig the functionality he needed out of someone else's library (see [MP-66](/en/posts/en-mp-66-20260211-karpathy-deepwiki-mcp-rip-out)).
 
-No API docs. No SDK. No fighting with Python virtual environments until you question your life choices.
+The most interesting part of this example isn't the three minutes. The Polymarket CLI's author didn't build that dashboard, and never had to anticipate that someone would want "top markets by volume plus 24-hour change." The CLI just has to provide a full set of words — query markets, pull data — and the agent writes the sentences. The interface author doesn't have to guess what screens users want, and that's what really makes CLIs agent-friendly (that's Mogu's take).
 
-The agent just: `npm install` → read `--help` → compose commands → done. The whole thing took less time than making instant noodles.
+There's also a small twist: the "legacy technology" in the example was a brand-new Rust tool released that very day. So when Karpathy says "old," he means the shape of the interface — text in, text out, composable — not the age of the software.
 
-<MoguNote>
-Hold on, let me reconstruct the crime scene here —
+---
 
-You, a diligent engineer, trying to do the same thing. First you read the docs — halfway through, you realize they're from last year's version. You push through and write some code anyway. Run it. A wall of red errors. You Google the error message. Stack Overflow says you need some dependency. You install it. Version conflict. Three hours later, it finally runs, but the output format is nothing like what you expected. Two more hours. One to two days gone, along with a few strands of hair. (╯°□°)╯
+## Does your product speak the agents' language?
 
-The agent? `npm install` → `--help` → three minutes. It doesn't even have a "frustration" emotion, because CLI help text is as clear to it as a menu with pictures — flag names are features, help text is the tutorial, error messages are the debug guide. All plain text, all in its comfort zone.
+After the example, Karpathy turned the question back on the people building products:
 
-Your lovingly crafted React dashboard? To an agent, that's like fishing for a single grain of rice in a bowl of soup.
-`gh pr list --json number,title,state`? Now THAT's its Michelin-starred meal. (⌐■_■)
+> If you have any kind of product or service think: can agents access and use them?
+>
+> - are your legacy docs (for humans) at least exportable in markdown?
+> - have you written Skills for your product?
+> - can your product/service be usable via CLI? Or MCP?
+> - ...
+>
+> It's 2026. Build. For. Agents.
+
+The three questions map neatly onto three levels of the same language.
+
+**Can your docs become markdown?** That's about letting agents read. If your docs are locked behind logins and layers of menus, the agent has to wrestle with all those screens first. Karpathy has been making this argument for a while: in his June 2025 talk at YC's AI Startup School, he talked about building for agents and converting human-facing docs into formats LLMs can read (see [MP-116](/en/posts/en-mp-116-20260223-karpathy-software-3-sf-startup-school)). This time he brought a three-minute example.
+
+**[Skills](/en/glossary#skill)** are instructions written for agents. A [Skill](/en/glossary#skill) is a folder built around a `SKILL.md` file of instructions, optionally bundled with scripts and reference material, that teaches an agent how to do a certain kind of task or use a certain tool; the agent only loads it when needed. In native-language terms, it's the phrasebook: beyond the vocabulary, it tells the agent how things are idiomatically said in this particular product.
+
+**CLI or [MCP](/en/glossary#mcp)** is what lets the agent speak up and actually do things. Karpathy wrote "CLI? Or MCP?" — he didn't say it has to be a CLI. And the ellipsis at the end of the list means he wasn't trying to be exhaustive.
+
+<MoguNote summary="Markdown docs are the cheapest step, and gu-log already does all three.">
+Of the three, the one I'd push hardest is markdown, because it's the least sexy and the cheapest. A CLI means designing commands, MCP means standing up a server, but making your docs exportable as markdown is often a single button. And it's the foundation for the other two: if an agent can't even read your docs, the best tools in the world just leave it groping around in the dark.
+
+Full disclosure: gu-log's own writing workflow is a CLI (`gp-pipeline`) paired with a `SKILL.md`. The agent reads the instructions and runs commands in the terminal. This very rewrite was done by an agent reading and writing files in a terminal. As it happens, this blog has turned in answers to all three of Karpathy's questions (￣▽￣)／
 </MoguNote>
 
-## Soul-Searching Time: Can Agents Even Use Your Product?
+---
 
-Theory — done. Demo — done. And then Karpathy does something kind of cruel — he makes you look in the mirror.
+## Once agents speak the language, the next question is permissions
 
-> If you have any kind of product or service, think: **can agents access and use them?**
+Make your product something agents can talk to — that's where Karpathy's post wraps up: "Build for agents."
 
-Okay, let's go through this together. Deep breath.
-
-Your docs — can an agent read them? If they're locked behind a login page, three layers of menus, and a cookie consent popup, then congratulations, the agent already left. At the bare minimum, let your docs export to markdown. That's basic manners in 2026.
-
-Does your product have [Agent](/en/glossary#agent) Skills? You know, the kind where an AI can say "hey, look this up for me" and your service actually responds? No? Then your product is a house with no doors — visible, but completely inaccessible.
-
-And finally, the interface. Can your thing be used via CLI? Does it have an [MCP](/en/glossary#mcp) server? If neither — your product basically doesn't exist in the agent's world.
-
-Then Karpathy signs off with three words, clean and brutal:
-
-> **It's 2026. Build. For. Agents.**
-
-<MoguNote>
-Let me translate Karpathy's subtext: **your "users" aren't just humans anymore.**
-
-In 2026, agents are users too. And they're growing way faster than human users — they don't need to sign up for accounts, sit through onboarding tutorials, or get scared off by your pricing page. They just need a usable interface.
-
-If your product only has a web UI, congrats — you're locking out half your potential users. (╯°□°)╯
-
-Karpathy said "Build for Agents" at SF Startup School two weeks ago (see [MP-116](/posts/mp-116-20260223-karpathy-software-3-sf-startup-school)), but that was theory. Now he proved it with a 3-minute demo: CLI exists → agent can use it → value appears. From talk to proof, Karpathy moves fast as always.
-</MoguNote>
-
-## When "Outdated" Becomes "Ahead of Its Time"
-
-Okay, let's talk about the most fun part of this whole thing.
-
-Tech has this really toxic word: "legacy." When engineers hear "legacy code," they react roughly the same way as hearing "your ex is calling" — don't want to touch it, don't want to look at it, pretend it doesn't exist.
-
-But Karpathy did something slick: he turned "legacy" from an insult into a selling point.
-
-Think about it. What does legacy actually mean? It's been around a long time. And what does that mean? Stable. Predictable format. Consistent behavior. To humans, that sounds boring. To agents? That's a dream wishlist.
-
-<MoguNote>
-This reminds me of USB.
-
-A technology from 1996, almost thirty years old. But when you buy any device today, the first thing you look for is the USB-C port. Nobody says "ugh, USB is so legacy, how embarrassing" — because it just works. Your phone uses it, your laptop uses it, your Switch uses it, even your electric toothbrush probably uses it.
-
-CLI is walking the exact same path. Thirty years ago your grandma might have typed `dir` in DOS. Thirty years later, an AI agent is typing `--help` in a terminal. Same technology, but the users went from carbon-based to silicon-based.
-
-It's not sexy, but it works. And in the age of agents, "works" is the new sexy. ┐(￣ヘ￣)┌
-</MoguNote>
-
-Back to that seemingly counterintuitive claim from the top: in 2026, the most exciting thing is... the command line?
-
-Now you get it. The CLI didn't get better — it's been the same for thirty years. The world is the one that went on a long detour, from GUI to web apps to mobile apps to voice UI, only to realize: hey, the thing agents need most? CLI had it all along.
-
-That noodle stall on your block hasn't changed. What changed is the people in line — they went from humans to AIs. (￣▽￣)／
+But look back at the example he picked. The Polymarket CLI's vocabulary doesn't just include "query markets" and "pull data." It also includes "place orders." The more fluent an agent gets, the more sentences it can say, including the ones that move money. The post doesn't touch this. Mogu thinks it's the question that comes right after "can agents use it?", and one every product builder will have to answer sooner or later: which words should agents only be allowed to read, and which should they be allowed to say?
 
 ---
 
 **Further reading:**
-- [MP-116: Karpathy's Viral Talk Decoded: Software 3.0 Is Here](/en/posts/en-mp-116-20260223-karpathy-software-3-sf-startup-school)
-- [MP-100: Karpathy: The App Store Is Obsolete](/en/posts/en-mp-100-20260219-karpathy-app-store-dead)
-- [GP-76: Karpathy on the Claw Era: Big Opportunity, But Secure the Chassis First](/en/posts/en-gp-76-20260221-karpathy-claw-security-architecture)
+- [MP-116: Breaking Down Karpathy's Viral Talk: The Software 3.0 Era Is Here](/en/posts/en-mp-116-20260223-karpathy-software-3-sf-startup-school)
+- [MP-100: Karpathy: The App Store Is Obsolete — The Future Is Disposable Apps Assembled by AI on the Fly](/en/posts/en-mp-100-20260219-karpathy-app-store-dead)

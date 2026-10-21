@@ -19,17 +19,9 @@ concurrency:
 permissions:
   contents: read
 
-# ─── Design note: build vs checks parallelism ──────────────────────────────
-# build runs in parallel with every fast check (lint / type-check / contrast
-# / validate-content / security-gate / unit-tests). A fast check failing
-# does NOT cancel the in-flight build, so we pay the full ~2 min of build
-# runner minutes even when lint errors in 10s. For a solo-author public repo
-# that's fine (GitHub Actions is free on public repos and wall-time for the
-# iterating author matters more than idle runner minutes). If this repo ever
-# goes private or the runner-minute cost starts to bite, add:
-#   needs: [lockfile-consistency, lint]
-# to `build` — those two are the cheapest fail-fast gates.
-# ────────────────────────────────────────────────────────────────────────────
+# Design note: build runs in parallel with every fast check, so a failing check
+# doesn't cancel it. Free on a public repo; if runner minutes ever bite, add
+# `needs: [lockfile-consistency, lint]` to `build` (the cheapest fail-fast gates).
 
 jobs:
   # ─── Tier 1: independent checks (all run in parallel) ────────────────────
@@ -85,7 +77,7 @@ jobs:
 
       - name: Set up Node.js
         if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
@@ -143,7 +135,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
       - name: WCAG AA contrast check
@@ -159,7 +151,7 @@ jobs:
           # diff "newly added in this PR" against the base branch.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
-      - name: Reader-visible emoji policy (PR added-line ratchet)
+      - name: Post emoji check (added lines)
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -167,6 +159,13 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
+      - name: File size gate (PR only, 5,000 tokens per file)
+        # Same executable as pre-commit step -3.8: new files may not exceed
+        # the cap, files already over it may not grow.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node scripts/check-file-size.mjs "--base=$BASE_SHA"
       - name: Takedown ratchet (PR only — tombstones stay tombstones)
         # Same executable as pre-commit step -3.5, but PR base → head: a
         # taken-down post must stay taken-down with an empty body, new posts
@@ -202,7 +201,7 @@ jobs:
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
       - name: 晶晶體 check (PR only — block decorative English in changed zh-tw posts)
-        # Same scope as the pre-commit hook (.githooks/pre-commit step 0.16):
+        # Same scope as the pre-commit hook (scripts/hooks/pre-commit step 0.16):
         # only PR-changed zh-tw .mdx files are linted. Push to main is skipped
         # because (a) merged content was already gated at PR time and (b) main
         # has 65+ historical posts with grandfathered 晶晶體 that we don't
@@ -339,10 +338,14 @@ jobs:
             astro-${{ runner.os }}-
 
       - name: Build
+        # Shallow checkout: keep the committed post-versions.json (freshness is
+        # enforced by the full-history unit tests, not by this build).
+        env:
+          POST_VERSIONS_ALLOW_SHALLOW: '1'
         run: pnpm run build
 
       - name: Upload dist for downstream jobs
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
@@ -362,7 +365,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
       - name: Verify Playwright spec ownership
@@ -421,10 +424,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
@@ -439,10 +442,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
