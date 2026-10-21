@@ -8,6 +8,7 @@
 | Agent 指令與單一正本 | [agent-instructions](topics/agent-instructions.md) |
 | Agent 協作與執行邊界 | [agent-coordination](topics/agent-coordination.md) |
 | 關聯資料與索引 | [relational-data](topics/relational-data.md) |
+| 文件資料庫（Firestore） | [document-databases](topics/document-databases.md) |
 | 去重、候選排序與合併語意 | [dedup-design](topics/dedup-design.md) |
 | Git 變更審查與整合 | [git-integration](topics/git-integration.md) |
 | 部署、驗證與復原 | [deployment-verification](topics/deployment-verification.md) |
