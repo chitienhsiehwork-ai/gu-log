@@ -3,8 +3,10 @@
  *
  * Pins the rebrand-mogu-gp-mp-taxonomy core contracts at the schema layer:
  *   - ticketId taxonomy is GP | MP | SD | Lv with actionable SP/CP rejection
- *   - retired `clawdNote` score key is explicitly rejected (never silently
- *     stripped by Zod's default unknown-key behavior)
+ *   - every object level is strict: an undeclared key fails the build instead
+ *     of being silently stripped; deliberately non-rendered fields are declared
+ *     and dropped after parsing (#1164)
+ *   - retired `clawdNote` score key is rejected with an actionable diagnostic
  *   - score dimensions are integers 0..10; tribunalVersion is a positive int
  *   - cross-field invariants (deprecated↔deprecatedBy, humanOverride reason,
  *     acknowledged overlap justification, proxy author distinction,
@@ -155,6 +157,82 @@ describe('posts schema — ticketId taxonomy', () => {
     });
     expect(viaOverlap.success).toBe(false);
     expect(issueMessages(viaOverlap)).toContain('use GP-165');
+  });
+});
+
+describe('posts schema — undeclared keys fail instead of being stripped (#1164)', () => {
+  const STEP = { role: 'Written', model: 'GPT-5.5', harness: 'Codex CLI' };
+  const JUDGE = { score: 8, date: '2026-07-01' };
+  const STAGE4 = { persona: 8, moguNote: 8, vibe: 8, narrative: 8, isDegraded: false };
+
+  it.each([
+    ['top-level pipeline', { pipeline: [STEP] }, 'pipeline'],
+    ['top-level pipelineUrl', { pipelineUrl: 'https://example.com/run' }, 'pipelineUrl'],
+    ['translatedBy', { translatedBy: { ...BASE.translatedBy, pipelines: [STEP] } }, 'pipelines'],
+    [
+      'a pipeline step',
+      { translatedBy: { ...BASE.translatedBy, pipeline: [{ ...STEP, note: 'x' }] } },
+      'note',
+    ],
+    [
+      'scores',
+      { scores: { tribunalVersion: 9, 全新Eyes: { score: 8, date: '2026-05-20' } } },
+      '全新Eyes',
+    ],
+    ['scores.vibe', { scores: { vibe: { ...VIBE_V9, harness: 'Codex CLI' } } }, 'harness'],
+    ['scores.librarian', { scores: { librarian: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.factCheck', { scores: { factCheck: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.freshEyes', { scores: { freshEyes: { ...JUDGE, harness: 'x' } } }, 'harness'],
+    ['scores.shroomDogVibe', { scores: { shroomDogVibe: { ...JUDGE, mood: 'x' } } }, 'mood'],
+    ['stage4Scores', { stage4Scores: { ...STAGE4, overall: 8 } }, 'overall'],
+    ['series', { series: { name: 'Agent 入門', order: 1, total: 5 } }, 'total'],
+    ['dedup', { dedup: { independentDiff: 'x', diffNote: 'x' } }, 'diffNote'],
+    [
+      'dedup.tribunalVerdict',
+      { dedup: { tribunalVerdict: { class: 'x', confidence: 1 } } },
+      'confidence',
+    ],
+    ['metadata', { metadata: { gateWarnings: [], gateNotes: [] } }, 'gateNotes'],
+  ])('rejects an undeclared key in %s', async (_where, extra, key) => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({ ...BASE, ticketId: 'MP-1', ...extra });
+    expect(r.success).toBe(false);
+    expect(issueMessages(r)).toContain(key);
+  });
+
+  it('accepts the declared non-rendered fields and drops them after parsing', async () => {
+    const schema = await loadPostsSchema();
+    const r = schema.safeParse({
+      ...BASE,
+      ticketId: 'GP-1',
+      sourceDistance: { policy: 'source-distance/v1', verdict: 'pass' },
+      glossaryIgnore: ['Gradient'],
+      scores: {
+        tribunalVersion: 9,
+        vibe: VIBE_V9,
+        ralph: { p: 8, c: 8, v: 8, score: 8, date: '2026-04-08', model: 'claude-opus-4-6' },
+      },
+    });
+    expect(r.success, issueMessages(r)).toBe(true);
+    expect(r.data.sourceDistance).toBeUndefined();
+    expect(r.data.glossaryIgnore).toBeUndefined();
+    expect(r.data.scores.ralph).toBeUndefined();
+    expect(r.data.scores.vibe.score).toBe(8);
+  });
+
+  it('still type-checks the non-rendered fields', async () => {
+    const schema = await loadPostsSchema();
+    const badIgnore = schema.safeParse({ ...BASE, ticketId: 'GP-1', glossaryIgnore: 'Gradient' });
+    expect(badIgnore.success).toBe(false);
+    expect(issueMessages(badIgnore)).toContain('glossaryIgnore');
+
+    const badRalph = schema.safeParse({
+      ...BASE,
+      ticketId: 'GP-1',
+      scores: { ralph: { p: 8, c: 8, v: 8, score: 8, date: '2026-04-08', cl: 8 } },
+    });
+    expect(badRalph.success).toBe(false);
+    expect(issueMessages(badRalph)).toContain('cl');
   });
 });
 

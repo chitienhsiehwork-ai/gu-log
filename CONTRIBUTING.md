@@ -141,32 +141,30 @@ slug 使用 kebab-case，簡短描述文章內容。
 
 ### Frontmatter Schema
 
+權威是 `src/content.config.ts`；寫了沒宣告的欄位（含放錯層），build 直接失敗。`<…>` 換成實際值：
+
 ```yaml
 ---
-ticketId: "GP-21"  # 文章編號
+ticketId: "GP-PENDING"  # merge 前才換真號
 title: "文章標題"
 originalDate: "YYYY-MM-DD"  # 原文發佈日（SD 系列 = 撰寫日）
-translatedDate: "YYYY-MM-DD"  # 翻譯/發佈日
+translatedDate: "YYYY-MM-DD"  # gu-log 發佈日
 translatedBy:
-  model: "<detect-model output>"  # 必須換成 detect-model.mjs 的實際輸出
-  harness: "OpenClaw"
-  pipeline:
-    - role: "Translator"  # GP 使用 Translator；MP/SD/Lv 使用 Author
-      model: "<detect-model output>"
-      harness: "Mogu"
+  model: "<model>"  # 見〈translatedBy.model — 自動偵測〉
+  harness: "<harness>"
+  pipeline:  # 選填，只能放在 translatedBy 底下
+    - role: "<role>"  # 例如 Written、Reviewed、Refined
+      model: "<model>"
+      harness: "<harness>"
 source: "@username on X"  # 或 "ShroomDog Lab"（SD 系列）
 sourceUrl: "https://..."
 lang: "zh-tw"  # 或 "en"
-summary: "一兩句話摘要，會顯示在首頁 Toggle 預覽"
-tags: ["tag1", "tag2"]  # 用於分類和過濾
+summary: "2–3 句摘要，顯示在首頁 Toggle 預覽"  # 長度提醒見 `scripts/validate-posts.mjs`
+tags: ["tag1", "tag2"]  # 只放主題 tag，系列由 ticketId 決定
 ---
 ```
 
-**必填欄位**: ticketId, title, originalDate, translatedDate, translatedBy, source, sourceUrl, summary, lang
-
-**選填欄位**: tags
-
-**`status`（選填，預設 `published`）**：欄位與跨欄位規則以 `src/content.config.ts` 的 schema 為準，這裡只講語意：
+**`status`（選填，預設 `published`）** 的語意：
 
 - `deprecated`／`retired`：編輯標籤（重複、過時、退役）。文章**仍公開全文**，只多一條狀態橫幅、不進列表，不等於下架。
 - `taken-down`：下架。正文清空、摘要換成中性句，原網址只剩墓碑（200 加 `noindex`），HTML、JSON、`.md`、feed、搜尋與 sitemap 都不再有正文；下架後不能改回其他狀態，也不再跑 Tribunal。下架契約見 [`post-takedown` spec](openspec/specs/post-takedown/spec.md)；批次下架一律用 `scripts/take-down-posts.mjs` 依規則產生清單，不要手改 frontmatter。
