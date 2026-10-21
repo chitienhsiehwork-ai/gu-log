@@ -95,21 +95,6 @@ describe('list-content-gate-posts fail-closed base contract', () => {
     );
   });
 
-  it('runs the pre-commit score floor, pronoun and AI-tells gates on the same PR selection', () => {
-    const workflow = parse(fs.readFileSync(CI_WORKFLOW, 'utf8'));
-    const { run } = workflow.jobs['validate-content'].steps.find(({ name }: { name?: string }) =>
-      name?.startsWith('Content gates')
-    );
-
-    expect(run).toContain('for f in $CHANGED_MDX; do');
-    expect(run).toContain('-PENDING" "$f" && continue');
-    expect(run).toContain('node scripts/score-floor-check.mjs "$f" 3');
-    expect(run).toContain('node scripts/check-pronoun-clarity.mjs $CHANGED_MDX || rc=1');
-    expect(run).toContain('node scripts/check-ai-tells.mjs $CHANGED_MDX || rc=1');
-    // 每支 gate 都跑完再一起回報；rc 是唯一出口，不能被吞掉。
-    expect(run.trimEnd().endsWith('exit "$rc"')).toBe(true);
-  });
-
   it('still gates a unique new post when git grep returns no match', () => {
     const repo = makeRepo();
 
@@ -302,6 +287,74 @@ describe('list-content-gate-posts reader-revision exemption', () => {
     expect(runEdit(post('MP-5', 'legacy'), withFrontmatter(`title: "新標題"\n${SCORES}`))).toEqual([
       'FILE',
     ]);
+  });
+});
+
+describe('CI Content gates step', () => {
+  // 把 ci.yml 的 run 原樣搬到假 PR repo 實跑，只把 node scripts/ 指回這個 repo。
+  const STEP_RUN: string = parse(fs.readFileSync(CI_WORKFLOW, 'utf8')).jobs[
+    'validate-content'
+  ].steps.find(({ name }: { name?: string }) => name?.startsWith('Content gates')).run;
+  const zhPost = (ticketId: string, extra = '') =>
+    `---\nticketId: "${ticketId}"\n${extra}---\n\n${Array.from(
+      { length: 12 },
+      (_, i) => `第 ${i} 段正文，講部署流程。`
+    ).join('\n\n')}\n`;
+
+  function runStep(seed: Record<string, string>, change: Record<string, string>) {
+    const repo = makeRepo();
+    const commit = (files: Record<string, string>, message: string) => {
+      for (const [name, text] of Object.entries(files)) {
+        fs.writeFileSync(path.join(repo, 'src', 'content', 'posts', name), text);
+      }
+      git(repo, ['add', '.']);
+      git(repo, ['commit', '-qm', message]);
+    };
+
+    try {
+      writeGlossary(repo, []);
+      commit(seed, 'seed base');
+      git(repo, ['branch', 'base']);
+      commit(change, 'pr change');
+      git(repo, ['remote', 'add', 'origin', repo]);
+      const run = STEP_RUN.replaceAll('node scripts/', `node ${path.dirname(SCRIPT)}/`);
+      return spawnSync('bash', ['-c', run], {
+        cwd: repo,
+        env: { ...process.env, BASE_SHA: git(repo, ['rev-parse', 'base']) },
+        encoding: 'utf8',
+      });
+    } finally {
+      fs.rmSync(repo, { recursive: true, force: true });
+    }
+  }
+
+  it('passes a Tribunal publisher PR that only writes back scores', () => {
+    const scores = 'scores:\n  vibe:\n    composite: 8\n';
+    const r = runStep(
+      { 'mp-5-legacy.mdx': zhPost('MP-5') },
+      { 'mp-5-legacy.mdx': zhPost('MP-5', scores) }
+    );
+
+    expect(r.stdout).toContain('skipping content gates');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+  });
+
+  it('fails an unscored numbered post, skips PENDING drafts, and still runs every gate', () => {
+    const r = runStep(
+      {},
+      {
+        'sd-7-new.mdx': `${zhPost('SD-7')}\n這套流程被他拆過一遍。\n`,
+        'sd-pending-draft.mdx': zhPost('SD-PENDING'),
+      }
+    );
+
+    expect(r.stdout).toContain(
+      '::error file=src/content/posts/sd-7-new.mdx::score floor: missing scores.vibe'
+    );
+    expect(r.stdout).not.toContain('sd-pending-draft.mdx::score floor');
+    // floor 先失敗，排在最後的 AI-tells 照樣要跑完，結果一起回報。
+    expect(r.stdout).toContain('AI-tells check failed');
+    expect(r.status, r.stdout + r.stderr).toBe(1);
   });
 });
 
