@@ -22,13 +22,13 @@ Local actor 只要要寫文、修文、改內容規則、writer prompt、judge p
 
 ## 差別只在環境，規則跟 CCC 共用
 
-**工作規則**（commit discipline、scope ceiling、失敗處理、品質 gate）**全部共用 CCC-playbook.md 的內容**。那些是 agent 在這個 repo 的通則，不是 CCC 專屬。讀 CCC-playbook 的這幾段當 local Codex actor / local Claude actor 自己的規則：
+**工作規則全部共用 CCC-playbook.md 的內容**。那些是 agent 在這個 repo 的通則，不是 CCC 專屬。讀 CCC-playbook 的這幾段當 local Codex actor / local Claude actor 自己的規則：
 
 - Commit discipline（atomic commits）
 - Scope ceiling（相關路徑 + prod/CI 緊急事件例外）
 - 品質 gate（不能跳任何 hook 或 tribunal）
 - 失敗處理（forward fix → opus subagent → revert）
-- Merge method 選擇（選錯會讓 main CI 變紅）
+- Merge method 選擇（動到文章的 PR 選錯會讓 main CI 變紅）
 
 ## 環境差異（local Codex actor / local Claude actor 該知道、CCC 不會遇到）
 
@@ -55,7 +55,7 @@ git log --oneline -5
 
 ### Merge flow
 
-Branch 與 merge policy 以 Tier-0 `AGENTS.md` 為 SSOT；local actor 也沒有直推 `main` 的例外：
+Branch policy 以 Tier-0 `AGENTS.md` 為 SSOT，merge method 照 [`CCC-playbook.md`](CCC-playbook.md)〈Merge method 選擇〉；local actor 也沒有直推 `main` 的例外：
 
 - 從 `main` 開場 → 修改前建立 feature branch
 - 在 feature branch 上 → commit、push、開 PR、盯 CI，綠了依當前任務 gate 自行 merge
