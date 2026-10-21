@@ -55,7 +55,8 @@ run_guard_merge() {
     --recheck-pr-json-file "$TMP_DIR/recheck-pr.json" \
     --checks-json-file "$TMP_DIR/checks.json" \
     --files-json-file "$TMP_DIR/files.json" \
-    --audit-log "$TMP_DIR/decisions.jsonl"
+    --audit-log "$TMP_DIR/decisions.jsonl" \
+    "$@"
 }
 
 run_guard() {
@@ -247,6 +248,26 @@ if grep -qx -- '--merge' "$TMP_DIR/gh-args"; then
   exit 1
 fi
 grep -qx -- '--match-head-commit' "$TMP_DIR/gh-args"
+
+# Moving a post out of src/content/posts/ still touches posts, so it must not
+# be squashed either (the rename source counts, not just the new filename).
+write_common_json
+cat >"$TMP_DIR/files.json" <<'JSON'
+[
+  {
+    "filename":"src/pages/gp-test.mdx",
+    "status":"renamed",
+    "previous_filename":"src/content/posts/gp-test.mdx"
+  }
+]
+JSON
+run_guard_merge --allow-low-risk-code >"$TMP_DIR/post-rename-out-merge.out"
+grep -q "merge method: --merge" "$TMP_DIR/post-rename-out-merge.out"
+grep -qx -- '--merge' "$TMP_DIR/gh-args"
+if grep -qx -- '--squash' "$TMP_DIR/gh-args"; then
+  echo "expected PR that moves a post out not to be squashed" >&2
+  exit 1
+fi
 
 # A denied PR must never reach gh pr merge.
 write_common_json

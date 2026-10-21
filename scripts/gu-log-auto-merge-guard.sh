@@ -299,12 +299,10 @@ if [ "$decision" = "deny" ]; then
   exit 2
 fi
 
-# PRs that touch posts must keep their individual commits: post-versions.json
-# counts the non-merge commits that touched each post, so squashing them turns
-# main's post-version-manifest check red. Contract:
-# openspec/specs/github-ai-automerge-guard/spec.md.
+# Post PRs must not be squashed; see openspec/specs/github-ai-automerge-guard/spec.md.
+# POLICY_PATHS_JSON includes rename sources, so moving a post out also counts.
 merge_method="--squash"
-if [ "$HAS_POST_CHANGE" -eq 1 ]; then
+if jq -e 'any(.[]; startswith("src/content/posts/"))' <<<"$POLICY_PATHS_JSON" >/dev/null; then
   merge_method="--merge"
 fi
 
