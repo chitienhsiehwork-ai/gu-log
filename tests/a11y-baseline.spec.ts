@@ -17,6 +17,7 @@ const ROUTES = [
   { name: 'Glossary', path: '/glossary' },
   { name: 'Glossary (en)', path: '/en/glossary' },
   { name: 'Level Up index', path: '/level-up' },
+  { name: 'Level Up index (en)', path: '/en/level-up' },
   { name: 'MP post (zh-tw)', path: '/posts/mp-291-20260414-anthropic-' },
 ];
 
