@@ -147,8 +147,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Need history + base ref so the translation-pair gate can
-          # diff "newly added in this PR" against the base branch.
+          # Full history: the PR gates below diff the PR base against HEAD.
           fetch-depth: 0
       - uses: ./.github/actions/setup-pnpm
       - name: Post emoji check (added lines)
@@ -198,8 +197,8 @@ jobs:
           node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
 
       - name: Content gates (PR only — floor, pronoun, 晶晶體, AI-tells on changed zh-tw posts)
-        # Same candidates and exemptions as pre-commit steps 0.1–0.165. Push to
-        # main is skipped: merged content was gated at PR time.
+        # Exemptions mirror pre-commit 0.1–0.165 (list-content-gate-posts.mjs),
+        # but renames are stricter: any reader-visible change gets every gate.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -214,8 +213,8 @@ jobs:
           fi
           rc=0
           for f in $CHANGED_MDX; do
-            # PENDING drafts get scored before allocate-ticket, like pre-commit.
-            grep -qE "^ticketId:[[:space:]]*[\"']?[A-Za-z]+-PENDING" "$f" && continue
+            # Skip PENDING drafts like pre-commit; pending-ticket-guard blocks them.
+            grep -qE "^ticketId:[[:space:]]*[\"'][A-Za-z]+-PENDING[\"']" "$f" && continue
             msg=$(node scripts/score-floor-check.mjs "$f" 3 2>&1) || { echo "::error file=$f::score floor: $msg"; rc=1; }
           done
           node scripts/check-pronoun-clarity.mjs $CHANGED_MDX || rc=1
