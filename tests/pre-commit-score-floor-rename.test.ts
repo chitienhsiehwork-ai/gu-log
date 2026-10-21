@@ -1,7 +1,7 @@
 /**
  * #1164 回歸測試：pre-commit 的 score floor 也要檢查改名的文章。
  *
- * 跟 hooks-integration.test.ts 一樣，在拋棄式 git repo 裡跑真的
+ * 跟 hooks-integration.test.ts 一樣，在用完就丟的假 repo 裡跑真的
  * scripts/hooks/pre-commit；假的 node 讓 score-floor-check.mjs 印出
  * sentinel 並 exit 1，所以看得到 floor 有沒有被叫到。
  */
@@ -31,11 +31,13 @@ describe('pre-commit: score floor covers renamed posts (#1164)', () => {
     return repo;
   }
 
-  function stageRename(repo: string, from: string, to: string, ticketId: string): string {
+  function stageRename(repo: string, from: string, to: string, ticketId: string, toId: string) {
     const posts = path.join(repo, 'src', 'content', 'posts');
     fs.writeFileSync(path.join(posts, from), postText(ticketId));
     commitAll(repo, 'seed post');
     execSync(`git mv src/content/posts/${from} src/content/posts/${to}`, { cwd: repo });
+    fs.writeFileSync(path.join(posts, to), postText(toId));
+    execSync('git add -A', { cwd: repo });
     return execSync('git diff --cached --name-status -M', { cwd: repo, encoding: 'utf-8' });
   }
 
@@ -74,13 +76,16 @@ describe('pre-commit: score floor covers renamed posts (#1164)', () => {
     expect(r.status).toBe(1);
   });
 
-  it('keeps slug renames of an existing ticket and PENDING-to-PENDING renames exempt', () => {
-    for (const [from, to, ticketId] of [
-      ['sd-5-old-slug.mdx', 'sd-5-new-slug.mdx', 'SD-5'],
-      ['sd-pending-old-slug.mdx', 'sd-pending-new-slug.mdx', 'SD-PENDING'],
+  it('keeps slug renames of an existing ticket and *-pending-* targets exempt', () => {
+    // 第二組只確認 PENDING 草稿改 slug 不會被擋（ticketId 那關就會跳過）；
+    // 第三組 ticketId 已換成正式編號、檔名還是 *-pending-*，只有檔名過濾放行它。
+    for (const [from, to, ticketId, toId] of [
+      ['sd-5-old-slug.mdx', 'sd-5-new-slug.mdx', 'SD-5', 'SD-5'],
+      ['sd-pending-old-slug.mdx', 'sd-pending-new-slug.mdx', 'SD-PENDING', 'SD-PENDING'],
+      ['sd-pending-old-slug.mdx', 'sd-pending-new-slug.mdx', 'SD-PENDING', 'SD-9'],
     ]) {
       const repo = makeRepo();
-      expect(stageRename(repo, from, to, ticketId)).toMatch(/^R\d+\t/m);
+      expect(stageRename(repo, from, to, ticketId, toId)).toMatch(/^R\d+\t/m);
 
       const r = runHook(repo);
       expect(r.stdout + r.stderr).not.toContain('score-check-sentinel');
