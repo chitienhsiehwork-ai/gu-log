@@ -73,7 +73,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 ### Merge method 選擇
 
-PR 合併用 `merge_method` 參數指定，三個選項：
+merge method 有三個選項：
 
 | 情況 | 選擇 | 原因 |
 |---|---|---|
@@ -83,7 +83,7 @@ PR 合併用 `merge_method` 參數指定，三個選項：
 
 **判斷規則**：看 PR 的 commit list，每個 commit subject 自己讀都有意義 → `merge`；有廢 commit → `squash`。CCC 理論上不該產廢 commit，所以預設是 `merge`。
 
-**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。呼叫 `enable_pr_auto_merge` 或 `merge_pull_request` 時要明確指定 merge，不要依賴 repo 預設值。
+**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。MCP（`enable_pr_auto_merge`／`merge_pull_request`）或 `gh pr merge --merge` 都要明確指定 merge，不要靠 repo 預設值。
 
 ### CI 等待 timeout
 
