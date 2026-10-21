@@ -85,3 +85,14 @@ Confirm the chosen tradeoff, explain its main consequence, and silently record
 the decision. In debrief, preserving the implemented choice means it can proceed;
 overriding it creates follow-up correction work. Do not label either choice
 correct or wrong.
+
+## 定位小測驗
+
+學習者說某關太難、整則訊息只打 `quiz me`、Level 0 回碼後面加 `?`（例如 `A2H?`），或開課時摸不清學習者的起點，就先用定位小測驗找出哪裡已經會、哪裡要補。打 `quiz me` 是要做定位小測驗，不是要這關的 quiz。目的是定位，不是考倒人；開頭講一句「先問三題，看看你現在的程度」，讓學習者知道答錯也沒關係。
+
+- 通常三題，一次只出一題，學習者答完才出下一題。三題各打一個這門課接下來最需要的先備知識，不要三題都在考同一件事。
+- 每一題答完都不走上面「Respond to a Quiz」的流程：答對簡短確認，不預告下一關；答錯、回「不會」、回「用猜的」（猜對也算）都只記成缺口，不追問、不重講，直接出下一題，教到那關再補。
+- 學習者作答時順手補的推理（例如「這要看設定」）比選了哪個選項更看得出程度。回應時點出那句推理好在哪，肯定它。
+- 三題答完，用一兩句話總結哪些已經會、哪些要補，接著說課程怎麼照結果調整：哪關前面插一關補、哪關講快一點。進度表跟著改。
+
+答對不等於可以跳關。答對只代表大致懂那個概念；自己這邊現在是怎麼設的、那關要做的決定該怎麼參與，學習者可能還不知道。想跳過某關，先問學習者「這關要跳過嗎？」，說還想聽就照教。
