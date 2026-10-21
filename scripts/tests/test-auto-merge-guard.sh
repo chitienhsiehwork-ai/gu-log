@@ -28,7 +28,13 @@ JSON
 JSON
 }
 
-run_guard() {
+cat >"$TMP_DIR/fake-gh" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$@" >"$FAKE_GH_ARGS_FILE"
+SH
+chmod +x "$TMP_DIR/fake-gh"
+
+sync_changed_files_count() {
   local count
   if [ "${KEEP_CHANGED_FILES_COUNT:-0}" != "1" ]; then
     count="$(jq 'length' "$TMP_DIR/files.json")"
@@ -36,6 +42,24 @@ run_guard() {
       "$TMP_DIR/pr.json" >"$TMP_DIR/pr-with-count.json"
     mv "$TMP_DIR/pr-with-count.json" "$TMP_DIR/pr.json"
   fi
+}
+
+# Real merge path with a fake gh that records the arguments it received.
+run_guard_merge() {
+  sync_changed_files_count
+  rm -f "$TMP_DIR/gh-args"
+  GH_BIN="$TMP_DIR/fake-gh" FAKE_GH_ARGS_FILE="$TMP_DIR/gh-args" \
+    scripts/gu-log-auto-merge-guard.sh \
+    --pr 123 \
+    --pr-json-file "$TMP_DIR/pr.json" \
+    --recheck-pr-json-file "$TMP_DIR/recheck-pr.json" \
+    --checks-json-file "$TMP_DIR/checks.json" \
+    --files-json-file "$TMP_DIR/files.json" \
+    --audit-log "$TMP_DIR/decisions.jsonl"
+}
+
+run_guard() {
+  sync_changed_files_count
   scripts/gu-log-auto-merge-guard.sh \
     --dry-run \
     --pr 123 \
@@ -189,6 +213,54 @@ if run_guard >"$TMP_DIR/head-changed-deny.out" 2>&1; then
   exit 1
 fi
 grep -q "DENY: head-changed:1111111111111111111111111111111111111111:2222222222222222222222222222222222222222" "$TMP_DIR/head-changed-deny.out"
+
+# Post PRs must use a merge commit: post-versions.json counts the non-merge
+# commits that touched each post, and squashing them turns main red.
+write_common_json
+cat >"$TMP_DIR/files.json" <<'JSON'
+[
+  {"filename":"src/content/posts/gp-test.mdx","status":"modified"},
+  {"filename":"src/data/post-versions.json","status":"modified"}
+]
+JSON
+run_guard_merge >"$TMP_DIR/post-merge.out"
+grep -q "merge method: --merge" "$TMP_DIR/post-merge.out"
+grep -qx -- '--merge' "$TMP_DIR/gh-args"
+if grep -qx -- '--squash' "$TMP_DIR/gh-args"; then
+  echo "expected post PR not to be squashed" >&2
+  exit 1
+fi
+grep -qx -- '--delete-branch' "$TMP_DIR/gh-args"
+grep -qx -- '--match-head-commit' "$TMP_DIR/gh-args"
+grep -qx -- '1111111111111111111111111111111111111111' "$TMP_DIR/gh-args"
+
+# PRs that leave posts alone keep the existing squash behavior.
+write_common_json
+cat >"$TMP_DIR/files.json" <<'JSON'
+[{"filename":"src/data/glossary.json","status":"modified"}]
+JSON
+run_guard_merge >"$TMP_DIR/glossary-merge.out"
+grep -q "merge method: --squash" "$TMP_DIR/glossary-merge.out"
+grep -qx -- '--squash' "$TMP_DIR/gh-args"
+if grep -qx -- '--merge' "$TMP_DIR/gh-args"; then
+  echo "expected non-post PR to keep squash merge" >&2
+  exit 1
+fi
+grep -qx -- '--match-head-commit' "$TMP_DIR/gh-args"
+
+# A denied PR must never reach gh pr merge.
+write_common_json
+cat >"$TMP_DIR/files.json" <<'JSON'
+[{"filename":".github/workflows/ci.yml","status":"modified"}]
+JSON
+if run_guard_merge >"$TMP_DIR/denied-merge.out" 2>&1; then
+  echo "expected denied PR not to merge" >&2
+  exit 1
+fi
+if [ -e "$TMP_DIR/gh-args" ]; then
+  echo "denied PR must not call gh pr merge" >&2
+  exit 1
+fi
 
 grep -q -- '--match-head-commit' scripts/gu-log-auto-merge-guard.sh
 if grep -q -- '--auto' scripts/gu-log-auto-merge-guard.sh; then

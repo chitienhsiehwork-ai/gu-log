@@ -299,9 +299,18 @@ if [ "$decision" = "deny" ]; then
   exit 2
 fi
 
-echo "ALLOW: CI green + path guard passed for PR #$PR_NUMBER"
+# PRs that touch posts must keep their individual commits: post-versions.json
+# counts the non-merge commits that touched each post, so squashing them turns
+# main's post-version-manifest check red. Contract:
+# openspec/specs/github-ai-automerge-guard/spec.md.
+merge_method="--squash"
+if [ "$HAS_POST_CHANGE" -eq 1 ]; then
+  merge_method="--merge"
+fi
+
+echo "ALLOW: CI green + path guard passed for PR #$PR_NUMBER (merge method: $merge_method)"
 if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --match-head-commit "$head_oid"
+exec "$GH_BIN" pr merge "$PR_NUMBER" --repo "$REPO" "$merge_method" --delete-branch --match-head-commit "$head_oid"
