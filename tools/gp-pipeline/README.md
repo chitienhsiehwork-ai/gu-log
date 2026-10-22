@@ -35,7 +35,10 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本的評審 provider chain。VM profile 各步驟的供應端，以及評審的 model、
+維持原本的評審 provider chain。wrapper 也只在這個 profile 補上
+`GP_WRITER_MODE=claude`；其他環境刻意不補，免得在背後花掉 Claude 額度，
+`run`／`ralph` 的 Tribunal 只評分、不改寫，`run` 遇到沒過就只發 zh-tw。要改寫
+得自己帶 `GP_WRITER_MODE=claude`。VM profile 各步驟的供應端，以及評審的 model、
 effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.json`，
 由 `scripts/tribunal-model-router.sh` 解析；README 不複製易過期的數值。
 
@@ -62,7 +65,7 @@ tools/gp-pipeline/gp-pipeline counter next --prefix MP
 tools/gp-pipeline/gp-pipeline stamp --file <gp-post>.mdx
 ```
 
-MP 走 `write → review → refine → Tribunal rewrite` 路徑；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 也不因貼近來源就承諾完整覆蓋、來源順序或原作者聲音；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
+MP 走 `write → review → refine → Tribunal rewrite` 路徑（改寫要開寫手，見〈Model routing〉）；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 也不因貼近來源就承諾完整覆蓋、來源順序或原作者聲音；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
 
 逐步操作與 side-effect 邊界見 [`SKILL.md`](SKILL.md)；flags 以 `<subcommand> --help` 為準。
 
