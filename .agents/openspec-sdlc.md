@@ -76,7 +76,7 @@ OpenSpec 的 proposal、design、spec、tasks 與 archive 都由 agents 主動�
 
 ### escalation：唯讀牆 + explore-first
 
-- **唯讀牆**：builder 對 openspec spec 檔（`openspec/**/specs/**/*.md`，涵蓋 main specs + change delta）**唯讀**。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision → builder 停手升 coach。強制走 **近似 CI（同一 commit 同時動 spec 檔 + 實作檔 = 違規）+ reviewer backstop**；不靠 runtime hook（builder runtime 不固定、蓋不全）。階段 1 propose（只動 spec）與階段 8 archive（controller sync main specs）不受此牆限制。
+- **唯讀牆**：builder 對 openspec spec 檔（`openspec/**/specs/**/*.md`，涵蓋 main specs + change delta）**唯讀**。需要改一條 scenario 才能修好 = 勝利條件變了 = design decision → builder 停手升 coach。目前真正會擋的是 **reviewer**：CI 的近似檢查（`ci.yml` 的 `openspec-wall` job，同一 commit 同時動 spec 檔 + 實作檔就標出來）只警告、不在 `ci-passed.needs`，什麼條件下升成 blocking 寫在那個 job 的註解。不靠 runtime hook（builder runtime 不固定、蓋不全）。階段 1 propose（只動 spec）與階段 8 archive（controller sync main specs）不受此牆限制。
 - **升級順序**：先 `opsx explore` 釐清（trivial 無 ambiguity 可跳過），coach 核可後由 **controller（非 builder）改 spec delta**，迴圈以新合約重啟、max-N 重計。純實作 bug（不動 scenario）→ builder 在同 PR in-lane atomic 修，不升。
 - **archive 之後才要改合約**（例如轉 ready 後 auto-review 抓到 scenario 本身有錯）：不重開 change，照上面的升級順序拍板後，在同一個 PR 同時改 main spec 和 archive 裡的 delta，兩邊保持一致。
 
