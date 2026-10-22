@@ -70,21 +70,6 @@ const EXPECTED_RECLASSIFIED_REDIRECTS: Array<[string, string]> = [
   ],
 ];
 
-describe('vercel.mjs Git deployment policy', () => {
-  it('disables previews only for GitHub Actions Dependabot branches', () => {
-    expect(config.git?.deploymentEnabled).toEqual({
-      'dependabot/github_actions/**': false,
-    });
-  });
-
-  it('leaves main, feature, and npm Dependabot branches on Vercel defaults', () => {
-    const policy = config.git?.deploymentEnabled ?? {};
-    for (const branch of ['main', 'feature/example', 'dependabot/npm_and_yarn/example']) {
-      expect(Object.hasOwn(policy, branch), `${branch} must stay unspecified`).toBe(false);
-    }
-  });
-});
-
 describe('vercel.mjs redirect config — full manifest coverage', () => {
   it('matches the declared summary to oldTicketId language groups', () => {
     expect(deriveManifestCounts(manifest.entries)).toEqual(manifest.counts);

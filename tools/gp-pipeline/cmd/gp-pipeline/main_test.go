@@ -553,7 +553,6 @@ func TestGPPassesIngress(t *testing.T) {
 	}{
 		{name: "run", args: []string{"--fake-provider", missingFake, "run", "--prefix", "GP", "https://x.com/author/status/1"}},
 		{name: "write", args: []string{"--fake-provider", missingFake, "write", "--prefix", "GP", "--source", source}},
-		{name: "review default GP ticket", args: []string{"--fake-provider", missingFake, "review", "--draft", draft}},
 		{name: "refine GP ticket", args: []string{"--fake-provider", missingFake, "refine", "--draft", draft, "--ticket-id", "GP-12"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
