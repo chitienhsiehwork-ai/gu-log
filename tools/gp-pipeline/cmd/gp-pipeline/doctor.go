@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
 	"github.com/spf13/cobra"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/llm"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/runner"
 )
@@ -71,21 +73,22 @@ func newDoctorCmd(state *rootState) *cobra.Command {
 		Short: "Verify every external dependency is reachable",
 		Long: `doctor reports on the health of the gp-pipeline execution environment.
 
-It checks:
+It reports the Go version, OS and architecture of this binary, and checks:
 
-  - The Go version (must be >= 1.24 for this binary to build and run).
-  - Every external binary the pipeline shells out to (codex, claude, node,
-    python3, git, bash, curl, jq, make, pnpm).
+  - Every external binary the pipeline shells out to, marked required or
+    optional. A runtime profile makes its writer and reviewer providers
+    required.
   - The optional YouTube candidate capability (requires yt-dlp). Missing
     yt-dlp is reported but does not make unrelated pipeline health fail.
-  - Every repo-relative file the pipeline depends on (fetch-x-article.sh,
-    validate-posts.mjs, article-counter.json, GU-LOG_WRITER_PROMPT.md).
+  - Every repo-relative file the pipeline reads or runs: its scripts, the
+    article counter, the writer prompt and the source-aligner pin, plus
+    the model routing config under a runtime profile.
   - Optionally (--probe-llm), sends a 1-token canary prompt through each
     LLM provider to confirm it responds non-interactively.
 
 Exit code 0 when everything required is present. Exit code 1 when any
-required dependency is missing. Optional binaries and LLM probe failures
-are reported but do not affect the exit code.`,
+required dependency is missing, with or without --json. Optional binaries
+and LLM probe failures are reported but do not affect the exit code.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runDoctor(cmd.Context(), state, probeLLM)
 		},
@@ -165,17 +168,7 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 		}
 	}
 
-	fileChecks := []fileCheck{
-		{Name: "fetch-x-article.sh", Path: state.cfg.FetchXArticle, Required: true},
-		{Name: "validate-posts.mjs", Path: state.cfg.ValidatePosts, Required: true},
-		{Name: "article-counter.json", Path: state.cfg.CounterFile, Required: true},
-		{Name: "GU-LOG_WRITER_PROMPT.md", Path: state.cfg.WritingGuide, Required: true},
-	}
-	if writerRuntime.RuntimeProfile != "legacy" {
-		fileChecks = append(fileChecks, fileCheck{
-			Name: "llm-pipeline.json", Path: state.cfg.ModelRouting, Required: true,
-		})
-	}
+	fileChecks := doctorFileChecks(state.cfg, writerRuntime.RuntimeProfile)
 	for i := range fileChecks {
 		fi, err := os.Stat(fileChecks[i].Path)
 		fileChecks[i].Found = err == nil && !fi.IsDir()
@@ -207,13 +200,38 @@ func runDoctor(ctx context.Context, state *rootState, probeLLM bool) error {
 	if state.json {
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		return enc.Encode(report)
+		if err := enc.Encode(report); err != nil {
+			return err
+		}
+	} else {
+		printDoctorHuman(state, report)
 	}
-	printDoctorHuman(state, report)
 	if !report.OK {
 		return fmt.Errorf("doctor: %s", report.FailReason)
 	}
 	return nil
+}
+
+// doctorFileChecks lists the repo files the pipeline reads or runs. All are
+// required; the model routing config only under a runtime profile.
+func doctorFileChecks(cfg *config.Config, runtimeProfile string) []fileCheck {
+	checks := []fileCheck{
+		{Name: "fetch-x-article.sh", Path: cfg.FetchXArticle, Required: true},
+		{Name: "fetch-article.py", Path: cfg.FetchArticle, Required: true},
+		{Name: "validate-posts.mjs", Path: cfg.ValidatePosts, Required: true},
+		{Name: "dedup-gate.mjs", Path: filepath.Join(cfg.ScriptsDir, "dedup-gate.mjs"), Required: true},
+		{Name: "source-distance.mjs", Path: filepath.Join(cfg.ScriptsDir, "source-distance.mjs"), Required: true},
+		{Name: "tribunal.sh", Path: filepath.Join(cfg.ScriptsDir, "tribunal.sh"), Required: true},
+		{Name: "article-counter.json", Path: cfg.CounterFile, Required: true},
+		{Name: "GU-LOG_WRITER_PROMPT.md", Path: cfg.WritingGuide, Required: true},
+		{Name: "source-aligner.md", Path: filepath.Join(cfg.RepoRoot, llm.AlignerAgentPath), Required: true},
+	}
+	if runtimeProfile != "legacy" {
+		checks = append(checks, fileCheck{
+			Name: "llm-pipeline.json", Path: cfg.ModelRouting, Required: true,
+		})
+	}
+	return checks
 }
 
 func printDoctorHuman(state *rootState, r doctorReport) {

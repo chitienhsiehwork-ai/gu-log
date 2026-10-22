@@ -67,7 +67,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 | CI 綠 + safe + 非 critical（content 過 tribunal、bugfix、infra、doc typo） | auto-review gate 通過後，提供可用的 **preview URL** 作資訊交付；不等待 user，直接 merge → 部署完再給 prod URL |
 | 改動 safe 但 CI 還在跑 | auto-review gate 通過後，提供已就緒的 preview（若有）+ `enable_pr_auto_merge`；講明綠了會自動上，不等待 user |
 | Reader-facing 視覺/UX 改動，而且你**真的拿不準**是不是動到品牌調性/產品方向（borderline critical） | 給 **preview URL + 一個具體問題**，等待 user 拍板；答覆前不得 auto-merge |
-| 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | `AskUserQuestion` 停下來問，**不要**先 merge |
+| 明確的 critical design decision（產品方向、架構、對外承諾、品牌調性） | 在 chat 用具體問題停下來問，**不要**先 merge |
 
 **白話**：safe 就把 preview 當收據交付，照常 merge；不因「想讓你看一眼」停住。只有「這個 taste call 我真的不確定該不該自己拍」才值得 preview + 問。判斷不出來時，預設往「提供 preview 並繼續 merge」靠，不要往「等待批准」靠。
 
@@ -425,6 +425,6 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 
 ## 不確定時找誰
 
-- **技術決策不確定**：用 `AskUserQuestion` 問 user，但要先把問題想清楚、給選項
+- **技術決策不確定**：在 chat 問 user，但要先把問題想清楚、給選項
 - **內容風格不確定**：讀 `GU-LOG_WRITER_PROMPT.md` + `CONTRIBUTING.md`，或跑 `bash scripts/tribunal.sh --score-only --only-stage vibe <file>` 打分
 - **架構不確定**：spawn `Plan` subagent 規劃再動手
