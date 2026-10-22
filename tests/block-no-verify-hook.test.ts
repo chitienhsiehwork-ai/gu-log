@@ -75,6 +75,10 @@ const BYPASSES = [
     '\n'
   ),
   ['echo hi # <<EOF', 'git commit -n -m fix', 'cat <<EOF', 'text', 'EOF'].join('\n'),
+  // 重新導向緊貼著指令名稱，bash 照樣執行 git
+  'git>out commit --no-verify -m fix',
+  'git 2>err commit -n -m fix',
+  'git commit -m fix >log 2>&1 -n',
 ];
 
 const ALLOWED = [
@@ -131,6 +135,8 @@ const ALLOWED = [
     'fix: 擋掉 git commit -n，版本 $(git rev-parse --short HEAD)',
     'EOF',
   ].join('\n'),
+  'git push -n origin HEAD >/dev/null 2>&1',
+  'git>out log --oneline -n 5',
 ];
 
 describe('block-no-verify PreToolUse hook', () => {

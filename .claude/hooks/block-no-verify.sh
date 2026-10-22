@@ -26,7 +26,7 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/nul
 #      引號和 # 註解裡的 <<EOF 只是文字，不算 heredoc 起點
 #   2. 由左到右處理跳脫字元、引號、# 註解：引號內的文字當成一個參數（空白和分隔符換成 _），註解丟掉
 #   3. 沒加引號的 $(…)、<(…)、`…` 原地換成一個參數 _，裡面的內容接到最後，另外當成指令檢查
-#   4. 丟掉 2>&1、&> 這類重新導向，免得 & 被當成分隔符
+#   4. 重新導向連同目標一起丟掉（2>&1、&>log、>out、<in），免得 & 被當成分隔符、git>out 認不出 git
 #   5. ; & | ( ) ` 換成換行
 STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
   my @lines = split /\n/, $_, -1;
@@ -56,7 +56,7 @@ STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
     if (defined $word) { $word =~ s/[\s;&|()<>`]/_/g; length $word ? $word : "_" } else { "" }
   }gse;
   while (s{[\$<>]\(([^()]*)\)|`([^`]*)`}{_}) { $_ .= "\n" . (defined $1 ? $1 : $2) }
-  s/[0-9]*[<>]&[0-9-]*|&>>?/ /g;
+  s/(?:[0-9]*|&)(?:>>?|<)(?:&[0-9-]*|\s*[^\s;&|()<>]*)/ /g;
   s/[;&|()`]/\n/g;
   print;
 ' 2>/dev/null) || exit 0
