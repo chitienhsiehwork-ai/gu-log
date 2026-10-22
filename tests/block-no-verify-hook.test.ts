@@ -70,6 +70,11 @@ const BYPASSES = [
   ['cat <<EOF', '$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   ['cat <<EOF', 'done: `git commit -n -m x`', 'EOF'].join('\n'),
   ['cat <<-EOF', '\t"$(cd sub && git commit -m "$(date)" -n)"', '\tEOF'].join('\n'),
+  // 引號和註解裡的 <<EOF 不是 heredoc，不能把後面真的指令當成內文丟掉
+  ["printf '%s\\n' '<<EOF'", 'git commit --no-verify -m fix', 'cat <<EOF', 'text', 'EOF'].join(
+    '\n'
+  ),
+  ['echo hi # <<EOF', 'git commit -n -m fix', 'cat <<EOF', 'text', 'EOF'].join('\n'),
 ];
 
 const ALLOWED = [
