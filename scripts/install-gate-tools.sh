@@ -3,7 +3,7 @@
 #
 # 為什麼存在：
 #   CCC sandbox 不預裝這兩個工具。缺 gitleaks，pre-commit 會跳過 secret scan（只剩 push 後的
-#   CI 擋）；缺 shellcheck，tests/hooks-integration.test.ts 的 ShellCheck case 在本機必 fail。
+#   CI 擋）；缺 shellcheck，tests/ 裡跑 ShellCheck 的 vitest case 在本機必 fail。
 #   ccc-smoke-test.sh --fix 在 CCC 會自動呼叫這支；本機 Linux 也能手動跑，macOS 請用 brew。
 #
 # 版本對齊 CI：
