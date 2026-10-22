@@ -349,3 +349,47 @@ test.describe('SD Deep Dive Series Navigation', () => {
     await expect(seriesNextLink).toBeVisible();
   });
 });
+
+// Simon Willison's Agentic Engineering: the GP posts at order 2–9 are taken
+// down, so only MP-8 (order 1), MP-145 (10), MP-146 (11), MP-169 (12) and
+// MP-171 (13) are visible. Progress, prev/next and list numbers must follow the
+// position in that visible list, not `series.order` (#1164).
+test.describe('SeriesNav — gaps left by taken-down posts', () => {
+  const MP_8 = '/posts/mp-8-20260203-simonw-agentic-loops';
+  const MP_145 = '/posts/mp-145-20260308-simonw-agentic-manual-testing';
+  const MP_146 = '/posts/mp-146-20260309-simonw-agentic-anti-patterns-unreviewed-code';
+  const EN_MP_145 = '/en/posts/en-mp-145-20260308-simonw-agentic-manual-testing';
+  const EN_MP_146 = '/en/posts/en-mp-146-20260309-simonw-agentic-anti-patterns-unreviewed-code';
+  const EN_MP_169 = '/en/posts/en-mp-169-20260315-simonw-pragmatic-summit-agentic-engineering';
+
+  test('progress and prev/next skip the taken-down orders', async ({ page }) => {
+    await page.goto(MP_145);
+
+    await expect(page.locator('[data-series-progress]')).toHaveText('第 2 / 5 篇');
+    await expect(page.locator('a[data-series-prev]')).toHaveAttribute('href', MP_8);
+    await expect(page.locator('a[data-series-next]')).toHaveAttribute('href', MP_146);
+  });
+
+  test('first visible post links forward across the gap', async ({ page }) => {
+    await page.goto(MP_8);
+
+    await expect(page.locator('[data-series-progress]')).toHaveText('第 1 / 5 篇');
+    await expect(page.locator('[data-series-prev]')).not.toBeVisible();
+    await expect(page.locator('a[data-series-next]')).toHaveAttribute('href', MP_145);
+  });
+
+  test('series list numbers follow visible positions', async ({ page }) => {
+    await page.goto(MP_145);
+
+    const orders = page.locator('[data-series-list] .series-order');
+    await expect(orders).toHaveText(['1.', '2.', '3.', '4.', '5.']);
+  });
+
+  test('en sidecar counts the same visible posts', async ({ page }) => {
+    await page.goto(EN_MP_146);
+
+    await expect(page.locator('[data-series-progress]')).toHaveText('3 / 5');
+    await expect(page.locator('a[data-series-prev]')).toHaveAttribute('href', EN_MP_145);
+    await expect(page.locator('a[data-series-next]')).toHaveAttribute('href', EN_MP_169);
+  });
+});
