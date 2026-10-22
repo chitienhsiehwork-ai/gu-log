@@ -6,6 +6,13 @@ allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*)
 
 # Browser Automation with playwright-cli
 
+> 上游：`@playwright/cli` 內附的 skill，2026-05 由 #271 匯入時沒記版本。〈本地補充〉是 gu-log 加的，更新上游內容時保留這一節。
+
+## 本地補充（先讀）
+
+- 每個任務開自己的 named session（`-s=<任務專屬名稱>`），做完只關自己那個：`playwright-cli -s=<任務專屬名稱> close`。
+- `close-all`、`kill-all` 會關掉這台機器上所有 session。本機常有好幾個 agent 同時開瀏覽器，這兩個指令會把別人的瀏覽器一起砍掉，不要拿來當例行收尾；只有確定沒有其他任務在用，或 user 指定要全部清掉時才用。瀏覽器卡住的處理見 [session-management.md](references/session-management.md)〈Recovering a Stuck Browser〉。
+
 ## Quick start
 
 ```bash
@@ -267,9 +274,9 @@ playwright-cli -s=mysession close  # stop a named browser
 playwright-cli -s=mysession delete-data  # delete user data for persistent session
 
 playwright-cli list
-# Close all browsers
+# Close every session on this machine — only when no other task uses one
 playwright-cli close-all
-# Forcefully kill all browser processes
+# Kill all browser processes — stuck daemons only, see session-management.md
 playwright-cli kill-all
 ```
 
