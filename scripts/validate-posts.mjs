@@ -46,7 +46,7 @@ const VALID_LANGS = ['zh-tw', 'en'];
 // PENDING is a legitimate in-flight ticket state used by the gp-pipeline
 // and by manual drafters working on parallel branches. The deploy step
 // swaps PENDING for a real number allocated from article-counter.json at
-// the last moment (see CONTRIBUTING.md §並行撰寫防 ID collision).
+// the last moment (see CONTRIBUTING.md 〈編號分配〉).
 const TICKET_PATTERN = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
 const RETIRED_TICKET_PATTERN = /^(SP|CP)-(\d+|PENDING)$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;

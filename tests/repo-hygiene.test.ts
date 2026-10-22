@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
@@ -67,5 +67,9 @@ describe('repository hygiene', () => {
       expect(checkIgnore(candidate), candidate).toBe(0);
     }
     expect(checkIgnore('.env.example'), '.env.example').toBe(1);
+
+    // worktree 常用 symlink 借主 checkout 的 node_modules，symlink 也要被忽略
+    symlinkSync(os.tmpdir(), path.join(repo, 'node_modules'));
+    expect(checkIgnore('node_modules'), 'node_modules symlink').toBe(0);
   });
 });

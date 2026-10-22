@@ -8,6 +8,7 @@
 - **Deployment**: Vercel (auto-deploy on push)
 - **Analytics**: Vercel Web Analytics (`@vercel/analytics`, inject in BaseLayout)
 - **Package manager**: pnpm
+- **gp-pipeline**: Go CLI（`tools/gp-pipeline/`；Go 版本以 [`go.mod`](../tools/gp-pipeline/go.mod) 為準）
 - **Fonts**: Inter + Noto Sans TC (Google Fonts)
 - **Theme**: Dracula dark（default）+ Solarized light（CSS SSOT：`src/styles/global.css`；雙主題對照見 `uiux-auditor` skill）
 
@@ -47,5 +48,6 @@ pnpm run dev                   # 本地開發 localhost:4321
 pnpm run build                 # 生產 build
 pnpm exec astro check          # TypeScript 檢查
 node scripts/validate-posts.mjs # 驗證所有文章
+(cd tools/gp-pipeline && go test ./...) # gp-pipeline 的 Go 測試
 vercel logs --since 1h         # 查最近 1h request logs（需 vercel login）
 ```
