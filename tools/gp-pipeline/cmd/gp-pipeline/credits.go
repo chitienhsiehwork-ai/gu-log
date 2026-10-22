@@ -28,16 +28,22 @@ func newCreditsCmd(state *rootState) *cobra.Command {
 		Long: `credits is Step 4.6 of the pipeline. It rewrites translatedBy.model,
 translatedBy.harness, translatedBy.pipeline (4-entry), and pipelineUrl
 in the target file's frontmatter. Useful for debugging a single mdx
-without running the full pipeline.`,
+without running the full pipeline.
+
+The model flags only override a label. Left unset, each role is stamped
+with the runtime it resolves to: Written and Refined with the writer (the
+pinned Claude model), Reviewed with the judge.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runCredits(cmd.Context(), state, finalPath, workDir, writeModel, reviewModel, refineModel)
 		},
 	}
 	cmd.Flags().StringVar(&finalPath, "file", "", "path to final.mdx (required)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --file)")
-	cmd.Flags().StringVar(&writeModel, "write-model", "GPT-5.5", "model stamped for the Written role")
-	cmd.Flags().StringVar(&reviewModel, "review-model", "GPT-5.5", "model stamped for the Reviewed role")
-	cmd.Flags().StringVar(&refineModel, "refine-model", "GPT-5.5", "model stamped for the Refined role")
+	// No default model: a hard-coded label would override the runtime stamp
+	// and credit a model that never wrote the post.
+	cmd.Flags().StringVar(&writeModel, "write-model", "", "override the model stamped for the Written role (default: the writer runtime)")
+	cmd.Flags().StringVar(&reviewModel, "review-model", "", "override the model stamped for the Reviewed role (default: the judge runtime)")
+	cmd.Flags().StringVar(&refineModel, "refine-model", "", "override the model stamped for the Refined role (default: the writer runtime)")
 	_ = cmd.MarkFlagRequired("file")
 	return cmd
 }

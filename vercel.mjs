@@ -372,9 +372,13 @@ export const config = {
   ...platformRoutes,
   git: {
     deploymentEnabled: {
-      // GitHub CI fully validates workflow-only Dependabot updates; skipping
-      // their site previews preserves the single Hobby build slot for code PRs.
+      // These Dependabot ecosystems never reach `astro build` (CI workflows,
+      // gp-pipeline's Go module, scripts/ Python fetchers) and GitHub CI fully
+      // validates them; skipping their site previews preserves the Hobby
+      // plan's build slot and daily deployment quota for site-affecting PRs.
       'dependabot/github_actions/**': false,
+      'dependabot/go_modules/**': false,
+      'dependabot/pip/**': false,
     },
   },
 };

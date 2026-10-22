@@ -93,3 +93,37 @@ describe('gp-pipeline Go test leaf', () => {
     expect(owners).toEqual([`ci.yml:${GO_JOB}`]);
   });
 });
+
+// `pnpm test` 要跟 PR CI 擋的同一套。package.json 和 ci.yml 各寫一份指令，
+// check-spec-ownership.mjs 又刻意不掃 package.json，所以在這裡把兩邊鎖在一起。
+describe('local pnpm test scripts mirror the blocking CI test jobs', () => {
+  const normalize = (command: string) => command.replace(/'/g, '"').replace(/\s+/g, ' ').trim();
+
+  async function readScripts(): Promise<Record<string, string>> {
+    return JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')).scripts;
+  }
+
+  async function ciCommands(jobId: string, pattern: RegExp): Promise<string[]> {
+    const steps = (await readWorkflow(WORKFLOW_URL)).jobs[jobId]?.steps ?? [];
+    const run = steps.map((step) => step.run ?? '').find((script) => pattern.test(script));
+    expect(run, `ci.yml ${jobId} has no step matching ${pattern}`).toBeDefined();
+    return (run ?? '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#') && !line.startsWith('set '))
+      .map(normalize);
+  }
+
+  it('test:e2e runs the same spec list, project and retries as e2e-core', async () => {
+    const local = (await readScripts())['test:e2e'].split('&&').map(normalize);
+    expect(local).toEqual(await ciCommands('e2e-core', /\bplaywright test\b/));
+  });
+
+  it('test:unit runs the same Vitest suite as unit-tests', async () => {
+    const [ci] = await ciCommands('unit-tests', /\bvitest run\b/);
+    const withoutReporter = (command: string) => command.replace(/\s--reporter=\S+/g, '');
+    expect(withoutReporter(normalize((await readScripts())['test:unit']))).toBe(
+      withoutReporter(ci)
+    );
+  });
+});

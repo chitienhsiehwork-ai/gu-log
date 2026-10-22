@@ -223,8 +223,8 @@ func TestWriteRefusesLv(t *testing.T) {
 	requireAbsent(t, workDir)
 }
 
-// TestReviewAndRefineRefuseLvDrafts: --ticket-id defaults to GP-PENDING, so the
-// draft's own ticketId is checked as well; either one naming Lv is refused.
+// TestReviewAndRefineRefuseLvDrafts: --ticket-id may disagree with the draft,
+// so the draft's own ticketId is checked as well; either one naming Lv is refused.
 func TestReviewAndRefineRefuseLvDrafts(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)

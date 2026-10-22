@@ -35,10 +35,14 @@ func newRefineCmd(state *rootState) *cobra.Command {
 		Use:   "refine",
 		Short: "Apply review feedback and produce final.mdx",
 		Long: fmt.Sprintf(`refine applies review feedback to a %s draft; the
---ticket-id series picks the prompt contract. This command reads draft-v1.mdx
-and review.md from the work directory and asks the LLM to produce final.mdx
-with the review's issues fixed. The prompt does NOT embed the draft or review
-contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
+ticket series picks the prompt contract. The ticket is --ticket-id, or else
+the frontmatter ticketId of the draft (--draft, and the work dir's
+draft-v1.mdx when that is another file); a draft without a canonical one, or
+two drafts of different series, need --ticket-id, since refine never picks a
+series. This command reads draft-v1.mdx and review.md from the work directory
+and asks the LLM to produce final.mdx with the review's issues fixed. The
+prompt does NOT embed the draft or review contents — the LLM reads them from
+--work-dir.`, authorableSeries(" / ")),
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runRefine(cmd.Context(), state, draftPath, reviewPath, workDir, ticketID, angle)
 		},
@@ -46,7 +50,7 @@ contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
 	cmd.Flags().StringVar(&draftPath, "draft", "", "path to draft-v1.mdx (required — its parent becomes work-dir when unset)")
 	cmd.Flags().StringVar(&reviewPath, "review", "", "path to review.md (defaults to <work-dir>/review.md)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory (defaults to dirname of --draft)")
-	cmd.Flags().StringVar(&ticketID, "ticket-id", "GP-PENDING", "canonical ticketId for the refine prompt header")
+	cmd.Flags().StringVar(&ticketID, "ticket-id", "", "canonical ticketId for the refine prompt header (defaults to the draft's frontmatter ticketId)")
 	cmd.Flags().StringVar(&angle, "angle", "", "optional narrative angle to preserve while refining")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
@@ -54,7 +58,7 @@ contents — the LLM reads them from --work-dir.`, authorableSeries(" / ")),
 
 func runRefine(ctx context.Context, state *rootState, draftPath, reviewPath, workDir, ticketID, angle string) error {
 	start := time.Now()
-	prefix, workDir, err := draftIngress("refine", draftPath, workDir, ticketID)
+	ticketID, prefix, workDir, err := draftIngress("refine", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}

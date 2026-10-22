@@ -1,17 +1,20 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(__dirname, '..');
 const SHELL_TEST_DIR = path.join(ROOT, 'scripts', 'tests');
+const VITEST_DIR = path.join(ROOT, 'tests');
 
 // These contracts already have focused Vitest bridges with tailored assertions
-// and timeouts. Keep them in this registry so a new shell test cannot silently
-// remain outside every blocking CI owner.
+// and timeouts. Keep them in this registry so a new shell or Python test cannot
+// silently remain outside every blocking CI owner. Python contracts can only
+// live here: the shared runner below executes PORTABLE/BASH4 entries with bash.
 const DEDICATED_CONTRACTS = [
   'test-session-start-context.sh',
   'test-tribunal-deploy-readiness.sh',
+  'test-tribunal-fact-summary-policy.py',
   'test-tribunal-fact-summary-routing.sh',
   'test-tribunal-run-control-claims.sh',
   'test-tribunal-runner-error-guard.sh',
@@ -67,13 +70,37 @@ function runShellContract(filename: string) {
 }
 
 describe('shell regression ownership', () => {
-  it('assigns every scripts/tests shell contract to a blocking Vitest owner', () => {
+  it('assigns every scripts/tests shell and Python contract to a blocking Vitest owner', () => {
     const discovered = readdirSync(SHELL_TEST_DIR)
-      .filter((filename) => filename.startsWith('test-') && filename.endsWith('.sh'))
+      .filter((filename) => filename.startsWith('test-') && /\.(sh|py)$/.test(filename))
       .sort();
     const owned = [...DEDICATED_CONTRACTS, ...PORTABLE_CONTRACTS, ...BASH4_CONTRACTS].sort();
 
     expect(owned).toEqual(discovered);
+  });
+
+  it('only routes Bash contracts through the shared bash runner', () => {
+    const nonBash = [...PORTABLE_CONTRACTS, ...BASH4_CONTRACTS].filter(
+      (filename) => !filename.endsWith('.sh')
+    );
+
+    expect(nonBash, 'register non-Bash contracts as DEDICATED with their own Vitest file').toEqual(
+      []
+    );
+  });
+
+  it('backs every dedicated contract with a Vitest file that names it', () => {
+    // A name match is the cheapest signal that some blocking Vitest file
+    // spawns the contract; without it DEDICATED is an unchecked promise.
+    const self = path.basename(__filename);
+    const bridges = readdirSync(VITEST_DIR, { recursive: true, encoding: 'utf8' })
+      .filter((file) => file.endsWith('.test.ts') && path.basename(file) !== self)
+      .map((file) => readFileSync(path.join(VITEST_DIR, file), 'utf8'));
+    const unbridged = DEDICATED_CONTRACTS.filter(
+      (filename) => !bridges.some((source) => source.includes(filename))
+    );
+
+    expect(unbridged).toEqual([]);
   });
 
   it.each(PORTABLE_CONTRACTS)(

@@ -60,8 +60,12 @@ updates:
           - "patch"
 
   # ─── GitHub Actions ───────────────────────────────────────────────────────
+  # "/" only scans .github/workflows (and a root action.yml); composite
+  # actions under .github/actions/ are only updated through the glob.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -83,3 +87,41 @@ updates:
           - "*"
         update-types:
           - "major"
+
+  # ─── Go modules (gp-pipeline) ─────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/tools/gp-pipeline"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Taipei"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+
+    groups:
+      gomod-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ─── pip (scripts/requirements-*.txt) ─────────────────────────────────────
+  - package-ecosystem: "pip"
+    directory: "/scripts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Taipei"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+
+    groups:
+      pip-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
