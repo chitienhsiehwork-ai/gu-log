@@ -27,6 +27,7 @@ import {
   collectDistAnchorLinks,
   isInternalLink,
 } from './lib/internal-links.mjs';
+import { extractLinks } from './lib/link-extraction.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
@@ -114,72 +115,6 @@ const MANUAL_CHECK_DOMAINS = [
   'deeplearning.ai',
   'news.ycombinator.com',
 ];
-
-// Skip these URL patterns entirely (not real links)
-const SKIP_PATTERNS = [
-  /^mailto:/,
-  /^tel:/,
-  /^javascript:/,
-  /^#/,
-  /^data:/,
-  /^\{\{/, // template expressions
-  /^\$\{/, // template literals
-];
-
-export function isReservedExampleUrl(value) {
-  try {
-    const hostname = new URL(value, 'https://gu-log.invalid').hostname.toLowerCase();
-    return hostname === 'example.com' || hostname.endsWith('.example.com');
-  } catch {
-    return false;
-  }
-}
-
-// ── Link Extraction ──────────────────────────────────────────────
-
-function extractLinks(content, filePath) {
-  const links = [];
-  const seen = new Set();
-
-  function add(url, type, context) {
-    // Clean up URL
-    url = url.trim().replace(/[)>]+$/, '');
-    if (!url || SKIP_PATTERNS.some((p) => p.test(url)) || isReservedExampleUrl(url)) return;
-    const key = `${url}|${filePath}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    links.push({ url, type, context, file: filePath });
-  }
-
-  // Strip fenced code blocks and inline code to avoid false positives
-  const stripped = content
-    .replace(/```[\s\S]*?```/g, '') // fenced code blocks
-    .replace(/`[^`\n]+`/g, ''); // inline code
-
-  // 1. Frontmatter sourceUrl (use original content for frontmatter)
-  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
-  if (fmMatch) {
-    const sourceUrlMatch = fmMatch[1].match(/sourceUrl:\s*['"]([^'"]+)['"]/);
-    if (sourceUrlMatch) {
-      add(sourceUrlMatch[1], 'sourceUrl', 'frontmatter');
-    }
-  }
-
-  // 2. Markdown links: [text](url)
-  const mdLinkRe = /\[([^\]]*)\]\(([^)]+)\)/g;
-  let m;
-  while ((m = mdLinkRe.exec(stripped)) !== null) {
-    add(m[2], 'markdown', m[1] || 'link');
-  }
-
-  // 3. HTML href="url"
-  const hrefRe = /href=["']([^"']+)["']/g;
-  while ((m = hrefRe.exec(stripped)) !== null) {
-    add(m[1], 'html', 'href');
-  }
-
-  return links;
-}
 
 // ── Classification ──────────────────────────────────────────────
 

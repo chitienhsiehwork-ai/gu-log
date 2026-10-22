@@ -134,4 +134,21 @@ describe('annotate-broken-links target confinement', () => {
     expect(result.status).toBe(0);
     expect(readFileSync(post, 'utf8')).toContain('[⚠️ 此連結已於');
   });
+
+  it('places the notice after a link whose URL contains balanced parentheses', () => {
+    const root = setupFixture();
+    const post = join(root, 'src/content/posts/gp-parens.mdx');
+    const link = '[guide](https://broken.test/guide-(with-example))';
+    writeFileSync(post, `${link}\n`);
+    const input = writeReport(root, [
+      { file: 'gp-parens.mdx', url: 'https://broken.test/guide-(with-example)', context: 'guide' },
+    ]);
+
+    const result = runAnnotator(root, input);
+
+    expect(result.status).toBe(0);
+    expect(readFileSync(post, 'utf8')).toMatch(
+      /^\[guide\]\(https:\/\/broken\.test\/guide-\(with-example\)\) \[⚠️ 此連結已於/
+    );
+  });
 });

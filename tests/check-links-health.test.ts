@@ -5,9 +5,9 @@ import { describe, expect, it } from 'vitest';
 import {
   evaluateExternalScanHealth,
   isManualCheckDomain,
-  isReservedExampleUrl,
   scanExternalLinks,
 } from '../scripts/check-links.mjs';
+import { extractLinks, isReservedExampleUrl } from '../scripts/lib/link-extraction.mjs';
 import { checkInternalLink } from '../scripts/lib/internal-links.mjs';
 
 const responseFailures = (...statusCodes: number[]) =>
@@ -51,6 +51,47 @@ describe('broken-link internal path resolution', () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe('broken-link markdown extraction', () => {
+  const urlsOf = (content: string) => extractLinks(content, 'post.mdx').map((link) => link.url);
+
+  it('keeps balanced parentheses inside a markdown link URL', () => {
+    expect(urlsOf('[guide](https://docs.test/guide-(with-example))')).toEqual([
+      'https://docs.test/guide-(with-example)',
+    ]);
+    expect(urlsOf('[wiki](https://wiki.test/Foo_(bar)#History)')).toEqual([
+      'https://wiki.test/Foo_(bar)#History',
+    ]);
+  });
+
+  it('still ends the URL at the closing paren of the link', () => {
+    expect(urlsOf('see [a](https://a.test/x) (aside) and [b](https://b.test/y).')).toEqual([
+      'https://a.test/x',
+      'https://b.test/y',
+    ]);
+  });
+
+  it('does not let an unbalanced "(" swallow text and the next link', () => {
+    expect(urlsOf('[a](https://a.test/x(y) then [b](https://b.test/) end)')).toEqual([
+      'https://b.test/',
+    ]);
+  });
+
+  it('drops a trailing ")" or ">" that is not part of the URL', () => {
+    const hrefs = [
+      'https://a.test/x)',
+      'https://b.test/y>',
+      'https://c.test/z>)',
+      'https://d.test/(w))',
+    ];
+    expect(urlsOf(hrefs.map((url) => `<a href="${url}">l</a>`).join(' '))).toEqual([
+      'https://a.test/x',
+      'https://b.test/y',
+      'https://c.test/z',
+      'https://d.test/(w)',
+    ]);
   });
 });
 
