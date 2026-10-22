@@ -137,7 +137,7 @@ CI 會 blocking 執行這個 gate：
 - **中文版**: `{prefix}-{N}-{date}-{slug}.mdx`
 - **英文版**: `en-{prefix}-{N}-{date}-{slug}.mdx`
 
-slug 使用 kebab-case，簡短描述文章內容。
+`{prefix}` 是小寫的系列代碼（例：`gp-123-20260322-slug.mdx`），slug 用 kebab-case，簡短描述文章內容。
 
 ### Frontmatter Schema
 
@@ -390,30 +390,19 @@ GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker，兩者用同一套規�
 
 ## BDD Testing
 
-**規則：每個 bug = 一個新 BDD test**
+**規則：每個 bug = 一個新 BDD test**：先寫會紅的 test 重現 bug，修好變綠後永遠留著防 regression。命名用 Given-When-Then：`test('GIVEN [前提] WHEN [動作] THEN [預期結果]', …)`。
 
-當使用者報告 bug 時：
-1. 先寫一個 test 來重現 bug（test 應該是紅的）
-2. 修 bug
-3. Test 變綠 = bug 修好
-4. 這個 test 永遠留著，防止 regression
+### 測試指令與 runner
 
-### 測試指令
+`pnpm test` 依序跑 `test:unit`（Vitest，含下表前三種）和 `test:e2e`（Playwright，只跑 Desktop Chrome），跟 PR CI 這兩類一致；`test:toc`、`test:ui` 給本地除錯。部分 Vitest 要先裝 `shellcheck` 和 `scripts/requirements-fetch-article.txt` 的 Python 套件。新測試照 runner 放：
 
-```bash
-pnpm run test        # 跑所有 BDD tests
-pnpm run test:toc    # 只跑 TOC 相關測試
-pnpm run test:ui     # 開 Playwright UI（本地開發用）
-```
-
-### BDD 測試格式
-
-用 Given-When-Then 命名：
-```typescript
-test('GIVEN [前提] WHEN [動作] THEN [預期結果]', async ({ page }) => {
-  // ...
-});
-```
+| Runner | 放哪 | 誰跑 |
+|---|---|---|
+| Vitest | `tests/**/*.test.ts` | `test:unit` |
+| `node:test` | `tests/`、`src/plugins/__tests__/` 的 `*.test.mjs` | `tests/node-test-suites.test.ts` |
+| Shell／Python | `scripts/tests/test-*.{sh,py}` | 登記在 `tests/shell-regression-ownership.test.ts`；Python 另寫 Vitest 檔來跑 |
+| Playwright | `tests/*.spec.ts` | 登記在 `tests/spec-ownership.json`，`test:e2e` 只跑 blocking |
+| Go | `tools/gp-pipeline/**/*_test.go` | 不在 `pnpm test`，跑法見 `tools/gp-pipeline/README.md`〈Development〉 |
 
 ## Source Completeness（寫之前必讀）
 
@@ -516,20 +505,3 @@ Lv 的正文不走 pipeline（見〈新增入門教學（Lv）〉）；寫完後
 node scripts/validate-posts.mjs  # 驗證所有文章 frontmatter + 格式
 pnpm run build                   # 完整 build 檢查
 ```
-
-## 目錄結構
-
-```
-src/content/posts/
-├── gp-123-20260322-slug.mdx          # GP 中文版
-├── en-gp-123-20260322-slug.mdx       # GP 英文版
-├── mp-198-20260322-slug.mdx          # MP 中文版
-├── en-mp-198-20260322-slug.mdx       # MP 英文版
-├── sd-10-20260322-slug.mdx           # SD 中文版
-├── en-sd-10-20260322-slug.mdx        # SD 英文版
-└── lv-11-20260322-slug.mdx           # Lv 中文版
-```
-
-首頁 (`src/pages/index.astro`) 會自動用 `getCollection()` 抓取 `lang: "zh-tw"` 的文章，依日期排序。
-
-英文首頁 (`src/pages/en/index.astro`) 抓取 `lang: "en"` 的文章。
