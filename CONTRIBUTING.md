@@ -137,7 +137,7 @@ CI 會 blocking 執行這個 gate：
 - **中文版**: `{prefix}-{N}-{date}-{slug}.mdx`
 - **英文版**: `en-{prefix}-{N}-{date}-{slug}.mdx`
 
-slug 使用 kebab-case，簡短描述文章內容。
+`{prefix}` 是小寫的系列代碼（例：`gp-123-20260322-slug.mdx`），slug 用 kebab-case，簡短描述文章內容。
 
 ### Frontmatter Schema
 
@@ -394,15 +394,15 @@ GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker，兩者用同一套規�
 
 ### 測試指令與 runner
 
-`pnpm test` 依序跑 `test:unit`（Vitest，含下表前三種）和 `test:e2e`（CI 擋的 blocking Playwright spec，只跑 Desktop Chrome）；`test:toc`、`test:ui` 給本地除錯。新測試照 runner 放：
+`pnpm test` 依序跑 `test:unit`（Vitest，含下表前三種）和 `test:e2e`（Playwright，只跑 Desktop Chrome），跟 PR CI 擋的同一套；`test:toc`、`test:ui` 給本地除錯。部分 Vitest 要先裝 `shellcheck` 和 `scripts/requirements-fetch-article.txt` 的 Python 套件。新測試照 runner 放：
 
 | Runner | 放哪 | 誰跑 |
 |---|---|---|
 | Vitest | `tests/**/*.test.ts` | `test:unit` |
 | `node:test` | `tests/`、`src/plugins/__tests__/` 的 `*.test.mjs` | `tests/node-test-suites.test.ts` |
-| Shell／Python | `scripts/tests/test-*.{sh,py}` | 登記在 `tests/shell-regression-ownership.test.ts` |
+| Shell／Python | `scripts/tests/test-*.{sh,py}` | 登記在 `tests/shell-regression-ownership.test.ts`；Python 另寫 Vitest 檔來跑 |
 | Playwright | `tests/*.spec.ts` | 登記在 `tests/spec-ownership.json`，`test:e2e` 只跑 blocking |
-| Go | `tools/gp-pipeline/**/*_test.go` | 不在 `pnpm test`，在該目錄跑 `go test -count=1 ./...` |
+| Go | `tools/gp-pipeline/**/*_test.go` | 不在 `pnpm test`，跑法見 `tools/gp-pipeline/README.md`〈Development〉 |
 
 ## Source Completeness（寫之前必讀）
 
@@ -505,9 +505,3 @@ Lv 的正文不走 pipeline（見〈新增入門教學（Lv）〉）；寫完後
 node scripts/validate-posts.mjs  # 驗證所有文章 frontmatter + 格式
 pnpm run build                   # 完整 build 檢查
 ```
-
-## 目錄結構
-
-檔名規則見〈檔案命名〉。
-
-首頁 (`src/pages/index.astro`) 用 `getCollection()` 抓 `lang: "zh-tw"` 的文章依日期排序，英文首頁 (`src/pages/en/index.astro`) 抓 `lang: "en"` 的文章。
