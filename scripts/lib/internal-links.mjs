@@ -57,13 +57,12 @@ export function checkInternalLink(url, distDir) {
 }
 
 const ANCHOR_HREF = /<a\b[^>]*?\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
-// noindex, nofollow pages (404, test fixtures) tell crawlers not to follow
-// their links, and fixtures link to fake posts on purpose; skip them likewise.
-const NOFOLLOW_META = /<meta\s+name=["']robots["']\s+content=["'][^"']*\bnofollow\b/i;
+// Test fixture pages (src/pages/artifacts/*-fixture.astro) link to fake posts
+// on purpose. Everything else readers can reach, the 404 page included, is scanned.
+const FIXTURE_PAGE = /^artifacts\/[^/]+-fixture\//;
 
 /** Internal `<a href>` targets in one HTML page, ignoring markup built as strings in <script>. */
 export function extractInternalAnchorHrefs(html) {
-  if (NOFOLLOW_META.test(html)) return [];
   const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   return [...markup.matchAll(ANCHOR_HREF)]
     .map((match) => (match[1] ?? match[2] ?? match[3]).trim().replace(/&amp;/g, '&'))
@@ -76,7 +75,8 @@ export function extractInternalAnchorHrefs(html) {
  */
 export async function collectDistAnchorLinks(distDir) {
   const pages = (await readdir(distDir, { recursive: true }))
-    .filter((file) => file.endsWith('.html'))
+    .map((file) => file.split(sep).join('/'))
+    .filter((file) => file.endsWith('.html') && !FIXTURE_PAGE.test(file))
     .sort();
   const byUrl = new Map();
   for (const page of pages) {
@@ -84,7 +84,7 @@ export async function collectDistAnchorLinks(distDir) {
     for (const url of new Set(extractInternalAnchorHrefs(html))) {
       const seen = byUrl.get(url);
       if (seen) seen.pages += 1;
-      else byUrl.set(url, { url, file: `dist/${page.split(sep).join('/')}`, pages: 1 });
+      else byUrl.set(url, { url, file: `dist/${page}`, pages: 1 });
     }
   }
   return {

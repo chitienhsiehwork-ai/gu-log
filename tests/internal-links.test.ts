@@ -27,11 +27,6 @@ describe('extractInternalAnchorHrefs', () => {
     const html = `<script>el.innerHTML = '<a href="/posts/' + slug + '">';</script><a href="/ok">`;
     expect(extractInternalAnchorHrefs(html)).toEqual(['/ok']);
   });
-
-  it('skips nofollow pages such as fixtures with fake links', () => {
-    const html = `<meta name="robots" content="noindex, nofollow"><a href="/posts/fixture-x">`;
-    expect(extractInternalAnchorHrefs(html)).toEqual([]);
-  });
 });
 
 describe('dist HTML link scan', () => {
@@ -52,6 +47,11 @@ describe('dist HTML link scan', () => {
     );
     await writeFile(join(distDir, 'en', 'index.html'), '<a href="/">zh</a>');
   });
+
+  async function writePage(page: string, html: string) {
+    await mkdir(join(distDir, page, '..'), { recursive: true });
+    await writeFile(join(distDir, page), html);
+  }
 
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
@@ -76,5 +76,16 @@ describe('dist HTML link scan', () => {
     expect(byUrl['/en/tags/斷詞/']).toMatchObject({ file: 'dist/tags/斷詞/index.html' });
     const broken = links.filter((link) => !checkInternalLink(link.url, distDir));
     expect(broken.map((link) => link.url)).toEqual(['/en/tags/斷詞/']);
+  });
+
+  it('scans the nofollow 404 page but skips test fixture pages', async () => {
+    const nofollow = '<meta name="robots" content="noindex, nofollow">';
+    await writePage('404.html', `${nofollow}<a href="/en/404/">en</a>`);
+    await writePage('artifacts/fake-fixture/index.html', `${nofollow}<a href="/posts/fake">x</a>`);
+    const { pageCount, links } = await collectDistAnchorLinks(distDir);
+    expect(pageCount).toBe(5);
+    const urls = links.map((link) => link.url);
+    expect(urls).toContain('/en/404/');
+    expect(urls).not.toContain('/posts/fake');
   });
 });
