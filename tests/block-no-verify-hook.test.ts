@@ -66,6 +66,10 @@ const BYPASSES = [
   'out=$(git commit -n -m "fix")',
   // 標記有引號的 heredoc 內文不處理接續行，所以 EOF 在第三行就結束
   ["cat <<'EOF' > s.sh", 'echo foo \\', 'EOF', 'git commit -n -m x', 'EOF'].join('\n'),
+  // 標記沒引號時，bash 照樣會執行內文的指令替換
+  ['cat <<EOF', '$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
+  ['cat <<EOF', 'done: `git commit -n -m x`', 'EOF'].join('\n'),
+  ['cat <<-EOF', '\t"$(cd sub && git commit -m "$(date)" -n)"', '\tEOF'].join('\n'),
 ];
 
 const ALLOWED = [
@@ -114,6 +118,14 @@ const ALLOWED = [
   ["git commit -F - <<'EOF'", 'docs: 說明 git commit -n 會被擋 \\', 'EOF'].join('\n'),
   // 沒引號的 heredoc 內文會併接續行，第三行的 EOF 被併進上一行，git 那行還在內文裡
   ['cat <<EOF', 'echo foo \\', 'EOF', 'git commit -n -m x', 'EOF'].join('\n'),
+  // 標記有引號、或 $ 被跳脫時，內文的 $(…) 只是文字，不會執行
+  ["cat <<'EOF'", '$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
+  ['cat <<EOF', '\\$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
+  [
+    'git commit -F - <<EOF',
+    'fix: 擋掉 git commit -n，版本 $(git rev-parse --short HEAD)',
+    'EOF',
+  ].join('\n'),
 ];
 
 describe('block-no-verify PreToolUse hook', () => {
