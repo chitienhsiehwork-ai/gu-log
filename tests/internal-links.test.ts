@@ -65,6 +65,15 @@ describe('dist HTML link scan', () => {
     expect(checkInternalLink('/tags/%E0%A4%A', distDir)).toBe(false);
   });
 
+  it('needs a file: a directory without index.html does not count', async () => {
+    await mkdir(join(distDir, 'en', 'posts', 'en-a'), { recursive: true });
+    await writeFile(join(distDir, 'en', 'posts', 'en-a', 'index.html'), '');
+    expect(checkInternalLink('/', distDir)).toBe(true);
+    expect(checkInternalLink('/en/posts/en-a', distDir)).toBe(true);
+    expect(checkInternalLink('/en/posts', distDir)).toBe(false);
+    expect(checkInternalLink('/en/posts/', distDir)).toBe(false);
+  });
+
   it('collects each internal URL once with the first page and a page count', async () => {
     const { pageCount, links } = await collectDistAnchorLinks(distDir);
     expect(pageCount).toBe(4);

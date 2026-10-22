@@ -7,7 +7,7 @@
  * toggle, tag chips) never appears in MDX, so collectDistAnchorLinks reads
  * those links from the built HTML.
  */
-import { existsSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 
@@ -50,9 +50,11 @@ export function checkInternalLink(url, distDir) {
   const candidates = [resolvedPath, join(resolvedPath, 'index.html'), resolvedPath + '.html'];
   const distPrefix = `${distRoot}${sep}`;
 
+  // Only files count: a bare directory (dist/en/posts/) is a 404 on Vercel.
   return candidates.some(
     (candidate) =>
-      (candidate === distRoot || candidate.startsWith(distPrefix)) && existsSync(candidate)
+      candidate.startsWith(distPrefix) &&
+      Boolean(statSync(candidate, { throwIfNoEntry: false })?.isFile())
   );
 }
 
