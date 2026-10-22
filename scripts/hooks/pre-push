@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "🚀 Running pre-push checks..."
 
-# 0. PENDING ticketId guard — never push a PENDING placeholder to main.
+# 1. PENDING ticketId guard — never push a PENDING placeholder to main.
 #    PENDING is a legitimate in-flight state on working branches (see
 #    CONTRIBUTING.md 〈編號分配〉), but must be swapped for
 #    a real ticket number before merging to main. Prod MDX with
@@ -138,10 +138,5 @@ if ! node scripts/bundle-budget-check.mjs; then
   echo "   If CI's bundle-budget job also fails, shrink the bundle or rebaseline"
   echo "   quality/bundle-budget.json."
 fi
-
-# 5. Coverage ratchet (only if tests can run quickly)
-# Skip for now - tests take too long for pre-push
-# echo "🧪 Checking test coverage ratchet..."
-# bash scripts/coverage-ratchet.sh
 
 echo "✅ Pre-push checks passed!"
