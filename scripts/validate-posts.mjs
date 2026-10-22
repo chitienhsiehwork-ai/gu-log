@@ -21,6 +21,7 @@ import { loadPostMap, findMissingPairs, reminderText } from './check-translation
 import { MODEL_MAP } from './detect-model.mjs';
 import { getNeutralSummary, getTakedownSeries } from '../src/lib/tombstone-copy.mjs';
 import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-down-posts.mjs';
+import { findPairFieldMismatches } from './lib/translation-pair-fields.mjs';
 import {
   STAMP_FIELD,
   parseFrontmatter as parseStampFrontmatter,
@@ -298,12 +299,11 @@ function extractMoguNotes(content) {
 // 英文正文 CJK…）在 validatePost 裡對下架文章跳過。
 
 function findTranslationPair(filename, allPosts) {
-  if (!allPosts) return null;
-  const baseName = getBaseFilename(filename);
-  return (
-    allPosts.find((p) => getBaseFilename(p.filename) === baseName && p.filename !== filename) ??
-    null
+  const base = getBaseFilename(filename);
+  const pair = allPosts?.find(
+    (p) => getBaseFilename(p.filename) === base && p.filename !== filename
   );
+  return pair && !pair.unreadable ? pair : null;
 }
 
 function validateTakedownState({ fm, body, filename, allPosts }) {
@@ -364,7 +364,7 @@ function validateTakedownState({ fm, body, filename, allPosts }) {
         `Translation pair ${pair.filename} must also be taken-down (take down both languages together)`
       );
     } else {
-      for (const field of ['takenDownAt', 'sourceUrl', 'sourceTitle']) {
+      for (const field of ['takenDownAt', 'sourceTitle']) {
         if (pair[field] !== fm[field]) {
           errors.push(
             `Translation pair ${pair.filename} has a different ${field} (${JSON.stringify(pair[field])} vs ${JSON.stringify(fm[field])})`
@@ -590,18 +590,8 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
-  // ── Rule 14: Translation pair ticketId consistency ──
-  if (fm.ticketId && allPosts) {
-    const baseName = getBaseFilename(filename);
-    const pair = allPosts.find(
-      (p) => getBaseFilename(p.filename) === baseName && p.filename !== filename
-    );
-    if (pair && pair.ticketId && pair.ticketId !== fm.ticketId) {
-      errors.push(
-        `Translation pair ticketId mismatch: this="${fm.ticketId}", pair="${pair.ticketId}" (${pair.filename})`
-      );
-    }
-  }
+  // ── Rule 14: Pair shares ticketId / series / sourceUrl（條件見 lib） ──
+  errors.push(...findPairFieldMismatches(fm, findTranslationPair(filename, allPosts)));
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
   // Readers must see which model produced the post, whatever its series.
@@ -1069,9 +1059,8 @@ function main() {
     try {
       fm = parseFrontmatter(content);
     } catch (parseError) {
-      // Invalid YAML is reported below when this same file goes through
-      // validatePost's own gate; don't let one bad file crash the
-      // cross-file preload for every other post.
+      // validatePost reports this file's invalid YAML itself; one bad file must
+      // not crash the preload, nor be compared as a pair (`unreadable` below).
       fm = null;
       error = parseError;
     }
@@ -1089,6 +1078,8 @@ function main() {
       takenDownAt: fm?.takenDownAt,
       sourceUrl: fm?.sourceUrl,
       sourceTitle: fm?.sourceTitle,
+      series: fm?.series,
+      unreadable: !fm,
     };
   });
 
