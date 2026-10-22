@@ -144,7 +144,8 @@ git_bypasses_hooks() {
 while IFS= read -r statement; do
   read -ra words <<<"$statement"
   for ((k = 0; k < ${#words[@]}; k++)); do
-    [ "${words[k]##*/}" = git ] || continue
+    # 用 case 比對，不用 ${words[k]##*/}：後者遇到很長的參數會慢到跟長度平方成正比
+    case ${words[k]} in git | */git) ;; *) continue ;; esac
     if git_bypasses_hooks "${words[@]:k+1}"; then
       jq -n '{
         hookSpecificOutput: {

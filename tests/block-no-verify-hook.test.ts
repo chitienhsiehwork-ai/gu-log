@@ -125,6 +125,22 @@ describe('block-no-verify PreToolUse hook', () => {
     expect(runHook(command)).toBe('allow');
   });
 
+  // 很長的引號參數（python3 -c 的 script、commit message）不能讓 hook 慢到跟長度平方成正比，
+  // Codex 的 hook timeout 只有 10 秒。20 萬字元：線性的寫法幾十 ms，平方級的寫法超過 10 秒。
+  it.each([`python3 -c '${'x'.repeat(200_000)}'`, `git commit -m "${'x'.repeat(200_000)}"`])(
+    'allows a 200K-character quoted argument quickly (%#)',
+    (command) => {
+      const run = spawnSync('bash', [HOOK], {
+        input: payload(command),
+        encoding: 'utf-8',
+        timeout: 5_000,
+      });
+      expect(run.signal, 'hook 超過 5 秒被砍掉').toBeNull();
+      expect(decision(run)).toBe('allow');
+    },
+    15_000
+  );
+
   it('allows payloads without a command', () => {
     const run = spawnSync('bash', [HOOK], { input: '{"tool_input":{}}', encoding: 'utf-8' });
     expect(decision(run)).toBe('allow');
