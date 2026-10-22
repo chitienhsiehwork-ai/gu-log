@@ -56,6 +56,8 @@ const BYPASSES = [
   'git commit -m "" -n',
   ["git commit -m \"$(cat <<'EOF'", 'fix: message', 'EOF', ')" -n'].join('\n'),
   ['git commit -m x \\', '  --no-verify'].join('\n'),
+  // 標記有引號的 heredoc 內文不處理接續行，所以 EOF 在第三行就結束
+  ["cat <<'EOF' > s.sh", 'echo foo \\', 'EOF', 'git commit -n -m x', 'EOF'].join('\n'),
 ];
 
 const ALLOWED = [
@@ -97,6 +99,9 @@ const ALLOWED = [
     'EOF',
     ')"',
   ].join('\n'),
+  ["git commit -F - <<'EOF'", 'docs: 說明 git commit -n 會被擋 \\', 'EOF'].join('\n'),
+  // 沒引號的 heredoc 內文會併接續行，第三行的 EOF 被併進上一行，git 那行還在內文裡
+  ['cat <<EOF', 'echo foo \\', 'EOF', 'git commit -n -m x', 'EOF'].join('\n'),
 ];
 
 describe('block-no-verify PreToolUse hook', () => {

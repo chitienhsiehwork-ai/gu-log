@@ -20,22 +20,28 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/nul
 [ -n "$COMMAND" ] || exit 0
 
 # 把指令拆成「一行一個簡單指令、參數之間用空白隔開」：
-#   1. 接續行（\ 換行）併成一行，丟掉 heredoc 內文與結束標記
+#   1. 丟掉 heredoc 內文與結束標記，其他接續行（\ 換行）併成一行。heredoc 內文照 bash 的規則：
+#      標記有引號（<<'EOF'）就原樣保留，沒引號才先併接續行，再找結束標記
 #   2. 由左到右處理跳脫字元、引號、# 註解：引號內的文字當成一個參數（空白和分隔符換成 _），註解丟掉
 #   3. 丟掉 2>&1、&> 這類重新導向，免得 & 被當成分隔符
 #   4. ; & | ( ) ` 換成換行
 STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
-  s/\\\n/ /g;
   my @lines = split /\n/, $_, -1;
+  my $continued = qr/(?<!\\)(?:\\\\)*\\$/;
   my @kept;
-  for (my $i = 0; $i < @lines; ) {
+  my $i = 0;
+  while ($i < @lines) {
     my $line = $lines[$i++];
+    $line = substr($line, 0, -1) . $lines[$i++] while $line =~ $continued && $i < @lines;
     push @kept, $line;
-    while ($line =~ /(?<!<)<<(?!<)-?[ \t]*\\?([\x27"]?)([A-Za-z_]\w*)\1/g) {
-      my $marker = $2;
-      my $end = $i;
-      $end++ while $end < @lines && $lines[$end] !~ /^\s*\Q$marker\E\s*$/;
-      $i = $end + 1 if $end < @lines;
+    while ($line =~ /(?<!<)<<(?!<)-?[ \t]*(\\?)([\x27"]?)([A-Za-z_]\w*)\2/g) {
+      my ($literal, $marker) = ("$1$2", $3);
+      for (my $end = $i; $end < @lines; ) {
+        my $body = $lines[$end++];
+        $body = substr($body, 0, -1) . $lines[$end++]
+          while $literal eq "" && $body =~ $continued && $end < @lines;
+        if ($body =~ /^\s*\Q$marker\E\s*$/) { $i = $end; last }
+      }
     }
   }
   $_ = join "\n", @kept;
