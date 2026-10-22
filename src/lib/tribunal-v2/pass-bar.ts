@@ -21,8 +21,12 @@ type VibeScores = VibeJudgeOutput['scores'];
 
 const NEW_RULES_MIN_VERSION = 9;
 
-/** Default version when a caller doesn't supply one — legacy (pre-clarity-move). */
-const DEFAULT_TRIBUNAL_VERSION = 8;
+/**
+ * Version assumed for posts without `scores.tribunalVersion`: legacy
+ * (pre-clarity-move). Mirrors LEGACY_TRIBUNAL_VERSION in
+ * scripts/tribunal-version.mjs; tests/tribunal-version.test.ts keeps them equal.
+ */
+export const LEGACY_TRIBUNAL_VERSION = 8;
 
 const VIBE_DIMS_V8 = ['persona', 'moguNote', 'vibe', 'clarity', 'narrative'] as const;
 const VIBE_DIMS_V9 = ['persona', 'moguNote', 'vibe', 'narrative'] as const;
@@ -41,19 +45,19 @@ const FRESH_EYES_DIMS_V9 = [
 ] as const;
 
 /** Vibe-owned dimensions for the given tribunalVersion. */
-export function vibeDims(version: number = DEFAULT_TRIBUNAL_VERSION): readonly string[] {
+export function vibeDims(version: number = LEGACY_TRIBUNAL_VERSION): readonly string[] {
   return version >= NEW_RULES_MIN_VERSION ? VIBE_DIMS_V9 : VIBE_DIMS_V8;
 }
 
 /** Fresh-Eyes-owned dimensions for the given tribunalVersion. */
-export function freshEyesDims(version: number = DEFAULT_TRIBUNAL_VERSION): readonly string[] {
+export function freshEyesDims(version: number = LEGACY_TRIBUNAL_VERSION): readonly string[] {
   return version >= NEW_RULES_MIN_VERSION ? FRESH_EYES_DIMS_V9 : FRESH_EYES_DIMS_V8;
 }
 
 /** Check if Stage 1 Vibe scores pass the bar */
 export function checkVibePassBar(
   scores: VibeScores,
-  version: number = DEFAULT_TRIBUNAL_VERSION
+  version: number = LEGACY_TRIBUNAL_VERSION
 ): {
   pass: boolean;
   composite: number;
@@ -87,7 +91,7 @@ export function checkVibePassBar(
 export function checkFinalVibePassBar(
   currentScores: VibeScores,
   stage1Scores: VibeScores,
-  version: number = DEFAULT_TRIBUNAL_VERSION
+  version: number = LEGACY_TRIBUNAL_VERSION
 ): {
   pass: boolean;
   degradedDimensions: Array<{ dim: string; stage1: number; current: number; drop: number }>;
@@ -130,7 +134,7 @@ export function checkFreshEyesPassBar(
     lengthFit: number;
     clarity?: number;
   },
-  version: number = DEFAULT_TRIBUNAL_VERSION
+  version: number = LEGACY_TRIBUNAL_VERSION
 ): {
   pass: boolean;
   composite: number;

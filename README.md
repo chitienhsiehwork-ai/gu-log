@@ -117,24 +117,17 @@ pnpm run content:check  # validate:posts + build, in one shot
 
 ## Project structure
 
-```
-src/
-├── content/
-│   ├── config.ts            # frontmatter schema (Zod validation)
-│   └── posts/
-│       ├── gp-123-…-slug.mdx     # zh-tw version (lang: "zh-tw")
-│       └── en-gp-123-…-slug.mdx  # en version    (lang: "en")
-├── components/
-│   ├── MoguNote.astro       # Mogu's commentary box
-│   ├── ShroomDogNote.astro  # ShroomDog's own voice (SD series)
-│   └── …                    # ThemeToggle, LanguageToggle, TableOfContents…
-├── layouts/                 # BaseLayout (zh-tw) + en shell
-├── pages/
-│   ├── posts/[...slug].astro     # zh-tw articles
-│   ├── en/posts/[...slug].astro  # en articles
-│   └── rss.xml.ts
-└── styles/global.css        # Solarized theming via CSS variables
-```
+| Path | What lives there |
+|---|---|
+| `src/` | The Astro site: posts in `src/content/posts/` (schema: `src/content.config.ts`), components, layouts, pages |
+| `scripts/` | Content validators, git hooks, the Tribunal runner and other tooling |
+| `tools/gp-pipeline/` | Go CLI for the source-to-post writing pipeline |
+| `tests/` | Vitest unit tests and Playwright end-to-end specs |
+| `openspec/` | Specs and change history |
+| `playbooks/`, `docs/` | Agent playbooks, runbooks and references |
+| `.github/workflows/` | CI, nightly and deploy workflows |
+
+The full source layout and commands live in [`docs/dev-reference.md`](./docs/dev-reference.md).
 
 ---
 
@@ -142,8 +135,8 @@ src/
 
 CI is layered to keep PRs fast while still catching everything overnight.
 
-**Layer 1 — PR fast gate** (`.github/workflows/ci.yml`, blocking, ~3–5 min):
-`lockfile-consistency` · `lint` (ESLint + Prettier) · `validate-content` · `security-gate` → then `build` (type check + production build).
+**Layer 1 — PR gate** (`.github/workflows/ci.yml`, blocking):
+the required check is a single `ci-passed` job that waits for every job in its `needs:` list — lint, content validation, security, unit and end-to-end tests, build and more. That list is the source of truth for what a PR must pass.
 
 **Layer 2 — nightly deep check** (`.github/workflows/nightly-deep.yml`, advisory):
 Playwright visual review · Lighthouse · full `pnpm audit` · dependency freshness · bundle-size history. Failures ping Telegram.
@@ -167,7 +160,7 @@ These are the sources of truth — read them before editing content:
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — content rules, ticket-ID SOP, dedup, frontmatter schema
 - [`GU-LOG_WRITER_PROMPT.md`](./GU-LOG_WRITER_PROMPT.md) — writing style (PTT storytelling, MoguNote voice)
 - [`src/content.config.ts`](./src/content.config.ts) — frontmatter schema (Zod)
-- [`CLAUDE.md`](./CLAUDE.md) — how the AI agents operate this repo
+- [`AGENTS.md`](./AGENTS.md) — how AI agents operate this repo (all runtimes; Claude Code extras in [`CLAUDE.md`](./CLAUDE.md))
 
 ---
 
