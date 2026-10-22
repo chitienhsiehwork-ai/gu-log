@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { useTestTempDirectories } from './helpers/temp-directories';
 
 // PreToolUse hook：擋 git 繞過 hook 的指令（.claude/hooks/block-no-verify.sh）。
 // 這支是 fail-fast；真正的防線是 CI。這裡鎖住「該擋的擋、只是提到的不擋」。
@@ -8,6 +10,7 @@ import * as path from 'node:path';
 const REPO_ROOT = path.resolve(__dirname, '..');
 const HOOK_RELATIVE = '.claude/hooks/block-no-verify.sh';
 const HOOK = path.join(REPO_ROOT, HOOK_RELATIVE);
+const makeTempDirectory = useTestTempDirectories();
 
 type HookRun = { status: number | null; stdout: string; stderr: string };
 
@@ -116,5 +119,48 @@ describe('block-no-verify PreToolUse hook', () => {
       encoding: 'utf-8',
     });
     expect(run.status, run.stdout + run.stderr).toBe(0);
+  });
+});
+
+describe('block-no-verify hook registration', () => {
+  // 專案路徑有空白時，沒加引號的指令會找不到 script，hook 等於沒擋。
+  function projectWithSpace(): string {
+    const project = path.join(makeTempDirectory('gu-log-no-verify-'), 'project with space');
+    fs.mkdirSync(path.join(project, '.claude', 'hooks'), { recursive: true });
+    fs.symlinkSync(HOOK, path.join(project, HOOK_RELATIVE));
+    execFileSync('git', ['init', '-q'], { cwd: project });
+    return project;
+  }
+
+  function registeredCommand(file: string): string {
+    const config = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, file), 'utf-8')) as {
+      hooks: {
+        PreToolUse?: { matcher?: string; hooks: { type: string; command: string }[] }[];
+      };
+    };
+    const commands = (config.hooks.PreToolUse ?? [])
+      .filter((entry) => entry.matcher === 'Bash')
+      .flatMap((entry) => entry.hooks)
+      .filter((hook) => hook.type === 'command' && hook.command.includes(HOOK_RELATIVE))
+      .map((hook) => hook.command);
+    expect(commands).toHaveLength(1);
+    return commands[0];
+  }
+
+  function runRegistered(file: string, project: string, command: string): string {
+    return decision(
+      spawnSync('/bin/sh', ['-c', registeredCommand(file)], {
+        cwd: project,
+        env: { ...process.env, CLAUDE_PROJECT_DIR: project },
+        input: payload(command),
+        encoding: 'utf-8',
+      })
+    );
+  }
+
+  it.each(['.claude/settings.json'])('%s runs the hook from a project path with spaces', (file) => {
+    const project = projectWithSpace();
+    expect(runRegistered(file, project, 'git commit -n -m "fix"')).toBe('deny');
+    expect(runRegistered(file, project, 'git push -n origin HEAD')).toBe('allow');
   });
 });
