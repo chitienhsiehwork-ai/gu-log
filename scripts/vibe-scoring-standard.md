@@ -454,15 +454,14 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 
 ## Model 變更的校準門檻
 
-本文件只定義 rubric，不定義 runtime provider 或 model ID。不要在這裡
-複製現行 model 快照；實際 selection、fallback 與 provenance 由下列
-authority 決定：
+本文件只定義 rubric，不定義 runtime provider 或 model ID，也不複製現行
+model 快照；selection、fallback 與 provenance 由下列 authority 決定：
 
 | Contract | Authority |
 |----------|-----------|
 | Per-judge provider policy | `openspec/specs/codex-tribunal-runtime/spec.md` + `tribunal_judge_provider()` |
 | Claude model selector | `.claude/agents/<role>.md` 第一段 frontmatter 的 `model:` |
-| Codex model selector | `.codex/agents/<role>.toml` 的 top-level `model`；`GP_CODEX_MODEL` 只作明示的單次執行覆寫 |
+| Codex model selector | `.codex/agents/<role>.toml`；VM 讀 `config/llm-pipeline.json` 的 profile；`GP_CODEX_MODEL` 只作單次覆寫 |
 | Writer mode / provider | `tribunal_writer_mode()` + `tribunal_writer_exec()` |
 | 實際執行 provenance | `tribunal_write_actual_provider()` + `run_stage()` |
 | 評分維度的 rubric | 本文件 |
