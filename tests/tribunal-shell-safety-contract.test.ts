@@ -1,5 +1,14 @@
-import { execFileSync, spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -14,26 +23,43 @@ const linuxIt = process.platform === 'linux' ? it : it.skip;
 const makeTempDirectory = useTestTempDirectories();
 
 type ShellRun = { status: number | null; output: string; timedOut: boolean; restored: string[] };
+type Snapshot = { file: string; bytes: Buffer; mode: number };
 
-// 跟 HEAD 不同的追蹤檔；不在 git checkout 裡就回 null，不做還原。
-function changedTrackedFiles(root: string): Set<string> | null {
-  try {
-    const out = execFileSync('git', ['diff', '--name-only', '-z', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    });
-    return new Set(out.split('\0').filter(Boolean));
-  } catch {
-    return null;
+// 腳本裡點名的文章（連同 en- 版）就是它可能改寫的 fixture；只有這些會在逾時時還原，
+// 其他檔就算在測試期間被改，也是別人的工作，不能動。
+function fixtureSnapshots(script: string, root: string): Snapshot[] {
+  const postsDir = path.join(root, 'src/content/posts');
+  const names = new Set<string>();
+  for (const name of readFileSync(script, 'utf8').match(/[\w.-]+\.mdx\b/g) ?? []) {
+    names.add(name);
+    names.add(`en-${name}`);
   }
+  return [...names]
+    .map((name) => path.join(postsDir, name))
+    .filter((file) => existsSync(file) && lstatSync(file).isFile())
+    .map((file) => ({ file, bytes: readFileSync(file), mode: statSync(file).mode }));
 }
 
-// 這幾支 shell 測試會暫時改 repo 裡追蹤的文章（例如 SD-1 會被寫進 gpt-test 分數），
-// 靠 EXIT trap 還原。逾時只能用 SIGKILL 砍（不然可能卡住），trap 不會跑；只砍 bash
-// 的話，底下還在跑的 tribunal.sh 也會繼續寫檔。所以逾時就砍整個 process group，
-// 等全部結束後，把「跑之前乾淨、跑完變髒」的追蹤檔還原成 HEAD 的版本。
+function restoreSnapshots(snapshots: Snapshot[], root: string): string[] {
+  const restored: string[] = [];
+  for (const { file, bytes, mode } of snapshots) {
+    const unchanged =
+      existsSync(file) && lstatSync(file).isFile() && readFileSync(file).equals(bytes);
+    if (unchanged) continue;
+    rmSync(file, { recursive: true, force: true });
+    writeFileSync(file, bytes);
+    chmodSync(file, mode);
+    restored.push(path.relative(root, file));
+  }
+  return restored;
+}
+
+// 這幾支 shell 測試會暫時改寫追蹤的文章（例如 SD-1 會被寫進 gpt-test 分數），靠 EXIT
+// trap 還原。逾時只能用 SIGKILL 砍（不然可能卡住），trap 不會跑；只砍 bash 的話，底下
+// 還在跑的 tribunal.sh 也會繼續寫檔。所以逾時就砍整個 process group，等全部結束後，
+// 把腳本點名的 fixture 還原成跑之前的 bytes。
 function runShellTest(script: string, timeout: number, root = ROOT): Promise<ShellRun> {
-  const changedBefore = changedTrackedFiles(root);
+  const snapshots = fixtureSnapshots(script, root);
   return new Promise((resolve, reject) => {
     const child = spawn('bash', [script], { cwd: root, env: process.env, detached: true });
     let output = '';
@@ -54,14 +80,7 @@ function runShellTest(script: string, timeout: number, root = ROOT): Promise<She
     });
     child.on('close', (status) => {
       clearTimeout(timer);
-      const changedAfter = timedOut ? changedTrackedFiles(root) : null;
-      const restored =
-        changedBefore && changedAfter
-          ? [...changedAfter].filter((file) => !changedBefore.has(file))
-          : [];
-      if (restored.length > 0) {
-        execFileSync('git', ['checkout', 'HEAD', '--', ...restored], { cwd: root });
-      }
+      const restored = timedOut ? restoreSnapshots(snapshots, root) : [];
       resolve({ status, output, timedOut, restored });
     });
   });
@@ -102,33 +121,42 @@ describe('Tribunal shell safety contract', () => {
 });
 
 describe('shell test runner', () => {
-  it('kills the whole group on timeout and restores tracked files the run dirtied', async () => {
-    const repo = makeTempDirectory('gu-log-shell-runner-');
-    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo });
-    git('init', '-q');
-    writeFileSync(path.join(repo, 'post.mdx'), 'pristine\n');
-    writeFileSync(path.join(repo, 'draft.mdx'), 'committed\n');
-    git('add', '.');
-    git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'seed');
-    // 跑之前就改過的檔不能被還原掉
-    writeFileSync(path.join(repo, 'draft.mdx'), 'work in progress\n');
-    // 背景的子行程在 bash 被砍之後才寫檔，模擬還在跑的 tribunal.sh
+  it('kills the whole group on timeout and restores only the fixtures the script names', async () => {
+    const root = makeTempDirectory('gu-log-shell-runner-');
+    const posts = path.join(root, 'src/content/posts');
+    const post = (name: string) => path.join(posts, name);
+    mkdirSync(posts, { recursive: true });
+    // 跑之前就有的修改要原樣還原，不是退回 HEAD
+    writeFileSync(post('sd-1-demo.mdx'), 'work in progress\n');
+    writeFileSync(post('en-sd-1-demo.mdx'), 'english\n', { mode: 0o600 });
+    writeFileSync(post('other.mdx'), 'before\n');
+    // 背景子行程在 bash 被砍之後才寫檔，模擬還在跑的 tribunal.sh；en 版被換成目錄
+    const script = path.join(root, 'slow.sh');
     writeFileSync(
-      path.join(repo, 'slow.sh'),
+      script,
       [
-        'echo "gpt-test" >> post.mdx',
-        '(sleep 1; echo "late write" >> post.mdx) &',
+        'p=src/content/posts',
+        'echo "gpt-test" >> "$p/sd-1-demo.mdx"',
+        'rm "$p/en-$(basename "$p/sd-1-demo.mdx")" && mkdir "$p/en-sd-1-demo.mdx"',
+        '(sleep 1; echo "late write" >> "$p/sd-1-demo.mdx") &',
         'sleep 30',
       ].join('\n')
     );
 
-    const run = await runShellTest('slow.sh', 300, repo);
+    const running = runShellTest(script, 500, root);
+    // 測試期間別人改的檔不在腳本點名的範圍內，不能被還原
+    writeFileSync(post('other.mdx'), 'edited during the run\n');
+    const run = await running;
 
     expect(run.timedOut).toBe(true);
-    expect(run.restored).toEqual(['post.mdx']);
-    expect(readFileSync(path.join(repo, 'post.mdx'), 'utf8')).toBe('pristine\n');
+    expect(run.restored.sort()).toEqual([
+      'src/content/posts/en-sd-1-demo.mdx',
+      'src/content/posts/sd-1-demo.mdx',
+    ]);
     await new Promise((done) => setTimeout(done, 1_500));
-    expect(readFileSync(path.join(repo, 'post.mdx'), 'utf8')).toBe('pristine\n');
-    expect(readFileSync(path.join(repo, 'draft.mdx'), 'utf8')).toBe('work in progress\n');
+    expect(readFileSync(post('sd-1-demo.mdx'), 'utf8')).toBe('work in progress\n');
+    expect(readFileSync(post('en-sd-1-demo.mdx'), 'utf8')).toBe('english\n');
+    expect(statSync(post('en-sd-1-demo.mdx')).mode & 0o777).toBe(0o600);
+    expect(readFileSync(post('other.mdx'), 'utf8')).toBe('edited during the run\n');
   }, 10_000);
 });
