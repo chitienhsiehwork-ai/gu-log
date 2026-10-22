@@ -168,7 +168,7 @@ import 會自動做：
 ### 跑品質 tribunal + push
 
 ```bash
-bash scripts/tribunal-batch-runner.sh  # Vibe / Fact / Librarian / FreshEyes
+bash scripts/tribunal.sh <file>  # 每篇跑一次：Vibe / Fact / Librarian / FreshEyes
 git add src/content/posts/
 git commit -m "content(sd-pending): draft from obsidian"
 
