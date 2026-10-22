@@ -404,7 +404,7 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 | 4 | 裝飾型 persona — 骨架是報告，表面裝飾改不了結構問題 |
 | 2 | 純 bullet dump，沒有 narrative 可言 |
 
-**Key test:** Strip analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
+**Key test:** Strip analogies and kaomoji, but keep MoguNotes: Mogu analysis is part of the skeleton whether it sits in the body or in a note. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5. A note that only pads or repeats the body adds no skeleton.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
@@ -446,8 +446,8 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ### 綜合五分的標準 — cheat sheet 偽裝成 blog post（描述）
 - **為什麼是五分（7/8/7/9/7，composite 7 FAIL）:** 表面有比喻、有 MoguNote、有 kaomoji —— 所有 decorative 特徵齊全。但骨架是教科書：必知大事 → 分級階梯 → 版本差異 → 可 copy 的 snippets。**拿掉比喻之後就是 release notes**。
 - **Scorer 判讀差異（2026-04-17 跨版本實驗）**：有的 scorer 抓到「階梯與 snippets 段落回到 reference-doc 模式，讀者會收藏、不會為了好玩分享」而判 FAIL；有的 scorer 在 reasons 裡寫出同樣的問題（「偏實用 cheat sheet 寫法」「snippet 集錦偏 reference dump」「結尾偏 checklist」）**卻沒扣分**，判 PASS。典型 bar drift。
-- **⚠️ 最關鍵的教訓 — decorative persona trap 的進化版**：前一種是「比喻 + 正經 MoguNote」偽裝，這種是「比喻 + 有立場 MoguNote」偽裝，更難抓，因為 MoguNote 真的有 opinion。但骨架一樣 linear。
-- **Strip test 怎麼做**：遮住所有 `<MoguNote>` 區塊、遮住段落裡的第一個比喻句，只讀剩下的 body。如果讀起來像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。
+- **⚠️ 最關鍵的教訓 — decorative persona trap 的進化版**：前一種是「比喻 + 正經 MoguNote」偽裝，這種是「比喻 + 有立場 MoguNote」偽裝，更難抓，因為 MoguNote 真的有 opinion。關鍵是那些 note 只是逐段吐槽，沒有扛起貫穿全文的論證，所以骨架一樣 linear。
+- **Strip test 怎麼做**：遮住段落裡的第一個比喻句和 kaomoji，`<MoguNote>` 保留，Mogu 的分析放在正文或 note 都算骨架。讀剩下的內容，如果像 release notes / cheat sheet / reference doc，narrative 就 ≤ 5。只湊梗或重講正文的 note 不算骨架。
 
 ### Score 6 — MP-146「Simon Willison Anti-Patterns」
 - **Why 6:** 開頭不錯，但中段變成 plain reporting。MoguNote 引用社群回覆但自己的聲量不夠。

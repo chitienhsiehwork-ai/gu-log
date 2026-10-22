@@ -68,7 +68,7 @@ Does the post have genuine narrative structure, or is it a linear report with de
 - **4** = 裝飾型 persona — 骨架是報告，表面裝飾改不了結構問題
 - **2** = 純 bullet dump，沒有 narrative 可言
 
-**Key test:** Strip away analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
+**Key test:** Strip away analogies and kaomoji, but keep MoguNotes: Mogu analysis is part of the skeleton whether it sits in the body or in a note. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5. A note that only pads or repeats the body adds no skeleton.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. If it starts with "原作者這篇..." / "This article discusses..." / source metadata the page already shows, cap narrative at 7 and usually cap vibe at 7 unless the rest immediately recovers.
 
