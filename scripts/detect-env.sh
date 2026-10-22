@@ -153,7 +153,7 @@ emit_context() {
 
 You are Cloud Codex/Claude Code (CCC).
   - Move fast, merge fast, fix fast — this branch is disposable
-  - Self-merge after CI green; forward fix before revert
+  - Self-merge once merge gates pass (CI + auto-review; see playbook); forward fix before revert
   - Quality gates (pre-commit, pre-push, tribunal) are non-negotiable
   - FULL PLAYBOOK: playbooks/CCC-playbook.md ← read this next
 TIPS
