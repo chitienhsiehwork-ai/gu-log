@@ -15,6 +15,8 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 
 ## 流程（一個 openspec change = 一條 branch = 一個 PR，從 draft 開始）
 
+要新增機制或 capability 時，propose 之前先審「該不該做」，見 [`docs/value-review-runbook.md`](../docs/value-review-runbook.md)。
+
 | 階段 | 動作 | 審查 | 人類介入 |
 |---|---|---|---|
 | 1. Propose | `/opsx:propose` 產 proposal / design / tasks / spec | — | — |
@@ -24,7 +26,7 @@ openspec 把「改什麼、為什麼改」攤成 proposal / design / tasks / spe
 | 5. Apply | **builder subagent** 跑 `/opsx:apply` 做實作重活，push 到**同一個 draft PR**；controller 不親自下海 | — | — |
 | 6. 實作審查 | **2 個 AI subagent 平行**（正確性錨 spec scenario / 簡潔度錨 over-engineering）。收斂 = 所有 scenario 對上 **AND** 簡潔度無 blocking，有界 max-N；**不靠「reviewer 主觀滿意」**——詳見〈階段 6：收斂與 escalation〉 | 2 reviewers（平行） | — |
 | 7. Preview 交付 | 實作與審查結果 push 到 draft PR；agent 自行驗證 preview，再於 chat 提供 preview URL 與可見變化摘要 | — | **Chat touchpoint ②**：safe／non-critical 不等待；有未決 critical decision 才附具體問題並暫停 |
-| 8. Archive | `/opsx:archive`：archive 並 sync spec delta，commit 進**同一個 PR**，再轉 ready（機制見 skill） | — | — |
+| 8. Archive | `/opsx:archive`：archive 並**一律** sync spec delta（skill 問要不要 sync 時選 sync，不要選「Archive without syncing」，否則 main spec 會落後）；還沒勾的 post-merge task 自己處理，做不到的開 issue 追。commit 進**同一個 PR**，再轉 ready（機制見 skill） | — | — |
 | 9. Merge + production | 過了 merge gate（CI 全綠，且轉 ready 後等 auto-review 判斷完，見 runtime playbook）→ auto-merge → production smoke test；於 chat 回報 production URL | — | — |
 
 ## 兩個 chat touchpoints（只有 critical decision 會阻擋）
