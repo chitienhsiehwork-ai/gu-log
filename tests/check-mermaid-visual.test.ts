@@ -124,7 +124,7 @@ describe('check-mermaid-visual: cleanup never replaces the result', () => {
   });
 });
 
-describe('pre-commit: only a Mermaid FAIL verdict blocks the commit', () => {
+describe('pre-commit: only Mermaid exit 1 (FAIL or page error) blocks the commit', () => {
   function runHookWithMermaidExit(exitCode: number) {
     const repo = makeFakeRepo();
     fs.mkdirSync(path.join(repo, 'src', 'data'));
@@ -167,7 +167,7 @@ describe('pre-commit: only a Mermaid FAIL verdict blocks the commit', () => {
     expect(r.output).toContain('Mermaid visual check incomplete (see above), not blocking');
   });
 
-  it('blocks on a FAIL verdict', () => {
+  it('blocks on exit 1', () => {
     const r = runHookWithMermaidExit(EXIT.FAIL);
     expect(r.status).toBe(1);
     expect(r.output).toContain('Mermaid visual quality check FAILED');
