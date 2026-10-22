@@ -394,7 +394,7 @@ GP 與 MP 要跟完整 Tribunal 一起跑 Fact Checker，兩者用同一套規�
 
 ### 測試指令與 runner
 
-`pnpm test` 依序跑 `test:unit`（Vitest，含下表前三種）和 `test:e2e`（Playwright，只跑 Desktop Chrome），跟 PR CI 擋的同一套；`test:toc`、`test:ui` 給本地除錯。部分 Vitest 要先裝 `shellcheck` 和 `scripts/requirements-fetch-article.txt` 的 Python 套件。新測試照 runner 放：
+`pnpm test` 依序跑 `test:unit`（Vitest，含下表前三種）和 `test:e2e`（Playwright，只跑 Desktop Chrome），跟 PR CI 這兩類一致；`test:toc`、`test:ui` 給本地除錯。部分 Vitest 要先裝 `shellcheck` 和 `scripts/requirements-fetch-article.txt` 的 Python 套件。新測試照 runner 放：
 
 | Runner | 放哪 | 誰跑 |
 |---|---|---|
