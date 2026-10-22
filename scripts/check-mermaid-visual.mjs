@@ -297,6 +297,19 @@ export function exitCodeFor(results) {
   return EXIT.PASS;
 }
 
+/**
+ * Stop the dev server process group this script started. A failed kill only
+ * warns: cleanup must never replace the check's real exit code.
+ */
+export function stopDevServer(serverProcess) {
+  try {
+    process.kill(-serverProcess.pid);
+    console.log('🛑 Dev server stopped');
+  } catch (err) {
+    console.warn(`⚠️  Could not stop dev server (pid ${serverProcess.pid}): ${err.message}`);
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────
 
 async function main() {
@@ -340,7 +353,10 @@ async function main() {
 
   if (!serverUp) {
     console.log('🚀 Starting dev server...');
-    serverProcess = spawn('pnpm', ['run', 'dev'], {
+    // When Astro detects an agent (e.g. CLAUDECODE=1), `astro dev` hands off
+    // to a background daemon and exits, leaving us nothing to stop.
+    // --ignore-lock keeps it in the foreground; nothing answers BASE_URL anyway.
+    serverProcess = spawn('pnpm', ['run', 'dev', '--ignore-lock'], {
       cwd: REPO_ROOT,
       stdio: 'ignore',
       detached: true,
@@ -349,7 +365,7 @@ async function main() {
     const ready = await waitForHttpReady(BASE_URL, { timeoutMs: 60_000 });
     if (!ready) {
       console.error('❌ Dev server failed to start within 60s');
-      serverProcess.kill();
+      stopDevServer(serverProcess);
       process.exit(EXIT.INCOMPLETE);
     }
     console.log('✓ Dev server ready');
@@ -456,11 +472,7 @@ async function main() {
   } finally {
     await browser?.close();
 
-    // Kill dev server if we started it
-    if (serverProcess) {
-      process.kill(-serverProcess.pid);
-      console.log('🛑 Dev server stopped');
-    }
+    if (serverProcess) stopDevServer(serverProcess);
   }
 
   // 7. Print summary

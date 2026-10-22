@@ -37,6 +37,7 @@ import {
   exitCodeFor,
   judgeDiagram,
   parseVerdict,
+  stopDevServer,
 } from '../scripts/check-mermaid-visual.mjs';
 
 const REPO_ROOT = path.resolve(__dirname, '..');
@@ -105,6 +106,16 @@ describe('check-mermaid-visual: judge errors are not FAIL verdicts', () => {
     expect(exitCodeFor([r('pass'), r('error'), r('fail')])).toBe(EXIT.FAIL);
     expect(exitCodeFor([r('pass'), r('error')])).toBe(EXIT.INCOMPLETE);
     expect(exitCodeFor([r('pass'), r('pass')])).toBe(EXIT.PASS);
+  });
+});
+
+describe('check-mermaid-visual: cleanup never replaces the result', () => {
+  it('only warns when the dev server process group is already gone', () => {
+    // agent 環境下 Astro 會把 dev server 轉成背景 daemon，原本的 process group
+    // 就不在了；kill 失敗不能丟錯，否則 FAIL 會被蓋成 exit 2 而放行。
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    expect(() => stopDevServer({ pid: 2 ** 30 })).not.toThrow();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Could not stop dev server'));
   });
 });
 
