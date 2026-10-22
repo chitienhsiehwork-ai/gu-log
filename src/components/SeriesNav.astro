@@ -7,6 +7,7 @@
  *
  * Only renders when the current post has a `series` field.
  */
+import { getSeriesPosition } from '../utils/series-nav';
 
 interface Post {
   id: string;
@@ -29,27 +30,23 @@ interface Props {
 
 const { currentSlug, allPosts, lang = 'zh-tw' } = Astro.props;
 
-// Find current post
-const currentPost = allPosts.find((p) => p.id === currentSlug);
-if (!currentPost?.data.series) {
+// allPosts comes from getNavigablePostsFromBaseline (src/utils/post-status.ts).
+// Progress, prev/next and list numbers use the position in that list, not
+// `series.order` — see src/utils/series-nav.ts (#1164).
+const position = getSeriesPosition(allPosts, currentSlug);
+if (!position) {
   // No series — render nothing
   return;
 }
 
-const seriesName = currentPost.data.series.name;
-
-// Visible series posts (allPosts is the navigable list: taken-down and
-// deprecated posts are already gone), sorted by `series.order`. `order` keeps
-// the original sequence, so it has gaps once posts are taken down. Progress,
-// prev/next and list numbers use the position in this list instead (#1164).
-const seriesPosts = allPosts
-  .filter((p) => p.data.series?.name === seriesName)
-  .sort((a, b) => (a.data.series?.order ?? 0) - (b.data.series?.order ?? 0));
-
+const {
+  name: seriesName,
+  posts: seriesPosts,
+  index: currentIndex,
+  prev: prevPost,
+  next: nextPost,
+} = position;
 const totalInSeries = seriesPosts.length;
-const currentIndex = seriesPosts.findIndex((p) => p.id === currentSlug);
-const prevPost = seriesPosts[currentIndex - 1] ?? null;
-const nextPost = seriesPosts[currentIndex + 1] ?? null;
 
 const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 
