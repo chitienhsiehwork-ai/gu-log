@@ -298,7 +298,7 @@ CCC session 的 default model 會浮動，但 gu-log 的 writer / rewriter / vib
 
 原因很簡單：tribunal 回來的修改意見要 iterate，如果兩版都寫了，每輪 rewrite 要改兩份，token 花費直接翻倍。zh-tw 是主版本，en 是衍生翻譯，先把主版本品質打到及格再翻。
 
-**晶晶體防線**：zh-tw 文章禁止裝飾性中英夾雜。API、CLI、MCP、model 名、產品名等技術專有名詞保留英文 OK，但「這個 approach 很 solid」「deliver 一個 production-ready 的 output」這種寫法一律改成自然中文。Tribunal 的 vibe scorer 會對晶晶體扣 vibe（-4）；clarity 軸（含晶晶體影響）v9 起由 Fresh Eyes 評（非補償硬門檻），v8 以下才在 vibe 底下。
+**晶晶體防線**：zh-tw 文章禁止裝飾性中英夾雜。API、CLI、MCP、model 名、產品名等技術專有名詞保留英文 OK，但「這個 approach 很 solid」「deliver 一個 production-ready 的 output」這種寫法一律改成自然中文。Tribunal 評審只對 `check-jingjing.mjs` 回報的違規扣分（見 `scripts/vibe-scoring-standard.md`〈晶晶體 boundary〉）。
 
 **🔧 查晶晶體（跟所有 deterministic 檢查）一律跑 script / grep，不要 Read 整篇文章用人眼挑英文**。`node scripts/check-jingjing.mjs` 本身就是 ripgrep-based 掃描器，會把每個違規詞、行號、上下文一次列出來；pronoun 檢查、frontmatter 驗證同理（`check-pronoun-clarity.mjs`、`validate-posts.mjs`）。為了「確認有沒有英文詞」去 `Read` 一整個 .mdx 是純浪費 token——deterministic 規則交給 deterministic 工具，Read 只留給需要理解語意/語氣的時候（例如自己重讀文章判斷 vibe）。同理，要找某個詞出現在哪，用 `Grep` 不要 `Read` 全檔。
 
