@@ -7,6 +7,7 @@
  *
  * Only renders when the current post has a `series` field.
  */
+import { getSeriesPosition } from '../utils/series-nav';
 
 interface Post {
   id: string;
@@ -29,26 +30,23 @@ interface Props {
 
 const { currentSlug, allPosts, lang = 'zh-tw' } = Astro.props;
 
-// Find current post
-const currentPost = allPosts.find((p) => p.id === currentSlug);
-if (!currentPost?.data.series) {
+// allPosts comes from getNavigablePostsFromBaseline (src/utils/post-status.ts).
+// Progress, prev/next and list numbers use the position in that list, not
+// `series.order` — see src/utils/series-nav.ts (#1164).
+const position = getSeriesPosition(allPosts, currentSlug);
+if (!position) {
   // No series — render nothing
   return;
 }
 
-const seriesName = currentPost.data.series.name;
-const currentOrder = currentPost.data.series.order;
-
-// Filter series posts and sort by order
-const seriesPosts = allPosts
-  .filter((p) => p.data.series?.name === seriesName)
-  .sort((a, b) => (a.data.series?.order ?? 0) - (b.data.series?.order ?? 0));
-
+const {
+  name: seriesName,
+  posts: seriesPosts,
+  index: currentIndex,
+  prev: prevPost,
+  next: nextPost,
+} = position;
 const totalInSeries = seriesPosts.length;
-
-// Prev/next within series
-const prevPost = seriesPosts.find((p) => p.data.series?.order === currentOrder - 1) ?? null;
-const nextPost = seriesPosts.find((p) => p.data.series?.order === currentOrder + 1) ?? null;
 
 const baseUrl = lang === 'en' ? '/en/posts/' : '/posts/';
 
@@ -88,7 +86,7 @@ const t = labels[lang];
       <span class="series-name">{seriesName}</span>
     </div>
     <span class="series-progress" data-series-progress>
-      {t.progress(currentOrder, totalInSeries)}
+      {t.progress(currentIndex + 1, totalInSeries)}
     </span>
   </div>
 
@@ -139,7 +137,7 @@ const t = labels[lang];
   <!-- Full series article list (collapsed by default on mobile, expanded on desktop) -->
   <ol class="series-list" data-series-list aria-label={t.seriesList}>
     {
-      seriesPosts.map((post) => {
+      seriesPosts.map((post, index) => {
         const isCurrent = post.id === currentSlug;
         return (
           <li
@@ -150,12 +148,12 @@ const t = labels[lang];
             <span class="read-indicator" data-read-indicator data-slug={post.id} />
             {isCurrent ? (
               <span class="series-item-link series-item-current-label" aria-current="page">
-                <span class="series-order">{post.data.series?.order}.</span>
+                <span class="series-order">{index + 1}.</span>
                 <span class="series-item-title">{post.data.title}</span>
               </span>
             ) : (
               <a href={`${baseUrl}${post.id}`} class="series-item-link">
-                <span class="series-order">{post.data.series?.order}.</span>
+                <span class="series-order">{index + 1}.</span>
                 <span class="series-item-title">{post.data.title}</span>
               </a>
             )}
