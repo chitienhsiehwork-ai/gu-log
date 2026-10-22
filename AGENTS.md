@@ -34,7 +34,7 @@
 
 ## 🧭 SSOT 紀律（摘要 — 全文見 `docs/agent-discipline.md`）
 
-**每個事實只有一個家（SSOT）。動到有 SSOT 的東西時，預設責任是「維持單一真相來源」——不複製事實、發現 drift 當場收斂。** 權威端 = code（含 frontmatter、常數、config、Zod schema）或 openspec spec，**不是散文文件**；playbook / README / 這份 AGENTS.md / 註解 / task prompt 都是 derived view，對不上時散文服從 code/openspec。能判斷哪邊對就自己收 + 回報帶一句，只有「難判斷又是重要決定」才用 `AskUserQuestion` 問。完整四條操作規則、收斂自主姿態、為什麼用 prompt 而非只靠 lint → 見 [`docs/agent-discipline.md`](docs/agent-discipline.md)。
+**每個事實只有一個家（SSOT）。動到有 SSOT 的東西時，預設責任是「維持單一真相來源」——不複製事實、發現 drift 當場收斂。** 權威端 = code（含 frontmatter、常數、config、Zod schema）或 openspec spec，**不是散文文件**；playbook / README / 這份 AGENTS.md / 註解 / task prompt 都是 derived view，對不上時散文服從 code/openspec。能判斷哪邊對就自己收 + 回報帶一句，只有「難判斷又是重要決定」才在 chat 用具體問題問（見〈Human interface〉）。完整四條操作規則、收斂自主姿態、為什麼用 prompt 而非只靠 lint → 見 [`docs/agent-discipline.md`](docs/agent-discipline.md)。
 
 ## 📐 寫 prompt / 規則：抓耐久原則（摘要 — 全文見 `docs/agent-discipline.md`）
 
