@@ -90,6 +90,9 @@ const BYPASSES = [
     'text',
     'EOF',
   ].join('\n'),
+  // (( … )) 算術式裡的 << 是位移運算，不是 heredoc
+  ['((1 << 2))', 'git commit --no-verify -m fix', 'cat <<2', 'text', '2'].join('\n'),
+  ['echo $((1 << 2))', 'git commit -n -m fix', 'cat <<2', 'text', '2'].join('\n'),
   // heredoc 內文的 # 是一般字元，後面的指令替換照樣會執行
   ['cat <<EOF', '# $(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   // 寧可多擋：沒引號的 heredoc 只要有指令替換，提到 -n 的內文也會被擋（改用 <<'EOF' 就不會）
