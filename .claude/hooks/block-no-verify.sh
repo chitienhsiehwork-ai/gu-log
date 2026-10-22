@@ -5,7 +5,7 @@
 #
 # 擋：
 #   - git commit / push / merge 等子指令帶 --no-verify / --no-gpg-sign（含 --no-veri 這種縮寫）
-#   - git commit 的 -n，含合併短旗標 -nm、-anm；git push -n 是 dry-run，放行
+#   - git commit、git am 的 -n，含合併短旗標 -nm、-anm；git push -n 是 dry-run，放行
 #   - 子指令前的 -c core.hooksPath=… / --config-env=core.hooksPath=…
 # 不誤擋：先丟掉 heredoc 內文，引號內的文字當成一個參數，再丟掉 # 註解；
 #   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn 裡的 n）也不會被當成旗標。
@@ -62,27 +62,28 @@ is_hooks_path() {
   [ "$key" = core.hookspath ]
 }
 
-# git commit 的合併短旗標裡有沒有 n。m、F 這類要帶值的字母後面全是值；
+# 合併短旗標 $1 裡有沒有 n。$2 是要帶值的字母（例如 commit 的 m、F），後面全是值；
 # 要帶值的字母在最後一個時，值是下一個參數，用 VALUE_IS_NEXT=1 告訴呼叫端跳過。
-commit_cluster_has_n() {
-  local letters=${1#-} idx
+# $3 是值只能直接接在後面的字母（例如 -S<keyid>），後面也全是值。
+cluster_has_n() {
+  local letters=${1#-} idx letter
   VALUE_IS_NEXT=0
   for ((idx = 0; idx < ${#letters}; idx++)); do
-    case ${letters:idx:1} in
-      n) return 0 ;;
-      [CFcmt])
-        [ "$idx" -eq $((${#letters} - 1)) ] && VALUE_IS_NEXT=1
-        return 1
-        ;;
-      [Su]) return 1 ;; # 值只能直接接在後面（-S<keyid>、-u<mode>）
+    letter=${letters:idx:1}
+    [ "$letter" = n ] && return 0
+    case $2 in *"$letter"*)
+      [ "$idx" -eq $((${#letters} - 1)) ] && VALUE_IS_NEXT=1
+      return 1
+      ;;
     esac
+    case $3 in *"$letter"*) return 1 ;; esac
   done
   return 1
 }
 
 # 傳入 git 後面的參數；回傳 0 表示會繞過 hook。
 git_bypasses_hooks() {
-  local args=("$@") count=$# i=0 word sub
+  local args=("$@") count=$# i=0 word sub value_letters attached_letters long_values
   while [ "$i" -lt "$count" ]; do
     word=${args[i]}
     case $word in
@@ -102,9 +103,21 @@ git_bypasses_hooks() {
     i=$((i + 1))
   done
 
+  # commit 和 am 的 -n 是 --no-verify，要知道哪些旗標帶值，才不會把值裡的 n 當成旗標：
+  # 要帶值的短旗標字母、值只能直接接在後面的字母、值可以是下一個參數的長旗標
   sub=${args[i]}
   case $sub in
-    am | cherry-pick | commit | merge | pull | push | rebase | revert | send-email) ;;
+    commit)
+      value_letters=CFcmt attached_letters=Su
+      long_values=' --author --cleanup --date --file --fixup --message --pathspec-from-file
+        --reedit-message --reuse-message --squash --template --trailer '
+      ;;
+    am)
+      value_letters=Cp attached_letters=S
+      long_values=' --directory --empty --exclude --include --patch-format --quoted-cr
+        --resolvemsg --whitespace '
+      ;;
+    cherry-pick | merge | pull | push | rebase | revert | send-email) value_letters= ;;
     *) return 1 ;;
   esac
   i=$((i + 1))
@@ -116,15 +129,11 @@ git_bypasses_hooks() {
       --no-v*) [[ --no-verify == "$word"* ]] && return 0 ;;
       --no-g*) [[ --no-gpg-sign == "$word"* ]] && return 0 ;;
     esac
-    [ "$sub" = commit ] || continue
+    [ -n "$value_letters" ] || continue
     case $word in
-      --author | --cleanup | --date | --file | --fixup | --message | --pathspec-from-file | \
-        --reedit-message | --reuse-message | --squash | --template | --trailer)
-        i=$((i + 1))
-        ;;
-      --*) ;;
+      --*) case $long_values in *[[:space:]]"$word"[[:space:]]*) i=$((i + 1)) ;; esac ;;
       -?*)
-        commit_cluster_has_n "$word" && return 0
+        cluster_has_n "$word" "$value_letters" "$attached_letters" && return 0
         [ "$VALUE_IS_NEXT" -eq 1 ] && i=$((i + 1))
         ;;
     esac
