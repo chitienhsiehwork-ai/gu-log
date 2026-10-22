@@ -7,7 +7,7 @@
 #   - git commit / push / merge 等子指令帶 --no-verify / --no-gpg-sign（含 --no-veri 這種縮寫）
 #   - git commit、git am 的 -n，含合併短旗標 -nm、-anm；git push -n 是 dry-run，放行
 #   - 子指令前的 -c core.hooksPath=… / --config-env=core.hooksPath=…
-# 不誤擋：先丟掉 heredoc 內文（沒引號時只留會被執行的 $(…) 和 `…`），引號內的文字當成一個參數，再丟掉 # 註解；
+# 不誤擋：先丟掉 heredoc 內文（沒引號、內文又有 $(…) 或 `…` 時整段保留），引號內的文字當成一個參數，再丟掉 # 註解；
 #   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn 裡的 n）也不會被當成旗標。
 # 範圍：防的是看到 hook 失敗、順手照提示加 --no-verify 的 agent，不是刻意繞路的人；
 #   bash -c、eval、git alias、變數展開、雙引號裡的 $(…)、用 git config 寫入 core.hooksPath 都不管。
@@ -22,7 +22,7 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/nul
 # 把指令拆成「一行一個簡單指令、參數之間用空白隔開」：
 #   1. 丟掉 heredoc 內文與結束標記，其他接續行（\ 換行）併成一行。heredoc 內文照 bash 的規則：
 #      標記有引號（<<'EOF'）就原樣保留，沒引號才先併接續行，再找結束標記；
-#      沒引號時 bash 照樣會執行內文的 $(…) 和 `…`，所以收齊整段內文後把它們抽出來（可跨行），另外當成指令檢查；
+#      沒引號時 bash 照樣會執行內文的 $(…) 和 `…`；猜不準它們在哪裡結束，所以內文只要有這兩種，整段都當指令檢查（寧可多擋）；
 #      引號和 # 註解裡的 <<EOF 只是文字，不算 heredoc 起點
 #   2. 由左到右處理跳脫字元、引號、# 註解：引號內的文字當成一個參數（空白和分隔符換成 _），註解丟掉
 #   3. 沒加引號的 $(…)、<(…)、`…` 原地換成一個參數 _，裡面的內容接到最後，另外當成指令檢查
@@ -47,8 +47,8 @@ STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
         if ($body =~ /^\s*\Q$marker\E\s*$/) { $i = $end; last }
         $text .= "$body\n";
       }
-      push @kept, $1 // $2
-        while $literal eq "" && $text =~ /(?<!\\)(?:\\\\)*\K(?:\$(\((?:[^()]++|(?1))*\))|`([^`]*)`)/g;
+      # heredoc 內文的引號只是一般字元，換成空白，免得後面把指令包進引號參數裡
+      push @kept, $text =~ tr/"\x27/  /r if $literal eq "" && $text =~ /(?<!\\)(?:\\\\)*(?:\$\(|`)/;
     }
   }
   $_ = join "\n", @kept;
