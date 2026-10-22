@@ -75,6 +75,9 @@ const BYPASSES = [
     '\n'
   ),
   ['echo hi # <<EOF', 'git commit -n -m fix', 'cat <<EOF', 'text', 'EOF'].join('\n'),
+  // heredoc 內文裡的指令替換跨行時也要收齊再檢查
+  ['cat <<EOF', '$(', 'git commit --no-verify -m fix', ')', 'EOF'].join('\n'),
+  ['cat <<EOF', 'x `', 'git commit -n -m fix', '` y', 'EOF'].join('\n'),
   // 重新導向緊貼著指令名稱，bash 照樣執行 git
   'git>out commit --no-verify -m fix',
   'git 2>err commit -n -m fix',
@@ -135,6 +138,7 @@ const ALLOWED = [
     'fix: 擋掉 git commit -n，版本 $(git rev-parse --short HEAD)',
     'EOF',
   ].join('\n'),
+  ["cat <<'EOF'", '$(', 'git commit -n -m fix', ')', 'EOF'].join('\n'),
   'git push -n origin HEAD >/dev/null 2>&1',
   'git>out log --oneline -n 5',
 ];
