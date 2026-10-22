@@ -21,6 +21,7 @@ import { loadPostMap, findMissingPairs, reminderText } from './check-translation
 import { MODEL_MAP } from './detect-model.mjs';
 import { getNeutralSummary, getTakedownSeries } from '../src/lib/tombstone-copy.mjs';
 import { TAKEN_DOWN_INCOMPATIBLE_FIELDS, isTakenDownData } from './lib/taken-down-posts.mjs';
+import { findPairFieldMismatches } from './lib/translation-pair-fields.mjs';
 import {
   STAMP_FIELD,
   parseFrontmatter as parseStampFrontmatter,
@@ -364,7 +365,7 @@ function validateTakedownState({ fm, body, filename, allPosts }) {
         `Translation pair ${pair.filename} must also be taken-down (take down both languages together)`
       );
     } else {
-      for (const field of ['takenDownAt', 'sourceUrl', 'sourceTitle']) {
+      for (const field of ['takenDownAt', 'sourceTitle']) {
         if (pair[field] !== fm[field]) {
           errors.push(
             `Translation pair ${pair.filename} has a different ${field} (${JSON.stringify(pair[field])} vs ${JSON.stringify(fm[field])})`
@@ -590,18 +591,8 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
-  // ── Rule 14: Translation pair ticketId consistency ──
-  if (fm.ticketId && allPosts) {
-    const baseName = getBaseFilename(filename);
-    const pair = allPosts.find(
-      (p) => getBaseFilename(p.filename) === baseName && p.filename !== filename
-    );
-    if (pair && pair.ticketId && pair.ticketId !== fm.ticketId) {
-      errors.push(
-        `Translation pair ticketId mismatch: this="${fm.ticketId}", pair="${pair.ticketId}" (${pair.filename})`
-      );
-    }
-  }
+  // ── Rule 14: Translation pair shares ticketId / series / external sourceUrl ──
+  errors.push(...findPairFieldMismatches(fm, findTranslationPair(filename, allPosts)));
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
   // Readers must see which model produced the post, whatever its series.
@@ -1089,6 +1080,7 @@ function main() {
       takenDownAt: fm?.takenDownAt,
       sourceUrl: fm?.sourceUrl,
       sourceTitle: fm?.sourceTitle,
+      series: fm?.series,
     };
   });
 
