@@ -3,8 +3,8 @@
  *
  * linked worktree 的 `.git` 是一個檔案，MERGE_HEAD 放在主 repo 的
  * `.git/worktrees/<名稱>/` 底下。豁免條件如果寫死成 `$REPO_ROOT/.git/MERGE_HEAD`，
- * 在 worktree 解完衝突 commit 時就永遠不成立，另一條 branch 帶進來、早就過過
- * gate 的文章會被 score gate 再擋一次。假的 node 讓 score-floor-check.mjs 印出
+ * 在 worktree 解完衝突 commit 時就永遠不成立，另一條 branch 帶進來、早就在來源
+ * branch 通過 gate 的文章會被 score gate 再擋一次。假的 node 讓 score-floor-check.mjs 印出
  * sentinel 並 exit 1，看得到 score gate 有沒有被叫到。
  */
 import { execSync, spawnSync } from 'node:child_process';
@@ -31,7 +31,7 @@ function seedRepoWithWorktree() {
   for (const manifest of ['post-versions.json', 'post-reader-revisions.json']) {
     fs.writeFileSync(path.join(repo, 'src', 'data', manifest), '{}\n');
   }
-  writePost(repo, '舊版正文，當初在來源 branch 上就過過 gate。');
+  writePost(repo, '舊版正文，當初在來源 branch 上就通過 gate。');
   fs.writeFileSync(path.join(repo, 'notes.txt'), 'base\n');
   commitAll(repo, 'seed');
 
