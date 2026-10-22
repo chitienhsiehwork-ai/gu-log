@@ -146,7 +146,9 @@ async function judgeScreenshot(screenshotPath) {
   // Try Anthropic SDK first
   try {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ timeout: 60_000 });
+    // Timeouts are retried too, so cap retries: in the hook the worst case per
+    // diagram is 2 × 60s on the SDK, then 60s on the CLI fallback.
+    const client = new Anthropic({ timeout: 60_000, maxRetries: 1 });
 
     // Current models think by default and thinking counts toward max_tokens,
     // so leave room for it and keep effort low for a one-line verdict.
