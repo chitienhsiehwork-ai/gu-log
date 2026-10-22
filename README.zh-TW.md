@@ -80,7 +80,7 @@ gu-log 寫的就是 AI 品質，所以它把自己的 AI 自評分數攤在陽�
 | **Floor**（自動 gate） | 真實 `scores.vibe` ＋ 該 tribunal version 要求的 Vibe 維度齊全 ＋ composite **≥ 3** | pre-commit hook | **擋 commit** —— garbage 進不了 `main` |
 | **PASS**（編輯標準） | Vibe composite **≥ 8**、一維 ≥ 9、沒有維 < 8，且其餘評審 hard gates 全過 | 首頁／UI 過濾 | 照樣 ship，但掛「精修中」badge 並**不上首頁**，等背景重寫拉到 ≥ 8 才上 |
 
-評分跑一套 **4-judge tribunal**（每篇文章，newest-first）。以下是 derived view；model routing 由 tribunal runtime 與 `.claude/agents/*.md` 的 declarations 決定，README 不複製 model 名稱：
+評分跑一套 **4-judge tribunal**（每篇文章，newest-first）。以下是 derived view；model routing 由 openspec [`codex-tribunal-runtime`](openspec/specs/codex-tribunal-runtime/spec.md) 定義，README 不複製 model 名稱：
 
 - **Vibe Scorer** —— v9 評 Persona／MoguNote／Vibe／Narrative；v8 以下另含 Clarity
 - **Fact Checker** —— 技術準確度、來源忠實、邏輯一致、來源與評論邊界
@@ -117,24 +117,17 @@ pnpm run content:check  # validate:posts + build，一次跑完
 
 ## 專案結構
 
-```
-src/
-├── content/
-│   ├── config.ts            # frontmatter schema（Zod 驗證）
-│   └── posts/
-│       ├── gp-123-…-slug.mdx     # 中文版（lang: "zh-tw"）
-│       └── en-gp-123-…-slug.mdx  # 英文版（lang: "en"）
-├── components/
-│   ├── MoguNote.astro       # Mogu 吐槽框
-│   ├── ShroomDogNote.astro  # ShroomDog 本人的聲音（SD 系列）
-│   └── …                    # ThemeToggle, LanguageToggle, TableOfContents…
-├── layouts/                 # BaseLayout（中文）+ 英文 shell
-├── pages/
-│   ├── posts/[...slug].astro     # 中文文章
-│   ├── en/posts/[...slug].astro  # 英文文章
-│   └── rss.xml.ts
-└── styles/global.css        # Solarized 主題（CSS 變數）
-```
+| 路徑 | 放什麼 |
+|---|---|
+| `src/` | Astro 網站：文章在 `src/content/posts/`（schema 在 `src/content.config.ts`）、元件、layout、頁面 |
+| `scripts/` | 內容驗證、git hook、Tribunal runner 和其他工具 |
+| `tools/gp-pipeline/` | 從來源寫成文章的 Go CLI |
+| `tests/` | Vitest 單元測試和 Playwright 端對端測試 |
+| `openspec/` | spec 與變更紀錄 |
+| `playbooks/`、`docs/` | agent playbook、runbook 和參考文件 |
+| `.github/workflows/` | CI、夜間檢查和部署 workflow |
+
+完整的原始碼結構和指令見 [`docs/dev-reference.md`](./docs/dev-reference.md)。
 
 ---
 
@@ -142,8 +135,8 @@ src/
 
 CI 分層設計，PR 跑得快，深度檢查留給夜間。
 
-**Layer 1 —— PR 快速 gate**（`.github/workflows/ci.yml`，blocking，約 3–5 分鐘）：
-`lockfile-consistency`、`lint`（ESLint + Prettier）、`validate-content`、`security-gate` → 再跑 `build`（型別檢查 + 生產 build）。
+**Layer 1 —— PR gate**（`.github/workflows/ci.yml`，blocking）：
+必過的 check 只有 `ci-passed` 一個，它會等 `needs:` 列出的每個 job 都過——lint、內容驗證、安全檢查、單元與端對端測試、build 等等。PR 要過哪些檢查，以那份清單為準。
 
 **Layer 2 —— 夜間深度檢查**（`.github/workflows/nightly-deep.yml`，advisory）：
 Playwright 視覺審查、Lighthouse、完整 `pnpm audit`、相依新鮮度、bundle 大小歷史。失敗會 ping Telegram。
@@ -167,7 +160,7 @@ Playwright 視覺審查、Lighthouse、完整 `pnpm audit`、相依新鮮度、b
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) —— 內容規則、ticket-ID SOP、防重複、frontmatter schema
 - [`GU-LOG_WRITER_PROMPT.md`](./GU-LOG_WRITER_PROMPT.md) —— 寫作風格（PTT 說故事風、MoguNote 語氣）
 - [`src/content.config.ts`](./src/content.config.ts) —— frontmatter schema（Zod）
-- [`CLAUDE.md`](./CLAUDE.md) —— AI agent 怎麼操作這個 repo
+- [`AGENTS.md`](./AGENTS.md) —— AI agent 怎麼操作這個 repo（各 runtime 共用；Claude Code 專屬的補充在 [`CLAUDE.md`](./CLAUDE.md)）
 
 ---
 
