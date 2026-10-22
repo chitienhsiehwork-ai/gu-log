@@ -63,11 +63,24 @@ const ANCHOR_HREF = /<a\b[^>]*?\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/
 // on purpose. Everything else readers can reach, the 404 page included, is scanned.
 const FIXTURE_PAGE = /^artifacts\/[^/]+-fixture\//;
 
+// Character references an attribute value can carry: Astro writes `&amp;`,
+// MDX output (hast) writes `&#x26;`. Left encoded, the `#` reads as a fragment.
+const CHAR_REF = /&(?:#x([\da-f]+)|#(\d+)|(amp|quot|apos|lt|gt));/gi;
+const NAMED_REFS = { amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' };
+
+function decodeAttribute(value) {
+  return value.replace(CHAR_REF, (ref, hex, dec, name) => {
+    if (name) return NAMED_REFS[name.toLowerCase()];
+    const codePoint = hex ? parseInt(hex, 16) : Number(dec);
+    return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : ref;
+  });
+}
+
 /** Internal `<a href>` targets in one HTML page, ignoring markup built as strings in <script>. */
 export function extractInternalAnchorHrefs(html) {
   const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
   return [...markup.matchAll(ANCHOR_HREF)]
-    .map((match) => (match[1] ?? match[2] ?? match[3]).trim().replace(/&amp;/g, '&'))
+    .map((match) => decodeAttribute((match[1] ?? match[2] ?? match[3]).trim()))
     .filter(isInternalLink);
 }
 

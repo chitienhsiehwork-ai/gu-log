@@ -9,7 +9,7 @@ import {
 } from '../scripts/lib/internal-links.mjs';
 
 describe('extractInternalAnchorHrefs', () => {
-  it('keeps only internal <a href> values, decoding &amp;', () => {
+  it('keeps only internal <a href> values', () => {
     const html = `<a class="icon-btn" href="/en/tags/claude-code/">x</a>
       <a href='/posts/a?x=1&amp;y=2#top'>a</a><a href=/glossary>g</a>
       <a href="https://gu-log.vercel.app/about">abs</a>
@@ -20,6 +20,17 @@ describe('extractInternalAnchorHrefs', () => {
       '/posts/a?x=1&y=2#top',
       '/glossary',
       'https://gu-log.vercel.app/about',
+    ]);
+  });
+
+  it('decodes numeric and named character references before reading the path', () => {
+    const html = `<a href="/tags/R&#x26;D">hex</a><a href="/tags/R&#38;D/">dec</a>
+      <a href="/q?a=&quot;b&quot;">quot</a><a href="/x&#x110000;">bad</a>`;
+    expect(extractInternalAnchorHrefs(html)).toEqual([
+      '/tags/R&D',
+      '/tags/R&D/',
+      '/q?a="b"',
+      '/x&#x110000;',
     ]);
   });
 
