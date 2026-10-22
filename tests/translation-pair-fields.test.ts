@@ -84,6 +84,25 @@ describe('findPairFieldMismatches', () => {
     expect(findPairFieldMismatches(fm({ sourceUrl: en }), pair())).toHaveLength(1);
   });
 
+  it('compares sourceUrl of a taken-down pair even without an external source', () => {
+    // openspec post-takedown：下架配對不管來源類型，sourceUrl 都要一樣
+    const takenDown = { status: 'taken-down' };
+    const zh = 'https://chatgpt.com/share/zh';
+    const en = 'https://chatgpt.com/share/en';
+    expect(
+      findPairFieldMismatches(
+        fm({ ...takenDown, sourceUrl: en }),
+        pair({ ...takenDown, sourceUrl: zh })
+      )
+    ).toEqual([
+      `Translation pair ${PAIR_FILE} has a different sourceUrl (${JSON.stringify(zh)} vs ${JSON.stringify(en)})`,
+    ]);
+    // 只有一邊下架時，takedown 規則會先要求兩邊一起下架，這裡照一般規則不比
+    expect(
+      findPairFieldMismatches(fm({ sourceUrl: en }), pair({ ...takenDown, sourceUrl: zh }))
+    ).toEqual([]);
+  });
+
   it('keeps the ticketId mismatch message', () => {
     expect(findPairFieldMismatches(fm(), pair({ ticketId: 'MP-170' }))).toEqual([
       `Translation pair ticketId mismatch: this="MP-169", pair="MP-170" (${PAIR_FILE})`,
