@@ -4,7 +4,8 @@
  * SQAA Level 6: Broken Link Detection
  *
  * Scans all MDX posts for links, validates them:
- * - Internal links: checks dist/ path existence
+ * - Internal links: checks dist/ path existence, plus every <a href> in the
+ *   built dist/ HTML (page chrome such as nav, language toggle and tags)
  * - External links: HTTP HEAD with rate limiting
  * - X/Twitter & GitHub: marked as needsManualCheck (bot-hostile)
  *
@@ -18,9 +19,14 @@
  */
 
 import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
-import { join, resolve, sep } from 'node:path';
+import { join, resolve } from 'node:path';
 import { existsSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import {
+  checkInternalLink,
+  collectDistAnchorLinks,
+  isInternalLink,
+} from './lib/internal-links.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const POSTS_DIR = join(ROOT, 'src', 'content', 'posts');
@@ -108,7 +114,6 @@ const MANUAL_CHECK_DOMAINS = [
   'deeplearning.ai',
   'news.ycombinator.com',
 ];
-const INTERNAL_ORIGINS = new Set(['https://gu-log.vercel.app', 'https://www.gu-log.vercel.app']);
 
 // Skip these URL patterns entirely (not real links)
 const SKIP_PATTERNS = [
@@ -178,20 +183,6 @@ function extractLinks(content, filePath) {
 
 // ── Classification ──────────────────────────────────────────────
 
-function isInternalLink(url) {
-  if (url.startsWith('/') && !url.startsWith('//')) return true;
-  // Exact origin matching prevents URLs that put the
-  // gu-log.vercel.app domain inside a query parameter (e.g.
-  // `https://api.qrserver.com/v1/create-qr-code/?data=https://gu-log.vercel.app`),
-  // or use a different scheme/port from borrowing a file in dist.
-  try {
-    return INTERNAL_ORIGINS.has(new URL(url).origin);
-  } catch {
-    // not a valid absolute URL — fall through
-  }
-  return false;
-}
-
 export function isManualCheckDomain(url) {
   try {
     const hostname = new URL(url).hostname;
@@ -199,35 +190,6 @@ export function isManualCheckDomain(url) {
   } catch {
     return false;
   }
-}
-
-// ── Internal Link Validation ─────────────────────────────────────
-
-export function checkInternalLink(url, distDir = DIST_DIR) {
-  if (!isInternalLink(url)) return false;
-
-  let parsed;
-  try {
-    // WHATWG URL parsing matches the browser: it removes query/fragment data
-    // and normalizes literal or percent-encoded dot segments before the
-    // pathname ever reaches the filesystem.
-    parsed = new URL(url, 'https://gu-log.vercel.app');
-  } catch {
-    return false;
-  }
-  if (!INTERNAL_ORIGINS.has(parsed.origin)) return false;
-
-  let path = parsed.pathname;
-  path = path.replace(/\/$/, '') || '/';
-  const distRoot = resolve(distDir);
-  const resolvedPath = resolve(distRoot, `.${path}`);
-  const candidates = [resolvedPath, join(resolvedPath, 'index.html'), resolvedPath + '.html'];
-  const distPrefix = `${distRoot}${sep}`;
-
-  return candidates.some(
-    (candidate) =>
-      (candidate === distRoot || candidate.startsWith(distPrefix)) && existsSync(candidate)
-  );
 }
 
 // ── External Link Validation (with rate limiting) ────────────────
@@ -489,6 +451,12 @@ async function main() {
     allLinks.push(...links);
   }
 
+  // 導覽列、語言切換、標籤這些頁面框架的連結不在 MDX 裡，補掃 dist HTML 的 <a href>
+  const mdxInternalUrls = new Set(allLinks.filter((l) => isInternalLink(l.url)).map((l) => l.url));
+  const dist = await collectDistAnchorLinks(DIST_DIR);
+  const pageLinks = dist.links.filter((l) => !mdxInternalUrls.has(l.url));
+  allLinks.push(...pageLinks);
+  console.log(`🧱 +${pageLinks.length} internal links from ${dist.pageCount} built HTML pages`);
   console.log(`🔍 Found ${allLinks.length} total links\n`);
 
   // Classify
@@ -511,7 +479,7 @@ async function main() {
   const internalBroken = [];
 
   for (const link of internal) {
-    if (checkInternalLink(link.url)) {
+    if (checkInternalLink(link.url, DIST_DIR)) {
       internalOk.push(link);
     } else {
       internalBroken.push(link);
@@ -590,7 +558,8 @@ async function main() {
     for (const l of internalBroken) {
       console.log(`  - ${l.url} (${l.file})`);
       if (isCI) {
-        console.log(`::error file=src/content/posts/${l.file}::Broken internal link: ${l.url}`);
+        const at = l.file.endsWith('.mdx') ? ` file=src/content/posts/${l.file}` : '';
+        console.log(`::error${at}::Broken internal link: ${l.url} (${l.file})`);
       }
     }
   }
