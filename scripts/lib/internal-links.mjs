@@ -76,9 +76,29 @@ function decodeAttribute(value) {
   });
 }
 
+// Scanned, not stripped with replace(): the output is only a list of URLs, and
+// skipping each <script>…</script> span in one pass leaves nothing to re-join.
+const SCRIPT_OPEN = /<script\b/gi;
+const SCRIPT_CLOSE = /<\/script\b[^>]*>/gi;
+
+function outsideScripts(html) {
+  let markup = '';
+  let pos = 0;
+  for (;;) {
+    SCRIPT_OPEN.lastIndex = pos;
+    const open = SCRIPT_OPEN.exec(html);
+    if (!open) return markup + html.slice(pos);
+    markup += html.slice(pos, open.index);
+    SCRIPT_CLOSE.lastIndex = open.index;
+    const close = SCRIPT_CLOSE.exec(html);
+    if (!close) return markup;
+    pos = close.index + close[0].length;
+  }
+}
+
 /** Internal `<a href>` targets in one HTML page, ignoring markup built as strings in <script>. */
 export function extractInternalAnchorHrefs(html) {
-  const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+  const markup = outsideScripts(html);
   return [...markup.matchAll(ANCHOR_HREF)]
     .map((match) => decodeAttribute((match[1] ?? match[2] ?? match[3]).trim()))
     .filter(isInternalLink);

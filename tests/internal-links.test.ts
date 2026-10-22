@@ -38,6 +38,16 @@ describe('extractInternalAnchorHrefs', () => {
     const html = `<script>el.innerHTML = '<a href="/posts/' + slug + '">';</script><a href="/ok">`;
     expect(extractInternalAnchorHrefs(html)).toEqual(['/ok']);
   });
+
+  it('skips scripts whatever the end tag looks like', () => {
+    const html = [
+      `<SCRIPT type="module">x('<a href="/a">')</SCRIPT ><a href="/b">`,
+      `<script>y('<a href="/c">')</script foo="1"><a href="/d">`,
+      `<scripts><a href="/e"></scripts>`,
+      `<script>z('<a href="/f">')`,
+    ].join('');
+    expect(extractInternalAnchorHrefs(html)).toEqual(['/b', '/d', '/e']);
+  });
 });
 
 describe('dist HTML link scan', () => {
