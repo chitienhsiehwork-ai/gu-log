@@ -7,21 +7,22 @@
 #   - git commit / push / merge 等子指令帶 --no-verify / --no-gpg-sign（含 --no-veri 這種縮寫）
 #   - git commit 的 -n，含合併短旗標 -nm、-anm；git push -n 是 dry-run，放行
 #   - 子指令前的 -c core.hooksPath=… / --config-env=core.hooksPath=…
-# 不誤擋：先丟掉 heredoc 內文，引號內文字收成一個字，再丟掉 # 註解；
-#   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn）也不會被當成旗標。
-# 範圍：防的是照錯誤提示走的 agent，不是刻意繞路的人；bash -c、eval、git alias、
-#   變數展開、git config 寫入 core.hooksPath 都不管。只要出現名為 git 的字就檢查，
-#   所以 `echo git commit -n` 也會被擋。解析不了就放行，這支壞掉不會卡死所有 Bash 指令。
+# 不誤擋：先丟掉 heredoc 內文，引號內的文字當成一個參數，再丟掉 # 註解；
+#   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn 裡的 n）也不會被當成旗標。
+# 範圍：防的是看到 hook 失敗、順手照提示加 --no-verify 的 agent，不是刻意繞路的人；
+#   bash -c、eval、git alias、變數展開、用 git config 寫入 core.hooksPath 都不管。
+#   只要出現單獨一個 git 就當成 git 指令檢查，所以 `echo git commit -n` 也會被擋。
+#   解析不了就放行，這支壞掉不會卡死所有 Bash 指令。
 # 測試：tests/block-no-verify-hook.test.ts。只用 bash 3.2 有的語法（macOS 內建 bash）。
 
 INPUT=$(cat)
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
 [ -n "$COMMAND" ] || exit 0
 
-# 把指令拆成「一行一個簡單指令、字之間用空白隔開」：
+# 把指令拆成「一行一個簡單指令、參數之間用空白隔開」：
 #   1. 接續行（\ 換行）併成一行，丟掉 heredoc 內文與結束標記
-#   2. 由左到右處理跳脫字元、引號、# 註解：引號內文字收成一個字（空白和分隔符換成 _），註解丟掉
-#   3. 丟掉 2>&1、&> 這類轉向，免得 & 被當成分隔符
+#   2. 由左到右處理跳脫字元、引號、# 註解：引號內的文字當成一個參數（空白和分隔符換成 _），註解丟掉
+#   3. 丟掉 2>&1、&> 這類重新導向，免得 & 被當成分隔符
 #   4. ; & | ( ) ` 換成換行
 STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
   s/\\\n/ /g;
@@ -54,7 +55,7 @@ is_hooks_path() {
 }
 
 # git commit 的合併短旗標裡有沒有 n。m、F 這類要帶值的字母後面全是值；
-# 值字母在最後一個時，值是下一個字，用 VALUE_IS_NEXT=1 告訴呼叫端跳過。
+# 要帶值的字母在最後一個時，值是下一個參數，用 VALUE_IS_NEXT=1 告訴呼叫端跳過。
 commit_cluster_has_n() {
   local letters=${1#-} idx
   VALUE_IS_NEXT=0
@@ -71,7 +72,7 @@ commit_cluster_has_n() {
   return 1
 }
 
-# 參數是 git 後面的字；回傳 0 表示會繞過 hook。
+# 傳入 git 後面的參數；回傳 0 表示會繞過 hook。
 git_bypasses_hooks() {
   local args=("$@") count=$# i=0 word sub
   while [ "$i" -lt "$count" ]; do
