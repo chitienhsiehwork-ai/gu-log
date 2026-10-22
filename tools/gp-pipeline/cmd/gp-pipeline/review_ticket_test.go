@@ -113,3 +113,64 @@ func TestReviewRefineRefuseDraftWithoutTicket(t *testing.T) {
 		}
 	}
 }
+
+// The model reads the work dir's draft-v1.mdx, so when that is another file
+// than --draft, its ticket is the one used, and both must name one series.
+func TestDraftIngressReadsTheModelDraft(t *testing.T) {
+	for name, tc := range map[string]struct {
+		draftID, modelDraftID, wantTicket, wantPrefix string
+	}{
+		"model draft supplies the ticket": {draftID: "MP-PENDING", modelDraftID: "MP-12", wantTicket: "MP-12", wantPrefix: "MP"},
+		"work dir without draft-v1.mdx":   {draftID: "SD-PENDING", wantTicket: "SD-PENDING", wantPrefix: "SD"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			draft := filepath.Join(t.TempDir(), "foo.mdx")
+			mustWrite(t, draft, "---\nticketId: "+tc.draftID+"\n---\nbody\n")
+			workDir := t.TempDir()
+			if tc.modelDraftID != "" {
+				mustWrite(t, filepath.Join(workDir, "draft-v1.mdx"), "---\nticketId: "+tc.modelDraftID+"\n---\nbody\n")
+			}
+			ticket, prefix, _, err := draftIngress("review", draft, workDir, "")
+			if err != nil {
+				t.Fatalf("draftIngress: %v", err)
+			}
+			if ticket != tc.wantTicket || prefix != tc.wantPrefix {
+				t.Fatalf("draftIngress = (%q, %q), want (%q, %q)", ticket, prefix, tc.wantTicket, tc.wantPrefix)
+			}
+		})
+	}
+}
+
+// Without --ticket-id, a --draft and a work dir draft-v1.mdx that do not name
+// one series are refused at ingress with exit 1, before any model call or
+// file write.
+func TestReviewRefineRefuseDraftsOfDifferentSeries(t *testing.T) {
+	root := makeFakeRepo(t)
+	t.Setenv("GU_LOG_DIR", root)
+	trapLog := trapExternalPrograms(t)
+	for _, command := range []string{"review", "refine"} {
+		for name, modelDraftBody := range map[string]string{
+			"MP model draft":          "---\nticketId: MP-PENDING\n---\nbody\n",
+			"model draft no ticketId": "---\ntitle: \"Draft\"\n---\nbody\n",
+		} {
+			t.Run(command+" "+name, func(t *testing.T) {
+				draft := filepath.Join(t.TempDir(), "foo.mdx")
+				mustWrite(t, draft, "---\nticketId: GP-PENDING\n---\nbody\n")
+				workDir := t.TempDir()
+				modelDraft := filepath.Join(workDir, "draft-v1.mdx")
+				mustWrite(t, modelDraft, modelDraftBody)
+				err := executeCLI(t, "--fake-provider", filepath.Join(root, "missing.json"),
+					command, "--draft", draft, "--work-dir", workDir)
+				if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "--ticket-id") ||
+					!strings.Contains(err.Error(), modelDraft) {
+					t.Fatalf("error = %v (exit %d), want the exit-1 --ticket-id refusal naming %s", err, exitCodeFor(err), modelDraft)
+				}
+				requireNoExternalCalls(t, trapLog)
+				requireBytes(t, modelDraft, []byte(modelDraftBody))
+				if names := dirNames(t, workDir); !slices.Equal(names, []string{"draft-v1.mdx"}) {
+					t.Fatalf("work dir holds %v, want only the draft", names)
+				}
+			})
+		}
+	}
+}
