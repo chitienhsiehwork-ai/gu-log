@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/config"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/logx"
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
@@ -39,31 +41,58 @@ func TestCandidateHelpContract(t *testing.T) {
 	}
 }
 
-func TestDoctorJSONReportsMissingYTDLPAsOptionalCapability(t *testing.T) {
+// healthyDoctorRepo returns a fake repo with every file doctor requires and a
+// PATH holding every required binary except the ones named in skip.
+func healthyDoctorRepo(t *testing.T, skip ...string) string {
+	t.Helper()
 	root := makeFakeRepo(t)
-	mustWrite(t, filepath.Join(root, "scripts", "fetch-x-article.sh"), "#!/bin/sh\n")
-	mustWrite(t, filepath.Join(root, "scripts", "validate-posts.mjs"), "// fixture\n")
+	cfg, err := config.Resolve(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, check := range doctorFileChecks(cfg, "legacy") {
+		if _, err := os.Stat(check.Path); err == nil {
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(check.Path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		mustWrite(t, check.Path, "fixture\n")
+	}
 	binDir := t.TempDir()
 	for _, name := range requiredBinaries {
+		if slices.Contains(skip, name) {
+			continue
+		}
 		if err := os.WriteFile(filepath.Join(binDir, name), []byte("#!/bin/sh\nexit 0\n"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 	t.Setenv("PATH", binDir)
 	t.Setenv("GU_LOG_DIR", root)
+	return root
+}
 
+func runDoctorJSON(t *testing.T) (doctorReport, error) {
+	t.Helper()
 	resetGlobals()
 	cmd := buildRoot()
 	cmd.SetArgs([]string{"--json", "doctor"})
 	raw, err := captureProcessStdout(t, func() error {
 		return cmd.Execute()
 	})
-	if err != nil {
-		t.Fatalf("doctor --json: %v\n%s", err, raw)
-	}
 	var report doctorReport
-	if err := json.Unmarshal(raw, &report); err != nil {
-		t.Fatalf("parse doctor JSON: %v\n%s", err, raw)
+	if jsonErr := json.Unmarshal(raw, &report); jsonErr != nil {
+		t.Fatalf("parse doctor JSON: %v\n%s", jsonErr, raw)
+	}
+	return report, err
+}
+
+func TestDoctorJSONReportsMissingYTDLPAsOptionalCapability(t *testing.T) {
+	healthyDoctorRepo(t)
+	report, err := runDoctorJSON(t)
+	if err != nil {
+		t.Fatalf("doctor --json: %v", err)
 	}
 	if !report.OK {
 		t.Fatalf("missing optional yt-dlp must not fail doctor: %#v", report)
@@ -80,6 +109,32 @@ func TestDoctorJSONReportsMissingYTDLPAsOptionalCapability(t *testing.T) {
 	if !found {
 		t.Fatal("doctor JSON omitted youtube-candidate capability")
 	}
+}
+
+func TestDoctorJSONFailsWhenRequiredDependencyIsMissing(t *testing.T) {
+	t.Run("binary", func(t *testing.T) {
+		healthyDoctorRepo(t, "pnpm")
+		report, err := runDoctorJSON(t)
+		if err == nil || exitCodeFor(err) != 1 {
+			t.Fatalf("doctor --json without pnpm: err=%v, want exit code 1", err)
+		}
+		if report.OK || report.FailReason != "missing required binary: pnpm" {
+			t.Fatalf("report = ok:%v failReason:%q", report.OK, report.FailReason)
+		}
+	})
+	t.Run("file", func(t *testing.T) {
+		root := healthyDoctorRepo(t)
+		if err := os.Remove(filepath.Join(root, "scripts", "tribunal.sh")); err != nil {
+			t.Fatal(err)
+		}
+		report, err := runDoctorJSON(t)
+		if err == nil || exitCodeFor(err) != 1 {
+			t.Fatalf("doctor --json without tribunal.sh: err=%v, want exit code 1", err)
+		}
+		if report.OK || report.FailReason != "missing required file: tribunal.sh" {
+			t.Fatalf("report = ok:%v failReason:%q", report.OK, report.FailReason)
+		}
+	})
 }
 
 func TestDoctorHumanReportsYouTubeCapability(t *testing.T) {

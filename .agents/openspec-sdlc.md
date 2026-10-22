@@ -3,6 +3,8 @@
 > 這份是「用 openspec 做事」的單一流程權威（SSOT）。任何 agent 只要在 gu-log 跑了 `/opsx:propose`、產出有 spec delta 的 change，就 MUST 照這條流程走到底。
 >
 > 個別指令（propose / apply / archive）的機制細節在 `.agents/skills/openspec-*` 與 `.agents/skills/source-command-opsx-*`，這裡**只**定義端到端的「順序、審查 gate、人類介入點、收尾」，不重複各指令的內部步驟。
+>
+> `openspec update` 重新產生這些 skill 和 `.claude/commands/opsx/*` 時，上游模板會叫 agent 用 `AskUserQuestion`，這個 repo 已經用 `.claude/settings.json` 的 deny 停用它（Codex 也沒有這個工具）。更新完把那些句子改回「在 chat 問 user」；`tests/denied-agent-tools.test.ts` 會擋下漏改的。archive、sync 兩個 skill 不讀 `openspec/config.yaml`，所以只能改檔案本身。
 
 ## 為什麼要這條
 
