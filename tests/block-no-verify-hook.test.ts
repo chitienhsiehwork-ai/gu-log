@@ -80,6 +80,16 @@ const BYPASSES = [
   ['cat <<EOF', 'x `', 'git commit -n -m fix', '` y', 'EOF'].join('\n'),
   // 引號裡的 ) 不能讓指令替換提早結束；猜不準邊界，所以整段內文都檢查
   ['cat <<EOF', "$(printf ')' ; git commit --no-verify -m fix)", 'EOF'].join('\n'),
+  // 標記要取完整的字：EOF-extra 不能被當成 EOF，越過真正的結尾吞掉後面的指令
+  [
+    'cat <<EOF-extra',
+    'text',
+    'EOF-extra',
+    'git commit --no-verify -m fix',
+    'cat <<EOF',
+    'text',
+    'EOF',
+  ].join('\n'),
   // heredoc 內文的 # 是一般字元，後面的指令替換照樣會執行
   ['cat <<EOF', '# $(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   // 寧可多擋：沒引號的 heredoc 只要有指令替換，提到 -n 的內文也會被擋（改用 <<'EOF' 就不會）
@@ -144,6 +154,7 @@ const ALLOWED = [
   ["cat <<'EOF'", '$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   ['cat <<EOF', '\\$(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   ["cat <<'EOF'", '$(', 'git commit -n -m fix', ')', 'EOF'].join('\n'),
+  ["git commit -F - <<'END-MSG'", 'docs: 提到 git commit -n 會被擋', 'END-MSG'].join('\n'),
   'git push -n origin HEAD >/dev/null 2>&1',
   'git>out log --oneline -n 5',
 ];
