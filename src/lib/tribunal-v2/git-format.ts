@@ -38,11 +38,7 @@ function formatVibeScores(scores: VibeJudgeOutput['scores']): string {
   // `clarity` is version-dependent: for tribunalVersion <= 8 it's a Vibe
   // dimension and appears here; for v9+ it moved to Fresh Eyes and is absent
   // from the Vibe scores, so we only print it when present.
-  const parts = [
-    `persona:${scores.persona}`,
-    `moguNote:${scores.moguNote}`,
-    `vibe:${scores.vibe}`,
-  ];
+  const parts = [`persona:${scores.persona}`, `moguNote:${scores.moguNote}`, `vibe:${scores.vibe}`];
   if (scores.clarity !== undefined) {
     parts.push(`clarity:${scores.clarity}`);
   }

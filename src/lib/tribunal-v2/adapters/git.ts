@@ -129,10 +129,9 @@ export function buildGitAdapter(cwd = process.cwd(), mode: SquashMergeMode = ENV
 
     async squashMerge(branch, commitMessage) {
       if (mode === 'log-only') {
-
         console.log(
           `[tribunal-v2/git] squashMerge (log-only): would squash-merge '${branch}' into main with message:\n---\n${commitMessage}\n---\n` +
-            `To apply, re-run with TRIBUNAL_V2_SQUASH_MERGE=apply or pass mode='apply'.`,
+            `To apply, re-run with TRIBUNAL_V2_SQUASH_MERGE=apply or pass mode='apply'.`
         );
         return;
       }

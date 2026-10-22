@@ -675,16 +675,9 @@ fi
 echo ""
 
 # ─── Step 0.6: Prettier format check (full codebase) ─────────────
+# Scope: .prettierignore. Same check as `pnpm run format:check` in CI.
 echo "🎨 Prettier: checking all source files..."
-if ! npx prettier --check \
-    "src/components/**/*.{astro,js,ts}" \
-    "src/layouts/**/*.{astro,js,ts}" \
-    "src/pages/**/*.{astro,js,ts}" \
-    "src/config/**/*.{js,ts}" \
-    "src/styles/**/*.css" \
-    "scripts/**/*.{js,mjs,cjs,ts}" \
-    "tests/**/*.{js,mjs,cjs,ts}" \
-    "*.{mjs,cjs,ts}" 2>&1; then
+if ! npx prettier --check . 2>&1; then
     echo ""
     echo "❌ Prettier found formatting issues. Fix them before committing."
     echo "   Run: pnpm run format"

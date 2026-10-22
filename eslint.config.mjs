@@ -4,9 +4,10 @@ import eslintPluginAstro from 'eslint-plugin-astro';
 import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
-  // Global ignores
+  // Global ignores — the only place lint scope is defined (`pnpm run lint` is `eslint .`).
+  // sqaa-api/ is a separate project outside CI.
   {
-    ignores: ['dist/**', 'node_modules/**', '.astro/**'],
+    ignores: ['dist/**', 'node_modules/**', '.astro/**', 'sqaa-api/**'],
   },
 
   // Base JS recommended
