@@ -30,7 +30,7 @@ gu-log 的品質把關**分兩層**，不要再把它當成「沒過 8 就不准
 
 **還是要做的事（只是不再 block ship）**：
 
-- 寫新文章時，仍然先跑 tribunal / `vibe-score` skill 拿到真分數塞進 frontmatter（≥3 才能 commit）。
+- 寫新文章時，先跑 `bash scripts/tribunal.sh <file>` 把真分數寫進 frontmatter（≥3 才能 commit）。
 - 分數 6-7 又剛好有 quota → 呼叫 `tribunal-writer` subagent 重寫修 reasons 點出的維度 → 重跑 → 最多 3 輪，能拉到 ≥8 就上首頁。拉不動就先帶 sub-8 badge ship，排進背景 tribunal 佇列。
 - **不要為了過 floor 把分數灌水**。score-floor-check 只看 composite ≥3，但灌一個假的 8 進去比誠實標 5 更糟——badge 機制的前提是分數誠實。
 
