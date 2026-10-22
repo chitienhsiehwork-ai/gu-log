@@ -329,7 +329,12 @@ async function main() {
     console.log('');
   }
 
-  // 3. Check if dev server is running, start if needed
+  // 3. Load Playwright before starting the dev server, so a missing install
+  // leaves nothing to clean up (and is a script error, exit 2, instead of a
+  // module-load crash with exit 1)
+  const { chromium } = await import('playwright');
+
+  // 4. Check if dev server is running, start if needed
   let serverProcess = null;
   const serverUp = await waitForHttpReady(BASE_URL, { timeoutMs: 3_000 });
 
@@ -351,27 +356,27 @@ async function main() {
     console.log('');
   }
 
-  // 4. Prepare screenshot directory
+  // 5. Prepare screenshot directory
   if (existsSync(SCREENSHOT_DIR)) {
     rmSync(SCREENSHOT_DIR, { recursive: true });
   }
   mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
-  // 5. Launch Playwright browser (imported here so a missing install is a
-  // script error, exit 2, instead of a module-load crash with exit 1)
-  const { chromium } = await import('playwright');
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    viewport: VIEWPORT,
-    userAgent: USER_AGENT,
-    deviceScaleFactor: 3, // Retina for crisp screenshots
-    isMobile: true,
-    hasTouch: true,
-  });
-
   const results = [];
+  let browser = null;
 
   try {
+    // 6. Launch the browser inside try, so a failed launch (e.g. no chromium
+    // binary) still stops the dev server we started
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: VIEWPORT,
+      userAgent: USER_AGENT,
+      deviceScaleFactor: 3, // Retina for crisp screenshots
+      isMobile: true,
+      hasTouch: true,
+    });
+
     for (const filePath of mermaidFiles) {
       const urlPath = fileToUrl(filePath);
       const fullUrl = `${BASE_URL}${urlPath}`;
@@ -449,7 +454,7 @@ async function main() {
       console.log('');
     }
   } finally {
-    await browser.close();
+    await browser?.close();
 
     // Kill dev server if we started it
     if (serverProcess) {
@@ -458,7 +463,7 @@ async function main() {
     }
   }
 
-  // 6. Print summary
+  // 7. Print summary
   console.log('═══════════════════════════════════════════');
   console.log('📊 Mermaid Visual Quality Report');
   console.log('═══════════════════════════════════════════');
