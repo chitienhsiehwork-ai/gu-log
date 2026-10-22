@@ -1,25 +1,144 @@
 #!/bin/bash
-# PreToolUse(Bash) guard — gu-log 禁止 git hook-bypass flags（--no-verify / --no-gpg-sign）。
-# 為什麼：hook 失敗 = 修 hook 或修 code，不准跳（見 AGENTS.md〈🚫 絕對不准 --no-verify〉）。
-# CI（branch protection + ci-passed）是承重牆；這個 hook 補「直推 main」CI 蓋不到的洞 + fail-fast。
-# 設計：先剝掉引號內容（含跨行 heredoc 的外層雙引號），再比對——所以 commit message 裡
-#       「提到」--no-verify 不會誤殺，只擋真的當 flag 傳給 git 的情況。
+# PreToolUse(Bash) hook：擋掉繞過 git hook 的指令（Claude Code 跟 Codex 共用這支）。
+# 為什麼：hook 失敗 = 修 code 或修 hook，不准跳（見 AGENTS.md〈🚫 絕對不准 --no-verify〉）。
+# 這支只是 fail-fast，讓 agent 早點知道走錯路；真正的防線是 CI（PR 要過 ci-passed 才進得了 main）。
+#
+# 擋：
+#   - git commit / push / merge 等子指令帶 --no-verify / --no-gpg-sign（含 --no-veri 這種縮寫）
+#   - git commit 的 -n，含合併短旗標 -nm、-anm；git push -n 是 dry-run，放行
+#   - 子指令前的 -c core.hooksPath=… / --config-env=core.hooksPath=…
+# 不誤擋：先丟掉 heredoc 內文，引號內文字收成一個字，再丟掉 # 註解；
+#   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn）也不會被當成旗標。
+# 範圍：防的是照錯誤提示走的 agent，不是刻意繞路的人；bash -c、eval、git alias、
+#   變數展開、git config 寫入 core.hooksPath 都不管。只要出現名為 git 的字就檢查，
+#   所以 `echo git commit -n` 也會被擋。解析不了就放行，這支壞掉不會卡死所有 Bash 指令。
+# 測試：tests/block-no-verify-hook.test.ts。只用 bash 3.2 有的語法（macOS 內建 bash）。
 
 INPUT=$(cat)
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+[ -n "$COMMAND" ] || exit 0
 
-# perl -0777 = slurp（跨行）；\x27 = 單引號，避免在 bash 單引號參數裡塞字面單引號
-STRIPPED=$(printf '%s' "$COMMAND" | perl -0777 -pe 's/"(?:[^"\\]|\\.)*"//g; s/\x27[^\x27]*\x27//g' 2>/dev/null || printf '%s' "$COMMAND")
-
-if printf '%s' "$STRIPPED" | grep -qE '(^|[[:space:]])(--no-verify|--no-gpg-sign)([[:space:]]|$)'; then
-  jq -n '{
-    hookSpecificOutput: {
-      hookEventName: "PreToolUse",
-      permissionDecision: "deny",
-      permissionDecisionReason: "gu-log 禁止 --no-verify / --no-gpg-sign（繞過 pre-commit/pre-push hook）。hook 失敗就修 hook 或修 code，不准跳。見 AGENTS.md〈🚫 絕對不准 --no-verify〉。"
+# 把指令拆成「一行一個簡單指令、字之間用空白隔開」：
+#   1. 接續行（\ 換行）併成一行，丟掉 heredoc 內文與結束標記
+#   2. 由左到右處理跳脫字元、引號、# 註解：引號內文字收成一個字（空白和分隔符換成 _），註解丟掉
+#   3. 丟掉 2>&1、&> 這類轉向，免得 & 被當成分隔符
+#   4. ; & | ( ) ` 換成換行
+STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
+  s/\\\n/ /g;
+  my @lines = split /\n/, $_, -1;
+  my @kept;
+  for (my $i = 0; $i < @lines; ) {
+    my $line = $lines[$i++];
+    push @kept, $line;
+    while ($line =~ /(?<!<)<<(?!<)-?[ \t]*\\?([\x27"]?)([A-Za-z_]\w*)\1/g) {
+      my $marker = $2;
+      my $end = $i;
+      $end++ while $end < @lines && $lines[$end] !~ /^\s*\Q$marker\E\s*$/;
+      $i = $end + 1 if $end < @lines;
     }
-  }'
-fi
+  }
+  $_ = join "\n", @kept;
+  s{\\(.)|"((?:[^"\\]|\\.)*)"|\x27([^\x27]*)\x27|(?<![^\s;&|()`])#[^\n]*}{
+    my $word = defined $1 ? $1 : defined $2 ? $2 : $3;
+    if (defined $word) { $word =~ s/[\s;&|()<>`]/_/g; length $word ? $word : "_" } else { "" }
+  }gse;
+  s/[0-9]*[<>]&[0-9-]*|&>>?/ /g;
+  s/[;&|()`]/\n/g;
+  print;
+' 2>/dev/null) || exit 0
 
-# 非匹配：exit 0 無輸出 → 正常 permission flow
+is_hooks_path() {
+  local key
+  key=$(printf '%s' "${1%%=*}" | tr '[:upper:]' '[:lower:]')
+  [ "$key" = core.hookspath ]
+}
+
+# git commit 的合併短旗標裡有沒有 n。m、F 這類要帶值的字母後面全是值；
+# 值字母在最後一個時，值是下一個字，用 VALUE_IS_NEXT=1 告訴呼叫端跳過。
+commit_cluster_has_n() {
+  local letters=${1#-} idx
+  VALUE_IS_NEXT=0
+  for ((idx = 0; idx < ${#letters}; idx++)); do
+    case ${letters:idx:1} in
+      n) return 0 ;;
+      [CFcmt])
+        [ "$idx" -eq $((${#letters} - 1)) ] && VALUE_IS_NEXT=1
+        return 1
+        ;;
+      [Su]) return 1 ;; # 值只能直接接在後面（-S<keyid>、-u<mode>）
+    esac
+  done
+  return 1
+}
+
+# 參數是 git 後面的字；回傳 0 表示會繞過 hook。
+git_bypasses_hooks() {
+  local args=("$@") count=$# i=0 word sub
+  while [ "$i" -lt "$count" ]; do
+    word=${args[i]}
+    case $word in
+      -c | --config-env)
+        is_hooks_path "${args[i + 1]}" && return 0
+        i=$((i + 2))
+        continue
+        ;;
+      --config-env=*) is_hooks_path "${word#--config-env=}" && return 0 ;;
+      -C | --git-dir | --work-tree | --namespace | --super-prefix | --attr-source)
+        i=$((i + 2))
+        continue
+        ;;
+      -*) ;;
+      *) break ;;
+    esac
+    i=$((i + 1))
+  done
+
+  sub=${args[i]}
+  case $sub in
+    am | cherry-pick | commit | merge | pull | push | rebase | revert | send-email) ;;
+    *) return 1 ;;
+  esac
+  i=$((i + 1))
+  while [ "$i" -lt "$count" ]; do
+    word=${args[i]}
+    i=$((i + 1))
+    case $word in
+      --) return 1 ;;
+      --no-v*) [[ --no-verify == "$word"* ]] && return 0 ;;
+      --no-g*) [[ --no-gpg-sign == "$word"* ]] && return 0 ;;
+    esac
+    [ "$sub" = commit ] || continue
+    case $word in
+      --author | --cleanup | --date | --file | --fixup | --message | --pathspec-from-file | \
+        --reedit-message | --reuse-message | --squash | --template | --trailer)
+        i=$((i + 1))
+        ;;
+      --*) ;;
+      -?*)
+        commit_cluster_has_n "$word" && return 0
+        [ "$VALUE_IS_NEXT" -eq 1 ] && i=$((i + 1))
+        ;;
+    esac
+  done
+  return 1
+}
+
+while IFS= read -r statement; do
+  read -ra words <<<"$statement"
+  for ((k = 0; k < ${#words[@]}; k++)); do
+    [ "${words[k]##*/}" = git ] || continue
+    if git_bypasses_hooks "${words[@]:k+1}"; then
+      jq -n '{
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: "gu-log 禁止繞過 git hook（--no-verify、git commit -n、-c core.hooksPath=… 都算）。hook 擋下來就修 code 或修 hook，不准跳；例外只有 user 逐次授權、由 user 自己下指令。見 AGENTS.md〈🚫 絕對不准 --no-verify〉。"
+        }
+      }'
+      exit 0
+    fi
+  done
+done <<<"$STATEMENTS"
+
+# 沒擋：exit 0 不輸出，交回一般的 permission 流程
 exit 0
