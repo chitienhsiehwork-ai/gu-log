@@ -13,13 +13,15 @@
  * Environment:
  *   ANTHROPIC_API_KEY  — Required. Anthropic API key for vision judging.
  *   MERMAID_CHECK_MODEL — Optional. Model to use (default: DEFAULT_MODEL below).
+ *                         Must accept output_config.effort, or every SDK call
+ *                         is rejected and only the CLI fallback is left.
  *   BASE_URL           — Optional. Base URL (default: http://localhost:4321).
  *
  * Exit codes:
  *   0 = All diagrams PASS
  *   1 = At least one diagram FAIL (the judge said so, or the page did not render)
  *   2 = Check incomplete: script error, or the judge could not be reached / gave
- *       no PASS-or-FAIL verdict. pre-commit only warns on this; it never blocks.
+ *       no PASS-or-FAIL verdict.
  */
 
 import { readFileSync, existsSync, mkdirSync, rmSync, realpathSync } from 'fs';
@@ -482,7 +484,7 @@ async function main() {
   console.log('📊 Mermaid Visual Quality Report');
   console.log('═══════════════════════════════════════════');
   const tally = (status) => results.filter((r) => r.status === status).length;
-  console.log(`Checked: ${results.length}`);
+  console.log(`Results (diagrams + page errors): ${results.length}`);
   console.log(`Passed: ${tally('pass')}`);
   console.log(`Failed: ${tally('fail')}`);
   console.log(`Judge errors (no verdict): ${tally('error')}`);
