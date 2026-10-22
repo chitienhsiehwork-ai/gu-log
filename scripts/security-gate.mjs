@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import { parse as parseYaml } from 'yaml';
+import { fetchBytesWithTimeout } from './lib/fetch-with-timeout.mjs';
 
 const __isCli =
   import.meta.url === pathToFileURL(process.argv[1] ?? '').href ||
@@ -18,7 +19,7 @@ const NPM_BULK_AUDIT_URL = 'https://registry.npmjs.org/-/npm/v1/security/advisor
 const LOCKFILE_PATH = join(ROOT, 'pnpm-lock.yaml');
 const BULK_SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical'];
 const BULK_SUMMARY_SCHEMA_VERSION = 1;
-const DEFAULT_BULK_AUDIT_TIMEOUT_MS = 30_000;
+const DEFAULT_BULK_AUDIT_TIMEOUT_MS = 10_000;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAX_ALLOWLIST_DAYS = {
@@ -744,45 +745,21 @@ async function fetchBulkAudit(
   timeoutMs = DEFAULT_BULK_AUDIT_TIMEOUT_MS
 ) {
   validateAuditRequest(request, `${label} request`);
-  if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
-    throw new Error(`${label} timeout must be a positive integer`);
+  const { response, wire } = await fetchBytesWithTimeout(
+    NPM_BULK_AUDIT_URL,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(request),
+    },
+    { label, timeoutMs, fetchImpl }
+  );
+  if (!response.ok) {
+    const errorBody = wire.toString('utf8').slice(0, 500);
+    throw new Error(`${label} returned HTTP ${response.status}: ${errorBody}`);
   }
 
-  const controller = new AbortController();
-  const timeoutError = new Error(`${label} timed out after ${timeoutMs}ms`);
-  const timedOut = new Promise((_, reject) => {
-    controller.signal.addEventListener('abort', () => reject(timeoutError), { once: true });
-  });
-  const timeout = setTimeout(() => {
-    controller.abort(timeoutError);
-  }, timeoutMs);
-
-  try {
-    const response = await Promise.race([
-      fetchImpl(NPM_BULK_AUDIT_URL, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(request),
-        signal: controller.signal,
-      }),
-      timedOut,
-    ]);
-    const body = await Promise.race([response.arrayBuffer(), timedOut]);
-    const wire = Buffer.from(body);
-    if (!response.ok) {
-      const errorBody = wire.toString('utf8').slice(0, 500);
-      throw new Error(`${label} returned HTTP ${response.status}: ${errorBody}`);
-    }
-
-    return validateBulkAuditReport(decodeAuditBody(wire, label), request, label);
-  } catch (error) {
-    if (controller.signal.aborted) {
-      throw timeoutError;
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
-  }
+  return validateBulkAuditReport(decodeAuditBody(wire, label), request, label);
 }
 
 /*
