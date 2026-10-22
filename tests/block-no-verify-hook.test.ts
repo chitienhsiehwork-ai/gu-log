@@ -158,9 +158,12 @@ describe('block-no-verify hook registration', () => {
     );
   }
 
-  it.each(['.claude/settings.json'])('%s runs the hook from a project path with spaces', (file) => {
-    const project = projectWithSpace();
-    expect(runRegistered(file, project, 'git commit -n -m "fix"')).toBe('deny');
-    expect(runRegistered(file, project, 'git push -n origin HEAD')).toBe('allow');
-  });
+  it.each(['.claude/settings.json', '.codex/hooks.json'])(
+    '%s runs the hook from a project path with spaces',
+    (file) => {
+      const project = projectWithSpace();
+      expect(runRegistered(file, project, 'git commit -n -m "fix"')).toBe('deny');
+      expect(runRegistered(file, project, 'git push -n origin HEAD')).toBe('allow');
+    }
+  );
 });
