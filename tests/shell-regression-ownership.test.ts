@@ -7,11 +7,12 @@ const ROOT = path.resolve(__dirname, '..');
 const SHELL_TEST_DIR = path.join(ROOT, 'scripts', 'tests');
 
 // These contracts already have focused Vitest bridges with tailored assertions
-// and timeouts. Keep them in this registry so a new shell test cannot silently
-// remain outside every blocking CI owner.
+// and timeouts. Keep them in this registry so a new shell or Python test cannot
+// silently remain outside every blocking CI owner.
 const DEDICATED_CONTRACTS = [
   'test-session-start-context.sh',
   'test-tribunal-deploy-readiness.sh',
+  'test-tribunal-fact-summary-policy.py',
   'test-tribunal-fact-summary-routing.sh',
   'test-tribunal-run-control-claims.sh',
   'test-tribunal-runner-error-guard.sh',
@@ -67,9 +68,9 @@ function runShellContract(filename: string) {
 }
 
 describe('shell regression ownership', () => {
-  it('assigns every scripts/tests shell contract to a blocking Vitest owner', () => {
+  it('assigns every scripts/tests shell and Python contract to a blocking Vitest owner', () => {
     const discovered = readdirSync(SHELL_TEST_DIR)
-      .filter((filename) => filename.startsWith('test-') && filename.endsWith('.sh'))
+      .filter((filename) => filename.startsWith('test-') && /\.(sh|py)$/.test(filename))
       .sort();
     const owned = [...DEDICATED_CONTRACTS, ...PORTABLE_CONTRACTS, ...BASH4_CONTRACTS].sort();
 
