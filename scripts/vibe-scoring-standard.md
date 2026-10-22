@@ -68,22 +68,7 @@ The shell runtime normalizes legacy `scores`/`composite` output into this unifor
 
 ## Pass Bar: Code is the Rule
 
-The orchestrator in `src/lib/tribunal-v2/pass-bar.ts` is the ultimate authority. Even if an agent sets `pass: true`, the orchestrator re-evaluates. Mismatches are logged — agents must keep `pass` aligned.
-
-```typescript
-// Vibe
-composite >= 8 && max(scores) >= 9 && min(scores) >= 8
-
-// Fresh Eyes, Librarian
-composite >= 8
-
-// Fact Checker v7
-floor(avg(accuracy, fidelity, consistency)) >= 8
-sourceBoundary >= 8
-commentarySeparation >= 8
-```
-
-Agents self-assess `pass` but the pass-bar lib wins. Log the discrepancy.
+The per-judge pass bars in the table above, and the rule that a post PASSes only when all four judges pass, are defined in openspec `tribunal-scoring-dimensions`; that spec wins if this table disagrees. The runner (`check_pass_bar` in `scripts/tribunal.sh`) re-evaluates every score, so even if an agent sets `pass: true`, the runner's verdict wins. Agents must still keep `pass` aligned; the run log shows both verdicts.
 
 ---
 
@@ -480,7 +465,8 @@ authority 決定：
 | Codex model selector | `.codex/agents/<role>.toml` 的 top-level `model`；`GP_CODEX_MODEL` 只作明示的單次執行覆寫 |
 | Writer mode / provider | `tribunal_writer_mode()` + `tribunal_writer_exec()` |
 | 實際執行 provenance | `tribunal_write_actual_provider()` + `run_stage()` |
-| 評分維度與 pass bar | 本文件 + `src/lib/tribunal-v2/pass-bar.ts` |
+| 評分維度的 rubric | 本文件 |
+| 維度歸屬與 pass bar | openspec `tribunal-scoring-dimensions` |
 
 `TRIBUNAL_FORCE_PROVIDER`、availability 與 quota fallback 的互動也以
 `scripts/tribunal-helpers.sh` 的行為與 contract tests 為準，不在散文複述。
