@@ -35,7 +35,9 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本的評審 provider chain。wrapper 也只在這個 profile 補
+維持原本的評審 provider chain；其中 Codex 評審的預設 model 寫死在
+`internal/llm/codex.go`，可用 `GP_CODEX_MODEL` 單次覆寫，要不要搬進 config 另開
+openspec 決定。wrapper 也只在這個 profile 補
 `GP_WRITER_MODE=claude`，其他環境要改寫就自己帶，見 [`SKILL.md`](SKILL.md)
 〈Side effects 與政策 SSOT〉。VM profile 各步驟的供應端，以及評審的 model、
 effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.json`，
