@@ -18,8 +18,9 @@ interface Props {
   robots?: string;
   markdownUrl?: string;
   /**
-   * 語言切換鈕要去的網址：這頁在另一個語言的對應頁，由頁面自己算好傳進來
-   * （文章用 getTranslationPair）。沒有對應頁就別傳，切換鈕會回另一個語言的首頁。
+   * Language toggle target: this page's counterpart in the other language,
+   * computed by the page. Omit it when there is none; the toggle then goes to
+   * the other language's home page.
    */
   alternateHref?: string;
 }

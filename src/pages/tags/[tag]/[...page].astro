@@ -11,7 +11,7 @@ import { getTagPageGroups, getTagPageNames } from '../../../utils/tag-pages';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
-  // 另一個語言也有這個標籤頁，語言切換才連過去；沒有就回對方首頁（BaseLayout 預設）
+  // The language toggle links only to a tag page the other language also builds.
   const alternateTags = getTagPageNames(allPostsFull, 'en');
 
   // Generate paginated pages for each tag

@@ -4,8 +4,8 @@
  * SQAA Level 6: Broken Link Detection
  *
  * Scans all MDX posts for links, validates them:
- * - Internal links: checks dist/ path existence, plus every <a href> in the
- *   built dist/ HTML (page chrome such as nav, language toggle and tags)
+ * - Internal links: checks dist/ path existence, plus internal <a href> in the
+ *   built dist/ HTML (what gets scanned: scripts/lib/internal-links.mjs)
  * - External links: HTTP HEAD with rate limiting
  * - X/Twitter & GitHub: marked as needsManualCheck (bot-hostile)
  *
@@ -451,7 +451,6 @@ async function main() {
     allLinks.push(...links);
   }
 
-  // 導覽列、語言切換、標籤這些頁面框架的連結不在 MDX 裡，補掃 dist HTML 的 <a href>
   const mdxInternalUrls = new Set(allLinks.filter((l) => isInternalLink(l.url)).map((l) => l.url));
   const dist = await collectDistAnchorLinks(DIST_DIR);
   const pageLinks = dist.links.filter((l) => !mdxInternalUrls.has(l.url));

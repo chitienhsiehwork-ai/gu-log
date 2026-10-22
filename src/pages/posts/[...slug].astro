@@ -32,7 +32,7 @@ export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
   const posts = allPosts.filter((post) => post.data.lang === 'zh-tw');
   const navigationBaseline = createPostNavigationBaseline(allPosts, 'zh-tw');
-  // deprecated 文章獨有的標籤沒有標籤頁，標籤連結只給有頁面的
+  // 有標籤頁的標籤才加連結（哪些有頁面見 tag-pages.ts）
   const tagPages = getTagPageNames(allPosts, 'zh-tw');
 
   return posts.map((post) => ({

@@ -1,9 +1,11 @@
 /**
- * 站內連結的判斷與檢查（scripts/check-links.mjs 用）。站內連結 = 以 / 開頭或正式站
- * origin 的網址；有沒有壞掉，看 build 出來的 dist/ 裡有沒有對應的檔案。
+ * Internal-link checks for scripts/check-links.mjs. A link is internal when it
+ * starts with `/` or uses the production origin, and broken when the built
+ * dist/ has no matching file.
  *
- * MDX 正文的連結由 check-links 自己抽；導覽列、語言切換、標籤這些頁面框架的連結不在
- * MDX 裡，collectDistAnchorLinks 直接掃 dist/ 的 HTML 補上。
+ * check-links extracts MDX body links itself. Page chrome (nav, language
+ * toggle, tag chips) never appears in MDX, so collectDistAnchorLinks reads
+ * those links from the built HTML.
  */
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
@@ -35,7 +37,8 @@ export function checkInternalLink(url, distDir) {
     // pathname ever reaches the filesystem.
     const parsed = new URL(url, 'https://gu-log.vercel.app');
     if (!INTERNAL_ORIGINS.has(parsed.origin)) return false;
-    // dist 的目錄名是原字（例如 tags/Claude Code、tags/斷詞），pathname 是編碼過的
+    // dist/ keeps raw characters in directory names (tags/Claude Code,
+    // tags/斷詞) while pathname is percent-encoded.
     path = decodeURIComponent(parsed.pathname);
   } catch {
     return false;
@@ -54,11 +57,11 @@ export function checkInternalLink(url, distDir) {
 }
 
 const ANCHOR_HREF = /<a\b[^>]*?\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/gi;
-// noindex, nofollow 的頁面（404、測試 fixture）宣告連結不給爬蟲追，fixture 還會故意連到
-// 不存在的假文章，掃描跟搜尋引擎一樣跳過。
+// noindex, nofollow pages (404, test fixtures) tell crawlers not to follow
+// their links, and fixtures link to fake posts on purpose; skip them likewise.
 const NOFOLLOW_META = /<meta\s+name=["']robots["']\s+content=["'][^"']*\bnofollow\b/i;
 
-/** 一頁 HTML 裡 `<a href>` 指到的站內網址（不含 <script> 裡組字串的假標籤）。 */
+/** Internal `<a href>` targets in one HTML page, ignoring markup built as strings in <script>. */
 export function extractInternalAnchorHrefs(html) {
   if (NOFOLLOW_META.test(html)) return [];
   const markup = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
@@ -68,8 +71,8 @@ export function extractInternalAnchorHrefs(html) {
 }
 
 /**
- * 掃 dist/ 每一頁 HTML 的站內 `<a href>`，同一個網址只留一筆，`file` 記第一個出現的頁面、
- * `context` 記總共幾頁。
+ * Internal `<a href>` targets across dist/ HTML, one entry per URL: `file` is
+ * the first page it appears on and `context` counts the pages.
  */
 export async function collectDistAnchorLinks(distDir) {
   const pages = (await readdir(distDir, { recursive: true }))
