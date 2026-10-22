@@ -11,6 +11,9 @@ description: "Vibe Scorer — independent, harsh quality scorer for gu-log posts
 # credits this account does not have (CCC sandbox); standard context is more
 # than enough to score one post + the scoring standard.
 # Matched by tools/gp-pipeline/internal/llm/claude.go ClaudeOpusPinned.
+# The one-taste-loop rule binds only on the Claude path (CCC fallback, manual
+# `claude -p`). When Tribunal runs Vibe on Codex, the model comes from openspec
+# codex-tribunal-runtime and this field is not read.
 model: claude-opus-5-5
 tools:
   - Read
