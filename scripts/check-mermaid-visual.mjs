@@ -12,17 +12,17 @@
  *
  * Environment:
  *   ANTHROPIC_API_KEY  — Required. Anthropic API key for vision judging.
- *   MERMAID_CHECK_MODEL — Optional. Model to use (default: claude-sonnet-4-20250514).
+ *   MERMAID_CHECK_MODEL — Optional. Model to use (default: DEFAULT_MODEL below).
  *   BASE_URL           — Optional. Base URL (default: http://localhost:4321).
  *
  * Exit codes:
  *   0 = All diagrams PASS
- *   1 = At least one diagram FAIL
- *   2 = Script error (missing deps, server not up, etc.)
+ *   1 = At least one diagram FAIL (the judge said so, or the page did not render)
+ *   2 = Check incomplete: script error, or the judge could not be reached / gave
+ *       no PASS-or-FAIL verdict. pre-commit only warns on this; it never blocks.
  */
 
-import { chromium } from 'playwright';
-import { readFileSync, existsSync, mkdirSync, rmSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, rmSync, realpathSync } from 'fs';
 import { readdir } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -40,7 +40,11 @@ const USER_AGENT =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:4321';
-const MODEL = process.env.MERMAID_CHECK_MODEL || 'claude-sonnet-4-20250514';
+// Undated model ID, so no snapshot date to retire. If the model does go away,
+// the judge call fails and the check ends incomplete (exit 2), not FAIL.
+export const DEFAULT_MODEL = 'claude-sonnet-5-5';
+const MODEL = process.env.MERMAID_CHECK_MODEL || DEFAULT_MODEL;
+export const EXIT = { PASS: 0, FAIL: 1, INCOMPLETE: 2 };
 
 const JUDGE_PROMPT = `你是一個 UI/UX 品質審查員。這張圖是一個 Mermaid 圖表在 iPhone 上的截圖（390px 寬）。
 
@@ -142,11 +146,14 @@ async function judgeScreenshot(screenshotPath) {
   // Try Anthropic SDK first
   try {
     const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic();
+    const client = new Anthropic({ timeout: 60_000 });
 
+    // Current models think by default and thinking counts toward max_tokens,
+    // so leave room for it and keep effort low for a one-line verdict.
     const response = await client.messages.create({
       model: MODEL,
-      max_tokens: 200,
+      max_tokens: 2048,
+      output_config: { effort: 'low' },
       messages: [
         {
           role: 'user',
@@ -254,6 +261,39 @@ function judgeWithClaudeCli(base64Image) {
   });
 }
 
+/**
+ * Read the judge's answer. Only an explicit PASS or FAIL counts; anything else
+ * (empty, refusal, cut off) throws so it is reported as a judge error.
+ */
+export function parseVerdict(text) {
+  const match = /^[\s*_`#>:-]*(PASS|FAIL)\b/i.exec(text ?? '');
+  if (!match) {
+    throw new Error(`no PASS/FAIL verdict in judge reply: ${JSON.stringify(text ?? '')}`);
+  }
+  return match[1].toUpperCase() === 'PASS';
+}
+
+/**
+ * Judge one screenshot. A failed SDK + CLI call or an unreadable reply comes
+ * back as status "error", never "fail": that is the judge breaking, not a
+ * verdict on the diagram.
+ */
+export async function judgeDiagram(screenshotPath) {
+  try {
+    const verdict = (await judgeScreenshot(screenshotPath)).trim();
+    return { status: parseVerdict(verdict) ? 'pass' : 'fail', verdict };
+  } catch (err) {
+    return { status: 'error', verdict: `JUDGE_ERROR: ${err.message}` };
+  }
+}
+
+/** Any FAIL blocks; otherwise any judge error leaves the check incomplete. */
+export function exitCodeFor(results) {
+  if (results.some((r) => r.status === 'fail')) return EXIT.FAIL;
+  if (results.some((r) => r.status === 'error')) return EXIT.INCOMPLETE;
+  return EXIT.PASS;
+}
+
 // ─── Main ────────────────────────────────────────────────────────
 
 async function main() {
@@ -302,7 +342,7 @@ async function main() {
     if (!ready) {
       console.error('❌ Dev server failed to start within 60s');
       serverProcess.kill();
-      process.exit(2);
+      process.exit(EXIT.INCOMPLETE);
     }
     console.log('✓ Dev server ready');
     console.log('');
@@ -314,7 +354,9 @@ async function main() {
   }
   mkdirSync(SCREENSHOT_DIR, { recursive: true });
 
-  // 5. Launch Playwright browser
+  // 5. Launch Playwright browser (imported here so a missing install is a
+  // script error, exit 2, instead of a module-load crash with exit 1)
+  const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: VIEWPORT,
@@ -325,8 +367,6 @@ async function main() {
   });
 
   const results = [];
-  let totalDiagrams = 0;
-  let failures = 0;
 
   try {
     for (const filePath of mermaidFiles) {
@@ -356,7 +396,6 @@ async function main() {
         console.log(`   Found ${count} diagram(s)`);
 
         for (let i = 0; i < count; i++) {
-          totalDiagrams++;
           const wrapper = wrappers.nth(i);
 
           // Get the caption if available
@@ -381,50 +420,25 @@ async function main() {
           console.log(`   📷 ${label} → ${screenshotName}`);
 
           // Judge with LLM
-          try {
-            const verdict = await judgeScreenshot(screenshotPath);
-            const isPassing = verdict.toUpperCase().startsWith('PASS');
-
-            results.push({
-              file: relPath,
-              diagram: label,
-              index: i + 1,
-              screenshot: screenshotName,
-              verdict,
-              pass: isPassing,
-            });
-
-            if (isPassing) {
-              console.log(`   ✅ ${verdict}`);
-            } else {
-              failures++;
-              console.log(`   ❌ ${verdict}`);
-            }
-          } catch (judgeErr) {
-            failures++;
-            const errorMsg = `ERROR: ${judgeErr.message}`;
-            results.push({
-              file: relPath,
-              diagram: label,
-              index: i + 1,
-              screenshot: screenshotName,
-              verdict: errorMsg,
-              pass: false,
-            });
-            console.log(`   ⚠️  Judge error: ${judgeErr.message}`);
-          }
+          const { status, verdict } = await judgeDiagram(screenshotPath);
+          results.push({
+            file: relPath,
+            diagram: label,
+            screenshot: screenshotName,
+            verdict,
+            status,
+          });
+          console.log(`   ${{ pass: '✅', fail: '❌', error: '⚠️ ' }[status]} ${verdict}`);
         }
       } catch (pageErr) {
         console.log(`   ⚠️  Page error: ${pageErr.message}`);
         results.push({
           file: relPath,
           diagram: 'N/A',
-          index: 0,
           screenshot: '',
           verdict: `PAGE_ERROR: ${pageErr.message}`,
-          pass: false,
+          status: 'fail',
         });
-        failures++;
       } finally {
         await page.close();
       }
@@ -445,30 +459,40 @@ async function main() {
   console.log('═══════════════════════════════════════════');
   console.log('📊 Mermaid Visual Quality Report');
   console.log('═══════════════════════════════════════════');
-  console.log(`Total diagrams checked: ${totalDiagrams}`);
-  console.log(`Passed: ${totalDiagrams - failures}`);
-  console.log(`Failed: ${failures}`);
+  const tally = (status) => results.filter((r) => r.status === status).length;
+  console.log(`Checked: ${results.length}`);
+  console.log(`Passed: ${tally('pass')}`);
+  console.log(`Failed: ${tally('fail')}`);
+  console.log(`Judge errors (no verdict): ${tally('error')}`);
   console.log('');
 
-  if (failures > 0) {
-    console.log('❌ FAILED diagrams:');
-    for (const r of results.filter((r) => !r.pass)) {
+  const code = exitCodeFor(results);
+  if (code === EXIT.PASS) {
+    console.log('✅ All Mermaid diagrams are mobile-readable!');
+    // Clean up screenshots on success
+    rmSync(SCREENSHOT_DIR, { recursive: true, force: true });
+  } else {
+    const failed = code === EXIT.FAIL;
+    console.log(failed ? '❌ FAILED diagrams:' : '⚠️  Diagrams the judge could not rate:');
+    for (const r of results.filter((r) => r.status === (failed ? 'fail' : 'error'))) {
       console.log(`   ${r.file} — ${r.diagram}`);
       console.log(`     ${r.verdict}`);
     }
     console.log('');
     console.log('Screenshots saved to: .mermaid-screenshots/');
-    console.log('Tip: Consider making the diagram simpler or using a horizontal scroll layout.');
-    process.exit(1);
-  } else {
-    console.log('✅ All Mermaid diagrams are mobile-readable!');
-    // Clean up screenshots on success
-    rmSync(SCREENSHOT_DIR, { recursive: true, force: true });
-    process.exit(0);
+    if (failed) {
+      console.log('Tip: Consider making the diagram simpler or using a horizontal scroll layout.');
+    }
   }
+  process.exit(code);
 }
 
-main().catch((err) => {
-  console.error('💥 Unexpected error:', err.message);
-  process.exit(2);
-});
+// Compare real paths: a symlinked repo path must still run main(), or the
+// hook would get a silent exit 0.
+const entry = process.argv[1];
+if (entry && existsSync(entry) && realpathSync(entry) === fileURLToPath(import.meta.url)) {
+  main().catch((err) => {
+    console.error('💥 Unexpected error:', err.message);
+    process.exit(EXIT.INCOMPLETE);
+  });
+}

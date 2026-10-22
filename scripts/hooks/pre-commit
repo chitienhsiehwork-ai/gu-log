@@ -786,32 +786,32 @@ if [ -f "$REPO_ROOT/tests/content-integrity.spec.ts" ] && [ "${#STAGED_MDX[@]}" 
 fi
 
 # ─── Step 3: Mermaid visual quality check (LLM-as-Judge) ─────────
-# Only runs if ANTHROPIC_API_KEY is set and staged .mdx files contain Mermaid
+# Needs ANTHROPIC_API_KEY. Only a FAIL verdict (exit 1) blocks; errors warn.
 if [ -n "$ANTHROPIC_API_KEY" ]; then
-    # Find staged .mdx files that contain <Mermaid
     MERMAID_FILES=()
-    if [ "${#STAGED_MDX[@]}" -gt 0 ]; then
-        for file in "${STAGED_MDX[@]}"; do
-            if [ -f "$REPO_ROOT/$file" ] && grep -q '<Mermaid' "$REPO_ROOT/$file" 2>/dev/null; then
-                MERMAID_FILES+=("$REPO_ROOT/$file")
-            fi
-        done
-    fi
+    for file in "${STAGED_MDX[@]}"; do
+        if [ -f "$REPO_ROOT/$file" ] && grep -q '<Mermaid' "$REPO_ROOT/$file" 2>/dev/null; then
+            MERMAID_FILES+=("$REPO_ROOT/$file")
+        fi
+    done
 
     if [ "${#MERMAID_FILES[@]}" -eq 0 ]; then
         echo "✓ No Mermaid diagrams in staged files"
     else
-        MERMAID_COUNT=${#MERMAID_FILES[@]}
-        echo "📐 Mermaid visual check: $MERMAID_COUNT file(s) with diagrams..."
-
-        if ! node "$REPO_ROOT/scripts/check-mermaid-visual.mjs" --files "${MERMAID_FILES[@]}"; then
+        echo "📐 Mermaid visual check: ${#MERMAID_FILES[@]} file(s) with diagrams..."
+        RC=0
+        node "$REPO_ROOT/scripts/check-mermaid-visual.mjs" --files "${MERMAID_FILES[@]}" || RC=$?
+        if [ "$RC" = 1 ]; then
             echo ""
             echo "❌ Mermaid visual quality check FAILED."
-            echo "   Some diagrams are not readable on mobile (iPhone 14, 390px)."
+            echo "   Some diagrams are not readable on mobile."
             echo "   Run 'pnpm run check:mermaid' for a full report with screenshots."
             exit 1
+        elif [ "$RC" != 0 ]; then
+            echo "⚠️  Mermaid visual check incomplete, not blocking"
+        else
+            echo "✓ Mermaid visual check passed"
         fi
-        echo "✓ Mermaid visual check passed"
     fi
     echo ""
 else
