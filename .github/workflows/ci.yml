@@ -159,14 +159,14 @@ jobs:
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-content-emoji.mjs "--base=$BASE_SHA"
       - name: File size gate (PR only, 5,000 tokens per file)
-        # Same executable as pre-commit step -3.8: new files may not exceed
+        # Same script as the pre-commit hook: new files may not exceed
         # the cap, files already over it may not grow.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/check-file-size.mjs "--base=$BASE_SHA"
       - name: Takedown ratchet (PR only — tombstones stay tombstones)
-        # Same executable as pre-commit step -3.5, PR base → head; rules live
+        # Same script as the pre-commit hook, PR base → head; rules live
         # in openspec: post-takedown.
         if: github.event_name == 'pull_request'
         env:
@@ -258,7 +258,7 @@ jobs:
         run: pnpm run security:gate
 
   # Blocking secret scan — same tool/config as the local pre-commit hook
-  # (scripts/hooks/pre-commit step -1), but hooks only fire on machines that
+  # (scripts/hooks/pre-commit), but hooks only fire on machines that
   # have gitleaks installed; this is the backstop that can't be skipped.
   # Uses .gitleaks.toml at repo root (auto-detected by the action). No
   # GITLEAKS_LICENSE needed — this is a personal-account repo, not an org.
