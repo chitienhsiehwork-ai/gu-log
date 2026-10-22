@@ -3,7 +3,7 @@ echo "🚀 Running pre-push checks..."
 
 # 0. PENDING ticketId guard — never push a PENDING placeholder to main.
 #    PENDING is a legitimate in-flight state on working branches (see
-#    CONTRIBUTING.md §並行撰寫防 ID collision), but must be swapped for
+#    CONTRIBUTING.md 〈編號分配〉), but must be swapped for
 #    a real ticket number before merging to main. Prod MDX with
 #    ticketId "MP-PENDING" would render on gu-log.vercel.app.
 #
@@ -61,7 +61,7 @@ EOF
         printf '%s' "$PENDING_FILES" | sed 's/^/   /'
         echo ""
         echo "   Swap PENDING for a real ticket number before pushing to main."
-        echo "   See CONTRIBUTING.md §並行撰寫防 ID collision for the swap procedure."
+        echo "   See CONTRIBUTING.md 〈編號分配〉 for the swap procedure."
         exit 1
       fi
 
