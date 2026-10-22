@@ -131,9 +131,18 @@ describe('shell test runner', () => {
       const journal = path.join(ROOT, '.score-loop/locks/tracked-fixture-journal');
       const name = 'sd-1-20260209-openclaw-talk-deep-dive.mdx';
       const post = path.join(ROOT, 'src/content/posts', name);
+      const recover = () =>
+        spawnSync('bash', [RUNNER_ERROR_GUARD, RECOVER_FIXTURES], {
+          cwd: ROOT,
+          encoding: 'utf8',
+          timeout: 30_000,
+        });
+      // 先收掉之前被砍的 run 留下的 journal，讀到的才是真正的原檔
+      expect(recover().status).toBe(0);
       const pristine = readFileSync(post);
       mkdirSync(path.dirname(lock), { recursive: true });
-      // 跟 guard 拿同一把鎖，模擬它記好 journal、改寫文章到一半就被 SIGKILL
+      // 跟 guard 拿同一把鎖，模擬它記好 journal、改寫文章到一半就被 SIGKILL。
+      // journal 已經存在就不碰：那是別人的唯一備份
       const setup = spawnSync(
         'flock',
         [
@@ -141,7 +150,7 @@ describe('shell test runner', () => {
           lock,
           'bash',
           '-c',
-          'mkdir -p "$1" && cp -p "$2" "$1/" && echo gpt-test >> "$2"',
+          '[ ! -e "$1" ] && mkdir -p "$1" && cp -p "$2" "$1/" && echo gpt-test >> "$2"',
           'setup',
           journal,
           post,
@@ -151,11 +160,7 @@ describe('shell test runner', () => {
       expect(setup.status, setup.stderr).toBe(0);
       expect(readFileSync(post).equals(pristine)).toBe(false);
 
-      const recovery = spawnSync('bash', [RUNNER_ERROR_GUARD, RECOVER_FIXTURES], {
-        cwd: ROOT,
-        encoding: 'utf8',
-        timeout: 30_000,
-      });
+      const recovery = recover();
 
       expect(recovery.status, recovery.stdout + recovery.stderr).toBe(0);
       expect(recovery.stdout).toContain(`recovered ${post}`);
