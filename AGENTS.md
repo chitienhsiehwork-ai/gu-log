@@ -42,7 +42,7 @@ verbose 散文比抽象規則 drift 得多。抄自真 SSOT 的具體值（event
 
 ## 🛠️ 順手修 friction + 完全自主（摘要 — 全文見 `docs/agent-discipline.md`）
 
-個人副業 repo，**velocity > stability**。任務過程撞到的所有 friction（環境、hook、lint、驗證器、frontmatter、過時文件）**通通是當前 agent 的責任，當場用 atomic commit 修掉，放進同一個 PR**——不甩給下一個 session、不回頭問 user「要不要順便修」。**最高原則：每個 agent 完全自主，CI 綠 + 改動 safe + 非 critical → 直接 merge，不為了確認而問。** 完整反例、例外（何時可拆 PR）、atomic commit 紀律 → 見 [`docs/agent-discipline.md`](docs/agent-discipline.md)。
+個人副業 repo，**velocity > stability**。任務過程撞到的所有 friction（環境、hook、lint、驗證器、frontmatter、過時文件）**通通是當前 agent 的責任，當場用 atomic commit 修掉，放進同一個 PR**——不甩給下一個 session、不回頭問 user「要不要順便修」。**最高原則：每個 agent 完全自主，過了 merge gate（CI 綠 + auto-review，見 runtime playbook）+ 改動 safe + 非 critical → 直接 merge，不為了確認而問。** 完整反例、例外（何時可拆 PR）、atomic commit 紀律 → 見 [`docs/agent-discipline.md`](docs/agent-discipline.md)。
 
 ## 🏷️ Branch name 是 ID，不是語意
 
