@@ -3,8 +3,9 @@ dist/
 # generated types
 .astro/
 
-# dependencies
-node_modules/
+# dependencies (no trailing slash: worktrees often symlink node_modules from
+# the main checkout, and `node_modules/` only matches a real directory)
+node_modules
 package-lock.json
 
 # logs
