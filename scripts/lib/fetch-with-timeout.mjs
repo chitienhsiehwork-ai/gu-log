@@ -19,7 +19,7 @@ class FetchTimeoutError extends Error {}
 export async function fetchBytesWithTimeout(
   url,
   init,
-  { label, timeoutMs, fetchImpl = globalThis.fetch, attempts = 4 }
+  { label, timeoutMs, fetchImpl = globalThis.fetch, attempts = 6 }
 ) {
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`${label} timeout must be a positive integer`);
