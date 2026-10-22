@@ -132,7 +132,7 @@ while IFS= read -r statement; do
         hookSpecificOutput: {
           hookEventName: "PreToolUse",
           permissionDecision: "deny",
-          permissionDecisionReason: "gu-log 禁止繞過 git hook（--no-verify、git commit -n、-c core.hooksPath=… 都算）。hook 擋下來就修 code 或修 hook，不准跳；例外只有 user 逐次授權、由 user 自己下指令。見 AGENTS.md〈🚫 絕對不准 --no-verify〉。"
+          permissionDecisionReason: "gu-log 禁止繞過 git hook（--no-verify、git commit -n、-c core.hooksPath=… 都算）。hook 擋下來就修 code 或修 hook，不准跳。見 AGENTS.md〈🚫 絕對不准 --no-verify〉。"
         }
       }'
       exit 0
