@@ -80,6 +80,8 @@ const BYPASSES = [
   ['cat <<EOF', 'x `', 'git commit -n -m fix', '` y', 'EOF'].join('\n'),
   // 引號裡的 ) 不能讓指令替換提早結束；猜不準邊界，所以整段內文都檢查
   ['cat <<EOF', "$(printf ')' ; git commit --no-verify -m fix)", 'EOF'].join('\n'),
+  // heredoc 內文的 # 是一般字元，後面的指令替換照樣會執行
+  ['cat <<EOF', '# $(git commit --no-verify -m fix)', 'EOF'].join('\n'),
   // 寧可多擋：沒引號的 heredoc 只要有指令替換，提到 -n 的內文也會被擋（改用 <<'EOF' 就不會）
   [
     'git commit -F - <<EOF',

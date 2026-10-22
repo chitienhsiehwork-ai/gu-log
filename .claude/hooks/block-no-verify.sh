@@ -47,8 +47,8 @@ STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
         if ($body =~ /^\s*\Q$marker\E\s*$/) { $i = $end; last }
         $text .= "$body\n";
       }
-      # heredoc 內文的引號只是一般字元，換成空白，免得後面把指令包進引號參數裡
-      push @kept, $text =~ tr/"\x27/  /r if $literal eq "" && $text =~ /(?<!\\)(?:\\\\)*(?:\$\(|`)/;
+      # 內文裡只有 $、` 和 \ 是特殊字元；引號和 # 換成空白，免得後面的解析把指令包進參數或當成註解刪掉
+      push @kept, $text =~ tr/"\x27#/   /r if $literal eq "" && $text =~ /(?<!\\)(?:\\\\)*(?:\$\(|`)/;
     }
   }
   $_ = join "\n", @kept;
