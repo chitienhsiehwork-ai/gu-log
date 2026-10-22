@@ -12,5 +12,12 @@ export default getViteConfig({
     include: ['tests/**/*.test.ts'],
     // Exclude playwright e2e tests (they use .spec.ts)
     exclude: ['tests/**/*.spec.ts', 'tests/**/pseudo/**', 'node_modules'],
+    // git 2.47 起，commit 後的 auto maintenance 預設在背景跑，會在 .git/objects 建 lock 檔；
+    // 測試剛好在這時刪暫存 repo 就會 ENOTEMPTY。測試用不到 maintenance，一律關掉。
+    env: {
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'maintenance.auto',
+      GIT_CONFIG_VALUE_0: 'false',
+    },
   },
 });
