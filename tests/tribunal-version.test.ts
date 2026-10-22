@@ -4,6 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CURRENT_TRIBUNAL_VERSION, LEGACY_TRIBUNAL_VERSION } from '../scripts/tribunal-version.mjs';
 import * as frontmatterScores from '../scripts/frontmatter-scores.mjs';
+import * as passBar from '../src/lib/tribunal-v2/pass-bar';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -22,6 +23,8 @@ describe('Tribunal schema version SSOT', () => {
     expect(CURRENT_TRIBUNAL_VERSION).toBe(LEGACY_TRIBUNAL_VERSION + 1);
     expect(frontmatterScores.CURRENT_TRIBUNAL_VERSION).toBe(CURRENT_TRIBUNAL_VERSION);
     expect(frontmatterScores.LEGACY_TRIBUNAL_VERSION).toBe(LEGACY_TRIBUNAL_VERSION);
+    // Site code (score cards, publish bar) reads the legacy default from pass-bar.
+    expect(passBar.LEGACY_TRIBUNAL_VERSION).toBe(LEGACY_TRIBUNAL_VERSION);
   });
 
   it('prints the same versions for shell callers', () => {

@@ -115,7 +115,7 @@ echo ""
 # ─── Step 0: Quick ticketId duplicate check (shell, ~100ms) ───────
 echo "⚡ Quick ticketId duplicate check..."
 # PENDING ticketIds are legitimate in-flight placeholders (see
-# CONTRIBUTING.md §並行撰寫防 ID collision). Filter them out before
+# CONTRIBUTING.md 〈編號分配〉). Filter them out before
 # counting — parallel drafts on the same branch can legitimately share
 # "<PREFIX>-PENDING" until the deploy step swaps them for real numbers.
 DUPLICATES=$(grep -h 'ticketId:' "$POSTS_DIR"/*.mdx 2>/dev/null | \
@@ -347,7 +347,7 @@ else
         fi
 
         # Skip the gate for PENDING drafts — scoring happens during tribunal
-        # between draft and deploy. See CONTRIBUTING.md §並行撰寫防 ID collision.
+        # between draft and deploy. See CONTRIBUTING.md 〈編號分配〉.
         # The pre-push guard ensures PENDING never reaches main anyway.
         if grep -qE '^ticketId:[[:space:]]*["'"'"'][A-Za-z]+-PENDING["'"'"']' "$FULL_PATH" 2>/dev/null; then
             continue
@@ -675,16 +675,9 @@ fi
 echo ""
 
 # ─── Step 0.6: Prettier format check (full codebase) ─────────────
+# Scope: .prettierignore. Same check as `pnpm run format:check` in CI.
 echo "🎨 Prettier: checking all source files..."
-if ! npx prettier --check \
-    "src/components/**/*.{astro,js,ts}" \
-    "src/layouts/**/*.{astro,js,ts}" \
-    "src/pages/**/*.{astro,js,ts}" \
-    "src/config/**/*.{js,ts}" \
-    "src/styles/**/*.css" \
-    "scripts/**/*.{js,mjs,cjs,ts}" \
-    "tests/**/*.{js,mjs,cjs,ts}" \
-    "*.{mjs,cjs,ts}" 2>&1; then
+if ! npx prettier --check . 2>&1; then
     echo ""
     echo "❌ Prettier found formatting issues. Fix them before committing."
     echo "   Run: pnpm run format"

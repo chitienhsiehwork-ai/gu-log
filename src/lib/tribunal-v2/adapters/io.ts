@@ -62,7 +62,10 @@ export function buildIoAdapter(): IoAdapter {
           !Array.isArray(existing)
         ) {
           // Both existing and incoming are plain objects — deep merge one level.
-          merged[k] = { ...(existing as Record<string, unknown>), ...(v as Record<string, unknown>) };
+          merged[k] = {
+            ...(existing as Record<string, unknown>),
+            ...(v as Record<string, unknown>),
+          };
         } else {
           merged[k] = v;
         }
@@ -85,7 +88,7 @@ export function buildIoAdapter(): IoAdapter {
       if (typeof flat === 'string' && flat) return flat;
 
       throw new Error(
-        `No source URL found in frontmatter of ${path}. Expected either \`source.url\` or \`sourceUrl\`.`,
+        `No source URL found in frontmatter of ${path}. Expected either \`source.url\` or \`sourceUrl\`.`
       );
     },
   };

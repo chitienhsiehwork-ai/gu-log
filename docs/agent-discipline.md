@@ -10,7 +10,7 @@
 
 **🔴 最高原則：每個 agent 都要完全自主，絕不把問題甩給下一個 session/CCC，也不要為了確認而一直問 user。**
 
-自主包含兩面：(1) 把所有 friction 當場修掉（見下），(2) **過了 merge gate（CI 綠 + auto-review，見 runtime playbook）+ 改動 logical/safe/appropriate + 不是 critical design decision → 直接 merge + auto-delete，不要問 user「要不要合」**。會拖慢流程、浪費 user 注意力的確認式問題一律不問；只有 critical design decision（產品方向、架構、對外承諾、個人品牌調性）才停下來用 `AskUserQuestion`。細節見 [`CCC-playbook` Self-merge policy](../playbooks/CCC-playbook.md)。
+自主包含兩面：(1) 把所有 friction 當場修掉（見下），(2) **過了 merge gate（CI 綠 + auto-review，見 runtime playbook）+ 改動 logical/safe/appropriate + 不是 critical design decision → 直接 merge + auto-delete，不要問 user「要不要合」**。會拖慢流程、浪費 user 注意力的確認式問題一律不問；只有 critical design decision（產品方向、架構、對外承諾、個人品牌調性）才在 chat 用具體問題停下來（見 Tier-0〈Human interface〉）。細節見 [`CCC-playbook` Self-merge policy](../playbooks/CCC-playbook.md)。
 
 任何 CC/CCC 在做任務的過程中撞到的所有 friction——環境沒裝好、hook 紅了、lint 擋了、驗證器報錯、frontmatter schema 不合、相依工具缺、文件過時——**通通是當前這個 agent 的責任，當場用 proper commit 修掉**，放進同一個 PR。不准：
 
@@ -61,8 +61,8 @@
 
 **收斂的自主姿態（跟 CCC self-merge 同一條精神：能自己判斷就別問）**：
 
-1. **能判斷哪邊對 → 自己判斷、把錯的那邊（通常是散文副本）修掉、最後跟 user 提一聲就好**。不要為了確認而停下來問——「playbook 寫 4.7 但 frontmatter 是 opus 浮動」這種 code-vs-doc drift，code 端就是 SSOT，直接把 doc 修好、回報時帶一句「順手收了 X 的 drift」即可。（本 session 的 librarian drift 其實就該這樣自己收，不必開 AskUserQuestion。）
-2. **只有「難以判斷、又是重要決定」才叫 user 拍板**（用 `AskUserQuestion`）：例如兩個權威端真的互相矛盾、或要決定的是產品方向 / 架構 / 對外承諾 / 品牌調性 / config 取向（像「fresh-eyes 該 pin 哪代還是浮動」那種是 taste/config 偏好，不是單純 reconcile drift，才值得問）。判斷不出來時，預設往「自己收 + 提一聲」靠，不要往「停下來問」靠。
+1. **能判斷哪邊對 → 自己判斷、把錯的那邊（通常是散文副本）修掉、最後跟 user 提一聲就好**。不要為了確認而停下來問——「playbook 寫 4.7 但 frontmatter 是 opus 浮動」這種 code-vs-doc drift，code 端就是 SSOT，直接把 doc 修好、回報時帶一句「順手收了 X 的 drift」即可。（本 session 的 librarian drift 其實就該這樣自己收，不必停下來問。）
+2. **只有「難以判斷、又是重要決定」才叫 user 拍板**（在 chat 用具體問題問，見 Tier-0〈Human interface〉）：例如兩個權威端真的互相矛盾、或要決定的是產品方向 / 架構 / 對外承諾 / 品牌調性 / config 取向（像「fresh-eyes 該 pin 哪代還是浮動」那種是 taste/config 偏好，不是單純 reconcile drift，才值得問）。判斷不出來時，預設往「自己收 + 提一聲」靠，不要往「停下來問」靠。
 
 **為什麼用 prompt 而不是只靠 lint**：drift 的形態太多（版本號、計數、路徑、清單、描述措辭），deterministic guard 抓不完、還容易誤殺正當用法。真正可靠的是**每個 agent 帶著 SSOT 意識在動**——看到對不上就順手收，而不是等某支 checker 剛好覆蓋到。lint 只是補網，不是主防線。
 

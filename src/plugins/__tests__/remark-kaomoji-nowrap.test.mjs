@@ -34,13 +34,19 @@ describe('protectKaomoji', () => {
     const input = '不瘋。(￣▽￣)／';
     const result = protectKaomoji(input);
     // ／ must not be separable from )
-    assert.ok(result.includes(`)${WJ}／`), `expected WJ between ) and ／, got: ${JSON.stringify(result)}`);
+    assert.ok(
+      result.includes(`)${WJ}／`),
+      `expected WJ between ) and ／, got: ${JSON.stringify(result)}`
+    );
   });
 
   it('should join arm ╯ to closing paren with WJ (table flip)', () => {
     const input = 'angry (╯°□°)╯';
     const result = protectKaomoji(input);
-    assert.ok(result.includes(`)${WJ}╯`), `expected WJ between ) and ╯, got: ${JSON.stringify(result)}`);
+    assert.ok(
+      result.includes(`)${WJ}╯`),
+      `expected WJ between ) and ╯, got: ${JSON.stringify(result)}`
+    );
   });
 
   // --- Should protect: space inside kaomoji ---
@@ -90,7 +96,10 @@ describe('protectKaomoji', () => {
   it('should protect the praying face (－人－) as a whole shape', () => {
     const result = protectKaomoji('安息吧 (－人－)');
     assert.equal(withoutWordJoiners(result), '安息吧 (－人－)');
-    assert.ok(result.includes(`－${WJ}人${WJ}－`), `expected WJ around 人, got: ${JSON.stringify(result)}`);
+    assert.ok(
+      result.includes(`－${WJ}人${WJ}－`),
+      `expected WJ around 人, got: ${JSON.stringify(result)}`
+    );
   });
 
   it('should not treat a bare 人 in a parenthetical as a kaomoji', () => {

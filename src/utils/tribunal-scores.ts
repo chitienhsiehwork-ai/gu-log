@@ -1,5 +1,6 @@
 import type { CollectionEntry } from 'astro:content';
 import {
+  LEGACY_TRIBUNAL_VERSION,
   checkFreshEyesPassBar,
   checkVibePassBar,
   freshEyesDims,
@@ -39,7 +40,9 @@ function hasAllJudgeScores(scores?: PostScores): boolean {
 }
 
 function getTribunalVersion(scores?: PostScores): number {
-  return typeof scores?.tribunalVersion === 'number' ? scores.tribunalVersion : 8;
+  return typeof scores?.tribunalVersion === 'number'
+    ? scores.tribunalVersion
+    : LEGACY_TRIBUNAL_VERSION;
 }
 
 function compositeJudgePasses(scores: PostScores | undefined, judge: JudgeName): boolean {
@@ -75,7 +78,11 @@ function hasValidScoreDimensions(
  */
 export function hasCompleteTribunalEvidence(scores?: PostScores): boolean {
   if (!scores || !hasAllJudgeScores(scores)) return false;
-  if (!Number.isInteger(scores.tribunalVersion) || (scores.tribunalVersion ?? 0) < 8) return false;
+  if (
+    !Number.isInteger(scores.tribunalVersion) ||
+    (scores.tribunalVersion ?? 0) < LEGACY_TRIBUNAL_VERSION
+  )
+    return false;
 
   const version = scores.tribunalVersion as number;
   const factCheck = scores.factCheck;
