@@ -37,20 +37,37 @@ func isLvPost(filename string, content []byte) bool {
 	if series, err := SeriesFromFilename(filename); err == nil && series == "Lv" {
 		return true
 	}
+	prefix, err := counter.PrefixOfTicketID(frontmatterTicketID(content))
+	return err == nil && prefix == "Lv"
+}
+
+// frontmatterTicketID returns the decoded frontmatter ticketId of a post, or
+// "" when it has no frontmatter or no readable ticketId scalar. The value is
+// not validated.
+func frontmatterTicketID(content []byte) string {
 	f, err := frontmatter.Parse(content)
 	if err != nil {
-		return false
+		return ""
 	}
 	raw, ok := f.GetScalar("ticketId")
 	if !ok {
-		return false
+		return ""
 	}
 	ticketID, err := decodeYAMLScalar(raw)
 	if err != nil {
-		return false
+		return ""
 	}
-	prefix, err := counter.PrefixOfTicketID(ticketID)
-	return err == nil && prefix == "Lv"
+	return ticketID
+}
+
+// PostTicketID reads the frontmatter ticketId of the post at path (see
+// frontmatterTicketID); "" means the post names none.
+func PostTicketID(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return frontmatterTicketID(content), nil
 }
 
 // isLvFile reports whether the post at path is Lv (see isLvPost). A missing

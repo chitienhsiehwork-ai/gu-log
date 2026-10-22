@@ -3,12 +3,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  checkInternalLink,
   evaluateExternalScanHealth,
   isManualCheckDomain,
   isReservedExampleUrl,
   scanExternalLinks,
 } from '../scripts/check-links.mjs';
+import { checkInternalLink } from '../scripts/lib/internal-links.mjs';
 
 const responseFailures = (...statusCodes: number[]) =>
   statusCodes.map((statusCode) => ({ statusCode }));

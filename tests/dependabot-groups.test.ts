@@ -1,3 +1,4 @@
+import { existsSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
@@ -23,8 +24,7 @@ describe('Dependabot dependency review boundaries', () => {
   it('separates routine GitHub Actions updates from high-risk majors', async () => {
     const config = parse(await readFile(new URL('.github/dependabot.yml', REPO_ROOT), 'utf-8'));
     const actions = config.updates.find(
-      (update: { 'package-ecosystem': string; directory: string }) =>
-        update['package-ecosystem'] === 'github-actions' && update.directory === '/'
+      (update: { 'package-ecosystem': string }) => update['package-ecosystem'] === 'github-actions'
     );
 
     expect(actions.groups['actions-minor-patch']).toEqual({
@@ -42,7 +42,7 @@ describe('Dependabot dependency review boundaries', () => {
     const config = parse(await readFile(new URL('.github/dependabot.yml', REPO_ROOT), 'utf-8'));
     expect(
       config.updates.map((update: { 'package-ecosystem': string }) => update['package-ecosystem'])
-    ).toEqual(['npm', 'github-actions']);
+    ).toEqual(['npm', 'github-actions', 'gomod', 'pip']);
 
     for (const update of config.updates) {
       const blocksAllMajors = (update.ignore ?? []).some(
@@ -52,5 +52,34 @@ describe('Dependabot dependency review boundaries', () => {
       );
       expect(blocksAllMajors, `${update['package-ecosystem']} must keep major updates`).toBe(false);
     }
+  });
+
+  it('scans composite actions as well as workflows', async () => {
+    const config = parse(await readFile(new URL('.github/dependabot.yml', REPO_ROOT), 'utf-8'));
+    const actions = config.updates.find(
+      (update: { 'package-ecosystem': string }) => update['package-ecosystem'] === 'github-actions'
+    );
+    const compositeActions = readdirSync(new URL('.github/actions/', REPO_ROOT));
+
+    expect(actions.directories).toEqual(['/', '/.github/actions/*']);
+    expect(compositeActions.length).toBeGreaterThan(0);
+    for (const name of compositeActions) {
+      expect(existsSync(new URL(`.github/actions/${name}/action.yml`, REPO_ROOT)), name).toBe(true);
+    }
+  });
+
+  it('points gomod and pip at directories that hold their manifests', async () => {
+    const config = parse(await readFile(new URL('.github/dependabot.yml', REPO_ROOT), 'utf-8'));
+    const directoryOf = (ecosystem: string) =>
+      config.updates.find(
+        (update: { 'package-ecosystem': string }) => update['package-ecosystem'] === ecosystem
+      ).directory as string;
+
+    expect(existsSync(new URL(`.${directoryOf('gomod')}/go.mod`, REPO_ROOT))).toBe(true);
+    expect(
+      readdirSync(new URL(`.${directoryOf('pip')}/`, REPO_ROOT)).some((file) =>
+        /requirements.*\.txt$/.test(file)
+      )
+    ).toBe(true);
   });
 });

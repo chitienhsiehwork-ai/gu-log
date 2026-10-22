@@ -1,38 +1,15 @@
 ---
 interface Props {
   currentLang: 'zh-tw' | 'en';
-  currentPath: string;
+  /** Resolved by BaseLayout; see its `alternateHref` prop. */
+  href: string;
 }
 
-const { currentLang, currentPath } = Astro.props;
-
-// Calculate the alternate language path
-const getAlternatePath = () => {
-  if (currentLang === 'zh-tw') {
-    // zh-tw -> en: add /en prefix AND add en- to post slug
-    // e.g., /posts/foo -> /en/posts/en-foo
-    const match = currentPath.match(/^\/posts\/(.+)/);
-    if (match) {
-      return `/en/posts/en-${match[1]}`;
-    }
-    return `/en${currentPath}`;
-  } else {
-    // en -> zh-tw: remove /en prefix AND remove en- from post slug
-    // e.g., /en/posts/en-foo -> /posts/foo
-    const withoutEnPrefix = currentPath.replace(/^\/en/, '') || '/';
-    const match = withoutEnPrefix.match(/^\/posts\/en-(.+)/);
-    if (match) {
-      return `/posts/${match[1]}`;
-    }
-    return withoutEnPrefix;
-  }
-};
-
-const alternatePath = getAlternatePath();
+const { currentLang, href } = Astro.props;
 const switchLabel = currentLang === 'zh-tw' ? '切換至英文' : 'Switch to Chinese';
 ---
 
-<a href={alternatePath} class="icon-btn" title={switchLabel} aria-label={switchLabel}>
+<a href={href} class="icon-btn" title={switchLabel} aria-label={switchLabel}>
   <svg
     class="nav-svg-icon"
     viewBox="0 0 24 24"
