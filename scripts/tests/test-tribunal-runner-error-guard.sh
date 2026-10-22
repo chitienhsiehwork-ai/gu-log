@@ -26,13 +26,23 @@ chmod 700 "$fixture_lock_dir"
 exec 198>>"$fixture_lock_dir/tracked-gp-1-20260128-demo.lock"
 flock -x 198
 
+# The tracked posts this regression rewrites. Final-build repair exercises the
+# generic rewrite machinery; GP now forbids all Tribunal rewrites, so that
+# section uses an existing validator-clean bilingual SD pair.
+persistence_post="gp-1-20260128-demo.mdx"
+final_gate_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
+# shellcheck source=scripts/tests/lib/fixture-journal.sh
+source "$SCRIPT_DIR/lib/fixture-journal.sh"
+fixture_journal_open "$fixture_lock_dir/tracked-fixture-journal" \
+  "$ROOT_DIR/src/content/posts" "${1:-}" "$persistence_post" "$final_gate_post"
+
 if grep -Fq 'TRIBUNAL_ARTICLE_LOCK_DIR:-/tmp' "$TRIBUNAL"; then
   fail "tribunal default article lock directory must not be the shared /tmp root"
 fi
 pass "tribunal default article lock directory is not the shared /tmp root"
 
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+trap 'fixture_journal_restore; rm -rf "$TMP"' EXIT
 export TMPDIR="$TMP"
 export TRIBUNAL_SHARED_LOCK_DIR="$TMP/shared-locks"
 export HOME="$TMP/home"
@@ -90,7 +100,7 @@ packet_sha="$(sha256sum "$packet_dir/source-tweet.md" | cut -d' ' -f1)"
 # shellcheck source=scripts/tribunal-helpers.sh
 source "$ROOT_DIR/scripts/tribunal-helpers.sh"
 packet_source_url="$(tribunal_post_frontmatter_value \
-  "$ROOT_DIR/src/content/posts/gp-1-20260128-demo.mdx" sourceUrl)"
+  "$ROOT_DIR/src/content/posts/$persistence_post" sourceUrl)"
 [ -n "$packet_source_url" ] || fail "gp-1 fixture has no sourceUrl frontmatter"
 jq -n --argjson bytes "$packet_bytes" --arg sha "$packet_sha" --arg url "$packet_source_url" '{
   schemaVersion: 1,
@@ -704,8 +714,8 @@ persistence_ledger_progress="$TMP/persistence-ledger-progress.json"
 persistence_lock_dir="$TMP/persistence-article-locks"
 persistence_calls="$TMP/persistence-judge-calls"
 persistence_partial_writes="$TMP/persistence-partial-writes"
-persistence_zh="$ROOT_DIR/src/content/posts/gp-1-20260128-demo.mdx"
-persistence_en="$ROOT_DIR/src/content/posts/en-gp-1-20260128-demo.mdx"
+persistence_zh="$ROOT_DIR/src/content/posts/$persistence_post"
+persistence_en="$ROOT_DIR/src/content/posts/en-$persistence_post"
 persistence_real_node="$(command -v node)"
 persistence_real_jq="$(command -v jq)"
 mkdir -p "$persistence_bin" "$persistence_lock_dir"
@@ -1907,9 +1917,6 @@ pass "writer rollback no longer resets earlier persisted scores to Git HEAD"
 # not merely the snapshot primitive.
 final_gate_bin="$TMP/final-gate-bin"
 final_gate_version="$(node "$ROOT_DIR/scripts/tribunal-version.mjs" current)"
-# Final-build repair exercises the generic rewrite machinery. GP now forbids
-# all Tribunal rewrites, so use an existing validator-clean bilingual SD pair.
-final_gate_post="sd-1-20260209-openclaw-talk-deep-dive.mdx"
 final_gate_zh="$ROOT_DIR/src/content/posts/$final_gate_post"
 final_gate_en="$ROOT_DIR/src/content/posts/en-$final_gate_post"
 final_gate_zh_pristine="$TMP/final-gate-zh-pristine"
@@ -1936,17 +1943,6 @@ seed_final_gate_scores() {
 }
 seed_final_gate_scores "$final_gate_zh_baseline"
 seed_final_gate_scores "$final_gate_en_baseline"
-
-cleanup_final_gate_fixture() {
-  cp -p "$final_gate_zh_pristine" "$final_gate_zh" 2>/dev/null || true
-  if [ -d "$final_gate_en" ]; then
-    rm -f "$final_gate_en/$(basename "$final_gate_en_baseline")" 2>/dev/null || true
-    rmdir "$final_gate_en" 2>/dev/null || true
-  fi
-  cp -p "$final_gate_en_pristine" "$final_gate_en" 2>/dev/null || true
-  rm -rf "$TMP"
-}
-trap cleanup_final_gate_fixture EXIT
 
 resume_artifact_bin="$TMP/resume-artifact-bin"
 resume_artifact_progress="$TMP/resume-artifact-progress.json"
