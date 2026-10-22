@@ -233,7 +233,7 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD> --force
 
 ### 模型路由（Claude 寫作 + Codex 評審）
 
-> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：tribunal runtime 決定 provider；Codex model 讀 runtime config，Claude role selector 讀對應的 `.claude/agents/*.md` frontmatter；GP writer pin 讀 `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。下面只描述 routing policy，不複製 model 值。
+> **🧭 SSOT 提醒（見 `docs/agent-discipline.md`〈SSOT 紀律〉）**：評審的 provider／model 路由以 openspec `codex-tribunal-runtime` 為準，Claude 路徑讀對應的 `.claude/agents/*.md` frontmatter；GP writer pin 讀 `tools/gp-pipeline/internal/llm/claude.go` 的 `ClaudeOpusPinned`。下面只描述 routing policy，不複製 model 值。
 
 分工 policy（**按類別，不按版本號**）：
 
@@ -286,7 +286,8 @@ CCC session 的 default model 會浮動，但 gu-log 的 writer / rewriter / vib
 
 - **寫 / 改寫 → 使用 `tribunal-writer` 的 role prompt 與規則**（GP / rewrite voice），以 `claude -p --model <frontmatter 的完整 id>` 啟動。
 - **Vibe 評分 → 使用 `vibe-opus-scorer` 的 role prompt 與規則**（grader），同樣以 `claude -p --model <frontmatter 的完整 id>` 啟動。
-- model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。CCC 的 `Agent` tool 只保證 alias 粒度，不能拿來實作 exact-version pin；版本敏感角色一律先讀 frontmatter，再走上節唯一規定的 `claude -p` 路徑。
+- model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。
+- 寫手和 Vibe 評審用同一代 Opus 這條只適用 Claude 路徑；Tribunal 用 Codex 跑 Vibe 時，model 照 openspec `codex-tribunal-runtime`。
 
 **為什麼不准自己寫**：浮動的 CCC session model 手寫文章，再交給另一個 pinned model 評分，會把 owner 要的單一 taste loop 打破。**手寫＋手評是 anti-pattern**；文章 prose 與 vibe 評分必須走上面的 pinned role。
 

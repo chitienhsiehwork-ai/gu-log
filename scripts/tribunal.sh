@@ -1201,7 +1201,7 @@ sys.exit(0 if core_composite >= 8 and source_boundary >= 8 and commentary_separa
 PY
       ;;
     fresh-eyes)
-      # Dimension ownership is version-aware (SSOT: src/lib/tribunal-v2/pass-bar.ts).
+      # Dimension ownership is version-aware (spec: tribunal-scoring-dimensions).
       # At tribunalVersion >= 9 `clarity` moves Vibe → Fresh Eyes, joining the
       # composite AND becoming a non-compensating hard gate.
       python3 - "$json_file" "$TRIBUNAL_VERSION" <<'PY'
@@ -1224,7 +1224,7 @@ PY
       ;;
     vibe-opus-scorer)
       # one dim ≥ 9 AND rest ≥ 8 (no dim < 8). Dimension set is version-aware
-      # (SSOT: src/lib/tribunal-v2/pass-bar.ts): at tribunalVersion >= 9 `clarity`
+      # (spec: tribunal-scoring-dimensions): at tribunalVersion >= 9 `clarity`
       # leaves Vibe for Fresh Eyes, so the composite spans 4 dims, not 5. Keeping
       # the legacy 5-dim list here made the absent clarity default to 0, dragging
       # composite below 8 and wrongly failing every v9 post.
