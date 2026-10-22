@@ -120,7 +120,7 @@ Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學�
   落在 repo 內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
 - YouTube 的 canonical `run` 同樣要求 `yt-dlp`；缺少時不得 fallback 到 generic HTML。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
-- `ralph`（`run` 裡也是這一步）對 MP、SD 可依 Tribunal 契約改寫，但寫手要 `GP_WRITER_MODE=claude` 才會動：wrapper 只在 vm-codex profile 自動補上，其他環境刻意不補，免得在背後花掉 Claude 額度，沒帶就只評分、不改寫。要改寫就自己帶 `GP_WRITER_MODE=claude`，開關說明見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)〈手動跑（CCC／Mac）的寫手開關〉。GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）；Lv 在 ingress 就被擋下。
+- `ralph`（`run` 裡也是這一步）對 MP、SD 可依 Tribunal 契約改寫，但寫手要 `GP_WRITER_MODE=claude` 才會動：wrapper 只在 vm-codex profile 自動補上，其他環境沒帶就只評分、不改寫（見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)〈手動跑（CCC／Mac）的寫手開關〉）。GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）；Lv 在 ingress 就被擋下。
 - `stamp` 只寫 frontmatter 的 `sourceDistance`，不改正文；原文擷取留在 repo 外的工作目錄。沒過或零配對以 exit 19 結束並印出標出的段落，檔案不變。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。有外部來源的 GP 要帶有效的來源距離章，validator 才會放行。

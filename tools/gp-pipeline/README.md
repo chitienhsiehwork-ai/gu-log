@@ -35,10 +35,9 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
-維持原本的評審 provider chain。wrapper 也只在這個 profile 補上
-`GP_WRITER_MODE=claude`；其他環境刻意不補，免得在背後花掉 Claude 額度，
-`run`／`ralph` 的 Tribunal 只評分、不改寫，`run` 遇到沒過就只發 zh-tw。要改寫
-得自己帶 `GP_WRITER_MODE=claude`。VM profile 各步驟的供應端，以及評審的 model、
+維持原本的評審 provider chain。wrapper 也只在這個 profile 補
+`GP_WRITER_MODE=claude`，其他環境要改寫就自己帶，見 [`SKILL.md`](SKILL.md)
+〈Side effects 與政策 SSOT〉。VM profile 各步驟的供應端，以及評審的 model、
 effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.json`，
 由 `scripts/tribunal-model-router.sh` 解析；README 不複製易過期的數值。
 
