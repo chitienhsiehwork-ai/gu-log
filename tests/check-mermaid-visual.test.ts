@@ -159,7 +159,7 @@ describe('pre-commit: only a Mermaid FAIL verdict blocks the commit', () => {
   it('warns but lets the commit through when the check is incomplete', () => {
     const r = runHookWithMermaidExit(EXIT.INCOMPLETE);
     expect(r.status, r.output).toBe(0);
-    expect(r.output).toContain('Mermaid visual check incomplete, not blocking');
+    expect(r.output).toContain('Mermaid visual check incomplete (see above), not blocking');
   });
 
   it('blocks on a FAIL verdict', () => {
