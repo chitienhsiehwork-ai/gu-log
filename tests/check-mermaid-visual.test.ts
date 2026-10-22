@@ -61,6 +61,10 @@ describe('check-mermaid-visual: judge errors are not FAIL verdicts', () => {
   it('reads only an explicit PASS or FAIL as a verdict', () => {
     expect(parseVerdict('PASS: 文字清晰')).toBe(true);
     expect(parseVerdict('**FAIL**：對比度不足')).toBe(false);
+    // 判定沒放開頭也要認得；只要提到 FAIL 就算 FAIL，gate 不能因此變鬆。
+    expect(parseVerdict('判定：FAIL，節點文字太小')).toBe(false);
+    expect(parseVerdict('條件 1 PASS，條件 4 FAIL，整體不通過')).toBe(false);
+    expect(parseVerdict('結論：PASS')).toBe(true);
     for (const reply of ['', '我沒辦法判斷這張圖', 'Looks fine to me']) {
       expect(() => parseVerdict(reply)).toThrow(/no PASS\/FAIL verdict/);
     }

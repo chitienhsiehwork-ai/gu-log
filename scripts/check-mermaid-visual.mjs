@@ -262,15 +262,18 @@ function judgeWithClaudeCli(base64Image) {
 }
 
 /**
- * Read the judge's answer. Only an explicit PASS or FAIL counts; anything else
- * (empty, refusal, cut off) throws so it is reported as a judge error.
+ * Read the judge's answer. A leading PASS/FAIL is the verdict. If the verdict
+ * is not up front (e.g. "判定：FAIL"), any FAIL wins, since one failed
+ * condition fails the diagram. No PASS/FAIL at all (empty, refusal, cut off)
+ * throws so it is reported as a judge error.
  */
 export function parseVerdict(text) {
-  const match = /^[\s*_`#>:-]*(PASS|FAIL)\b/i.exec(text ?? '');
-  if (!match) {
-    throw new Error(`no PASS/FAIL verdict in judge reply: ${JSON.stringify(text ?? '')}`);
-  }
-  return match[1].toUpperCase() === 'PASS';
+  const reply = text ?? '';
+  const lead = /^[\s*_`#>:-]*(PASS|FAIL)\b/i.exec(reply);
+  if (lead) return lead[1].toUpperCase() === 'PASS';
+  if (/\bFAIL\b/.test(reply)) return false;
+  if (/\bPASS\b/.test(reply)) return true;
+  throw new Error(`no PASS/FAIL verdict in judge reply: ${JSON.stringify(reply)}`);
 }
 
 /**
