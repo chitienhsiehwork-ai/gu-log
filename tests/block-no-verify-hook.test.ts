@@ -56,6 +56,12 @@ const BYPASSES = [
   'git commit -m "" -n',
   ["git commit -m \"$(cat <<'EOF'", 'fix: message', 'EOF', ')" -n'].join('\n'),
   ['git commit -m x \\', '  --no-verify'].join('\n'),
+  // 沒加引號的指令替換不能把外層的 git 指令切斷，裡面的內容也要檢查
+  'git commit -F <(echo hi) -n',
+  'git commit -m $(cat msg) -n',
+  'git commit -m `cat msg` -n',
+  'git -C $(git rev-parse --show-toplevel) commit -n -m "fix"',
+  'out=$(git commit -n -m "fix")',
   // 標記有引號的 heredoc 內文不處理接續行，所以 EOF 在第三行就結束
   ["cat <<'EOF' > s.sh", 'echo foo \\', 'EOF', 'git commit -n -m x', 'EOF'].join('\n'),
 ];
@@ -82,6 +88,8 @@ const ALLOWED = [
   'git commit -m "fix" -- -n',
   'git status # never use --no-verify or git commit -n',
   'git commit -m "fix" 2>&1 | tail -n 5',
+  'git commit -m $(cat msg)',
+  'git push -n $(git remote | head -1) HEAD',
   'rg -n "no-verify" .',
   'grep -rn -- --no-verify docs/',
   [

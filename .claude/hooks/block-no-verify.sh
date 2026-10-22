@@ -10,7 +10,7 @@
 # 不誤擋：先丟掉 heredoc 內文，引號內的文字當成一個參數，再丟掉 # 註解；
 #   commit message 裡「提到」這些旗標不會被擋，-m 的值（例如 -mn 裡的 n）也不會被當成旗標。
 # 範圍：防的是看到 hook 失敗、順手照提示加 --no-verify 的 agent，不是刻意繞路的人；
-#   bash -c、eval、git alias、變數展開、用 git config 寫入 core.hooksPath 都不管。
+#   bash -c、eval、git alias、變數展開、雙引號裡的 $(…)、用 git config 寫入 core.hooksPath 都不管。
 #   只要出現單獨一個 git 就當成 git 指令檢查，所以 `echo git commit -n` 也會被擋。
 #   解析不了就放行，這支壞掉不會卡死所有 Bash 指令。
 # 測試：tests/block-no-verify-hook.test.ts。只用 bash 3.2 有的語法（macOS 內建 bash）。
@@ -23,8 +23,9 @@ COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/nul
 #   1. 丟掉 heredoc 內文與結束標記，其他接續行（\ 換行）併成一行。heredoc 內文照 bash 的規則：
 #      標記有引號（<<'EOF'）就原樣保留，沒引號才先併接續行，再找結束標記
 #   2. 由左到右處理跳脫字元、引號、# 註解：引號內的文字當成一個參數（空白和分隔符換成 _），註解丟掉
-#   3. 丟掉 2>&1、&> 這類重新導向，免得 & 被當成分隔符
-#   4. ; & | ( ) ` 換成換行
+#   3. 沒加引號的 $(…)、<(…)、`…` 原地換成一個參數 _，裡面的內容接到最後，另外當成指令檢查
+#   4. 丟掉 2>&1、&> 這類重新導向，免得 & 被當成分隔符
+#   5. ; & | ( ) ` 換成換行
 STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
   my @lines = split /\n/, $_, -1;
   my $continued = qr/(?<!\\)(?:\\\\)*\\$/;
@@ -49,6 +50,7 @@ STATEMENTS=$(printf '%s' "$COMMAND" | perl -0777 -ne '
     my $word = defined $1 ? $1 : defined $2 ? $2 : $3;
     if (defined $word) { $word =~ s/[\s;&|()<>`]/_/g; length $word ? $word : "_" } else { "" }
   }gse;
+  while (s{[\$<>]\(([^()]*)\)|`([^`]*)`}{_}) { $_ .= "\n" . (defined $1 ? $1 : $2) }
   s/[0-9]*[<>]&[0-9-]*|&>>?/ /g;
   s/[;&|()`]/\n/g;
   print;
