@@ -449,16 +449,15 @@ user 要把 URL 寫成 GP 時，照上面的流程跑 `--prefix GP`。系列依 
 5. 不得捏造 facts、quote、number、causality，亦不得挪用來源作者經歷或杜撰看似真實的人類履歷。MoguNote 可寫第一人稱反應／立場、實際發生的 editorial／tool interaction 與明顯奇幻 persona；可查證的新 premise 要有 inline citation。MoguNote 選配，沒有就不補
 6. `node scripts/validate-posts.mjs` 確認 frontmatter 合格，再丟 **vibe-opus-scorer** 與 Fact Checker 評分；不得只因文章貼近或遠離來源而扣分，真正的品質、claim closure、歸因與可查證性照常嚴格評審。沒過可依 MP 編輯身份改寫，最多 3 輪
 7. 過分數之後才翻 **en 版**
-8. 再跑一次 `validate-posts.mjs` + `pnpm run build`，最後配號、commit、push
+8. 照〈PENDING ticket pattern〉配號，再 validate、build、發布
 
 ### 新增原創文章 (SD)
 
 1. Outline → 人類核准
 2. 寫 **zh-tw 版** + MoguNote + ShroomDogNote
-3. 丟 **vibe-opus-scorer** 評分 → 沒過就改寫（pass bar: composite ≥ 8 AND 至少一維 ≥ 9 AND 無維 < 8）
-4. 跑 Tribunal Fact Checker（如適用）
-5. 過分數後才翻 **en 版**
-6. 更新 counter → validate → build → push
+3. 用 `scripts/tribunal.sh` 跑 Tribunal，跑法見 [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md)，門檻照〈🎯 兩層品質門檻〉
+4. 過分數後才翻 **en 版**
+5. 照〈PENDING ticket pattern〉配號，再 validate、build、發布
 
 ### 新增入門教學（Lv）
 

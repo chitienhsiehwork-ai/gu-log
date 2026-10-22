@@ -157,7 +157,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 - **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
 - **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
-**沒過 PASS 怎麼辦**：有 quota 就讀 `tribunal-writer` role prompt，以 `claude -p --model <frontmatter 的完整 id>` rewrite → 再跑一輪 → 最多 3 輪。3 輪還不到 ≥8，不要 revert；只要 floor ≥3 就先誠實帶 sub-8 badge ship，排進背景 tribunal 繼續拉。
+**沒過 PASS 怎麼辦**（GP 除外，只評分不改寫）：有 quota 就讀 `tribunal-writer` role prompt，以 `claude -p --model <frontmatter 的完整 id>` rewrite → 再跑一輪 → 最多 3 輪。3 輪還不到 ≥8，不要 revert；只要 floor ≥3 就先誠實帶 sub-8 badge ship，排進背景 tribunal 繼續拉。
 
 **禁語**（這些話出現在 PR body / commit message / 回報 = 偷工）：
 - ❌「Tribunal 背景跑中，等拿到結果再補」— 不行。pending 等於沒跑。開 PR 前就要有結果。
@@ -284,7 +284,7 @@ fi
 
 CCC session 的 default model 會浮動，但 gu-log 的 writer / rewriter / vibe-scorer 是 **owner-pin 在同一代 Opus**，讓「生成」和「評分」共用一致 taste。所以只要 CCC 要產出或評分 **gu-log 文章 prose（SD / GP / MP / Lv 這種 reader-facing 內容，含手寫對照文）**：
 
-- **寫 / 改寫 → 使用 `tribunal-writer` 的 role prompt 與規則**（GP / rewrite voice），以 `claude -p --model <frontmatter 的完整 id>` 啟動。
+- **寫 / 改寫 → 使用 `tribunal-writer` 的 role prompt 與規則**（GP 除外，GP 走 gp-pipeline），以 `claude -p --model <frontmatter 的完整 id>` 啟動。
 - **Vibe 評分 → 使用 `vibe-opus-scorer` 的 role prompt 與規則**（grader），同樣以 `claude -p --model <frontmatter 的完整 id>` 啟動。
 - model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。
 - 寫手和 Vibe 評審用同一代 Opus 這條只適用 Claude 路徑；Tribunal 用 Codex 跑 Vibe 時，model 照 openspec `codex-tribunal-runtime`。
@@ -305,35 +305,7 @@ CCC session 的 default model 會浮動，但 gu-log 的 writer / rewriter / vib
 
 ### 流程
 
-```
-Step 1: 寫 zh-tw 版
-  - 建立 MDX，填 frontmatter，寫正文
-  - MoguNote / ShroomDogNote 都在這步完成
-  - validate-posts.mjs 確認格式
-
-Step 2: Tribunal review（spawn subagent；model 見各 agent frontmatter，不在這列版本號）
-  - Vibe Scorer：四維評分（v9；clarity 移到 Fresh Eyes）
-  - Fact Checker：技術準確度
-  - Librarian：glossary / cross-ref
-  - Fresh Eyes：陌生讀者第一印象
-  - Pass bar：Vibe composite ≥ 8 且沒有任何維 < 8
-
-Step 3: Iterate（如未通過）
-  - Spawn opus writer subagent，帶入 tribunal feedback
-  - Writer 改寫 zh-tw 版
-  - 再跑 tribunal
-  - 最多 3 輪。3 輪還沒過 → 回報 user，不要硬出
-
-Step 4: zh-tw 通過 → 翻譯 en 版
-  - 以通過 tribunal 的 zh-tw 為 source
-  - 翻成 en，按 GU-LOG_WRITER_PROMPT.md 的英文版指南
-  - en 版不用再跑完整 tribunal（zh-tw 已驗證內容品質）
-  - 但仍需通過 validate-posts.mjs
-
-Step 5: 更新 counter → commit → push
-  - 兩版一起 commit（atomic：一篇文章 = 一個 commit）
-  - 更新 scripts/article-counter.json
-```
+各系列的步驟照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈Workflow〉：寫作順序照〈zh-tw 優先 SOP〉，門檻照〈🎯 兩層品質門檻〉，配號照〈編號分配：PENDING ticket pattern（預設流程）〉，merge 前最後一刻才配號。
 
 ### 為什麼不 en 也跑 tribunal？
 
