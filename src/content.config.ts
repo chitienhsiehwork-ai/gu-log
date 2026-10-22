@@ -135,7 +135,9 @@ const postsCollection = defineCollection({
       title: z.string(),
       ticketId: canonicalTicketId, // e.g., "GP-15", "MP-1", "SD-1", "Lv-1"
       originalDate: z.string(), // Original publish date (YYYY-MM-DD format)
-      translatedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'translatedDate must be YYYY-MM-DD'), // Date we first shipped this post — tribunal sort key (required)
+      // 這篇第一次上線的日期。各語言記自己的，中英可以不同（例如英文版晚上線），
+      // validate-posts 的配對檢查刻意不比。
+      translatedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'translatedDate must be YYYY-MM-DD'),
       translatedBy: z
         .strictObject({
           model: z.string(),
@@ -182,6 +184,8 @@ const postsCollection = defineCollection({
       sourceDistance: notRendered(z.unknown()),
       // 只給 scripts/check-glossary-links.mjs 讀的豁免清單，不輸出。
       glossaryIgnore: notRendered(z.array(z.string())),
+      // `order` 是原本的系列順序，文章下架後會斷號，不代表第幾篇（見
+      // src/utils/series-nav.ts）。中英配對必須一致（validate-posts Rule 14）。
       series: z
         .strictObject({
           name: z.string(),
