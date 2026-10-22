@@ -151,15 +151,14 @@ echo ""
 # rescore just to add a `series.name` to a 4-month-old post is the wrong
 # trade-off.
 #
-# Merge-commit exemption: if .git/MERGE_HEAD exists we're finalising a
-# merge, which brings in content that was already gated on its source
-# branch. Re-gating it here would block legitimate merges whenever main
-# has posts that didn't pass this specific gate (e.g. pipeline gaps
-# where scores were written to scores/tribunal-progress.json instead of
-# the mdx frontmatter). Content-quality gates fire on authored commits,
-# not on merges.
+# Merge-commit exemption: a MERGE_HEAD means we're finalising a merge,
+# which brings in content that was already gated on its source branch.
+# Re-gating it here would block legitimate merges whenever main has posts
+# that didn't pass this specific gate. Content-quality gates fire on
+# authored commits, not on merges. Ask git for the path: in a linked
+# worktree .git is a file and MERGE_HEAD lives elsewhere (#1164).
 IS_MERGE_COMMIT=0
-if [ -f "$REPO_ROOT/.git/MERGE_HEAD" ]; then
+if [ -f "$(git rev-parse --git-path MERGE_HEAD)" ]; then
     IS_MERGE_COMMIT=1
 fi
 
