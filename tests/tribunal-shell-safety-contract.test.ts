@@ -1,15 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process';
-import {
-  closeSync,
-  fchmodSync,
-  fstatSync,
-  mkdirSync,
-  openSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -20,80 +10,21 @@ const CONTRACT = path.join(ROOT, 'scripts/tests/test-tribunal-safety-contract.sh
 const RUNNER_ERROR_GUARD = path.join(ROOT, 'scripts/tests/test-tribunal-runner-error-guard.sh');
 const DEPLOY_READINESS = path.join(ROOT, 'scripts/tests/test-tribunal-deploy-readiness.sh');
 const RUN_CONTROL_CLAIMS = path.join(ROOT, 'scripts/tests/test-tribunal-run-control-claims.sh');
-// runner-error-guard 改寫 fixture 之前會拿這把鎖（見腳本開頭）
-const FIXTURE_LOCK = '.score-loop/locks/tracked-gp-1-20260128-demo.lock';
+const RECOVER_FIXTURES = '--recover-fixtures';
 const linuxIt = process.platform === 'linux' ? it : it.skip;
 const makeTempDirectory = useTestTempDirectories();
 
 type ShellRun = { status: number | null; output: string; timedOut: boolean; restored: string[] };
-type Snapshot = { file: string; bytes: Buffer; mode: number };
 
-// 別的 run 拿著 fixture 鎖時，文章可能正被它改寫：這時不拍快照、也不還原，讓拿鎖的
-// 那一方自己收拾。鎖檔不存在或沒有 flock（例如 macOS）都當成沒人拿。
-function fixtureLockHeld(root: string): boolean {
-  const run = spawnSync('flock', ['-n', '-E', '75', path.join(root, FIXTURE_LOCK), 'true']);
-  return run.status === 75;
-}
-
-// 讀一般檔的 bytes 和權限；不存在、或已經不是一般檔就回 null。用同一個 fd 讀，
-// 不會在檢查和讀取之間被換掉。
-function readRegularFile(file: string): Omit<Snapshot, 'file'> | null {
-  let fd: number;
-  try {
-    fd = openSync(file, 'r');
-  } catch {
-    return null;
-  }
-  try {
-    const stat = fstatSync(fd);
-    return stat.isFile() ? { bytes: readFileSync(fd), mode: stat.mode } : null;
-  } finally {
-    closeSync(fd);
-  }
-}
-
-// 腳本裡點名的文章（連同 en- 版）就是它可能改寫的 fixture；只有這些會在逾時時還原，
-// 其他檔就算在測試期間被改，也是別人的工作，不能動。
-function fixtureSnapshots(script: string, root: string): Snapshot[] {
-  if (fixtureLockHeld(root)) return [];
-  const postsDir = path.join(root, 'src/content/posts');
-  const names = new Set<string>();
-  for (const name of readFileSync(script, 'utf8').match(/[\w.-]+\.mdx\b/g) ?? []) {
-    names.add(name);
-    names.add(`en-${name}`);
-  }
-  return [...names].flatMap((name) => {
-    const file = path.join(postsDir, name);
-    const current = readRegularFile(file);
-    return current ? [{ file, ...current }] : [];
-  });
-}
-
-function restoreSnapshots(snapshots: Snapshot[], root: string): string[] {
-  if (snapshots.length === 0 || fixtureLockHeld(root)) return [];
-  const restored: string[] = [];
-  for (const { file, bytes, mode } of snapshots) {
-    if (readRegularFile(file)?.bytes.equals(bytes)) continue;
-    // 被換成目錄的也要清掉；flag wx 確保寫進去的是剛建立的新檔
-    rmSync(file, { recursive: true, force: true });
-    const fd = openSync(file, 'wx');
-    try {
-      writeFileSync(fd, bytes);
-      fchmodSync(fd, mode);
-    } finally {
-      closeSync(fd);
-    }
-    restored.push(path.relative(root, file));
-  }
-  return restored;
-}
-
-// 這幾支 shell 測試會暫時改寫追蹤的文章（例如 SD-1 會被寫進 gpt-test 分數），靠 EXIT
-// trap 還原。逾時只能用 SIGKILL 砍（不然可能卡住），trap 不會跑；只砍 bash 的話，底下
-// 還在跑的 tribunal.sh 也會繼續寫檔。所以逾時就砍整個 process group，等全部結束後，
-// 把腳本點名的 fixture 還原成跑之前的 bytes。
-function runShellTest(script: string, timeout: number, root = ROOT): Promise<ShellRun> {
-  const snapshots = fixtureSnapshots(script, root);
+// 逾時只能用 SIGKILL 砍（不然可能卡住），腳本的 EXIT trap 不會跑；只砍 bash 的話，
+// 底下還在跑的 tribunal.sh 也會繼續寫檔。所以逾時就砍整個 process group，等全部
+// 結束後，有改寫追蹤文章的腳本（runner-error-guard）再用 --recover-fixtures 照它在
+// 鎖底下記的 journal 還原。
+function runShellTest(
+  script: string,
+  timeout: number,
+  { root = ROOT, recover = false } = {}
+): Promise<ShellRun> {
   return new Promise((resolve, reject) => {
     const child = spawn('bash', [script], { cwd: root, env: process.env, detached: true });
     let output = '';
@@ -114,7 +45,19 @@ function runShellTest(script: string, timeout: number, root = ROOT): Promise<She
     });
     child.on('close', (status) => {
       clearTimeout(timer);
-      const restored = timedOut ? restoreSnapshots(snapshots, root) : [];
+      let restored: string[] = [];
+      if (timedOut && recover) {
+        const recovery = spawnSync('bash', [script, RECOVER_FIXTURES], {
+          cwd: root,
+          env: process.env,
+          encoding: 'utf8',
+          timeout: 30_000,
+        });
+        output += `\n[${RECOVER_FIXTURES}]\n${recovery.stdout}${recovery.stderr}`;
+        restored = [...recovery.stdout.matchAll(/^recovered (.+)$/gm)].map((match) =>
+          path.relative(root, match[1])
+        );
+      }
       resolve({ status, output, timedOut, restored });
     });
   });
@@ -136,7 +79,7 @@ describe('Tribunal shell safety contract', () => {
   linuxIt(
     'fails closed on runner and provenance infrastructure errors',
     async () => {
-      expectPassed(await runShellTest(RUNNER_ERROR_GUARD, 120_000));
+      expectPassed(await runShellTest(RUNNER_ERROR_GUARD, 120_000, { recover: true }));
     },
     125_000
   );
@@ -155,75 +98,70 @@ describe('Tribunal shell safety contract', () => {
 });
 
 describe('shell test runner', () => {
-  it('kills the whole group on timeout and restores only the fixtures the script names', async () => {
+  it('kills the whole group on timeout, then runs the recovery mode', async () => {
     const root = makeTempDirectory('gu-log-shell-runner-');
-    const posts = path.join(root, 'src/content/posts');
-    const post = (name: string) => path.join(posts, name);
-    mkdirSync(posts, { recursive: true });
-    // 跑之前就有的修改要原樣還原，不是退回 HEAD
-    writeFileSync(post('sd-1-demo.mdx'), 'work in progress\n');
-    writeFileSync(post('en-sd-1-demo.mdx'), 'english\n', { mode: 0o600 });
-    writeFileSync(post('other.mdx'), 'before\n');
-    // 背景子行程在 bash 被砍之後才寫檔，模擬還在跑的 tribunal.sh；en 版被換成目錄
+    const post = path.join(root, 'post.mdx');
+    writeFileSync(post, 'pristine\n');
     const script = path.join(root, 'slow.sh');
+    // 背景子行程在 bash 被砍之後才寫檔，模擬還在跑的 tribunal.sh
     writeFileSync(
       script,
       [
-        'p=src/content/posts',
-        'echo "gpt-test" >> "$p/sd-1-demo.mdx"',
-        'rm "$p/en-$(basename "$p/sd-1-demo.mdx")" && mkdir "$p/en-sd-1-demo.mdx"',
-        '(sleep 1; echo "late write" >> "$p/sd-1-demo.mdx") &',
+        `if [ "\${1:-}" = ${RECOVER_FIXTURES} ]; then`,
+        '  printf "pristine\\n" > post.mdx; echo "recovered $PWD/post.mdx"; exit 0',
+        'fi',
+        'echo "gpt-test" >> post.mdx',
+        '(sleep 1; echo "late write" >> post.mdx) &',
         'sleep 30',
       ].join('\n')
     );
 
-    const running = runShellTest(script, 500, root);
-    // 測試期間別人改的檔不在腳本點名的範圍內，不能被還原
-    writeFileSync(post('other.mdx'), 'edited during the run\n');
-    const run = await running;
+    const run = await runShellTest(script, 500, { root, recover: true });
 
     expect(run.timedOut).toBe(true);
-    expect(run.restored.sort()).toEqual([
-      'src/content/posts/en-sd-1-demo.mdx',
-      'src/content/posts/sd-1-demo.mdx',
-    ]);
+    expect(run.restored).toEqual(['post.mdx']);
     await new Promise((done) => setTimeout(done, 1_500));
-    expect(readFileSync(post('sd-1-demo.mdx'), 'utf8')).toBe('work in progress\n');
-    expect(readFileSync(post('en-sd-1-demo.mdx'), 'utf8')).toBe('english\n');
-    expect(statSync(post('en-sd-1-demo.mdx')).mode & 0o777).toBe(0o600);
-    expect(readFileSync(post('other.mdx'), 'utf8')).toBe('edited during the run\n');
+    expect(readFileSync(post, 'utf8')).toBe('pristine\n');
   }, 10_000);
 
-  it('uses the lock the guard script takes before rewriting fixtures', () => {
-    const source = readFileSync(RUNNER_ERROR_GUARD, 'utf8');
-    expect(source).toContain(`fixture_lock_dir="$ROOT_DIR/${path.dirname(FIXTURE_LOCK)}"`);
-    expect(source).toContain(`$fixture_lock_dir/${path.basename(FIXTURE_LOCK)}`);
-  });
-
   linuxIt(
-    'leaves fixtures alone while another run holds the fixture lock',
-    async () => {
-      const root = makeTempDirectory('gu-log-shell-runner-locked-');
-      const posts = path.join(root, 'src/content/posts');
-      mkdirSync(posts, { recursive: true });
-      mkdirSync(path.join(root, path.dirname(FIXTURE_LOCK)), { recursive: true });
-      writeFileSync(path.join(posts, 'sd-1-demo.mdx'), 'pristine\n');
-      const script = path.join(root, 'slow.sh');
-      writeFileSync(script, 'echo "gpt-test" >> src/content/posts/sd-1-demo.mdx\nsleep 30\n');
-      // 另一個 run 正拿著鎖改寫文章：它的快照才是乾淨的，這邊不能拿自己的快照蓋回去
-      const holder = spawn('flock', ['-x', path.join(root, FIXTURE_LOCK), 'sleep', '30']);
-      try {
-        await new Promise((done) => setTimeout(done, 300));
-        const run = await runShellTest(script, 500, root);
-        expect(run.timedOut).toBe(true);
-        expect(run.restored).toEqual([]);
-        expect(readFileSync(path.join(posts, 'sd-1-demo.mdx'), 'utf8')).toBe(
-          'pristine\ngpt-test\n'
-        );
-      } finally {
-        holder.kill('SIGKILL');
-      }
+    'restores the posts a killed guard run left behind',
+    () => {
+      const lock = path.join(ROOT, '.score-loop/locks/tracked-gp-1-20260128-demo.lock');
+      const journal = path.join(ROOT, '.score-loop/locks/tracked-fixture-journal');
+      const name = 'sd-1-20260209-openclaw-talk-deep-dive.mdx';
+      const post = path.join(ROOT, 'src/content/posts', name);
+      const pristine = readFileSync(post);
+      mkdirSync(path.dirname(lock), { recursive: true });
+      // 跟 guard 拿同一把鎖，模擬它記好 journal、改寫文章到一半就被 SIGKILL
+      const setup = spawnSync(
+        'flock',
+        [
+          '-x',
+          lock,
+          'bash',
+          '-c',
+          'mkdir -p "$1" && cp -p "$2" "$1/" && echo gpt-test >> "$2"',
+          'setup',
+          journal,
+          post,
+        ],
+        { encoding: 'utf8' }
+      );
+      expect(setup.status, setup.stderr).toBe(0);
+      expect(readFileSync(post).equals(pristine)).toBe(false);
+
+      const recovery = spawnSync('bash', [RUNNER_ERROR_GUARD, RECOVER_FIXTURES], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        timeout: 30_000,
+      });
+
+      expect(recovery.status, recovery.stdout + recovery.stderr).toBe(0);
+      expect(recovery.stdout).toContain(`recovered ${post}`);
+      expect(readFileSync(post).equals(pristine)).toBe(true);
+      expect(existsSync(journal)).toBe(false);
     },
-    10_000
+    35_000
   );
 });
