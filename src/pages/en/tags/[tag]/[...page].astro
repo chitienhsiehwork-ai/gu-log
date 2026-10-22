@@ -6,27 +6,32 @@ import Toggle from '../../../../components/Toggle.astro';
 import TicketBadge from '../../../../components/TicketBadge.astro';
 import PostStatusLabel from '../../../../components/PostStatusLabel.astro';
 import Pagination from '../../../../components/Pagination.astro';
-import { getListablePosts, getPostStatus } from '../../../../utils/post-status';
-import { groupPostsByTag } from '../../../../utils/tag-groups';
+import { getPostStatus } from '../../../../utils/post-status';
+import { getTagPageGroups, getTagPageNames } from '../../../../utils/tag-pages';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
-  const allPosts = getListablePosts(allPostsFull, 'en');
+  // 另一個語言也有這個標籤頁，語言切換才連過去；沒有就回對方首頁（BaseLayout 預設）
+  const alternateTags = getTagPageNames(allPostsFull, 'zh-tw');
 
   // Generate paginated pages for each tag
-  return groupPostsByTag(allPosts).flatMap(({ tag, posts: tagPosts }) => {
+  return getTagPageGroups(allPostsFull, 'en').flatMap(({ tag, posts: tagPosts }) => {
     return paginate(tagPosts, {
       pageSize: 20,
       params: { tag },
-      props: { tag, allPostsFull },
+      props: {
+        tag,
+        allPostsFull,
+        alternateHref: alternateTags.has(tag) ? `/tags/${tag}` : undefined,
+      },
     });
   });
 }
 
-const { page, tag, allPostsFull } = Astro.props;
+const { page, tag, allPostsFull, alternateHref } = Astro.props;
 ---
 
-<BaseLayout title={`${tag} - Tags - gu-log`} lang="en">
+<BaseLayout title={`${tag} - Tags - gu-log`} lang="en" alternateHref={alternateHref}>
   <article class="tag-page">
     <header class="page-header">
       <div class="breadcrumb">

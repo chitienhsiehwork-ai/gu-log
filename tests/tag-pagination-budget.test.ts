@@ -17,11 +17,10 @@ describe('tag pagination budget', () => {
   it('keeps Chinese tag pages bounded and locale-isolated', () => {
     const source = readFileSync(zhPaginatedRoute, 'utf8');
 
-    expect(source).toContain("getListablePosts(allPostsFull, 'zh-tw')");
-    expect(source).toContain('groupPostsByTag(allPosts)');
+    expect(source).toContain("getTagPageGroups(allPostsFull, 'zh-tw')");
     expect(source).toMatch(/paginate\(tagPosts,\s*\{[\s\S]*?pageSize:\s*20/);
     expect(source).toMatch(/params:\s*\{\s*tag\s*\}/);
-    expect(source).toMatch(/props:\s*\{\s*tag\s*\}/);
+    expect(source).toMatch(/props:\s*\{\s*tag,\s*alternateHref:/);
     expect(source).toContain('page.data.map');
     expect(source).toContain('page.total');
     expect(source).toContain('getPostStatus(post)');
@@ -33,12 +32,13 @@ describe('tag pagination budget', () => {
   it('keeps English tag pages bounded while preserving status inheritance', () => {
     const source = readFileSync(enPaginatedRoute, 'utf8');
 
-    expect(source).toContain("getListablePosts(allPostsFull, 'en')");
-    expect(source).toContain('groupPostsByTag(allPosts)');
+    expect(source).toContain("getTagPageGroups(allPostsFull, 'en')");
     expect(source).toMatch(/paginate\(tagPosts,\s*\{[\s\S]*?pageSize:\s*20/);
     expect(source).toMatch(/params:\s*\{\s*tag\s*\}/);
-    expect(source).toMatch(/props:\s*\{\s*tag,\s*allPostsFull\s*\}/);
-    expect(source).toMatch(/const \{\s*page,\s*tag,\s*allPostsFull\s*\} = Astro\.props/);
+    expect(source).toMatch(/props:\s*\{\s*tag,\s*allPostsFull,\s*alternateHref:/);
+    expect(source).toMatch(
+      /const \{\s*page,\s*tag,\s*allPostsFull,\s*alternateHref\s*\} = Astro\.props/
+    );
     expect(source).toContain('page.data.map');
     expect(source).toContain('page.total');
     expect(source).toContain('getPostStatus(post, allPostsFull)');

@@ -255,6 +255,11 @@
       "class": "blocking",
       "owner": "ShroomDog",
       "reason": "owner 一鍵回饋（openspec: owner-reader-feedback）：未登入看不到、登入後寫入帶 reader revision 的 feedback_comment、/human-signals 同步只在登入時送且 404 不影響頁面，以及 Reading Tracker 匯出檔格式；壞了 owner 回饋就收不到或對錯版本。"
+    },
+    "tests/language-toggle.spec.ts": {
+      "class": "blocking",
+      "owner": "ShroomDog",
+      "reason": "導覽列的語言切換要連到頁面算好的對應頁（有翻譯的文章、兩邊都有的標籤、列表頁），沒有對應頁就回對方語言首頁，目標頁必須回 200（#1164）；壞了讀者一切語言就 404 或被丟錯頁。2026-10-22 Desktop Chrome --retries=0 連跑 3 次 11/11 通過，約 10 秒。"
     }
   }
 }

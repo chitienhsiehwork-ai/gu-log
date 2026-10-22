@@ -17,9 +17,22 @@ interface Props {
    */
   robots?: string;
   markdownUrl?: string;
+  /**
+   * 語言切換鈕要去的網址：這頁在另一個語言的對應頁，由頁面自己算好傳進來
+   * （文章用 getTranslationPair）。沒有對應頁就別傳，切換鈕會回另一個語言的首頁。
+   */
+  alternateHref?: string;
 }
 
-const { title, description, lang = 'zh-tw', image, robots, markdownUrl } = Astro.props;
+const {
+  title,
+  description,
+  lang = 'zh-tw',
+  image,
+  robots,
+  markdownUrl,
+  alternateHref,
+} = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
@@ -71,6 +84,7 @@ const i18n = {
 };
 
 const t = i18n[lang];
+const languageToggleHref = alternateHref ?? i18n[lang === 'en' ? 'zh-tw' : 'en'].homeLink;
 const finalDescription = description || t.defaultDescription;
 ---
 
@@ -475,7 +489,7 @@ const finalDescription = description || t.defaultDescription;
         <nav class="site-nav" aria-label={t.menuLabel}>
           <span class="nav-icons">
             <SearchBar lang={lang} />
-            <LanguageToggle currentLang={lang} currentPath={currentPath} />
+            <LanguageToggle currentLang={lang} href={languageToggleHref} />
             <ThemeToggle lang={lang} />
             <button
               class="hamburger-btn"

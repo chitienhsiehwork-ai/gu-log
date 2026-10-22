@@ -21,6 +21,7 @@ import { getPostAuthorshipNote } from '../../utils/post-authorship-notes';
 import {
   createPostNavigationBaseline,
   getNavigablePostsFromBaseline,
+  getTranslationPair,
   resolvePostStatus,
 } from '../../utils/post-status';
 import { getLocalizedPostUrl } from '../../utils/post-urls';
@@ -90,6 +91,7 @@ const pageTitle = isTakenDown
   : `${post.data.title} - gu-log`;
 const canonicalPostUrl = new URL(getLocalizedPostUrl(post), Astro.site).href;
 const markdownUrl = `${canonicalPostUrl}.md`;
+const translationPair = getTranslationPair(post, allPosts);
 const replacementUrl = postStatus.replacementPost
   ? new URL(getLocalizedPostUrl(postStatus.replacementPost), Astro.site).href
   : null;
@@ -106,6 +108,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
   title={pageTitle}
   markdownUrl={markdownUrl}
   robots={isTakenDown ? 'noindex' : undefined}
+  alternateHref={translationPair && getLocalizedPostUrl(translationPair)}
 >
   <article
     class={isTakenDown ? 'post-tombstone' : 'post'}
