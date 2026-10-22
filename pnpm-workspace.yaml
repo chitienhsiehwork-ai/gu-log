@@ -1,6 +1,6 @@
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
+# Dependency overrides and onlyBuiltDependencies live only in package.json
+# ("pnpm" field): pnpm-lock.yaml records that set, and scripts/security-gate.mjs
+# checks the two match. Do not add them here.
 
 # 7 days in minutes; reduces exposure to newly compromised releases.
 minimumReleaseAge: 10080
@@ -10,8 +10,3 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - nanoid@3.3.18
   - http-cache-semantics@4.3.0
-
-overrides:
-  lodash@>=4.0.0 <=4.17.22: '>=4.17.23'
-  serialize-javascript@<=7.0.2: '>=7.0.3'
-  tmp@<0.2.6: 0.2.7
