@@ -6,9 +6,10 @@ class FetchTimeoutError extends Error {}
  * Fetch a URL and read its whole body under one deadline per attempt.
  *
  * Only timeouts are retried: the npm bulk advisory endpoint occasionally
- * leaves a connection hanging, and a fresh connection usually answers within
- * seconds. Every other failure (network error, malformed body) is thrown as-is
- * so callers stay fail-closed.
+ * leaves a connection hanging with no response at all, while a fresh
+ * connection answers within a second, so callers should pass a short
+ * timeout and rely on the retries. Every other failure (network error,
+ * malformed body) is thrown as-is so callers stay fail-closed.
  *
  * @param {string} url
  * @param {RequestInit} init
@@ -18,7 +19,7 @@ class FetchTimeoutError extends Error {}
 export async function fetchBytesWithTimeout(
   url,
   init,
-  { label, timeoutMs, fetchImpl = globalThis.fetch, attempts = 2 }
+  { label, timeoutMs, fetchImpl = globalThis.fetch, attempts = 4 }
 ) {
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) {
     throw new Error(`${label} timeout must be a positive integer`);

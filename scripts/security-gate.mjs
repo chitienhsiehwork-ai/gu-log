@@ -19,7 +19,7 @@ const NPM_BULK_AUDIT_URL = 'https://registry.npmjs.org/-/npm/v1/security/advisor
 const LOCKFILE_PATH = join(ROOT, 'pnpm-lock.yaml');
 const BULK_SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical'];
 const BULK_SUMMARY_SCHEMA_VERSION = 1;
-const DEFAULT_BULK_AUDIT_TIMEOUT_MS = 30_000;
+const DEFAULT_BULK_AUDIT_TIMEOUT_MS = 10_000;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MAX_ALLOWLIST_DAYS = {
