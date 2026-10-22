@@ -1,20 +1,9 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
-
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+# 建 proposal、specs、design、tasks 時，openspec 會把下面的 context 帶給 AI。
+# 這裡只放寫 artifact 時要知道的事；端到端流程以 .agents/openspec-sdlc.md 為準。
+context: |
+  gu-log：AI／技術翻譯與原創 blog。
+  - artifact 內文寫台灣繁中；檔名、路徑、指令、config key 和 spec 保留字（SHALL、MUST、Requirement、Scenario、GIVEN／WHEN／THEN 等）照原樣，細節見 CONTRIBUTING.md〈Markdown 文件語言：預設繁中〉。
+  - 每個 change 都要寫 design.md：openspec/specs/spec-driven-review-loop/spec.md 規定 archive 一定要有它，上游「必要時才寫」的說法在這個 repo 不適用。
+  - 審查、在 chat 問 user、archive 的順序見 .agents/openspec-sdlc.md。
