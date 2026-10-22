@@ -675,9 +675,9 @@ fi
 echo ""
 
 # ─── Step 0.6: Prettier format check (full codebase) ─────────────
-# Scope lives in .prettierignore; this is the same command CI runs.
+# Scope: .prettierignore. Same check as `pnpm run format:check` in CI.
 echo "🎨 Prettier: checking all source files..."
-if ! pnpm run --silent format:check 2>&1; then
+if ! npx prettier --check . 2>&1; then
     echo ""
     echo "❌ Prettier found formatting issues. Fix them before committing."
     echo "   Run: pnpm run format"
