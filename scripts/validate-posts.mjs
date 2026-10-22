@@ -590,7 +590,7 @@ function validatePost(filepath, allPosts, options = {}) {
     }
   }
 
-  // ── Rule 14: Translation pair shares ticketId / series / external sourceUrl ──
+  // ── Rule 14: Pair shares ticketId / series / sourceUrl（條件見 lib） ──
   errors.push(...findPairFieldMismatches(fm, findTranslationPair(filename, allPosts)));
 
   // ── Rule 14.5: model signature (translatedBy) is mandatory for every post ──
