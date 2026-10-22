@@ -31,19 +31,32 @@ eval "$selector_section"
 
 tmp_dir=$(mktemp -d)
 trap 'rm -rf "$tmp_dir"' EXIT
-fake_monitor="$tmp_dir/usage-monitor.sh"
-cat > "$fake_monitor" <<'MONITOR'
-#!/usr/bin/env bash
-if [ "${FAKE_USAGE_RC:-0}" -ne 0 ]; then
-  exit "$FAKE_USAGE_RC"
-fi
-printf '%s\n' "${FAKE_USAGE_JSON:-[]}"
-MONITOR
-chmod +x "$fake_monitor"
 
-USAGE_MONITOR="$fake_monitor"
-QUOTA_FLOOR_PCT=3
-export USAGE_MONITOR QUOTA_FLOOR_PCT
+# The batch reads quota the way the deployed daemon does: CodexBar's Codex
+# JSON through tribunal_quota_codexbar_json/tribunal_quota_parse_json. A fake
+# codexbar that always fails proves no case below falls back to a live probe,
+# and the retired usage-monitor must play no part (#1164).
+mkdir -p "$tmp_dir/bin"
+printf '#!/bin/sh\nexit 1\n' > "$tmp_dir/bin/codexbar"
+chmod +x "$tmp_dir/bin/codexbar"
+PATH="$tmp_dir/bin:$PATH"
+unset TRIBUNAL_QUOTA_CODEXBAR_JSON
+USAGE_MONITOR="$tmp_dir/missing-usage-monitor.sh"
+export USAGE_MONITOR
+TRIBUNAL_QUOTA_NOW_EPOCH=1800000000
+export TRIBUNAL_QUOTA_NOW_EPOCH
+
+# codex_json <5h used % or null> <weekly used %>
+codex_json() {
+  local primary='null'
+  if [ "$1" != null ]; then
+    primary="{\"usedPercent\":$1,\"windowMinutes\":300,\"resetsAt\":1800003600}"
+  fi
+  printf '[{"provider":"codex","source":"cli","usage":{"primary":%s,"secondary":{"usedPercent":%s,"windowMinutes":10080,"resetsAt":1800300000}}}]\n' \
+    "$primary" "$2"
+}
+
+QUOTA_FLOOR=10
 ACTIVE_GLOBAL_PROVIDER=codex
 ACTIVE_VIBE_PROVIDER=codex
 ACTIVE_WRITER_MODE=none
@@ -95,17 +108,16 @@ pass() {
 
 declare -F get_unscored_articles >/dev/null || fail "batch selector section was not loaded"
 
+# run_case <global provider> <vibe provider> <CodexBar JSON, or "" for no injected reading>
 run_case() {
-  local global_provider="$1"
-  local vibe_provider="$2"
-  local json="$3"
-  local monitor_rc="${4:-0}"
-
-  ACTIVE_GLOBAL_PROVIDER="$global_provider"
-  ACTIVE_VIBE_PROVIDER="$vibe_provider"
-  FAKE_USAGE_JSON="$json"
-  FAKE_USAGE_RC="$monitor_rc"
-  export FAKE_USAGE_JSON FAKE_USAGE_RC
+  ACTIVE_GLOBAL_PROVIDER="$1"
+  ACTIVE_VIBE_PROVIDER="$2"
+  if [ -n "$3" ]; then
+    TRIBUNAL_QUOTA_CODEXBAR_JSON="$3"
+    export TRIBUNAL_QUOTA_CODEXBAR_JSON
+  else
+    unset TRIBUNAL_QUOTA_CODEXBAR_JSON
+  fi
   LOG_OUTPUT=""
 
   set +e
@@ -114,93 +126,80 @@ run_case() {
   set -e
 }
 
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 0 ] || fail "codex-only quota should pass; rc=$CASE_RC log=$LOG_OUTPUT"
-case "$LOG_OUTPUT" in *"codex"*"minimum=70"*) ;; *) fail "codex-only log lacks provider/minimum: $LOG_OUTPUT" ;; esac
-pass "codex-only requires OpenAI short and weekly buckets"
+run_case codex codex "$(codex_json 20 30)"
+[ "$CASE_RC" -eq 0 ] || fail "healthy CodexBar reading should pass without usage-monitor; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"5h=80%"*"weekly=70%"*"minimum=70%"*) ;; *) fail "quota log lacks the 5h/weekly minimum: $LOG_OUTPUT" ;; esac
+pass "CodexBar reading gates on the stricter of the 5h and weekly windows, with no usage-monitor"
 
-run_case codex codex '[{"provider":"codex","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 0 ] || fail "legacy Codex provider alias should pass; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "Codex telemetry alias remains supported"
+run_case codex codex "$(codex_json 85 30)"
+[ "$CASE_RC" -eq 0 ] || fail "5h window above floor should pass; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"minimum=15%"*) ;; *) fail "5h window did not become the minimum: $LOG_OUTPUT" ;; esac
+run_case codex codex "$(codex_json 90 30)"
+[ "$CASE_RC" -eq 1 ] || fail "5h window at the floor must stop; rc=$CASE_RC log=$LOG_OUTPUT"
+run_case codex codex "$(codex_json 10 95)"
+[ "$CASE_RC" -eq 1 ] || fail "weekly window below the floor must stop; rc=$CASE_RC log=$LOG_OUTPUT"
+pass "either window at or below QUOTA_FLOOR stops the batch"
 
-run_case claude claude '[{"provider":"claude","status":"ok","five_hr_remaining_pct":65,"weekly_remaining_pct":60}]'
-[ "$CASE_RC" -eq 0 ] || fail "claude-only quota should pass; rc=$CASE_RC log=$LOG_OUTPUT"
-case "$LOG_OUTPUT" in *"claude"*"minimum=60"*) ;; *) fail "claude-only log lacks provider/minimum: $LOG_OUTPUT" ;; esac
-pass "claude-only requires Claude short and weekly buckets"
+run_case codex codex "$(codex_json null 40)"
+[ "$CASE_RC" -eq 0 ] || fail "inactive 5h window should gate on weekly only; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"5h=-1%"*"minimum=60%"*) ;; *) fail "inactive 5h window leaked into the minimum: $LOG_OUTPUT" ;; esac
+pass "an inactive 5h window is ignored, as in the daemon's controller"
 
-run_case codex claude '[{"provider":"openai","status":"ok","session_remaining_pct":75,"weekly_remaining_pct":70},{"provider":"claude","status":"ok","five_hr_remaining_pct":40,"weekly_remaining_pct":35}]'
-[ "$CASE_RC" -eq 0 ] || fail "mixed quota should pass above floor; rc=$CASE_RC log=$LOG_OUTPUT"
-case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=35"*) ;; *) fail "mixed quota did not select the strict minimum: $LOG_OUTPUT" ;; esac
-pass "mixed providers gate on the strictest active bucket"
-
-run_case codex claude '[{"provider":"openai","status":"ok","session_remaining_pct":75,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "missing active Claude entry must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "missing active provider fails closed"
-
-run_case codex codex '[{"provider":"openai","status":"ok","weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "missing active short bucket must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "missing active provider bucket fails closed"
-
-run_case codex codex '[{"provider":"openai","status":"error","session_remaining_pct":90,"weekly_remaining_pct":90}]'
-[ "$CASE_RC" -eq 2 ] || fail "active provider error status must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "active provider error status fails closed"
-
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":1,"weekly_remaining_pct":1},{"provider":"openai","status":"ok","session_remaining_pct":90,"weekly_remaining_pct":90}]'
-[ "$CASE_RC" -eq 2 ] || fail "duplicate active provider telemetry must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "duplicate active provider telemetry fails closed"
-
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70},{"provider":"claude","status":"error"}]'
-[ "$CASE_RC" -eq 0 ] || fail "inactive provider error must not block an active healthy provider; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "inactive provider errors are ignored"
-
-run_case codex claude '[{"provider":"openai","status":"ok","session_remaining_pct":90,"weekly_remaining_pct":90},{"provider":"claude","status":"ok","five_hr_remaining_pct":3,"weekly_remaining_pct":80}]'
-[ "$CASE_RC" -eq 1 ] || fail "one provider at floor must stop all work; rc=$CASE_RC log=$LOG_OUTPUT"
-case "$LOG_OUTPUT" in *"minimum=3"*) ;; *) fail "low-provider log lacks strict minimum: $LOG_OUTPUT" ;; esac
-pass "one low active provider stops the mixed run"
-
-run_case codex codex '[]' 9
-[ "$CASE_RC" -eq 2 ] || fail "usage-monitor failure must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "usage-monitor failure fails closed"
-
+run_case codex codex ""
+[ "$CASE_RC" -eq 2 ] || fail "unavailable CodexBar must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"CodexBar"*) ;; *) fail "unavailable quota gave no CodexBar reason: $LOG_OUTPUT" ;; esac
 run_case codex codex '{not-json'
-[ "$CASE_RC" -eq 2 ] || fail "malformed telemetry must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "malformed telemetry fails closed"
+[ "$CASE_RC" -eq 2 ] || fail "malformed CodexBar JSON must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+run_case codex codex '[{"provider":"claude","source":"cli","usage":{}}]'
+[ "$CASE_RC" -eq 2 ] || fail "non-Codex CodexBar JSON must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+pass "missing, malformed or wrong-provider CodexBar readings fail closed"
 
-QUOTA_FLOOR_PCT=invalid
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "invalid quota floor must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "invalid quota floor fails closed"
-QUOTA_FLOOR_PCT=3
+for bad_floor in invalid 101 -1 2.5 ""; do
+  QUOTA_FLOOR="$bad_floor"
+  run_case codex codex "$(codex_json 20 30)"
+  [ "$CASE_RC" -eq 2 ] || fail "invalid QUOTA_FLOOR '$bad_floor' must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
+done
+QUOTA_FLOOR=10
+pass "invalid QUOTA_FLOOR fails closed"
 
-run_case unknown codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+batch_floor_default=$(sed -n 's/^QUOTA_FLOOR="\${QUOTA_FLOOR:-\([0-9]*\)}".*/\1/p' "$BATCH_RUNNER")
+daemon_floor_default=$(sed -n 's/^QUOTA_FLOOR="\${QUOTA_FLOOR:-\([0-9]*\)}".*/\1/p' "$QUOTA_LOOP")
+[ -n "$batch_floor_default" ] && [ "$batch_floor_default" = "$daemon_floor_default" ] ||
+  fail "batch floor must be QUOTA_FLOOR with the daemon's default (batch=$batch_floor_default daemon=$daemon_floor_default)"
+pass "batch and daemon share the QUOTA_FLOOR variable and default"
+
+run_case unknown codex "$(codex_json 20 30)"
 [ "$CASE_RC" -eq 2 ] || fail "provider resolver failure must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "provider resolver failure fails closed"
 
 GP_JUDGE_ALLOW_CLAUDE=1
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "enabled Claude judge fallback must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-pass "enabled Claude judge fallback joins active providers"
+ACTIVE_WRITER_MODE=claude
+run_case codex codex "$(codex_json 20 30)"
+[ "$CASE_RC" -eq 0 ] || fail "Claude writer/fallback must not demand Claude telemetry nobody provides; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=70%"*) ;; *) fail "mixed providers did not gate on the Codex reading: $LOG_OUTPUT" ;; esac
+run_case codex codex ""
+[ "$CASE_RC" -eq 2 ] || fail "a Codex judge still needs a CodexBar reading with Claude active; rc=$CASE_RC log=$LOG_OUTPUT"
+pass "with Claude also active, the Codex reading still gates and still fails closed"
 GP_JUDGE_ALLOW_CLAUDE=0
 
-ACTIVE_WRITER_MODE=claude
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
-[ "$CASE_RC" -eq 2 ] || fail "Claude-model writer must require Claude telemetry; rc=$CASE_RC log=$LOG_OUTPUT"
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70},{"provider":"claude","status":"ok","five_hr_remaining_pct":60,"weekly_remaining_pct":50}]'
-[ "$CASE_RC" -eq 0 ] || fail "Claude-model writer with healthy telemetry should pass; rc=$CASE_RC log=$LOG_OUTPUT"
-case "$LOG_OUTPUT" in *"codex"*"claude"*"minimum=50"*) ;; *) fail "Claude-model writer did not join the strict minimum: $LOG_OUTPUT" ;; esac
-pass "Claude-model writer provider joins active providers"
+run_case claude claude ""
+[ "$CASE_RC" -eq 0 ] || fail "Claude-only run has no quota probe and relies on pause/suspension stops; rc=$CASE_RC log=$LOG_OUTPUT"
+case "$LOG_OUTPUT" in *"no Codex judge"*) ;; *) fail "Claude-only run did not say why it skipped the probe: $LOG_OUTPUT" ;; esac
+pass "Claude-only run skips the Codex probe, like the daemon"
 
 for retired_mode in subagent cli codex grok; do
   ACTIVE_WRITER_MODE="$retired_mode"
-  run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+  run_case codex codex "$(codex_json 20 30)"
   [ "$CASE_RC" -eq 2 ] || fail "retired $retired_mode writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 done
 pass "retired subagent/cli/Codex/Grok writer modes fail closed"
 
 ACTIVE_WRITER_MODE=unknown
-run_case codex codex '[{"provider":"openai","status":"ok","session_remaining_pct":80,"weekly_remaining_pct":70}]'
+run_case codex codex "$(codex_json 20 30)"
 [ "$CASE_RC" -eq 2 ] || fail "unknown writer mode must fail closed; rc=$CASE_RC log=$LOG_OUTPUT"
 pass "unknown writer mode fails closed"
+ACTIVE_WRITER_MODE=none
+unset TRIBUNAL_QUOTA_CODEXBAR_JSON
 
 # The bounded batch stops, with a reason, on a quota suspension or anything a
 # person must fix, and never starts an article during a Claude writer pause.

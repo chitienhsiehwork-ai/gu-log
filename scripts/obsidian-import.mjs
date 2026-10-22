@@ -418,7 +418,9 @@ function main() {
   console.log(
     `  git commit -m "content(${imported[0].ticketId.toLowerCase()}): draft from obsidian"`
   );
-  console.log(`  bash scripts/tribunal-batch-runner.sh  # 跑 tribunal`);
+  for (const r of imported) {
+    console.log(`  bash scripts/tribunal.sh ${r.filename}  # 跑 tribunal`);
+  }
   console.log(`  node scripts/allocate-ticket.mjs      # merge 前換真號並 bump counter`);
   console.log(`  git push`);
 }

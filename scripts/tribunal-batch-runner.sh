@@ -3,15 +3,18 @@
 #
 # Processes unscored articles (newest → oldest), one at a time, until it
 # either runs out, hits --max, or drops below the quota floor. Exits
-# normally when done.
+# normally when done. Quota source and floor are the daemon's: the CodexBar
+# Codex probe and QUOTA_FLOOR (see the Quota Check section).
 #
 # NOT a daemon. For the continuous 24/7 runtime, use
 # tribunal-quota-loop.sh (the SSOT per tribunal-run-control spec).
-# This script is for cron, manual bounded runs, and recovery work.
+# This script is for cron, manual bounded runs, and recovery work. To judge
+# one article, run scripts/tribunal.sh on it directly.
 #
 # Usage:
 #   bash scripts/tribunal-batch-runner.sh              # run until quota floor
 #   bash scripts/tribunal-batch-runner.sh --max 5      # run at most 5 articles
+#   bash scripts/tribunal-batch-runner.sh --floor 20   # override QUOTA_FLOOR (%)
 #   bash scripts/tribunal-batch-runner.sh --dry-run    # list articles to process, don't run
 
 set -euo pipefail
@@ -43,7 +46,7 @@ PROGRESS_FILE="$(tribunal_progress_file_default "$ROOT_DIR")"
 LOG_DIR="$ROOT_DIR/.score-loop/logs"
 LOG_FILE="$LOG_DIR/tribunal-batch-$(date +%Y%m%d-%H%M%S).log"
 RUNTIME_GIT_STATE_FILE="$(tribunal_runtime_git_state_file "$ROOT_DIR")"
-QUOTA_FLOOR_PCT="${QUOTA_FLOOR_PCT:-3}"
+QUOTA_FLOOR="${QUOTA_FLOOR:-10}"   # same variable and default as tribunal-quota-loop.sh
 MAX_ARTICLES="${MAX_ARTICLES:-999}"
 DRY_RUN=false
 
@@ -54,7 +57,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --max) MAX_ARTICLES="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
-    --floor) QUOTA_FLOOR_PCT="$2"; shift 2 ;;
+    --floor) QUOTA_FLOOR="$2"; shift 2 ;;
     *) echo "Unknown arg: $1" >&2; exit 1 ;;
   esac
 done
@@ -65,11 +68,11 @@ tlog() {
 }
 
 # ─── Quota Check ──────────────────────────────────────────────────────────────
-# Check remaining quota via usage-monitor.sh --json. The off-repo executable is
-# injected explicitly or discovered on PATH; its host path is not a repo fact.
-# Returns 0 if above floor, 1 if below, 2 if quota cannot be verified.
-USAGE_MONITOR="${USAGE_MONITOR:-$(command -v usage-monitor.sh || true)}"
-
+# Same quota reading as the deployed daemon (tribunal-quota-loop.sh): the
+# CodexBar Codex probe and its strict parser in tribunal-helpers.sh. There is
+# no Claude quota probe; like the daemon, the batch reacts instead: it stops on
+# a Claude writer pause and on a QUOTA_SUSPENDED result (see the main loop).
+# Returns 0 if above floor, 1 if at/below, 2 if quota cannot be verified.
 tribunal_batch_active_providers() {
   local global_provider vibe_provider fallback_provider writer_mode writer_provider provider providers=""
 
@@ -110,103 +113,42 @@ tribunal_batch_active_providers() {
 }
 
 check_quota_above_floor() {
-  if [ ! -x "$USAGE_MONITOR" ]; then
-    tlog "  ERROR: usage-monitor.sh not found; refusing to run without a quota reading."
+  local active_providers json readings session_left weekly_left minimum
+
+  if ! [[ "$QUOTA_FLOOR" =~ ^[0-9]+$ ]] || [ "$QUOTA_FLOOR" -gt 100 ]; then
+    tlog "  ERROR: QUOTA_FLOOR must be an integer from 0 to 100 (got: ${QUOTA_FLOOR:-<empty>}); refusing to run."
     return 2
   fi
-
-  local json active_providers quota_result quota_state remaining details
-  json=$(bash "$USAGE_MONITOR" --json 2>/dev/null) || {
-    tlog "  ERROR: usage-monitor failed; refusing to run without a quota reading."
-    return 2
-  }
 
   active_providers=$(tribunal_batch_active_providers) || {
     tlog "  ERROR: cannot resolve active tribunal providers; refusing to run."
     return 2
   }
+  case "|$active_providers|" in
+    *"|codex|"*) ;;
+    *)
+      tlog "  Quota: active=${active_providers}; no Codex judge, so no quota probe (Claude pauses and suspensions still stop the batch)."
+      return 0
+      ;;
+  esac
 
-  if ! quota_result=$(
-    python3 - "$json" "$active_providers" "$QUOTA_FLOOR_PCT" 2>&1 <<'PY'
-import json
-import math
-import sys
-
-
-def percentage(entry, key, provider):
-    value = entry.get(key)
-    if isinstance(value, bool):
-        raise ValueError(f"{provider} {key} is not numeric")
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        raise ValueError(f"{provider} {key} is missing or invalid")
-    if not math.isfinite(value) or not 0 <= value <= 100:
-        raise ValueError(f"{provider} {key} is outside 0..100")
-    return value
-
-
-def fmt(value):
-    return f"{value:g}"
-
-
-try:
-    data = json.loads(sys.argv[1])
-    active = [provider for provider in sys.argv[2].split("|") if provider]
-    floor = float(sys.argv[3])
-    if not isinstance(data, list) or not active:
-        raise ValueError("usage-monitor payload or active provider set is empty")
-    if not math.isfinite(floor) or not 0 <= floor <= 100:
-        raise ValueError("quota floor is outside 0..100")
-
-    entries = {}
-    for entry in data:
-        if not isinstance(entry, dict):
-            continue
-        provider = str(entry.get("provider", "")).lower()
-        entries.setdefault(provider, []).append(entry)
-    effective_values = []
-    details = []
-
-    for runtime_provider in active:
-        usage_provider = "openai" if runtime_provider == "codex" else runtime_provider
-        candidates = list(entries.get(usage_provider, []))
-        if runtime_provider == "codex":
-            candidates.extend(entries.get("codex", []))
-        if not candidates:
-            raise ValueError(f"missing active provider: {runtime_provider}")
-        if len(candidates) != 1:
-            raise ValueError(f"duplicate active provider telemetry: {runtime_provider}")
-        entry = candidates[0]
-        if entry.get("status") != "ok":
-            raise ValueError(f"active provider is not healthy: {runtime_provider}")
-
-        short_key = "session_remaining_pct" if runtime_provider == "codex" else "five_hr_remaining_pct"
-        short = percentage(entry, short_key, runtime_provider)
-        weekly = percentage(entry, "weekly_remaining_pct", runtime_provider)
-        effective_values.append(min(short, weekly))
-        details.append(f"{runtime_provider}:short={fmt(short)},weekly={fmt(weekly)}")
-
-    minimum = min(effective_values)
-    state = "low" if minimum <= floor else "ok"
-    print(f"{state}|{fmt(minimum)}|{';'.join(details)}")
-except Exception as exc:
-    print(str(exc), file=sys.stderr)
-    sys.exit(1)
-PY
-  ); then
-    tlog "  ERROR: invalid quota telemetry for active providers ($active_providers): $quota_result"
+  if ! json="$(tribunal_quota_codexbar_json 2>/dev/null)" || [ -z "$json" ] ||
+     ! readings="$(tribunal_quota_parse_json "$json" 2>/dev/null)"; then
+    tlog "  ERROR: CodexBar Codex quota JSON unavailable, timed out, or invalid; refusing to run without a quota reading."
     return 2
   fi
+  IFS='|' read -r session_left _ weekly_left _ <<< "$readings"
+  # -1 marks an inactive 5-hour window, which the daemon's controller ignores too.
+  minimum="$weekly_left"
+  if [ "$session_left" -ge 0 ] && [ "$session_left" -lt "$minimum" ]; then
+    minimum="$session_left"
+  fi
+  tlog "  Quota: active=${active_providers}; codex 5h=${session_left}% weekly=${weekly_left}%; minimum=${minimum}% (floor: ${QUOTA_FLOOR}%)"
 
-  IFS='|' read -r quota_state remaining details <<< "$quota_result"
-  tlog "  Quota: active=${active_providers}; ${details}; minimum=${remaining}% (floor: ${QUOTA_FLOOR_PCT}%)"
-
-  if [ "$quota_state" = "low" ]; then
-    tlog "  STOP: At least one active provider is at or below the ${QUOTA_FLOOR_PCT}% floor."
+  if [ "$minimum" -le "$QUOTA_FLOOR" ]; then
+    tlog "  STOP: Codex quota is at or below the ${QUOTA_FLOOR}% floor."
     return 1
   fi
-  [ "$quota_state" = "ok" ] || return 2
   return 0
 }
 
@@ -245,15 +187,36 @@ tribunal_batch_claude_pause() {
 }
 
 # ─── Build Unscored Article List (newest → oldest) ───────────────────────────
+# A post and its English sidecar (if any) carry a complete current-version
+# scorecard: scores.tribunalVersion at or above the current version and all
+# four judge blocks, the shape tribunal-assert-pass-artifacts.sh requires
+# before a Tribunal PASS commit.
+tribunal_batch_has_current_scorecard() {
+  local file
+  for file in "$POSTS_DIR/$1" "$POSTS_DIR/en-$1"; do
+    [ "$file" = "$POSTS_DIR/$1" ] || [ -f "$file" ] || continue
+    awk -v want="$TRIBUNAL_VERSION" '
+      /^---$/ { c++; if (c == 2) exit; next }
+      c != 1 { next }
+      /^scores:/ { in_scores = 1; next }
+      /^[^ ]/ { in_scores = 0 }
+      in_scores && /^  tribunalVersion:/ { v = $2; gsub(/"/, "", v) }
+      in_scores && /^  (librarian|factCheck|freshEyes|vibe):[[:space:]]*$/ { sub(/^  /, ""); sub(/:.*/, ""); seen[$0] = 1 }
+      END { exit !(v ~ /^[0-9]+$/ && v + 0 >= want + 0 && seen["librarian"] && seen["factCheck"] && seen["freshEyes"] && seen["vibe"]) }
+    ' "$file" 2>/dev/null || return 1
+  done
+}
+
 # Articles that haven't passed all 4 tribunal stages.
 get_unscored_articles() {
   # Ensure progress file exists
   ensure_tribunal_progress_file "$PROGRESS_FILE" "$ROOT_DIR"
 
   # List zh-tw articles (not en-, not deprecated/taken-down), sorted newest-first by
-  # frontmatter translatedDate. Keep in sync with
-  # tribunal-quota-loop.sh:get_unscored_articles — this replaces the old
-  # filename `sort -V` which grouped by series prefix.
+  # frontmatter translatedDate. The ledger rules below match
+  # tribunal-quota-loop.sh:get_unscored_articles; keep them in sync. The
+  # frontmatter fallback is batch-only: the daemon's ledger persists on the VM,
+  # while this runner also starts from fresh checkouts with an empty ledger.
   local all_zh_articles
   all_zh_articles=$(
     for f in "$POSTS_DIR"/*.mdx; do
@@ -277,11 +240,16 @@ get_unscored_articles() {
 
     # Skip terminal statuses only for the current Tribunal version. Older
     # terminal entries must be reprocessed across the version boundary.
+    # With no current-version ledger entry, a complete current-version
+    # scorecard in the post means a full run already happened elsewhere.
     local status
     status=$(jq -r --arg a "$article" --argjson v "$TRIBUNAL_VERSION" \
-      'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "pending" end' \
+      'if ((.[$a].tribunalVersion // 0) >= $v) then (.[$a].status // "pending") else "no-ledger" end' \
       "$PROGRESS_FILE" 2>/dev/null || echo "pending")
     if [ "$status" = "PASS" ] || [ "$status" = "EXHAUSTED" ]; then
+      continue
+    fi
+    if [ "$status" = "no-ledger" ] && tribunal_batch_has_current_scorecard "$article"; then
       continue
     fi
     if [ "$status" = "FAILED" ] &&
@@ -295,7 +263,7 @@ get_unscored_articles() {
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 tlog "=== Tribunal Batch Runner started ==="
-tlog "  Floor: ${QUOTA_FLOOR_PCT}%, Max: ${MAX_ARTICLES}, Dry-run: ${DRY_RUN}"
+tlog "  Floor: ${QUOTA_FLOOR}%, Max: ${MAX_ARTICLES}, Dry-run: ${DRY_RUN}"
 
 # Fetch-only drift check
 tlog "Fetching origin/main for drift status..."

@@ -349,7 +349,7 @@ ls -t ../gu-log-worker-a/.score-loop/logs/tribunal-*.log | head -1 | xargs tail 
 ps -ef --forest | grep -E "tribunal|bash scripts/tribunal"
 ```
 
-Exit code conventions (from `tribunal-all-claude.sh`):
+Exit code conventions (from `tribunal.sh`):
 - `0` — all 4 stages passed and final full-site build passed
 - `1` — stage or final build gate failed (normal failure, will be retried on next dispatch); also a refused `status: taken-down` post (see the note below)
   - 例外：沒過關的 GP 會在 ledger 記下讀者可見內容的 `inputFingerprint`，內容沒改之前 daemon 不會再領它（Tribunal 不改寫 GP，重評同一份內容只是重擲評審的骰子，見 `gp-source-preservation` spec）。修好正文後它會自動重新排隊，嘗試次數也從 0 重算；要在不改內容的情況下重評，手動跑 `bash scripts/tribunal.sh <file>`。被跳過的 GP 不會出現在「待評」清單裡，要找它們：`jq -r 'to_entries[] | select(.value.status == "FAILED" and .value.inputFingerprint) | .key' <progress file>`。
