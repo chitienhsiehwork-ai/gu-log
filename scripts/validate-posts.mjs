@@ -299,12 +299,11 @@ function extractMoguNotes(content) {
 // 英文正文 CJK…）在 validatePost 裡對下架文章跳過。
 
 function findTranslationPair(filename, allPosts) {
-  if (!allPosts) return null;
-  const baseName = getBaseFilename(filename);
-  return (
-    allPosts.find((p) => getBaseFilename(p.filename) === baseName && p.filename !== filename) ??
-    null
+  const base = getBaseFilename(filename);
+  const pair = allPosts?.find(
+    (p) => getBaseFilename(p.filename) === base && p.filename !== filename
   );
+  return pair && !pair.unreadable ? pair : null;
 }
 
 function validateTakedownState({ fm, body, filename, allPosts }) {
@@ -1060,9 +1059,8 @@ function main() {
     try {
       fm = parseFrontmatter(content);
     } catch (parseError) {
-      // Invalid YAML is reported below when this same file goes through
-      // validatePost's own gate; don't let one bad file crash the
-      // cross-file preload for every other post.
+      // validatePost reports this file's invalid YAML itself; one bad file must
+      // not crash the preload, nor be compared as a pair (`unreadable` below).
       fm = null;
       error = parseError;
     }
@@ -1081,6 +1079,7 @@ function main() {
       sourceUrl: fm?.sourceUrl,
       sourceTitle: fm?.sourceTitle,
       series: fm?.series,
+      unreadable: !fm,
     };
   });
 

@@ -131,6 +131,21 @@ describe('validatePost — Rule 14 wiring', () => {
     expect(errorsWith(r, 'has a different series')).toHaveLength(1);
   });
 
+  it('skips pair checks when the pair frontmatter could not be read', () => {
+    // 配對檔 YAML 壞掉時，validate-posts 的預讀摘要只剩空值並標成 unreadable；
+    // 壞檔自己會報 Invalid YAML，健康的這一邊不該再多出配對錯誤。
+    const filepath = write(`en-${PAIR_FILE}`, [
+      'ticketId: "MP-169"',
+      `sourceUrl: "${SOURCE}"`,
+      'lang: "en"',
+    ]);
+    const r = validatePost(filepath, [{ filename: PAIR_FILE, ticketId: '', unreadable: true }]);
+    expect(errorsWith(r, 'Translation pair')).toEqual([]);
+    // 同一份摘要沒標 unreadable 時，空值會被當成真的不一致
+    const noisy = validatePost(filepath, [{ filename: PAIR_FILE, ticketId: '' }]);
+    expect(errorsWith(noisy, 'has a different sourceUrl')).toHaveLength(1);
+  });
+
   it('reports a taken-down pair with a different sourceUrl once', () => {
     const zhFile = 'gp-273-20260813-human-loop.mdx';
     const filepath = write(`en-${zhFile}`, [
