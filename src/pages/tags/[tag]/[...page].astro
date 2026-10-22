@@ -6,27 +6,28 @@ import Toggle from '../../../components/Toggle.astro';
 import TicketBadge from '../../../components/TicketBadge.astro';
 import PostStatusLabel from '../../../components/PostStatusLabel.astro';
 import Pagination from '../../../components/Pagination.astro';
-import { getListablePosts, getPostStatus } from '../../../utils/post-status';
-import { groupPostsByTag } from '../../../utils/tag-groups';
+import { getPostStatus } from '../../../utils/post-status';
+import { getTagPageGroups, getTagPageNames } from '../../../utils/tag-pages';
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const allPostsFull = await getCollection('posts');
-  const allPosts = getListablePosts(allPostsFull, 'zh-tw');
+  // The language toggle links only to a tag page the other language also builds.
+  const alternateTags = getTagPageNames(allPostsFull, 'en');
 
   // Generate paginated pages for each tag
-  return groupPostsByTag(allPosts).flatMap(({ tag, posts: tagPosts }) => {
+  return getTagPageGroups(allPostsFull, 'zh-tw').flatMap(({ tag, posts: tagPosts }) => {
     return paginate(tagPosts, {
       pageSize: 20,
       params: { tag },
-      props: { tag },
+      props: { tag, alternateHref: alternateTags.has(tag) ? `/en/tags/${tag}` : undefined },
     });
   });
 }
 
-const { page, tag } = Astro.props;
+const { page, tag, alternateHref } = Astro.props;
 ---
 
-<BaseLayout title={`${tag} - 標籤 - gu-log`}>
+<BaseLayout title={`${tag} - 標籤 - gu-log`} alternateHref={alternateHref}>
   <article class="tag-page">
     <header class="page-header">
       <div class="breadcrumb">
@@ -178,7 +179,6 @@ const { page, tag } = Astro.props;
   .tag-chip {
     display: inline-block;
     padding: 0.25rem 0.6rem;
-    background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: 16px;
     font-size: 0.85rem;

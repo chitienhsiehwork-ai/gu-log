@@ -17,9 +17,23 @@ interface Props {
    */
   robots?: string;
   markdownUrl?: string;
+  /**
+   * Language toggle target: this page's counterpart in the other language,
+   * computed by the page. Omit it when there is none; the toggle then goes to
+   * the other language's home page.
+   */
+  alternateHref?: string;
 }
 
-const { title, description, lang = 'zh-tw', image, robots, markdownUrl } = Astro.props;
+const {
+  title,
+  description,
+  lang = 'zh-tw',
+  image,
+  robots,
+  markdownUrl,
+  alternateHref,
+} = Astro.props;
 
 const currentPath = Astro.url.pathname;
 const canonicalURL = buildCanonicalUrl(Astro.site, currentPath);
@@ -71,6 +85,7 @@ const i18n = {
 };
 
 const t = i18n[lang];
+const languageToggleHref = alternateHref ?? i18n[lang === 'en' ? 'zh-tw' : 'en'].homeLink;
 const finalDescription = description || t.defaultDescription;
 ---
 
@@ -475,7 +490,7 @@ const finalDescription = description || t.defaultDescription;
         <nav class="site-nav" aria-label={t.menuLabel}>
           <span class="nav-icons">
             <SearchBar lang={lang} />
-            <LanguageToggle currentLang={lang} currentPath={currentPath} />
+            <LanguageToggle currentLang={lang} href={languageToggleHref} />
             <ThemeToggle lang={lang} />
             <button
               class="hamburger-btn"
