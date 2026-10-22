@@ -84,7 +84,7 @@ test.describe('Content Integrity: ticketId', () => {
 
     // Group posts by ticketId.
     // PENDING is a placeholder shared across parallel in-flight drafts
-    // (see CONTRIBUTING.md §並行撰寫防 ID collision). Real numbers are
+    // (see CONTRIBUTING.md 〈編號分配〉). Real numbers are
     // allocated per-draft at deploy. The pre-push guard blocks PENDING
     // from reaching main, so collisions here are not prod-visible.
     for (const post of posts) {
@@ -154,7 +154,7 @@ test.describe('Content Integrity: ticketId', () => {
   test('GIVEN all posts WHEN checking ticketId format THEN ticketIds should follow PREFIX-N pattern (GP/MP/SD/Lv)', async () => {
     const posts = getAllPosts();
     // Valid prefixes: GP (Gu-log Picks), MP (Mogu Picks), SD (ShroomDog Originals), Lv (Level-Up)
-    // PENDING is a legitimate in-flight placeholder (see CONTRIBUTING.md §並行撰寫防 ID collision);
+    // PENDING is a legitimate in-flight placeholder (see CONTRIBUTING.md 〈編號分配〉);
     // gets swapped for a real number at deploy and can't reach main (pre-push guard).
     const validPattern = /^(GP|MP|SD|Lv)-(?:\d+|PENDING)$/;
     const invalidFormat = posts.filter((p) => p.ticketId && !p.ticketId.match(validPattern));
