@@ -2,11 +2,11 @@
 /**
  * AiJudgeScore — Tribunal Quality Panel
  *
- * 4 judges, uniform 0-10 scale, new dimension map:
- *   Librarian (Opus 4.7)    → glossary · crossRef · sourceAlign · attribution
- *   Fact Check (GPT-5.5)    → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
- *   Fresh Eyes (GPT-5.5)    → readability · firstImpression · payoffDensity · lengthFit · clarity (v9+)
- *   Vibe (Opus 4.6[1m])     → persona · moguNote · vibe · narrative (v9; legacy v8 also clarity)
+ * 4 judges, 0-10 scale, dimension map:
+ *   Librarian  → glossary · crossRef · sourceAlign · attribution
+ *   Fact Check → accuracy · fidelity · consistency · sourceBoundary · commentarySeparation
+ *   Fresh Eyes → readability · firstImpression · payoffDensity · lengthFit · clarity
+ *   Vibe       → persona · moguNote · vibe · narrative
  *
  * clarity ownership is version-aware (move-clarity-vibe-to-fresheyes): v9+ posts
  * carry it under freshEyes, v8 posts under vibe. Per-dimension `!== undefined`
@@ -14,6 +14,8 @@
  *
  * Scores live in post frontmatter. No legacy keys (ralph/gemini/codex/sonnet).
  */
+
+import { LEGACY_TRIBUNAL_VERSION } from '../lib/tribunal-v2/pass-bar';
 
 interface Props {
   scores?: {
@@ -80,7 +82,7 @@ const sdStrings =
     ? { name: 'ShroomDog Vibe', sub: 'human editor · the author himself' }
     : { name: 'ShroomDog 私心評分', sub: '本人手評 · 非 AI 法官' };
 
-const tribunalVersion = scores?.tribunalVersion ?? 3;
+const tribunalVersion = scores?.tribunalVersion ?? LEGACY_TRIBUNAL_VERSION;
 
 function scoreColor(score: number): string {
   if (score >= 9) return 'score-high';
