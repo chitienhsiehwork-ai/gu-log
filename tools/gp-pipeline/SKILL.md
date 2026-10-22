@@ -95,7 +95,7 @@ Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學�
 | 評估來源 | `gp-pipeline eval --source <file>` |
 | 檢查重複 | `gp-pipeline dedup --url <url> --title <title> --series <PREFIX>` |
 | 起草 | `gp-pipeline write --source <file> --prefix <PREFIX> --ticket-id <PREFIX>-PENDING`；`--prefix` 必填 |
-| 審稿／精修 | `gp-pipeline review --draft <file> --ticket-id MP-PENDING`、`gp-pipeline refine --draft <file> --review <file> --ticket-id MP-PENDING`；`--ticket-id` 的系列決定用哪一套 checklist／prompt，預設 GP-PENDING，審其他系列要明確帶 |
+| 審稿／精修 | `gp-pipeline review --draft <file>`、`gp-pipeline refine --draft <file> --review <file>`；ticket 的系列決定用哪一套 checklist／prompt。沒帶 `--ticket-id` 就看草稿 frontmatter 的 `ticketId`；草稿沒有、不是 canonical ticket 或看不出系列，就要自己帶 `--ticket-id <PREFIX>-PENDING`（細節見 `review --help`） |
 | 跑 tribunal | `gp-pipeline ralph --file <post>.mdx`；系列看檔名（含 `en-` 檔），GP 固定 `--no-rewrite`、只評分；Lv 改跑 `scripts/tribunal.sh` |
 | 補 en sidecar | `gp-pipeline translate --file <mp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push；GP 會先過英文逐字檢查） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix <PREFIX>` |
@@ -120,7 +120,7 @@ Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學�
   落在 repo 內，會在擷取前拒絕，且不會改寫 fallback 位置來硬留 manifest。
 - YouTube 的 canonical `run` 同樣要求 `yt-dlp`；缺少時不得 fallback 到 generic HTML。
 - `counter bump` 會原子修改 `scripts/article-counter.json`；通常只應由 deploy 呼叫。
-- `ralph` 對 MP、SD 可依 Tribunal 契約改寫；GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）；Lv 在 ingress 就被擋下。
+- `ralph`（`run` 裡也是這一步）對 MP、SD 可依 Tribunal 契約改寫，但寫手要 `GP_WRITER_MODE=claude` 才會動：wrapper 只在 vm-codex profile 自動補上，其他環境沒帶就只評分、不改寫（見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)〈手動跑（CCC／Mac）的寫手開關〉）。GP 固定 no-rewrite，只寫分數，不能更動正文（正文一改，章就失效）；Lv 在 ingress 就被擋下。
 - `stamp` 只寫 frontmatter 的 `sourceDistance`，不改正文；原文擷取留在 repo 外的工作目錄。沒過或零配對以 exit 19 結束並印出標出的段落，檔案不變。
 - `translate` 只寫一個新的 en- sidecar 檔，不 commit、不 push。
 - standalone `deploy` 會為全新 PENDING article 配置 ticket、rename pending 檔、validate、build、commit、push；`--date-stamp`、`--author-slug`、`--title-slug` 都是必填輸入。有外部來源的 GP 要帶有效的來源距離章，validator 才會放行。
