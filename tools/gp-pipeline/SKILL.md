@@ -95,7 +95,7 @@ Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學�
 | 評估來源 | `gp-pipeline eval --source <file>` |
 | 檢查重複 | `gp-pipeline dedup --url <url> --title <title> --series <PREFIX>` |
 | 起草 | `gp-pipeline write --source <file> --prefix <PREFIX> --ticket-id <PREFIX>-PENDING`；`--prefix` 必填 |
-| 審稿／精修 | `gp-pipeline review --draft <file> --ticket-id MP-PENDING`、`gp-pipeline refine --draft <file> --review <file> --ticket-id MP-PENDING`；`--ticket-id` 的系列決定用哪一套 checklist／prompt，預設 GP-PENDING，審其他系列要明確帶 |
+| 審稿／精修 | `gp-pipeline review --draft <file>`、`gp-pipeline refine --draft <file> --review <file>`；ticket 的系列決定用哪一套 checklist／prompt。沒帶 `--ticket-id` 就看草稿 frontmatter 的 `ticketId`，草稿沒有就以 exit 1 結束，要自己帶 `--ticket-id <PREFIX>-PENDING` |
 | 跑 tribunal | `gp-pipeline ralph --file <post>.mdx`；系列看檔名（含 `en-` 檔），GP 固定 `--no-rewrite`、只評分；Lv 改跑 `scripts/tribunal.sh` |
 | 補 en sidecar | `gp-pipeline translate --file <mp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push；GP 會先過英文逐字檢查） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix <PREFIX>` |

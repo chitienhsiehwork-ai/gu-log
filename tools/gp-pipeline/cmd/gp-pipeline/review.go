@@ -34,8 +34,10 @@ func newReviewCmd(state *rootState) *cobra.Command {
 		Use:   "review",
 		Short: "Run the review checklist against a draft",
 		Long: fmt.Sprintf(`review runs the full-draft review for a %s draft; the
---ticket-id series picks the checklist. This command points the LLM at
-draft-v1.mdx and asks it to produce a review.md with blocker/major/minor
+ticket series picks the checklist. The ticket is --ticket-id, or the draft's
+frontmatter ticketId when the flag is unset; a draft without one needs
+--ticket-id, since review never picks a series. This command points the LLM
+at draft-v1.mdx and asks it to produce a review.md with blocker/major/minor
 findings.
 
 Unlike write, this prompt does NOT embed the draft contents — the LLM
@@ -47,47 +49,87 @@ pipeline runs `+"`codex exec`"+` in (cd $WORK_DIR && …).`, authorableSeries(" 
 	}
 	cmd.Flags().StringVar(&draftPath, "draft", "", "path to draft-v1.mdx (required; its parent is used as work-dir when --work-dir is empty)")
 	cmd.Flags().StringVar(&workDir, "work-dir", "", "work directory where review.md should land (defaults to dirname of --draft)")
-	cmd.Flags().StringVar(&ticketID, "ticket-id", "GP-PENDING", "canonical ticketId for the review prompt header")
+	cmd.Flags().StringVar(&ticketID, "ticket-id", "", "canonical ticketId for the review prompt header (defaults to the draft's frontmatter ticketId)")
 	_ = cmd.MarkFlagRequired("draft")
 	return cmd
 }
 
 // draftIngress is the shared ingress of review and refine; it returns the
-// --ticket-id series, which picks the prompt, and the absolute work dir
-// (--work-dir, or the --draft directory). An Lv ticket is refused, and so is
-// an Lv draft whatever --ticket-id says (it defaults to GP-PENDING): --draft
-// and the work dir's draft-v1.mdx, the file the model actually reads. Both
-// checks come before any work dir or model.
-func draftIngress(command, draftPath, workDir, ticketID string) (prefix, absWorkDir string, err error) {
-	prefix, err = counter.PrefixOfTicketID(ticketID)
-	if err != nil {
-		return "", "", err
-	}
-	if !pipeline.IsAuthorable(prefix) {
-		return "", "", pipeline.LvAuthoringError(command)
+// ticket ID, its series (which picks the prompt), and the absolute work dir
+// (--work-dir, or the --draft directory). The ticket is --ticket-id, or
+// the --draft frontmatter ticketId when the flag is unset. An Lv ticket is
+// refused, and so is an Lv draft whatever --ticket-id says: --draft and the
+// work dir's draft-v1.mdx, the file the model actually reads. Every check
+// comes before any work dir or model.
+func draftIngress(command, draftPath, workDir, ticketID string) (ticket, prefix, absWorkDir string, err error) {
+	if ticketID != "" {
+		if prefix, err = authorableTicketPrefix(command, ticketID); err != nil {
+			return "", "", "", err
+		}
 	}
 	absDraft, err := filepath.Abs(draftPath)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if _, err := os.Stat(absDraft); err != nil {
-		return "", "", fmt.Errorf("%s: draft not found at %s", command, absDraft)
+		return "", "", "", fmt.Errorf("%s: draft not found at %s", command, absDraft)
 	}
 	if workDir == "" {
 		workDir = filepath.Dir(absDraft)
 	}
 	if absWorkDir, err = filepath.Abs(workDir); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	if err := pipeline.RefuseLvFiles(command, absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return prefix, absWorkDir, nil
+	if ticketID == "" {
+		if ticketID, err = draftTicketID(command, absDraft); err != nil {
+			return "", "", "", err
+		}
+		if prefix, err = authorableTicketPrefix(command, ticketID); err != nil {
+			return "", "", "", err
+		}
+	}
+	return ticketID, prefix, absWorkDir, nil
+}
+
+// authorableTicketPrefix returns the series of a canonical ticket ID and
+// refuses Lv, which gp-pipeline does not write.
+func authorableTicketPrefix(command, ticketID string) (string, error) {
+	prefix, err := counter.PrefixOfTicketID(ticketID)
+	if err != nil {
+		return "", err
+	}
+	if !pipeline.IsAuthorable(prefix) {
+		return "", pipeline.LvAuthoringError(command)
+	}
+	return prefix, nil
+}
+
+// draftTicketID is the ticket of a review or refine run without --ticket-id:
+// the draft's frontmatter ticketId. No command picks a series on the caller's
+// behalf, so a draft without a canonical one is refused, listing the series
+// to choose from like write's missing --prefix.
+func draftTicketID(command, absDraft string) (string, error) {
+	ticketID, err := pipeline.PostTicketID(absDraft)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", command, err)
+	}
+	if ticketID == "" {
+		return "", fmt.Errorf("%s: --ticket-id is required: %s has no ticketId in its frontmatter; pass --ticket-id <series>-PENDING, series one of %v",
+			command, absDraft, pipeline.AuthorablePrefixes)
+	}
+	if err := counter.ValidateTicketID(ticketID); err != nil {
+		return "", fmt.Errorf("%s: %s frontmatter: %w; fix it or pass --ticket-id <series>-PENDING, series one of %v",
+			command, absDraft, err, pipeline.AuthorablePrefixes)
+	}
+	return ticketID, nil
 }
 
 func runReview(ctx context.Context, state *rootState, draftPath, workDir, ticketID string) error {
 	start := time.Now()
-	prefix, workDir, err := draftIngress("review", draftPath, workDir, ticketID)
+	ticketID, prefix, workDir, err := draftIngress("review", draftPath, workDir, ticketID)
 	if err != nil {
 		return err
 	}
