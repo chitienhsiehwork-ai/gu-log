@@ -16,7 +16,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 - 直接 push 到 `claude/xxx` branch
 - 自己開 PR 到 `main`
-- CI 全綠後**自己 merge**（不用等 user 按按鈕）
+- 過了 merge gate 後**自己 merge**（不用等 user）
 - 順手修發現的小問題（有 scope 限制，見下）
 
 ## Commit discipline
