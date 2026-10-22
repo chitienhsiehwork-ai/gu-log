@@ -25,12 +25,15 @@ import {
   resolvePostStatus,
 } from '../../utils/post-status';
 import { getLocalizedPostUrl } from '../../utils/post-urls';
+import { getTagPageNames } from '../../utils/tag-pages';
 import { getTombstonePageTitle } from '../../lib/tombstone-copy.mjs';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('posts');
   const posts = allPosts.filter((post) => post.data.lang === 'zh-tw');
   const navigationBaseline = createPostNavigationBaseline(allPosts, 'zh-tw');
+  // deprecated 文章獨有的標籤沒有標籤頁，標籤連結只給有頁面的
+  const tagPages = getTagPageNames(allPosts, 'zh-tw');
 
   return posts.map((post) => ({
     params: { slug: post.id },
@@ -38,11 +41,12 @@ export async function getStaticPaths() {
       post,
       allPosts,
       navigablePosts: getNavigablePostsFromBaseline(navigationBaseline, post),
+      tagPages,
     },
   }));
 }
 
-const { post, allPosts, navigablePosts } = Astro.props;
+const { post, allPosts, navigablePosts, tagPages } = Astro.props;
 const { Content, headings } = await render(post);
 
 const ticketId = post.data.ticketId;
@@ -230,11 +234,15 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
                 Tags
               </span>
               <div class="post-tags">
-                {post.data.tags.map((tag) => (
-                  <a href={`/tags/${tag}`} class="tag-chip">
-                    {tag}
-                  </a>
-                ))}
+                {post.data.tags.map((tag) =>
+                  tagPages.has(tag) ? (
+                    <a href={`/tags/${tag}`} class="tag-chip">
+                      {tag}
+                    </a>
+                  ) : (
+                    <span class="tag-chip">{tag}</span>
+                  )
+                )}
               </div>
             </div>
           )}
@@ -375,7 +383,7 @@ const ticketLabel = ticketLabels[ticketPrefix] || '';
     transition: all 0.2s ease;
   }
 
-  .tag-chip:hover {
+  a.tag-chip:hover {
     background-color: var(--color-accent);
     color: var(--color-bg);
     border-color: var(--color-accent);
