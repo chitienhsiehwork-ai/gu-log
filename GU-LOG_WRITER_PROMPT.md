@@ -300,7 +300,7 @@ Glossary 不是英文詞垃圾桶。它的工作是替 gu-log 保存「讀者之
 
 **Lint enforcement**：`scripts/check-jingjing.mjs` 會 scan 所有 zh-tw `.mdx`，flag 不在 allowlist + 不在 glossary 的英文詞。pre-commit hook 攔。違規就改，要嘛翻成中文，要嘛先與 ShroomDog 討論後，在 PR 同 commit 把 term 加進 `src/data/glossary.json`（並寫好 definition + moguNote）。
 
-**Tribunal enforcement**：`vibe-opus-scorer` 的 clarity 維度把這條當硬規則——出現非 allowlist 英文 = clarity 直接扣分（不只是品味問題）。
+**Tribunal enforcement**：評審只對 `check-jingjing.mjs` 回報的違規扣分，規則見 `scripts/vibe-scoring-standard.md`〈晶晶體 boundary〉。
 
 ### 程式碼區塊處理
 

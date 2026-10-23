@@ -28,6 +28,20 @@ describe('retired editorial rules stay retired', () => {
     }
   });
 
+  it('keeps judges from running their own English-word lint for 晶晶體', () => {
+    // Penalties follow scripts/check-jingjing.mjs; see scripts/vibe-scoring-standard.md.
+    for (const file of [
+      '.claude/agents/vibe-opus-scorer.md',
+      '.codex/agents/vibe-opus-scorer.toml',
+      '.claude/agents/fresh-eyes.md',
+      '.codex/agents/fresh-eyes.toml',
+    ]) {
+      expect(read(file), file).not.toMatch(
+        /the body for English words|ANY English word in zh-tw body/i
+      );
+    }
+  });
+
   it('keeps the old blanket lived-experience ban out of writer guidance', () => {
     for (const file of ['GU-LOG_WRITER_PROMPT.md', 'scripts/mogu-picks-prompt.md']) {
       expect(read(file), file).not.toMatch(/捏造[^\n。]*(?:親身經歷|lived experience)/);
