@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T00:00:00Z",
+  "updatedAt": "2026-10-28T00:00:00Z",
   "entries": [
     {
       "id": "1139346",
@@ -21,9 +21,9 @@
       "expiresAt": "2026-11-09T00:00:00Z"
     },
     {
-      "id": "1240992",
-      "name": "braces",
-      "reason": "2026-10-08 新增（GHSA-vfj7-8cjw-p6xm 深層巢狀 pattern 造成 stack exhaustion DoS）：lint 的間接 dev dependency（eslint-plugin-astro → astro-eslint-parser → fast-glob → micromatch → braces），不進 production bundle。只在 eslint 展開 repo 自己的 glob 設定時執行，不處理外部輸入。braces 最新 3.0.3 仍在受影響範圍、上游尚無修正版；出修正版後改用 override 並移除。",
+      "id": "1243066",
+      "name": "zod",
+      "reason": "2026-10-28 新增（GHSA-mrhx-c7xc-m3w5 驗證超大受限集合時耗盡記憶體）：runtime 與 @anthropic-ai/sdk 的 zod 4 已用 override 升到 4.6.6 以上；剩下的只有 LHCI 的間接 dev dependency（@lhci/cli → lighthouse 12.6.1 → puppeteer-core 24 → chromium-bidi 14 → zod 3.25.76），不進 production bundle；chromium-bidi 只解析 puppeteer 自己送出的 WebDriver BiDi 指令，不處理外部輸入。zod 3.x 全版本都在受影響範圍、沒有修正版；chromium-bidi 14 綁 zod ^3，puppeteer-core 24 最新版仍綁 chromium-bidi 14，硬升 zod 4 會弄壞 API。gate 依套件名稱把 zod 算成 mixed（上限 14 天），所以跟其他 LHCI 項目一起在 11/09 重新評估。",
       "expiresAt": "2026-11-09T00:00:00Z"
     }
   ]
