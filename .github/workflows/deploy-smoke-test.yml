@@ -258,11 +258,11 @@ jobs:
             BODY=$(curl -s "https://gu-log.vercel.app/$route")
             LIVE_COUNT=$(printf '%s' "$BODY" | grep -o 'href="/posts/' | wc -l | tr -d ' ' || true)
 
-            # GP lists only public reading guides (src/lib/gp-listing.mjs):
+            # GP lists only public signature picks (src/lib/gp-listing.mjs):
             # either it has posts, or it shows the neutral empty state.
             if [ "$series" = "gp" ]; then
               if [ "$LIVE_COUNT" -gt 0 ] || printf '%s' "$BODY" | grep -q 'data-gp-empty-notice'; then
-                echo "✅ gp listing shows reading guides or the empty state: live-first-page=$LIVE_COUNT"
+                echo "✅ gp listing shows signature picks or the empty state: live-first-page=$LIVE_COUNT"
               else
                 echo "::error::🚨 gp listing has neither posts nor the empty state"
                 FAILED=$((FAILED + 1))

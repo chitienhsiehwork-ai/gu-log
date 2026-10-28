@@ -42,8 +42,8 @@ afterEach(() => {
 });
 
 describe('picks listing smoke check', () => {
-  // openspec editorial-charter〈讀者開啟 GP 系列頁〉: the GP listing passes with
-  // reading guides or with the neutral empty state, never with neither.
+  // openspec gp-signature-picks〈GP 系列頁沒有可列的文章〉: the GP listing passes with
+  // signature picks or with the neutral empty state, never with neither.
   async function runListingStep(gpBody: string) {
     const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
     const job = workflow.jobs['smoke-test'] as Job;
@@ -86,10 +86,10 @@ exit 1
     });
   }
 
-  it('accepts a GP listing with reading guides or with the empty state', async () => {
+  it('accepts a GP listing with signature picks or with the empty state', async () => {
     const empty = await runListingStep('<p class="gp-empty-notice" data-gp-empty-notice>x</p>');
     expect(empty.status, empty.stdout.toString()).toBe(0);
-    const listed = await runListingStep('<a href="/posts/gp-2-guide">Guide</a>');
+    const listed = await runListingStep('<a href="/posts/gp-2-pick">Pick</a>');
     expect(listed.status, listed.stdout.toString()).toBe(0);
   });
 

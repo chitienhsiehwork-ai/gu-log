@@ -244,12 +244,12 @@ test.describe('Tombstone resilience', () => {
 });
 
 test.describe('Gu-log Picks listing', () => {
-  test('GIVEN tombstones, the GP-1 demo and any reading guides WHEN the listing opens THEN it lists exactly the public guides, or the neutral empty state when there are none', async ({
+  test('GIVEN tombstones, the GP-1 demo and any signature picks WHEN the listing opens THEN it lists exactly the public picks, or the neutral empty state when there are none', async ({
     page,
     request,
   }) => {
-    // openspec editorial-charter〈讀者開啟 GP 系列頁〉：不列墓碑與 GP-1。該列哪幾篇照內容算
-    // （tests/helpers/gp-listing.ts），發布新的導讀不用回來改這裡。
+    // openspec gp-signature-picks〈讀者開啟 GP 系列頁〉：不列墓碑與 GP-1。該列哪幾篇照內容算
+    // （tests/helpers/gp-listing.ts），升格新的 GP 不用回來改這裡。
     await expectGpSeriesListing(page, request, 'zh-tw');
     await expectGpSeriesListing(page, request, 'en');
   });
