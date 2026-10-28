@@ -1,0 +1,185 @@
+---
+ticketId: "MP-320"
+title: "An Anthropic Hiring Manager Stopped Giving Coding Interviews: How Engineers Without Status Get Noticed Now"
+originalDate: "2026-10-27"
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Reviewed"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Refined"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Scored"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Rewritten"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI + Tribunal"
+    - role: "Orchestrated"
+      model: "Opus 5.5"
+      harness: "gp-pipeline + Tribunal"
+  pipelineUrl: "https://github.com/chitienhsiehwork-ai/gu-log/tree/main/tools/gp-pipeline"
+source: "felixrieseberg.com"
+sourceUrl: "https://felixrieseberg.com/hunger-beats-tenure-advice-for-junior-engineers/"
+lang: "en"
+summary: "In October 2026, Felix Rieseberg wrote that he has stopped giving traditional coding interviews when hiring at Anthropic, because Claude now handles small programming puzzles better than candidates do. His observation: once execution gets cheap, a newcomer's naive eye finally has a shot at turning into real influence. Mogu reads the piece as a field manual for engineers with no social capital, while pointing out that fresh eyes expire, and naming the kinds of companies where this playbook falls apart."
+tags: ["career", "hiring", "claude-code", "anthropic", "prototyping"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 9
+    fidelity: 9
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 9
+    date: "2026-10-28"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 7
+    sourceAlign: 9
+    attribution: 9
+    score: 8
+    date: "2026-10-28"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-10-28"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-10-28"
+    model: "claude-opus-5-5"
+translatedDate: "2026-10-28"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+In October 2026, Felix Rieseberg, who leads a team and hires at Anthropic, stopped asking candidates to do coding interview questions. His reasoning is blunt: handing someone a small React problem is now about as meaningful as quizzing them on assembly, because Claude does both better.
+
+Felix doesn't trash the old interview. The ability to frame a problem quickly and find an elegant solution used to be a "weak but useful" predictor of success on his team, and a small problem set inside a real codebase genuinely told you something about a candidate. The trouble is that the signal has vanished. As Felix puts it, whether the most impactful people on his team succeed no longer has anything to do with how well they'd score on those tests.
+
+Losing a familiar gate sounds like bad news for engineers. Felix pushes it somewhere more hopeful: once years of accumulated framework and library knowledge stop capping how much impact a person can have, newer engineers get a chance to overtake. Felix says he's watching relatively junior engineers rapidly pass people who "probably are better programmers and have been around longer." That's the title of the post: "Hunger beats tenure."
+
+Felix is also upfront about where this comes from: it's a feeling built from watching junior engineers work with AI "for a while." One manager's close-up view can't carry a whole industry, but the mechanism behind it is worth a careful look, because every piece of advice Felix gives rests on the same shift.
+
+## Fresh eyes are valuable, and they spoil fast
+
+Felix starts with the newcomer's advantage. When he joined Stripe, founder Patrick Collison made a point of telling the incoming cohort: if something feels weird, pay real attention to it. Collison's bet was that new people would see friction and opportunities veterans had long stopped noticing.
+
+The idea has older backing. Organizational theorist James March [wrote in 1991](https://doi.org/10.1287/orsc.2.1.71) that organizations depend on a steady influx of the naive and ignorant. And when Orson Welles was asked where he found the confidence to try shots no one else had, he [answered](https://www.themarginalian.org/2012/04/30/orson-welles-on-ignorance-1960/):
+
+> "Ignorance, sheer ignorance — you know there's no confidence to equal it. It's only when you know something about a profession, I think, that you're timid or careful."
+
+<MoguNote summary="In March's theory, newcomers are the noise that keeps organizations out of local optima.">
+March's paper is "Exploration and Exploitation in Organizational Learning," and it's about how organizations balance exploring new possibilities against squeezing everything out of what they already know. The more skilled the veterans get, the more the organization tilts toward squeezing, because picking the best-known path is always the safest move. In this theory, newcomers work a bit like random noise forcibly injected into the system: they aren't necessarily smarter, they just haven't learned which paths "aren't worth trying" yet. Being called noise doesn't sound flattering, but noise is exactly what keeps a system from getting stuck in a local optimum (￣▽￣)／
+</MoguNote>
+
+Felix has two stories of his own, and they sit at opposite ends of this line.
+
+The first is from his interview at Notion, where one round asked him to design the architecture for an offline mode. Felix was baffled to later hear that Notion internally treated it as a "trick question," because everyone assumed offline mode was impossible: the data model was too complex to easily sync a whole workspace, and if you only downloaded individual pages, CEO Ivan Zhao would never accept that user experience. As it turned out, half of that was true; the data model really was complex. The other half wasn't: the resistance from the founder simply didn't exist. Everyone treated it as common knowledge, so nobody had ever checked. Felix was new, didn't know he "wasn't supposed to ask," and just asked.
+
+The second story runs the other way. Shortly after joining Notion, Felix wanted to install big TVs for teams to display live dashboards. He ran into every wall the organization had, failed, and didn't care enough to pick a fight over it. A year later, new hire Ji Pei showed up with the exact same idea. Felix scoffed and told Ji Pei not to bother, he'd already tried. Ji Pei had already asked. The TVs arrived the next day.
+
+> "At some point during that year, I had become the veteran."
+
+Felix stresses that when you read stories like this, it's easy to think other people are making dumb decisions, but when you're the one making the call, the mistake is extremely hard to spot. [Mogu](/en/glossary#mogu) takes something else from the two stories: fresh eyes are a state that expires. Felix went from the newcomer who "just asks" to the veteran who says "tried it, don't bother" in about a year. You can't bank this advantage for later. You can only spend it while you still have it.
+
+---
+
+## Seen, but nobody's listening
+
+Fresh eyes have exactly one problem, and Felix doesn't sugarcoat it: nobody cares what the new person thinks.
+
+Most tech companies have several layers of middle management whose job is to translate big business goals into execution. Structurally, companies often revolve around a small group of people deciding which ideas get through and which get blocked. In a world where execution is expensive, you usually have to grind out some social standing before the organization is willing to bet resources on your ideas. Felix adds one more observation: org charts change at roughly glacial speed, so even at companies that believe in AI, the expectation for junior engineers is usually just "finish your assigned tasks faster," not "go boldly chase business goals."
+
+This is the part that ties the two Notion stories together. With offline mode, Felix was just asking a question in an interview, at close to zero cost. With the TVs, he had to get past the organization, and after hitting the wall he gave up. Newcomers see plenty. But turning "seeing" into "happening" used to require an entry fee called tenure.
+
+Then Felix writes just one line: the good news is that execution is no longer expensive.
+
+Right at the top of the post, Felix had already corrected himself: "junior" is actually the wrong word, and his real audience is engineers without social capital, status, or power. Mogu's reading is that tenure is just the most common proxy. A ten-year veteran who just switched departments might not get listened to on the new team either.
+
+---
+
+## Felix's five-step playbook
+
+Felix offers five concrete pieces of advice, and the fourth one deserves the longest pause.
+
+### Look at what the company wants before your to-do list
+
+Felix cites Patrick McKenzie's 2011 essay ["Don't Call Yourself A Programmer"](https://www.kalzumeus.com/2011/10/28/dont-call-yourself-a-programmer/): engineers are hired to create business value, not to write code. McKenzie's advice back then was to attach yourself to the parts of the company that make money.
+
+Felix's version is more specific: first figure out what the company is actually trying to achieve, or, at a big company, what your own org is trying to achieve. Then find the right altitude. Felix's rule of thumb is that understanding which goals your manager's manager is chasing is usually a useful reference point.
+
+That altitude is a smart choice. Your direct manager's goals are often just the to-do list itself. One level up is where "why are we doing this" starts to show.
+
+### Pick a radical idea and build it over the weekend
+
+Step two is to come up with a few ideas that, if they worked, would dramatically raise the organization's odds of hitting those goals. Felix's words: be ambitious.
+
+Step three is to just build it. Felix says he has seen small teams and solo engineers skip the whole conventional process (writing a product requirements document, rallying support, lobbying a designer or PM for their time) and fly right past it on the strength of a working prototype.
+
+### One prototype, one good idea
+
+This one is an observation from Felix's own experience: a common mistake junior people make is cramming several ideas into one prototype, hiding three great ideas among twenty bad ones. Felix's example is deliberately absurd: if your prototype simultaneously contains a new programming language, a backend, and somehow a mobile app, it won't work.
+
+> "The point of a working prototype is to communicate one idea well enough that leadership quickly understands two things: there's an opportunity here, and you're the person who can own it."
+
+Following that logic, the prototype is really a letter. It's addressed to the people who don't have time to listen to a newcomer, and it can only say one thing. A twenty-idea prototype is like attaching your elementary school essay, your college capstone, and three recipes to a cover letter. The recipient won't make it past page one.
+
+And the letter answers two questions at once, both of which Felix spells out: "Is this idea worth doing?" and "Can this person do it?" The first used to require a PRD and a slide deck to argue. The second used to require tenure to vouch for. Something that actually runs answers both.
+
+### Use the newcomer's perspective as a weapon
+
+The last step circles back to the naive eye from the beginning. If you're building something users touch, newcomers have unusual empathy for those users and a clearer sense of what works and what doesn't from the user's side. Felix says his colleagues at [Slack](/en/glossary#slack) and Notion had a hard time truly feeling what it was like to use Slack or Notion as an outside user. If you work on infrastructure or tools, the newcomer's advantage is not yet having learned all the reasons "why this is considered impossible."
+
+---
+
+## One weekend, eight days to ship
+
+Felix offers Anthropic's own example as evidence. People inside the company were so used to treating [Claude Code](/en/glossary#claude-code) as a command-line tool (CLI) that it fell to two relatively new engineers, Anthony Morris and Alice Zhao, to produce a working prototype over a single weekend. The first public version shipped about eight days later. Felix's verdict: it should surprise no one that a good graphical interface for Claude Code turned out to be a very popular product.
+
+Notice how Felix describes the cause and effect: everyone was too used to the CLI, so it was left to two newcomers to build the GUI. Mogu thinks this has the same shape as Notion's offline mode. Everyone "knew" something, so nobody touched it.
+
+<MoguNote summary="gu-log's Fresh Eyes judge has quietly become a veteran too.">
+Fresh eyes expiring is something gu-log's own editorial desk has run into. One of gu-log's [four tribunal judges](/posts/sd-10-20260322-ralph-loop-quality-system) is called Fresh Eyes. Its job is to play a total stranger with zero backstory on the blog and catch the "would I close the tab here?" moments. Originally, this judge's model was deliberately kept on a different generation from the writer's, so it would stay a stranger. Then it kept getting upgraded to the latest version, the writer eventually caught up, and now both are the exact same model. A judge with the same taste as the writer can easily become a veteran right alongside it, thinking "surely everyone gets this part," just like Felix telling Ji Pei "don't bother" about the TVs. So the only newcomer advantage this judge has left is "hasn't seen the backstory for this post," and the whole time I was reading Felix's piece, I kept feeling like I was reading about its situation (⌐■_■)
+</MoguNote>
+
+---
+
+## Mogu's reservations: where this playbook works
+
+Felix's advice is persuasive, but it rests on a few assumptions the post never states. The three points below are Mogu's inferences, and readers can hold them up against their own companies.
+
+First, the whole approach assumes someone will look at the prototype. Felix's examples come from Stripe, Notion, and Anthropic, and Felix himself is the kind of manager who goes looking for prototypes in résumés and portfolios. In an organization where leadership only reads quarterly reports and nobody opens the prototype you send over, your weekend build might earn nothing more than "this isn't on this quarter's roadmap." Step one of the playbook, figuring out what your manager's manager is chasing, is partly a way of helping you judge whether this organization is even checking its mail.
+
+Second, "execution got cheap" lowers the cost of building a prototype, not the cost of getting an organization to accept something. In the TV story, Ji Pei didn't write a single line of code; Ji Pei just asked first. Mogu's reading is that the hunger Felix describes is really about caring enough to go up against the wall. The prototype is just a tool that makes going up against it much cheaper.
+
+Third, Felix's step three is indeed titled "build it over the weekend," but what Felix uses as evidence is small teams skipping the long wait of PRDs, rallying support, and booking designer time. Mogu thinks the second half is the part to copy. "Weekend" reads more like a unit of time meaning "fast," and there's no need to read it as an obligation to work weekends. When you build the prototype, and what data company policy lets you build it with, still follow your own workplace's rules.
+
+---
+
+## Interviews haven't found a new answer yet
+
+Felix doesn't think traditional coding interviews are coming back. He admits it's easy to feel wistful about this: so many people bought *Algorithms and Data Structures* hoping it would get them a good job and a better future, and the disappearance of coding interviews is yet another milestone in software engineering climbing one more level of abstraction. But as someone who has long hated "promotion by seniority," Felix can't help being optimistic, and he says he's already seen plenty of popular apps and products built exactly this way.
+
+As for what the new interview should look like, Felix doesn't pretend to have an answer. He says he's probably not the only manager wondering how to interview for people who are great at building things alongside AI. He hasn't figured it out yet; for now, he looks through résumés and portfolios for small prototypes and checks whether they show taste, empathy, and principled thinking.
+
+Mogu set those three words against the five-step playbook and found they line up neatly: taste is the restraint of packing in just one idea, empathy is the user's-eye view newcomers haven't lost yet, and principled thinking is the nerve to ask "why is this impossible?" Felix says he hasn't figured out the new interview. But going by that match, what Felix wants to see in a portfolio has probably already been written down, as this advice for newcomers.
