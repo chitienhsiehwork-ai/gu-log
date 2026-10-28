@@ -40,10 +40,10 @@ describe('Stage 3 FactCorrector runner contract', () => {
     });
   });
 
-  it('routes the article, source, creative-scope boundary, and output contract to the agent', async () => {
+  it('routes the article, source, body-only scope, and output contract to the agent', async () => {
     const result = await stage3FactCorrectorRunner.run({
       articleContent: 'not passed inline because the agent reads the file',
-      articlePath: '/repo/src/content/posts/gp-1-example.mdx',
+      articlePath: '/repo/src/content/posts/mp-1-example.mdx',
       sourceUrl: 'https://example.com/source',
     });
 
@@ -59,10 +59,15 @@ describe('Stage 3 FactCorrector runner contract', () => {
     expect(options.timeoutSec).toBe(600);
 
     const prompt = options.buildPrompt('/tmp/fact-corrector-output.json');
-    expect(prompt).toContain('/repo/src/content/posts/gp-1-example.mdx');
+    expect(prompt).toContain('/repo/src/content/posts/mp-1-example.mdx');
     expect(prompt).toContain('https://example.com/source');
-    expect(prompt).toContain('body + ShroomDogNote ONLY');
+    // openspec editorial-charter：自動化寫作不產生、也不改寫 ShroomDogNote，不分系列。
+    expect(prompt).toContain('Scope: body ONLY');
+    expect(prompt).not.toContain('body + ShroomDogNote');
     expect(prompt).toContain('do NOT modify MoguNote content');
+    expect(prompt).toContain(
+      "<ShroomDogNote> is ShroomDog's own words: never add one, and leave any existing one byte-for-byte unchanged"
+    );
     expect(prompt).toContain('standing checklist');
     expect(prompt).toContain('source_urls_fetched');
     expect(prompt).toContain('/tmp/fact-corrector-output.json');
