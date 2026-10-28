@@ -438,14 +438,16 @@ func TestRefine_ResumeFromDraft(t *testing.T) {
 	}
 }
 
-// TestGPWriteAndRefineRejectShroomDogNote covers editorial-charter〈自動化輸出
-// ShroomDogNote〉: the step fails and the output never becomes the draft.
-func TestGPWriteAndRefineRejectShroomDogNote(t *testing.T) {
+// TestWriteAndRefineRejectShroomDogNote covers gp-pipeline-publish-integrity
+// 〈寫作步驟 SHALL 拒絕含 ShroomDogNote 的模型輸出〉 for every series the
+// pipeline writes: the step fails and the output never becomes the draft.
+func TestWriteAndRefineRejectShroomDogNote(t *testing.T) {
 	withNote := "---\ntitle: \"x\"\n---\nbody\n\n<ShroomDogNote>\n代寫的看法\n</ShroomDogNote>\n"
-	for _, step := range []string{"write", "refine"} {
-		t.Run(step, func(t *testing.T) {
+	for _, tc := range []struct{ prefix, step string }{{"MP", "write"}, {"MP", "refine"}, {"SD", "write"}, {"SD", "refine"}} {
+		step := tc.step
+		t.Run(tc.prefix+" "+step, func(t *testing.T) {
 			s, fake, workDir := newTestState(t)
-			s.Prefix, s.PromptTicketID = "GP", "GP-PENDING"
+			s.Prefix, s.PromptTicketID = tc.prefix, tc.prefix+"-PENDING"
 			output := "draft-v1.mdx"
 			run := s.Write
 			if step == "refine" {

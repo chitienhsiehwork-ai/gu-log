@@ -14,14 +14,12 @@ func containsShroomDogNote(data []byte) bool {
 		bytes.Contains(data, []byte("import ShroomDogNote"))
 }
 
-// rejectShroomDogNote fails a GP write or refine whose output contains a
-// ShroomDogNote: it holds ShroomDog's own words, and automation never writes
-// them. The output is moved aside as evidence so neither a later step nor a
-// --from-step resume can pick it up as the draft.
+// rejectShroomDogNote fails a write or refine of any series whose output
+// contains a ShroomDogNote: it holds ShroomDog's own words, and automation
+// never writes them (openspec gp-pipeline-publish-integrity). The output is
+// moved aside as evidence so neither a later step nor a --from-step resume
+// can pick it up as the draft.
 func (s *State) rejectShroomDogNote(step, path string) error {
-	if s.Prefix != "GP" {
-		return nil
-	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("%s: read %s: %w", step, filepath.Base(path), err)

@@ -234,6 +234,31 @@ func TestRender_NoGPReadingGuideBranch(t *testing.T) {
 	}
 }
 
+// TestRender_EveryWritingPromptForbidsShroomDogNote: write and refine tell
+// every series never to write a ShroomDogNote, and review flags one as a
+// Blocker (openspec gp-pipeline-publish-integrity).
+func TestRender_EveryWritingPromptForbidsShroomDogNote(t *testing.T) {
+	for _, prefix := range []string{"MP", "SD"} {
+		for name, data := range map[string]any{
+			"write":  WriteData{Prefix: prefix, TicketID: prefix + "-PENDING", Source: "SOURCE"},
+			"refine": RefineData{Prefix: prefix, TicketID: prefix + "-PENDING"},
+			"review": ReviewData{Prefix: prefix, TicketID: prefix + "-PENDING"},
+		} {
+			out, err := Render(name, data)
+			if err != nil {
+				t.Fatalf("Render %s %s: %v", prefix, name, err)
+			}
+			want := "Never write `<ShroomDogNote>`"
+			if name == "review" {
+				want = "Flag any as a Blocker"
+			}
+			if !strings.Contains(out, want) {
+				t.Errorf("%s %s prompt lacks the ShroomDogNote rule %q", prefix, name, want)
+			}
+		}
+	}
+}
+
 func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {
 	out, err := Render("translate", TranslateData{TicketID: "GP-7", Source: "body"})
 	if err != nil {
