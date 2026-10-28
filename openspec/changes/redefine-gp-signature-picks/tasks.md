@@ -22,7 +22,7 @@
 - [x] 3.3 `scripts/hooks/pre-commit` 刪驗章區塊；`tests/hooks-integration.test.ts`、`tests/helpers/pre-commit-repo.ts` 同步
 - [x] 3.4 刪 `scripts/source-distance.mjs`、`scripts/lib/source-distance.mjs`、`tests/source-distance.test.ts`、`tests/helpers/source-distance-stamp.ts`，同一個 commit 改掉還 import 它們的測試（順序見檔頭）
 - [x] 3.5 `scripts/take-down-posts.mjs`、`scripts/inject-related-posts.mjs`、`vercel.mjs` 提到章或導讀的註解改掉
-- [ ] 3.6 `rg -n "sourceDistance|source-distance|englishSkipped|verifyStamp|writeStamp|requiresStamp"`（排除 `openspec/`、`tools/gp-pipeline/`）只剩確認過的命中，寫進 PR 說明
+- [x] 3.6 `rg -n "sourceDistance|source-distance|englishSkipped|verifyStamp|writeStamp|requiresStamp"`（排除 `openspec/`、`tools/gp-pipeline/`）只剩確認過的命中，寫進 PR 說明
 
 ## 4. gp-pipeline 不寫 GP、不配 GP 號（`gp-pipeline-publish-integrity`）
 
@@ -76,7 +76,7 @@
 - [x] 9.3 `AGENTS.md`：路由表拿掉「GP 導讀」與「來源距離章與 `stamp`」；URL intake 短評一律建議 MP，GP 規則只指向 `gp-signature-picks`
 - [x] 9.4 其他把 GP 說成導讀或叫人蓋章的文件：`README.md`、`README.zh-TW.md`、`OBSIDIAN_SETUP.md`、`playbooks/CCC-playbook.md`、`scripts/mogu-picks-prompt.md`、`.agents/README.md`、`.agents/skills/gp-pipeline-sop/SKILL.md`、兩份 `x-source-fetch/SKILL.md`（`.claude/skills/level-up/`、`trim/` 是 dotfiles 鏡像，不在這裡改）
 - [x] 9.5 `docs/shroomdog-editorial-feedback.md` 加一筆 2026-10-28：GP／MP 從「寫法」改成「格」來分，GP 只聽 ShroomDog 指定
-- [ ] 9.6 `rg -n "導讀|reading guide|reading-guide|來源距離|source-distance|stamp"` 掃上面這些文件，只剩確認過的命中
+- [x] 9.6 `rg -n "導讀|reading guide|reading-guide|來源距離|source-distance|stamp"` 掃上面這些文件，只剩確認過的命中
 
 ## 10. 整合與驗證
 
