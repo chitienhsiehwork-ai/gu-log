@@ -2,9 +2,8 @@
  * GP is score-only in Tribunal (openspec gp-source-preservation; CONTRIBUTING.md
  * 〈兩層品質門檻〉): scripts/tribunal.sh runs all four judges on a GP even after
  * one fails, writes every judge's score — failing ones included — to the
- * frontmatter of both language versions, and leaves the body and the
- * source-distance stamp untouched, so the post still validates and ships zh-tw
- * on the floor rule. The judges are a fake Codex CLI; no model is called.
+ * frontmatter of both language versions, and leaves the body untouched, so
+ * the post still validates and ships zh-tw on the floor rule. The judges are a fake Codex CLI; no model is called.
  * Tribunal v2 is covered in tests/tribunal-v2/pipeline.test.ts.
  */
 import { spawnSync } from 'node:child_process';
@@ -64,7 +63,6 @@ describe('scripts/tribunal.sh scores a GP with every judge', () => {
         [run.enPath, en, matter(EN_GP_POST)],
       ] as const) {
         expect(after.content, file).toBe(before.content);
-        expect(after.data.sourceDistance, file).toEqual(before.data.sourceDistance);
         expect(validatePost(file, []).errors, file).toEqual([]);
       }
 

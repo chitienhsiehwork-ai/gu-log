@@ -4,11 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { POSTS_DIR, loadPosts, postInfo, suggestFor } from '../scripts/suggest-crosslinks.mjs';
-import { segmentGuide } from '../scripts/lib/source-distance.mjs';
 
-// gp-pipeline 對 GP 在工作目錄的 final.mdx 跑 post-fixer，再蓋來源距離章（openspec
-// gp-pipeline-publish-integrity）。這兩支 fixer 要能改 posts/ 以外的檔，語料照舊從
-// posts/ 讀；MP 對 posts/ 內檔案的呼叫方式與結果不變。
+// 這兩支 fixer 也能改 posts/ 以外的檔（例如工作目錄的草稿），語料照舊從 posts/ 讀；
+// 對 posts/ 內檔案的呼叫方式與結果不變。
 
 const ROOT = path.resolve(__dirname, '..');
 const run = (script: string, args: string[]) =>
@@ -95,23 +93,6 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
       '## 延伸閱讀'
     );
     expect(fs.readFileSync(fresh, 'utf8')).toBe(untouched);
-  });
-
-  it('插入的延伸閱讀整段不進來源距離章的投影（openspec source-distance-stamp）', () => {
-    for (const [lang, heading] of [
-      ['zh-tw', '## 延伸閱讀'],
-      ['en', '## Related Reading'],
-    ]) {
-      const file = draft(
-        `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "${lang}"\ntags: ["${commonTag}"]`,
-        '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>'
-      );
-      const before = segmentGuide(fs.readFileSync(file, 'utf8'));
-      run('inject-related-posts.mjs', ['--file', file]);
-      const after = fs.readFileSync(file, 'utf8');
-      expect(after).toContain(heading);
-      expect(segmentGuide(after)).toEqual(before);
-    }
   });
 
   it('收尾的 MoguNote 之前才插延伸閱讀；後面還有正文時放文末，不插進文章中間', () => {
