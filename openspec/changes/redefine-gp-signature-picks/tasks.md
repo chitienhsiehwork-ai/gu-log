@@ -75,7 +75,7 @@
 - [x] 9.2 `GU-LOG_WRITER_PROMPT.md` 拿掉 GP 導讀寫法，GP／MP 寫法相同
 - [x] 9.3 `AGENTS.md`：路由表拿掉「GP 導讀」與「來源距離章與 `stamp`」；URL intake 短評一律建議 MP，GP 規則只指向 `gp-signature-picks`
 - [x] 9.4 其他把 GP 說成導讀或叫人蓋章的文件：`README.md`、`README.zh-TW.md`、`OBSIDIAN_SETUP.md`、`playbooks/CCC-playbook.md`、`scripts/mogu-picks-prompt.md`、`.agents/README.md`、`.agents/skills/gp-pipeline-sop/SKILL.md`、兩份 `x-source-fetch/SKILL.md`（`.claude/skills/level-up/`、`trim/` 是 dotfiles 鏡像，不在這裡改）
-- [ ] 9.5 `docs/shroomdog-editorial-feedback.md` 加一筆 2026-10-28：GP／MP 從「寫法」改成「格」來分，GP 只聽 ShroomDog 指定
+- [x] 9.5 `docs/shroomdog-editorial-feedback.md` 加一筆 2026-10-28：GP／MP 從「寫法」改成「格」來分，GP 只聽 ShroomDog 指定
 - [ ] 9.6 `rg -n "導讀|reading guide|reading-guide|來源距離|source-distance|stamp"` 掃上面這些文件，只剩確認過的命中
 
 ## 10. 整合與驗證

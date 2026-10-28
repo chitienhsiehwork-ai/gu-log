@@ -14,6 +14,15 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - ShroomDog 核准某篇文章保留某個 emoji 時，照常把回饋記在這裡，另外在 `scripts/check-content-emoji.mjs` 的核准清單加一筆（路徑、emoji、理由）。
 
+## 2026-10-28 — GP／MP 改成按「格」分：MP 是日常文章，GP 是 ShroomDog 指定的招牌
+
+### Feedback: 差別不在寫法，在「這篇夠不夠格代表 gu-log」，而且只有 ShroomDog 能定
+
+- ShroomDog feedback：2026-10-28 在 chat 決定新的分法：MP 是日常的部落格文章，GP 是 ShroomDog 親自指定、能代表 gu-log 品質的招牌文章。名字 Gu-log Picks 保留（英文讀起來就是 Editor's Picks），代碼與網址不變。
+- 情境：舊的分法藏在寫法裡：GP 是導讀，要過來源距離章；MP 是 Mogu 自己的文章，沒有距離限制。agent 評估來源時常推薦 GP，寫完才卡在距離章，例如同一天 Felix〈Hunger beats tenure〉最後只能改成 MP。名字聽起來像在講「誰挑的」，實際上兩邊都是 ShroomDog 挑來源、Mogu 寫，讀者跟 agent 都分不清。
+- 修法：OpenSpec change `redefine-gp-signature-picks`：有來源的新文章一律寫成 MP；GP 只由已上線、通過 publish bar 的 MP，在 ShroomDog 指定後用 `scripts/reclassify-post.mjs` 升格（配新 GP 號、舊網址 308 轉址），pre-commit 與 CI 擋下沒過 publish bar 就變成 GP 的檔案。GP 寫法跟 MP 相同，Tribunal 照舊只評分不改寫，理由改成正文是 ShroomDog 認可過的版本。來源距離章、aligner 與 `gp-pipeline stamp` 整個退役；線上的 GP-276～279 改成 MP。自動寫作一律不產生 `ShroomDogNote`，評審在任何系列都把它當成 ShroomDog 本人的話。
+- Reusable lesson：系列分不清時，先問讀者看到的差別是什麼，不要把差別藏在只有寫手知道的寫法裡。代表品質的標籤只能由 owner 給：agent 覺得特別好，最多說一句「可能夠格當招牌」，文章照樣是 MP。
+
 ## 2026-10-19 — MP-214／MP-123：讀完會想轉傳的結構，和最好笑那段越過的事實邊界
 
 ### Feedback: 「funny、北七，而且真的會想分享」——MP-214 是正反兩面都有的樣本，不是範本
