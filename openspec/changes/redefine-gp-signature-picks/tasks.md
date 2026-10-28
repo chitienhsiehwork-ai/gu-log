@@ -72,7 +72,7 @@
 ## 9. 文件
 
 - [x] 9.1 `CONTRIBUTING.md`：GP 例外改理由，加「升格要通過 publish bar、之後重評不擋」；來源評估改成不分系列、預設 MP；〈新增 GP 導讀〉改寫成 GP 升格（只從已上線的 MP 升格、降回 MP；升格不改內容契約；整篇翻譯規則適用所有系列）；MP 是日常文章；gp-pipeline `--prefix <MP|SD>`；GP 英文版條件同 MP；自動寫作一律不產生 `ShroomDogNote`
-- [ ] 9.2 `GU-LOG_WRITER_PROMPT.md` 拿掉 GP 導讀寫法，GP／MP 寫法相同
+- [x] 9.2 `GU-LOG_WRITER_PROMPT.md` 拿掉 GP 導讀寫法，GP／MP 寫法相同
 - [ ] 9.3 `AGENTS.md`：路由表拿掉「GP 導讀」與「來源距離章與 `stamp`」；URL intake 短評一律建議 MP，GP 規則只指向 `gp-signature-picks`
 - [ ] 9.4 其他把 GP 說成導讀或叫人蓋章的文件：`README.md`、`README.zh-TW.md`、`OBSIDIAN_SETUP.md`、`playbooks/CCC-playbook.md`、`scripts/mogu-picks-prompt.md`、`.agents/README.md`、`.agents/skills/gp-pipeline-sop/SKILL.md`、兩份 `x-source-fetch/SKILL.md`（`.claude/skills/level-up/`、`trim/` 是 dotfiles 鏡像，不在這裡改）
 - [ ] 9.5 `docs/shroomdog-editorial-feedback.md` 加一筆 2026-10-28：GP／MP 從「寫法」改成「格」來分，GP 只聽 ShroomDog 指定
