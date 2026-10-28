@@ -10,7 +10,7 @@ import {
   getPostStatus,
   type PostStatus,
 } from '../../utils/post-status';
-import { getGpEmptyNotice, isListedGpTicket } from '../../lib/gp-listing.mjs';
+import { isListedGpTicket } from '../../lib/gp-listing.mjs';
 
 const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
@@ -35,8 +35,8 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-// GP 只列公開的導讀（src/lib/gp-listing.mjs）。首頁放其中過了 publish bar 的前 3 篇；
-// 系列頁一篇都不會列時才顯示中性的空狀態（openspec: editorial-charter），首頁放不下的
+// GP 是 ShroomDog 指定的招牌文章，只列公開的（src/lib/gp-listing.mjs）。首頁放其中過了
+// publish bar 的最新 3 篇，一篇都沒有就整區不輸出（openspec: gp-signature-picks）；放不下的
 // 由「View all」帶去系列頁。
 const listedGpCount = getListablePosts(allPostsFull, 'en').filter((p) =>
   isListedGpTicket(p.data.ticketId)
@@ -50,52 +50,45 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
 ---
 
 <BaseLayout title="ShroomDog - Making AI Fun Again" lang="en">
-  {/* GP: Gu-log Picks — most frequently updated */}
-  <section class="posts-section gp-section">
-    <h2>
-      <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
-    </h2>
-    <p class="section-subtitle">ShroomDog's curated reading guides</p>
+  {/* GP: Gu-log Picks (signature picks; omitted when none can be shown) */}
+  {
+    gpPosts.length > 0 && (
+      <section class="posts-section gp-section">
+        <h2>
+          <img src="/gu-log-icon-trimmed.png" alt="" class="section-icon" /> Gu-log Picks
+        </h2>
+        <p class="section-subtitle">Signature picks chosen by ShroomDog</p>
 
-    {
-      listedGpCount === 0 && (
-        <p class="gp-empty-notice" data-gp-empty-notice>
-          {getGpEmptyNotice('en')}
-        </p>
-      )
-    }
+        {gpPosts.map((post) => {
+          const status = getPostStatus(post, allPostsFull);
+          return (
+            <article class="post-preview" style={getTimelineStyle(status)}>
+              <h3>
+                <a href={`/en/posts/${post.id}`}>
+                  {post.data.title}
+                  {status !== 'published' && <PostStatusLabel status={status} />}
+                </a>
+              </h3>
+              <p class="post-meta">
+                {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
+                {post.data.translatedDate || post.data.originalDate} · Source material:{' '}
+                {post.data.source}
+              </p>
+              <Toggle title="Preview">
+                <p>{post.data.summary}</p>
+              </Toggle>
+            </article>
+          );
+        })}
 
-    {
-      gpPosts.map((post) => {
-        const status = getPostStatus(post, allPostsFull);
-        return (
-          <article class="post-preview" style={getTimelineStyle(status)}>
-            <h3>
-              <a href={`/en/posts/${post.id}`}>
-                {post.data.title}
-                {status !== 'published' && <PostStatusLabel status={status} />}
-              </a>
-            </h3>
-            <p class="post-meta">
-              {post.data.ticketId && <TicketBadge ticketId={post.data.ticketId} />}
-              {post.data.translatedDate || post.data.originalDate} · Original: {post.data.source}
-            </p>
-            <Toggle title="Preview">
-              <p>{post.data.summary}</p>
-            </Toggle>
-          </article>
-        );
-      })
-    }
-
-    {
-      listedGpCount > gpPosts.length && (
-        <p class="view-all">
-          <a href="/en/gu-log-picks">View all →</a>
-        </p>
-      )
-    }
-  </section>
+        {listedGpCount > gpPosts.length && (
+          <p class="view-all">
+            <a href="/en/gu-log-picks">View all →</a>
+          </p>
+        )}
+      </section>
+    )
+  }
 
   {/* MP: Mogu Picks */}
   {
@@ -337,15 +330,5 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
 
   .view-all a:hover {
     text-decoration: underline;
-  }
-
-  .gp-empty-notice {
-    margin: 0.5rem 0 0.75rem;
-    padding: 0.875rem 1rem;
-    border: 1px solid var(--color-border);
-    border-radius: 12px;
-    background: var(--color-surface);
-    color: var(--color-mogu-note-text);
-    line-height: 1.7;
   }
 </style>

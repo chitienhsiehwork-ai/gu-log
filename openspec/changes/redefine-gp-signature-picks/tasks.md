@@ -45,7 +45,7 @@
 ## 6. 首頁、列表與讀者文案（`gp-signature-picks`〈GP 列表…〉；`brand-taxonomy`〈Reader-facing series labels…〉）
 
 - [x] 6.1 `src/lib/gp-listing.mjs` 改說明與空狀態文案，`tests/tombstone-copy.test.ts` 同步
-- [ ] 6.2 `src/pages/index.astro`、`src/pages/en/index.astro`：只在至少有一篇過 publish bar 的 GP 時輸出 GP `<section>`，刪掉用不到的空狀態元素與樣式；副標改成招牌文章；GP 卡片的「原文：」／`Original:` 改成跟 MP 卡片一樣的「來源材料」／`Source material:`
+- [x] 6.2 `src/pages/index.astro`、`src/pages/en/index.astro`：只在至少有一篇過 publish bar 的 GP 時輸出 GP `<section>`，刪掉用不到的空狀態元素與樣式；副標改成招牌文章；GP 卡片的「原文：」／`Original:` 改成跟 MP 卡片一樣的「來源材料」／`Source material:`
 - [ ] 6.3 `src/pages/gu-log-picks/[...page].astro`、`src/pages/en/gu-log-picks/[...page].astro`：副標與卡片的來源標示同 6.2
 - [ ] 6.4 `src/pages/posts/[...slug].astro`、`src/pages/en/posts/[...slug].astro`：GP 跟 MP 一樣顯示「來源材料」／`Source material`；`src/components/ArticleTechnicalDetails.astro` 刪 `reading-guide` 模式
 - [ ] 6.5 `src/pages/about.astro`、`src/pages/en/about.astro`、`scripts/article-counter.json` 的系列說明改成 MP 日常、GP 招牌，刪來源距離章段落
