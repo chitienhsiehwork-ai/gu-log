@@ -32,7 +32,7 @@
 - [x] 4.4 移除 aligner 角色：`internal/llm/` 的 routing 與 dispatcher、`cmd/gp-pipeline/llm_helper.go`、`doctor.go`、`config/llm-pipeline.json`、`scripts/tribunal-model-router.sh`、`.claude/agents/source-aligner.md`、`scripts/crontab-tribunal.example`；`scripts/tests/test-tribunal-model-router.sh` 加 `aligner` 回 unknown role
 - [x] 4.5 `shroomdognote.go` 拿掉 GP 限定，`write`、`refine` 對每個系列都檢查（exit 14）；「不得寫 `ShroomDogNote`」的 prompt 規則與 review 檢查移到共用段落；補 MP、SD 的 Go 測試（〈寫作步驟 SHALL 拒絕含 `ShroomDogNote` 的模型輸出〉）
 - [x] 4.6 help 與錯誤訊息只把 MP、SD 列為可撰寫系列；`counter`、`deploy` 的說明寫明 GP 號只由 `scripts/reclassify-post.mjs` 配出，`dedup` 照舊列 GP；`help_contract_test.go`、`lv_refusal_test.go` 同步（〈寫作指令的說明與錯誤訊息 SHALL NOT 邀請撰寫 Lv 或 GP〉）
-- [ ] 4.7 `tools/gp-pipeline/SKILL.md`、`README.md` 拿掉導讀、來源距離、`stamp`；寫明 pipeline 不寫 GP、不配 GP 號，GP 只由已上線的 MP 升格，任何系列輸出 `ShroomDogNote` 都 exit 14
+- [x] 4.7 `tools/gp-pipeline/SKILL.md`、`README.md` 拿掉導讀、來源距離、`stamp`；寫明 pipeline 不寫 GP、不配 GP 號，GP 只由已上線的 MP 升格，任何系列輸出 `ShroomDogNote` 都 exit 14
 - [ ] 4.8 `rg` 掃 `tools/gp-pipeline` 的 `SourceDistance|sourceDistance|source-distance|Aligner|aligner|EnglishCheck|englishSkipped|guide|GP-worthy|ShroomDogNote|Terminology`，只剩確認過的命中，寫進 PR 說明
 
 ## 5. 改系列指令與升格把關（`gp-signature-picks`）
