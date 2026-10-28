@@ -28,6 +28,23 @@ describe('retired editorial rules stay retired', () => {
     }
   });
 
+  it('keeps the retired GP reading guide and source-distance stamp out of the judges', () => {
+    for (const role of [
+      'fact-checker',
+      'librarian',
+      'fresh-eyes',
+      'vibe-opus-scorer',
+      'tribunal-writer',
+    ]) {
+      for (const file of [`.claude/agents/${role}.md`, `.codex/agents/${role}.toml`]) {
+        expect(read(file), file).not.toMatch(/reading guide|導讀|source-distance|re-stamp/i);
+      }
+    }
+    expect(read('scripts/vibe-scoring-standard.md')).not.toMatch(
+      /reading guide|導讀|source-distance/i
+    );
+  });
+
   it('keeps the old blanket lived-experience ban out of writer guidance', () => {
     for (const file of ['GU-LOG_WRITER_PROMPT.md', 'scripts/mogu-picks-prompt.md']) {
       expect(read(file), file).not.toMatch(/捏造[^\n。]*(?:親身經歷|lived experience)/);
