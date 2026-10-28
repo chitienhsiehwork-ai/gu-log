@@ -60,7 +60,7 @@
 - [x] 7.4 確認：
   - GP counter 不動、MP 前進 4；四個新 MP ticket 的檔案正確（原 276、277 只有繁中，原 278、279 中英都有），舊 GP 檔都不在；
   - `check-takedown-ratchet --base=origin/main`、`check-gp-promotion --base=origin/main`、`check-translation-pairs --strict --pr-base=main`（main 上不帶 `--pr-base` 本來就是紅的）、`check-brand-taxonomy`、`validate-posts --check-duplicates`、`versions:check`（不過就重建兩份 version manifest 一起 commit）、`tests/vercel-routing-config.test.ts` 都綠
-- [ ] 7.5 `.github/workflows/deploy-smoke-test.yml` 加原 GP-278 中英網址 308 到新 MP 網址
+- [x] 7.5 `.github/workflows/deploy-smoke-test.yml` 加原 GP-278 中英網址 308 到新 MP 網址
 
 ## 8. Tribunal 與評審指示（`gp-source-preservation`、`tribunal-focal-source-evidence`、`tribunal-score-persistence`）
 
