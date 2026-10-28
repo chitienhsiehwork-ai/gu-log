@@ -21,7 +21,7 @@
 - [x] 3.2 `scripts/check-translation-pairs.mjs` 拿掉 `englishSkipped` 與 GP 專屬判斷，GP 併進 `PAIRED_PREFIXES`；`tests/translation-pairs.test.ts` 同步
 - [x] 3.3 `scripts/hooks/pre-commit` 刪驗章區塊；`tests/hooks-integration.test.ts`、`tests/helpers/pre-commit-repo.ts` 同步
 - [ ] 3.4 刪 `scripts/source-distance.mjs`、`scripts/lib/source-distance.mjs`、`tests/source-distance.test.ts`、`tests/helpers/source-distance-stamp.ts`，同一個 commit 改掉還 import 它們的測試（順序見檔頭）
-- [ ] 3.5 `scripts/take-down-posts.mjs`、`scripts/inject-related-posts.mjs`、`vercel.mjs` 提到章或導讀的註解改掉
+- [x] 3.5 `scripts/take-down-posts.mjs`、`scripts/inject-related-posts.mjs`、`vercel.mjs` 提到章或導讀的註解改掉
 - [ ] 3.6 `rg -n "sourceDistance|source-distance|englishSkipped|verifyStamp|writeStamp|requiresStamp"`（排除 `openspec/`、`tools/gp-pipeline/`）只剩確認過的命中，寫進 PR 說明
 
 ## 4. gp-pipeline 不寫 GP、不配 GP 號（`gp-pipeline-publish-integrity`）
