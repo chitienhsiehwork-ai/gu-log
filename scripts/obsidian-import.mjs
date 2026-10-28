@@ -6,11 +6,11 @@
 // Vault 草稿的樣貌（iPhone / Mac 在 Obsidian 裡寫的東西）：
 //
 //   ---
-//   series: SD               # SD / GP / MP / Lv
+//   series: SD               # SD / MP / Lv（GP 只由已上線的 MP 升格，不能匯入）
 //   title: "文章標題"
 //   summary: "一兩句話摘要"
-//   source: "ShroomDog Lab"            # SD 可省；GP/MP 必填
-//   sourceUrl: "https://..."           # SD 可省；GP/MP 必填
+//   source: "ShroomDog Lab"            # SD 可省；MP 必填
+//   sourceUrl: "https://..."           # SD 可省；MP 必填
 //   author: "@foo on X"                # 選填
 //   tags: [ai-agent, memory]           # 選填
 //   originalDate: 2026-04-11            # 選填，省略 = 今天
@@ -198,7 +198,7 @@ function buildFrontmatter(draft, ticketId, _slug) {
   if (draft.author) fm.author = draft.author;
   if (draft.tags && draft.tags.length) fm.tags = draft.tags;
 
-  const role = series === 'GP' ? 'Translator' : 'Author';
+  const role = 'Author';
   fm.translatedBy = {
     model: draft.model,
     harness: draft.harness,
@@ -270,7 +270,7 @@ function importOne(draftPath, { dryRun = false } = {}) {
   let body = parsed.content;
 
   if (!draft.series) {
-    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / GP / MP / Lv)`);
+    throw new Error(`[${draftPath}] frontmatter 缺 series (SD / MP / Lv)`);
   }
   if (!draft.title) {
     throw new Error(`[${draftPath}] frontmatter 缺 title`);
@@ -280,16 +280,20 @@ function importOne(draftPath, { dryRun = false } = {}) {
   }
   const series = String(draft.series).toUpperCase();
   if (series === 'SP' || series === 'CP') {
-    const replacement = series === 'SP' ? 'GP' : 'MP';
-    throw new Error(`[${draftPath}] series "${draft.series}" 已停用，請改用 ${replacement}`);
+    throw new Error(`[${draftPath}] series "${draft.series}" 已停用，請改用 MP`);
   }
-  if (!['SD', 'GP', 'MP', 'LV'].includes(series)) {
-    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / GP / MP / Lv`);
+  if (series === 'GP') {
+    throw new Error(
+      `[${draftPath}] series GP 不能匯入：先改用 MP 上線，ShroomDog 指定後再用 scripts/reclassify-post.mjs 升格`
+    );
+  }
+  if (!['SD', 'MP', 'LV'].includes(series)) {
+    throw new Error(`[${draftPath}] series "${draft.series}" 不合法，必須是 SD / MP / Lv`);
   }
   const seriesKey = series === 'LV' ? 'Lv' : series;
 
-  // GP/MP 必填 source / sourceUrl
-  if ((seriesKey === 'GP' || seriesKey === 'MP') && (!draft.source || !draft.sourceUrl)) {
+  // MP 必填 source / sourceUrl
+  if (seriesKey === 'MP' && (!draft.source || !draft.sourceUrl)) {
     throw new Error(`[${draftPath}] ${seriesKey} 系列必填 source + sourceUrl`);
   }
 
