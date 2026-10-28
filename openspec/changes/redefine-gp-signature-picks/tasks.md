@@ -48,7 +48,7 @@
 - [x] 6.2 `src/pages/index.astro`、`src/pages/en/index.astro`：只在至少有一篇過 publish bar 的 GP 時輸出 GP `<section>`，刪掉用不到的空狀態元素與樣式；副標改成招牌文章；GP 卡片的「原文：」／`Original:` 改成跟 MP 卡片一樣的「來源材料」／`Source material:`
 - [x] 6.3 `src/pages/gu-log-picks/[...page].astro`、`src/pages/en/gu-log-picks/[...page].astro`：副標與卡片的來源標示同 6.2
 - [x] 6.4 `src/pages/posts/[...slug].astro`、`src/pages/en/posts/[...slug].astro`：GP 跟 MP 一樣顯示「來源材料」／`Source material`；`src/components/ArticleTechnicalDetails.astro` 刪 `reading-guide` 模式
-- [ ] 6.5 `src/pages/about.astro`、`src/pages/en/about.astro`、`scripts/article-counter.json` 的系列說明改成 MP 日常、GP 招牌，刪來源距離章段落
+- [x] 6.5 `src/pages/about.astro`、`src/pages/en/about.astro`、`scripts/article-counter.json` 的系列說明改成 MP 日常、GP 招牌，刪來源距離章段落
 - [ ] 6.6 測試：`tests/helpers/gp-listing.ts` 的 `expectGpHomeBlock` 處理沒有 GP 區；`tests/mp-editorial-identity.spec.ts` 的 About 與 GP-1 斷言；`tests/spec-ownership.json` 兩筆 reason 拿掉「reading guides」「reading-guide」的說法；`.github/workflows/deploy-smoke-test.yml` 與 `tests/deploy-smoke-workflow.test.ts` 不提導讀
 - [ ] 6.7 視覺改動跑雙主題截圖檢查（Claude Code 用 `uiux-auditor`）
 
