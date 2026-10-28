@@ -26,7 +26,7 @@
 
 ## 4. gp-pipeline 不寫 GP、不配 GP 號（`gp-pipeline-publish-integrity`）
 
-- [ ] 4.1 把 GP 加進既有的 Lv 拒絕（`internal/pipeline/authoring.go`），在任何副作用前擋下 `run`、`write`、`review`、`refine`、`ralph` 處理 GP；錯誤訊息依系列指路（GP 指向 `--prefix MP` 與上線後升格）。`counter bump --prefix GP` 與替 `GP-PENDING` 配號的 `deploy`（含 `run` 的 deploy 步驟）也拒絕。新增 `cmd/gp-pipeline/gp_refusal_test.go`（改名後擋 Lv 與 GP 的四條要求）
+- [x] 4.1 把 GP 加進既有的 Lv 拒絕（`internal/pipeline/authoring.go`），在任何副作用前擋下 `run`、`write`、`review`、`refine`、`ralph` 處理 GP；錯誤訊息依系列指路（GP 指向 `--prefix MP` 與上線後升格）。`counter bump --prefix GP` 與替 `GP-PENDING` 配號的 `deploy`（含 `run` 的 deploy 步驟）也拒絕。新增 `cmd/gp-pipeline/gp_refusal_test.go`（改名後擋 Lv 與 GP 的四條要求）
 - [ ] 4.2 GP 仍可用的步驟（`dedup`、`translate`、`credits`、`run --file <已配號的 GP 檔> --from-step translate|deploy`）照常，缺的測試補上
 - [ ] 4.3 同一個 commit 刪導讀分支：`run.go`、`state.go` 的 GP 步驟與欄位，`ralph.go` 的 GP 分支，`guide.go`（`containsShroomDogNote`、`rejectShroomDogNote` 搬到 `internal/pipeline/shroomdognote.go`），`sourcedistance.go`、`cmd/gp-pipeline/stamp.go`、`internal/llm/aligner.go`、`align.tmpl`，write／review／refine／translate 模板的 GP 分支，`eval-codex.tmpl`、`eval-gemini.tmpl` 的 GP 導讀分支，`internal/pipeline/eval.go` 的「GP-worthy」訊息改成不分系列，`translate.go` 的逐字檢查；測試同步（「以退役的 source-distance 步驟恢復」）
 - [ ] 4.4 移除 aligner 角色：`internal/llm/` 的 routing 與 dispatcher、`cmd/gp-pipeline/llm_helper.go`、`doctor.go`、`config/llm-pipeline.json`、`scripts/tribunal-model-router.sh`、`.claude/agents/source-aligner.md`、`scripts/crontab-tribunal.example`；`scripts/tests/test-tribunal-model-router.sh` 加 `aligner` 回 unknown role

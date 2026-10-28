@@ -59,7 +59,7 @@ pipeline runs `+"`codex exec`"+` in (cd $WORK_DIR && …).`, authorableSeries(" 
 // ticket ID, its series (which picks the prompt), and the absolute work dir
 // (--work-dir, or the --draft directory). The ticket is --ticket-id, or
 // the drafts' frontmatter ticketId when the flag is unset (see draftTicket).
-// An Lv ticket is refused, and so is an Lv draft whatever --ticket-id says:
+// An Lv or GP ticket is refused, and so is such a draft whatever --ticket-id says:
 // --draft and the work dir's draft-v1.mdx, the file the model actually reads.
 // Every check comes before any work dir or model.
 func draftIngress(command, draftPath, workDir, ticketID string) (ticket, prefix, absWorkDir string, err error) {
@@ -81,7 +81,7 @@ func draftIngress(command, draftPath, workDir, ticketID string) (ticket, prefix,
 	if absWorkDir, err = filepath.Abs(workDir); err != nil {
 		return "", "", "", err
 	}
-	if err := pipeline.RefuseLvFiles(command, absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")); err != nil {
+	if err := pipeline.RefuseUnauthorableFiles(command, absDraft, filepath.Join(absWorkDir, "draft-v1.mdx")); err != nil {
 		return "", "", "", err
 	}
 	if ticketID == "" {
@@ -93,14 +93,14 @@ func draftIngress(command, draftPath, workDir, ticketID string) (ticket, prefix,
 }
 
 // authorableTicketPrefix returns the series of a canonical ticket ID and
-// refuses Lv, which gp-pipeline does not write.
+// refuses Lv and GP, which gp-pipeline does not write.
 func authorableTicketPrefix(command, ticketID string) (string, error) {
 	prefix, err := counter.PrefixOfTicketID(ticketID)
 	if err != nil {
 		return "", err
 	}
 	if !pipeline.IsAuthorable(prefix) {
-		return "", pipeline.LvAuthoringError(command)
+		return "", pipeline.AuthoringError(command, prefix)
 	}
 	return prefix, nil
 }

@@ -555,7 +555,7 @@ func TestWriteReviewAndRefineSetAsideAnEarlierOutput(t *testing.T) {
 				if got := mustRead(t, path); got != tc.want {
 					t.Fatalf("%s = %q, want %q", step.output, got, tc.want)
 				}
-				if isLv, _ := isLvFile(path); isLv && !tc.wantErr {
+				if RefuseLvFiles("", path) != nil && !tc.wantErr {
 					t.Fatalf("%s is still the earlier Lv post", step.output)
 				}
 			})

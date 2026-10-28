@@ -123,7 +123,9 @@ Without --file, --prefix is required and names a series the pipeline writes
 when --from-step skips the fetch stage and no tweet URL is given. With
 --file, the file's series (gp-/mp-/sd-/lv-/levelup-) decides the run, and an
 explicit --prefix must match it. Lv is written by hand (see CONTRIBUTING.md),
-so an Lv file only resumes from translate or deploy.
+and GP is a published MP that ShroomDog promotes with
+scripts/reclassify-post.mjs, so an Lv or GP file only resumes from translate
+or deploy.
 --from-step source-distance (GP only) re-pairs and re-scores the work dir's
 final.mdx without rewriting the draft.
 
@@ -213,19 +215,20 @@ func runRun(ctx context.Context, state *rootState, opts runOpts) error {
 		}
 		fromStepInt = v
 	}
-	// The pipeline does not write Lv: an Lv run may only resume an Lv file at
-	// translate or deploy, and the refusal comes before the yt-dlp preflight
-	// and the work dir. Without a file there is nothing to publish, and the
-	// credits step would stamp the work dir's final.mdx.
+	// The pipeline does not write Lv or GP: such a run may only resume an
+	// existing file of that series at translate or deploy, and the refusal
+	// comes before the yt-dlp preflight and the work dir. Without a file there
+	// is nothing to publish, the credits step would stamp the work dir's
+	// final.mdx, and a GP deploy would allocate a GP number.
 	if !pipeline.IsAuthorable(opts.Prefix) && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
-		return pipeline.LvAuthoringError("run")
+		return pipeline.AuthoringError("run", opts.Prefix)
 	}
 	// A run resumed after write reuses the work dir's draft-v1.mdx and
-	// final.mdx, so an Lv draft left there is refused like an Lv series and
-	// over the same range: without --file, a deploy start also reuses the
+	// final.mdx, so an Lv or GP draft left there is refused like that series
+	// and over the same range: without --file, a deploy start also reuses the
 	// work dir's final.mdx, and credits is not skipped.
 	if flagWorkDir != "" && fromStepInt > pipeline.StepWrite && (opts.ExistingFile == "" || fromStepInt < pipeline.StepTranslate) {
-		if err := pipeline.RefuseLvFiles("run", filepath.Join(flagWorkDir, "draft-v1.mdx"), filepath.Join(flagWorkDir, "final.mdx")); err != nil {
+		if err := pipeline.RefuseUnauthorableFiles("run", filepath.Join(flagWorkDir, "draft-v1.mdx"), filepath.Join(flagWorkDir, "final.mdx")); err != nil {
 			return err
 		}
 	}

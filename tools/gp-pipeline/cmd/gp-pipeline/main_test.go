@@ -482,7 +482,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
 	// Writing commands offer only the series the pipeline writes; the counter
-	// still serves every series, Lv included.
+	// still serves Lv, and allocates every series but GP.
 	for _, tc := range []struct {
 		name   string
 		args   []string
@@ -490,7 +490,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	}{
 		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}, series: pipeline.AuthorablePrefixes},
 		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}, series: pipeline.AuthorablePrefixes},
-		{name: "counter bump", args: []string{"counter", "bump"}, series: counter.ValidPrefixes},
+		{name: "counter bump", args: []string{"counter", "bump"}, series: bumpPrefixes},
 		{name: "counter next", args: []string{"counter", "next"}, series: counter.ValidPrefixes},
 		{name: "write", args: []string{"write", "--source", source}, series: pipeline.AuthorablePrefixes},
 	} {
@@ -514,8 +514,10 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 			if !strings.Contains(err.Error(), fmt.Sprint(tc.series)) {
 				t.Fatalf("error = %v, want the available series %v listed", err, tc.series)
 			}
-			if strings.Contains(err.Error(), "Lv") != slices.Contains(tc.series, "Lv") {
-				t.Fatalf("error = %v, want Lv named only when the command serves it", err)
+			for _, series := range []string{"Lv", "GP"} {
+				if strings.Contains(err.Error(), series) != slices.Contains(tc.series, series) {
+					t.Fatalf("error = %v, want %s named only when the command serves it", err, series)
+				}
 			}
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
 				t.Fatalf("missing --prefix created the work dir: %v", statErr)
@@ -525,77 +527,6 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 				t.Fatalf("missing --prefix changed the counter: %v", err)
 			}
 		})
-	}
-}
-
-// TestGPPassesIngress covers the removal of the GP pause: GP reaches the same
-// provider setup, counter, and deploy preflight as every other series. A
-// missing fake-provider spec proves the command got past ingress to its model
-// route instead of being refused as GP.
-func TestGPPassesIngress(t *testing.T) {
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	const gpPending = "gp-pending-20260723-author-title.mdx"
-	mustWrite(t, filepath.Join(postsDir, gpPending), "---\ntitle: \"GP\"\nticketId: GP-PENDING\nlang: zh-tw\n---\nbody\n")
-	source := filepath.Join(root, "source-tweet.md")
-	draft := filepath.Join(root, "draft-v1.mdx")
-	mustWrite(t, source, "source")
-	mustWrite(t, draft, "draft")
-	t.Setenv("GU_LOG_DIR", root)
-	missingFake := filepath.Join(root, "missing.json")
-
-	for _, tc := range []struct {
-		name string
-		args []string
-	}{
-		{name: "run", args: []string{"--fake-provider", missingFake, "run", "--prefix", "GP", "https://x.com/author/status/1"}},
-		{name: "write", args: []string{"--fake-provider", missingFake, "write", "--prefix", "GP", "--source", source}},
-		{name: "refine GP ticket", args: []string{"--fake-provider", missingFake, "refine", "--draft", draft, "--ticket-id", "GP-12"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			resetGlobals()
-			cmd := buildRoot()
-			cmd.SetArgs(append([]string{"--work-dir", filepath.Join(t.TempDir(), "work")}, tc.args...))
-			_, err := captureProcessStdout(t, func() error {
-				return cmd.ExecuteContext(context.Background())
-			})
-			if err == nil || !strings.Contains(err.Error(), "missing.json") {
-				t.Fatalf("error = %v, want GP to reach the provider route", err)
-			}
-			if strings.Contains(err.Error(), "暫停") {
-				t.Fatalf("GP was refused at ingress: %v", err)
-			}
-		})
-	}
-
-	resetGlobals()
-	cmd := buildRoot()
-	cmd.SetArgs([]string{"counter", "bump", "--prefix", "GP"})
-	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
-		t.Fatalf("counter bump --prefix GP: %v", err)
-	}
-	raw, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var counters map[string]struct {
-		Next int `json:"next"`
-	}
-	if err := json.Unmarshal(raw, &counters); err != nil {
-		t.Fatal(err)
-	}
-	if counters["GP"].Next != 11 {
-		t.Fatalf("GP counter next = %d, want 11 after one bump", counters["GP"].Next)
-	}
-
-	resetGlobals()
-	cmd = buildRoot()
-	cmd.SetArgs([]string{"deploy", "--active-file", gpPending, "--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title", "--dry-run"})
-	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
-		t.Fatalf("GP deploy dry-run preflight: %v", err)
 	}
 }
 
@@ -743,11 +674,10 @@ func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 
 // TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
 // series only changes whether Tribunal may rewrite (GP is score-only), and en-
-// sidecars must resolve instead of failing. The Lv refusal is covered in
-// lv_refusal_test.go.
+// sidecars must resolve instead of failing. The Lv and GP refusals are covered
+// in lv_refusal_test.go and gp_refusal_test.go.
 func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 	for filename, wantNoRewrite := range map[string]bool{
-		"gp-10-example.mdx":    true,
 		"mp-20-example.mdx":    false,
 		"sd-30-example.mdx":    false,
 		"en-sd-30-example.mdx": false,

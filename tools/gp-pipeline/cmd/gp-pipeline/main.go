@@ -59,7 +59,8 @@ func buildRoot() *cobra.Command {
 		Use:   "gp-pipeline",
 		Short: "gu-log source-grounded writing pipeline",
 		Long: fmt.Sprintf(`gp-pipeline is the Go implementation of gu-log's source-grounded writing
-flow for %s; Lv is written by hand (see CONTRIBUTING.md).
+flow for %s; Lv is written by hand (see CONTRIBUTING.md), and GP is a
+published MP that ShroomDog promotes with scripts/reclassify-post.mjs.
 The canonical entrypoint is tools/gp-pipeline/gp-pipeline; ticket prefixes
 are GP/MP/SD/Lv and post filename slugs are gp-/mp-/sd-/lv- (existing Lv
 posts keep levelup-). Commands that start without a file require --prefix:

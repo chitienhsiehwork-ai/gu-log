@@ -18,7 +18,7 @@ import (
 // model route, counter change, or file write (openspec
 // gp-pipeline-publish-integrity). A missing fake-provider spec makes a model
 // route fail with a different error, and trap programs on PATH record any
-// external call.
+// external call. The same refusal of GP is in gp_refusal_test.go.
 
 // trapExternalPrograms puts a recording stand-in for every external program a
 // command could reach first on PATH and returns the log they append to.
@@ -162,8 +162,8 @@ func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
 	if err := os.MkdirAll(postsDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	const gpFile = "gp-10-20261012-author-title.mdx"
-	mustWrite(t, filepath.Join(postsDir, gpFile), "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
+	const sdFile = "sd-10-20261012-author-title.mdx"
+	mustWrite(t, filepath.Join(postsDir, sdFile), "---\ntitle: \"SD\"\nticketId: SD-10\nlang: zh-tw\n---\nbody\n")
 	t.Setenv("GU_LOG_DIR", root)
 	trapLog := trapExternalPrograms(t)
 	runArgs := func(workDir string, args ...string) []string {
@@ -176,8 +176,8 @@ func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
 		args []string
 	}{
 		{name: "MP from review, Lv draft-v1.mdx", file: "draft-v1.mdx", args: []string{"--prefix", "MP", "--from-step", "review"}},
-		{name: "GP from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "GP", "--from-step", "ralph"}},
-		{name: "GP --file from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--file", gpFile, "--from-step", "ralph"}},
+		{name: "SD from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "SD", "--from-step", "ralph"}},
+		{name: "SD --file from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--file", sdFile, "--from-step", "ralph"}},
 		{name: "MP from deploy, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "MP", "--from-step", "deploy"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -191,8 +191,8 @@ func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
 			if got := dirNames(t, workDir); !slices.Equal(got, []string{tc.file}) {
 				t.Fatalf("work dir holds %v, want only %s", got, tc.file)
 			}
-			if got := dirNames(t, postsDir); !slices.Equal(got, []string{gpFile}) {
-				t.Fatalf("posts dir holds %v, want only %s", got, gpFile)
+			if got := dirNames(t, postsDir); !slices.Equal(got, []string{sdFile}) {
+				t.Fatalf("posts dir holds %v, want only %s", got, sdFile)
 			}
 		})
 	}
@@ -236,7 +236,7 @@ func TestReviewAndRefineRefuseLvDrafts(t *testing.T) {
 		}{
 			"--ticket-id Lv-PENDING":            {draft: "---\ntitle: \"Draft\"\n---\nbody\n", args: []string{"--ticket-id", "Lv-PENDING"}},
 			"Lv draft without --ticket-id":      {draft: "---\ntitle: \"Draft\"\nticketId: \"Lv-PENDING\"\n---\nbody\n"},
-			"unquoted Lv draft, GP --ticket-id": {draft: "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n", args: []string{"--ticket-id", "GP-PENDING"}},
+			"unquoted Lv draft, MP --ticket-id": {draft: "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n", args: []string{"--ticket-id", "MP-PENDING"}},
 		} {
 			t.Run(command+" "+name, func(t *testing.T) {
 				workDir := t.TempDir()
@@ -253,11 +253,11 @@ func TestReviewAndRefineRefuseLvDrafts(t *testing.T) {
 			})
 		}
 		// The model reads the work dir's draft-v1.mdx, which need not be --draft.
-		t.Run(command+" GP --draft, Lv draft-v1.mdx in --work-dir", func(t *testing.T) {
-			const gpDraft = "---\ntitle: \"Draft\"\nticketId: GP-PENDING\n---\nbody\n"
+		t.Run(command+" MP --draft, Lv draft-v1.mdx in --work-dir", func(t *testing.T) {
+			const mpDraft = "---\ntitle: \"Draft\"\nticketId: MP-PENDING\n---\nbody\n"
 			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
 			draft := filepath.Join(t.TempDir(), "draft-v1.mdx")
-			mustWrite(t, draft, gpDraft)
+			mustWrite(t, draft, mpDraft)
 			workDir := t.TempDir()
 			read := filepath.Join(workDir, "draft-v1.mdx")
 			mustWrite(t, read, lvDraft)
@@ -430,53 +430,6 @@ func TestSDRunPassesLvRefusal(t *testing.T) {
 		"run", "https://x.com/author/status/1", "--prefix", "SD")
 	if err == nil || !strings.Contains(err.Error(), "missing.json") || strings.Contains(err.Error(), "CONTRIBUTING.md") {
 		t.Fatalf("error = %v, want SD to reach its model route", err)
-	}
-}
-
-// TestSeriesHelpMatchesWhatEachCommandServes: the writing commands offer only
-// the series the pipeline writes, while the commands Lv still uses keep
-// offering Lv.
-func TestSeriesHelpMatchesWhatEachCommandServes(t *testing.T) {
-	root := buildRoot()
-	for _, tc := range []struct {
-		path   []string
-		flag   string
-		wantLv bool
-	}{
-		{path: []string{"write"}, flag: "prefix"},
-		{path: []string{"run"}, flag: "prefix"},
-		{path: []string{"counter", "bump"}, flag: "prefix", wantLv: true},
-		{path: []string{"counter", "next"}, flag: "prefix", wantLv: true},
-		{path: []string{"dedup"}, flag: "series", wantLv: true},
-		{path: []string{"deploy"}, flag: "prefix", wantLv: true},
-	} {
-		t.Run(strings.Join(tc.path, " "), func(t *testing.T) {
-			cmd, _, err := root.Find(tc.path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			flag := cmd.Flags().Lookup(tc.flag)
-			if flag == nil {
-				t.Fatalf("no --%s flag", tc.flag)
-			}
-			for _, series := range pipeline.AuthorablePrefixes {
-				if !strings.Contains(flag.Usage, series) {
-					t.Errorf("--%s usage %q does not list %s", tc.flag, flag.Usage, series)
-				}
-			}
-			if got := strings.Contains(flag.Usage, "Lv"); got != tc.wantLv {
-				t.Errorf("--%s usage %q lists Lv = %v, want %v", tc.flag, flag.Usage, got, tc.wantLv)
-			}
-		})
-	}
-	for _, name := range []string{"write", "review", "refine"} {
-		cmd, _, err := root.Find([]string{name})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(cmd.Long, "Lv") {
-			t.Errorf("%s --help still names Lv among the series it writes", name)
-		}
 	}
 }
 

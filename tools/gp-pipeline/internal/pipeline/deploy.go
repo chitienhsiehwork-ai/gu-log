@@ -64,6 +64,11 @@ func (s *State) Deploy(ctx context.Context) error {
 		return nil
 	}
 
+	// A fresh deploy allocates a number, and GP numbers come only from
+	// ReclassifyScript; the CLI refuses this earlier, this keeps any caller out.
+	if s.Prefix == "GP" {
+		return GPAllocationError("deploy")
+	}
 	if err := s.hydrateTitleFromActiveFile(); err != nil {
 		return err
 	}
