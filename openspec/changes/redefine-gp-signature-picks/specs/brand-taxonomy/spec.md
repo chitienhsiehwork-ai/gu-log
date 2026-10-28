@@ -54,7 +54,7 @@ A later editorial correction or reclassification MAY replace that article with a
 
 ### Requirement: Canonical series routes, CLI paths and legacy redirects SHALL match the taxonomy
 
-Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated filename `gp-N-YYYYMMDD-slug.mdx`, and pending filename `gp-pending-YYYYMMDD-slug.mdx`（English pair adds `en-`）. Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, allocated filename `mp-N-YYYYMMDD-slug.mdx`, pending filename `mp-pending-YYYYMMDD-slug.mdx`, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical article pipeline CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
+Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated filename `gp-N-YYYYMMDD-slug.mdx`（English pair adds `en-`）, and no pending filename, because a GP only comes from promoting a published MP (`gp-signature-picks`). Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, allocated filename `mp-N-YYYYMMDD-slug.mdx`, pending filename `mp-pending-YYYYMMDD-slug.mdx`, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical article pipeline CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
 
 Series identity SHALL come from `ticketId`; content-type tags `clawd-picks`, `mogu-picks`, `shroom-picks`, `shroomdog-picks`, and any transitional `gu-log-picks` SHALL be removed without replacement.
 

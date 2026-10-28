@@ -1,6 +1,6 @@
 ## Purpose
 
-定義 GP（Gu-log Picks）這個招牌系列：誰能指定 GP、怎麼由 MP 升格、升格要過的門檻、`scripts/reclassify-post.mjs` 怎麼搬檔、列表與首頁怎麼呈現，以及 gp-pipeline 為什麼不寫 GP。GP 的寫作與 grounding 規則跟 MP 相同，以 `editorial-charter` 為準。
+定義 GP（Gu-log Picks）這個招牌系列：誰能指定 GP、怎麼由已上線的 MP 升格、升格要過的 publish bar、`scripts/reclassify-post.mjs` 怎麼搬檔、怎麼擋下沒過 publish bar 就變成 GP 的檔案，以及列表與首頁怎麼呈現。GP 的寫作與 grounding 規則跟 MP 相同，以 `editorial-charter` 為準；gp-pipeline 不撰寫 GP，見 `gp-pipeline-publish-integrity`。
 
 ## ADDED Requirements
 
@@ -35,9 +35,15 @@ GP 是 ShroomDog 親自指定、代表 gu-log 品質的招牌文章。升格不�
 - **THEN** agent MAY 說「可能夠格當招牌」
 - **AND** 文章與 ticket SHALL 仍是 MP
 
-### Requirement: GP MUST 由 MP 升格而來
+### Requirement: GP MUST 由已上線的 MP 升格而來
 
-每篇 GP SHALL 先照 MP 流程寫成 MP，ShroomDog 指定後用 `scripts/reclassify-post.mjs` 升格；升格當下 SHALL 已有 Tribunal PASS（判定以 `tribunal-scoring-dimensions` 為準）。還沒上線的改成 `GP-PENDING`，已上線的配新的 GP 號、舊網址轉到新網址，做法見本 spec 的改系列要求。PASS 是升格門檻，不是持續條件：升格後重評沒過 SHALL NOT 擋下 commit、SHALL NOT 讓 GP 下線，只依 `publish-bar-visibility` 不上首頁。
+每篇新的 GP SHALL 是已上線的 MP，在 ShroomDog 指定後用 `scripts/reclassify-post.mjs` 升格：配新的 GP 號，舊的 MP 網址轉到新網址。SHALL NOT 有上線前就是 GP 的草稿（`GP-PENDING`），GP 號 SHALL NOT 由其他配號路徑配出（`scripts/allocate-ticket.mjs`、gp-pipeline 的 `counter`、`deploy`）。升格當下文章 SHALL 通過 publish bar（`publish-bar-visibility`，實作是 `src/utils/tribunal-scores.ts` 的 `meetsPublishBar`）。publish bar 是升格門檻，不是持續條件：升格後重評沒過 SHALL NOT 擋下 commit、SHALL NOT 讓 GP 下線，只依 `publish-bar-visibility` 不上首頁。
+
+#### Scenario: 上線前就說要當 GP
+
+- **WHEN** ShroomDog 在文章上線前就說它要當 GP
+- **THEN** 文章 SHALL 照 MP 流程寫完、以 MP 上線，通過 publish bar 後再升格
+- **AND** SHALL NOT 產生 `GP-PENDING` 草稿
 
 #### Scenario: 升格後重評沒過
 
@@ -46,9 +52,34 @@ GP 是 ShroomDog 親自指定、代表 gu-log 品質的招牌文章。升格不�
 - **THEN** pre-commit 與 CI SHALL NOT 因為它是 GP 而擋下這個 commit
 - **AND** 它 SHALL 留在原本的 GP 網址，首頁依 `publish-bar-visibility` 不放它
 
-### Requirement: GP 列表 SHALL 只列公開的招牌文章，沒有時首頁不顯示 GP 區
+### Requirement: 新變成 GP 的檔案 SHALL 在 pre-commit 與 CI 通過 publish bar
 
-GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 只列公開的 GP，排除下架墓碑與示範文 GP-1。首頁有可列的 GP 時照舊放最新、過 publish bar 的前 3 篇；一篇都沒有時，首頁 SHALL NOT 輸出 GP 區。GP 系列頁 SHALL 一律回 200，沒有可列的 GP 時顯示中性的空狀態。
+Pre-commit 與 CI SHALL 用同一支檢查比較基準版本與新版本：新版本是 GP、而基準版本沒有這個檔或它不是 GP 的文章檔（新增、改名或改了 `ticketId`），分數 SHALL 通過 `meetsPublishBar`，否則失敗；`GP-PENDING` 的檔案一律失敗。基準版本已經是 GP 的檔案（例如只寫回分數、下架）SHALL NOT 被這條檢查。取不到基準版本時 SHALL 失敗，不得當成通過。
+
+#### Scenario: 升格的文章沒過 publish bar
+
+- **WHEN** 一個變更把 MP 改成 GP（含 `git mv` 改名），而新的 GP 檔沒通過 `meetsPublishBar`
+- **THEN** pre-commit 與 CI SHALL 失敗，並指出檔案
+
+#### Scenario: 升格的文章通過 publish bar
+
+- **WHEN** 一個變更把通過 `meetsPublishBar` 的 MP 改成 GP
+- **THEN** 這條檢查 SHALL NOT 失敗
+
+#### Scenario: 既有 GP 寫回較低的分數
+
+- **GIVEN** 一個檔案在基準版本已經是 GP
+- **WHEN** 變更只改了它的分數，而新分數沒通過 `meetsPublishBar`
+- **THEN** 這條檢查 SHALL NOT 失敗
+
+#### Scenario: 新增 GP-PENDING 檔
+
+- **WHEN** 一個變更新增 `gp-pending-` 或 `en-gp-pending-` 檔
+- **THEN** pre-commit 與 CI SHALL 失敗
+
+### Requirement: GP 列表 SHALL 只列公開的招牌文章，首頁沒有能放的 GP 時不顯示 GP 區
+
+GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 只列公開的 GP，排除下架墓碑與示範文 GP-1。首頁 SHALL 只在至少有一篇過 publish bar、能上首頁的 GP 時輸出 GP 區，最多放最新的 3 篇；一篇都沒有時，首頁 SHALL NOT 輸出 GP 區。GP 系列頁 SHALL 一律回 200，沒有可列的 GP 時顯示中性的空狀態。
 
 #### Scenario: 讀者開啟 GP 系列頁
 
@@ -61,20 +92,20 @@ GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 
 - **THEN** 繁中頁 SHALL 顯示「還沒有招牌文章。」，英文頁 SHALL 顯示 "No signature picks yet."
 - **AND** 頁面 SHALL NOT 宣稱 GP 暫停或改版中
 
-#### Scenario: 首頁沒有可列的 GP
+#### Scenario: 首頁沒有能放的 GP
 
-- **WHEN** 沒有可列的 GP，讀者開啟繁中或英文首頁
+- **WHEN** 沒有任何過 publish bar、能上首頁的 GP，讀者開啟繁中或英文首頁
 - **THEN** 首頁 SHALL NOT 輸出 GP 區的標題、副標、空狀態或「查看全部」
 - **AND** 其他系列的區塊 SHALL 照常顯示
 
-#### Scenario: 首頁有可列的 GP
+#### Scenario: 首頁有能放的 GP
 
-- **WHEN** 至少有一篇可列的 GP
-- **THEN** 首頁 SHALL 顯示 GP 區，最多放最新、過 publish bar 的 3 篇
+- **WHEN** 至少有一篇過 publish bar、能上首頁的 GP
+- **THEN** 首頁 SHALL 顯示 GP 區，最多放最新的 3 篇
 
 ### Requirement: 改系列 SHALL 只用一支指令，兩種語言一起搬
 
-文章在 GP 與 MP 之間移動 SHALL 使用 `scripts/reclassify-post.mjs <ticketId> <GP|MP>`。已上線的文章跑一次 SHALL 取目標系列 counter 的 next 號並推進、既有的語言檔一起搬、每個舊的公開網址在 `brand-taxonomy` 的遷移清單加一筆、舊別名與 repo 內的連結改指新文章，最後跑 `scripts/validate-posts.mjs`。
+已上線的文章在 GP 與 MP 之間移動 SHALL 使用 `scripts/reclassify-post.mjs <ticketId> <GP|MP>`。跑一次 SHALL 取目標系列 counter 的 next 號並推進、既有的語言檔一起搬、每個舊的公開網址在 `brand-taxonomy` 的遷移清單加一筆、舊別名與 repo 內的連結改指新文章，最後跑 `scripts/validate-posts.mjs`。
 
 #### Scenario: 已上線的 GP 改回 MP
 
@@ -86,7 +117,7 @@ GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 
 
 #### Scenario: 已上線的 MP 升格成 GP
 
-- **GIVEN** `MP-N` 的分數達到 Tribunal PASS，ShroomDog 指定它是 GP
+- **GIVEN** `MP-N` 通過 `meetsPublishBar`，ShroomDog 指定它是 GP
 - **WHEN** 操作者執行 `scripts/reclassify-post.mjs MP-N GP`
 - **THEN** 這篇 SHALL 取 GP counter 的 next 號，GP counter SHALL 推進
 - **AND** 舊的 MP 網址 SHALL 以 HTTP 308 轉到新的 GP 網址
@@ -114,33 +145,16 @@ GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 
 - **WHEN** 最後的 `scripts/validate-posts.mjs` 失敗
 - **THEN** 指令 SHALL 以非 0 結束並印出 validator 的輸出
 
-### Requirement: 上線前的草稿 SHALL 用同一支指令換系列
-
-還沒上線的 `MP-PENDING`／`GP-PENDING` 草稿，指令 SHALL 把每個既有語言檔改名成目標系列的 pending 開頭（日期與標題 slug 不變），`ticketId` 換成目標系列的 `PENDING`；SHALL NOT 配號、改 counter、寫遷移清單或改連結。同一個 pending ticket 有好幾篇草稿時，操作者 SHALL 指定繁中檔名。
-
-#### Scenario: 上線前指定成 GP
-
-- **GIVEN** `mp-pending-` 的繁中與英文草稿分數達到 Tribunal PASS，ShroomDog 指定它是 GP
-- **WHEN** 操作者執行 `scripts/reclassify-post.mjs MP-PENDING GP`
-- **THEN** 兩個檔 SHALL 都是 `GP-PENDING`，檔名改成 `gp-pending-`／`en-gp-pending-` 開頭
-- **AND** `scripts/article-counter.json` 與遷移清單 SHALL 不變，之後配號 SHALL 用 GP counter
-
-#### Scenario: 好幾篇草稿共用 pending ticket
-
-- **GIVEN** 有兩篇 `MP-PENDING` 草稿
-- **WHEN** 操作者只給 `MP-PENDING`、沒給檔名
-- **THEN** 指令 SHALL 以非 0 結束、什麼都不改，並要求改用繁中檔名
-
 ### Requirement: 改系列 SHALL 在動手前拒絕不合法的移動
 
-`scripts/reclassify-post.mjs` SHALL 先檢查輸入，下列情況 SHALL 以非 0 結束、什麼都不改：目標不存在、不是 GP 或 MP、已下架、已在目標系列、pending ticket 有歧義，或移到 GP 卻沒有達到 Tribunal PASS 的分數（`tribunal-scoring-dimensions`）。PASS 只是升格門檻：GP 改回 MP 不需要 PASS。
+`scripts/reclassify-post.mjs` SHALL 先檢查輸入，下列情況 SHALL 以非 0 結束、什麼都不改：目標不存在、不是 GP 或 MP、還沒上線（`PENDING`）、已下架、已在目標系列，或移到 GP 卻沒通過 `meetsPublishBar`。publish bar 只是升格門檻：GP 改回 MP 不需要通過。
 
-#### Scenario: 沒有 PASS 的升格
+#### Scenario: 沒過 publish bar 的升格
 
-- **GIVEN** `MP-N` 或 `MP-PENDING` 草稿缺少某位評審的分數，或有評審沒過
+- **GIVEN** `MP-N` 缺少某位評審的分數，或有評審沒過
 - **WHEN** 操作者要把它移到 GP
 - **THEN** 指令 SHALL 在改任何檔案、counter 或遷移清單之前以非 0 結束
-- **AND** 訊息 SHALL 說明要先有 Tribunal PASS 才能成為 GP
+- **AND** 訊息 SHALL 說明要先通過 publish bar 才能成為 GP
 
 #### Scenario: 已下架的文章
 
@@ -150,100 +164,11 @@ GP 系列頁（`/gu-log-picks`、`/en/gu-log-picks`）與首頁的 GP 區 SHALL 
 
 #### Scenario: 不在範圍的 ticket
 
-- **WHEN** ticket 是 SD 或 Lv、不存在，或已經在目標系列
+- **WHEN** ticket 是 SD 或 Lv、是 `MP-PENDING` 或 `GP-PENDING`、不存在，或已經在目標系列
 - **THEN** 指令 SHALL 以非 0 結束、什麼都不改
 
-#### Scenario: 沒過 PASS 的 GP 改回 MP
+#### Scenario: 沒過 publish bar 的 GP 改回 MP
 
-- **GIVEN** 一篇已上線的 GP，之後的 Tribunal 分數沒過 PASS
+- **GIVEN** 一篇已上線的 GP，之後的 Tribunal 分數沒過 publish bar
 - **WHEN** 操作者執行 `scripts/reclassify-post.mjs GP-N MP`
-- **THEN** 指令 SHALL NOT 因為沒有 PASS 而拒絕
-
-### Requirement: gp-pipeline SHALL NOT 撰寫、改寫或評審 GP
-
-GP 只能由 MP 升格，所以 gp-pipeline 會撰寫、改寫或評審 GP 的入口遇到 GP 時 SHALL 以 exit code 1 失敗，SHALL NOT 改用其他系列繼續。這些入口是：`run` 處理 GP（含 `--prefix GP` 與工作目錄裡會被沿用的 GP 草稿），除非是 `run --file <GP 檔>` 從 `translate` 或 `deploy` 恢復；`write --prefix GP`；`review`、`refine` 的 `--ticket-id` 或草稿 frontmatter 的 `ticketId` 是 GP；`ralph` 的目標檔是 GP 檔，也就是檔名系列（含 `en-` 前綴）或 frontmatter 的 `ticketId` 是 GP。
-
-#### Scenario: 用 run 從網址寫 GP
-
-- **WHEN** 操作者執行 `gp-pipeline run <url> --prefix GP`，有沒有帶 `--dry-run` 都一樣
-- **THEN** 指令 SHALL 以 exit code 1 結束
-- **AND** SHALL NOT 建立工作目錄、抓取來源或呼叫任何模型，`scripts/article-counter.json` SHALL 不變
-
-#### Scenario: 以 GP 檔從寫作或評審步驟恢復
-
-- **WHEN** 操作者以 `run --file <gp- 開頭的檔案>` 執行，沒有帶 `--from-step`，或 `--from-step` 是 `translate` 之前的步驟
-- **THEN** 指令 SHALL 以 exit code 1 結束
-- **AND** SHALL NOT 建立工作目錄或呼叫任何模型，GP 檔 SHALL 不變
-
-#### Scenario: 從放著 GP 草稿的工作目錄恢復
-
-- **WHEN** 操作者以 `run --work-dir <目錄>` 從 `write` 之後的步驟恢復（帶 `--file` 時只算 `translate` 之前的步驟），而目錄裡的 `draft-v1.mdx` 或 `final.mdx` 是 GP，不論 `--prefix` 或 `--file` 是哪個系列
-- **THEN** 指令 SHALL 以 exit code 1 結束
-- **AND** SHALL NOT 呼叫任何模型，工作目錄裡的檔案 SHALL 不變，也 SHALL NOT 產生新的文章檔
-
-#### Scenario: 單步 write、review 或 refine 處理 GP
-
-- **WHEN** 操作者執行 `gp-pipeline write --prefix GP --source <檔案>`，或 `review`、`refine` 的 `--ticket-id` 是 `GP-PENDING`，或沒帶 `--ticket-id` 但草稿的 `ticketId` 是 `GP-PENDING`
-- **THEN** 指令 SHALL 以 exit code 1 結束
-- **AND** SHALL NOT 呼叫任何模型，也 SHALL NOT 產生或改動工作目錄裡的草稿
-
-#### Scenario: 單步 ralph 處理 GP 檔
-
-- **WHEN** 操作者以 GP 檔執行 `gp-pipeline ralph --file <檔名>`
-- **THEN** 指令 SHALL 以 exit code 1 結束
-- **AND** SHALL NOT 執行 `scripts/tribunal.sh` 或 post-fixer，目標檔 SHALL 不變
-
-#### Scenario: MP 與 SD 不受影響
-
-- **WHEN** 操作者執行 `gp-pipeline run <url> --prefix MP` 或 `--prefix SD`，或以 MP、SD 檔執行 `gp-pipeline ralph --file`
-- **THEN** 這條要求 SHALL NOT 擋下這次執行，步驟與 exit code SHALL 維持原樣
-
-### Requirement: 拒絕 GP SHALL 發生在任何副作用之前，並指向先寫 MP
-
-上一條要求的拒絕 SHALL 發生在建立工作目錄、外部工具與 provider 的 preflight（例如 yt-dlp）、抓取來源、模型呼叫、counter 異動與任何檔案寫入之前；`--dry-run` SHALL NOT 改變這個判斷。錯誤訊息 SHALL 說明 pipeline 不直接寫 GP：先用 `--prefix MP` 寫成 MP，GP 只能在 ShroomDog 指定後由 MP 升格；並列出 GP 仍可用的步驟。
-
-#### Scenario: 錯誤訊息指向 MP
-
-- **WHEN** 操作者執行 `gp-pipeline run <url> --prefix GP`
-- **THEN** 錯誤訊息 SHALL 含 `--prefix MP`，並說明 GP 由 ShroomDog 指定後從 MP 升格
-
-#### Scenario: 缺少 yt-dlp 時仍先擋 GP
-
-- **WHEN** 環境裡沒有 yt-dlp，操作者執行 `gp-pipeline run <YouTube 網址> --prefix GP`
-- **THEN** 指令 SHALL 以 exit code 1 結束，而不是缺少 yt-dlp 的 exit code 10
-
-### Requirement: GP SHALL 仍可使用 pipeline 的非寫作步驟
-
-GP 的 `counter`、`fetch`、`eval`、`dedup`、`translate`、`credits`、standalone `deploy`，以及 `run --file <GP 檔>` 從 `translate` 或 `deploy` 開始的恢復，SHALL 照常運作，行為與 exit code SHALL NOT 因上面的拒絕而改變。已改成 `GP-PENDING` 的文章 SHALL 能用這些步驟從 GP counter 配號並發布。
-
-#### Scenario: 上線前指定的 GP 配號
-
-- **GIVEN** 繁中與英文草稿已用 `scripts/reclassify-post.mjs` 改成 `gp-pending-` 檔
-- **WHEN** 操作者執行 standalone `deploy --active-file <gp-pending 檔>`，或 `run --file <gp-pending 檔> --from-step deploy`
-- **THEN** pipeline SHALL 從 GP counter 配號並改名，MP counter SHALL 不變
-
-#### Scenario: 替 GP 檔補英文版
-
-- **WHEN** 操作者執行 `translate --file <既有 GP 檔>` 或 `run --file <既有 GP 檔> --from-step translate`
-- **THEN** pipeline SHALL 照 MP 相同的翻譯流程產生英文 sidecar
-- **AND** SHALL NOT 對英文版跑 GP 專屬的逐字檢查
-
-### Requirement: 寫作指令的說明與錯誤訊息 SHALL NOT 邀請撰寫 GP
-
-`write`、`review`、`refine` 的說明，`run`、`candidate` 與 root help 裡描述可撰寫系列的文字，以及 `run`、`write` 缺少 `--prefix` 時列出的可用系列，SHALL NOT 把 GP 列為 pipeline 可以撰寫的系列，也 SHALL NOT 描述 GP 專屬的步驟。`run --help` SHALL 說明 GP 由 MP 升格、GP 檔只能從 `translate` 或 `deploy` 恢復。`counter`、`dedup`、`deploy` 等非寫作指令的說明 SHALL 繼續列出 GP。
-
-#### Scenario: 查看 run 的說明
-
-- **WHEN** 操作者執行 `gp-pipeline run --help`
-- **THEN** 說明 SHALL NOT 列出 `post-fixer` 或 `source-distance` 這類 GP 專屬步驟，也 SHALL NOT 把 GP 描述成導讀
-- **AND** SHALL 說明 GP 由 MP 升格、GP 檔只能從 `translate` 或 `deploy` 恢復
-
-#### Scenario: 以退役的 source-distance 步驟恢復
-
-- **WHEN** 操作者執行 `gp-pipeline run --from-step source-distance`
-- **THEN** 指令 SHALL 以未知步驟的錯誤、exit code 1 結束，SHALL NOT 建立工作目錄或呼叫任何模型
-
-#### Scenario: 非寫作指令繼續列出 GP
-
-- **WHEN** 操作者執行 `gp-pipeline counter bump --help` 或 `gp-pipeline deploy --help`
-- **THEN** 說明列出的系列 SHALL 繼續包含 GP
+- **THEN** 指令 SHALL NOT 因為沒過 publish bar 而拒絕

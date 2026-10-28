@@ -2,7 +2,7 @@
 
 ### Requirement: GP rebuild prohibition MUST override generic editorial modes
 
-GP 正文 SHALL NOT 進入 `restructure` 或 `rebuild`。任何通用 editorial mode capability 套用於 GP 時 SHALL 先服從本邊界；低 persona、narrative 或 vibe 分數 SHALL NOT 授權改寫 GP 正文。GP 的正文是 ShroomDog 指定升格時認可過的版本（升格前已經過 Tribunal PASS），背景精修 SHALL NOT 自行改動它，所以 Tribunal 的每個入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）對 GP SHALL 只評分，SHALL NOT 呼叫寫手或其他會改寫正文的角色；明確要求改寫 GP 的旗標 SHALL 在呼叫任何評審或寫手之前被拒絕。要改 GP 的正文，SHALL 由人或 agent 依 ShroomDog 的指示修改，再跑 Tribunal。本邊界不依賴已退役的 GP 整篇翻譯流程。
+GP 正文 SHALL NOT 進入 `restructure` 或 `rebuild`。任何通用 editorial mode capability 套用於 GP 時 SHALL 先服從本邊界；低 persona、narrative 或 vibe 分數 SHALL NOT 授權改寫 GP 正文。GP 的正文是 ShroomDog 指定升格時認可過的版本（升格時已通過 publish bar），背景精修 SHALL NOT 自行改動它，所以 Tribunal 的每個入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）對 GP SHALL 只評分，SHALL NOT 呼叫寫手或其他會改寫正文的角色；明確要求改寫 GP 的旗標 SHALL 在呼叫任何評審或寫手之前被拒絕。要改 GP 的正文，SHALL 由人或 agent 依 ShroomDog 的指示修改，再跑 Tribunal。本邊界不依賴已退役的 GP 整篇翻譯流程。
 
 #### Scenario: generic rebuild proposal cannot capture GP
 

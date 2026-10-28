@@ -98,7 +98,7 @@ Pre-commit 與 CI SHALL 比較基準版本與新版本：基準版本已是 `tak
 
 #### Scenario: 新文章使用已封鎖的來源
 
-- **WHEN** 一個變更新增的文章（包括新的 GP 或 `GP-PENDING`），`sourceUrl` 與某篇下架文章相同
+- **WHEN** 一個變更新增的文章（不分系列），`sourceUrl` 與某篇下架文章相同
 - **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與下架文章
 
 #### Scenario: 新增第三方原文擷取

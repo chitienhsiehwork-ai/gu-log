@@ -4,7 +4,7 @@
 
 **Reason**: 章只為了證明「GP 導讀不是翻譯」而存在。GP 改成 ShroomDog 指定的招牌文章，寫作與 grounding 規則跟 MP 相同（`gp-signature-picks`），MP 本來就沒有離原文距離的限制，所以已經沒有任何文章需要章。
 
-**Migration**: `scripts/validate-posts.mjs` 拿掉驗章與「非 GP 不得帶章」的檢查；frontmatter schema 拿掉 `sourceDistance`，posts schema 是 strict，留著這個欄位的文章會直接 build 失敗。還在線上的 GP-276～279 在改成 MP 時一併刪掉 `sourceDistance`。GP 的品質改在升格時把關：`gp-signature-picks` 要求升格前有 Tribunal PASS，由 `scripts/reclassify-post.mjs` 檢查。
+**Migration**: `scripts/validate-posts.mjs` 拿掉驗章與「非 GP 不得帶章」的檢查；frontmatter schema 拿掉 `sourceDistance`，posts schema 是 strict，留著這個欄位的文章會直接 build 失敗。還在線上的 GP-276～279 在改成 MP 時一併刪掉 `sourceDistance`。GP 的品質改在升格時把關：`gp-signature-picks` 要求升格時通過 publish bar（`meetsPublishBar`），由 `scripts/reclassify-post.mjs` 與 pre-commit／CI 檢查。
 
 ### Requirement: 章 SHALL 綁正文投影的指紋，只存會擋人的摘要
 

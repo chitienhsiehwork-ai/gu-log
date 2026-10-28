@@ -27,25 +27,25 @@ GP 是 ShroomDog 指定的 MP 等級文章：單一主要來源、Mogu 擁有正
 
 替代方案：讓 GP 也能是 SD／Lv 等原創。否決：一篇文章只有一個 ticket，SD／Lv 已有自己的系列身份；要擴就另開 change。
 
-### D2. 只有 ShroomDog 能讓一篇文章變成 GP
+### D2. 只有 ShroomDog 能讓一篇文章變成 GP，而且只從已上線的 MP 升格
 
-GP 只能由 MP 升格而來，寫作永遠先寫 MP：
-1. **還沒上線就指定**：ShroomDog 先說「這篇要當 GP」，agent 照 MP 流程寫（含 Tribunal 與改寫），過 PASS 後把 `MP-PENDING` 換成 `GP-PENDING`、兩種語言的檔名一起改，之後照常從 GP counter 配號。沒有舊網址，不需要轉址，也不動 counter 與 manifest。
-2. **已上線再升格**：ShroomDog 說「這篇 MP 升成 GP」，走 `brand-taxonomy` 既有的改系列路徑：配新的 GP 號（不重用號碼）、兩種語言一起搬、舊 MP 網址寫進 `quality/brand-taxonomy-post-migration.json` 成為 308 轉址、站內連結改成新網址。
+GP 只能由已上線的 MP 升格，寫作永遠先寫 MP、先以 MP 上線。ShroomDog 說「這篇 MP 升成 GP」後，用新增的 `scripts/reclassify-post.mjs <ticketId> <GP|MP>`：配新的 GP 號（不重用號碼）、兩種語言一起搬、舊 MP 網址寫進 `quality/brand-taxonomy-post-migration.json` 成為 308 轉址（`brand-taxonomy` 既有的改系列機制）、改 repo 內連結、bump counter、跑 `validate-posts`。這次 GP-276～279 的清理也走它。
 
-兩條路都用新增的 `scripts/reclassify-post.mjs <ticketId> <GP|MP>`，它是讓文章變成 GP 的唯一方式：已上線的配新號、改兩種語言的 ticket 與檔名、寫 manifest、改 repo 內連結、bump counter、跑 `validate-posts`；上線前的只改名與 ticket（`MP-PENDING` 有好幾篇時改用繁中檔名指定）。這次 GP-276～279 的清理也走它。`gp-pipeline` 的寫作指令（`run`、`write` 等）拒絕 `--prefix GP`，錯誤訊息指向「先寫 MP，再由 ShroomDog 指定升格」，拒絕發生在任何副作用之前（比照既有的 Lv 拒絕）。
+ShroomDog 在上線前就說「這篇要當 GP」時，照樣以 MP 上線，過了 publish bar 再升格；不做 `GP-PENDING` 草稿。所以其他會配出 GP 號的路徑都關掉：gp-pipeline 的寫作指令拒絕 GP（併進既有的 Lv 拒絕，錯誤訊息依系列指路），`counter bump --prefix GP` 與替 `GP-PENDING` 配號的 `deploy` 拒絕，`scripts/allocate-ticket.mjs` 也拒絕 GP。
+
+替代方案：保留上線前把 `MP-PENDING` 改成 `GP-PENDING` 的路。否決：多一條產生 GP 的路，就多一個要把關的地方（例如手寫的 `gp-pending-` 檔直接用 `deploy` 配號）；先上線再升格只多一次轉址，換來單一入口。
 
 agent 在 URL intake 與候選評估時一律建議 MP；覺得特別好可以說「可能夠格當招牌」，但不能自己選 GP、也不能把 GP 當推薦選項。這條寫進 `gp-signature-picks`，由 Tier-2 文件引用，不在 Tier-0 複製全文。
 
 替代方案：用 frontmatter `featured: true` 標招牌、不動系列。否決：ShroomDog 明確要用 GP 這個名字當招牌，而且列表頁、首頁、徽章都已經以系列分區。
 
-### D3. 升格成 GP 要 Tribunal PASS
+### D3. 升格成 GP 要通過 publish bar
 
-招牌要能代表品質，所以升格成 GP 的門檻是 PASS（兩層門檻的上層，數值以 `CONTRIBUTING.md`〈兩層品質門檻〉與 pass-bar code 為準，本文件不抄數字）。把關放在 `scripts/reclassify-post.mjs`：兩條升格路徑都先檢查兩種語言檔的分數，沒有 PASS 就拒絕、什麼都不改。因為產生 GP 只有這一條路，不需要另外的驗證。
+招牌要能代表品質，所以升格的門檻是 publish bar（`publish-bar-visibility`，實作是 `src/utils/tribunal-scores.ts` 的 `meetsPublishBar`；數值不抄進文件）。兩道把關：`scripts/reclassify-post.mjs` 升格前檢查分數，沒過就拒絕、什麼都不改；另加一支 pre-commit 與 CI 共用的檢查，比較基準版本，這次變更裡新變成 GP 的檔案（新增、改名或改了 `ticketId`）要通過 `meetsPublishBar`，`gp-pending-` 檔一律失敗。這樣就算有人繞過 script 手動改檔，也過不了 CI。
 
-PASS 是升格的門檻，不是之後的持續條件：升格後重評（例如 Tribunal 改版）沒過，不擋 commit，GP 也不下線；沒過 publish bar 的 GP 照 `publish-bar-visibility` 不上首頁，跟其他系列一樣。
+publish bar 是升格的門檻，不是之後的持續條件：基準版本已經是 GP 的檔案不檢查，所以升格後重評（例如 Tribunal 改版）沒過、寫回分數的 commit 不會被擋，GP 也不下線，只照 `publish-bar-visibility` 不上首頁。
 
-替代方案：在 `validate-posts.mjs` 要求「公開的 GP 一定要 PASS」。否決：重評沒過時，寫回分數的 commit 會被擋，24/7 daemon 會卡在同一篇；publish bar 已經把沒過的文章擋在首頁外，不需要再多一條。
+替代方案：在 `validate-posts.mjs` 要求「公開的 GP 一定要 PASS」。否決：重評沒過時，寫回分數的 commit 會被擋，24/7 daemon 會卡在同一篇；只看這次新變成 GP 的檔案就夠了。
 
 ### D4. 退役來源距離章
 
@@ -55,11 +55,11 @@ PASS 是升格的門檻，不是之後的持續條件：升格後重評（例如
 
 ### D5. Tribunal 對 GP 仍只評分不改寫
 
-GP 的正文是 ShroomDog 認可過的版本（升格前已經過 PASS），背景精修不能自己改。所以 `--no-rewrite` 與「沒改過的未過關 GP 不重評」照舊，`gp-source-preservation` 只換理由、拿掉跟章有關的段落。要改 GP 的正文，由人或 agent 依 ShroomDog 指示修改，再跑 Tribunal。
+GP 的正文是 ShroomDog 認可過的版本（升格時已通過 publish bar），背景精修不能自己改。所以 `--no-rewrite` 與「沒改過的未過關 GP 不重評」照舊，`gp-source-preservation` 只換理由、拿掉跟章有關的段落。要改 GP 的正文，由人或 agent 依 ShroomDog 指示修改，再跑 Tribunal。
 
 ### D6. 清理：4 篇導讀改 MP，墓碑不動
 
-GP-276～279 依 `brand-taxonomy`〈Later reclassification allocates a new identity〉改成 MP：用 MP counter 當下的 next 依 GP 號碼順序配號，現有的語言檔一起改 ticket、檔名，舊網址寫進 migration manifest，`sourceDistance` 欄位刪掉，站內連結改新網址。GP-276、277 只有繁中（舊規則下 Tribunal FAIL 的 GP 可以只出繁中），所以改系列的是 6 個檔；MP 一定要中英成對，改完再用 `gp-pipeline translate` 替這兩篇補英文版，最後共 8 個檔。reader 相關資料（post-versions、reader revision）跟著重新產生。
+GP-276～279 用 `scripts/reclassify-post.mjs`、依 `brand-taxonomy`〈Later reclassification allocates a new identity〉改成 MP：用 MP counter 當下的 next 依 GP 號碼順序配號，現有的語言檔一起改 ticket、檔名，舊網址寫進 migration manifest，`sourceDistance` 欄位刪掉，站內連結改新網址。GP-276、277 只有繁中（舊規則下 Tribunal FAIL 的 GP 可以只出繁中），所以改系列的是 6 個檔。這兩篇不在這次補英文版：它們 Tribunal 沒過，照既有的繁中優先 SOP，先以只有繁中的 MP 存在，等以 MP 過了 Tribunal 再照一般流程補英文版。改名前先依 `scripts/check-pronoun-clarity.mjs` 最小修改它標出的三句（GP 豁免拿掉後，這幾篇以 MP 身份會被檢查），GP-278 的中英標題拿掉「導讀」／"A Reading Guide"。reader 相關資料（post-versions、reader revision）跟著重新產生；`quality/broken-links-baseline.json` 由 nightly 重新產生，不手改。
 
 墓碑不搬：路由預算其實放得下（每個檔一條轉址，539 個墓碑檔加上去約 1621 條，上限 2048），但搬了只是白忙——墓碑沒有正文、也不出現在列表，搬過去還會用掉約 270 個 MP 號碼。它們留在 GP 當歷史紀錄。GP-1 示範文照舊。
 
@@ -67,11 +67,11 @@ GP-276～279 依 `brand-taxonomy`〈Later reclassification allocates a new ident
 
 「帶有效章的 GP 可以用下架 GP 的來源」這個例外跟著章消失。新文章（或改了 `sourceUrl` 的既有文章）的來源跟任何下架文章相同，dedup gate 與 takedown ratchet 都擋。要重寫某個下架來源，另提 change。
 
-改系列不算新文章：takedown ratchet 用 `--no-renames` 比對，改名後的檔案會被當成新增，而 GP-276、277、278 的來源剛好跟下架的 GP-233、257、259 相同。所以遷移清單有記舊檔名到新檔名、`sourceUrl` 沒變的改名，視為既有文章；之後替這篇補上缺少的語言版本（同一個 ticket、同一個 `sourceUrl`）也不算新增，D6 補英文版才過得了棘輪。
+改系列不算新文章：takedown ratchet 用 `--no-renames` 比對，改名後的檔案會被當成新增，而 GP-276、277、278 的來源剛好跟下架的 GP-233、257、259 相同。所以遷移清單有記舊檔名到新檔名、`sourceUrl` 沒變的改名，視為既有文章；之後替這篇補上缺少的語言版本（同一個 ticket、同一個 `sourceUrl`）也不算新增，GP-276、277 之後補英文版才過得了棘輪。
 
 ### D8. 首頁與列表
 
-首頁在一篇可列的 GP 都沒有時不輸出 GP 區（不留空殼）；有的話照舊放最新、過 publish bar 的前 3 篇。`/gu-log-picks` 列表頁保留中性空狀態，文案改成「還沒有招牌文章」／"No signature picks yet."。副標、徽章 tooltip、about 頁改成新定義。
+首頁只在至少有一篇過 publish bar、能上首頁的 GP 時輸出 GP 區，最多放最新的 3 篇；一篇都沒有就不輸出（不留空殼）。`/gu-log-picks` 列表頁保留中性空狀態，文案改成「還沒有招牌文章」／"No signature picks yet."。副標、GP 列表卡片的來源標示（改成跟 MP 一樣的「來源材料」）、about 頁改成新定義。
 
 ### D9. 自動寫作一律不產生 `ShroomDogNote`
 
@@ -79,20 +79,22 @@ GP-276～279 依 `brand-taxonomy`〈Later reclassification allocates a new ident
 
 ### D10. GP 規則集中在新的 `gp-signature-picks`
 
-GP 的定義、指定、升格、改系列指令、列表與 pipeline 拒絕都放進新 capability，`editorial-charter` 只留系列身份、MP 規則、分流與不分系列的規則（整篇翻譯、`ShroomDogNote`）。理由：一個地方就能讀完 GP 的全部規則；而且 `scripts/check-file-size.mjs` 擋超過上限、或本來就超標還變大的檔案，把新要求分散塞進 `editorial-charter`、`brand-taxonomy`、`gp-pipeline-publish-integrity`、`post-takedown`，archive 後這四份 main spec 都會被擋。
+GP 的定義、指定、升格、升格的 CI 檢查、改系列指令與列表都放進新 capability，`editorial-charter` 只留系列身份、MP 規則、分流與不分系列的規則（整篇翻譯、`ShroomDogNote`）。pipeline 拒絕 GP 併進 `gp-pipeline-publish-integrity` 原本擋 Lv 的四條要求，不另寫一套。理由：一個地方就能讀完 GP 的全部規則；而且 `scripts/check-file-size.mjs` 擋超過上限、或本來就超標還變大的檔案，把新要求分散塞進 `editorial-charter`、`brand-taxonomy`、`gp-pipeline-publish-integrity`、`post-takedown`，archive 後這四份 main spec 都會被擋。
 
 ## Risks / Trade-offs
 
 - [首頁上方暫時少一區] → GP 清空後首頁從 SD／MP 區開始；ShroomDog 指定第一篇招牌後自動出現。
 - [刪掉一整套距離章機制] → 只刪 GP 導讀專用的部分；git 歷史與 archive design 保留重啟資訊。
 - [下架來源完全不能重寫] → 目前沒有排隊中的需求；真的需要時另提 change。
-- [MP 可以貼近原文，招牌也一樣] → 這是 MP 既有的規則，這次不改；GP 多了 ShroomDog 把關與升格時的 PASS。
+- [MP 可以貼近原文，招牌也一樣] → 這是 MP 既有的規則，這次不改；GP 多了 ShroomDog 把關與升格時的 publish bar。
 - [升格後重評沒過的 GP 還是 GP] → publish bar 讓它不上首頁；要不要降回 MP 由 ShroomDog 決定，用同一支 script。
+- [RSS 把改名的 4 篇當新文章再送一次] → 接受；只發生在這次清理。
+- [上線前就想當 GP 的文章要先當一陣子 MP] → 接受；多一次轉址，換來只有一個產生 GP 的入口。
 
 ## Migration Plan
 
 1. 改 spec 與文件，退役距離章 code。
-2. 4 篇導讀改系列並補轉址，替原 GP-276、277 補英文版，跑 `validate-posts`、route budget 檢查、相關測試。
+2. 4 篇導讀改系列並補轉址，跑 `validate-posts`、route budget 檢查、相關測試。
 3. Preview 驗證：舊 GP-276～279 網址 308 到新 MP 網址、首頁沒有 GP 區、`/gu-log-picks` 顯示空狀態。
 4. Archive 這個 change、合併、production smoke test。
 
