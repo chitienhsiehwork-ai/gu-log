@@ -2,12 +2,9 @@
 /**
  * scripts/check-translation-pairs.mjs
  *
- * Ensures every MP/SD/Lv ticketId has both a zh-tw and an en version before
- * merging to main. GP sidecars are conditional: gp-pipeline emits en only
- * after Tribunal passes and intentionally ships zh-tw alone on Tribunal FAIL,
- * or when the English version failed the verbatim check and the zh-tw
- * source-distance stamp records `englishSkipped: verbatim`
- * (openspec: source-distance-stamp).
+ * Ensures every GP/MP/SD/Lv ticketId has both a zh-tw and an en version before
+ * merging to main. GP follows the same contract as MP (openspec:
+ * gp-signature-picks).
  *
  * Modes:
  *   (default)           warn-only, scans entire repo, exit 0
@@ -29,22 +26,14 @@ import fs from 'fs';
 import path from 'path';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
-import { tsImport } from 'tsx/esm/api';
 import yaml from 'yaml';
 import { isTakenDownData } from './lib/taken-down-posts.mjs';
-import { ENGLISH_SKIPPED_VERBATIM, STAMP_FIELD } from './lib/source-distance.mjs';
-
-const { classifyTribunalResult } = await tsImport(
-  '../src/utils/tribunal-scores.ts',
-  import.meta.url
-);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POSTS_DIR = path.join(__dirname, '../src/content/posts');
 
-// Series whose publication contract always requires both languages. GP uses
-// the Tribunal-aware conditional rule below instead.
-const PAIRED_PREFIXES = ['MP', 'SD', 'Lv'];
+// Series whose publication contract requires both languages.
+const PAIRED_PREFIXES = ['GP', 'MP', 'SD', 'Lv'];
 
 function parseFrontmatter(content) {
   const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1];
@@ -66,23 +55,6 @@ function parseStatus(content) {
   return typeof status === 'string' ? status : 'published';
 }
 
-function parseScores(content) {
-  return parseFrontmatter(content).scores;
-}
-
-function parseEnglishSkipped(content) {
-  const stamp = parseFrontmatter(content)[STAMP_FIELD];
-  return stamp && typeof stamp === 'object' ? (stamp.englishSkipped ?? null) : null;
-}
-
-function attachGpTribunalResults(byBase) {
-  for (const entry of byBase.values()) {
-    if (entry.ticketId?.startsWith('GP-')) {
-      entry.tribunalResult = classifyTribunalResult(entry.scores);
-    }
-  }
-}
-
 /**
  * Group all mdx posts by base filename. zh-tw "foo.mdx" and en
  * "en-foo.mdx" become one entry keyed on "foo.mdx".
@@ -101,9 +73,6 @@ export function loadPostMap(postsDir = POSTS_DIR) {
       en: null,
       ticketId: null,
       status: 'published',
-      scores: undefined,
-      tribunalResult: undefined,
-      englishSkipped: null,
     };
     if (isEn) {
       entry.en = f;
@@ -115,12 +84,9 @@ export function loadPostMap(postsDir = POSTS_DIR) {
       entry.zh = f;
       entry.ticketId = ticketId;
       entry.status = status;
-      entry.scores = parseScores(content);
-      entry.englishSkipped = parseEnglishSkipped(content);
     }
     byBase.set(base, entry);
   }
-  attachGpTribunalResults(byBase);
   return byBase;
 }
 
@@ -135,15 +101,13 @@ export function findMissingPairs(byBase, scope = null) {
   for (const [base, entry] of byBase) {
     if (!entry.ticketId) continue;
     const prefix = entry.ticketId.split('-')[0];
-    if (prefix !== 'GP' && !PAIRED_PREFIXES.includes(prefix)) continue;
+    if (!PAIRED_PREFIXES.includes(prefix)) continue;
     // Taken-down posts are tombstones on both sides (openspec: post-takedown);
     // validate-posts checks that the pair is taken down together.
     if (['deprecated', 'retired'].includes(entry.status) || isTakenDownData(entry)) continue;
     if (entry.ticketId.endsWith('-PENDING')) continue;
     if (scope && !scope.has(base)) continue;
     if (entry.zh && !entry.en) {
-      if (prefix === 'GP' && entry.tribunalResult === 'fail') continue;
-      if (prefix === 'GP' && entry.englishSkipped === ENGLISH_SKIPPED_VERBATIM) continue;
       missing.push({ ticketId: entry.ticketId, file: entry.zh, missingLang: 'en' });
     } else if (entry.en && !entry.zh) {
       missing.push({ ticketId: entry.ticketId, file: entry.en, missingLang: 'zh-tw' });
@@ -154,12 +118,9 @@ export function findMissingPairs(byBase, scope = null) {
 
 export function reminderText() {
   return [
-    'Reminder: every MP/SD/Lv post needs both zh-tw and en versions',
+    'Reminder: every GP/MP/SD/Lv post needs both zh-tw and en versions',
     'before merging. Per CONTRIBUTING.md §zh-tw 優先 SOP, translate to en',
-    'only AFTER zh-tw passes vibe iteration — not in parallel. A GP needs en',
-    'after an explicit Tribunal PASS; explicit FAIL may ship zh-tw only, as may a',
-    'GP whose English version failed the verbatim check (englishSkipped: verbatim),',
-    'while missing or incomplete Tribunal evidence fails closed.',
+    'only AFTER zh-tw passes vibe iteration — not in parallel.',
   ].join('\n');
 }
 
