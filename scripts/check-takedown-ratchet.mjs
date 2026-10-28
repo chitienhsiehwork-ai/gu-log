@@ -7,10 +7,11 @@
  *
  *   1. 基準版本已是 taken-down 的文章：新版本必須還在、仍是 taken-down、正文為空。
  *   2. 新增的文章，以及改了 sourceUrl 的既有文章，來源與任一下架文章相同 → 來源已
- *      封鎖。比對用 dedup-gate 的 layer1Match（正規化網址、推文 ID、YouTube 影片 ID），
- *      找出所有相同來源的下架文章。唯一的例外三個條件都要成立：這篇是 GP、相同來源的
- *      下架文章全部是 GP、這篇帶有效的來源距離章（驗章用 scripts/lib/source-distance.mjs，
- *      跟 validate-posts 同一份）。有一篇下架的不是 GP 就照樣封鎖。
+ *      封鎖，不分系列、沒有例外。比對用 dedup-gate 的 layer1Match（正規化網址、推文 ID、
+ *      YouTube 影片 ID），找出所有相同來源的下架文章。改系列不算新文章：遷移清單
+ *      （quality/brand-taxonomy-post-migration.json）有記、舊檔在基準版本、新版本已
+ *      不在、sourceUrl 沒變的改名算既有文章；之後替它補上缺少的語言版本（同 ticketId、
+ *      同 sourceUrl）也不算新增。
  *   3. sources/ 底下只准新增 sources/chatgpt/（ShroomDog 自己的對話）。
  *
  * 用法：
@@ -22,10 +23,10 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { layer1Match, sourceIdentity } from './dedup-gate.mjs';
-import { isGpTicket, verifyStamp } from './lib/source-distance.mjs';
 import { TAKEN_DOWN_STATUS, isTakenDownData, splitPostSource } from './lib/taken-down-posts.mjs';
 
 const POSTS_DIR = 'src/content/posts';
+const MIGRATION_MANIFEST = 'quality/brand-taxonomy-post-migration.json';
 const SOURCES_DIR = 'sources';
 const ALLOWED_SOURCES_PREFIX = 'sources/chatgpt/';
 const REPO_ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -42,6 +43,48 @@ function ticketOf(data) {
   return typeof data?.ticketId === 'string' ? data.ticketId : '';
 }
 
+function sourceUrlOf(content) {
+  const parsed = content ? parsePost(content, 'post') : null;
+  return typeof parsed?.data?.sourceUrl === 'string' ? parsed.data.sourceUrl : null;
+}
+
+const postPath = (filename) => `${POSTS_DIR}/${filename}`;
+const isEnglishPath = (file) => path.posix.basename(file).startsWith('en-');
+
+/**
+ * 遷移清單有記、舊檔在基準版本、新版本已不在、sourceUrl 沒變：這是改系列搬過來的
+ * 既有文章，不是新文章。
+ */
+function isRecordedReclassification(file, sourceUrl, { manifestEntries, basePosts, headPosts }) {
+  const name = path.posix.basename(file);
+  return manifestEntries.some((entry) => {
+    if (entry?.newFilename !== name || typeof entry.oldFilename !== 'string') return false;
+    const oldPath = postPath(entry.oldFilename);
+    if (oldPath === file || headPosts.get(oldPath)) return false;
+    const before = basePosts.get(oldPath) ?? null;
+    return before !== null && sourceUrlOf(before) === sourceUrl;
+  });
+}
+
+/**
+ * 替改系列的文章補上缺少的語言版本：同 ticketId、同 sourceUrl 的另一個語言檔是遷移
+ * 清單記下的改系列文章，而且它本身是既有文章（基準版本就有，或這次改系列搬過來）。
+ */
+function isAddedLanguageOfReclassified(file, data, context) {
+  const ticket = ticketOf(data);
+  if (!ticket) return false;
+  return context.manifestEntries.some((entry) => {
+    if (entry?.newTicketId !== ticket || typeof entry.newFilename !== 'string') return false;
+    const siblingPath = postPath(entry.newFilename);
+    if (siblingPath === file || isEnglishPath(siblingPath) === isEnglishPath(file)) return false;
+    const sibling = parsePost(context.headPosts.get(siblingPath) ?? '', siblingPath);
+    if (!sibling || ticketOf(sibling.data) !== ticket) return false;
+    if (sibling.data.sourceUrl !== data.sourceUrl) return false;
+    if (context.basePosts.get(siblingPath)) return true;
+    return isRecordedReclassification(siblingPath, data.sourceUrl, context);
+  });
+}
+
 /**
  * 純函式核心，給單元測試直接餵資料。
  *
@@ -52,6 +95,9 @@ function ticketOf(data) {
  * @param {Array<{ path: string, content: string }>} [input.changedSourcePosts]  改了 sourceUrl 的既有文章（新版本內容）
  * @param {Array<{ path: string, content: string }>} input.headTakenDown  新版本的下架文章
  * @param {string[]} input.addedSourcePaths  sources/ 底下新增的檔案
+ * @param {object[]} [input.manifestEntries]  新版本遷移清單的項目
+ * @param {Map<string, string | null>} [input.basePosts]  遷移項目提到的文章在基準版本的內容
+ * @param {Map<string, string | null>} [input.headPosts]  遷移項目提到的文章在新版本的內容
  */
 export function evaluateTakedownRatchet({
   baseTakenDown,
@@ -60,8 +106,12 @@ export function evaluateTakedownRatchet({
   changedSourcePosts = [],
   headTakenDown,
   addedSourcePaths,
+  manifestEntries = [],
+  basePosts = new Map(),
+  headPosts = new Map(),
 }) {
   const errors = [];
+  const reclassification = { manifestEntries, basePosts, headPosts };
 
   for (const { path: file } of baseTakenDown) {
     const content = headContents.get(file) ?? null;
@@ -95,11 +145,7 @@ export function evaluateTakedownRatchet({
     });
   }
 
-  const hasValidStamp = (content, data, file) => {
-    const { required, errors: stampErrors } = verifyStamp({ content, data, file });
-    return required && stampErrors.length === 0;
-  };
-
+  const added = new Set(addedPosts.map(({ path: file }) => file));
   for (const { path: file, content } of [...addedPosts, ...changedSourcePosts]) {
     const parsed = parsePost(content, file);
     if (!parsed) continue; // validate-posts reports unreadable frontmatter
@@ -108,24 +154,20 @@ export function evaluateTakedownRatchet({
     const matches = typeof data.sourceUrl === 'string' ? layer1Match(data.sourceUrl, blocked) : [];
     if (matches.length === 0) continue;
 
-    // 唯一的例外：GP 導讀、相同來源的下架文章全部是 GP、而且這篇帶有效的章。
-    const gp = isGpTicket(ticketOf(data));
-    const nonGp = matches.filter(({ article }) => !isGpTicket(article.ticketId));
-    if (gp && nonGp.length === 0 && hasValidStamp(content, data, file)) continue;
+    // 改系列搬過來的既有文章與替它補的語言版本不算新文章。
+    if (
+      added.has(file) &&
+      (isRecordedReclassification(file, data.sourceUrl, reclassification) ||
+        isAddedLanguageOfReclassified(file, data, reclassification))
+    ) {
+      continue;
+    }
 
-    const shown = gp && nonGp.length > 0 ? nonGp : matches;
-    const takenDownAs = shown
+    const takenDownAs = matches
       .map(({ article, reason }) => `${article.ticketId || article.file} (${reason})`)
       .join(', ');
-    let why = '';
-    if (gp && nonGp.length === 0) {
-      why =
-        '; a GP reading guide may reuse a taken-down GP source only with a valid sourceDistance stamp';
-    } else if (gp) {
-      why = '; a non-GP post was taken down from it, and no stamp lifts that';
-    }
     errors.push(
-      `${file}: source is blocked — ${data.sourceUrl} was taken down as ${takenDownAs}${why} (openspec: post-takedown)`
+      `${file}: source is blocked — ${data.sourceUrl} was taken down as ${takenDownAs} (openspec: post-takedown)`
     );
   }
 
@@ -222,9 +264,30 @@ function changedPaths(cwd, filter, diffArgs, pathspec) {
 
 const addedPaths = (cwd, diffArgs, pathspec) => changedPaths(cwd, 'A', diffArgs, pathspec);
 
-function sourceUrlOf(content) {
-  const parsed = content ? parsePost(content, 'post') : null;
-  return typeof parsed?.data?.sourceUrl === 'string' ? parsed.data.sourceUrl : null;
+function parseManifestEntries(content) {
+  try {
+    const entries = JSON.parse(content ?? '')?.entries;
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return []; // 讀不到清單就沒有改系列例外（fail closed）
+  }
+}
+
+/** 新增文章用得到的遷移項目：它自己的改名，以及同 ticket 其他語言檔的改名。 */
+function relevantManifestPaths(entries, addedPosts) {
+  const names = new Set(addedPosts.map(({ path: file }) => path.posix.basename(file)));
+  const tickets = new Set(
+    addedPosts.map(({ path: file, content }) => ticketOf(parsePost(content, file)?.data))
+  );
+  tickets.delete('');
+  const paths = new Set();
+  for (const entry of entries) {
+    if (typeof entry?.oldFilename !== 'string' || typeof entry.newFilename !== 'string') continue;
+    if (!names.has(entry.newFilename) && !tickets.has(entry.newTicketId)) continue;
+    paths.add(postPath(entry.oldFilename));
+    paths.add(postPath(entry.newFilename));
+  }
+  return [...paths];
 }
 
 /**
@@ -257,6 +320,23 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
       ]),
     ].map(headSpec)
   );
+  const addedPosts = addedPostPaths.map((file) => ({
+    path: file,
+    content: headBlobs.get(headSpec(file)) ?? '',
+  }));
+
+  const manifestEntries =
+    addedPosts.length > 0
+      ? parseManifestEntries(
+          readBlobs(cwd, [headSpec(MIGRATION_MANIFEST)]).get(headSpec(MIGRATION_MANIFEST))
+        )
+      : [];
+  const manifestPaths = relevantManifestPaths(manifestEntries, addedPosts);
+  const manifestBaseBlobs = readBlobs(
+    cwd,
+    manifestPaths.map((file) => `${baseRev}:${file}`)
+  );
+  const manifestHeadBlobs = readBlobs(cwd, manifestPaths.map(headSpec));
 
   return {
     baseTakenDown: baseTakenDownPaths
@@ -273,10 +353,7 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
       path: file,
       content: headBlobs.get(headSpec(file)) ?? '',
     })),
-    addedPosts: addedPostPaths.map((file) => ({
-      path: file,
-      content: headBlobs.get(headSpec(file)) ?? '',
-    })),
+    addedPosts,
     // 既有文章改了 sourceUrl，跟新增文章一樣要過來源封鎖。
     changedSourcePosts: modifiedPostPaths
       .map((file) => ({
@@ -287,6 +364,13 @@ export function collectRatchetInput({ mode, base, cwd = REPO_ROOT }) {
       .filter(({ base, content }) => sourceUrlOf(base) !== sourceUrlOf(content))
       .map(({ path: file, content }) => ({ path: file, content })),
     addedSourcePaths,
+    manifestEntries,
+    basePosts: new Map(
+      manifestPaths.map((file) => [file, manifestBaseBlobs.get(`${baseRev}:${file}`) ?? null])
+    ),
+    headPosts: new Map(
+      manifestPaths.map((file) => [file, manifestHeadBlobs.get(headSpec(file)) ?? null])
+    ),
   };
 }
 
