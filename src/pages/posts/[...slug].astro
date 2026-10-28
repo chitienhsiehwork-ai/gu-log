@@ -54,13 +54,10 @@ const ticketPrefix = ticketId?.split('-')[0] || '';
 const isMoguPicks = ticketId?.startsWith('MP-') ?? false;
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
-// MP uses source-grounded provenance, GP reading-guide provenance, SD/Lv writing.
-const isOriginalPost = isLevelUp || isShroomDogOriginal;
-const contentMode = isMoguPicks
-  ? 'source-grounded-writing'
-  : isOriginalPost
-    ? 'writing'
-    : 'reading-guide';
+// GP is a promoted MP (openspec gp-signature-picks): both use source-grounded
+// provenance; SD/Lv are writing.
+const isSourceGrounded = isMoguPicks || (ticketId?.startsWith('GP-') ?? false);
+const contentMode = isSourceGrounded ? 'source-grounded-writing' : 'writing';
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
 // Lv tutorials are originals, but when one is built on a real external source
 // (not a self-referential gu-log link) the source should still be credited + linked.
@@ -71,7 +68,7 @@ const showSourceCitation =
   (isLevelUp && hasExternalSource);
 const sourceCitationLabel = isLevelUp
   ? '參考來源'
-  : isMoguPicks
+  : isSourceGrounded
     ? '來源材料'
     : isShroomDogOriginal && isChatGptShareSource
       ? '靈感來源'
