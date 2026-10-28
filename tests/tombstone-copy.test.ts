@@ -166,10 +166,10 @@ describe('tombstone copy SSOT（post-takedown design D5）', () => {
   });
 });
 
-describe('GP 列表（editorial-charter〈讀者開啟 GP 系列頁〉）', () => {
+describe('GP 列表（gp-signature-picks〈GP 系列頁沒有可列的文章〉）', () => {
   it('空狀態是中性句，不說暫停或改版', () => {
-    expect(getGpEmptyNotice('zh-tw')).toBe('這裡還沒有公開的導讀。');
-    expect(getGpEmptyNotice('en')).toBe('No reading guides here yet.');
+    expect(getGpEmptyNotice('zh-tw')).toBe('還沒有招牌文章。');
+    expect(getGpEmptyNotice('en')).toBe('No signature picks yet.');
     expect(Object.keys(GP_EMPTY_NOTICE).sort()).toEqual(['en', 'zh-tw']);
     for (const notice of Object.values(GP_EMPTY_NOTICE)) {
       expect(notice).not.toMatch(/暫停|改版|paused|rebuilt|rebuilding/i);
@@ -177,7 +177,7 @@ describe('GP 列表（editorial-charter〈讀者開啟 GP 系列頁〉）', () =
     expect(() => getGpEmptyNotice('ja' as unknown as 'en')).toThrow(/不支援語言/);
   });
 
-  it('只列 GP 導讀，GP-1 示範文不列', () => {
+  it('只列 GP 招牌文章，GP-1 示範文不列', () => {
     expect(isListedGpTicket('GP-2')).toBe(true);
     expect(isListedGpTicket('GP-1')).toBe(false);
     expect(isListedGpTicket('MP-1')).toBe(false);
