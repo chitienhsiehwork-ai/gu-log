@@ -11,8 +11,8 @@
 
 ## 2. 下架來源一律擋（`post-takedown`）
 
-- [ ] 2.1 `scripts/dedup-gate.mjs` 拿掉「GP 只撞到下架 GP 回 WARN」的例外，一律 BLOCK；`tests/dedup-gate.test.ts` 同步（〈自動化 SHALL 依狀態處理下架文章〉）
-- [ ] 2.2 `tools/gp-pipeline/internal/dedup/` 與 `cmd/gp-pipeline/dedup.go` 的註解、help、測試同步改成 BLOCK
+- [x] 2.1 `scripts/dedup-gate.mjs` 拿掉「GP 只撞到下架 GP 回 WARN」的例外，一律 BLOCK；`tests/dedup-gate.test.ts` 同步（〈自動化 SHALL 依狀態處理下架文章〉）
+- [x] 2.2 `tools/gp-pipeline/internal/dedup/` 與 `cmd/gp-pipeline/dedup.go` 的註解、help、測試同步改成 BLOCK
 - [ ] 2.3 `scripts/check-takedown-ratchet.mjs`：拿掉驗章例外；遷移清單有記、`sourceUrl` 沒變的改系列不算新增；改系列文章之後補上缺少的語言版本不算新增，`--staged` 與 `--base` 都要成立。`scripts/hooks/pre-commit` 註解與 `tests/takedown-ratchet.test.ts` 同步（〈已下架文章與它們的來源 SHALL 被 CI 棘輪鎖住〉）
 
 ## 3. 退役來源距離章（`source-distance-stamp`）

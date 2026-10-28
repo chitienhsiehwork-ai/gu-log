@@ -76,7 +76,7 @@ func TestCheckArgValidation(t *testing.T) {
 	if _, err := Check(ctx, Options{ScriptPath: "/x"}); err == nil {
 		t.Fatal("expected error when URL and Title are both empty")
 	}
-	// 〈沒給系列就失敗〉: no default series can hand out the GP-only exception.
+	// 〈沒給系列就失敗〉: every caller must name the series it checks.
 	_, err := Check(ctx, Options{ScriptPath: "/x", URL: "https://example.com/a"})
 	if err == nil || !strings.Contains(err.Error(), "Series is required") {
 		t.Fatalf("Check without Series = %v, want the required-series error", err)
@@ -155,8 +155,8 @@ Existing body.
 }
 
 // TestCheckTakenDownSourceBySeries covers openspec post-takedown〈Pipeline 用
-// 已下架的來源〉,〈GP 導讀用下架 GP 的來源〉and〈GP 候選撞到下架的 MP〉through the
-// real gate, plus the series-less candidate preflight.
+// 已下架的來源〉,〈GP 導讀用下架 GP 的來源〉(BLOCK, never WARN) and〈GP 候選撞到
+// 下架的 MP〉through the real gate, plus the series-less candidate preflight.
 func TestCheckTakenDownSourceBySeries(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Skip("node unavailable")
@@ -199,8 +199,8 @@ func TestCheckTakenDownSourceBySeries(t *testing.T) {
 		reason            string
 	}{
 		{"MP from a source taken down as GP", "MP", "https://gp-only.example.org/post", VerdictBlock, "Source blocked — GP-35"},
-		{"GP from a source taken down only as GP", "GP", "https://gp-only.example.org/post", VerdictWarn, "sourceDistance stamp"},
-		{"GP from a source also taken down as MP", "GP", "https://shared.example.org/post", VerdictBlock, "Source blocked — MP-114"},
+		{"GP from a source taken down only as GP", "GP", "https://gp-only.example.org/post", VerdictBlock, "Source blocked — GP-35"},
+		{"GP from a source also taken down as MP", "GP", "https://shared.example.org/post", VerdictBlock, "Source blocked — "},
 		{"candidate preflight picks no series", AnySeries, "https://gp-only.example.org/post", VerdictBlock, "Source blocked — GP-35"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

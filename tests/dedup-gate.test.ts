@@ -25,7 +25,7 @@ const {
   jaccard,
   computeSimilarity,
   layer1Match,
-  layer1Verdict,
+  layer1Block,
   formatLayer1Block,
   layer2Match,
   layer3QueueCheck,
@@ -530,10 +530,10 @@ describe('taken-down posts are blocked sources', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// GP 導讀例外（openspec: post-takedown〈自動化 SHALL 依狀態處理下架文章〉）：
-// 只有 GP 候選、相同來源的下架文章全部是 GP、沒有公開文章撞到時，才降成 WARN。
+// 下架來源一律擋（openspec: post-takedown〈自動化 SHALL 依狀態處理下架文章〉）：
+// 不分候選的系列、也不分下架文章的系列，沒有例外；公開的重複優先回報。
 // ════════════════════════════════════════════════════════════════════════════
-describe('Layer 1 verdict for a source taken down as GP', () => {
+describe('Layer 1 blocks every taken-down source', () => {
   const article = (ticketId: string, sourceUrl: string, takenDown: boolean) => ({
     file: `${ticketId.toLowerCase()}.mdx`,
     ticketId,
@@ -549,29 +549,20 @@ describe('Layer 1 verdict for a source taken down as GP', () => {
   const mp114 = article('MP-114', URL, true);
   const mp9 = article('MP-9', URL, false);
 
-  it('blocks a non-GP candidate from a source taken down as GP', () => {
-    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35]), 'MP');
-    expect(verdict).toBe('BLOCK');
-    expect(line).toMatch(/^BLOCK: Source blocked — GP-35 was taken down/);
+  it('blocks a source taken down only as GP', () => {
+    expect(layer1Block(layer1Match(URL, [gp35, gp36]))).toMatch(
+      /^BLOCK: Source blocked — GP-35 was taken down/
+    );
   });
 
-  it('warns a GP candidate whose source was taken down only as GP', () => {
-    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, gp36]), 'GP');
-    expect(verdict).toBe('WARN');
-    expect(line).toMatch(/^WARN: Source taken down as GP-35 \(URL match\), GP-36 \(URL match\)/);
-    expect(line).toMatch(/valid sourceDistance stamp/);
+  it('blocks a source taken down as MP', () => {
+    expect(layer1Block(layer1Match(URL, [mp114]))).toMatch(
+      /^BLOCK: Source blocked — MP-114 was taken down/
+    );
   });
 
-  it('blocks a GP candidate when the source was also taken down as MP', () => {
-    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, mp114]), 'GP');
-    expect(verdict).toBe('BLOCK');
-    expect(line).toMatch(/^BLOCK: Source blocked — MP-114 was taken down/);
-  });
-
-  it('blocks a GP candidate that also duplicates a live post', () => {
-    const { verdict, line } = layer1Verdict(layer1Match(URL, [gp35, mp9]), 'GP');
-    expect(verdict).toBe('BLOCK');
-    expect(line).toMatch(/^BLOCK: Duplicate of MP-9/);
+  it('reports a live duplicate before a taken-down source', () => {
+    expect(layer1Block(layer1Match(URL, [gp35, mp9]))).toMatch(/^BLOCK: Duplicate of MP-9/);
   });
 
   const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -611,12 +602,12 @@ describe('Layer 1 verdict for a source taken down as GP', () => {
     const mp = gate('MP', URL); // 〈Pipeline 用已下架的來源〉
     expect(mp.status).toBe(1);
     expect(mp.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
-    const gp = gate('GP', URL); // 〈GP 導讀用下架 GP 的來源〉
-    expect(gp.status).toBe(0);
-    expect(gp.stdout).toMatch(/^WARN: Source taken down as GP-35/);
+    const gp = gate('GP', URL); // 〈GP 導讀用下架 GP 的來源〉：回 BLOCK，不回 WARN
+    expect(gp.status).toBe(1);
+    expect(gp.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
     const gpMp = gate('GP', 'https://paid.example.org/story'); // 〈GP 候選撞到下架的 MP〉
     expect(gpMp.status).toBe(1);
-    expect(gpMp.stdout).toMatch(/^BLOCK: Source blocked — MP-114/);
+    expect(gpMp.stdout).toMatch(/^BLOCK: Source blocked — /);
     const sd = gate('SD', URL);
     expect(sd.status).toBe(1);
     expect(sd.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);

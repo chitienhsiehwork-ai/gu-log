@@ -37,14 +37,13 @@ type Result struct {
 }
 
 // AnySeries marks a check made before any series is chosen (the YouTube
-// candidate preflight): the gate applies no series exception, so a source
-// taken down as GP stays blocked.
+// candidate preflight). The gate blocks a taken-down source for every series,
+// so the verdict is the same either way.
 const AnySeries = "any"
 
-// Options controls the dedup check. Series is required and has no default:
-// the gate lets only a GP candidate reuse a source taken down as GP (with a
-// valid source-distance stamp, which the takedown ratchet checks), so a
-// forgotten series must never fall into that exception.
+// Options controls the dedup check. Series is required and has no default, so
+// every caller states which series it is checking; a taken-down source blocks
+// every series alike (openspec post-takedown).
 type Options struct {
 	ScriptPath   string // absolute path to scripts/dedup-gate.mjs
 	URL          string // source URL being checked
@@ -68,7 +67,7 @@ func Check(ctx context.Context, opts Options) (*Result, error) {
 	case "":
 		return nil, fmt.Errorf("dedup: Series is required; choose one of %v, or AnySeries before a series is chosen", counter.ValidPrefixes)
 	case AnySeries:
-		// No --series: the gate grants no series exception.
+		// No --series: nothing is chosen yet.
 	default:
 		if err := counter.ValidatePrefix(opts.Series); err != nil {
 			return nil, err
