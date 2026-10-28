@@ -50,7 +50,7 @@
 - [x] 6.4 `src/pages/posts/[...slug].astro`、`src/pages/en/posts/[...slug].astro`：GP 跟 MP 一樣顯示「來源材料」／`Source material`；`src/components/ArticleTechnicalDetails.astro` 刪 `reading-guide` 模式
 - [x] 6.5 `src/pages/about.astro`、`src/pages/en/about.astro`、`scripts/article-counter.json` 的系列說明改成 MP 日常、GP 招牌，刪來源距離章段落
 - [x] 6.6 測試：`tests/helpers/gp-listing.ts` 的 `expectGpHomeBlock` 處理沒有 GP 區；`tests/mp-editorial-identity.spec.ts` 的 About 與 GP-1 斷言；`tests/spec-ownership.json` 兩筆 reason 拿掉「reading guides」「reading-guide」的說法；`.github/workflows/deploy-smoke-test.yml` 與 `tests/deploy-smoke-workflow.test.ts` 不提導讀
-- [ ] 6.7 視覺改動跑雙主題截圖檢查（Claude Code 用 `uiux-auditor`）
+- [x] 6.7 視覺改動跑雙主題截圖檢查（Claude Code 用 `uiux-auditor`）
 
 ## 7. 清理 GP-276～279（`gp-signature-picks`、`brand-taxonomy`、`post-takedown`）
 

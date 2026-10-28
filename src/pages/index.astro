@@ -237,8 +237,14 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
 
   /* First section has no divider */
   .posts-section:first-child,
+  .mogu-picks-section:first-child,
   .gp-section {
     padding-top: 0;
+  }
+
+  /* 沒有 GP 區時，MP 區就是第一區：上方不畫分隔線 */
+  .mogu-picks-section:first-child::before {
+    display: none;
   }
 
   /* Short centered divider between sections */
