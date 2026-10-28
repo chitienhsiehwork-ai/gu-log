@@ -7,7 +7,7 @@
 
 ## 1. 共用 helper 搬家
 
-- [ ] 1.1 `isExternalSource`（含它用到的網域判斷）從 `scripts/lib/source-distance.mjs` 搬到 `scripts/lib/external-source.mjs`，呼叫端改 import，測試搬到 `tests/external-source.test.ts`
+- [x] 1.1 `isExternalSource`（含它用到的網域判斷）從 `scripts/lib/source-distance.mjs` 搬到 `scripts/lib/external-source.mjs`，呼叫端改 import，測試搬到 `tests/external-source.test.ts`
 
 ## 2. 下架來源一律擋（`post-takedown`）
 

@@ -1,6 +1,6 @@
 /**
  * 來源距離章（source distance stamp）的確定性邏輯：正文投影、原文正規化、斷句、
- * units、兩條規則與零配對、英文逐字檢查、外部來源判斷，以及章的序列化與驗證。
+ * units、兩條規則與零配對、英文逐字檢查，以及章的序列化與驗證。
  *
  * 行為契約 SSOT：openspec `source-distance-stamp` spec。所有數字與投影規則集中在
  * POLICY（`source-distance/v1`）；改任何一項就升版，同一個 PR 用
@@ -16,6 +16,8 @@ import remarkParse from 'remark-parse';
 import remarkGfm from 'remark-gfm';
 import remarkMdx from 'remark-mdx';
 import yaml from 'yaml';
+
+import { isExternalSource } from './external-source.mjs';
 
 export const POLICY = Object.freeze({
   version: 'source-distance/v1',
@@ -890,34 +892,7 @@ function longestCommonRun(a, b) {
   return best;
 }
 
-// ─── 外部來源與需要章的文章 ─────────────────────────────────────────────
-
-const EXAMPLE_HOSTS = ['example.com', 'example.org', 'example.net'];
-
-/**
- * `sourceUrl` 是不是外部來源：gu-log 自己、示範用網域與 ShroomDog 自己的 ChatGPT 對話
- * 分享都不算。
- */
-export function isExternalSource(sourceUrl) {
-  if (typeof sourceUrl !== 'string' || !sourceUrl.trim()) return false;
-  let url;
-  try {
-    url = new URL(sourceUrl.trim());
-  } catch {
-    return false;
-  }
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
-  const host = url.hostname.toLowerCase().replace(/\.$/, '');
-  if (host === new URL(SITE_ORIGIN).hostname) return false;
-  if (
-    EXAMPLE_HOSTS.some((h) => host === h || host.endsWith(`.${h}`)) ||
-    host.endsWith('.example')
-  ) {
-    return false;
-  }
-  if (host === 'chatgpt.com' && url.pathname.startsWith('/share/')) return false;
-  return true;
-}
+// ─── 需要章的文章 ─────────────────────────────────────────────────────
 
 const GP_TICKET = /^GP-(?:\d+|PENDING)$/;
 

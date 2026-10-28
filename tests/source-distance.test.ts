@@ -12,7 +12,6 @@ import {
   POLICY,
   decide,
   englishVerbatim,
-  isExternalSource,
   parseFrontmatter,
   requiresStamp,
   rewriteReport,
@@ -181,20 +180,7 @@ describe('原文正規化', () => {
   });
 });
 
-describe('外部來源與需要章的文章', () => {
-  it.each([
-    ['https://keeper-notes.test/posts/a', true],
-    ['https://example.com/original-article', false],
-    ['https://docs.example.org/x', false],
-    ['https://gu-log.vercel.app/posts/mp-1', false],
-    ['/posts/mp-1', false],
-    ['https://chatgpt.com/share/abc', false],
-    ['https://chatgpt.com/c/abc', true],
-    ['', false],
-  ])('%s → %s', (url, expected) => {
-    expect(isExternalSource(url)).toBe(expected);
-  });
-
+describe('需要章的文章', () => {
   it('只有有外部來源、沒下架的 GP 需要章', () => {
     const gp = { ticketId: 'GP-PENDING', sourceUrl: SOURCE_URL };
     expect(requiresStamp(gp)).toBe(true);
