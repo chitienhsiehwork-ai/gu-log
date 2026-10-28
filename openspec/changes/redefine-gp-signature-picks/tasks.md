@@ -39,7 +39,7 @@
 
 - [x] 5.1 新增 `scripts/reclassify-post.mjs <ticketId> <GP|MP>`，只處理已上線的 GP、MP：全部拒絕條件（含 `PENDING`、升 GP 沒通過 `meetsPublishBar`，分數用 `yaml` 解析）先檢查完才動手；配號、`git mv`、遷移清單（`counts` 用 `vercel.mjs` 的 `deriveManifestCounts`）、連結（符合 pre-commit 的 link-only 規則）與 counter；最後跑 `validate-posts`（〈改系列 SHALL 只用一支指令，兩種語言一起搬〉〈改系列 SHALL 在動手前拒絕不合法的移動〉）
 - [x] 5.2 `tests/reclassify-post.test.ts`：在暫存 git repo 跑真的 script，涵蓋上面兩條 requirement 的情境（含拒絕 `MP-PENDING`、`GP-PENDING`）
-- [ ] 5.3 `scripts/allocate-ticket.mjs` 拒絕 GP，測試同步（〈GP MUST 由已上線的 MP 升格而來〉）
+- [x] 5.3 `scripts/allocate-ticket.mjs` 拒絕 GP，測試同步（〈GP MUST 由已上線的 MP 升格而來〉）
 - [ ] 5.4 新增 `scripts/check-gp-promotion.mjs`（`--staged`、`--base=<sha>`）：新變成 GP 的檔案要通過 `meetsPublishBar`、`gp-pending-` 檔一律失敗、基準版本已是 GP 的檔案不檢查、取不到基準就失敗；接進 `scripts/hooks/pre-commit` 與 `.github/workflows/ci.yml`（加進 `ci-passed.needs`），補測試，含「既有 GP 寫回較低的分數」照樣通過（〈新變成 GP 的檔案 SHALL 在 pre-commit 與 CI 通過 publish bar〉）
 
 ## 6. 首頁、列表與讀者文案（`gp-signature-picks`〈GP 列表…〉；`brand-taxonomy`〈Reader-facing series labels…〉）

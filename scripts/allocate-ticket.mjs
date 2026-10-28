@@ -20,8 +20,12 @@
  *   6. Run validate-posts.mjs on the renamed files
  *
  * Committing, building, and pushing stay in your hands (or the PR flow), so the
- * allocation lands as its own atomic "swap PENDING -> GP-N" commit right before
+ * allocation lands as its own atomic "swap PENDING -> MP-N" commit right before
  * merge — exactly when the counter is freshest.
+ *
+ * GP numbers are never allocated here: a GP is a published MP that ShroomDog
+ * promotes with scripts/reclassify-post.mjs (openspec gp-signature-picks), so
+ * a gp-pending draft is refused before anything changes.
  *
  * Usage:
  *   node scripts/allocate-ticket.mjs [slug-or-prefix] [--dry-run]
@@ -30,13 +34,13 @@
  *   node scripts/allocate-ticket.mjs
  *
  *   # disambiguate by prefix when several prefixes have pending drafts
- *   node scripts/allocate-ticket.mjs GP
+ *   node scripts/allocate-ticket.mjs MP
  *
  *   # disambiguate by slug substring when one prefix has several pending drafts
  *   node scripts/allocate-ticket.mjs polished-ui-rules
  *
  *   # preview the swap without touching anything
- *   node scripts/allocate-ticket.mjs GP --dry-run
+ *   node scripts/allocate-ticket.mjs MP --dry-run
  */
 
 import fs from 'node:fs';
@@ -59,6 +63,10 @@ const PREFIX_BY_SLUG = new Map([
   ['sd', 'SD'],
   ['lv', 'Lv'],
 ]);
+
+const GP_REFUSAL =
+  'GP numbers are not allocated here: write the post as MP, publish it, and once ShroomDog ' +
+  'picks it as a signature article, promote it with scripts/reclassify-post.mjs.';
 
 function canonicalPrefix(value) {
   return VALID_PREFIXES.find((prefix) => prefix.toLowerCase() === value.toLowerCase()) ?? null;
@@ -102,6 +110,7 @@ function selectPair(pairs, filter) {
       throw new Error(`Retired prefix ${upper}; use ${replacement}`);
     }
     const prefix = canonicalPrefix(filter);
+    if (prefix === 'GP') throw new Error(GP_REFUSAL);
     if (prefix) {
       candidates = pairs.filter((p) => p.prefix === prefix);
     } else {
@@ -121,6 +130,7 @@ function selectPair(pairs, filter) {
       `Ambiguous: ${candidates.length} PENDING posts match. Disambiguate by prefix or slug:\n${list}`
     );
   }
+  if (candidates[0].prefix === 'GP') throw new Error(GP_REFUSAL);
   return candidates[0];
 }
 
