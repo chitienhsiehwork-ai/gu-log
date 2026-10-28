@@ -220,7 +220,6 @@ func doctorFileChecks(cfg *config.Config, runtimeProfile string) []fileCheck {
 		{Name: "fetch-article.py", Path: cfg.FetchArticle, Required: true},
 		{Name: "validate-posts.mjs", Path: cfg.ValidatePosts, Required: true},
 		{Name: "dedup-gate.mjs", Path: filepath.Join(cfg.ScriptsDir, "dedup-gate.mjs"), Required: true},
-		{Name: "source-distance.mjs", Path: filepath.Join(cfg.ScriptsDir, "source-distance.mjs"), Required: true},
 		{Name: "tribunal.sh", Path: filepath.Join(cfg.ScriptsDir, "tribunal.sh"), Required: true},
 		{Name: "article-counter.json", Path: cfg.CounterFile, Required: true},
 		{Name: "GU-LOG_WRITER_PROMPT.md", Path: cfg.WritingGuide, Required: true},

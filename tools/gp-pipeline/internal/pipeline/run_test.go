@@ -114,7 +114,6 @@ process.exit(0);
 		"docs/shroomdog-editorial-feedback.md":     "# Editorial feedback\n",
 		"openspec/specs/editorial-charter/spec.md": "# Editorial charter\n",
 		"scripts/vibe-scoring-standard.md":         "# Vibe scoring\n",
-		"src/data/glossary.json":                   testGlossary,
 	} {
 		path := filepath.Join(tmp, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -411,8 +410,7 @@ func TestRun_DryRunSkipsDeploy(t *testing.T) {
 // TestRunAndDeployRejectSeriesMismatchBeforeAnyStep: bypassing the CLI, an
 // existing post's filename still decides its series. Run and Deploy refuse a
 // Prefix that names another series before any step, snapshot, counter, file,
-// or git change, so an existing GP post cannot skip its source-distance stamp
-// under an MP Prefix, and an MP post is not stamped under a GP Prefix.
+// or git change, so a post never runs as another series.
 func TestRunAndDeployRejectSeriesMismatchBeforeAnyStep(t *testing.T) {
 	deploy := func(ctx context.Context, s *State) error { return s.Deploy(ctx) }
 	runFromDeploy := func(ctx context.Context, s *State) error {
@@ -637,7 +635,7 @@ TRANSLATED FINAL BODY
 				if !strings.Contains(call.Prompt, "MP-123") {
 					t.Errorf("LLM call %d did not receive the existing ticket identity", i)
 				}
-				if strings.Contains(call.Prompt, "GP-PENDING") {
+				if strings.Contains(call.Prompt, "MP-PENDING") {
 					t.Errorf("LLM call %d received the fresh-run pending ticket during existing-file recovery", i)
 				}
 			}

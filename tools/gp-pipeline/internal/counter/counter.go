@@ -9,7 +9,7 @@
 //	  "GP": {
 //	    "next": 171,
 //	    "label": "Gu-log Picks",
-//	    "description": "Reading guides picked by ShroomDog and written by Mogu"
+//	    "description": "..."
 //	  },
 //	  "MP": { ... },
 //	  "SD": { ... },

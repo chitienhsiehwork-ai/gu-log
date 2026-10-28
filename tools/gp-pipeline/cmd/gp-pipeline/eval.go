@@ -38,7 +38,7 @@ func newEvalCmd(state *rootState) *cobra.Command {
 	)
 	cmd := &cobra.Command{
 		Use:   "eval",
-		Short: "Evaluate whether a captured source is GP-worthy",
+		Short: "Evaluate whether a captured source is worth an article",
 		Long: `eval runs the pipeline's two-evaluator gate at Step 1.5.
 
 It renders the Codex eval prompt twice, passes both runs
@@ -47,7 +47,7 @@ JSON to <file> in current directory" instructions land correctly, then
 compares the two verdicts:
 
   GO/GO     → exit 0 (continue)
-  SKIP/SKIP → exit 12 (not GP-worthy; caller should drop from queue)
+  SKIP/SKIP → exit 12 (not worth an article; caller should drop from queue)
   split     → exit 2  (needs human review; rerun with --force to override)
 
 --force skips the gate entirely and exits 0 without calling the LLM.`,

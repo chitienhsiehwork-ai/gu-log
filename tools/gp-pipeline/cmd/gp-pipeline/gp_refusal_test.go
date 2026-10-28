@@ -235,11 +235,24 @@ func TestPipelineAllocatesNoGPNumber(t *testing.T) {
 	})
 }
 
-// TestGPKeepsNonWritingSteps: a numbered GP still gets dedup, its pipeline
-// credits, and its deploy from the pipeline.
+// TestGPKeepsNonWritingSteps: a numbered GP still gets dedup, its English
+// version (the MP flow, with no GP-only verbatim check), and its deploy from
+// the pipeline. Its credits are covered by TestStandaloneCreditsKeepsGPBody,
+// and run --from-step translate by
+// TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations.
 func TestGPKeepsNonWritingSteps(t *testing.T) {
 	const filename = "gp-10-20261012-author-title.mdx"
-	root, _, _ := gpRepo(t, filename)
+	root, postsDir, _ := gpRepo(t, filename)
+	zhPath := filepath.Join(postsDir, filename)
+	fakeSpec, err := json.Marshal(map[string]any{
+		"model":     "claude-opus-5",
+		"responses": []map[string]string{{"output": "---\ntitle: \"GP\"\nticketId: GP-10\nlang: \"en\"\n---\nEnglish body.\n"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakePath := filepath.Join(root, "fake-provider.json")
+	mustWrite(t, fakePath, string(fakeSpec))
 
 	t.Run("dedup", func(t *testing.T) {
 		argsLog := filepath.Join(t.TempDir(), "dedup-args")
@@ -256,16 +269,14 @@ func TestGPKeepsNonWritingSteps(t *testing.T) {
 		}
 	})
 
-	t.Run("credits", func(t *testing.T) {
-		post := filepath.Join(t.TempDir(), filename)
-		mustWrite(t, post, gpPostBody)
-		if err := executeCLI(t, "credits", "--file", post); err != nil {
-			t.Fatalf("credits --file %s: %v", filename, err)
+	t.Run("translate --file", func(t *testing.T) {
+		if err := executeCLI(t, "--fake-provider", fakePath, "translate", "--file", filename, "--work-dir", t.TempDir()); err != nil {
+			t.Fatalf("translate --file %s: %v", filename, err)
 		}
-		got, err := os.ReadFile(post)
-		if err != nil || !strings.Contains(string(got), "pipelineUrl") || !strings.HasSuffix(string(got), "---\nbody\n") {
-			t.Fatalf("credits did not stamp only the frontmatter: %q, %v", got, err)
+		if _, err := os.Stat(filepath.Join(postsDir, "en-"+filename)); err != nil {
+			t.Fatalf("English sidecar not written: %v", err)
 		}
+		requireBytes(t, zhPath, []byte(gpPostBody))
 	})
 
 	t.Run("run --from-step deploy", func(t *testing.T) {

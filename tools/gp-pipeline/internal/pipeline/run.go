@@ -86,9 +86,8 @@ func (s *State) stageEditorialContext() error {
 // checkExistingSeries fails, wrapped for step, when an existing post's
 // filename names another series than s.Prefix. As in the CLI's series
 // resolution, an existing post's filename decides its series and Prefix only
-// applies to a fresh article. The GP-only steps (post-fixer, source-distance)
-// follow Prefix, so a mismatched Prefix would carry a GP post past its
-// source-distance stamp, or stamp a post of another series. It stays out of
+// applies to a fresh article; the prompts and Tribunal options follow Prefix,
+// so a mismatched Prefix would run a post as another series. It stays out of
 // prepareExistingPost, which standalone translate calls without a Prefix.
 func (s *State) checkExistingSeries(step string) error {
 	if s.ExistingFile == "" {
@@ -110,7 +109,7 @@ type pipelineStep struct {
 }
 
 func stepsForState(s *State) []pipelineStep {
-	steps := []pipelineStep{
+	return []pipelineStep{
 		{"fetch", s.Fetch},
 		{"dedup-url", s.DedupURL},
 		{"eval", s.Eval},
@@ -118,21 +117,11 @@ func stepsForState(s *State) []pipelineStep {
 		{"write", s.Write},
 		{"review", s.Review},
 		{"refine", s.Refine},
+		{"credits", s.Credits},
+		{"ralph", s.Ralph},
+		{"translate", s.Translate},
+		{"deploy", s.Deploy},
 	}
-	if s.Prefix == "GP" {
-		// The stamp covers the body that ships: the post-fixers run on the
-		// work-dir final.mdx before it, and nothing after it edits the body.
-		steps = append(steps,
-			pipelineStep{"post-fixer", s.PostFix},
-			pipelineStep{"source-distance", s.SourceDistance},
-		)
-	}
-	return append(steps,
-		pipelineStep{"credits", s.Credits},
-		pipelineStep{"ralph", s.Ralph},
-		pipelineStep{"translate", s.Translate},
-		pipelineStep{"deploy", s.Deploy},
-	)
 }
 
 // Run executes the full write-review-refine pipeline end-to-end and honors
@@ -151,7 +140,7 @@ func Run(ctx context.Context, s *State) error {
 	}
 	// Hydrate and validate an existing post before any recovery prompt runs.
 	// Otherwise review/refine would still see the fresh-run placeholder (for
-	// example GP-PENDING) and could rewrite an allocated article's identity.
+	// example MP-PENDING) and could rewrite an allocated article's identity.
 	if s.ExistingFile != "" {
 		if err := s.prepareExistingPost(); err != nil {
 			return fmt.Errorf("run: prepare existing post: %w", err)
@@ -257,15 +246,7 @@ func PrintSummary(w io.Writer, s *State) {
 	fmt.Fprintf(w, "Title       : %s\n", nonEmpty(s.Title, "N/A"))
 	fmt.Fprintf(w, "Filename    : %s\n", nonEmpty(s.Filename, nonEmpty(s.ActiveFilename, "N/A (dry-run)")))
 	fmt.Fprintf(w, "Work dir    : %s\n", s.WorkDir)
-	names := []string{"fetch", "dedup-url", "eval", "dedup", "write", "review", "refine"}
-	if s.Prefix == "GP" {
-		names = append(names, "post-fixer", "source-distance")
-	}
-	for _, name := range append(names, "credits", "ralph", "translate", "deploy") {
-		fmt.Fprintf(w, "%-7s time: %ds\n", name, s.Timings[name])
-	}
-	if s.Prefix == "GP" {
-		fmt.Fprintf(w, "Source distance: %s\n", sourceDistanceSummary(s.SourceDistanceResult))
-		fmt.Fprintf(w, "English check  : %s\n", nonEmpty(s.EnglishCheck, "not run"))
+	for _, step := range stepsForState(s) {
+		fmt.Fprintf(w, "%-7s time: %ds\n", step.name, s.Timings[step.name])
 	}
 }

@@ -6,26 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/terminology"
 )
-
-// GP is a ShroomDog-picked reading guide written in Mogu's voice (openspec
-// editorial-charter〈GP body MUST be a Mogu-written reading guide〉). These
-// helpers hold the GP-only rules the write and refine steps share.
-
-// gpTerminology returns the glossary's canonical-term context for GP write and
-// refine prompts, and an empty string for every other series (MP's writer
-// prompt is out of this change's scope).
-func (s *State) gpTerminology() (string, error) {
-	if s.Prefix != "GP" {
-		return "", nil
-	}
-	if s.Cfg == nil {
-		return "", fmt.Errorf("canonical terminology: pipeline config is nil")
-	}
-	return terminology.LoadCanonicalContext(s.Cfg.RepoRoot)
-}
 
 // containsShroomDogNote reports whether MDX uses or imports ShroomDogNote.
 func containsShroomDogNote(data []byte) bool {

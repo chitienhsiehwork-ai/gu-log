@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -256,9 +255,10 @@ func TestSkillRecoveryContract(t *testing.T) {
 	}
 }
 
-// TestGPReadingGuideHelpContract: the help describes the GP reading-guide
-// flow, the stamp command and exit code 19, and no longer says GP is paused.
-func TestGPReadingGuideHelpContract(t *testing.T) {
+// TestHelpDescribesNoGPOnlySteps: GP is a promoted MP, so the help describes
+// no GP-only step (the retired reading-guide flow and its stamp), points GP to
+// scripts/reclassify-post.mjs, and no longer says GP is paused.
+func TestHelpDescribesNoGPOnlySteps(t *testing.T) {
 	help := func(args ...string) string {
 		resetGlobals()
 		cmd := buildRoot()
@@ -271,33 +271,23 @@ func TestGPReadingGuideHelpContract(t *testing.T) {
 		}
 		return out.String()
 	}
-	for args, phrases := range map[string][]string{
-		"run": {
-			"post-fixer", "source-distance", "reading guide", "--from-step source-distance", "englishSkipped: verbatim",
-			fmt.Sprintf("most %d rewrites", pipeline.MaxSourceDistanceRewrites),
-			fmt.Sprintf("%d GP source distance did not pass", pipeline.SourceDistanceExitCode),
-			"content checks", fmt.Sprintf("at most %d times", pipeline.MaxContentLintFixes),
-		},
-		"stamp": {
-			"--file", "--source", "the body is never changed", "outside the repo", "exit 1",
-			fmt.Sprintf("exits %d", pipeline.SourceDistanceExitCode),
-			fmt.Sprintf("%d did not pass", pipeline.SourceDistanceExitCode),
-		},
-		"": {"stamp"},
-	} {
-		var out string
-		if args == "" {
-			out = help()
-		} else {
-			out = help(args)
-		}
-		for _, phrase := range phrases {
-			if !strings.Contains(out, phrase) {
-				t.Errorf("%q help missing %q", args, phrase)
+	for _, args := range [][]string{{}, {"run"}, {"ralph"}, {"translate"}, {"eval"}} {
+		out := help(args...)
+		for _, retired := range []string{"source-distance", "reading guide", "post-fixer", "score-only", "aligner", "englishSkipped", "GP-worthy"} {
+			if strings.Contains(out, retired) {
+				t.Errorf("%v help still describes the retired GP flow: %q", args, retired)
 			}
 		}
 	}
-	for _, args := range [][]string{{}, {"run"}, {"counter"}, {"write"}, {"review"}, {"refine"}, {"deploy"}, {"stamp"}} {
+	for _, args := range [][]string{{}, {"run"}} {
+		if out := help(args...); !strings.Contains(out, pipeline.ReclassifyScript) {
+			t.Errorf("%v help does not say GP is promoted with %s", args, pipeline.ReclassifyScript)
+		}
+	}
+	if err := executeCLI(t, "stamp", "--file", "gp-10-example.mdx"); err == nil || !strings.Contains(err.Error(), "unknown command") {
+		t.Errorf("stamp error = %v, want an unknown command", err)
+	}
+	for _, args := range [][]string{{}, {"run"}, {"counter"}, {"write"}, {"review"}, {"refine"}, {"deploy"}} {
 		out := help(args...)
 		for _, stale := range []string{"暫停", "paused", "default GP", "defaults to GP"} {
 			if strings.Contains(out, stale) {
