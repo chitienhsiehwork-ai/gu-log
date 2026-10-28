@@ -67,11 +67,11 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | 要做的事 | 先讀哪份文件 |
 |---|---|
 | **任何內容 / editorial work**（寫文、修文、內容規則、writer prompt、judge prompt、editorial workflow） | [`openspec/specs/editorial-charter/spec.md`](openspec/specs/editorial-charter/spec.md)（編輯北極星與邊界 SSOT；先讀，再依下列主題續讀） |
-| **寫 / 翻譯文章（GP/MP/SD/Lv）、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
+| **寫 / 翻譯文章（MP/SD/Lv）、GP 升格、ticketId SOP、防重複、frontmatter schema、source evaluation、事實查核** | [`CONTRIBUTING.md`](CONTRIBUTING.md)（內容規則 SSOT） |
 | **寫作風格（PTT 說故事風、Mogu 吐槽語氣、persona、術語處理、來源誠實性、GP／MP 編輯邊界、Sentence Signal、Style Guide）** | [`GU-LOG_WRITER_PROMPT.md`](GU-LOG_WRITER_PROMPT.md)（寫作風格 SSOT） |
 | **品質門檻（兩層 floor/PASS gate）** | [`CONTRIBUTING.md`](CONTRIBUTING.md)〈🎯 兩層品質門檻〉 |
 | **Tribunal（4-judge 評審、跑法、daemon、worker worktree）** | [`docs/tribunal-runbook.md`](docs/tribunal-runbook.md) |
-| **來源寫作 pipeline（GP 導讀／MP／SD；`gp-pipeline` 用法、subcommand、exit code、來源距離章與 `stamp`）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)；Lv 不走 pipeline 寫作，看 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈新增入門教學（Lv）〉 |
+| **來源寫作 pipeline（MP／SD；`gp-pipeline` 用法、subcommand、exit code）** | [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)；Lv 不走 pipeline 寫作，看 [`CONTRIBUTING.md`](CONTRIBUTING.md)〈新增入門教學（Lv）〉；GP 不寫，由 ShroomDog 從已上線的 MP 指定升格，看 openspec `gp-signature-picks` |
 | **User 只丟 URL／只問是否值得收錄 → 先翻譯與評估** | 下方〈URL intake〉；user 明確叫繼續後才讀 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md) |
 | **Draft 來源 / Obsidian import** | [`OBSIDIAN_SETUP.md`](OBSIDIAN_SETUP.md) |
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
@@ -83,12 +83,12 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 
 ### 🔗 URL intake：先翻譯與評估，等 user 再叫才動手
 
-**User 只丟 URL、沒有附任何動作指示，或只問這份 source 是否值得收進 gu-log 時，才走 URL intake，不得直接開始寫 GP 或跑 pipeline。** User 若已明確要求摘要、解釋、查核、code review、除錯或其他非寫作任務，直接照該任務執行，不得改成交付 intake。第一輪只在 chat 交付兩樣東西：
+**User 只丟 URL、沒有附任何動作指示，或只問這份 source 是否值得收進 gu-log 時，才走 URL intake，不得直接開始寫文章或跑 pipeline。** User 若已明確要求摘要、解釋、查核、code review、除錯或其他非寫作任務，直接照該任務執行，不得改成交付 intake。第一輪只在 chat 交付兩樣東西：
 
 1. 抓取完整 source 後的忠實繁中翻譯；若來源無法完整取得，明確說明缺口，不得拿 preview 摘要假裝全文。
-2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。
+2. 一段短評，直接判斷這份 source 是否值得收進 gu-log，並交代核心理由。建議的系列一律是 MP（或依 `editorial-charter` 分流成 SD、Lv），不把 GP 當選項；GP 規則見 openspec `gp-signature-picks`。
 
-交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。Fetch artifact 必須留在 repo 外（stdout 或暫存位置）；暫存檔須在讀完完整 source 後、送出回覆前清理。只有 user 授權後才可保存 durable source。User 一開始就附上「寫成 GP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
+交付後停止。除非 user 下一次明確叫 agent 繼續，否則 intake 回合除了取得 source 與在 chat 回覆，不得留下任何持久副作用（例如 repo 檔案、ticket、branch／PR、deploy 或 backlog），也不得預先啟動後續寫作或評審工作。Fetch artifact 必須留在 repo 外（stdout 或暫存位置）；暫存檔須在讀完完整 source 後、送出回覆前清理。只有 user 授權後才可保存 durable source。User 一開始就附上「寫成 MP」「發布」等明確動作指示時，則直接依該指示與 pipeline SOP 執行，不必先停在 intake。
 
 User 明確叫繼續後，完整用法 / flag / exit code / 何時手動 / 抓原文 fallback 見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)。依各 runtime 的 fetch skill 取得原文。
 
