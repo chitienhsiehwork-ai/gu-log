@@ -69,21 +69,12 @@ model_router_provider_compatible() {
 # (openspec claude-prose-writing-runtime). These role keys produce or rewrite
 # reader-visible article text. This is the single list of article-writing
 # steps: model_router_resolve enforces "provider is claude <=> the step writes
-# article text or aligns sources" and gp-pipeline relies on that instead of
-# keeping a copy.
+# article text" and gp-pipeline relies on that instead of keeping a copy.
 model_router_is_prose_role() {
   case "$1" in
     writer) return 0 ;;
     *) return 1 ;;
   esac
-}
-
-# The source-distance aligner only pairs sentences, but it is a Claude call too
-# (openspec source-distance-stamp): its pin lives in
-# .claude/agents/source-aligner.md. gp-pipeline (llm.AlignerPin) refuses a pin
-# equal to the writer pin before any aligner call.
-model_router_is_claude_role() {
-  model_router_is_prose_role "$1" || [ "$1" = aligner ]
 }
 
 # Claude article-writing steps never declare a model in config: they use the
@@ -94,14 +85,6 @@ model_router_claude_writer_model() {
   model_router_load_helpers || return 2
   REPO_ROOT="${REPO_ROOT:-$MODEL_ROUTER_ROOT}" \
     tribunal_claude_agent_model tribunal-writer
-}
-
-# The aligner pin never falls back to another agent's pin: a missing or broken
-# .claude/agents/source-aligner.md fails closed.
-model_router_claude_aligner_model() {
-  model_router_load_helpers || return 2
-  tribunal_claude_frontmatter_model \
-    "${REPO_ROOT:-$MODEL_ROUTER_ROOT}/.claude/agents/source-aligner.md"
 }
 
 # The Claude pin parser and the credential policy live in the helpers; load
@@ -115,7 +98,6 @@ model_router_load_helpers() {
 model_router_role_key() {
   case "$1" in
     writer|tribunal-writer|refiner) printf 'writer\n' ;;
-    aligner) printf 'aligner\n' ;;
     vibe|vibeScorer|vibe-opus-scorer) printf 'vibeScorer\n' ;;
     reviewer|evaluator|librarian|fact-checker|fresh-eyes) printf 'reviewer\n' ;;
     *) return 1 ;;
@@ -210,12 +192,8 @@ model_router_resolve() {
     printf 'role %s writes gu-log article text and must use the Claude model (config routes it to %s)\n' \
       "$role" "$provider" >&2
     return 2
-  elif [ "$role" = aligner ] && [ "$provider" != claude ]; then
-    printf 'role %s aligns source-distance sentences and must use the Claude model (config routes it to %s)\n' \
-      "$role" "$provider" >&2
-    return 2
-  elif ! model_router_is_claude_role "$role" && [ "$provider" = claude ]; then
-    printf 'role %s only judges or reviews; on this profile only article-writing steps and the source aligner use the Claude model\n' \
+  elif ! model_router_is_prose_role "$role" && [ "$provider" = claude ]; then
+    printf 'role %s only judges or reviews; on this profile only article-writing steps use the Claude model\n' \
       "$role" >&2
     return 2
   fi
@@ -230,7 +208,6 @@ model_router_resolve() {
   remaining=unknown
   if [ "$provider" = claude ]; then
     local pin_file=.claude/agents/tribunal-writer.md
-    [ "$role" = aligner ] && pin_file=.claude/agents/source-aligner.md
     if jq -e --arg role "$role" \
       '.profiles["vm-codex"][$role] | has("model") or has("reasoningEffort")' \
       "$MODEL_ROUTER_CONFIG" >/dev/null; then
@@ -238,11 +215,7 @@ model_router_resolve() {
         "$role" "$pin_file" "$MODEL_ROUTER_CONFIG" >&2
       return 2
     fi
-    if [ "$role" = aligner ]; then
-      model="$(model_router_claude_aligner_model)"
-    else
-      model="$(model_router_claude_writer_model)"
-    fi || {
+    model="$(model_router_claude_writer_model)" || {
       printf 'runtime profile %s requires a valid Claude model pin in %s\n' \
         "$profile" "$pin_file" >&2
       return 2
@@ -304,7 +277,7 @@ if [ "${BASH_SOURCE[0]}" = "$0" ]; then
   role="${1:-}"
   format="${2:---text}"
   [ -n "$role" ] || {
-    printf 'Usage: %s <reviewer|writer|vibeScorer|aligner> [--json]\n' "$0" >&2
+    printf 'Usage: %s <reviewer|writer|vibeScorer> [--json]\n' "$0" >&2
     exit 2
   }
   model_router_resolve "$role"

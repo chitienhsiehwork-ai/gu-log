@@ -2,7 +2,6 @@ package llm
 
 import (
 	"context"
-	"errors"
 	"os"
 	"strings"
 
@@ -71,9 +70,6 @@ func (c *CodexProvider) Available() bool {
 
 // Run implements Provider.
 func (c *CodexProvider) Run(ctx context.Context, prompt string, opts RunOptions) (string, error) {
-	if opts.JSONSchema != "" {
-		return "", errors.New("codex provider does not support structured output; the source-distance aligner uses only the Claude model")
-	}
 	outFile, err := os.CreateTemp("", "gp-pipeline-codex-last-*.txt")
 	if err != nil {
 		return "", err

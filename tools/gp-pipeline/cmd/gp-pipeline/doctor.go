@@ -81,8 +81,8 @@ It reports the Go version, OS and architecture of this binary, and checks:
   - The optional YouTube candidate capability (requires yt-dlp). Missing
     yt-dlp is reported but does not make unrelated pipeline health fail.
   - Every repo-relative file the pipeline reads or runs: its scripts, the
-    article counter, the writer prompt and the source-aligner pin, plus
-    the model routing config under a runtime profile.
+    article counter and the writer prompt, plus the model routing config
+    under a runtime profile.
   - Optionally (--probe-llm), sends a 1-token canary prompt through each
     LLM provider to confirm it responds non-interactively.
 
@@ -223,7 +223,6 @@ func doctorFileChecks(cfg *config.Config, runtimeProfile string) []fileCheck {
 		{Name: "tribunal.sh", Path: filepath.Join(cfg.ScriptsDir, "tribunal.sh"), Required: true},
 		{Name: "article-counter.json", Path: cfg.CounterFile, Required: true},
 		{Name: "GU-LOG_WRITER_PROMPT.md", Path: cfg.WritingGuide, Required: true},
-		{Name: "source-aligner.md", Path: filepath.Join(cfg.RepoRoot, llm.AlignerAgentPath), Required: true},
 	}
 	if runtimeProfile != "legacy" {
 		checks = append(checks, fileCheck{
