@@ -1314,17 +1314,14 @@ describe('pipeline — Stage 4 degraded frontmatter shape', () => {
 // ---------------------------------------------------------------------------
 // GP is score-only (openspec gp-source-preservation〈Tribunal v2 評 GP〉): a
 // failing GP gets its scores recorded, while no writer, FactCorrector or
-// Librarian ever runs, and the body and source-distance stamp stay unchanged.
+// Librarian ever runs, and the body stays unchanged.
 // ---------------------------------------------------------------------------
 
 describe('pipeline — GP is score-only', () => {
   let tmpDir: string;
   let articlePath: string;
 
-  const GP_ARTICLE = MINIMAL_ARTICLE.replace('ticketId: MP-999', 'ticketId: GP-999').replace(
-    'tags:\n  - test\n',
-    "tags:\n  - test\nsourceDistance:\n  policy: 'source-distance/v1'\n  verdict: 'PASS'\n  subjectSha256: 'abc'\n"
-  );
+  const GP_ARTICLE = MINIMAL_ARTICLE.replace('ticketId: MP-999', 'ticketId: GP-999');
 
   const forbidden = (role: string) => ({
     run: async (): Promise<never> => {
@@ -1349,10 +1346,7 @@ describe('pipeline — GP is score-only', () => {
     };
   }
 
-  const bodyAndStamp = (raw: string) => {
-    const parsed = matter(raw);
-    return { body: parsed.content, stamp: parsed.data.sourceDistance };
-  };
+  const bodyOf = (raw: string) => matter(raw).content;
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'tribunal-v2-gp-score-only-'));
@@ -1372,7 +1366,7 @@ describe('pipeline — GP is score-only', () => {
     expect(state.status).toBe('failed');
     expect(state.stages.stage1.loops).toBe(1);
     const after = await readFile(articlePath, 'utf-8');
-    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(after)).toBe(bodyOf(GP_ARTICLE));
     expect(matter(after).data.scores?.vibe?.persona).toBe(7);
   });
 
@@ -1395,7 +1389,7 @@ describe('pipeline — GP is score-only', () => {
     expect(state.status).toBe('failed');
     expect(state.stages.stage3.loops).toBe(1);
     const after = await readFile(articlePath, 'utf-8');
-    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(after)).toBe(bodyOf(GP_ARTICLE));
     expect(matter(after).data.scores?.factCheck?.accuracy).toBe(5);
   });
 
@@ -1431,7 +1425,7 @@ describe('pipeline — GP is score-only', () => {
     expect(state.stages.stage3.status).toBe('passed');
     expect(state.stages.stage4.status).toBe('skipped');
     const after = await readFile(articlePath, 'utf-8');
-    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(after)).toBe(bodyOf(GP_ARTICLE));
     const scores = matter(after).data.scores;
     for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
       expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
@@ -1474,7 +1468,7 @@ describe('pipeline — GP is score-only', () => {
     expect(state.stages.stage2.status).toBe('failed');
     expect(state.stages.stage3.status).toBe('passed');
     const after = await readFile(articlePath, 'utf-8');
-    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(after)).toBe(bodyOf(GP_ARTICLE));
     const scores = matter(after).data.scores;
     for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
       expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
@@ -1494,7 +1488,7 @@ describe('pipeline — GP is score-only', () => {
     );
     expect(state.status).toBe('needs_review');
     const after = await readFile(articlePath, 'utf-8');
-    expect(bodyAndStamp(after)).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(after)).toBe(bodyOf(GP_ARTICLE));
     const scores = matter(after).data.scores;
     for (const key of ['vibe', 'freshEyes', 'factCheck', 'librarian']) {
       expect(scores?.[key]?.score, key).toEqual(expect.any(Number));
@@ -1505,6 +1499,6 @@ describe('pipeline — GP is score-only', () => {
     const state = await runPipeline(articlePath, scoreOnlyConfig({}));
     expect(state.status).toBe('passed');
     expect(state.stages.stage4.status).toBe('skipped');
-    expect(bodyAndStamp(await readFile(articlePath, 'utf-8'))).toEqual(bodyAndStamp(GP_ARTICLE));
+    expect(bodyOf(await readFile(articlePath, 'utf-8'))).toBe(bodyOf(GP_ARTICLE));
   });
 });

@@ -335,8 +335,8 @@ async function persistScoreToFrontmatter(
 }
 
 /**
- * GP is score-only (openspec gp-source-preservation): any body edit voids its
- * source-distance stamp, and only gp-pipeline re-stamps a GP. Tribunal v2 only
+ * GP is score-only (openspec gp-source-preservation): ShroomDog approved its
+ * body at promotion and only ShroomDog's say-so changes it. Tribunal v2 only
  * runs the judges on GP — no judge→writer loop, no FactCorrector rewrite, no
  * Librarian link insertion, no Final Vibe rewrite. Every judge runs even after
  * another one fails, and each score, failing ones included, is recorded:
