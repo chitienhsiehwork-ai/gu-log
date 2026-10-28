@@ -26,6 +26,7 @@ export const EXEMPT_PATTERNS = [
   /^docs\/shroomdog-editorial-feedback\.md$/, // 作者回饋 corpus，只會累積
   /^openspec\/changes\/archive\//, // 已歸檔、不再修改
   /^src\/data\/.*\.json$/, // build script 產生的 manifest 與資料
+  /^scripts\/data\/jingjing-allowlist\.txt$/, // 晶晶體白名單：只會累積的詞表資料
   /\.(png|jpe?g|gif|webp|avif|ico|svg|pdf|woff2?|ttf|otf|mp4|webm|mp3|zip|gz)$/i,
 ];
 
