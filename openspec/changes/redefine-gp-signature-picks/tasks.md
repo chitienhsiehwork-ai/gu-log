@@ -67,7 +67,7 @@
 - [x] 8.1 `scripts/tribunal.sh` 拒絕 GP `--allow-rewrite` 的訊息與 `src/lib/tribunal-v2/pipeline.ts` 的註解不再提章；`tests/tribunal-gp-score-only.test.ts`、`tests/tribunal-v2/pipeline.test.ts` 照舊綠
 - [x] 8.2 `.claude/agents/` 與 `.codex/agents/` 的 fact-checker、fresh-eyes、librarian、tribunal-writer、vibe-opus-scorer，以及 `scripts/vibe-scoring-standard.md`：GP 跟 MP 同一套規則，`ShroomDogNote` 歸給 ShroomDog 的規則適用所有系列，不改 model pin（「評審讀到 ShroomDogNote」）
 - [x] 8.2a `src/lib/tribunal-v2/runners/stage-runners.ts` 與 `src/lib/tribunal-v2/types.ts` 把 writer 範圍寫成「body + ShroomDogNote」：確認 writer 只原封保留既有的 ShroomDogNote、不新增也不改寫；若會，改成只改 body 並補測試（`editorial-charter`「自動化寫作 SHALL NOT 產生 ShroomDogNote」）
-- [ ] 8.3 `docs/tribunal-runbook.md`：GP 只評分的理由改成正文是 ShroomDog 認可的版本，不提章
+- [x] 8.3 `docs/tribunal-runbook.md`：GP 只評分的理由改成正文是 ShroomDog 認可的版本，不提章
 
 ## 9. 文件
 
