@@ -983,8 +983,8 @@ function checkText(raw, filePath = '') {
   // Find English word sequences in masked content
   for (let i = 0; i < maskedLines.length; i++) {
     const mLine = maskedLines[i];
-    // Match English words: latin letters with optional digits/hyphens/dots/apostrophes
-    const matches = [...mLine.matchAll(/[A-Za-z][A-Za-z0-9'-]*\.?[A-Za-z0-9]*/g)];
+    // English words; dot parts may carry hyphens (Qwen3.8-Flash-Next)
+    const matches = [...mLine.matchAll(/[A-Za-z][A-Za-z0-9'-]*(?:\.[A-Za-z0-9][A-Za-z0-9'-]*)*/g)];
     for (const m of matches) {
       const word = m[0];
       if (!isAllowed(word)) {
