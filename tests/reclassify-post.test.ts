@@ -241,6 +241,10 @@ describe('reclassify-post.mjs refuses an illegal move before touching anything',
     ['a ticket with no post', ['MP-99', 'GP'], /找不到/],
     ['a post already in the target series', ['GP-10', 'GP'], /已經是 GP/],
     ['a target outside GP and MP', ['MP-20', 'SD'], /GP 或 MP/],
+    // ticket 參數不會被當成 regex：特殊字元直接拒絕，GP-1 也不會撈到 gp-10、gp-11 的檔。
+    ['a ticket argument with regex syntax', ['MP-(2|20)', 'GP'], /GP 或 MP/],
+    ['a wildcard ticket argument', ['.*', 'MP'], /GP 或 MP/],
+    ['GP-1 next to gp-10 and gp-11 files', ['GP-1', 'MP'], /找不到/],
   ])('%s', (_, args, message) => {
     const repo = makeRepo();
     const run = reclassify(repo, args);

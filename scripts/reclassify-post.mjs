@@ -45,7 +45,6 @@ const refuse = (message) => {
   throw new Refusal(message);
 };
 
-const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const git = (root, args) =>
   execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
@@ -59,14 +58,28 @@ function frontmatterOf(content, file) {
   }
 }
 
-/** 換掉 frontmatter 裡 `key: <ticket>` 那一行的值，引號照舊。 */
-function swapFrontmatterTicket(content, key, from, to) {
-  const line = new RegExp(`^(${key}:[ \\t]*)(["']?)${escape(from)}\\2([ \\t]*)$`, 'm');
-  const end = content.indexOf('\n---', 3);
-  const head = content.slice(0, end);
-  if (!content.startsWith('---') || end < 0 || !line.test(head)) return content;
-  return head.replace(line, `$1$2${to}$2$3`) + content.slice(end);
+/** `key: value` 這一行的值（去掉引號）；不是這個 key 就回 null。 */
+function lineValue(line, key) {
+  if (!line.startsWith(`${key}:`)) return null;
+  return line
+    .slice(key.length + 1)
+    .trim()
+    .replace(/^(["'])(.*)\1$/, '$2');
 }
+
+/** 換掉 frontmatter 裡 `key: <from>` 那一行的值，引號照舊。比對都用字串，不用參數組 RegExp。 */
+function swapFrontmatterTicket(content, key, from, to) {
+  const end = content.indexOf('\n---', 3);
+  if (!content.startsWith('---') || end < 0) return content;
+  const lines = content.slice(0, end).split('\n');
+  const index = lines.findIndex((line) => lineValue(line, key) === from);
+  if (index < 0) return content;
+  lines[index] = lines[index].replace(from, to);
+  return lines.join('\n') + content.slice(end);
+}
+
+const POST_PATH = /(\/(?:en\/)?posts\/)([a-z0-9-]+)/g;
+const TICKET_TOKEN = /(?<![A-Za-z0-9-])(?:GP|MP)-[1-9]\d*(?!\d)/g;
 
 /**
  * 改寫一份文字裡指向舊 slug 的網址；Markdown 連結的文字裡出現舊 ticket 就換成新 ticket。
@@ -74,32 +87,37 @@ function swapFrontmatterTicket(content, key, from, to) {
  */
 export function retargetLinks(content, slugs, oldTicket, newTicket) {
   if (slugs.size === 0) return content;
-  const alternatives = [...slugs.keys()].map(escape).join('|');
-  const pathRe = new RegExp(`(/(?:en/)?posts/)(${alternatives})(?![a-z0-9-])`, 'g');
-  const ticketRe = new RegExp(`(?<![A-Za-z0-9-])${escape(oldTicket)}(?![0-9])`, 'g');
+  const retarget = (text) =>
+    text.replace(POST_PATH, (raw, prefix, slug) =>
+      slugs.has(slug) ? prefix + slugs.get(slug) : raw
+    );
   const linked = content.replace(/\[([^[\]\n]+)\]\(([^()\s]+)\)/g, (raw, label, href) => {
-    const next = href.replace(pathRe, (_, prefix, slug) => prefix + slugs.get(slug));
-    return next === href ? raw : `[${label.replace(ticketRe, newTicket)}](${next})`;
+    const next = retarget(href);
+    if (next === href) return raw;
+    return `[${label.replace(TICKET_TOKEN, (token) => (token === oldTicket ? newTicket : token))}](${next})`;
   });
-  return linked.replace(pathRe, (_, prefix, slug) => prefix + slugs.get(slug));
+  return retarget(linked);
 }
 
 /** 這個 ticket 的所有語言檔；檔名與 ticketId 對不上就拒絕。 */
 function findTicketFiles(root, ticket) {
-  const [series, number] = ticket.split('-');
-  const nameRe = new RegExp(`^(en-)?${series.toLowerCase()}-${number}-(.+)\\.mdx$`);
-  const ticketLine = new RegExp(`^ticketId:[ \\t]*["']?${escape(ticket)}["']?[ \\t]*$`, 'm');
+  if (!TICKET.test(ticket)) refuse(`${ticket} 不是 GP-N 或 MP-N`);
+  const stem = `${ticket.toLowerCase()}-`;
   const files = [];
   for (const name of fs.readdirSync(path.join(root, POSTS_DIR)).sort()) {
     if (!name.endsWith('.mdx')) continue;
-    const named = nameRe.exec(name);
+    const local = name.startsWith('en-') ? name.slice('en-'.length) : name;
+    const named = local.startsWith(stem) && local.length > stem.length + '.mdx'.length;
     const content = fs.readFileSync(path.join(root, POSTS_DIR, name), 'utf8');
-    if (!named && !ticketLine.test(content)) continue;
+    if (!named && !content.split('\n').some((line) => lineValue(line, 'ticketId') === ticket)) {
+      continue;
+    }
     const data = frontmatterOf(content, name);
     if (!named || data.ticketId !== ticket) {
       refuse(`${name} 的檔名跟 ticketId（${data.ticketId}）對不上，先修好再改系列`);
     }
-    files.push({ name, lang: named[1] ? 'en' : 'zh-tw', rest: named[2], content, data });
+    const lang = local === name ? 'zh-tw' : 'en';
+    files.push({ name, lang, rest: local.slice(stem.length, -'.mdx'.length), content, data });
   }
   return files.sort((a, b) => (a.lang === 'en') - (b.lang === 'en')); // 繁中在前
 }
