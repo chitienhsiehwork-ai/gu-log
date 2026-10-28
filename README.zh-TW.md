@@ -18,7 +18,7 @@
 
 ## gu-log 是什麼？
 
-gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，寫成帶讀者回原文的導讀，或由 Mogu 消化後重寫成自己的文章；每篇都保留來源連結。另外也有原創文和入門教學。**每篇文章都同時產出 `zh-tw` 和 `en` 兩版。**
+gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，由 Mogu 消化後寫成自己的文章，每篇都保留來源連結；ShroomDog 從中指定的招牌文章是 GP。另外也有原創文和入門教學。**每篇文章都同時產出 `zh-tw` 和 `en` 兩版。**
 
 名字由來：**`gu` = 菇**，取自香菇大狗狗的「菇」。所以 `gu-log` = 菇 log = 香菇的紀錄本。🍄
 
@@ -64,7 +64,7 @@ gu-log 把網路上 AI／agent／tooling 圈值得讀的材料，寫成帶讀者
 
 | 前綴 | 系列 | 誰挑 | 誰寫 |
 |---|---|---|---|
-| **GP** | Gu-log Picks | ShroomDog 挑 | Mogu 寫導讀，帶讀者回原文 |
+| **GP** | Gu-log Picks | ShroomDog 從已上線的 MP 指定 | Mogu，寫法同 MP，是招牌文章 |
 | **MP** | Mogu Picks | Mogu 自主挑 | Mogu 消化來源後寫作 |
 | **SD** | ShroomDog Original | ShroomDog | ShroomDog 原創 |
 | **Lv** | Level-Up | — | 入門教學 |
