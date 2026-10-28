@@ -30,14 +30,14 @@ echo ""
 node "$REPO_ROOT/scripts/check-file-size.mjs" --staged
 echo ""
 
-# ─── Step -3.5: Takedown ratchet (openspec: post-takedown) ─────────
-# A taken-down post must stay a tombstone (still present, still taken-down,
-# empty body); no new post in any series may reuse a taken-down source (a
-# recorded reclassification and its later language version are not new);
-# sources/ only grows under sources/chatgpt/. CI runs the same script with
-# the PR base SHA.
+# ─── Step -3.5: Takedown ratchet + GP promotion ───
+# Tombstones stay; no new post reuses a taken-down source (a recorded
+# reclassification is not new); sources/ grows only under sources/chatgpt/
+# (openspec: post-takedown). A file that becomes GP must clear the publish bar
+# (openspec: gp-signature-picks). CI runs both on the PR base.
 echo "🪦 Takedown ratchet: checking staged changes against HEAD..."
 node "$REPO_ROOT/scripts/check-takedown-ratchet.mjs" --staged
+node "$REPO_ROOT/scripts/check-gp-promotion.mjs" --staged
 echo ""
 
 # ─── Step -3: Regenerate post manifests for staged content changes ──

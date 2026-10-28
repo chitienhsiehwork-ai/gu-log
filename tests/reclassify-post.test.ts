@@ -13,6 +13,7 @@ import { isLinkOnlyChange } from '../scripts/check-glossary-links.mjs';
 import { createPostLinkValidator } from '../scripts/lib/post-link-validator.mjs';
 import { meetsPublishBar } from '../src/utils/tribunal-scores';
 import { buildRedirectConfig, deriveManifestCounts } from '../vercel.mjs';
+import { scorecard } from './helpers/publish-bar-scorecard';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -20,22 +21,8 @@ const SCRIPT = path.join(ROOT, 'scripts', 'reclassify-post.mjs');
 const POSTS = 'src/content/posts';
 const makeTempDirectory = useTestTempDirectories();
 
-const dims = (keys: string[], n: number) => Object.fromEntries(keys.map((k) => [k, n]));
-const scores = (n: number) => ({
-  tribunalVersion: 9,
-  vibe: { ...dims(['persona', 'moguNote', 'vibe', 'narrative'], n), score: n },
-  factCheck: {
-    ...dims(['accuracy', 'fidelity', 'consistency', 'sourceBoundary', 'commentarySeparation'], n),
-    score: n,
-  },
-  librarian: { ...dims(['glossary', 'crossRef', 'sourceAlign', 'attribution'], n), score: n },
-  freshEyes: {
-    ...dims(['readability', 'firstImpression', 'payoffDensity', 'lengthFit', 'clarity'], n),
-    score: n,
-  },
-});
-const PASS = scores(9);
-const FAIL = scores(6);
+const PASS = scorecard(9);
+const FAIL = scorecard(6);
 
 function post(data: Record<string, unknown>, body = '正文。\n') {
   return `---\n${YAML.stringify(data)}---\n\n${body}`;

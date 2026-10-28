@@ -165,9 +165,9 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: node scripts/check-file-size.mjs "--base=$BASE_SHA"
-      - name: Takedown ratchet (PR only — tombstones stay tombstones)
-        # Same script as the pre-commit hook, PR base → head; rules live
-        # in openspec: post-takedown.
+      - name: Takedown ratchet + GP promotion (PR only)
+        # Same scripts as the pre-commit hook, PR base → head; rules live in
+        # openspec: post-takedown and gp-signature-picks.
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -175,6 +175,7 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin "$BASE_SHA"
           node scripts/check-takedown-ratchet.mjs "--base=$BASE_SHA"
+          node scripts/check-gp-promotion.mjs "--base=$BASE_SHA"
       - name: Validate posts (frontmatter + content policy)
         run: pnpm run validate:posts
       - name: Block retired brand taxonomy contracts
@@ -188,8 +189,7 @@ jobs:
         # posts content (prod builds regenerate it via fail-closed prebuild).
         run: node scripts/build-reader-revision-manifest.mjs --check
 
-      # MP/SD/Lv always require both languages. GP is conditional: gp-pipeline
-      # emits en only after Tribunal PASS and may intentionally ship zh-tw alone.
+      # Posts the PR adds need both languages in every series (GP as MP).
       - name: Translation pair gate (PR only — enforce series sidecar policy)
         if: github.event_name == 'pull_request'
         run: |
