@@ -56,8 +56,8 @@
 
 - [x] 7.1 一個 commit：照 `node scripts/check-pronoun-clarity.mjs` 的提示，最小修改 GP-276（約第 112、114 行）與 GP-278（約第 90 行）被標出的三句；GP-278 中英標題拿掉「導讀」／"A Reading Guide to" 的字樣，其他不動
 - [x] 7.2 `scripts/check-pronoun-clarity.mjs` 拿掉 GP 豁免（`isGPPost` 與註解），測試同步
-- [ ] 7.3 依號碼順序對 GP-276～279 各跑 `node scripts/reclassify-post.mjs GP-<n> MP`，每篇一個 commit，訊息寫舊號與新號（共 6 個檔）。GP-276、277 只有繁中、Tribunal 沒過，這次不補英文版，照繁中優先 SOP 等以 MP 過了 Tribunal 再補
-- [ ] 7.4 確認：
+- [x] 7.3 依號碼順序對 GP-276～279 各跑 `node scripts/reclassify-post.mjs GP-<n> MP`，每篇一個 commit，訊息寫舊號與新號（共 6 個檔）。GP-276、277 只有繁中、Tribunal 沒過，這次不補英文版，照繁中優先 SOP 等以 MP 過了 Tribunal 再補
+- [x] 7.4 確認：
   - GP counter 不動、MP 前進 4；四個新 MP ticket 的檔案正確（原 276、277 只有繁中，原 278、279 中英都有），舊 GP 檔都不在；
   - `check-takedown-ratchet --base=origin/main`、`check-gp-promotion --base=origin/main`、`check-translation-pairs --strict --pr-base=main`（main 上不帶 `--pr-base` 本來就是紅的）、`check-brand-taxonomy`、`validate-posts --check-duplicates`、`versions:check`（不過就重建兩份 version manifest 一起 commit）、`tests/vercel-routing-config.test.ts` 都綠
 - [ ] 7.5 `.github/workflows/deploy-smoke-test.yml` 加原 GP-278 中英網址 308 到新 MP 網址
