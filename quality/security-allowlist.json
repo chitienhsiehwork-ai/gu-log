@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-10-08T00:00:00Z",
+  "updatedAt": "2026-10-28T00:00:00Z",
   "entries": [
     {
       "id": "1139346",
@@ -24,6 +24,12 @@
       "id": "1240992",
       "name": "braces",
       "reason": "2026-10-08 新增（GHSA-vfj7-8cjw-p6xm 深層巢狀 pattern 造成 stack exhaustion DoS）：lint 的間接 dev dependency（eslint-plugin-astro → astro-eslint-parser → fast-glob → micromatch → braces），不進 production bundle。只在 eslint 展開 repo 自己的 glob 設定時執行，不處理外部輸入。braces 最新 3.0.3 仍在受影響範圍、上游尚無修正版；出修正版後改用 override 並移除。",
+      "expiresAt": "2026-11-09T00:00:00Z"
+    },
+    {
+      "id": "1243066",
+      "name": "zod",
+      "reason": "2026-10-28 新增（zod 驗證超大型受限集合時會耗盡記憶體）：4.x 已用 override 升到 4.6.6 以上；剩下的 3.25.76 是 LHCI 的間接 dev dependency（@lhci/cli → lighthouse 12.6.1 → puppeteer-core → chromium-bidi），不進 production bundle，只驗 chromium-bidi 自己的協定訊息。3.x 沒有修正版，強制升 4.x 是跨大版本、有 API 相容風險；gate 依套件名稱把 zod 算成 mixed，所以期限只能給 14 天。等 LHCI 升 lighthouse 13 或 chromium-bidi 改用 zod 4 再移除。",
       "expiresAt": "2026-11-09T00:00:00Z"
     }
   ]
