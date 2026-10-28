@@ -17,7 +17,7 @@
 
 ## 3. 退役來源距離章（`source-distance-stamp`）
 
-- [ ] 3.1 同一個 commit：刪 `scripts/validate-posts.mjs` 的 Rule 1.6、GP-276～279 六個檔的 `sourceDistance`、`src/content.config.ts` 的欄位、`scripts/lib/taken-down-posts.mjs` 的對應項；schema 拒絕帶 `sourceDistance` 的文章，測試同步（`post-takedown`「下架文章留著來源距離章」）
+- [x] 3.1 同一個 commit：刪 `scripts/validate-posts.mjs` 的 Rule 1.6、GP-276～279 六個檔的 `sourceDistance`、`src/content.config.ts` 的欄位、`scripts/lib/taken-down-posts.mjs` 的對應項；schema 拒絕帶 `sourceDistance` 的文章，測試同步（`post-takedown`「下架文章留著來源距離章」）
 - [ ] 3.2 `scripts/check-translation-pairs.mjs` 拿掉 `englishSkipped` 與 GP 專屬判斷，GP 併進 `PAIRED_PREFIXES`；`tests/translation-pairs.test.ts` 同步
 - [x] 3.3 `scripts/hooks/pre-commit` 刪驗章區塊；`tests/hooks-integration.test.ts`、`tests/helpers/pre-commit-repo.ts` 同步
 - [ ] 3.4 刪 `scripts/source-distance.mjs`、`scripts/lib/source-distance.mjs`、`tests/source-distance.test.ts`、`tests/helpers/source-distance-stamp.ts`，同一個 commit 改掉還 import 它們的測試（順序見檔頭）

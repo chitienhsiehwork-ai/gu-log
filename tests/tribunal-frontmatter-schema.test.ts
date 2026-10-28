@@ -205,7 +205,6 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
     const r = schema.safeParse({
       ...BASE,
       ticketId: 'GP-1',
-      sourceDistance: { policy: 'source-distance/v1', verdict: 'pass' },
       glossaryIgnore: ['Gradient'],
       scores: {
         tribunalVersion: 9,
@@ -214,10 +213,29 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
       },
     });
     expect(r.success, issueMessages(r)).toBe(true);
-    expect(r.data.sourceDistance).toBeUndefined();
     expect(r.data.glossaryIgnore).toBeUndefined();
     expect(r.data.scores.ralph).toBeUndefined();
     expect(r.data.scores.vibe.score).toBe(8);
+  });
+
+  // post-takedown〈下架文章留著來源距離章〉：來源距離章已退役，不論文章狀態都擋。
+  it('rejects the retired sourceDistance field on any post, taken down or not', async () => {
+    const schema = await loadPostsSchema();
+    const stamp = { sourceDistance: { policy: 'source-distance/v1', verdict: 'PASS' } };
+    const live = schema.safeParse({ ...BASE, ticketId: 'GP-12', ...stamp });
+    expect(live.success).toBe(false);
+    expect(issueMessages(live)).toContain('sourceDistance');
+
+    const tombstone = schema.safeParse({
+      ...BASE,
+      ticketId: 'GP-35',
+      status: 'taken-down',
+      takenDownAt: '2026-09-27',
+      sourceTitle: 'Source title',
+      ...stamp,
+    });
+    expect(tombstone.success).toBe(false);
+    expect(issueMessages(tombstone)).toContain('sourceDistance');
   });
 
   it('still type-checks the non-rendered fields', async () => {

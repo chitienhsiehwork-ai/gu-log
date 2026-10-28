@@ -179,9 +179,6 @@ const postsCollection = defineCollection({
         .optional(),
       // 來源自己的標題（墓碑卡片第一行）；不得等於 gu-log 自己的標題。
       sourceTitle: z.string().optional(),
-      // 來源距離章（openspec source-distance-stamp）：站內沒有程式讀它，不輸出；
-      // 內容由 scripts/validate-posts.mjs 驗。
-      sourceDistance: notRendered(z.unknown()),
       // 只給 scripts/check-glossary-links.mjs 讀的豁免清單，不輸出。
       glossaryIgnore: notRendered(z.array(z.string())),
       // `order` 是原本的系列順序，文章下架後會斷號，不代表第幾篇（見
