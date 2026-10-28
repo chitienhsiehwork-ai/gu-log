@@ -19,6 +19,12 @@
       "name": "basic-ftp",
       "reason": "2026-10-02 新增（GHSA-c475-qrg2-pj4r Client.list() 目錄清單解析的二次方時間 CPU DoS）：LHCI 的間接 dev dependency（@lhci/cli → proxy-agent → pac-proxy-agent → get-uri → basic-ftp），不進 production bundle。只有 LHCI 經 proxy-agent 抓 ftp:// 網址、又連到惡意 FTP 伺服器時才會觸發，gu-log 的 LHCI 只量 https 頁面。修正版只有 basic-ftp 6.2.1，但 get-uri 最新 8.0.1 仍綁 ^5.3.1，強制跨大版本 override 有 API 相容風險；等 get-uri 放寬到 6.x 再移除。",
       "expiresAt": "2026-11-09T00:00:00Z"
+    },
+    {
+      "id": "1243066",
+      "name": "zod",
+      "reason": "2026-10-28 新增（GHSA-mrhx-c7xc-m3w5 驗證超大受限集合時耗盡記憶體）：runtime 與 @anthropic-ai/sdk 的 zod 4 已用 override 升到 4.6.6 以上；剩下的只有 LHCI 的間接 dev dependency（@lhci/cli → lighthouse 12.6.1 → puppeteer-core 24 → chromium-bidi 14 → zod 3.25.76），不進 production bundle；chromium-bidi 只解析 puppeteer 自己送出的 WebDriver BiDi 指令，不處理外部輸入。zod 3.x 全版本都在受影響範圍、沒有修正版；chromium-bidi 14 綁 zod ^3，puppeteer-core 24 最新版仍綁 chromium-bidi 14，硬升 zod 4 會弄壞 API。gate 依套件名稱把 zod 算成 mixed（上限 14 天），所以跟其他 LHCI 項目一起在 11/09 重新評估。",
+      "expiresAt": "2026-11-09T00:00:00Z"
     }
   ]
 }
