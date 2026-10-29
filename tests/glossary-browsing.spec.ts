@@ -302,6 +302,14 @@ test.describe('sticky controls and in-page filters', () => {
     }
   });
 
+  test('focusing the search box does not scroll the page', async ({ page }) => {
+    await page.goto('/glossary');
+    await page.evaluate(() => window.scrollTo(0, 3000));
+
+    await page.locator('#glossary-search').focus();
+    expect(await page.evaluate(() => window.scrollY)).toBe(3000);
+  });
+
   test('the English page opens an anchored people entry in English', async ({ page }) => {
     const karpathy = glossaryData.find((entry) => entry.term === 'Andrej Karpathy')!;
     await page.goto('/en/glossary#andrej-karpathy');

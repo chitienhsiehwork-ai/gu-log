@@ -10,14 +10,20 @@
 }
 
 /* 控制列：搜尋、分類按鈕與 A–Z 列捲動時固定在上方。
-   錨點目標不被蓋住，靠這一頁的 scroll-padding-top（等於控制列高度；script 量好後寫進
-   --glossary-toolbar-height，沒有 JS 時用預設值）。不要在詞條上加 scroll-margin-top，
-   它會跟 scroll-padding-top 疊加。
-   這一頁不用全站的平滑捲動：從網址錨點進來時瀏覽器也會慢慢捲，捲到一半網頁字型換上去、
+   錨點目標不被蓋住，靠控制列以外每個元素的 scroll-margin-top（等於控制列高度；script 量好後
+   寫進 --glossary-toolbar-height，沒有 JS 時用預設值）。這一頁不用全站 html 的
+   scroll-padding-top：有它的話，聚焦控制列裡的搜尋框或按鈕時，瀏覽器以為它被擋住，
+   會把整頁往上捲好幾個螢幕。
+   這一頁也不用全站的平滑捲動：從網址錨點進來時瀏覽器也會慢慢捲，捲到一半網頁字型換上去、
    版面位移，目標就停在控制列底下。直接跳過去，瀏覽器才會在載入期間持續對齊錨點。 */
 html:has(.glossary-page) {
-  scroll-padding-top: var(--glossary-toolbar-height, 6.6rem);
+  scroll-padding-top: 0;
   scroll-behavior: auto;
+}
+
+.glossary-page > :not(.glossary-toolbar),
+.glossary-page > :not(.glossary-toolbar) * {
+  scroll-margin-top: var(--glossary-toolbar-height, 6.6rem);
 }
 
 .glossary-toolbar {
