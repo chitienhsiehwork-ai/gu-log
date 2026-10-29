@@ -110,7 +110,7 @@ single-tweet capture, so it can never regress a fetch that previously worked.
 - **`curl https://x.com/...`** — returns React SSR shell with no body text.
 - **`curl https://x.com/i/article/<id>`** — same React shell.
 - **`playwright-cli goto x.com/...`** — the gu-log sandbox blocks external HTTPS, `goto` hangs on `domcontentloaded`. Even with the route-abort workaround, x.com auth-walls anonymous browsers.
-- **Reading only `tweet.text` from vxtwitter for a long-form article** — the body is NOT in `text`; it's in `article` (truncated to preview). Silent data loss. This used to be the default path via the old `fetch-x-api-fallback.sh` and caused GPs that quoted 200 chars of a 2000-char article.
+- **Reading only `tweet.text` from vxtwitter for a long-form article** — the body is NOT in `text`; it's in `article` (truncated to preview). Silent data loss.
 - **Assuming an empty `text` field means an empty tweet** — when `text` is a `t.co` link and `article` is populated, the body lives in `article.content.blocks`.
 
 ## Quick sanity checks after fetching

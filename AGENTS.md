@@ -77,7 +77,7 @@ Human 透過 chat 維護 gu-log。凡採用 OpenSpec 的變更，其 proposal、
 | **Dev / Build（tech stack、architecture、指令）** | [`docs/dev-reference.md`](docs/dev-reference.md) |
 | **用 openspec 做事（跑 `/opsx:propose`、動到有 spec delta 的 change）** | [`.agents/openspec-sdlc.md`](.agents/openspec-sdlc.md)（端到端流程 SSOT：九階段 / 三角色 / chat-first 決策介面 / archive gate）— MUST 動手前先讀 |
 | **OpenSpec spec / change（讀既有 spec、change 結構）** | [`openspec/`](openspec/) |
-| **agent 跨領域行為規則（SSOT 紀律、verbosity-drift、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
+| **agent 跨領域行為規則（SSOT 紀律、寫 prompt 的耐久原則、順手修 friction 全文）** | [`docs/agent-discipline.md`](docs/agent-discipline.md) |
 | **動手建機制前先審「該不該做」（對抗式 reviewer subagent、何時跑、不做就記成決策）** | [`docs/value-review-runbook.md`](docs/value-review-runbook.md) |
 | **ShroomDog 修稿回饋 corpus** | [`docs/shroomdog-editorial-feedback.md`](docs/shroomdog-editorial-feedback.md) |
 
