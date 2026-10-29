@@ -2,7 +2,7 @@
   "version": 2,
   "blocking": {
     "global": {
-      "jsMaxKB": 90,
+      "jsMaxKB": 100,
       "cssMaxKB": 120,
       "singleFileMaxKB": 300
     }
@@ -85,5 +85,5 @@
       }
     }
   },
-  "comment": "Level 5 / Plan C: JS-CSS budgets are blocking; HTML/total and key routes are trend monitors (non-blocking alerts). CI bundle-budget on a clean dist artifact is the blocking authority; local pre-push is warning-only because stale dist can inflate totals. Rebaselined 2026-07-23 (#624) on Node 22 at 3244 HTML routes: growth since #396 came from expected published content and canonical route expansion, while rebrand had made Mogu route history inherit tiny legacy redirect sizes. /level-up/ grew from 12 to 17 unique cards with shared script/style still emitted once; its 20-card page cap now has 48/55 KB warning/critical headroom."
+  "comment": "Level 5 / Plan C: JS-CSS budgets are blocking; HTML/total and key routes are trend monitors (non-blocking alerts). CI bundle-budget on a clean dist artifact is the blocking authority; local pre-push is warning-only because stale dist can inflate totals. Rebaselined 2026-07-23 (#624) on Node 22 at 3244 HTML routes: growth since #396 came from expected published content and canonical route expansion, while rebrand had made Mogu route history inherit tiny legacy redirect sizes. /level-up/ grew from 12 to 17 unique cards with shared script/style still emitted once; its 20-card page cap now has 48/55 KB warning/critical headroom. JS raised 90→100 KB on 2026-10-29 (#1221): main was already at 89.98 KB, and the glossary page script grew past Vite's 4 KB inline limit, so it moved out of the two glossary pages' HTML into its own ~4.9 KB file that only those pages load."
 }
