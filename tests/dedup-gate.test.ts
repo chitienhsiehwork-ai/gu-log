@@ -602,7 +602,7 @@ describe('Layer 1 blocks every taken-down source', () => {
     const mp = gate('MP', URL); // 〈Pipeline 用已下架的來源〉
     expect(mp.status).toBe(1);
     expect(mp.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
-    const gp = gate('GP', URL); // 〈GP 導讀用下架 GP 的來源〉：回 BLOCK，不回 WARN
+    const gp = gate('GP', URL); // 〈GP 候選用下架 GP 的來源〉：回 BLOCK，不回 WARN
     expect(gp.status).toBe(1);
     expect(gp.stdout).toMatch(/^BLOCK: Source blocked — GP-35/);
     const gpMp = gate('GP', 'https://paid.example.org/story'); // 〈GP 候選撞到下架的 MP〉

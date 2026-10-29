@@ -155,7 +155,7 @@ Existing body.
 }
 
 // TestCheckTakenDownSourceBySeries covers openspec post-takedown〈Pipeline 用
-// 已下架的來源〉,〈GP 導讀用下架 GP 的來源〉(BLOCK, never WARN) and〈GP 候選撞到
+// 已下架的來源〉,〈GP 候選用下架 GP 的來源〉(BLOCK, never WARN) and〈GP 候選撞到
 // 下架的 MP〉through the real gate, plus the series-less candidate preflight.
 func TestCheckTakenDownSourceBySeries(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
