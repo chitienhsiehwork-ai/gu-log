@@ -23,6 +23,8 @@ const makeTempDirectory = useTestTempDirectories();
 
 const PASS = scorecard(9);
 const FAIL = scorecard(6);
+// 其他三位評審都是 9 分，只少 Fresh Eyes：分數不完整也不算過 publish bar。
+const { freshEyes: _missing, ...MISSING_JUDGE } = PASS;
 
 function post(data: Record<string, unknown>, body = '正文。\n') {
   return `---\n${YAML.stringify(data)}---\n\n${body}`;
@@ -45,6 +47,11 @@ const POST_FILES: Record<string, string> = {
   ...zhEn('mp-20-20260102-beta.mdx', 'MP-20', 'Beta', { scores: PASS }),
   'mp-21-20260103-gamma.mdx': post({ ticketId: 'MP-21', title: 'Gamma', scores: FAIL }),
   'mp-22-20260104-delta.mdx': post({ ticketId: 'MP-22', title: 'Delta', scores: PASS }),
+  'mp-23-20260108-epsilon.mdx': post({
+    ticketId: 'MP-23',
+    title: 'Epsilon',
+    scores: MISSING_JUDGE,
+  }),
   ...zhEn('gp-11-20260105-gone.mdx', 'GP-11', 'Gone', { status: 'taken-down' }),
   'mp-pending-20260106-draft.mdx': post({ ticketId: 'MP-PENDING', title: 'Draft' }),
   'sd-5-20260107-own.mdx': post({ ticketId: 'SD-5', title: 'Own' }),
@@ -121,6 +128,7 @@ describe('reclassify-post.mjs moves a published post with all its languages', ()
   it('fixture scorecards sit on the intended side of the publish bar', () => {
     expect(meetsPublishBar(PASS as never)).toBe(true);
     expect(meetsPublishBar(FAIL as never)).toBe(false);
+    expect(meetsPublishBar(MISSING_JUDGE as never)).toBe(false);
   });
 
   it('turns a published GP back into an MP, even below the publish bar', () => {
@@ -233,6 +241,7 @@ describe('reclassify-post.mjs moves a published post with all its languages', ()
 describe('reclassify-post.mjs refuses an illegal move before touching anything', () => {
   it.each([
     ['an MP below the publish bar into GP', ['MP-21', 'GP'], /publish bar/],
+    ['an MP missing one judge score into GP', ['MP-23', 'GP'], /publish bar/],
     ['a taken-down GP', ['GP-11', 'MP'], /已下架/],
     ['an SD ticket', ['SD-5', 'GP'], /GP 或 MP/],
     ['an Lv ticket', ['Lv-1', 'MP'], /GP 或 MP/],
