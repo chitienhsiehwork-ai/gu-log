@@ -35,6 +35,7 @@ ShroomDog 2026-10-28 在 chat 決定新的分法：**MP 是日常的部落格文
 - `tribunal-score-persistence`：GP 分數寫入那條拿掉來源距離章，寫明升格後的 GP 不要求每一關都 PASS。
 - `tribunal-focal-source-evidence`：FactChecker 用同一套規則評 GP 與 MP，不再以完整覆蓋、順序或原作者語氣評 GP。
 - `claude-prose-writing-runtime`：拿掉 GP 導讀改寫與 aligner 的句子。
+- `spec-driven-review-loop`：archive gate 認得整個 capability 退役（delta 只有 REMOVED、stable spec 被刪），這次退役 `source-distance-stamp` 才過得了 archive 檢查。
 
 檢查過不用改：`dedup-policy`（帶章 GP 的例外其實寫在 `post-takedown`）、`publish-bar-visibility`（升格後沒過的 GP 照既有 below-bar 規則處理）、`extended-post-frontmatter`、`codex-exec-writing-runtime`。
 

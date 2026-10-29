@@ -82,6 +82,7 @@
 
 - [x] 10.1 本機全綠：`pnpm run test:unit`、gp-pipeline `go test`、`scripts/tests/test-tribunal-model-router.sh`、`pnpm run validate:posts`、`pnpm run versions:check`、`pnpm run build`、第 6 組相關的 Playwright spec
 - [ ] 10.2 Preview：GP-276～279 舊網址（含結尾斜線）308 到新 MP 網址；中英首頁沒有 GP 區；GP 系列頁回 200 並顯示空狀態；GP-1 照舊 200；新 MP 文章頁不出現「導讀 pipeline」。SSO 擋住就在 merge 後用 production 驗
+- [x] 10.3 Archive gate 支援整個 capability 退役：`scripts/check-openspec-archive.mjs` 放行只有 REMOVED 的 delta 搭配被刪掉的 stable spec，`tests/openspec-archive-retirement.test.ts` 覆蓋放行與兩種仍要擋的情況
 
 ## Workflow follow-up
 
