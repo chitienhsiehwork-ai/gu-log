@@ -83,7 +83,7 @@ merge method 有三個選項：
 
 **判斷規則**：看 PR 的 commit list，每個 commit subject 自己讀都有意義 → `merge`；有廢 commit → `squash`。CCC 理論上不該產廢 commit，所以預設是 `merge`。
 
-**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅（2026-10-12：#1135 squash 之後 main 變紅，靠 #1136 補救）。MCP（`enable_pr_auto_merge`／`merge_pull_request`）或 `gh pr merge --merge` 都要明確指定 merge，不要靠 repo 預設值。
+**🔴 PR 動到 `src/content/posts/` 一律不准 `squash`**：`src/data/post-versions.json` 依「碰過這篇文章的非 merge commit 數」算版本。PR 分支上算出的數字，squash 之後在 main 上會對不上，main CI 的 `post-version-manifest` 測試就會紅。MCP（`enable_pr_auto_merge`／`merge_pull_request`）或 `gh pr merge --merge` 都要明確指定 merge，不要靠 repo 預設值。
 
 ### CI 等待 timeout
 
@@ -205,7 +205,7 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD> --force
 
 ### Sandbox 網路能力（2026-04-23 實測）
 
-**CCC 沙箱的 command-line HTTPS 是通的。** `curl https://claude.com/...` 正常回 200，`gp-pipeline` 內建的 `FetchGeneric`（走 curl）實測可以直接在 CCC 裡抓外部文章。**不要再用「沙箱沒外網所以只能 mac 跑」當藉口**——那是過時的心智模型。
+**CCC 沙箱的 command-line HTTPS 是通的。** `curl https://claude.com/...` 正常回 200，`gp-pipeline` 內建的 `FetchGeneric`（走 curl）實測可以直接在 CCC 裡抓外部文章。所以抓外部文章不必改到 Mac 跑。
 
 什麼還是受限：
 - **`playwright-cli` 的 browser navigation**：`goto` 在 `domcontentloaded` 卡死、Google Fonts 之類 CSS 外鏈拿不到（要 route-abort workaround，見 `uiux-auditor` skill）
@@ -218,8 +218,8 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD> --force
 
 不是因為沒網路、也不是因為 auth 不到——2026-04-23 實測：
 - **Auth OK**：CCC 有 `CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR`，`claude -p` subprocess 可以認證完成並回應
-- **`--permission-mode bypassPermissions` / `--dangerously-skip-permissions` 在 root 會被 CLI 直接拒**。`gp-pipeline` 的 `ClaudeProvider.Run` 和 shell judges（`tribunal.sh` 經 `tribunal-helpers.sh` 的 `tribunal_claude_exec` 呼叫）都在 `id -u == 0` 時自動把這 flag 換成 `acceptEdits`，所以這層不再是 blocker
-- **`acceptEdits` 只自動核准 edit，judge / stage 要 Read 文章檔時還是會卡 permission prompt**（`</dev/null`/stdin 無 TTY → 靜默 hang，原本 #123 的 30s timeout 就是這個）。修法：root 下同時補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit`，把 judge 會用到的工具顯式 allowlist 掉（等於用比 bypassPermissions 更窄的清單複製「不 prompt」行為）；prompt 一律走 stdin，避免 variadic 的 `--allowed-tools` 把 prompt 內文當成 tool 規則吞掉。修完實測單篇 vibe stage 在 CCC PASS（composite=8）
+- **`--permission-mode bypassPermissions` / `--dangerously-skip-permissions` 在 root 會被 CLI 直接拒**。`gp-pipeline` 的 `ClaudeProvider.Run` 和 shell judges（`tribunal.sh` 經 `tribunal-helpers.sh` 的 `tribunal_claude_exec` 呼叫）都在 `id -u == 0` 時自動把這 flag 換成 `acceptEdits`，所以這層不是 blocker
+- **`acceptEdits` 只自動核准 edit，judge / stage 要 Read 文章檔時還是會卡 permission prompt**（`</dev/null`/stdin 無 TTY → 靜默 hang）。修法：root 下同時補 `--allowed-tools Read,Grep,Glob,Bash,Write,Edit,MultiEdit`，把 judge 會用到的工具顯式 allowlist 掉（等於用比 bypassPermissions 更窄的清單複製「不 prompt」行為）；prompt 一律走 stdin，避免 variadic 的 `--allowed-tools` 把 prompt 內文當成 tool 規則吞掉。修完實測單篇 vibe stage 在 CCC PASS（composite=8）
 - **Long creative generation 本身還會踩 stream idle timeout**（見本檔下方「Stream idle timeout 應對」那一節）
 
 真正要 fallback 的時候怎麼走：
@@ -355,7 +355,7 @@ cat /tmp/sd20/01-frontmatter.mdx /tmp/sd20/02-intro.mdx ... \
 - 舊 trigger 仍然保留（保險起見）：user 回報 `error` / `retry` / `resume` / `proceed` / `continue` / `still error`，且**上一個想做但失敗的動作是 Write/Edit/NotebookEdit**——立刻切 Workaround A。
 
 **Root cause 備忘**（2026-04-21 實驗結論）：
-疑似 Opus 4.7 adaptive thinking 在長 creative generation 中有短暫 token 停頓。停頓 > stream idle threshold 就斷線。跟**生成時間分佈**有關，不是**字符內容**問題 — kaomoji / RTL Arabic / multi-script 都 isolated 測過無關。
+長 creative generation 中途會有短暫 token 停頓（當時在 Opus 4.7 上觀察到，之後的 model 沒重測）。停頓 > stream idle threshold 就斷線。跟**生成時間分佈**有關，不是**字符內容**問題 — kaomoji / RTL Arabic / multi-script 都 isolated 測過無關。
 
 ## 開場 SOP
 
@@ -390,7 +390,7 @@ git log --oneline -5              # 看 branch 最近在幹嘛
 - **同步補**（快、且開工前就需要）：deps（`pnpm install`）、git hooks（`setup-hooks`）、gp-pipeline 自編譯。放 `--fix` 區塊直接跑完，smoke test 順便驗。
 - **非同步背景補**（慢、下載大、不是開工就馬上要）：Playwright chromium binary（~100MB，uiux-auditor / playwright-cli / verify 才要）。`--fix` 用 `nohup … & disown` 丟背景，**不擋 session 開場**，等真的要截圖時通常已下載好。Smoke test 另開一個 optional readiness check（warn 不擋 exit）回報「裝好了 / 還在下載 / 沒裝」，讓 agent 知道現在能不能截圖。
 
-  Playwright 就是這個模式的範本（2026-06-12 加）：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（local machine actor 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
+  Playwright 就是這個模式的範本：`ccc-smoke-test.sh --fix` 在 `CLAUDE_CODE_REMOTE=true` 時，偵測 `${PLAYWRIGHT_BROWSERS_PATH:-~/.cache/ms-playwright}` 沒有 chromium 快取就背景下載，idempotent（已裝或已在下載就跳過），只在 CCC 跑（local machine actor 自己管 local Playwright）。所以「Playwright 沒裝」這個 friction 對之後的 CCC 不該再發生——醒來時背景已經在補了。
 
 **鐵則：撞到新的 recurring env friction → 在同一個 PR 把它收進 hook，當場消滅，別只修這次。** 這跟 `docs/agent-discipline.md`「主任務踩到的 bug 順手修在同一個 PR」是同一條精神，只是套用在環境層：hook 是 CCC fresh-env friction 的 SSOT，能進 hook 的就別留在 per-session 手動步驟。
 
