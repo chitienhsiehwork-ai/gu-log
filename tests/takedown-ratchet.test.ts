@@ -235,6 +235,41 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
       );
     });
 
+    it('blocks a language file next to a taken-down sibling or from a brand-cutover entry', () => {
+      const english = (ticket: string) => livePost(ticket, GP35_URL, ['lang: "en"']);
+      // 新的公開英文檔，旁邊是同 sourceUrl 的繁中墓碑：這是把下架文章救回來。
+      const nextToTombstone = baseInput({
+        addedPosts: [{ path: 'src/content/posts/en-gp-35-x.mdx', content: english('GP-35') }],
+        manifestEntries: [
+          {
+            ...entry,
+            oldTicketId: 'SP-35',
+            newTicketId: 'GP-35',
+            newFilename: path.basename(GP35),
+          },
+        ],
+        basePosts: new Map([[GP35, tombstone('GP-35', GP35_URL)]]),
+        headPosts: new Map([[GP35, tombstone('GP-35', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(nextToTombstone)).toHaveLength(1);
+      // 即使改成 GP→MP 的項目，旁邊的墓碑也不能放行。
+      const tombstoneSibling = baseInput({
+        addedPosts: [{ path: NEW_EN, content: english('MP-900') }],
+        manifestEntries: [entry],
+        basePosts: new Map([[NEW_ZH, tombstone('MP-900', GP35_URL)]]),
+        headPosts: new Map([[NEW_ZH, tombstone('MP-900', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(tombstoneSibling)).toHaveLength(1);
+      // 活著的兄弟檔，但遷移項目是 SP→GP 的品牌改名，不是 reclassify-post 的改系列。
+      const cutover = baseInput({
+        addedPosts: [{ path: NEW_EN, content: english('MP-900') }],
+        manifestEntries: [{ ...entry, oldTicketId: 'SP-276' }],
+        basePosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+        headPosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(cutover)).toHaveLength(1);
+    });
+
     it('blocks a language file that does not belong to the reclassified post', () => {
       const errors = evaluateTakedownRatchet(
         baseInput({

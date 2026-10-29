@@ -48,6 +48,7 @@ function sourceUrlOf(content) {
   return typeof parsed?.data?.sourceUrl === 'string' ? parsed.data.sourceUrl : null;
 }
 
+const RECLASSIFIED_FROM = /^(?:GP|MP)-\d+$/;
 const postPath = (filename) => `${POSTS_DIR}/${filename}`;
 const isEnglishPath = (file) => path.posix.basename(file).startsWith('en-');
 
@@ -68,7 +69,8 @@ function isRecordedReclassification(file, sourceUrl, { manifestEntries, basePost
 
 /**
  * 替改系列的文章補上缺少的語言版本：同 ticketId、同 sourceUrl 的另一個語言檔是遷移
- * 清單記下的改系列文章，而且它本身是既有文章（基準版本就有，或這次改系列搬過來）。
+ * 清單記下的改系列文章，而且它本身是還在線上的既有文章（基準版本就有，或這次改系列
+ * 搬過來）。另一個語言檔已下架時，補上的檔案就是把下架文章救回來，照樣擋。
  */
 function isAddedLanguageOfReclassified(file, data, context) {
   const ticket = ticketOf(data);
@@ -79,6 +81,7 @@ function isAddedLanguageOfReclassified(file, data, context) {
     if (siblingPath === file || isEnglishPath(siblingPath) === isEnglishPath(file)) return false;
     const sibling = parsePost(context.headPosts.get(siblingPath) ?? '', siblingPath);
     if (!sibling || ticketOf(sibling.data) !== ticket) return false;
+    if (isTakenDownData(sibling.data)) return false;
     if (sibling.data.sourceUrl !== data.sourceUrl) return false;
     if (context.basePosts.get(siblingPath)) return true;
     return isRecordedReclassification(siblingPath, data.sourceUrl, context);
@@ -111,7 +114,12 @@ export function evaluateTakedownRatchet({
   headPosts = new Map(),
 }) {
   const errors = [];
-  const reclassification = { manifestEntries, basePosts, headPosts };
+  // 只有 GP、MP 之間的改系列（reclassify-post.mjs）算數；SP／CP 是品牌改名時的遷移項目。
+  const reclassification = {
+    manifestEntries: manifestEntries.filter((entry) => RECLASSIFIED_FROM.test(entry?.oldTicketId)),
+    basePosts,
+    headPosts,
+  };
 
   for (const { path: file } of baseTakenDown) {
     const content = headContents.get(file) ?? null;
