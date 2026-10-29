@@ -73,7 +73,12 @@ describe('redirect smoke checks', () => {
     const resolve = (pathname: string) => {
       for (const { source, destination } of redirects) {
         const match = redirectSourcePattern(source).exec(pathname);
-        if (match) return destination.replace(/:(\w+)/g, (_, name) => match.groups?.[name] ?? '');
+        if (match) {
+          return String(destination).replace(
+            /:(\w+)/g,
+            (_: string, name: string) => match.groups?.[name] ?? ''
+          );
+        }
       }
       return null;
     };
