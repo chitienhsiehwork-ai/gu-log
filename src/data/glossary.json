@@ -644,7 +644,7 @@
     "en": "Open Weights",
     "definition": "模型把訓練好的 weights（神經網路參數）公開讓別人下載、跑、微調的發布方式。注意「open weights」不等於「open source」——前者只放權重，訓練資料、訓練程式碼、架構細節可以全黑箱。Llama、Mistral、Qwen、DeepSeek、Kimi 都是 open weights。完全 open source（含資料 + 程式碼 + 權重）的模型其實少得多。",
     "moguNote": "「open weights」是 2024-2026 年業界主流的「半開放」模式：weights 你可以拿去用，但你不知道它怎麼訓出來的、用了什麼資料、改了什麼架構。比閉源好、比真正 open source 差。Meta 2026 年宣布閉源 Muse Spark 之後，美國西岸 lab 的 open weights 旗手位置就空出來了，現在主要靠中國方向（Qwen、DeepSeek、Kimi）跟法國 Mistral 撐。",
-    "related": ["Frontier Model"],
+    "related": ["Frontier Model", "Olmo"],
     "definedIn": [],
     "category": "concepts",
     "enDefinition": "A release model where trained neural network weights are published for others to download, run, and fine-tune. Open weights does not equal open source: training data, training code, and architecture details may remain closed. Llama, Mistral, Qwen, DeepSeek, and Kimi are open-weights examples; fully open-source models with data + code + weights are much rarer.",
@@ -1193,5 +1193,17 @@
     "category": "concepts",
     "enDefinition": "A function that turns the gap between a model's predictions and the correct answers into a single number, where lower means closer to the target. Training keeps adjusting parameters to push that number down, so choosing a loss function is effectively choosing what the model treats as doing well.",
     "enMoguNote": "The loss function is the grading rubric. However the score is computed, that is where the model grows; get the rubric wrong and the model will diligently get very good at the wrong thing. People are the same: grade a new environment with the old environment's rubric and every extra bit of effort just digs you in deeper."
+  },
+  {
+    "term": "Olmo",
+    "en": "Olmo",
+    "aliases": ["OLMo", "Olmo 3"],
+    "definition": "Ai2（艾倫人工智慧研究所，微軟共同創辦人 Paul Allen 創立的非營利研究機構）做的開源語言模型系列，早期寫成 OLMo（Open Language Model）。多數開源模型只公開權重；Olmo 連訓練資料、訓練程式碼、訓練途中的存檔（checkpoint）和訓練紀錄都公開，是少數真正全部攤開的模型。2025 年底的 Olmo 3 分成 Base（只做過預訓練）、Instruct（再教它聽指令）、Think（再教它推理）三種版本，研究者可以拿同一個底子、只差後段訓練的版本互相比較。",
+    "moguNote": "多數開源模型是送你一個蛋糕，不給食譜；Olmo 是蛋糕、食譜、原料清單、每個階段的半成品照片全給你。它的賣點不是強（主力是 7B、32B 這種中小尺寸），是透明：想研究「後段訓練到底把模型改成什麼樣子」的人，幾乎只能找它。",
+    "related": ["Open Weights", "RL", "Frontier Model"],
+    "definedIn": [{ "slug": "mp-325-20261028-arxiv-why-ai-text-is-hard-to-read" }],
+    "category": "models",
+    "enDefinition": "A family of open language models from Ai2 (the Allen Institute for AI, a nonprofit research institute founded by Microsoft co-founder Paul Allen), originally styled OLMo (Open Language Model). Most open models publish only their weights; Olmo also publishes its training data, training code, intermediate checkpoints, and training logs, which makes it one of the few fully open models. Olmo 3, released in late 2025, comes in Base (pretraining only), Instruct (then taught to follow instructions), and Think (then taught to reason) versions, so researchers can compare models that share the same foundation and differ only in later training.",
+    "enMoguNote": "Most open models hand you a cake and keep the recipe. Olmo hands you the cake, the recipe, the ingredient list, and photos of every half-baked stage. Its selling point is not raw strength (the main sizes are 7B and 32B); it is transparency. If you want to study what later training actually does to a model, it is close to the only option."
   }
 ]
