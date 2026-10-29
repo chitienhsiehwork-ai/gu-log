@@ -155,7 +155,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 **品質門檻（SSOT = `CONTRIBUTING.md`〈🎯 兩層品質門檻〉；消費端可見性行為的 formal spec = `openspec/specs/publish-bar-visibility/spec.md`；本段是 derived view）**：
 - **Floor（merge/ship gate）**：`scores.vibe` 存在、該 tribunalVersion 要求的 vibe 維度齊、且 composite ≥ 3。沒過 floor → pre-commit 會擋，不能 merge。
-- **PASS（首頁 / featured gate）**：Vibe composite ≥ 8 AND 至少一維 ≥ 9 AND 無任何維 < 8；Fact core avg ≥ 8 AND sourceBoundary ≥ 8 AND commentarySeparation ≥ 8；Librarian composite ≥ 8；FreshEyes composite ≥ 8 AND payoffDensity ≥ 8 AND lengthFit ≥ 8 AND（v9）clarity ≥ 8。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
+- **PASS（首頁 / featured gate）**：四個評審各自的門檻以 `openspec/specs/tribunal-scoring-dimensions/spec.md` 為準，本檔不抄數字。沒過 PASS 仍可 merge/ship，但掛「精修中」badge，且不上首頁 / featured。
 
 **沒過 PASS 怎麼辦**（GP 除外，只評分不改寫）：有 quota 就讀 `tribunal-writer` role prompt，以 `claude -p --model <frontmatter 的完整 id>` rewrite → 再跑一輪 → 最多 3 輪。3 輪還不到 ≥8，不要 revert；只要 floor ≥3 就先誠實帶 sub-8 badge ship，排進背景 tribunal 繼續拉。
 
