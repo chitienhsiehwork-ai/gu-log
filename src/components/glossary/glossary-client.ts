@@ -16,13 +16,12 @@ const currentLetterEl = document.getElementById('glossary-current-letter');
 const letterLinks = document.querySelectorAll<HTMLAnchorElement>('.alpha-key, .alpha-link');
 const entries = [...document.querySelectorAll<HTMLElement>('.glossary-entry')];
 const sections = [...document.querySelectorAll<HTMLElement>('.letter-section')];
-const countEl = document.getElementById('glossary-count');
+const countNumber = document.querySelector('#glossary-count .count-number');
 const emptyEl = document.getElementById('glossary-empty');
 const statusEl = document.getElementById('glossary-status');
 const copyButtonTemplate = document.getElementById(
   'glossary-copy-button'
 ) as HTMLTemplateElement | null;
-const countSuffix = countEl?.dataset.countSuffix ?? '';
 
 function withTerm(template: string | undefined, entry: HTMLElement) {
   const term = entry.querySelector('.term-name')?.textContent?.trim() ?? entry.id;
@@ -78,8 +77,8 @@ function filterItems() {
     section.hidden = !section.querySelector('.glossary-entry:not([hidden])');
   });
 
-  // 數量一直更新給輔助技術；畫面上只在有搜尋字時顯示在搜尋框裡。
-  if (countEl) countEl.textContent = `${visible}${countSuffix}`;
+  // 數量一直更新給輔助技術（連同藏起來的「個術語」整句唸）；畫面上只在有搜尋字時顯示數字。
+  if (countNumber) countNumber.textContent = String(visible);
   searchField?.classList.toggle('has-query', Boolean(query));
   if (emptyEl) emptyEl.hidden = visible > 0;
   updateCurrentLetter();

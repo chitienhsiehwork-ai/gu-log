@@ -161,6 +161,7 @@ for (const item of entries) {
 
     {
       /* 捲動時固定在上方的只有一列：搜尋框與字母索引（openspec: glossary-browsing）。
+       篩選中多一顆分類標籤，排在最後，一列放不下時換到第二行。
        手機上字母索引收進 <details> 展開成大按鈕；寬螢幕另外顯示一整排字母。 */
     }
     <div class="glossary-toolbar" id="glossary-toolbar">
@@ -181,27 +182,12 @@ for (const item of entries) {
             autocapitalize="none"
             spellcheck="false"
           />
-          <span
-            class="glossary-count"
-            id="glossary-count"
-            data-count-suffix={copy.countSuffix}
-            aria-live="polite"
+          <span class="glossary-count" id="glossary-count" aria-live="polite" aria-atomic="true"
+            ><span class="count-number">{entries.length}</span><span class="visually-hidden"
+              >{copy.countSuffix}</span
+            ></span
           >
-            {entries.length}{copy.countSuffix}
-          </span>
         </div>
-        <button
-          type="button"
-          class="active-filter"
-          id="glossary-active-filter"
-          data-label-template={copy.clearFilter}
-          hidden
-        >
-          <span class="active-filter-label"></span>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M18 6 6 18M6 6l12 12"></path>
-          </svg>
-        </button>
         <details class="alpha-jump" id="glossary-alpha-jump">
           <summary class="alpha-jump-toggle">
             <span class="visually-hidden">{copy.alphabetJumpLabel}</span>
@@ -224,6 +210,18 @@ for (const item of entries) {
             }
           </nav>
         </details>
+        <button
+          type="button"
+          class="active-filter"
+          id="glossary-active-filter"
+          data-label-template={copy.clearFilter}
+          hidden
+        >
+          <span class="active-filter-label"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
       <nav class="alpha-bar" aria-label={copy.alphabetLabel}>
         {

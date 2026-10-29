@@ -399,6 +399,18 @@ test.describe('sticky controls and in-page filters', () => {
     await expect(page.locator('#vibe-coding')).toBeVisible();
   });
 
+  test('an active filter never squeezes the search box, even with large text', async ({ page }) => {
+    await page.goto('/en/glossary');
+    // iOS 放大字級時根字級約 21px（global.css 用 -apple-system-body）。
+    await page.addStyleTag({ content: 'html { font-size: 21px !important; }' });
+    await page.getByRole('button', { name: 'Platforms', exact: true }).tap();
+    await page.locator('#glossary-search').fill('a');
+
+    expect((await page.locator('#glossary-search').boundingBox())!.width).toBeGreaterThan(80);
+    await expect(page.getByRole('button', { name: 'Clear the Platforms filter' })).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  });
+
   test('searching from deep in the list brings the results under the controls', async ({
     page,
   }) => {

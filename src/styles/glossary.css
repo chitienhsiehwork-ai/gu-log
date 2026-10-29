@@ -44,13 +44,15 @@ html:has(.glossary-page) {
 
 .toolbar-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* 搜尋框：外框是 .search-field，裡面放圖示、輸入框與搜尋結果數 */
+/* 搜尋框：外框是 .search-field，裡面放圖示、輸入框與搜尋結果數。
+   至少留 9rem，放不下時排在後面的字母索引、分類標籤換到下一行，輸入框不會被擠到沒寬度 */
 .search-field {
-  flex: 1;
+  flex: 1 1 9rem;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -127,7 +129,7 @@ html:has(.glossary-page) {
   align-items: center;
   gap: 0.3rem;
   min-height: var(--glossary-control-height);
-  max-width: 40%;
+  max-width: 100%;
   padding: 0 0.75rem;
   border: 0;
   border-radius: 12px;
