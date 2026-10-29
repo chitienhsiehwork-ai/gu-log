@@ -28,22 +28,23 @@ const copy = {
   'zh-tw': {
     title: '詞彙表 - gu-log',
     heading: '📖 詞彙表',
-    intro: '本站常出現的 AI 術語。點術語展開完整說明。',
-    // 複製按鈕要 JS 才有，這句由 script 加上按鈕時一起顯示。
-    copyHint: '想分享某個詞條，按它右邊的按鈕複製連結。',
-    searchPlaceholder: '搜尋術語...',
+    intro: '本站常出現的 AI 術語。點任一列展開完整說明。',
+    searchPlaceholder: '搜尋術語…',
     searchLabel: '搜尋術語',
     all: '全部',
     categoryGroupLabel: '分類篩選',
+    clearFilter: '清除「{category}」篩選',
     countSuffix: ' 個術語',
     alphabetLabel: '字母索引',
-    // 詞條 meta 的標籤直接接內容：全形冒號後面不空格，英文標籤自己帶空格。
-    threadLabel: 'Thread：',
-    relatedLabel: '相關：',
-    postsLabel: '文章：',
-    copyLink: '複製「{term}」的連結',
+    // 字母索引按鈕的名稱：這段只給輔助技術，畫面上只顯示目前的字母。
+    alphabetJumpLabel: '字母索引：',
+    alphabetJumpIdle: 'A–Z',
+    threadLabel: 'Thread',
+    relatedLabel: '相關',
+    postsLabel: '文章',
+    copyLink: '複製連結',
+    copied: '已複製',
     copiedLink: '已複製「{term}」的連結',
-    listSeparator: '、',
     empty: '沒有符合的術語。',
     homeHref: '/',
     homeLabel: '← 返回首頁',
@@ -51,20 +52,22 @@ const copy = {
   en: {
     title: 'Glossary - gu-log',
     heading: '📖 Glossary',
-    intro: 'AI terms that show up often on gu-log. Tap a term to expand the full entry.',
-    copyHint: ' To share one, use the button on its right to copy the link.',
-    searchPlaceholder: 'Search terms...',
+    intro: 'AI terms that show up often on gu-log. Tap any row to expand the full entry.',
+    searchPlaceholder: 'Search terms…',
     searchLabel: 'Search terms',
     all: 'All',
     categoryGroupLabel: 'Category filter',
+    clearFilter: 'Clear the {category} filter',
     countSuffix: ' terms',
     alphabetLabel: 'Alphabet index',
-    threadLabel: 'Thread: ',
-    relatedLabel: 'Related: ',
-    postsLabel: 'Posts: ',
-    copyLink: 'Copy link to {term}',
+    alphabetJumpLabel: 'Alphabet index: ',
+    alphabetJumpIdle: 'A–Z',
+    threadLabel: 'Thread',
+    relatedLabel: 'Related',
+    postsLabel: 'Posts',
+    copyLink: 'Copy link',
+    copied: 'Copied',
     copiedLink: 'Copied link to {term}',
-    listSeparator: ', ',
     empty: 'No matching terms.',
     homeHref: '/en',
     homeLabel: '← Back home',
@@ -114,11 +117,6 @@ const entries = [...glossaryData]
     posts: articleLinks(item.definedIn),
   }));
 
-// 清單項目之間插入分隔符號，例如 [A, B, C] → [A, '、', B, '、', C]。
-function joinWith<T>(items: T[], separator: string): (T | string)[] {
-  return items.flatMap((item, i) => (i === 0 ? [item] : [separator, item]));
-}
-
 function urlLabel(url: ParsedGlossaryUrl) {
   if (!url.external) return `gu-log${url.href}`;
 
@@ -130,7 +128,13 @@ function urlLabel(url: ParsedGlossaryUrl) {
   return first ? `${host}/${first}` : host;
 }
 
-const categories = [{ id: 'all', label: copy.all }, ...glossaryCategoryFilters(entries, lang)];
+const categories = [
+  { id: 'all', label: copy.all, count: entries.length },
+  ...glossaryCategoryFilters(entries, lang).map((cat) => ({
+    ...cat,
+    count: entries.filter((item) => item.category === cat.id).length,
+  })),
+];
 
 const groups: { letter: string; items: typeof entries }[] = [];
 for (const item of entries) {
@@ -152,53 +156,102 @@ for (const item of entries) {
   <article class="glossary-page">
     <header>
       <h1>{copy.heading}</h1>
-      <p class="glossary-intro">
-        {copy.intro}<span class="glossary-copy-hint" hidden>{copy.copyHint}</span>
-      </p>
+      <p class="glossary-intro">{copy.intro}</p>
     </header>
 
-    {/* 搜尋、分類按鈕與 A–Z 列捲動時固定在上方（openspec: glossary-browsing）。 */}
+    {
+      /* 捲動時固定在上方的只有一列：搜尋框與字母索引（openspec: glossary-browsing）。
+       篩選中多一顆分類標籤，排在最後，一列放不下時換到第二行。
+       手機上字母索引收進 <details> 展開成大按鈕；寬螢幕另外顯示一整排字母。 */
+    }
     <div class="glossary-toolbar" id="glossary-toolbar">
-      <div class="toolbar-search">
-        <input
-          type="search"
-          id="glossary-search"
-          class="glossary-search"
-          placeholder={copy.searchPlaceholder}
-          aria-label={copy.searchLabel}
-        />
-        <span
-          class="glossary-count"
-          id="glossary-count"
-          data-count-suffix={copy.countSuffix}
-          aria-live="polite"
-        >
-          {entries.length}{copy.countSuffix}
-        </span>
-      </div>
-      <div class="category-pills" role="group" aria-label={copy.categoryGroupLabel}>
-        {
-          categories.map((cat) => (
-            <button
-              type="button"
-              class="category-pill"
-              data-category={cat.id}
-              aria-pressed={cat.id === 'all' ? 'true' : 'false'}
+      <div class="toolbar-row">
+        <div class="search-field" id="glossary-search-field">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input
+            type="search"
+            id="glossary-search"
+            class="glossary-search"
+            placeholder={copy.searchPlaceholder}
+            aria-label={copy.searchLabel}
+            enterkeyhint="search"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+          />
+          <span class="glossary-count" id="glossary-count" aria-live="polite" aria-atomic="true"
+            ><span class="count-number">{entries.length}</span><span class="visually-hidden"
+              >{copy.countSuffix}</span
+            ></span
+          >
+        </div>
+        <details class="alpha-jump" id="glossary-alpha-jump">
+          <summary class="alpha-jump-toggle">
+            <span class="visually-hidden">{copy.alphabetJumpLabel}</span>
+            <span
+              class="alpha-jump-current"
+              id="glossary-current-letter"
+              data-idle={copy.alphabetJumpIdle}>{copy.alphabetJumpIdle}</span
             >
-              {cat.label}
-            </button>
-          ))
-        }
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"></path>
+            </svg>
+          </summary>
+          <nav class="alpha-grid" aria-label={copy.alphabetLabel}>
+            {
+              groups.map(({ letter }) => (
+                <a href={`#letter-${letter}`} class="alpha-key" data-letter={letter}>
+                  {letter}
+                </a>
+              ))
+            }
+          </nav>
+        </details>
+        <button
+          type="button"
+          class="active-filter"
+          id="glossary-active-filter"
+          data-label-template={copy.clearFilter}
+          hidden
+        >
+          <span class="active-filter-label"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"></path>
+          </svg>
+        </button>
       </div>
       <nav class="alpha-bar" aria-label={copy.alphabetLabel}>
         {
           groups.map(({ letter }) => (
-            <a href={`#letter-${letter}`} class="alpha-link">
+            <a href={`#letter-${letter}`} class="alpha-link" data-letter={letter}>
               {letter}
             </a>
           ))
         }
       </nav>
+    </div>
+
+    {/* 分類按鈕不固定，換行排開，不用左右滑；篩選中時控制列另外顯示一顆可清除的標籤。 */}
+    <div class="category-pills" role="group" aria-label={copy.categoryGroupLabel}>
+      {
+        categories.map((cat) => (
+          <button
+            type="button"
+            class="category-pill"
+            data-category={cat.id}
+            data-label={cat.label}
+            aria-pressed={cat.id === 'all' ? 'true' : 'false'}
+          >
+            {cat.label}
+            <span class="pill-count" aria-hidden="true">
+              {cat.count}
+            </span>
+          </button>
+        ))
+      }
     </div>
 
     <div id="glossary-list">
@@ -215,7 +268,8 @@ for (const item of entries) {
                   data-search={[item.term, item.en, ...item.aliases].join(' ').toLowerCase()}
                 >
                   <dt class="entry-head">
-                    {/* 沒有 JS 時是指向自己錨點的連結（:target 展開）；有 JS 時換成切換按鈕。 */}
+                    {/* 沒有 JS 時是指向自己錨點的連結（:target 展開）；有 JS 時換成切換按鈕。
+                        收起時這個控制蓋住整列，點定義摘要也會展開。 */}
                     <a href={`#${item.anchor}`} class="entry-toggle">
                       <span class="term-name">{item.term}</span>
                       {item.en !== item.term && <span class="term-en">{item.en}</span>}
@@ -226,9 +280,51 @@ for (const item of entries) {
                     <p class="term-def">{item.definition}</p>
                     <div class="entry-details" id={`${item.anchor}__details`}>
                       {item.moguNote && <MoguNote>{item.moguNote}</MoguNote>}
-                      {item.safeUrl && (
-                        <p class="term-meta">
+                      {item.related.length > 0 && (
+                        <div class="meta-row">
+                          <span class="meta-label">{copy.relatedLabel}</span>
+                          <ul class="term-chips">
+                            {item.related.map((rel) => (
+                              <li>
+                                <a class="term-chip" href={`#${rel.anchor}`}>
+                                  {rel.term}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {item.posts.length > 0 && (
+                        <div class="meta-row">
+                          <span class="meta-label">{copy.postsLabel}</span>
+                          <ul class="term-posts">
+                            {item.posts.map((post) => (
+                              <li>
+                                <a href={post.href}>{post.title}</a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {item.safeThreadUrl && (
+                        <div class="meta-row">
+                          <span class="meta-label">{copy.threadLabel}</span>
+                          <ul class="term-posts">
+                            <li>
+                              <a
+                                href={item.safeThreadUrl.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >{`${item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗`}</a>
+                            </li>
+                          </ul>
+                        </div>
+                      )}
+                      {/* 複製連結按鈕要 JS，由 script 加在外部連結旁邊。 */}
+                      <div class="entry-actions">
+                        {item.safeUrl && (
                           <a
+                            class="entry-action"
                             href={item.safeUrl.href}
                             target={item.safeUrl.external ? '_blank' : undefined}
                             rel={item.safeUrl.external ? 'noopener noreferrer' : undefined}
@@ -236,43 +332,8 @@ for (const item of entries) {
                             {urlLabel(item.safeUrl)}
                             {item.safeUrl.external && ' ↗'}
                           </a>
-                        </p>
-                      )}
-                      {/* 標籤、分隔符號與連結寫在同一個運算式裡，模板的換行才不會變成「A 、 B」這種多餘空白。 */}
-                      {item.safeThreadUrl && (
-                        <p class="term-meta">
-                          {[
-                            copy.threadLabel,
-                            <a
-                              href={item.safeThreadUrl.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >{`${item.threadTitle ?? urlLabel(item.safeThreadUrl)} ↗`}</a>,
-                          ]}
-                        </p>
-                      )}
-                      {item.related.length > 0 && (
-                        <p class="term-meta">
-                          {[
-                            copy.relatedLabel,
-                            ...joinWith(
-                              item.related.map((rel) => <a href={`#${rel.anchor}`}>{rel.term}</a>),
-                              copy.listSeparator
-                            ),
-                          ]}
-                        </p>
-                      )}
-                      {item.posts.length > 0 && (
-                        <p class="term-meta">
-                          {[
-                            copy.postsLabel,
-                            ...joinWith(
-                              item.posts.map((post) => <a href={post.href}>{post.title}</a>),
-                              copy.listSeparator
-                            ),
-                          ]}
-                        </p>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </dd>
                 </div>
@@ -288,14 +349,12 @@ for (const item of entries) {
       class="visually-hidden"
       id="glossary-status"
       role="status"
-      data-copy-link={copy.copyLink}
       data-copied-link={copy.copiedLink}
     >
     </p>
 
-    {/* 複製連結要靠 JS，所以按鈕由 script 從這個 template 複製到每一列。 */}
     <template id="glossary-copy-button">
-      <button type="button" class="entry-copy">
+      <button type="button" class="entry-action entry-copy">
         <svg class="icon-link" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
@@ -303,6 +362,8 @@ for (const item of entries) {
         <svg class="icon-check" viewBox="0 0 24 24" aria-hidden="true">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
+        <span class="copy-label">{copy.copyLink}</span>
+        <span class="copied-label">{copy.copied}</span>
       </button>
     </template>
 
