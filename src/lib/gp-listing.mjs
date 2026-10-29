@@ -16,6 +16,31 @@ export function isListedGpTicket(ticketId) {
   return typeof ticketId === 'string' && ticketId.startsWith('GP-') && ticketId !== GP_DEMO_TICKET;
 }
 
+/** 首頁 GP 區最多放幾篇。 */
+export const HOME_GP_LIMIT = 3;
+
+const ticketNumber = (ticketId) => Number(/\d+$/.exec(ticketId ?? '')?.[0] ?? 0);
+
+/**
+ * 首頁的 GP 區：從該語言可列的文章（getListablePosts）挑出過 publish bar 的 GP，最新的
+ * HOME_GP_LIMIT 篇。`picks` 是空的就整區不輸出；有輸出、而且系列頁列的比首頁放的多，才顯示
+ * 「查看全部」。
+ * publish bar 由呼叫端傳入（meetsPublishBar），這裡不重寫門檻。
+ *
+ * @template {{ data: { ticketId?: string, scores?: any } }} T
+ * @param {T[]} listable
+ * @param {(scores: any) => boolean} meetsPublishBar
+ * @returns {{ picks: T[], showViewAll: boolean }}
+ */
+export function selectHomeGpBlock(listable, meetsPublishBar) {
+  const listed = listable.filter((post) => isListedGpTicket(post.data.ticketId));
+  const picks = listed
+    .filter((post) => meetsPublishBar(post.data.scores))
+    .sort((a, b) => ticketNumber(b.data.ticketId) - ticketNumber(a.data.ticketId))
+    .slice(0, HOME_GP_LIMIT);
+  return { picks, showViewAll: picks.length > 0 && listed.length > picks.length };
+}
+
 /** GP 系列頁沒有任何公開的招牌文章時的空狀態文字。 */
 export const GP_EMPTY_NOTICE = Object.freeze({
   'zh-tw': '還沒有招牌文章。',

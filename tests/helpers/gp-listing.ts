@@ -3,13 +3,14 @@
  * 首頁沒有能放的 GP 時不顯示 GP 區〉）。
  *
  * 期望值照內容算，不寫死「GP 列表是空的」：讀出 src/content/posts 的 frontmatter，交給頁面
- * 用的同一組純函式（getListablePosts／getIndexPosts、isListedGpTicket）算出每個語言該列哪
+ * 用的同一組純函式（getListablePosts、meetsPublishBar、isListedGpTicket）算出每個語言該列哪
  * 幾篇，之後升格新的 GP 不用回來改測試。墓碑與 GP-1 另外直接看 frontmatter 再擋一次：
  * 就算共用函式壞掉、頁面跟期望值一起錯，它們也不能出現在列表上。
  */
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
-import { getGpEmptyNotice, isListedGpTicket } from '../../src/lib/gp-listing.mjs';
-import { getIndexPosts, getListablePosts } from '../../src/utils/post-status';
+import { HOME_GP_LIMIT, getGpEmptyNotice, isListedGpTicket } from '../../src/lib/gp-listing.mjs';
+import { getListablePosts } from '../../src/utils/post-status';
+import { meetsPublishBar } from '../../src/utils/tribunal-scores';
 import {
   isTakenDownData,
   postPathFor,
@@ -18,9 +19,6 @@ import {
 
 type Lang = 'zh-tw' | 'en';
 type PostEntries = Parameters<typeof getListablePosts>[0];
-
-/** 首頁每個系列區塊最多預覽幾篇（src/pages/index.astro、src/pages/en/index.astro）。 */
-const HOME_PREVIEW_LIMIT = 3;
 
 let postIndex: ReturnType<typeof readPostIndex> | undefined;
 
@@ -53,9 +51,11 @@ function expectedSeriesPaths(lang: Lang): string[] {
   return gpPaths(getListablePosts(entries(), lang));
 }
 
-/** 首頁 GP 區塊能放的文章：首頁用 getIndexPosts，沒過 publish bar 的不上首頁。 */
+/** 首頁 GP 區塊能放的文章：沒過 publish bar 的 GP 不上首頁。 */
 function expectedHomePaths(lang: Lang): string[] {
-  return gpPaths(getIndexPosts(entries(), lang));
+  return gpPaths(
+    getListablePosts(entries(), lang).filter((post) => meetsPublishBar(post.data.scores))
+  );
 }
 
 /**
@@ -142,7 +142,7 @@ export async function expectGpSeriesListing(
 }
 
 /**
- * 在已開好的首頁斷言 GP 區塊（openspec: gp-signature-picks）。照首頁的挑選規則（getIndexPosts）
+ * 在已開好的首頁斷言 GP 區塊（openspec: gp-signature-picks）。照首頁的挑選規則（selectHomeGpBlock）
  * 沒有任何能放的 GP 時，整個 GP 區都不輸出（標題、副標、空狀態、「查看全部」都沒有），其他系列
  * 照常顯示。有的話依 `seriesOrder`（expectGpSeriesListing 回傳的系列頁順序）放最前面幾篇；系列頁
  * 列的比首頁放的多時，要有連到系列頁的「查看全部」。首頁區塊是系列頁的預覽，排序跟著系列頁，
@@ -154,7 +154,7 @@ export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: rea
   expect(seriesOrder, '首頁能放的 GP 都該列在系列頁上').toEqual(
     expect.arrayContaining([...eligible])
   );
-  const expected = seriesOrder.filter((path) => eligible.has(path)).slice(0, HOME_PREVIEW_LIMIT);
+  const expected = seriesOrder.filter((path) => eligible.has(path)).slice(0, HOME_GP_LIMIT);
   const section = page.locator('section.gp-section');
   await expect(page.locator('[data-gp-empty-notice]'), '首頁不放 GP 空狀態').toHaveCount(0);
 

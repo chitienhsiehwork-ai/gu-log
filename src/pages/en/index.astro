@@ -10,7 +10,8 @@ import {
   getPostStatus,
   type PostStatus,
 } from '../../utils/post-status';
-import { isListedGpTicket } from '../../lib/gp-listing.mjs';
+import { meetsPublishBar } from '../../utils/tribunal-scores';
+import { selectHomeGpBlock } from '../../lib/gp-listing.mjs';
 
 const allPostsFull = await getCollection('posts');
 // Homepage excludes sub-8 posts (held off until a background tribunal lifts them).
@@ -35,16 +36,11 @@ const sdPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('SD-')).sort(
 
 const lvPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('Lv-')).sort(sortByTicketNumber);
 
-// GP 是 ShroomDog 指定的招牌文章，只列公開的（src/lib/gp-listing.mjs）。首頁放其中過了
-// publish bar 的最新 3 篇，一篇都沒有就整區不輸出（openspec: gp-signature-picks）；放不下的
-// 由「View all」帶去系列頁。
-const listedGpCount = getListablePosts(allPostsFull, 'en').filter((p) =>
-  isListedGpTicket(p.data.ticketId)
-).length;
-const gpPosts = allPosts
-  .filter((p) => isListedGpTicket(p.data.ticketId))
-  .sort(sortByTicketNumber)
-  .slice(0, 3);
+// GP 是 ShroomDog 指定的招牌文章，挑法見 src/lib/gp-listing.mjs（openspec: gp-signature-picks）。
+const { picks: gpPosts, showViewAll: showAllGp } = selectHomeGpBlock(
+  getListablePosts(allPostsFull, 'en'),
+  meetsPublishBar
+);
 
 const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(sortByTicketNumber);
 ---
@@ -81,7 +77,7 @@ const mpPosts = allPosts.filter((p) => p.data.ticketId?.startsWith('MP-')).sort(
           );
         })}
 
-        {listedGpCount > gpPosts.length && (
+        {showAllGp && (
           <p class="view-all">
             <a href="/en/gu-log-picks">View all →</a>
           </p>
