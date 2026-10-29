@@ -1,6 +1,9 @@
 package prompts
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -222,13 +225,28 @@ func TestRender_NoGPReadingGuideBranch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	retired := retiredGPFlowTerms(t)
 	for _, out := range append(rendered, translate) {
-		for _, retired := range []string{"reading guide", "精選導讀", "source-distance", "Canonical terminology", "Flagged passages", "Check report"} {
-			if strings.Contains(out, retired) {
-				t.Errorf("prompt still carries the retired GP branch (%q):\n%s", retired, out)
+		for _, term := range retired {
+			if strings.Contains(strings.ToLower(out), strings.ToLower(term)) {
+				t.Errorf("prompt still carries the retired GP branch (%q):\n%s", term, out)
 			}
 		}
 	}
+}
+
+// retiredGPFlowTerms reads the shared retired-term list (tests/fixtures/retired-gp-flow-terms.json).
+func retiredGPFlowTerms(t *testing.T) []string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "retired-gp-flow-terms.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list struct{ Terms []string }
+	if err := json.Unmarshal(data, &list); err != nil || len(list.Terms) == 0 {
+		t.Fatalf("retired-gp-flow-terms.json: %v (%d terms)", err, len(list.Terms))
+	}
+	return list.Terms
 }
 
 func TestRender_TranslateNamesDistinctMDXComponents(t *testing.T) {

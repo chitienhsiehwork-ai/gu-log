@@ -29,6 +29,10 @@ describe('retired editorial rules stay retired', () => {
   });
 
   it('keeps the retired GP reading guide and source-distance stamp out of the judges', () => {
+    const { terms } = JSON.parse(read('tests/fixtures/retired-gp-flow-terms.json')) as {
+      terms: string[];
+    };
+    const files = ['scripts/vibe-scoring-standard.md'];
     for (const role of [
       'fact-checker',
       'librarian',
@@ -36,13 +40,15 @@ describe('retired editorial rules stay retired', () => {
       'vibe-opus-scorer',
       'tribunal-writer',
     ]) {
-      for (const file of [`.claude/agents/${role}.md`, `.codex/agents/${role}.toml`]) {
-        expect(read(file), file).not.toMatch(/reading guide|導讀|source-distance|re-stamp/i);
-      }
+      files.push(`.claude/agents/${role}.md`, `.codex/agents/${role}.toml`);
     }
-    expect(read('scripts/vibe-scoring-standard.md')).not.toMatch(
-      /reading guide|導讀|source-distance/i
-    );
+    for (const file of files) {
+      const text = read(file).toLowerCase();
+      expect(
+        terms.filter((term) => text.includes(term.toLowerCase())),
+        file
+      ).toEqual([]);
+    }
   });
 
   it('keeps the old blanket lived-experience ban out of writer guidance', () => {

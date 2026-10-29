@@ -271,11 +271,12 @@ func TestHelpDescribesNoGPOnlySteps(t *testing.T) {
 		}
 		return out.String()
 	}
+	retired := retiredGPFlowTerms(t)
 	for _, args := range [][]string{{}, {"run"}, {"ralph"}, {"translate"}, {"eval"}} {
-		out := help(args...)
-		for _, retired := range []string{"source-distance", "reading guide", "post-fixer", "score-only", "aligner", "englishSkipped", "GP-worthy"} {
-			if strings.Contains(out, retired) {
-				t.Errorf("%v help still describes the retired GP flow: %q", args, retired)
+		out := strings.ToLower(help(args...))
+		for _, term := range retired {
+			if strings.Contains(out, strings.ToLower(term)) {
+				t.Errorf("%v help still describes the retired GP flow: %q", args, term)
 			}
 		}
 	}
@@ -295,4 +296,18 @@ func TestHelpDescribesNoGPOnlySteps(t *testing.T) {
 			}
 		}
 	}
+}
+
+// retiredGPFlowTerms reads the shared retired-term list (tests/fixtures/retired-gp-flow-terms.json).
+func retiredGPFlowTerms(t *testing.T) []string {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "..", "tests", "fixtures", "retired-gp-flow-terms.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var list struct{ Terms []string }
+	if err := json.Unmarshal(data, &list); err != nil || len(list.Terms) == 0 {
+		t.Fatalf("retired-gp-flow-terms.json: %v (%d terms)", err, len(list.Terms))
+	}
+	return list.Terms
 }
