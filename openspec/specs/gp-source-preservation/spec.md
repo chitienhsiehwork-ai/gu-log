@@ -2,7 +2,7 @@
 
 ## Purpose
 
-GP 整篇翻譯流程已於 2026-09-28 退役，理由與刪除範圍見 `openspec/changes/archive/2026-09-28-retire-gp-translation-pipeline/design.md`。本 capability 只保留兩件事：整篇翻譯流程維持退役的紀錄，以及 GP 在 Tribunal 與 ralph 只評分、不改寫正文的邊界：GP 的正文是 ShroomDog 認可過的版本（`gp-signature-picks`）。
+GP 整篇翻譯流程已於 2026-09-28 退役，理由與刪除範圍見 `openspec/changes/archive/2026-09-28-retire-gp-translation-pipeline/design.md`。本 capability 只保留兩件事：整篇翻譯流程維持退役的紀錄，以及 GP 在 Tribunal 只評分、不改寫正文的邊界：GP 的正文是 ShroomDog 認可過的版本（`gp-signature-picks`）。
 
 ## Requirements
 
