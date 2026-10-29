@@ -70,10 +70,9 @@ tools/gp-pipeline/gp-pipeline --work-dir <original-work-dir> run \
 
 Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學（Lv）〉。GP 不是寫出來的：先用 `--prefix MP` 寫成 MP，上線後由 ShroomDog 指定、用 `scripts/reclassify-post.mjs` 升格。pipeline 不撰寫、不改寫 Lv 與 GP，也不替 Lv 蓋 pipeline 署名：
 
-- 下列情況都在 ingress 以 exit 1 結束，不建工作目錄、不呼叫模型、不動 counter 與檔案：沒帶 `--file` 的 `run --prefix Lv|GP`（不論起點）、`run --file <Lv 或 GP 檔>` 起點早於 `translate`（沒指定起點也算）、要沿用的工作目錄草稿是 Lv 或 GP、`write --prefix Lv|GP`、`review`／`refine` 的 `--ticket-id` 或要讀的草稿是 Lv 或 GP、`ralph` 要處理的是 Lv 或 GP 檔、`credits` 要處理的是 Lv 檔。
-- pipeline 不配 GP 號：`counter bump --prefix GP` 與替 `gp-pending-` 檔配號的 `deploy`（含 `run` 的 deploy 步驟）都以 exit 1 結束，GP 號只由 `scripts/reclassify-post.mjs` 配出。
+- 下列情況都在 ingress 以 exit 1 結束，不建工作目錄、不呼叫模型、不動 counter 與檔案：沒帶 `--file` 的 `run --prefix Lv`（不論起點）、`run --file <Lv 檔>` 起點早於 `translate`（沒指定起點也算）、`write --prefix Lv`、`review`／`refine` 的 `--ticket-id` 是 Lv 或要讀的草稿是 Lv、`ralph`／`credits` 要處理的是 Lv 檔。
 - Lv 還能用：`counter`、`fetch`、`eval`、`dedup --series Lv`、`translate --file <Lv 檔>`、standalone `deploy --active-file <lv-pending 檔>`，以及 `run --file <Lv 檔> --from-step translate|deploy`。
-- GP 還能用：`counter next`、`dedup --series GP`、`translate --file <GP 檔>`、`credits`，以及 `run --file <已配號的 GP 檔> --from-step translate|deploy`；英文版照 MP 的流程翻。
+- GP 一樣在 ingress 以 exit 1 擋下；哪些指令擋、GP 還能用哪些步驟，看錯誤訊息或 `gp-pipeline <subcommand> --help`。pipeline 不配 GP 號，GP 號只由 `scripts/reclassify-post.mjs` 配出。
 - Lv 與 GP 的 Tribunal 直接跑 `scripts/tribunal.sh`（GP 只評分），跑法見 [`docs/tribunal-runbook.md`](../../docs/tribunal-runbook.md)。
 
 ## 可組合 subcommands
@@ -90,7 +89,7 @@ Lv 的寫法見 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)〈新增入門教學�
 | 跑 tribunal | `gp-pipeline ralph --file <post>.mdx`；系列看檔名（含 `en-` 檔）；Lv、GP 改跑 `scripts/tribunal.sh` |
 | 補 en sidecar | `gp-pipeline translate --file <mp-NNN-*.mdx>`（tribunal 通過後才跑；只寫新 en 檔，不 commit／push） |
 | 看下一個號碼 | `gp-pipeline counter next --prefix <PREFIX>` |
-| 原子配置號碼 | `gp-pipeline counter bump --prefix <PREFIX>`；`--prefix` 必填，不收 GP |
+| 原子配置號碼 | `gp-pipeline counter bump --prefix <PREFIX>`；`--prefix` 必填 |
 | 恢復既有文章 | `gp-pipeline --work-dir <original> run --from-step <step> --file <existing>.mdx`；系列以檔名為準，step 見 `run --help` |
 | 全新 PENDING article 配號並發布 | `gp-pipeline deploy --active-file <mp-pending-*.mdx> --date-stamp <YYYYMMDD> --author-slug <author> --title-slug <title>`；系列以檔名為準 |
 | 查看 run 狀態 | `gp-pipeline status` |
