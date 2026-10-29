@@ -66,13 +66,8 @@ const hasExternalSource =
 const showSourceCitation =
   (!isLevelUp && (!isShroomDogOriginal || isChatGptShareSource)) ||
   (isLevelUp && hasExternalSource);
-const sourceCitationLabel = isLevelUp
-  ? '參考來源'
-  : isSourceGrounded
-    ? '來源材料'
-    : isShroomDogOriginal && isChatGptShareSource
-      ? '靈感來源'
-      : '原文出處';
+// The last case is SD, which shows a citation only for a ChatGPT share.
+const sourceCitationLabel = isLevelUp ? '參考來源' : isSourceGrounded ? '來源材料' : '靈感來源';
 // Legacy Lv posts encoded the gu-log series name into `source`.
 // The Lv badge already carries that context, so credit only the real source.
 const sourceCitationText = post.data.source.replace(/^Level-Up 系列\s*[／/]\s*/, '');
