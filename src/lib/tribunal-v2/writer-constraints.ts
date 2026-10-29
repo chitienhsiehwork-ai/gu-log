@@ -194,24 +194,30 @@ export function checkFrontmatterPreserved(
 // produces a ShroomDogNote, in any series)
 // ---------------------------------------------------------------------------
 
-const SHROOMDOG_NOTE_REGEX = /<ShroomDogNote\b[\s\S]*?(?:<\/ShroomDogNote>|\/>)/g;
+// A self-closing note, or an open/close pair (a `<br />` inside must not end it).
+const SHROOMDOG_NOTE_REGEX = /<ShroomDogNote\b[^>]*\/>|<ShroomDogNote\b[\s\S]*?<\/ShroomDogNote>/g;
+const MARKDOWN_LINK_REGEX = /\[([^\]]*)\]\([^)]*\)/g;
 
 /** Every `<ShroomDogNote>` block in document order, byte-for-byte. */
 export function extractShroomDogNotes(content: string): string[] {
   return content.match(SHROOMDOG_NOTE_REGEX) ?? [];
 }
 
-/** A writer may not add, remove or edit a ShroomDogNote: ShroomDog's own words. */
-export function checkShroomDogNotesPreserved(
-  before: string,
-  after: string
-): { pass: boolean; before: number; after: number } {
-  const beforeNotes = extractShroomDogNotes(before);
-  const afterNotes = extractShroomDogNotes(after);
-  const pass =
-    beforeNotes.length === afterNotes.length &&
-    beforeNotes.every((note, i) => note === afterNotes[i]);
-  return { pass, before: beforeNotes.length, after: afterNotes.length };
+/**
+ * A writer may not add, remove or edit a ShroomDogNote: ShroomDog's own words.
+ * Linking a phrase inside one (the Librarian's identity links) keeps the words,
+ * so links are compared by their text only.
+ */
+export function checkShroomDogNotesPreserved(before: string, after: string): { pass: boolean } {
+  const words = (content: string) =>
+    extractShroomDogNotes(content).map((note) => note.replace(MARKDOWN_LINK_REGEX, '$1'));
+  const beforeNotes = words(before);
+  const afterNotes = words(after);
+  return {
+    pass:
+      beforeNotes.length === afterNotes.length &&
+      beforeNotes.every((note, i) => note === afterNotes[i]),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -286,7 +292,7 @@ export interface WriterConstraintViolations {
   headings: ReturnType<typeof checkHeadingsPreserved>['violations'];
   frontmatter: ReturnType<typeof checkFrontmatterPreserved>['violations'];
   pronouns: Array<{ line: number; pronoun: string; snippet: string }>;
-  shroomDogNotes: { before: number; after: number } | null;
+  shroomDogNotes: boolean;
 }
 
 export interface EnforceWriterConstraintsResult {
@@ -339,7 +345,7 @@ export async function enforceWriterConstraints(
     headings: headings.violations,
     frontmatter: frontmatter.violations,
     pronouns: pronouns.violations,
-    shroomDogNotes: notes.pass ? null : { before: notes.before, after: notes.after },
+    shroomDogNotes: !notes.pass,
   };
 
   const allPass = urls.pass && headings.pass && frontmatter.pass && pronouns.pass && notes.pass;
@@ -371,7 +377,7 @@ export async function enforceWriterConstraints(
   }
   if (!notes.pass) {
     parts.push(
-      `ShroomDogNote changed (${notes.before} → ${notes.after} blocks): it is ShroomDog's own words — never add, edit or remove one.`
+      "ShroomDogNote changed: it is ShroomDog's own words — never add, edit or remove one."
     );
   }
 

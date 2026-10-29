@@ -1,8 +1,8 @@
 /**
  * openspec editorial-charter〈自動化寫作 SHALL NOT 產生 ShroomDogNote〉：
- * ShroomDogNote 是 ShroomDog 本人的話。Tribunal 的 writer 與 FactCorrector
- * 不分系列都不能新增、刪掉或改寫它；前後的 ShroomDogNote 有任何不同，
- * pipeline 就把這次輸出當成違反 writer constraints 退回。
+ * ShroomDogNote 是 ShroomDog 本人的話。Tribunal 的 writer、FactCorrector 與
+ * Librarian 不分系列都不能新增、刪掉或改寫它（在裡面加連結不算改寫）；前後的
+ * ShroomDogNote 有任何不同，pipeline 就把這次輸出當成違反 writer constraints 退回。
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -33,12 +33,19 @@ describe('checkShroomDogNotesPreserved', () => {
     expect(checkShroomDogNotesPreserved(ARTICLE, after).pass).toBe(true);
   });
 
+  it('passes when the Librarian links a phrase inside a note', () => {
+    const after = ARTICLE.replace('這個坑', '[這個坑](/glossary#mogu)');
+    expect(checkShroomDogNotesPreserved(ARTICLE, after).pass).toBe(true);
+  });
+
   const twoNotes = ARTICLE.replace(NOTE, `${ADDED}\n\n${NOTE}`);
+  const withBr = ARTICLE.replace('自己也', '自己也<br />');
   it.each([
     ['adds a note', ARTICLE, ARTICLE.replace('## 結論', `${ADDED}\n\n## 結論`)],
     ['removes a note', ARTICLE, ARTICLE.replace(NOTE, '')],
     ['edits a note', ARTICLE, ARTICLE.replace('踩過這個坑', '踩過不少坑')],
     ['reorders two notes', twoNotes, ARTICLE.replace(NOTE, `${NOTE}\n\n${ADDED}`)],
+    ['edits text after a self-closing child', withBr, withBr.replace('這個坑', '別的坑')],
   ])('fails when the writer %s', (_, before, after) => {
     expect(checkShroomDogNotesPreserved(before, after).pass).toBe(false);
   });
