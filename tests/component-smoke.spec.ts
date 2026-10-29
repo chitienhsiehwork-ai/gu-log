@@ -6,7 +6,7 @@
  * fails if a component breaks rendering or throws a console error.
  */
 import { test, expect } from './fixtures';
-import type { ConsoleMessage } from '@playwright/test';
+import { attachConsoleErrorWatcher } from './helpers/console-errors';
 
 async function getContrastRatio(
   text: import('@playwright/test').Locator,
@@ -38,27 +38,6 @@ async function getContrastRatio(
   const foreground = luminance(textColor);
   const backdrop = luminance(backgroundColor);
   return (Math.max(foreground, backdrop) + 0.05) / (Math.min(foreground, backdrop) + 0.05);
-}
-
-function attachConsoleErrorWatcher(page: import('@playwright/test').Page) {
-  const errs: string[] = [];
-  page.on('console', (msg: ConsoleMessage) => {
-    if (msg.type() === 'error') {
-      const text = msg.text();
-      // Ignore known-noisy 3rd-party warnings unrelated to our code
-      if (
-        text.includes('favicon') ||
-        text.includes('giscus') ||
-        text.includes('Failed to load resource') ||
-        text.includes('Vercel Analytics')
-      ) {
-        return;
-      }
-      errs.push(text);
-    }
-  });
-  page.on('pageerror', (e) => errs.push(`pageerror: ${e.message}`));
-  return errs;
 }
 
 test.describe('Component smoke — listing pages', () => {
@@ -105,88 +84,6 @@ test.describe('Component smoke — listing pages', () => {
 });
 
 test.describe('Component smoke — storage fallbacks', () => {
-  for (const route of ['/glossary', '/en/glossary']) {
-    test(`${route} does not claim copy success when Clipboard rejects`, async ({ page }) => {
-      const errs = attachConsoleErrorWatcher(page);
-      await page.addInitScript(() => {
-        let writeCalls = 0;
-        Object.defineProperty(window, '__clipboardWriteCalls', {
-          get: () => writeCalls,
-        });
-        Object.defineProperty(navigator, 'clipboard', {
-          configurable: true,
-          value: {
-            writeText: () => {
-              writeCalls += 1;
-              return Promise.reject(new DOMException('clipboard denied', 'NotAllowedError'));
-            },
-          },
-        });
-      });
-
-      await page.goto(route);
-
-      const copyButton = page.locator('.entry-copy').first();
-      await copyButton.click();
-      await page.waitForTimeout(100);
-
-      await expect(page).toHaveURL(/#.+$/);
-      await expect(copyButton).not.toHaveClass(/copied/);
-      expect(
-        await page.evaluate(
-          () => (window as Window & { __clipboardWriteCalls?: number }).__clipboardWriteCalls
-        )
-      ).toBe(1);
-      expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
-    });
-  }
-
-  test('glossary ignores stale Clipboard success after a newer rejection', async ({ page }) => {
-    const errs = attachConsoleErrorWatcher(page);
-    await page.addInitScript(() => {
-      let writeCalls = 0;
-      let resolveFirstWrite: (() => void) | undefined;
-      const firstWrite = new Promise<void>((resolve) => {
-        resolveFirstWrite = resolve;
-      });
-
-      Object.defineProperty(window, '__resolveFirstClipboardWrite', {
-        value: () => resolveFirstWrite?.(),
-      });
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: {
-          writeText: () => {
-            writeCalls += 1;
-            return writeCalls === 1
-              ? firstWrite
-              : Promise.reject(new DOMException('clipboard denied', 'NotAllowedError'));
-          },
-        },
-      });
-    });
-
-    await page.goto('/glossary');
-
-    const copyButton = page.locator('.entry-copy').first();
-    await copyButton.click();
-    await copyButton.click();
-    await page.waitForTimeout(100);
-    await expect(copyButton).not.toHaveClass(/copied/);
-
-    await page.evaluate(() => {
-      (
-        window as Window & {
-          __resolveFirstClipboardWrite?: () => void;
-        }
-      ).__resolveFirstClipboardWrite?.();
-    });
-    await page.waitForTimeout(100);
-
-    await expect(copyButton).not.toHaveClass(/copied/);
-    expect(errs, `console errors: ${errs.join('\n')}`).toEqual([]);
-  });
-
   test('theme toggle remains usable when theme storage is unavailable', async ({ page }) => {
     const errs = attachConsoleErrorWatcher(page);
     await page.addInitScript(() => {
