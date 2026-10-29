@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -13,38 +11,8 @@ import (
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
-// Lv is written by hand (CONTRIBUTING.md): run, write, review, refine, ralph,
-// and credits refuse it at ingress, before any work dir, external program,
-// model route, counter change, or file write (openspec
-// gp-pipeline-publish-integrity). A missing fake-provider spec makes a model
-// route fail with a different error, and trap programs on PATH record any
-// external call.
-
-// trapExternalPrograms puts a recording stand-in for every external program a
-// command could reach first on PATH and returns the log they append to.
-func trapExternalPrograms(t *testing.T) string {
-	t.Helper()
-	trapDir := t.TempDir()
-	for _, name := range []string{"bash", "curl", "yt-dlp", "python3", "node", "codex", "claude", "git", "pnpm"} {
-		writeExecutableFile(t, filepath.Join(trapDir, name), "#!/bin/sh\nprintf '%s\\n' \"$0 $*\" >> \"$GP_INGRESS_TRAP_LOG\"\nexit 99\n")
-	}
-	trapLog := filepath.Join(t.TempDir(), "trap.log")
-	t.Setenv("GP_INGRESS_TRAP_LOG", trapLog)
-	t.Setenv("PATH", trapDir+string(os.PathListSeparator)+os.Getenv("PATH"))
-	return trapLog
-}
-
-// executeCLI runs one gp-pipeline invocation from fresh package globals.
-func executeCLI(t *testing.T, args ...string) error {
-	t.Helper()
-	resetGlobals()
-	cmd := buildRoot()
-	cmd.SetArgs(args)
-	_, err := captureProcessStdout(t, func() error {
-		return cmd.ExecuteContext(context.Background())
-	})
-	return err
-}
+// What only Lv does: credits refuses it too, and its non-writing steps keep
+// working. The refusals Lv shares with GP are in refusal_test.go.
 
 func requireLvRefusal(t *testing.T, err error) {
 	t.Helper()
@@ -53,262 +21,15 @@ func requireLvRefusal(t *testing.T, err error) {
 	}
 }
 
-func requireNoExternalCalls(t *testing.T, trapLog string) {
-	t.Helper()
-	if raw, err := os.ReadFile(trapLog); err == nil {
-		t.Fatalf("external programs ran:\n%s", raw)
-	}
-}
-
-func requireBytes(t *testing.T, path string, want []byte) {
-	t.Helper()
-	got, err := os.ReadFile(path)
-	if err != nil || !bytes.Equal(got, want) {
-		t.Fatalf("%s changed: %q, %v", path, got, err)
-	}
-}
-
-func requireAbsent(t *testing.T, path string) {
-	t.Helper()
-	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("%s exists: %v", path, err)
-	}
-}
-
-// dirNames lists the entry names in dir, sorted.
-func dirNames(t *testing.T, dir string) []string {
-	t.Helper()
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	names := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		names = append(names, entry.Name())
-	}
-	return names
-}
-
-func TestRunRefusesLvBeforeWritingSteps(t *testing.T) {
+// TestCreditsRefusesLvPosts: an Lv post, by filename or by frontmatter
+// ticketId, never gets the pipeline credit stamp. A GP keeps it
+// (TestStandaloneCreditsKeepsGPBody).
+func TestCreditsRefusesLvPosts(t *testing.T) {
 	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	posts := map[string]string{
-		"lv-18-20261011-example.mdx":             "---\ntitle: \"Lv\"\nticketId: Lv-18\nlang: zh-tw\n---\nbody\n",
-		"levelup-20260701-core-dump-anatomy.mdx": "---\ntitle: \"Lv\"\nticketId: Lv-13\nlang: zh-tw\n---\nbody\n",
-	}
-	for filename, body := range posts {
-		mustWrite(t, filepath.Join(postsDir, filename), body)
-	}
-	t.Setenv("GU_LOG_DIR", root)
-	trapLog := trapExternalPrograms(t)
-	counterFile := filepath.Join(root, "scripts", "article-counter.json")
-	counterBefore, err := os.ReadFile(counterFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	type runCase struct {
-		name string
-		args []string
-	}
-	cases := []runCase{
-		{name: "URL", args: []string{"run", "https://x.com/author/status/1", "--prefix", "Lv"}},
-		{name: "URL dry-run", args: []string{"run", "https://x.com/author/status/1", "--prefix", "Lv", "--dry-run"}},
-		{name: "deploy without --file", args: []string{"run", "--prefix", "Lv", "--from-step", "deploy"}},
-	}
-	for filename := range posts {
-		cases = append(cases, runCase{name: filename + " from the start", args: []string{"run", "--file", filename}})
-		for _, step := range []string{"write", "refine", "ralph"} {
-			cases = append(cases, runCase{name: filename + " from " + step, args: []string{"run", "--file", filename, "--from-step", step}})
-		}
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			workDir := filepath.Join(t.TempDir(), "never-created")
-			err := executeCLI(t, append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json")}, tc.args...)...)
-			requireLvRefusal(t, err)
-			requireNoExternalCalls(t, trapLog)
-			requireAbsent(t, workDir)
-			requireBytes(t, counterFile, counterBefore)
-			for filename, body := range posts {
-				requireBytes(t, filepath.Join(postsDir, filename), []byte(body))
-			}
-		})
-	}
-}
-
-// TestRunRefusesLvBeforeYTDLPPreflight: without yt-dlp, an Lv YouTube run gets
-// the Lv refusal (exit 1), not the missing-dependency exit 10.
-func TestRunRefusesLvBeforeYTDLPPreflight(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
-	t.Setenv("PATH", t.TempDir())
-	workDir := filepath.Join(t.TempDir(), "never-created")
-	err := executeCLI(t, "--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
-		"run", "https://youtube.com/watch?v=dQw4w9WgXcQ", "--prefix", "Lv")
-	requireLvRefusal(t, err)
-	requireAbsent(t, workDir)
-}
-
-// TestRunRefusesLvDraftInResumedWorkDir: a run resumed after write reuses the
-// work dir's draft-v1.mdx and final.mdx, so an Lv one there is refused
-// whichever series --prefix or --file names.
-func TestRunRefusesLvDraftInResumedWorkDir(t *testing.T) {
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	const gpFile = "gp-10-20261012-author-title.mdx"
-	mustWrite(t, filepath.Join(postsDir, gpFile), "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\nbody\n")
-	t.Setenv("GU_LOG_DIR", root)
-	trapLog := trapExternalPrograms(t)
-	runArgs := func(workDir string, args ...string) []string {
-		return append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"), "run", "--dry-run"}, args...)
-	}
-
-	for _, tc := range []struct {
-		name string
-		file string // the work dir file holding the Lv draft
-		args []string
-	}{
-		{name: "MP from review, Lv draft-v1.mdx", file: "draft-v1.mdx", args: []string{"--prefix", "MP", "--from-step", "review"}},
-		{name: "GP from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "GP", "--from-step", "ralph"}},
-		{name: "GP --file from ralph, Lv final.mdx", file: "final.mdx", args: []string{"--file", gpFile, "--from-step", "ralph"}},
-		{name: "MP from deploy, Lv final.mdx", file: "final.mdx", args: []string{"--prefix", "MP", "--from-step", "deploy"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
-			workDir := t.TempDir()
-			mustWrite(t, filepath.Join(workDir, tc.file), lvDraft)
-			err := executeCLI(t, runArgs(workDir, tc.args...)...)
-			requireLvRefusal(t, err)
-			requireNoExternalCalls(t, trapLog)
-			requireBytes(t, filepath.Join(workDir, tc.file), []byte(lvDraft))
-			if got := dirNames(t, workDir); !slices.Equal(got, []string{tc.file}) {
-				t.Fatalf("work dir holds %v, want only %s", got, tc.file)
-			}
-			if got := dirNames(t, postsDir); !slices.Equal(got, []string{gpFile}) {
-				t.Fatalf("posts dir holds %v, want only %s", got, gpFile)
-			}
-		})
-	}
-
-	// Control: the same resume from an MP draft reaches its model route.
-	t.Run("MP from review, MP draft-v1.mdx", func(t *testing.T) {
-		workDir := t.TempDir()
-		mustWrite(t, filepath.Join(workDir, "draft-v1.mdx"), "---\ntitle: \"Draft\"\nticketId: MP-PENDING\n---\nbody\n")
-		err := executeCLI(t, runArgs(workDir, "--prefix", "MP", "--from-step", "review")...)
-		if err == nil || !strings.Contains(err.Error(), "missing.json") || strings.Contains(err.Error(), "CONTRIBUTING.md") {
-			t.Fatalf("error = %v, want the MP resume to reach its model route", err)
-		}
-	})
-}
-
-func TestWriteRefusesLv(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
-	trapLog := trapExternalPrograms(t)
-	source := filepath.Join(t.TempDir(), "source-tweet.md")
-	mustWrite(t, source, "source")
-	workDir := filepath.Join(t.TempDir(), "never-created")
-
-	err := executeCLI(t, "--fake-provider", filepath.Join(root, "missing.json"),
-		"write", "--prefix", "Lv", "--source", source, "--work-dir", workDir)
-	requireLvRefusal(t, err)
-	requireNoExternalCalls(t, trapLog)
-	requireAbsent(t, workDir)
-}
-
-// TestReviewAndRefineRefuseLvDrafts: --ticket-id may disagree with the draft,
-// so the draft's own ticketId is checked as well; either one naming Lv is refused.
-func TestReviewAndRefineRefuseLvDrafts(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
-	trapLog := trapExternalPrograms(t)
-	for _, command := range []string{"review", "refine"} {
-		for name, tc := range map[string]struct {
-			draft string
-			args  []string
-		}{
-			"--ticket-id Lv-PENDING":            {draft: "---\ntitle: \"Draft\"\n---\nbody\n", args: []string{"--ticket-id", "Lv-PENDING"}},
-			"Lv draft without --ticket-id":      {draft: "---\ntitle: \"Draft\"\nticketId: \"Lv-PENDING\"\n---\nbody\n"},
-			"unquoted Lv draft, GP --ticket-id": {draft: "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n", args: []string{"--ticket-id", "GP-PENDING"}},
-		} {
-			t.Run(command+" "+name, func(t *testing.T) {
-				workDir := t.TempDir()
-				draft := filepath.Join(workDir, "draft-v1.mdx")
-				mustWrite(t, draft, tc.draft)
-				err := executeCLI(t, append([]string{"--fake-provider", filepath.Join(root, "missing.json"), command, "--draft", draft}, tc.args...)...)
-				requireLvRefusal(t, err)
-				requireNoExternalCalls(t, trapLog)
-				requireBytes(t, draft, []byte(tc.draft))
-				entries, err := os.ReadDir(workDir)
-				if err != nil || len(entries) != 1 {
-					t.Fatalf("work dir holds %d entries (%v), want only the draft", len(entries), err)
-				}
-			})
-		}
-		// The model reads the work dir's draft-v1.mdx, which need not be --draft.
-		t.Run(command+" GP --draft, Lv draft-v1.mdx in --work-dir", func(t *testing.T) {
-			const gpDraft = "---\ntitle: \"Draft\"\nticketId: GP-PENDING\n---\nbody\n"
-			const lvDraft = "---\ntitle: \"Draft\"\nticketId: Lv-PENDING\n---\nbody\n"
-			draft := filepath.Join(t.TempDir(), "draft-v1.mdx")
-			mustWrite(t, draft, gpDraft)
-			workDir := t.TempDir()
-			read := filepath.Join(workDir, "draft-v1.mdx")
-			mustWrite(t, read, lvDraft)
-			err := executeCLI(t, "--fake-provider", filepath.Join(root, "missing.json"), command, "--draft", draft, "--work-dir", workDir)
-			requireLvRefusal(t, err)
-			requireNoExternalCalls(t, trapLog)
-			requireBytes(t, read, []byte(lvDraft))
-			entries, err := os.ReadDir(workDir)
-			if err != nil || len(entries) != 1 {
-				t.Fatalf("work dir holds %d entries (%v), want only the Lv draft", len(entries), err)
-			}
-		})
-	}
-}
-
-// TestRalphAndCreditsRefuseLvPosts: an Lv post, by filename (lv-, levelup-,
-// en- sidecars) or by frontmatter ticketId, never reaches Tribunal, the
-// post-fixers, or the pipeline credit stamp.
-func TestRalphAndCreditsRefuseLvPosts(t *testing.T) {
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	// Real scripts, so only the refusal keeps the trapped bash and node away.
-	mustWrite(t, filepath.Join(root, "scripts", "tribunal.sh"), "exit 0\n")
-	for _, fixer := range []string{"add-kaomoji.mjs", "apply-glossary-links.mjs", "inject-related-posts.mjs"} {
-		mustWrite(t, filepath.Join(root, "scripts", fixer), "")
-	}
 	t.Setenv("GU_LOG_DIR", root)
 	trapLog := trapExternalPrograms(t)
 	const lvPost = "---\ntitle: \"Lv\"\nticketId: \"Lv-PENDING\"\nlang: zh-tw\n---\nbody\n"
 	const untaggedPost = "---\ntitle: \"Lv\"\nlang: zh-tw\n---\nbody\n"
-
-	for filename, body := range map[string]string{
-		"lv-40-20261012-example.mdx":             untaggedPost,
-		"levelup-20260701-core-dump-anatomy.mdx": untaggedPost,
-		"en-lv-40-20261012-example.mdx":          untaggedPost,
-		"mp-pending-20261012-author-title.mdx":   lvPost,
-	} {
-		t.Run("ralph "+filename, func(t *testing.T) {
-			path := filepath.Join(postsDir, filename)
-			mustWrite(t, path, body)
-			workDir := filepath.Join(t.TempDir(), "never-created")
-			err := executeCLI(t, "ralph", "--file", filename, "--work-dir", workDir)
-			requireLvRefusal(t, err)
-			requireNoExternalCalls(t, trapLog)
-			requireAbsent(t, workDir)
-			requireBytes(t, path, []byte(body))
-		})
-	}
 
 	for filename, body := range map[string]string{
 		"lv-40-20261012-example.mdx": untaggedPost,
@@ -430,53 +151,6 @@ func TestSDRunPassesLvRefusal(t *testing.T) {
 		"run", "https://x.com/author/status/1", "--prefix", "SD")
 	if err == nil || !strings.Contains(err.Error(), "missing.json") || strings.Contains(err.Error(), "CONTRIBUTING.md") {
 		t.Fatalf("error = %v, want SD to reach its model route", err)
-	}
-}
-
-// TestSeriesHelpMatchesWhatEachCommandServes: the writing commands offer only
-// the series the pipeline writes, while the commands Lv still uses keep
-// offering Lv.
-func TestSeriesHelpMatchesWhatEachCommandServes(t *testing.T) {
-	root := buildRoot()
-	for _, tc := range []struct {
-		path   []string
-		flag   string
-		wantLv bool
-	}{
-		{path: []string{"write"}, flag: "prefix"},
-		{path: []string{"run"}, flag: "prefix"},
-		{path: []string{"counter", "bump"}, flag: "prefix", wantLv: true},
-		{path: []string{"counter", "next"}, flag: "prefix", wantLv: true},
-		{path: []string{"dedup"}, flag: "series", wantLv: true},
-		{path: []string{"deploy"}, flag: "prefix", wantLv: true},
-	} {
-		t.Run(strings.Join(tc.path, " "), func(t *testing.T) {
-			cmd, _, err := root.Find(tc.path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			flag := cmd.Flags().Lookup(tc.flag)
-			if flag == nil {
-				t.Fatalf("no --%s flag", tc.flag)
-			}
-			for _, series := range pipeline.AuthorablePrefixes {
-				if !strings.Contains(flag.Usage, series) {
-					t.Errorf("--%s usage %q does not list %s", tc.flag, flag.Usage, series)
-				}
-			}
-			if got := strings.Contains(flag.Usage, "Lv"); got != tc.wantLv {
-				t.Errorf("--%s usage %q lists Lv = %v, want %v", tc.flag, flag.Usage, got, tc.wantLv)
-			}
-		})
-	}
-	for _, name := range []string{"write", "review", "refine"} {
-		cmd, _, err := root.Find([]string{name})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if strings.Contains(cmd.Long, "Lv") {
-			t.Errorf("%s --help still names Lv among the series it writes", name)
-		}
 	}
 }
 

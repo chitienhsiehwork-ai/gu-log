@@ -64,9 +64,9 @@ const MARKDOWN_HEADERS = Object.freeze([
 //
 // `keepPage`: Mogu Picks still paginates, so its old numeric pages keep their
 // page number. The old Gu-log Picks numeric pages only ever listed translations
-// that are now taken down, and the reading guides that replace them start over
-// from the first page, so they all land on the GP listing root instead of a
-// 404 (openspec: brand-taxonomy, post-takedown design D7).
+// that are now taken down, and the signature articles the listing shows now do
+// not correspond to the old page numbers, so they all land on the GP listing
+// root instead of a 404 (openspec: brand-taxonomy, post-takedown design D7).
 export const LISTING_SERIES = [
   { oldBase: 'shroomdog-picks', newBase: 'gu-log-picks', keepPage: false },
   { oldBase: 'clawd-picks', newBase: 'mogu-picks', keepPage: true },

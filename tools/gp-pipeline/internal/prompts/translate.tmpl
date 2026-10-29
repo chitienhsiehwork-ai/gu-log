@@ -10,15 +10,10 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
 - Translate idiomatically, not word-for-word. Read a sentence, understand the idea,
   write the natural English version of that idea.
 - Do NOT write like a textbook.
-{{if eq .Prefix "GP"}}- This is a GP reading guide: its body is Mogu's own paraphrase of the source, not the
-  source. Do NOT restore a paraphrase to the source's original wording, even when the
-  source is English. Only passages the zh-tw article marks as quotes (blockquotes or text
-  in quotation marks) may use the source's exact words; translate everything else as
-  Mogu's own English.
-{{else}}- The en version's quoted source material SHOULD read as the original English (if the
+- The en version's quoted source material SHOULD read as the original English (if the
   source was already English, quote it verbatim rather than back-translating a
   zh-tw paraphrase; if the source itself was non-English, translate naturally).
-{{end}}- Preserve every MDX component usage (MoguNote, ShroomDogNote, images, etc.) as-is,
+- Preserve every MDX component usage (MoguNote, ShroomDogNote, images, etc.) as-is,
   translating only their text content.
 - English runs longer than Chinese, so a MoguNote short enough in zh-tw can cross the
   validator's long-note limit in English. Give every English MoguNote a `summary`
@@ -28,7 +23,7 @@ Translation rules (from GU-LOG_WRITER_PROMPT.md):
   the reader-visible emoji rule below.
 - Do not restore any Unicode emoji glyph from the original source. Omit decorative glyphs;
   when a glyph carries meaning that is not otherwise expressed, write that meaning
-  in natural English. This automated GP sidecar lane has no glyph-retention exception:
+  in natural English. This automated sidecar lane has no glyph-retention exception:
   do not preserve or restore a Unicode emoji glyph. Kaomoji are separate text-based
   brand language and must remain unchanged.
 - Preserve internal links, except rewrite `/glossary#...` links to `/en/glossary#...`

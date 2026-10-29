@@ -40,10 +40,10 @@ describe('Stage 3 FactCorrector runner contract', () => {
     });
   });
 
-  it('routes the article, source, creative-scope boundary, and output contract to the agent', async () => {
+  it('routes the article, source, body-only scope, and output contract to the agent', async () => {
     const result = await stage3FactCorrectorRunner.run({
       articleContent: 'not passed inline because the agent reads the file',
-      articlePath: '/repo/src/content/posts/gp-1-example.mdx',
+      articlePath: '/repo/src/content/posts/mp-1-example.mdx',
       sourceUrl: 'https://example.com/source',
     });
 
@@ -59,9 +59,10 @@ describe('Stage 3 FactCorrector runner contract', () => {
     expect(options.timeoutSec).toBe(600);
 
     const prompt = options.buildPrompt('/tmp/fact-corrector-output.json');
-    expect(prompt).toContain('/repo/src/content/posts/gp-1-example.mdx');
+    expect(prompt).toContain('/repo/src/content/posts/mp-1-example.mdx');
     expect(prompt).toContain('https://example.com/source');
-    expect(prompt).toContain('body + ShroomDogNote ONLY');
+    // ShroomDogNote 不靠 prompt 原句保護：pipeline 的 writer constraints 比對前後的
+    // ShroomDogNote，有變就退回（tests/tribunal-v2/shroomdognote-guard.test.ts）。
     expect(prompt).toContain('do NOT modify MoguNote content');
     expect(prompt).toContain('standing checklist');
     expect(prompt).toContain('source_urls_fetched');

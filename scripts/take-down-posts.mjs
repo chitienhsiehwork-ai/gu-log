@@ -4,7 +4,7 @@
  *
  * 下架清單不另存快照：每次都依規則檔（takedown-list.json）的授權與規則，從當下語料算出。
  * 規則只選首次發布日期（translatedDate）不晚於授權日的文章：授權之後重跑同一份規則，
- * 也不會選中之後才發布的新文章（例如以導讀格式重新上線的 GP）。
+ * 也不會選中之後才發布的新文章。
  *
  *   --list <path> --plan                   依規則列出下架清單與統計（JSON），controller 用它對帳
  *   --list <path> --apply --date YYYY-MM-DD 改 frontmatter、清空正文；已下架的檔案不再變動（可重跑）

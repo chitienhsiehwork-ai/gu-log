@@ -141,14 +141,7 @@ func (s *State) Ralph(ctx context.Context) error {
 		return fmt.Errorf("ralph: existing file %s missing in posts dir", s.ActiveFilename)
 	}
 
-	// GP is score-only (openspec: gp-source-preservation): the post-fixers
-	// already ran on final.mdx before the source-distance stamp, and any body
-	// edit here would void that stamp. Tribunal only scores it, and neither
-	// the post fixers nor the pipeline stamp normaliser run again.
-	scoreOnly := s.Prefix == "GP"
-	if !scoreOnly {
-		s.runPostFixers(ctx, activePath)
-	}
+	s.runPostFixers(ctx, activePath)
 
 	// Run the tribunal. tribunal.sh owns per-judge runtime routing; legacy and
 	// Claude Code Cloud keep their historical provider chain, while VM-specific
@@ -159,7 +152,6 @@ func (s *State) Ralph(ctx context.Context) error {
 		Filename:    s.ActiveFilename,
 		StdoutFile:  filepath.Join(s.WorkDir, "tribunal-stdout.txt"),
 		NoCommit:    true,
-		NoRewrite:   scoreOnly,
 	})
 	if err != nil {
 		// Ralph.Run only returns errors for misuse; bubble up.
@@ -168,15 +160,8 @@ func (s *State) Ralph(ctx context.Context) error {
 	s.RalphPassed = passed
 	if passed {
 		s.Log.OK("  Tribunal PASS: %s", s.ActiveFilename)
-	} else if scoreOnly {
-		// A low persona/narrative/vibe score is calibration evidence only; it
-		// never authorizes rewriting GP.
-		s.Log.Warn("  Tribunal FAIL recorded as GP calibration evidence; GP is score-only and is not rewritten")
 	} else {
 		s.Log.Warn("  Tribunal FAIL (see %s/tribunal-stdout.txt). Deploying best effort.", s.WorkDir)
-	}
-	if scoreOnly {
-		return nil
 	}
 
 	// Frontmatter normaliser — for every file in {zh, en}, strip old

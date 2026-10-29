@@ -395,18 +395,10 @@ describe('check-pronoun-clarity', () => {
     expect(v[0].chars).toContain('你');
   });
 
-  it('preserves first-person pronouns in GP source-author body prose', () => {
+  // openspec gp-signature-picks：GP 的正文跟 MP 一樣是 Mogu 的聲音，沒有代名詞豁免。
+  it('flags 你 / 我 in a GP body like every other series', () => {
     const filepath = tmpPath('gp-pronoun.mdx');
-    fs.writeFileSync(
-      filepath,
-      `---\nticketId: 'GP-PENDING'\nlang: zh-tw\n---\n我離開社群媒體一陣子，回來後才看清自己的習慣。\n`
-    );
-    expect(pron.findViolations(filepath)).toEqual([]);
-  });
-
-  it('does not infer GP from a misleading filename without GP frontmatter', () => {
-    const filepath = tmpPath('gp-misleading-name.mdx');
-    fs.writeFileSync(filepath, `---\nticketId: 'MP-PENDING'\nlang: zh-tw\n---\n我來說明。\n`);
+    fs.writeFileSync(filepath, `---\nticketId: 'GP-1'\nlang: zh-tw\n---\n我來說明。\n`);
     expect(pron.findViolations(filepath)).toHaveLength(1);
   });
 

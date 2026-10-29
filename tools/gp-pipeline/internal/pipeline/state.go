@@ -24,14 +24,10 @@ const (
 	StepWrite    = 20
 	StepReview   = 30
 	StepRefine   = 40
-	// StepPostFix and StepSourceDistance run for GP only: the deterministic
-	// post-fixers edit final.mdx in the work dir, then the source-distance
-	// check stamps it (openspec gp-pipeline-publish-integrity).
-	StepPostFix        = 42
-	StepSourceDistance = 44
-	StepRalph          = 47
-	StepTranslate      = 48 // Go-only step, no bash equivalent (gu-log #546)
-	StepDeploy         = 50
+	StepRalph    = 47
+	// StepTranslate is a Go-only step, no bash equivalent (gu-log #546).
+	StepTranslate = 48
+	StepDeploy    = 50
 )
 
 // State is the mutable snapshot of an in-flight pipeline run. Each step
@@ -101,9 +97,7 @@ type State struct {
 	Dispatcher       *llm.Dispatcher
 	WriterDispatcher *llm.Dispatcher
 	JudgeDispatcher  *llm.Dispatcher
-	// AlignerDispatcher runs the source-distance aligner (GP only).
-	AlignerDispatcher *llm.Dispatcher
-	Counter           *counter.Counter
+	Counter          *counter.Counter
 
 	// ── Fields populated during the run ────────────────────────────────
 
@@ -165,12 +159,6 @@ type State struct {
 	CodexVerdict        string
 	DedupVerdict        string
 	RalphPassed         bool
-	// SourceDistanceResult is the GP source-distance outcome for the run report;
-	// nil when the step did not run.
-	SourceDistanceResult *SourceDistanceOutcome
-	// EnglishCheck is the GP English verbatim check result (PASS or
-	// SKIPPED_VERBATIM); empty when no English version was checked.
-	EnglishCheck string
 
 	// Timings per step (seconds), matches bash summary output.
 	Timings map[string]int

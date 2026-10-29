@@ -482,7 +482,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
 	// Writing commands offer only the series the pipeline writes; the counter
-	// still serves every series, Lv included.
+	// still serves Lv.
 	for _, tc := range []struct {
 		name   string
 		args   []string
@@ -514,8 +514,10 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 			if !strings.Contains(err.Error(), fmt.Sprint(tc.series)) {
 				t.Fatalf("error = %v, want the available series %v listed", err, tc.series)
 			}
-			if strings.Contains(err.Error(), "Lv") != slices.Contains(tc.series, "Lv") {
-				t.Fatalf("error = %v, want Lv named only when the command serves it", err)
+			for _, series := range []string{"Lv", "GP"} {
+				if strings.Contains(err.Error(), series) != slices.Contains(tc.series, series) {
+					t.Fatalf("error = %v, want %s named only when the command serves it", err, series)
+				}
 			}
 			if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
 				t.Fatalf("missing --prefix created the work dir: %v", statErr)
@@ -525,77 +527,6 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 				t.Fatalf("missing --prefix changed the counter: %v", err)
 			}
 		})
-	}
-}
-
-// TestGPPassesIngress covers the removal of the GP pause: GP reaches the same
-// provider setup, counter, and deploy preflight as every other series. A
-// missing fake-provider spec proves the command got past ingress to its model
-// route instead of being refused as GP.
-func TestGPPassesIngress(t *testing.T) {
-	root := makeFakeRepo(t)
-	postsDir := filepath.Join(root, "src", "content", "posts")
-	if err := os.MkdirAll(postsDir, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	const gpPending = "gp-pending-20260723-author-title.mdx"
-	mustWrite(t, filepath.Join(postsDir, gpPending), "---\ntitle: \"GP\"\nticketId: GP-PENDING\nlang: zh-tw\n---\nbody\n")
-	source := filepath.Join(root, "source-tweet.md")
-	draft := filepath.Join(root, "draft-v1.mdx")
-	mustWrite(t, source, "source")
-	mustWrite(t, draft, "draft")
-	t.Setenv("GU_LOG_DIR", root)
-	missingFake := filepath.Join(root, "missing.json")
-
-	for _, tc := range []struct {
-		name string
-		args []string
-	}{
-		{name: "run", args: []string{"--fake-provider", missingFake, "run", "--prefix", "GP", "https://x.com/author/status/1"}},
-		{name: "write", args: []string{"--fake-provider", missingFake, "write", "--prefix", "GP", "--source", source}},
-		{name: "refine GP ticket", args: []string{"--fake-provider", missingFake, "refine", "--draft", draft, "--ticket-id", "GP-12"}},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			resetGlobals()
-			cmd := buildRoot()
-			cmd.SetArgs(append([]string{"--work-dir", filepath.Join(t.TempDir(), "work")}, tc.args...))
-			_, err := captureProcessStdout(t, func() error {
-				return cmd.ExecuteContext(context.Background())
-			})
-			if err == nil || !strings.Contains(err.Error(), "missing.json") {
-				t.Fatalf("error = %v, want GP to reach the provider route", err)
-			}
-			if strings.Contains(err.Error(), "暫停") {
-				t.Fatalf("GP was refused at ingress: %v", err)
-			}
-		})
-	}
-
-	resetGlobals()
-	cmd := buildRoot()
-	cmd.SetArgs([]string{"counter", "bump", "--prefix", "GP"})
-	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
-		t.Fatalf("counter bump --prefix GP: %v", err)
-	}
-	raw, err := os.ReadFile(filepath.Join(root, "scripts", "article-counter.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var counters map[string]struct {
-		Next int `json:"next"`
-	}
-	if err := json.Unmarshal(raw, &counters); err != nil {
-		t.Fatal(err)
-	}
-	if counters["GP"].Next != 11 {
-		t.Fatalf("GP counter next = %d, want 11 after one bump", counters["GP"].Next)
-	}
-
-	resetGlobals()
-	cmd = buildRoot()
-	cmd.SetArgs([]string{"deploy", "--active-file", gpPending, "--date-stamp", "20260723", "--author-slug", "author", "--title-slug", "title", "--dry-run"})
-	if _, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) }); err != nil {
-		t.Fatalf("GP deploy dry-run preflight: %v", err)
 	}
 }
 
@@ -667,10 +598,11 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
-// TestRunRejectsRetiredTranslationSteps covers the gp-source-preservation
-// scenario「以退役的翻譯步驟恢復 run」: the retired GP step names are unknown
-// steps, rejected before any fetch, model call, or file change.
-func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
+// TestRunRejectsRetiredSteps covers gp-source-preservation「以退役的翻譯步驟恢復
+// run」 and gp-pipeline-publish-integrity〈以退役的 source-distance 步驟恢復〉:
+// retired step names are unknown steps, even without --prefix, rejected before
+// any fetch, model call, or file change.
+func TestRunRejectsRetiredSteps(t *testing.T) {
 	root := makeFakeRepo(t)
 	postsDir := filepath.Join(root, "src", "content", "posts")
 	if err := os.MkdirAll(postsDir, 0o755); err != nil {
@@ -680,13 +612,13 @@ func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
 	body := "---\ntitle: \"MP\"\nticketId: MP-10\nlang: zh-tw\n---\nbody\n"
 	mustWrite(t, filepath.Join(postsDir, existing), body)
 	t.Setenv("GU_LOG_DIR", root)
-	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich"} {
-		for _, target := range [][]string{{"https://x.com/author/status/1"}, {"--file", existing}} {
-			t.Run(step+" "+target[0], func(t *testing.T) {
+	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich", "source-distance"} {
+		for _, target := range [][]string{{"--prefix", "MP", "https://x.com/author/status/1"}, {"--prefix", "MP", "--file", existing}, {"https://x.com/author/status/1"}} {
+			t.Run(step+" "+strings.Join(target, " "), func(t *testing.T) {
 				resetGlobals()
 				workDir := filepath.Join(t.TempDir(), "never-created")
 				args := append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
-					"run", "--prefix", "MP", "--from-step", step}, target...)
+					"run", "--from-step", step}, target...)
 				cmd := buildRoot()
 				cmd.SetArgs(args)
 				err := cmd.ExecuteContext(context.Background())
@@ -704,20 +636,18 @@ func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
 	}
 }
 
-// TestStandaloneCreditsKeepsGPBody: GP is back as reading guides, so standalone
-// credits stamps a GP post or a work-dir final.mdx like any other series. It
-// only rewrites the credit fields in the frontmatter: the body and the
-// sourceDistance block stay byte-identical, so the source-distance stamp still
-// matches.
+// TestStandaloneCreditsKeepsGPBody: a GP was written by the pipeline as an MP
+// before its promotion, so standalone credits stamps a GP post or a work-dir
+// final.mdx like any other series. It only rewrites the credit fields in the
+// frontmatter; the body stays byte-identical.
 func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 	root := makeFakeRepo(t)
 	t.Setenv("GU_LOG_DIR", root)
-	stamp := "sourceDistance:\n  policy: 'source-distance/v1'\n  verdict: 'PASS'\n  metrics:\n    maxRun: 1\n"
-	body := "\n這篇導讀的第一段。\n\n第二段。\n"
+	body := "\n這篇文章的第一段。\n\n第二段。\n"
 	gpPost := filepath.Join(t.TempDir(), "gp-10-20260723-author-title.mdx")
 	gpFinal := filepath.Join(t.TempDir(), "final.mdx")
-	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n"+stamp+"---\n"+body)
-	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n"+stamp+"---\n"+body)
+	mustWrite(t, gpPost, "---\ntitle: \"GP\"\nticketId: GP-10\nlang: zh-tw\n---\n"+body)
+	mustWrite(t, gpFinal, "---\ntitle: \"GP\"\nticketId: \"GP-PENDING\"\nlang: zh-tw\n---\n"+body)
 
 	for name, path := range map[string]string{"GP post": gpPost, "GP final.mdx": gpFinal} {
 		t.Run(name, func(t *testing.T) {
@@ -734,24 +664,19 @@ func TestStandaloneCreditsKeepsGPBody(t *testing.T) {
 			if !strings.Contains(string(got), "pipelineUrl") {
 				t.Fatalf("%s was not stamped:\n%s", name, got)
 			}
-			if !strings.Contains(string(got), stamp) || !strings.HasSuffix(string(got), "---\n"+body) {
-				t.Fatalf("credits changed the body or the sourceDistance block:\n%s", got)
+			if !strings.HasSuffix(string(got), "---\n"+body) {
+				t.Fatalf("credits changed the body:\n%s", got)
 			}
 		})
 	}
 }
 
-// TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command. The
-// series only changes whether Tribunal may rewrite (GP is score-only), and en-
-// sidecars must resolve instead of failing. The Lv refusal is covered in
-// lv_refusal_test.go.
+// TestStandaloneRalphInfersSeriesFromFilename runs the real ralph command:
+// every series it serves lets Tribunal rewrite and gets the pipeline stamp,
+// and en- sidecars must resolve instead of failing. The Lv and GP refusals are
+// covered in lv_refusal_test.go and gp_refusal_test.go.
 func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
-	for filename, wantNoRewrite := range map[string]bool{
-		"gp-10-example.mdx":    true,
-		"mp-20-example.mdx":    false,
-		"sd-30-example.mdx":    false,
-		"en-sd-30-example.mdx": false,
-	} {
+	for _, filename := range []string{"mp-20-example.mdx", "sd-30-example.mdx", "en-sd-30-example.mdx"} {
 		t.Run(filename, func(t *testing.T) {
 			resetGlobals()
 			root := makeFakeRepo(t)
@@ -781,17 +706,15 @@ func TestStandaloneRalphInfersSeriesFromFilename(t *testing.T) {
 			if !strings.Contains(string(args), "tribunal args: "+filename) {
 				t.Fatalf("tribunal did not receive %s: %q", filename, args)
 			}
-			if got := strings.Contains(string(args), "--no-rewrite"); got != wantNoRewrite {
-				t.Fatalf("tribunal args = %q, want --no-rewrite=%t", args, wantNoRewrite)
+			if strings.Contains(string(args), "--no-rewrite") {
+				t.Fatalf("tribunal args = %q, want rewrites allowed", args)
 			}
-			// GP is score-only: the stamp normaliser must leave it untouched,
-			// while every other series gets the canonical pipeline block.
 			post, err := os.ReadFile(filepath.Join(postsDir, filename))
 			if err != nil {
 				t.Fatal(err)
 			}
-			if stamped := strings.Contains(string(post), "pipelineUrl:"); stamped == wantNoRewrite {
-				t.Fatalf("pipeline stamp written = %t for %s, want %t:\n%s", stamped, filename, !wantNoRewrite, post)
+			if !strings.Contains(string(post), "pipelineUrl:") {
+				t.Fatalf("pipeline stamp not written for %s:\n%s", filename, post)
 			}
 		})
 	}
@@ -849,8 +772,8 @@ func TestRunAndDeployRejectPrefixThatContradictsFile(t *testing.T) {
 // resumes translation without --prefix: the file names the series (MP, and Lv
 // for lv- and the existing levelup- corpus) instead of the GP default
 // (openspec: gp-pipeline-publish-integrity「以既有非 GP 檔案恢復時沒帶 prefix」).
-// A hand-written Lv gets its English version this way: the Lv refusal only
-// covers starts before translate.
+// A hand-written Lv or a promoted GP gets its English version this way: their
+// refusal only covers starts before translate, and GP takes the MP flow.
 func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t *testing.T) {
 	for _, tc := range []struct {
 		filename string
@@ -859,6 +782,7 @@ func TestRunCommand_FromStepTranslateDryRunReportsSidecarAndSkipsGitMutations(t 
 		{filename: "mp-10-20260723-recovery-roundtrip.mdx", ticketID: "MP-10"},
 		{filename: "levelup-20260701-core-dump-anatomy.mdx", ticketID: "Lv-13"},
 		{filename: "lv-18-20261011-recovery-roundtrip.mdx", ticketID: "Lv-18"},
+		{filename: "gp-10-20260723-recovery-roundtrip.mdx", ticketID: "GP-10"},
 	} {
 		t.Run(tc.filename, func(t *testing.T) {
 			resetGlobals()
@@ -1063,23 +987,4 @@ func keys(m map[string]bool) []string {
 		out = append(out, k)
 	}
 	return out
-}
-
-// TestSourceDistanceStepIsGPOnly: --from-step source-distance resumes a GP
-// run; for another series it fails at ingress, before any work dir or model.
-func TestSourceDistanceStepIsGPOnly(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
-	resetGlobals()
-	workDir := filepath.Join(t.TempDir(), "never-created")
-	cmd := buildRoot()
-	cmd.SetArgs([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
-		"run", "--prefix", "MP", "--from-step", "source-distance"})
-	_, err := captureProcessStdout(t, func() error { return cmd.ExecuteContext(context.Background()) })
-	if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "only applies to GP") {
-		t.Fatalf("error = %v (exit %d), want the exit-1 GP-only rejection", err, exitCodeFor(err))
-	}
-	if _, statErr := os.Stat(workDir); !os.IsNotExist(statErr) {
-		t.Fatalf("work dir was created: %v", statErr)
-	}
 }

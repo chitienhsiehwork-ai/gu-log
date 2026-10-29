@@ -53,11 +53,6 @@ writer_pin="$(bash -c '
   tribunal_claude_agent_model tribunal-writer
 ' _ "$ROOT_DIR")"
 [ -n "$writer_pin" ] || fail "cannot read the Claude model pin from tribunal-writer frontmatter"
-aligner_pin="$(bash -c '
-  source "$1/scripts/tribunal-helpers.sh"
-  tribunal_claude_frontmatter_model "$1/.claude/agents/source-aligner.md"
-' _ "$ROOT_DIR")"
-[ -n "$aligner_pin" ] || fail "cannot read the Claude model pin from source-aligner frontmatter"
 
 assert_route() {
   local payload="$1" model="$2" effort="$3" tier="$4"
@@ -117,23 +112,11 @@ if jq -e '.profiles["vm-codex"].writer | has("model") or has("reasoningEffort")'
   fail "config must not copy the Claude model pin into writer"
 fi
 
-# The source-distance aligner is a Claude call with its own pin from
-# .claude/agents/source-aligner.md (openspec source-distance-stamp); config
-# declares only its provider.
-payload="$(TRIBUNAL_RUNTIME_PROFILE=vm-codex bash "$ROUTER" aligner --json)"
-jq -e '.provider == "claude" and .role == "aligner"' <<<"$payload" >/dev/null ||
-  fail "aligner must route to Claude: $payload"
-assert_route "$payload" "$aligner_pin" "" normal ||
-  fail "aligner must use the source-aligner pin without an effort: $payload"
-if jq -e '.profiles["vm-codex"].aligner | has("model") or has("reasoningEffort")' \
-  "$CONFIG" >/dev/null; then
-  fail "config must not copy the source-aligner pin into aligner"
-fi
-
-# The GP whole-article translation roles are retired
-# (openspec: gp-source-preservation): the router refuses them and their old
-# aliases as unknown before reading config, so no model CLI runs — even when a
-# config still carries the old role.
+# The GP whole-article translation roles (openspec: gp-source-preservation)
+# and the source-distance aligner (openspec: source-distance-stamp, retired by
+# redefine-gp-signature-picks) are retired: the router refuses them and their
+# old aliases as unknown before reading config, so no model CLI runs — even
+# when a config still carries the old role.
 RETIRED_BIN="$TMP_DIR/retired-bin"
 RETIRED_CALLS="$TMP_DIR/retired-calls"
 mkdir -p "$RETIRED_BIN"
@@ -142,11 +125,13 @@ for cli in codex claude; do
     "$cli" "$RETIRED_CALLS" > "$RETIRED_BIN/$cli"
   chmod +x "$RETIRED_BIN/$cli"
 done
-stale_config="$TMP_DIR/config-with-retired-translator.json"
-jq '.profiles["vm-codex"].translator = {"provider":"claude"}' "$CONFIG" > "$stale_config"
+stale_config="$TMP_DIR/config-with-retired-roles.json"
+jq '.profiles["vm-codex"].translator = {"provider":"claude"}
+  | .profiles["vm-codex"].aligner = {"provider":"claude"}' "$CONFIG" > "$stale_config"
 for config in "$CONFIG" "$stale_config"; do
   for role in translator sourceReviewer corrector commentary \
-    source-translator source-reviewer bounded-corrector commentary-writer; do
+    source-translator source-reviewer bounded-corrector commentary-writer \
+    aligner; do
     if PATH="$RETIRED_BIN:/usr/bin:/bin" TRIBUNAL_MODEL_CONFIG="$config" \
       TRIBUNAL_RUNTIME_PROFILE=vm-codex \
       bash "$ROUTER" "$role" --json >"$TMP_DIR/retired.out" 2>&1; then
@@ -248,16 +233,10 @@ assert_config_rejected codex-writer \
   writer 'must use the Claude model'
 assert_config_rejected claude-judge \
   '.profiles["vm-codex"].vibeScorer = {"provider":"claude"}' \
-  vibeScorer 'only article-writing steps and the source aligner use the Claude model'
+  vibeScorer 'only article-writing steps use the Claude model'
 assert_config_rejected copied-pin \
   '.profiles["vm-codex"].writer.model = "claude-opus-copy"' \
   writer 'remove model/reasoningEffort'
-assert_config_rejected codex-aligner \
-  '.profiles["vm-codex"].aligner = {"provider":"codex","model":"gpt-5.6-sol","reasoningEffort":"xhigh"}' \
-  aligner 'aligns source-distance sentences and must use the Claude model'
-assert_config_rejected copied-aligner-pin \
-  '.profiles["vm-codex"].aligner.model = "claude-sonnet-copy"' \
-  aligner 'source-aligner.md; remove model/reasoningEffort'
 
 # A Claude model pin the router cannot resolve blocks article writing before
 # any dispatch.
@@ -271,21 +250,6 @@ if REPO_ROOT="$broken_pin_root" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
 fi
 grep -q 'requires a valid Claude model pin' "$TMP_DIR/broken-pin.out" ||
   fail "unresolvable Claude model pin lacked a diagnostic: $(cat "$TMP_DIR/broken-pin.out")"
-
-# The aligner never borrows another agent's pin: a missing source-aligner.md
-# fails closed even when the writer pin is there. (gp-pipeline's llm.AlignerPin
-# owns the "must differ from the writer pin" check.)
-aligner_root="$TMP_DIR/aligner-pin"
-mkdir -p "$aligner_root/.claude/agents"
-printf '%s\n' '---' 'name: tribunal-writer' 'model: claude-writer-fixture' '---' \
-  > "$aligner_root/.claude/agents/tribunal-writer.md"
-if REPO_ROOT="$aligner_root" TRIBUNAL_RUNTIME_PROFILE=vm-codex \
-  bash "$ROUTER" aligner --json >"$TMP_DIR/aligner-missing.out" 2>&1; then
-  fail "aligner routing fell back without .claude/agents/source-aligner.md"
-fi
-grep -q 'requires a valid Claude model pin in .claude/agents/source-aligner.md' \
-  "$TMP_DIR/aligner-missing.out" ||
-  fail "missing aligner pin lacked a diagnostic: $(cat "$TMP_DIR/aligner-missing.out")"
 
 # Sourced callers resolve several roles in one shell; a Claude writer route
 # must not leak its empty effort into the following Codex vibe route.
@@ -336,4 +300,4 @@ bash -c '
   [ "$before" = "$after" ]
 ' _ "$ROUTER"
 
-echo "ok vm-codex routing: Claude article-writing pin, separate Claude aligner pin, Codex judges, per-provider preflight, config guards, legacy isolation"
+echo "ok vm-codex routing: Claude article-writing pin, Codex judges, per-provider preflight, config guards, legacy isolation"

@@ -8,7 +8,7 @@
  * 下架配對例外，不管來源類型都要一致（openspec: post-takedown）。
  * `translatedDate` 刻意不比，原因見 `src/content.config.ts`。
  */
-import { isExternalSource } from './source-distance.mjs';
+import { isExternalSource } from './external-source.mjs';
 import { isTakenDownData } from './taken-down-posts.mjs';
 
 const seriesKey = (series) =>

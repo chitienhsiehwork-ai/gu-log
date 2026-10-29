@@ -7,7 +7,7 @@
 
 ### Requirement: 下架 SHALL 是保留原欄位、清空正文的文章狀態
 
-文章 frontmatter 的 `status` SHALL 支援 `taken-down`，代表文章已下架。下架時 SHALL 保留原本的 frontmatter 欄位，只做以下改變：`status` 改成 `taken-down`；加上 `YYYY-MM-DD` 格式的 `takenDownAt`；沒有 `sourceTitle` 時補上來源自己的標題（來源沒有標題、或抓不到標題時，可用來源開頭一句或 `source`，但 SHALL NOT 使用 gu-log 自己的文章標題）；沒有 `author` 時可補上來源標示的作者或機構，查不到或不確定就不補，SHALL NOT 用猜的；`summary` 換成對應系列與語言的中性句；移除與新狀態不相容的 `deprecatedBy`、`deprecatedReason`、`retiredReason`、`retiredAt` 與來源距離章 `sourceDistance`；正文清空，只允許空白字元。
+文章 frontmatter 的 `status` SHALL 支援 `taken-down`，代表文章已下架。下架時 SHALL 保留原本的 frontmatter 欄位，只做以下改變：`status` 改成 `taken-down`；加上 `YYYY-MM-DD` 格式的 `takenDownAt`；沒有 `sourceTitle` 時補上來源自己的標題（來源沒有標題、或抓不到標題時，可用來源開頭一句或 `source`，但 SHALL NOT 使用 gu-log 自己的文章標題）；沒有 `author` 時可補上來源標示的作者或機構，查不到或不確定就不補，SHALL NOT 用猜的；`summary` 換成對應系列與語言的中性句；移除與新狀態不相容的 `deprecatedBy`、`deprecatedReason`、`retiredReason` 與 `retiredAt`；正文清空，只允許空白字元。
 
 同一 `ticketId` 的繁中檔與英文檔 SHALL 一起下架，並 SHALL 使用相同的 `takenDownAt`、`sourceUrl` 與 `sourceTitle`。
 
@@ -43,8 +43,7 @@
 #### Scenario: 下架文章留著來源距離章
 
 - **WHEN** 一篇 `status: taken-down` 的文章還有 `sourceDistance`
-- **THEN** 驗證 SHALL 失敗
-- **AND** 下架工具 SHALL 在下架時移除這個欄位
+- **THEN** frontmatter schema SHALL 拒絕這個已退役的欄位，不論文章狀態
 
 ### Requirement: 下架文章的網址 SHALL 保留並顯示不被索引的墓碑頁
 
@@ -170,46 +169,9 @@ Production build SHALL 驗證：sitemap、RSS、搜尋索引與 JSON feed 裡沒
 - **THEN** build SHALL 失敗
 - **AND** 診斷 SHALL 指出文章與出口
 
-### Requirement: 已下架的文章 SHALL 被 CI 棘輪鎖住
-
-Pre-commit 與 CI SHALL 比較基準版本與新版本：基準版本已是 `taken-down` 的文章，新版本 SHALL 仍存在、仍是 `taken-down`，而且正文為空。新增的文章，以及新版本改了 `sourceUrl` 的既有文章，來源（正規化後的網址或推文 ID）與任一下架文章相同時，SHALL 視為來源已封鎖而失敗；比對 SHALL 找出所有相同來源的下架文章，不能只看第一筆。唯一的例外要三個條件都成立：這篇文章是 GP、相同來源的下架文章全部是 GP（依下架文章的 `ticketId`）、這篇文章帶有依 `source-distance-stamp` 驗證有效的來源距離章。只要有一篇相同來源的下架文章不是 GP，就照樣封鎖；其他系列的文章就算帶章也不適用這個例外。`sources/` 底下新增 `sources/chatgpt/` 以外的檔案時 SHALL 失敗。
-
-#### Scenario: 自動化把全文寫回下架文章
-
-- **GIVEN** 一篇文章在基準版本是 `taken-down`
-- **WHEN** 一個變更把它改回 `published`、寫入正文，或刪除它
-- **THEN** pre-commit 與 CI SHALL 失敗
-
-#### Scenario: 新文章使用已封鎖的來源
-
-- **WHEN** 一個變更新增的文章，`sourceUrl` 與某篇下架文章相同，而且不符合 GP 帶章的例外
-- **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與下架文章
-
-#### Scenario: 新增第三方原文擷取
-
-- **WHEN** 一個變更在 `sources/` 底下新增 `sources/chatgpt/` 以外的檔案
-- **THEN** pre-commit 與 CI SHALL 失敗
-
-#### Scenario: 帶有效章的新導讀使用下架 GP 的來源
-
-- **WHEN** 一個變更新增一篇 GP 導讀與它的英文版，`sourceUrl` 只跟下架的 GP 相同
-- **AND** 兩個檔案都帶有效的來源距離章
-- **THEN** 棘輪 SHALL NOT 因來源封鎖而失敗
-- **AND** 那篇下架文章 SHALL 維持原狀
-
-#### Scenario: 帶有效章的 GP 導讀用下架 MP 的來源
-
-- **WHEN** 一個變更新增一篇帶有效來源距離章的 GP 導讀，而相同來源的下架文章裡有一篇是 MP
-- **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與那篇下架的 MP
-
-#### Scenario: 既有文章改用已封鎖的來源
-
-- **WHEN** 一個變更把既有文章的 `sourceUrl` 改成某篇下架文章的來源，而且不符合 GP 帶章的例外
-- **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與下架文章
-
 ### Requirement: 自動化 SHALL 依狀態處理下架文章
 
-把文章改成 `taken-down` SHALL NOT 需要 Tribunal 評分。Score floor 與其他以讀者可見內容變更為觸發條件的內容 gates SHALL 跳過下架文章；frontmatter 驗證與 emoji 檢查 SHALL 仍適用。Tribunal 的候選選取 SHALL 依 `status` 排除下架文章。Dedup SHALL 把下架文章視為來源已封鎖：新文章的來源與下架文章相同時 SHALL 被擋下，比對 SHALL 找出所有相同來源的文章。例外只給 GP 候選：相同來源的下架文章全部是 GP、而且沒有相同來源的公開文章時，dedup SHALL 回警告而不擋下，並說明新文章必須帶有效的來源距離章，由棘輪在 commit 時把關（見 `source-distance-stamp`）；只要有一篇相同來源的下架文章不是 GP，就照樣擋下。既有文章互比與主題相似度比對 SHALL NOT 把下架文章當成重複對象。
+把文章改成 `taken-down` SHALL NOT 需要 Tribunal 評分。Score floor 與其他以讀者可見內容變更為觸發條件的內容 gates SHALL 跳過下架文章；frontmatter 驗證與 emoji 檢查 SHALL 仍適用。Tribunal 的候選選取 SHALL 依 `status` 排除下架文章。Dedup SHALL 把下架文章視為來源已封鎖：新文章的來源與任一下架文章相同時 SHALL 被擋下，不分候選的系列、也不分下架文章的系列，沒有例外；比對 SHALL 找出所有相同來源的文章。既有文章互比與主題相似度比對 SHALL NOT 把下架文章當成重複對象。
 
 #### Scenario: 下架 commit 沒有分數
 
@@ -230,14 +192,13 @@ Pre-commit 與 CI SHALL 比較基準版本與新版本：基準版本已是 `tak
 
 #### Scenario: Pipeline 用已下架的來源
 
-- **WHEN** dedup gate 收到的非 GP 候選網址與某篇下架文章相同
+- **WHEN** dedup gate 收到的候選網址與某篇下架文章相同，不論候選是哪個系列
 - **THEN** gate SHALL 回 BLOCK，並說明來源已封鎖
 
-#### Scenario: GP 導讀用下架 GP 的來源
+#### Scenario: GP 候選用下架 GP 的來源
 
 - **WHEN** dedup gate 以 GP 系列收到的候選網址只跟下架的 GP 相同
-- **THEN** gate SHALL 回 WARN，並說明新的 GP 必須帶有效的來源距離章
-- **AND** 候選網址若也跟任何公開文章相同，gate SHALL 照一般重複規則回 BLOCK
+- **THEN** gate SHALL 回 BLOCK，SHALL NOT 回 WARN
 
 #### Scenario: GP 候選撞到下架的 MP
 
@@ -298,3 +259,40 @@ Pre-commit 與 CI SHALL 比較基準版本與新版本：基準版本已是 `tak
 - **WHEN** 有 change 或 agent 提議改寫 git 歷史，以抹掉下架譯文或原文副本
 - **THEN** 它 SHALL 先修改本要求，並說明決策紀錄裡的理由為什麼不再成立
 - **AND** 沒有原作者實際提出的移除要求時，SHALL NOT 執行
+
+### Requirement: 已下架文章與它們的來源 SHALL 被 CI 棘輪鎖住
+
+Pre-commit 與 CI SHALL 比較基準版本與新版本：基準版本已是 `taken-down` 的文章，新版本 SHALL 仍存在、仍是 `taken-down`，而且正文為空。新增的文章，以及改了 `sourceUrl` 的既有文章，來源（正規化後的網址或推文 ID）與任一下架文章相同時 SHALL 失敗，不分系列、沒有例外；比對 SHALL 找出所有相同來源的下架文章。用 `scripts/reclassify-post.mjs` 改系列、遷移清單有記而且 `sourceUrl` 沒變的改名 SHALL 算既有文章；之後替它補上缺少的語言版本（同 `ticketId`、同 `sourceUrl`）也 SHALL NOT 算新增。`sources/` 底下新增 `sources/chatgpt/` 以外的檔案時 SHALL 失敗。
+
+#### Scenario: 自動化把全文寫回下架文章
+
+- **GIVEN** 一篇文章在基準版本是 `taken-down`
+- **WHEN** 一個變更把它改回 `published`、寫入正文，或刪除它
+- **THEN** pre-commit 與 CI SHALL 失敗
+
+#### Scenario: 新文章使用已封鎖的來源
+
+- **WHEN** 一個變更新增的文章（不分系列），`sourceUrl` 與某篇下架文章相同
+- **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與下架文章
+
+#### Scenario: 新增第三方原文擷取
+
+- **WHEN** 一個變更在 `sources/` 底下新增 `sources/chatgpt/` 以外的檔案
+- **THEN** pre-commit 與 CI SHALL 失敗
+
+#### Scenario: 既有文章改用已封鎖的來源
+
+- **WHEN** 一個變更把既有文章的 `sourceUrl` 改成某篇下架文章的來源
+- **THEN** pre-commit 與 CI SHALL 失敗，並指出被封鎖的來源與下架文章
+
+#### Scenario: 改系列的文章不算新增
+
+- **GIVEN** 一篇已公開的 GP，`sourceUrl` 跟某篇下架的 GP 相同
+- **WHEN** 它用 `scripts/reclassify-post.mjs` 改成 MP，遷移清單有記，`sourceUrl` 沒變
+- **THEN** 棘輪 SHALL NOT 因來源封鎖而失敗
+- **AND** 之後替它補上的英文版（同 `ticketId`、同 `sourceUrl`）也 SHALL NOT 失敗
+
+#### Scenario: 不算改系列的改名或語言版本
+
+- **WHEN** 改系列時改了 `sourceUrl`、遷移清單沒記這次改名，或新增的語言檔不屬於改系列的文章，而它的來源跟某篇下架文章相同
+- **THEN** 棘輪 SHALL 把它當成新增或改了來源的文章，並因來源封鎖而失敗

@@ -54,14 +54,10 @@ zh-tw body
 		t.Fatal(err)
 	}
 
-	// A GP English version goes through the verbatim check, which asks the
-	// real source-distance CLI whether the post needs a stamp.
-	scriptsDir := filepath.Join(tmp, "scripts")
-	installSourceDistanceCLI(t, tmp, scriptsDir)
-
+	// A GP takes the MP translate flow: no GP-only verbatim check.
 	s := NewState()
 	s.Log = logx.New()
-	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir, ScriptsDir: scriptsDir}
+	s.Cfg = &config.Config{RepoRoot: tmp, PostsDir: postsDir, ScriptsDir: filepath.Join(tmp, "scripts")}
 	s.WorkDir = workDir
 	s.WriterDispatcher = disp
 	s.Dispatcher = disp
@@ -660,42 +656,9 @@ Read [Agent](/glossary#agent), not ` + "`/glossary#inline`" + `.
 	}
 }
 
-// TestTranslate_DropsCopiedSourceDistanceStamp: the zh-tw stamp describes the
-// zh-tw body only; an English version never inherits it from the model.
-func TestTranslate_DropsCopiedSourceDistanceStamp(t *testing.T) {
-	s, fake, postsDir := newTranslateTestState(t)
-	s.RalphPassed = true
-	fake.WithResponses(llm.FakeResponse{Output: `---
-title: "Fake Title"
-ticketId: "GP-252"
-lang: "en"
-sourceUrl: "https://example.com/post"
-sourceDistance:
-  policy: 'source-distance/v1'
-  verdict: 'PASS'
-  metrics:
-    maxRun: 1
----
-English body
-`})
-	if err := s.Translate(context.Background()); err != nil {
-		t.Fatalf("Translate: %v", err)
-	}
-	sidecar, err := os.ReadFile(filepath.Join(postsDir, s.ActiveENFilename))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if strings.Contains(string(sidecar), "sourceDistance") || strings.Contains(string(sidecar), "maxRun") {
-		t.Fatalf("English sidecar kept the copied zh-tw stamp:\n%s", sidecar)
-	}
-	if !strings.Contains(string(sidecar), "English body") {
-		t.Fatalf("sidecar lost its body:\n%s", sidecar)
-	}
-}
-
 // TestTranslate_RestoresSourceURLFromZhTw: the English sourceUrl is the
-// zh-tw value whatever the model wrote, so a model cannot move a GP English
-// version off its source and skip the verbatim check.
+// zh-tw value whatever the model wrote, so a model cannot move an English
+// version off the source its zh-tw post names.
 func TestTranslate_RestoresSourceURLFromZhTw(t *testing.T) {
 	for name, line := range map[string]string{
 		"changed": "sourceUrl: \"https://example.org/elsewhere\"\n",

@@ -8,16 +8,16 @@ import { describe, expect, it } from 'vitest';
 
 const root = path.resolve(import.meta.dirname, '..');
 const pendingNames = {
-  zh: 'gp-pending-20260729-collision.mdx',
-  en: 'en-gp-pending-20260729-collision.mdx',
+  zh: 'mp-pending-20260729-collision.mdx',
+  en: 'en-mp-pending-20260729-collision.mdx',
 };
 const destinationNames = {
-  zh: 'gp-1-20260729-collision.mdx',
-  en: 'en-gp-1-20260729-collision.mdx',
+  zh: 'mp-1-20260729-collision.mdx',
+  en: 'en-mp-1-20260729-collision.mdx',
 };
 const pendingBytes = {
-  zh: '---\nticketId: GP-PENDING\n---\n\n待配號正文。\n',
-  en: '---\nticketId: GP-PENDING\n---\n\nPending body.\n',
+  zh: '---\nticketId: MP-PENDING\n---\n\n待配號正文。\n',
+  en: '---\nticketId: MP-PENDING\n---\n\nPending body.\n',
 };
 const destinationBytes = 'existing destination sentinel\n';
 const counterBytes = `${JSON.stringify(
@@ -71,7 +71,7 @@ describe('manual ticket allocation', () => {
     const fixture = createFixture('en');
 
     try {
-      const result = spawnSync(process.execPath, [fixture.allocatorPath, 'GP'], {
+      const result = spawnSync(process.execPath, [fixture.allocatorPath, 'MP'], {
         cwd: fixture.fixtureRoot,
         encoding: 'utf8',
       });
@@ -126,7 +126,7 @@ describe('manual ticket allocation', () => {
     const fixture = createFixture();
 
     try {
-      const result = spawnSync(process.execPath, [fixture.allocatorPath, 'GP'], {
+      const result = spawnSync(process.execPath, [fixture.allocatorPath, 'MP'], {
         cwd: fixture.fixtureRoot,
         encoding: 'utf8',
       });
@@ -135,12 +135,44 @@ describe('manual ticket allocation', () => {
       expect(fs.existsSync(fixture.pendingPaths.zh)).toBe(false);
       expect(fs.existsSync(fixture.pendingPaths.en)).toBe(false);
       expect(fs.readFileSync(fixture.destinationPaths.zh, 'utf8')).toBe(
-        pendingBytes.zh.replace('GP-PENDING', 'GP-1')
+        pendingBytes.zh.replace('MP-PENDING', 'MP-1')
       );
       expect(fs.readFileSync(fixture.destinationPaths.en, 'utf8')).toBe(
-        pendingBytes.en.replace('GP-PENDING', 'GP-1')
+        pendingBytes.en.replace('MP-PENDING', 'MP-1')
       );
       expect(fs.readFileSync(fixture.counterPath, 'utf8')).toContain('"next": 2');
+    } finally {
+      fs.rmSync(fixture.fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  // GP 號只由 scripts/reclassify-post.mjs 配出（openspec gp-signature-picks）。
+  it.each([
+    ['named by prefix', ['GP']],
+    ['found by auto-detect', []],
+  ])('refuses a gp-pending draft %s before anything changes', (_, args) => {
+    const fixture = createFixture();
+    const gpPaths = Object.values(fixture.pendingPaths).map((file) => {
+      const gpFile = file.replace('mp-pending-', 'gp-pending-');
+      fs.writeFileSync(gpFile, fs.readFileSync(file, 'utf8').replace('MP-PENDING', 'GP-PENDING'));
+      fs.rmSync(file);
+      return gpFile;
+    });
+    const before = gpPaths.map((file) => fs.readFileSync(file, 'utf8'));
+
+    try {
+      const result = spawnSync(process.execPath, [fixture.allocatorPath, ...args], {
+        cwd: fixture.fixtureRoot,
+        encoding: 'utf8',
+      });
+
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('scripts/reclassify-post.mjs');
+      expect(gpPaths.map((file) => fs.readFileSync(file, 'utf8'))).toEqual(before);
+      expect(fs.readdirSync(path.dirname(gpPaths[0])).sort()).toEqual(
+        gpPaths.map((file) => path.basename(file)).sort()
+      );
+      expect(fs.readFileSync(fixture.counterPath, 'utf8')).toBe(counterBytes);
     } finally {
       fs.rmSync(fixture.fixtureRoot, { recursive: true, force: true });
     }

@@ -9,13 +9,13 @@ Use the legacy Claude Code contract as the baseline judging rubric, but ignore
 its YAML frontmatter runtime fields such as model and tools. Runtime is supplied
 by scripts/tribunal.sh through codex exec --model gpt-5.5.
 
-gp- and en-gp- posts are ShroomDog-picked reading guides in Mogu's voice.
-Score them by the MP rules below, with two differences only. First, score only:
-Tribunal never edits a GP, not even to add a link, because any body edit voids
-its source-distance stamp; recommend links, glossary terms, or overlap fixes in
-your reasons, and a changed GP body goes back through gp-pipeline to be
-re-stamped. Second, <ShroomDogNote> is ShroomDog's own voice: attribute what it
-says to ShroomDog, never to Mogu or the source.
+gp- and en-gp- posts are published MPs that ShroomDog picked as signature
+articles. Score them by the MP rules below, with one difference only: score
+only. Tribunal never edits a GP, not even to add a link, because its body is the
+version ShroomDog approved at promotion and only ShroomDog's say-so changes it;
+recommend links, glossary terms, or overlap fixes in your reasons instead. In
+every series, <ShroomDogNote> is ShroomDog's own voice: attribute what it says
+to ShroomDog, never to Mogu or the source.
 
 Codex-specific override:
 - If the task prompt includes a Deterministic evidence packet, treat it as the
@@ -41,10 +41,8 @@ Codex-specific override:
   coverage/order in a close translation/rewrite with Mogu flavor, or omit,
   reorder, and rebuild around a new thesis. There is no minimum editorial
   distance; do not penalize closeness or distance itself. Close form remains
-  Mogu-owned. A GP picks a few points and sends the reader back to the
-  original; its source-distance stamp, not this judge, decides whether it reads
-  like a translation, so never score completeness or source order. For MP and
-  GP, sourceAlign checks whether retained source-derived
+  Mogu-owned. GP gets the same test, so never score completeness or source
+  order. For MP and GP, sourceAlign checks whether retained source-derived
   claims trace back to sourceUrl with the correct speaker, conditions, hedges,
   controlling caveats, evidence scope, and confidence.
 - For MP attribution, fail false speaker chains; fabricated facts, quotes,

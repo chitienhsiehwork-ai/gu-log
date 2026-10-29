@@ -10,8 +10,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { expect } from 'vitest';
 
-import { withValidStamp } from './source-distance-stamp';
-
 export const ROOT = path.resolve(__dirname, '../..');
 
 export const POST_FILE = 'gp-pending-20260928-logbook.mdx';
@@ -20,49 +18,45 @@ export const SOURCE_URL = 'https://keeper-notes.test/posts/logbook-on-call';
 export const JUDGES = ['fact-checker', 'librarian', 'fresh-eyes', 'vibe-opus-scorer'];
 export const SCORE_KEYS = ['factCheck', 'librarian', 'freshEyes', 'vibe'];
 
-export const GP_POST = withValidStamp(
-  [
-    '---',
-    'ticketId: "GP-PENDING"',
-    'title: "燈塔日誌教會值班的一件事"',
-    'originalDate: "2026-08-30"',
-    'translatedDate: "2026-09-28"',
-    'source: "Mara Quill"',
-    `sourceUrl: "${SOURCE_URL}"`,
-    'summary: "沒事也要寫一行"',
-    'lang: zh-tw',
-    'translatedBy:',
-    '  model: Opus 5.5',
-    '  harness: Claude Code',
-    '---',
-    '正文充足內容'.repeat(40),
-    '',
-    'Mara Quill 把燈塔日誌搬進值班交接，沒事也要寫一行 (◕‿◕)',
-    '',
-  ].join('\n')
-);
+export const GP_POST = [
+  '---',
+  'ticketId: "GP-PENDING"',
+  'title: "燈塔日誌教會值班的一件事"',
+  'originalDate: "2026-08-30"',
+  'translatedDate: "2026-09-28"',
+  'source: "Mara Quill"',
+  `sourceUrl: "${SOURCE_URL}"`,
+  'summary: "沒事也要寫一行"',
+  'lang: zh-tw',
+  'translatedBy:',
+  '  model: Opus 5.5',
+  '  harness: Claude Code',
+  '---',
+  '正文充足內容'.repeat(40),
+  '',
+  'Mara Quill 把燈塔日誌搬進值班交接，沒事也要寫一行 (◕‿◕)',
+  '',
+].join('\n');
 
-export const EN_GP_POST = withValidStamp(
-  [
-    '---',
-    'ticketId: "GP-PENDING"',
-    'title: "What a lighthouse logbook teaches on-call"',
-    'originalDate: "2026-08-30"',
-    'translatedDate: "2026-09-28"',
-    'source: "Mara Quill"',
-    `sourceUrl: "${SOURCE_URL}"`,
-    'summary: "Write a line even when nothing happens"',
-    'lang: en',
-    'translatedBy:',
-    '  model: Opus 5.5',
-    '  harness: Claude Code',
-    '---',
-    'Enough body text here. '.repeat(40),
-    '',
-    'Mara Quill moved the lighthouse logbook into the on-call handoff (◕‿◕)',
-    '',
-  ].join('\n')
-);
+export const EN_GP_POST = [
+  '---',
+  'ticketId: "GP-PENDING"',
+  'title: "What a lighthouse logbook teaches on-call"',
+  'originalDate: "2026-08-30"',
+  'translatedDate: "2026-09-28"',
+  'source: "Mara Quill"',
+  `sourceUrl: "${SOURCE_URL}"`,
+  'summary: "Write a line even when nothing happens"',
+  'lang: en',
+  'translatedBy:',
+  '  model: Opus 5.5',
+  '  harness: Claude Code',
+  '---',
+  'Enough body text here. '.repeat(40),
+  '',
+  'Mara Quill moved the lighthouse logbook into the on-call handoff (◕‿◕)',
+  '',
+].join('\n');
 
 // A fake Codex judge: it answers for the agent named in the prompt, writes the
 // score where the prompt asks, and scores FAKE_FAILING_JUDGE below the bar.

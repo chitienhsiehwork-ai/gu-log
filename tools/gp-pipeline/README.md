@@ -1,6 +1,6 @@
 # gp-pipeline
 
-gu-log 依來源寫作流程（GP 導讀、MP、SD）的 Go CLI；Lv 是手寫的，只用得到它的非寫作步驟（見 [`SKILL.md`](SKILL.md)）。唯一受支援的執行入口是自編譯 wrapper：
+gu-log 依來源寫作流程（MP、SD）的 Go CLI；Lv 是手寫的，GP 是 ShroomDog 從已上線的 MP 升格的招牌文章，這兩個系列只用得到它的非寫作步驟（見 [`SKILL.md`](SKILL.md)）。唯一受支援的執行入口是自編譯 wrapper：
 
 ```bash
 tools/gp-pipeline/gp-pipeline --help
@@ -10,14 +10,14 @@ tools/gp-pipeline/gp-pipeline --help
 
 | Series | 品牌 | Ticket | Filename slug |
 |---|---|---|---|
-| GP | Gu-log Picks（ShroomDog 精選導讀，Mogu 撰寫） | `GP-N`／`GP-PENDING` | `gp-`／`gp-pending-` |
-| MP | Mogu Picks（Mogu 依來源寫作） | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
+| GP | Gu-log Picks（ShroomDog 的招牌文章，由已上線的 MP 升格） | `GP-N` | `gp-` |
+| MP | Mogu Picks（Mogu 依來源寫作，有來源的文章預設系列） | `MP-N`／`MP-PENDING` | `mp-`／`mp-pending-` |
 | SD | 原創文章 | `SD-N`／`SD-PENDING` | `sd-`／`sd-pending-` |
 | Lv | 入門教學 | `Lv-N`／`Lv-PENDING` | `lv-`／`lv-pending-`（既有文章沿用 `levelup-`） |
 
 非 canonical prefix、舊檔名 slug、舊 tool path 與 shell wrapper 都已退役。CLI 會針對非 canonical prefix 回傳可採取行動的錯誤，不提供 compatibility alias。
 
-GP 跟 MP 共用 `write → review → refine`，refine 之後多了 post-fixer 與 `source-distance` 蓋章；`stamp` 替手寫或改過正文的 GP 重新蓋章。GP 流程、`--from-step source-distance` 與 exit code（含來源距離沒過的 19）以 [`SKILL.md`](SKILL.md) 為準。整篇翻譯流程已退役。
+pipeline 不寫 GP，也不配 GP 號：`run`、`write`、`review`、`refine`、`ralph` 遇到 GP 在 ingress 就以 exit 1 結束，`counter bump --prefix GP` 與替 `gp-pending-` 檔配號的 `deploy` 也一樣。GP 號只由 `scripts/reclassify-post.mjs` 在 ShroomDog 升格已上線的 MP 時配出；GP 還能用哪些步驟見 [`SKILL.md`](SKILL.md)。`write`、`refine` 的輸出不論系列，含 `ShroomDogNote` 就 exit 14。
 
 ## Why Go
 
@@ -30,8 +30,7 @@ wrapper 只負責在 source 較新時編譯 `cmd/gp-pipeline` 到 gitignored `bi
 文章寫作一律使用 Claude 模型，只評分的步驟維持原本的模型；規則見 openspec
 `claude-prose-writing-runtime`，Claude 模型 pin 在
 `.claude/agents/tribunal-writer.md` 的 `model:`。VM 上跑 gp-pipeline 的帳號要
-自己登入 Claude CLI，見 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉。GP 的
-來源距離 aligner 也用 Claude，pin 在 `.claude/agents/source-aligner.md`，必須跟寫手不同。
+自己登入 Claude CLI，見 `docs/tribunal-runbook.md`〈VM 上的 Claude CLI 登入〉。
 
 `scripts/detect-env.sh --runtime codex --identity` 回報 `vm-codex` 時，wrapper
 才啟用同名 runtime profile；其他 Codex、Claude Code Cloud 與 legacy caller
@@ -47,7 +46,6 @@ effort、quota threshold 與 unknown policy，只定義在 `config/llm-pipeline.
 
 ```bash
 # 沒帶 --file 時 --prefix 必填，pipeline 不替你選系列
-tools/gp-pipeline/gp-pipeline run '<url>' --prefix GP   # ShroomDog 精選導讀
 tools/gp-pipeline/gp-pipeline run '<url>' --prefix MP   # Mogu Picks
 
 # Rehearsal：停在 deploy 前
@@ -61,9 +59,6 @@ tools/gp-pipeline/gp-pipeline doctor
 
 # Counter read-only
 tools/gp-pipeline/gp-pipeline counter next --prefix MP
-
-# 手寫或改過正文的 GP 重新蓋來源距離章（只寫章、不改正文）
-tools/gp-pipeline/gp-pipeline stamp --file <gp-post>.mdx
 ```
 
 MP 走 `write → review → refine → Tribunal rewrite` 路徑（改寫要開寫手，見〈Model routing〉）；帶 `--file` 或 `--active-file` 時以檔名判斷系列。Mogu 可貼近來源翻譯／改寫、保留覆蓋與順序，也可選材或從頭重建；沒有最低改寫幅度，兩種距離共用同一個 MP contract，不新增子模式或 pipeline。close-form MP 也不因貼近來源就承諾完整覆蓋、來源順序或原作者聲音；每個保留的 source claim 仍必須保留 controlling caveat 與正確歸因。MoguNote 可寫實際發生的 editorial／tool interaction 或明顯奇幻 persona，但不得挪用來源作者經歷或杜撰看似真實的人類履歷。
@@ -96,9 +91,7 @@ internal/runner/            external command boundary
 - pending filename／frontmatter 驗證在 counter bump 前完成，避免失敗時消耗號碼。
 - `scripts/article-counter.json` 的 key 必須恰為 `GP`、`MP`、`SD`、`Lv`。
 - deploy 使用 `pnpm run build`，且不會假設英文 companion 一定存在。
-- GP 的來源距離只在 `scripts/lib/source-distance.mjs` 算：pipeline、`stamp`、validate-posts
-  與下架棘輪共用同一份投影、斷句、計分與驗章；Go 只負責呼叫它、呼叫 aligner，
-  沒過時交回 refine 改寫。
+- GP 號不在 pipeline 配置：`counter bump --prefix GP` 與 GP 的 deploy 配號都在異動前拒絕。
 - provider 實際 model／harness 由執行結果寫入 credits，不靠呼叫端猜測。
 - `candidate` 只接受單一 YouTube 影片，只在 repo 外工作目錄產生
   `candidate-manifest.json`、原始 VTT、保留時間戳的逐字稿與來源 evidence。

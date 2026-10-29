@@ -55,9 +55,9 @@ func runRalph(ctx context.Context, state *rootState, filename, workDir string) e
 		return fmt.Errorf("ralph: --file: %w", err)
 	}
 	// ralph would run the post-fixers, allow Tribunal rewrites, and stamp the
-	// pipeline credits: refuse an Lv post (by filename or ticketId) first. A
-	// missing post is left to Ralph's own error.
-	if err := pipeline.RefuseLvFiles("ralph", filepath.Join(state.cfg.PostsDir, filename)); err != nil {
+	// pipeline credits: refuse an Lv or GP post (by filename or ticketId)
+	// first. A missing post is left to Ralph's own error.
+	if err := pipeline.RefuseUnauthorableFiles("ralph", filepath.Join(state.cfg.PostsDir, filename)); err != nil {
 		return err
 	}
 

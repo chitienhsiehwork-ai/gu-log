@@ -54,7 +54,9 @@ Only after those gates pass does it allocate the counter, rename pending
 files, replace PENDING references, build, stage, commit, and push.
 
 The series comes from the --active-file pending filename, and an explicit
---prefix must match it.
+--prefix must match it. A GP pending file is refused before any mutation: a
+GP number comes only from scripts/reclassify-post.mjs, when ShroomDog
+promotes a published MP.
 
 Use "gp-pipeline run --from-step deploy --file <existing>.mdx" to publish
 an already-allocated article without changing its ticket or filename.
@@ -86,7 +88,7 @@ before either stage is reached.`,
 	cmd.Flags().StringVar(&dateStamp, "date-stamp", "", "YYYYMMDD for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&authorSlug, "author-slug", "", "sanitised author handle for the final filename (required for fresh PENDING deploy)")
 	cmd.Flags().StringVar(&titleSlug, "title-slug", "", "sanitised title for the final filename (required for fresh PENDING deploy)")
-	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); optional, must match the --active-file series")
+	cmd.Flags().StringVar(&prefix, "prefix", "", "ticket prefix (MP / SD / Lv); optional, must match the --active-file series. GP numbers come only from "+pipeline.ReclassifyScript)
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "validate CLI inputs only; run no validator or mutations")
 	cmd.Flags().BoolVar(&skipBuild, "skip-build", false, "testing only; rejected by normal standalone deploy")
 	cmd.Flags().BoolVar(&skipValidate, "skip-validate", false, "testing only; rejected by normal standalone deploy")
@@ -130,6 +132,9 @@ func runDeployCmd(ctx context.Context, state *rootState, opts deployCmdOpts) err
 		return newExitError(1, err)
 	}
 	opts.Prefix = prefix
+	if prefix == "GP" {
+		return newExitError(1, pipeline.GPAllocationError("deploy"))
+	}
 	if err := deploypkg.ValidateFilenameSlots(deploypkg.Options{
 		DateStamp:  opts.DateStamp,
 		AuthorSlug: opts.AuthorSlug,

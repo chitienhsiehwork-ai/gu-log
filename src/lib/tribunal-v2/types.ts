@@ -151,7 +151,8 @@ export interface FactLibJudgeOutput extends BaseJudgeOutput {
  * Stage 3 FactCorrector worker output.
  * Worker-first: proactively fixes facts before judge evaluates.
  * Uses standing checklist + source URL fetch for guidance.
- * Scope: body + ShroomDogNote ONLY — MoguNote is excluded (creative scope).
+ * Scope: body ONLY — MoguNote is excluded (creative scope); ShroomDogNote is ShroomDog's own
+ * words, never added or edited (openspec editorial-charter).
  */
 // LUXURY_TOKEN: Opus FactCorrector worker — has source URL for verification (downgrade path: Sonnet)
 export interface FactCorrectorOutput {
@@ -170,7 +171,7 @@ export interface FactCorrectorOutput {
   }>;
 
   source_urls_fetched: string[]; // 實際 fetch 過的 URL list
-  scope_violations_detected: string[]; // if MoguNote was touched, log here
+  scope_violations_detected: string[]; // if MoguNote or ShroomDogNote was touched, log here
 }
 
 /**

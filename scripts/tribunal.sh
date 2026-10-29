@@ -147,7 +147,7 @@ POST_FILE="$(basename "$POST_FILE")"  # strip any leading path
 GP_SCORE_ONLY=0
 if [[ "$POST_FILE" = gp-* || "$POST_FILE" = en-gp-* ]]; then
   if [ "$ALLOW_REWRITE_EXPLICIT" = 1 ] && [ "$ALLOW_REWRITE" = 1 ]; then
-    echo "ERROR: GP is score-only in Tribunal, so --allow-rewrite is refused: a changed GP body voids its source-distance stamp and must go back through gp-pipeline to be re-stamped (tools/gp-pipeline/gp-pipeline stamp --file $POST_FILE)" >&2
+    echo "ERROR: GP is score-only in Tribunal, so --allow-rewrite is refused: the GP body is the version ShroomDog approved at promotion; edit $POST_FILE as ShroomDog directs, then rerun Tribunal" >&2
     exit 1
   fi
   ALLOW_REWRITE=0

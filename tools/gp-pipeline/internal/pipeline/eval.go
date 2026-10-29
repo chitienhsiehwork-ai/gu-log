@@ -133,7 +133,7 @@ func (s *State) Eval(ctx context.Context) error {
 		s.Log.Info("Codex primary reason: %s", primaryVerdict.Reason)
 		s.Log.Info("Codex reason: %s", codexVerdict.Reason)
 		s.Log.OK("Both evaluators said SKIP; exiting cleanly")
-		return NewStepError(12, errors.New("eval: SKIP/SKIP — source not GP-worthy"))
+		return NewStepError(12, errors.New("eval: SKIP/SKIP — source not worth an article"))
 	default:
 		s.Log.Warn("Codex primary verdict: %s | reason: %s", primaryVerdict.Verdict, primaryVerdict.Reason)
 		s.Log.Warn("Codex verdict: %s | reason: %s", codexVerdict.Verdict, codexVerdict.Reason)
@@ -167,7 +167,6 @@ func ensureEvalOutputFile(path, output string) error {
 // current directory" instruction actually lands in the run's work dir.
 func (s *State) runEvalProvider(ctx context.Context, template string, lineCount int, source, outputFilename string) (*llm.RunResult, error) {
 	prompt, err := prompts.Render(template, prompts.EvalData{
-		Prefix:         s.Prefix,
 		LineCount:      lineCount,
 		Source:         source,
 		OutputFilename: outputFilename,

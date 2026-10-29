@@ -4,9 +4,9 @@
  * Deterministic structural constraint checks for writer output.
  * These catch things LLMs can't reliably self-enforce:
  * URL immutability, heading order preservation, frontmatter protection,
- * and pronoun clarity (no 你/我 in body — delegates to the existing
- * `scripts/check-pronoun-clarity.mjs` so the rule stays SSOT'd with
- * the pre-commit hook).
+ * ShroomDogNote immutability, and pronoun clarity (no 你/我 in body —
+ * delegates to the existing `scripts/check-pronoun-clarity.mjs` so the rule
+ * stays SSOT'd with the pre-commit hook).
  */
 
 import { execFile } from 'node:child_process';
@@ -190,6 +190,37 @@ export function checkFrontmatterPreserved(
 }
 
 // ---------------------------------------------------------------------------
+// ShroomDogNote immutability (openspec editorial-charter: automation never
+// produces a ShroomDogNote, in any series)
+// ---------------------------------------------------------------------------
+
+// A self-closing note, or an open/close pair (a `<br />` inside must not end it).
+const SHROOMDOG_NOTE_REGEX = /<ShroomDogNote\b[^>]*\/>|<ShroomDogNote\b[\s\S]*?<\/ShroomDogNote>/g;
+const MARKDOWN_LINK_REGEX = /\[([^\]]*)\]\([^)]*\)/g;
+
+/** Every `<ShroomDogNote>` block in document order, byte-for-byte. */
+export function extractShroomDogNotes(content: string): string[] {
+  return content.match(SHROOMDOG_NOTE_REGEX) ?? [];
+}
+
+/**
+ * A writer may not add, remove or edit a ShroomDogNote: ShroomDog's own words.
+ * Linking a phrase inside one (the Librarian's identity links) keeps the words,
+ * so links are compared by their text only.
+ */
+export function checkShroomDogNotesPreserved(before: string, after: string): { pass: boolean } {
+  const words = (content: string) =>
+    extractShroomDogNotes(content).map((note) => note.replace(MARKDOWN_LINK_REGEX, '$1'));
+  const beforeNotes = words(before);
+  const afterNotes = words(after);
+  return {
+    pass:
+      beforeNotes.length === afterNotes.length &&
+      beforeNotes.every((note, i) => note === afterNotes[i]),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Pronoun clarity (delegates to the canonical mjs script — SSOT w/ hook)
 // ---------------------------------------------------------------------------
 
@@ -261,6 +292,7 @@ export interface WriterConstraintViolations {
   headings: ReturnType<typeof checkHeadingsPreserved>['violations'];
   frontmatter: ReturnType<typeof checkFrontmatterPreserved>['violations'];
   pronouns: Array<{ line: number; pronoun: string; snippet: string }>;
+  shroomDogNotes: boolean;
 }
 
 export interface EnforceWriterConstraintsResult {
@@ -290,7 +322,7 @@ export const PROTECTED_FRONTMATTER_FIELDS = [
 ];
 
 /**
- * Run all four writer-constraint checks on the article at `articlePath`
+ * Run all five writer-constraint checks on the article at `articlePath`
  * comparing the current file contents with the `before` snapshot.
  *
  * Returns `pass: false` with structured violations AND a formatted
@@ -306,15 +338,17 @@ export async function enforceWriterConstraints(
   const headings = checkHeadingsPreserved(before, after);
   const frontmatter = checkFrontmatterPreserved(before, after, PROTECTED_FRONTMATTER_FIELDS);
   const pronouns = await checkPronounsClean(articlePath, cwd);
+  const notes = checkShroomDogNotesPreserved(before, after);
 
   const violations: WriterConstraintViolations = {
     urls: urls.violations,
     headings: headings.violations,
     frontmatter: frontmatter.violations,
     pronouns: pronouns.violations,
+    shroomDogNotes: !notes.pass,
   };
 
-  const allPass = urls.pass && headings.pass && frontmatter.pass && pronouns.pass;
+  const allPass = urls.pass && headings.pass && frontmatter.pass && pronouns.pass && notes.pass;
 
   const parts: string[] = [];
   if (!urls.pass) {
@@ -339,6 +373,11 @@ export async function enforceWriterConstraints(
     }
     parts.push(
       '  Fix: use specific names (ShroomDog, Mogu, 讀者) or restructure sentences to be impersonal.'
+    );
+  }
+  if (!notes.pass) {
+    parts.push(
+      "ShroomDogNote changed: it is ShroomDog's own words — never add, edit or remove one."
     );
   }
 

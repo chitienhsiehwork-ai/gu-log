@@ -21,7 +21,7 @@ Tribunal pipeline — 4 stages. All judges use **uniform 0-10 integer scale**. C
 - **Fresh Eyes owns first-time reader fatigue.** It judges whether a human reader would skim, close the tab, or feel the article is longer than its information gain. **For v9+ it also owns `clarity`** (pronoun / voice attribution) as a non-compensating hard gate.
 - **Vibe owns article-internal rhythm and shareability.** It does not do corpus search. It judges compression, section boredom, decorative persona traps, Sentence Signal failures, and whether the post is actually fun enough to share. **For v9+ it no longer scores `clarity`** (moved to Fresh Eyes); 晶晶體 still drags `vibe` down via the penalty matrix.
 - **Writer consumes judge evidence for rewrite-eligible, non-GP posts.** Librarian overlap evidence may trigger early citation/compression; FreshEyes fatigue may trigger structural shortening; Vibe rhythm failures may trigger a new spine, not extra jokes. MP is Mogu-authored source-grounded writing with no minimum editorial distance: a close translation/rewrite with Mogu flavor and a freely rebuilt article are both valid. Closeness/distance itself is not a score; actual reader quality and grounding still are. Mogu analysis may remain in body, and MoguNote is optional.
-- **GP is judged by the MP rules, and only scored.** GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀). Every judge scores it exactly like MP, with two differences only: Tribunal never rewrites a GP (a body edit voids its source-distance stamp, and a changed GP body goes back through gp-pipeline to be re-stamped), and `<ShroomDogNote>` is ShroomDog's own voice, never scored as Mogu persona or as a source claim. Whether a GP reads like a translation is decided by its source-distance stamp: no judge scores completeness, source order, or closeness to the source.
+- **GP is judged by the MP rules, and only scored.** GP is a published MP that ShroomDog picked as a signature article. Every judge scores it exactly like MP, with one difference only: Tribunal never rewrites a GP (its body is the version ShroomDog approved at promotion, and only ShroomDog's say-so changes it). In every series, `<ShroomDogNote>` is ShroomDog's own voice, never scored as Mogu persona or as a source claim.
 
 | Stage | Judge | Dimensions | Pass Bar |
 |-------|-------|------------|----------|
@@ -101,7 +101,7 @@ Does internal `/posts/slug/` links resolve? Are relevant connections made? Does 
 ### sourceAlign — sourceUrl Alignment
 Does the content match what's at the declared `sourceUrl`?
 - MP source-grounded writing: do retained source-derived claims trace to sourceUrl with correct speaker, conditions, hedges, controlling caveats, evidence scope, and confidence? MP may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit, reorder, and rebuild freely. Do not penalize closeness/distance itself; close form remains Mogu-owned.
-- GP reading guide: the same test as MP. A GP picks a few points and sends the reader back to the original; never score completeness or source order.
+- GP signature pick: the same test as MP; never score completeness or source order.
 - SD originals: sourceUrl points to self → auto 8/10
 
 | Score | Description |
@@ -148,7 +148,7 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 ### fidelity — Series-Appropriate Source Faithfulness
 
-MP and GP use retained-claim grounding with no minimum editorial distance: MP may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit whole claims, reorder, synthesize, disagree, and rebuild without penalty for distance itself; a GP keeps only the points it picked. Close form remains Mogu-owned. Once an article retains a source-derived claim, it must preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence; Mogu additions must remain attributed to Mogu.
+MP and GP use retained-claim grounding with no minimum editorial distance: MP may preserve most source coverage/order in a close translation/rewrite with Mogu flavor, or omit whole claims, reorder, synthesize, disagree, and rebuild without penalty for distance itself; GP likewise. Close form remains Mogu-owned. Once an article retains a source-derived claim, it must preserve speaker, conditions, hedges, controlling caveats, evidence scope, and confidence; Mogu additions must remain attributed to Mogu.
 
 | Score | Description |
 |-------|-------------|
@@ -190,7 +190,7 @@ For MP and GP, this dimension measures whether the reader can distinguish source
 
 ### commentarySeparation — Voice Ownership
 
-Mogu owns the body voice of MP and GP. Mogu analysis, jokes, synthesis, disagreement, and explicit inference may remain in the body. Score whether source claims, Mogu analysis, and ShroomDog voice are attributed honestly; do not penalize body commentary or a missing MoguNote. In a GP, `<ShroomDogNote>` is ShroomDog's own voice: read it as ShroomDog's words, never as Mogu or the source.
+Mogu owns the body voice of MP and GP. Mogu analysis, jokes, synthesis, disagreement, and explicit inference may remain in the body. Score whether source claims, Mogu analysis, and ShroomDog voice are attributed honestly; do not penalize body commentary or a missing MoguNote. In any series, `<ShroomDogNote>` is ShroomDog's own voice: read it as ShroomDog's words, never as Mogu or the source.
 
 | Score | Description |
 |-------|-------------|
@@ -394,8 +394,6 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. Openings like 「原作者這篇分析文講了一個……」 / "This article discusses..." repeat source metadata and should cap narrative at 7.
 
 **Ending deletion test:** Delete the final one or two paragraphs mentally. If the post becomes stronger or loses no supported insight, the original ending is over-explaining. A callback, question, challenge, or one-liner is optional and earns credit only when it changes the meaning of earlier material without crossing the source boundary.
-
-**GP ending:** `editorial-charter`〈GP body MUST be a Mogu-written reading guide〉 makes a GP close by sending the reader back to the original. That pointer is required format: run the ending tests on the close right before it, and never lower narrative just because the article ends on the pointer.
 
 **裝飾型 persona 教訓:** decorative persona (surface features + linear structure) = narrative ≤ 5.
 
