@@ -1,8 +1,8 @@
-import { type ChildProcess, execFileSync, spawn, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { POSTS_DIR, loadPosts, postInfo, suggestFor } from '../scripts/suggest-crosslinks.mjs';
 
 // 這兩支 fixer 也能改 posts/ 以外的檔（例如工作目錄的草稿），語料照舊從 posts/ 讀；
@@ -24,39 +24,16 @@ function postsSnapshot() {
   return fs.readdirSync(POSTS_DIR).sort().join('\n');
 }
 
-// tribunal 的 runner-error-guard 不只改寫，還會暫時刪掉 posts/ 裡的真文章（en-sd-1），
-// 平行跑時這裡讀語料會撞到 ENOENT、檔名清單也對不上。跟它拿同一把鎖（共享鎖），等它
-// 跑完才讀，整個檔案跑完才放。沒有 flock 的平台（macOS）那支 guard 本來就不會跑。
-const FIXTURE_LOCK = path.join(ROOT, '.score-loop/locks/tracked-gp-1-20260128-demo.lock');
-let fixtureLock: ChildProcess | undefined;
-let posts: ReturnType<typeof loadPosts>;
-let commonTag: string;
-
-beforeAll(async () => {
-  if (spawnSync('flock', ['--version']).status === 0) {
-    fs.mkdirSync(path.dirname(FIXTURE_LOCK), { recursive: true });
-    const holder = spawn('flock', ['-s', FIXTURE_LOCK, 'sh', '-c', 'echo locked; exec cat'], {
-      stdio: ['pipe', 'pipe', 'inherit'],
-    });
-    fixtureLock = holder;
-    await new Promise<void>((resolve, reject) => {
-      holder.stdout!.once('data', () => resolve());
-      holder.once('exit', (code) => reject(new Error(`flock exited with ${code}`)));
-    });
-  }
-  posts = loadPosts();
-  // 語料裡最常見的標籤，讓工作目錄的草稿一定挑得到相關文章。
+const posts = loadPosts();
+// 語料裡最常見的標籤，讓工作目錄的草稿一定挑得到相關文章。
+const commonTag = (() => {
   const counts = new Map<string, number>();
   for (const p of posts) {
     if (p.lang !== 'zh-tw') continue;
     for (const t of p.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
   }
-  commonTag = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-}, 300_000); // guard 最長跑到 tribunal 測試的逾時加上還原
-afterAll(() => {
-  // cat 讀到 EOF 就結束，flock 跟著放鎖
-  fixtureLock?.stdin?.end();
-});
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+})();
 
 let dir: string;
 beforeEach(() => {
