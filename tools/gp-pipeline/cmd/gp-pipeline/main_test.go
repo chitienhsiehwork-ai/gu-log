@@ -598,10 +598,11 @@ func TestRunRun_FromStepTranslateRequiresFile(t *testing.T) {
 	}
 }
 
-// TestRunRejectsRetiredTranslationSteps covers the gp-source-preservation
-// scenario「以退役的翻譯步驟恢復 run」: the retired GP step names are unknown
-// steps, rejected before any fetch, model call, or file change.
-func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
+// TestRunRejectsRetiredSteps covers gp-source-preservation「以退役的翻譯步驟恢復
+// run」 and gp-pipeline-publish-integrity〈以退役的 source-distance 步驟恢復〉:
+// retired step names are unknown steps, even without --prefix, rejected before
+// any fetch, model call, or file change.
+func TestRunRejectsRetiredSteps(t *testing.T) {
 	root := makeFakeRepo(t)
 	postsDir := filepath.Join(root, "src", "content", "posts")
 	if err := os.MkdirAll(postsDir, 0o755); err != nil {
@@ -611,13 +612,13 @@ func TestRunRejectsRetiredTranslationSteps(t *testing.T) {
 	body := "---\ntitle: \"MP\"\nticketId: MP-10\nlang: zh-tw\n---\nbody\n"
 	mustWrite(t, filepath.Join(postsDir, existing), body)
 	t.Setenv("GU_LOG_DIR", root)
-	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich"} {
-		for _, target := range [][]string{{"https://x.com/author/status/1"}, {"--file", existing}} {
-			t.Run(step+" "+target[0], func(t *testing.T) {
+	for _, step := range []string{"source-translate", "source-preservation", "source-gate", "enrich", "source-distance"} {
+		for _, target := range [][]string{{"--prefix", "MP", "https://x.com/author/status/1"}, {"--prefix", "MP", "--file", existing}, {"https://x.com/author/status/1"}} {
+			t.Run(step+" "+strings.Join(target, " "), func(t *testing.T) {
 				resetGlobals()
 				workDir := filepath.Join(t.TempDir(), "never-created")
 				args := append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
-					"run", "--prefix", "MP", "--from-step", step}, target...)
+					"run", "--from-step", step}, target...)
 				cmd := buildRoot()
 				cmd.SetArgs(args)
 				err := cmd.ExecuteContext(context.Background())
@@ -986,23 +987,4 @@ func keys(m map[string]bool) []string {
 		out = append(out, k)
 	}
 	return out
-}
-
-// TestRetiredSourceDistanceStepIsUnknown covers gp-pipeline-publish-integrity
-// 〈以退役的 source-distance 步驟恢復〉: it is an unknown step for every series,
-// even without --prefix, and fails before any work dir or model.
-func TestRetiredSourceDistanceStepIsUnknown(t *testing.T) {
-	root := makeFakeRepo(t)
-	t.Setenv("GU_LOG_DIR", root)
-	for _, args := range [][]string{{}, {"--prefix", "MP"}, {"--prefix", "GP"}} {
-		t.Run(strings.Join(append([]string{"run"}, args...), " "), func(t *testing.T) {
-			workDir := filepath.Join(t.TempDir(), "never-created")
-			err := executeCLI(t, append([]string{"--work-dir", workDir, "--fake-provider", filepath.Join(root, "missing.json"),
-				"run", "--from-step", "source-distance"}, args...)...)
-			if err == nil || exitCodeFor(err) != 1 || !strings.Contains(err.Error(), "unknown step") {
-				t.Fatalf("error = %v (exit %d), want the exit-1 unknown step", err, exitCodeFor(err))
-			}
-			requireAbsent(t, workDir)
-		})
-	}
 }
