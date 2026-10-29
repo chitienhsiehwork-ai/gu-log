@@ -61,13 +61,9 @@ describe('Stage 3 FactCorrector runner contract', () => {
     const prompt = options.buildPrompt('/tmp/fact-corrector-output.json');
     expect(prompt).toContain('/repo/src/content/posts/mp-1-example.mdx');
     expect(prompt).toContain('https://example.com/source');
-    // openspec editorial-charter：自動化寫作不產生、也不改寫 ShroomDogNote，不分系列。
-    expect(prompt).toContain('Scope: body ONLY');
-    expect(prompt).not.toContain('body + ShroomDogNote');
+    // ShroomDogNote 不靠 prompt 原句保護：pipeline 的 writer constraints 比對前後的
+    // ShroomDogNote，有變就退回（tests/tribunal-v2/shroomdognote-guard.test.ts）。
     expect(prompt).toContain('do NOT modify MoguNote content');
-    expect(prompt).toContain(
-      "<ShroomDogNote> is ShroomDog's own words: never add one, and leave any existing one byte-for-byte unchanged"
-    );
     expect(prompt).toContain('standing checklist');
     expect(prompt).toContain('source_urls_fetched');
     expect(prompt).toContain('/tmp/fact-corrector-output.json');
