@@ -66,7 +66,7 @@
 - **WHEN** dedup gate 收到的候選網址與某篇下架文章相同，不論候選是哪個系列
 - **THEN** gate SHALL 回 BLOCK，並說明來源已封鎖
 
-#### Scenario: GP 導讀用下架 GP 的來源
+#### Scenario: GP 候選用下架 GP 的來源
 
 - **WHEN** dedup gate 以 GP 系列收到的候選網址只跟下架的 GP 相同
 - **THEN** gate SHALL 回 BLOCK，SHALL NOT 回 WARN

@@ -10,7 +10,7 @@ Define the one canonical Mogu / GP / MP vocabulary across public UI, stored data
 
 ### Requirement: Public and machine taxonomy SHALL share one canonical vocabulary
 
-gu-log SHALL use the same canonical names in reader-facing UI and machine-facing storage. The commentary persona SHALL be `Mogu`; its note component SHALL be `MoguNote`; its Vibe score dimension SHALL be `moguNote`. The external-content series SHALL be `GP` (`Gu-log Picks`) for ShroomDog-curated reading guides written in Mogu's voice and `MP` (`Mogu Picks`) for Mogu-authored source-grounded writing. Original and tutorial series SHALL remain `SD` and `Lv`.
+gu-log SHALL use the same canonical names in reader-facing UI and machine-facing storage. The commentary persona SHALL be `Mogu`; its note component SHALL be `MoguNote`; its Vibe score dimension SHALL be `moguNote`. The external-content series SHALL be `GP` (`Gu-log Picks`) for signature articles that ShroomDog explicitly designates, written under the same Mogu-authored source-grounded rules as MP, and `MP` (`Mogu Picks`) for everyday Mogu-authored source-grounded writing, the default series for new source-based articles. Original and tutorial series SHALL remain `SD` and `Lv`.
 
 The application SHALL NOT store a retired taxonomy alias and translate it to GP/MP only at render time. Frontmatter, filenames, routes, counters, filters, APIs, search, feeds, pipelines, tests and generated data SHALL use the canonical values directly.
 
@@ -57,7 +57,7 @@ The only permitted legacy compatibility surface SHALL be the declarative reader-
 
 At the initial taxonomy cutover, existing SP and CP article numbers SHALL map one-to-one to the same numeric GP and MP identities. Translation pairs SHALL retain matching ticket IDs and base slugs. Counter next values SHALL move to the new namespace without decrementing or reallocating a published number.
 
-A later editorial correction or reclassification MAY replace that article with a newly allocated canonical ticket from another series. This SHALL NOT reuse or reallocate either published number: the replacement SHALL use its series' current counter, both language variants SHALL move together, and every earlier public URL SHALL become an exact historical alias to the replacement.
+A later editorial correction or reclassification MAY replace that article with a newly allocated canonical ticket from another series. This includes ShroomDog designating a published MP as a GP and a GP moving back to MP, both through `scripts/reclassify-post.mjs` (`gp-signature-picks`). This SHALL NOT reuse or reallocate either published number: the replacement SHALL use its series' current counter, both language variants SHALL move together, and every earlier public URL SHALL become an exact historical alias to the replacement.
 
 #### Scenario: Existing SP pair migrates to GP
 
@@ -76,7 +76,7 @@ A later editorial correction or reclassification MAY replace that article with a
 
 #### Scenario: Later reclassification allocates a new identity
 
-- **GIVEN** a previously migrated GP／MP article must move to another series because its voice owner or editorial contract changes
+- **GIVEN** a published GP／MP article must move to another series because its voice owner or editorial contract changes, because ShroomDog designates an MP as a GP, or because a GP moves back to MP
 - **WHEN** the replacement ticket is allocated
 - **THEN** the replacement SHALL consume the next number from its destination series
 - **AND** the withdrawn ticket SHALL NOT be assigned to another article
@@ -103,11 +103,11 @@ The scanner SHALL target semantically explicit ticket, slug, route, tag, compone
 
 ### Requirement: Canonical series routes, CLI paths and legacy redirects SHALL match the taxonomy
 
-Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated filename `gp-N-YYYYMMDD-slug.mdx`, and pending filename `gp-pending-YYYYMMDD-slug.mdx`（English pair adds `en-`）. Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, allocated filename `mp-N-YYYYMMDD-slug.mdx`, pending filename `mp-pending-YYYYMMDD-slug.mdx`, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical article pipeline CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
+Gu-log Picks SHALL use route `/gu-log-picks`, ticket prefix `GP`, allocated filename `gp-N-YYYYMMDD-slug.mdx`（English pair adds `en-`）, and no pending filename, because a GP only comes from promoting a published MP (`gp-signature-picks`). Mogu Picks SHALL use route `/mogu-picks`, ticket prefix `MP`, allocated filename `mp-N-YYYYMMDD-slug.mdx`, pending filename `mp-pending-YYYYMMDD-slug.mdx`, and Mogu-named queue / prompt / runner files. English listing routes SHALL use the same path below `/en`. The canonical article pipeline CLI and Go module path SHALL be `gp-pipeline` and `tools/gp-pipeline`.
 
 Series identity SHALL come from `ticketId`; content-type tags `clawd-picks`, `mogu-picks`, `shroom-picks`, `shroomdog-picks`, and any transitional `gu-log-picks` SHALL be removed without replacement.
 
-Reader-facing listing and article URLs that were publicly reachable before being retired SHALL be the sole compatibility boundary. `/shroomdog-picks` and `/clawd-picks` listing paths, their English equivalents, and their purely numeric pagination subpaths SHALL return an HTTP 308 permanent redirect to the corresponding canonical GP／MP listing in the same language. Mogu Picks pagination redirects SHALL preserve the page number. Gu-log Picks pagination redirects SHALL go to the Gu-log Picks listing root, because the translations those old pages listed have been taken down under `post-takedown` and the reading guides the listing shows now do not correspond to the old page numbers. Every retired article URL recorded in `quality/brand-taxonomy-post-migration.json`, both with and without exactly one trailing slash, SHALL return an HTTP 308 permanent redirect to that entry's exact current canonical GP／MP article URL. This SHALL include old SP／CP cutover URLs and a previously canonical GP／MP URL later retired by an editorial correction or reclassification. Multiple exact historical article URLs MAY converge on one current canonical destination. Redirects SHALL NOT infer destinations from a broad legacy prefix or accept deeper paths below an article alias. Manifest summary counts SHALL be derived from its entries and SHALL fail validation when files, unique tickets, complete language pairs, or incomplete tickets drift.
+Reader-facing listing and article URLs that were publicly reachable before being retired SHALL be the sole compatibility boundary. `/shroomdog-picks` and `/clawd-picks` listing paths, their English equivalents, and their purely numeric pagination subpaths SHALL return an HTTP 308 permanent redirect to the corresponding canonical GP／MP listing in the same language. Mogu Picks pagination redirects SHALL preserve the page number. Gu-log Picks pagination redirects SHALL go to the Gu-log Picks listing root, because the translations those old pages listed have been taken down under `post-takedown` and the signature articles the listing shows now do not correspond to the old page numbers. Every retired article URL recorded in `quality/brand-taxonomy-post-migration.json`, both with and without exactly one trailing slash, SHALL return an HTTP 308 permanent redirect to that entry's exact current canonical GP／MP article URL. This SHALL include old SP／CP cutover URLs and a previously canonical GP／MP URL later retired by an editorial correction or reclassification. Multiple exact historical article URLs MAY converge on one current canonical destination. Redirects SHALL NOT infer destinations from a broad legacy prefix or accept deeper paths below an article alias. Manifest summary counts SHALL be derived from its entries and SHALL fail validation when files, unique tickets, complete language pairs, or incomplete tickets drift.
 
 #### Scenario: Reader opens a canonical series page
 
@@ -163,16 +163,22 @@ Reader-facing listing and article URLs that were publicly reachable before being
 - **THEN** the application SHALL NOT synthesize a destination from a legacy prefix
 - **AND** the request SHALL remain retired with the contract-appropriate 404, 410, or validation failure
 
-### Requirement: Reader-facing series labels MUST describe each series' relationship to its source
+### Requirement: Reader-facing series labels MUST match each series' identity and source relationship
 
-Reader-facing zh-TW 與 English UI SHALL 用符合系列 contract 的文字描述 source relationship。GP SHALL 使用導讀語言：說明這是 ShroomDog 精選、由 Mogu 撰寫的導讀，並帶讀者回原文；GP SHALL NOT 標成翻譯（例如「翻譯自」、「翻譯 pipeline」、`Translated from` 或 `translation pipeline`）。MP SHALL 使用 source-grounded writing 語言，並清楚指出正文由 Mogu 依來源撰寫。MP SHALL NOT 顯示為「翻譯自」、「原文出處」、`Translated from`、`Original source` 或 translation pipeline，也 SHALL NOT 假裝成沒有來源的 original writing。
+Reader-facing zh-TW 與 English UI SHALL 用符合系列 contract 的文字描述系列身份與 source relationship。GP SHALL 標示為 ShroomDog 指定的招牌文章（例如「ShroomDog 指定的招牌文章」／`ShroomDog's signature picks`），它跟來源的關係 SHALL 使用跟 MP 相同的 source-grounded writing 語言；GP SHALL NOT 標成導讀（例如「導讀」、`reading guide`）或翻譯（例如「翻譯自」、`Translated from`）。MP SHALL 使用 source-grounded writing 語言，清楚指出正文由 Mogu 依來源撰寫，SHALL NOT 顯示為「翻譯自」、「原文出處」、`Translated from`、`Original source` 或 translation pipeline，也 SHALL NOT 假裝成沒有來源的 original writing。
 
-#### Scenario: GP uses reading-guide labels
+#### Scenario: GP uses signature-pick labels
 
-- **WHEN** reader 開啟 GP 首頁卡片、系列頁、文章頁或 About 頁的系列說明
-- **THEN** zh-TW UI SHALL 使用導讀語言（例如「ShroomDog 精選導讀」），並讓讀者找得到原文連結
-- **AND** English UI SHALL 使用對應的 reading-guide language
-- **AND** 兩種語言都 SHALL NOT 把 GP 標成翻譯
+- **WHEN** reader 開啟 GP 首頁區塊、系列頁、文章頁或 About 頁的系列說明
+- **THEN** zh-TW UI SHALL 說明 GP 是 ShroomDog 指定的招牌文章，並讓讀者找得到原文連結
+- **AND** English UI SHALL 使用對應的 signature-pick language
+- **AND** 兩種語言都 SHALL NOT 把 GP 標成導讀或翻譯
+
+#### Scenario: GP article technical details match MP
+
+- **WHEN** reader 展開 GP 文章頁的技術資訊
+- **THEN** pipeline 標示 SHALL 跟 MP 一樣描述 source-grounded writing pipeline
+- **AND** SHALL NOT 顯示「導讀 pipeline」或 `reading-guide pipeline`
 
 #### Scenario: MP uses source-material labels
 
