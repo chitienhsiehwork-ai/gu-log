@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/counter"
+	"github.com/chitienhsiehwork-ai/gu-log/tools/gp-pipeline/internal/pipeline"
 )
 
 // counterReport is the JSON shape emitted by `gp-pipeline counter --json`.
@@ -35,12 +36,14 @@ Two subcommands:
       Print the value that WILL be allocated next, without mutating the
       file. Useful for dry runs and dashboards.
 
-  gp-pipeline counter bump --prefix <GP|MP|SD|Lv>
+  gp-pipeline counter bump --prefix <MP|SD|Lv>
       Atomically advance the counter by 1 and print the value that WAS
       allocated (the ticketId the caller should use for their new post).
       This is the write-side primitive that the deploy step uses.
 
---prefix is required for both: the counter never picks a series.`,
+--prefix is required for both: the counter never picks a series. bump
+refuses GP: a GP number comes only from scripts/reclassify-post.mjs, when
+ShroomDog promotes a published MP.`,
 	}
 
 	var prefix string
@@ -62,7 +65,7 @@ Two subcommands:
 			return runCounterBump(state, bumpPrefix)
 		},
 	}
-	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "", "ticket prefix (GP / MP / SD / Lv); required")
+	bumpCmd.Flags().StringVar(&bumpPrefix, "prefix", "", "ticket prefix (MP / SD / Lv); required. GP numbers come only from "+pipeline.ReclassifyScript)
 
 	root.AddCommand(nextCmd, bumpCmd)
 	return root
@@ -96,8 +99,14 @@ func runCounterNext(state *rootState, prefix string) error {
 
 func runCounterBump(state *rootState, prefix string) error {
 	// A missing series fails before the counter lock; nothing is allocated
-	// for a series nobody chose (openspec: gp-pipeline-publish-integrity).
+	// for a series nobody chose, and GP numbers come only from
+	// pipeline.ReclassifyScript (openspec: gp-pipeline-publish-integrity).
 	if err := counter.RequirePrefix("counter bump", prefix, counter.ValidPrefixes); err != nil {
+		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
+		return err
+	}
+	if prefix == "GP" {
+		err := pipeline.GPAllocationError("counter bump")
 		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
 		return err
 	}

@@ -169,7 +169,7 @@ export const stage3FactCorrectorRunner: StageRunner<
 
 Source URL for verification: ${input.sourceUrl}
 
-Scope: body + ShroomDogNote ONLY — do NOT modify MoguNote content (creative scope).
+Scope: body ONLY — do NOT modify MoguNote content (creative scope). <ShroomDogNote> is ShroomDog's own words: never add one, and leave any existing one byte-for-byte unchanged.
 
 Per your agent instructions, use the standing checklist, fetch the source URL if helpful, and make in-place factual corrections using your Write tool.
 

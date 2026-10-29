@@ -1,14 +1,16 @@
 /**
- * GP 列表的 e2e 期望值與斷言（openspec: editorial-charter〈讀者開啟 GP 系列頁〉）。
+ * GP 列表的 e2e 期望值與斷言（openspec: gp-signature-picks〈GP 列表 SHALL 只列公開的招牌文章，
+ * 首頁沒有能放的 GP 時不顯示 GP 區〉）。
  *
  * 期望值照內容算，不寫死「GP 列表是空的」：讀出 src/content/posts 的 frontmatter，交給頁面
- * 用的同一組純函式（getListablePosts／getIndexPosts、isListedGpTicket）算出每個語言該列哪
- * 幾篇，之後發布新的 GP 導讀不用回來改測試。墓碑與 GP-1 另外直接看 frontmatter 再擋一次：
+ * 用的同一組純函式（getListablePosts、meetsPublishBar、isListedGpTicket）算出每個語言該列哪
+ * 幾篇，之後升格新的 GP 不用回來改測試。墓碑與 GP-1 另外直接看 frontmatter 再擋一次：
  * 就算共用函式壞掉、頁面跟期望值一起錯，它們也不能出現在列表上。
  */
 import { expect, type APIRequestContext, type Locator, type Page } from '@playwright/test';
-import { getGpEmptyNotice, isListedGpTicket } from '../../src/lib/gp-listing.mjs';
-import { getIndexPosts, getListablePosts } from '../../src/utils/post-status';
+import { HOME_GP_LIMIT, getGpEmptyNotice, isListedGpTicket } from '../../src/lib/gp-listing.mjs';
+import { getListablePosts } from '../../src/utils/post-status';
+import { meetsPublishBar } from '../../src/utils/tribunal-scores';
 import {
   isTakenDownData,
   postPathFor,
@@ -17,9 +19,6 @@ import {
 
 type Lang = 'zh-tw' | 'en';
 type PostEntries = Parameters<typeof getListablePosts>[0];
-
-/** 首頁每個系列區塊最多預覽幾篇（src/pages/index.astro、src/pages/en/index.astro）。 */
-const HOME_PREVIEW_LIMIT = 3;
 
 let postIndex: ReturnType<typeof readPostIndex> | undefined;
 
@@ -52,9 +51,11 @@ function expectedSeriesPaths(lang: Lang): string[] {
   return gpPaths(getListablePosts(entries(), lang));
 }
 
-/** 首頁 GP 區塊能放的文章：首頁用 getIndexPosts，沒過 publish bar 的不上首頁。 */
+/** 首頁 GP 區塊能放的文章：沒過 publish bar 的 GP 不上首頁。 */
 function expectedHomePaths(lang: Lang): string[] {
-  return gpPaths(getIndexPosts(entries(), lang));
+  return gpPaths(
+    getListablePosts(entries(), lang).filter((post) => meetsPublishBar(post.data.scores))
+  );
 }
 
 /**
@@ -94,7 +95,7 @@ function expectNeverListed(listed: readonly string[], lang: Lang) {
 }
 
 /**
- * 開 GP 系列頁並照內容斷言：沒有公開導讀時是中性空狀態、零連結、沒有分頁；有的話沒有
+ * 開 GP 系列頁並照內容斷言：沒有公開的 GP 時是中性空狀態、零連結、沒有分頁；有的話沒有
  * 空狀態，所有分頁列出的文章正好是期望的那幾篇。回傳頁面上的順序，給首頁區塊比對。
  */
 export async function expectGpSeriesListing(
@@ -141,11 +142,11 @@ export async function expectGpSeriesListing(
 }
 
 /**
- * 在已開好的首頁斷言 GP 區塊。空狀態只看系列頁會不會列出任何導讀（openspec:
- * editorial-charter）：一篇都沒有時是中性空狀態、零連結、沒有「查看全部」。有的話沒有空狀態，
- * 照首頁的挑選規則（getIndexPosts）依 `seriesOrder`（expectGpSeriesListing 回傳的系列頁順序）
- * 放最前面幾篇；系列頁列的比首頁放的多時，要有連到系列頁的「查看全部」。首頁區塊是系列頁的
- * 預覽，排序跟著系列頁，測試就不必另寫一套排序規則。
+ * 在已開好的首頁斷言 GP 區塊（openspec: gp-signature-picks）。照首頁的挑選規則（selectHomeGpBlock）
+ * 沒有任何能放的 GP 時，整個 GP 區都不輸出（標題、副標、空狀態、「查看全部」都沒有），其他系列
+ * 照常顯示。有的話依 `seriesOrder`（expectGpSeriesListing 回傳的系列頁順序）放最前面幾篇；系列頁
+ * 列的比首頁放的多時，要有連到系列頁的「查看全部」。首頁區塊是系列頁的預覽，排序跟著系列頁，
+ * 測試就不必另寫一套排序規則。
  */
 export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: readonly string[]) {
   const listedCount = expectedSeriesPaths(lang).length;
@@ -153,21 +154,21 @@ export async function expectGpHomeBlock(page: Page, lang: Lang, seriesOrder: rea
   expect(seriesOrder, '首頁能放的 GP 都該列在系列頁上').toEqual(
     expect.arrayContaining([...eligible])
   );
-  const expected = seriesOrder.filter((path) => eligible.has(path)).slice(0, HOME_PREVIEW_LIMIT);
+  const expected = seriesOrder.filter((path) => eligible.has(path)).slice(0, HOME_GP_LIMIT);
   const section = page.locator('section.gp-section');
-  const emptyNotice = section.locator('[data-gp-empty-notice]');
-  const viewAll = section.locator('.view-all a');
+  await expect(page.locator('[data-gp-empty-notice]'), '首頁不放 GP 空狀態').toHaveCount(0);
 
-  if (listedCount === 0) {
-    await expect(emptyNotice).toHaveText(getGpEmptyNotice(lang));
-  } else {
-    await expect(emptyNotice).toHaveCount(0);
+  if (expected.length === 0) {
+    await expect(section).toHaveCount(0);
+    await expect(page.locator('section.mogu-picks-section')).toBeVisible();
+    return;
   }
 
   const shown = await listedPostPaths(section, lang);
   expect(shown).toEqual(expected);
   expectNeverListed(shown, lang);
 
+  const viewAll = section.locator('.view-all a');
   if (listedCount > expected.length) {
     await expect(viewAll).toHaveAttribute('href', seriesListingPath(lang));
   } else {

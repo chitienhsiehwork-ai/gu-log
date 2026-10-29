@@ -4,11 +4,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { POSTS_DIR, loadPosts, postInfo, suggestFor } from '../scripts/suggest-crosslinks.mjs';
-import { segmentGuide } from '../scripts/lib/source-distance.mjs';
 
-// gp-pipeline 對 GP 在工作目錄的 final.mdx 跑 post-fixer，再蓋來源距離章（openspec
-// gp-pipeline-publish-integrity）。這兩支 fixer 要能改 posts/ 以外的檔，語料照舊從
-// posts/ 讀；MP 對 posts/ 內檔案的呼叫方式與結果不變。
+// 這兩支 fixer 也能改 posts/ 以外的檔（例如工作目錄的草稿），語料照舊從 posts/ 讀；
+// 對 posts/ 內檔案的呼叫方式與結果不變。
 
 const ROOT = path.resolve(__dirname, '..');
 const run = (script: string, args: string[]) =>
@@ -54,8 +52,8 @@ function draft(frontmatter: string, body: string) {
 describe('add-kaomoji.mjs on a file outside posts/', () => {
   it('writes the kaomoji into that file and leaves posts/ alone', () => {
     const file = draft(
-      'ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"',
-      '這是一段足夠長的導讀正文，最後一句話在這裡結束。'
+      'ticketId: "MP-PENDING"\ntitle: "草稿"\nlang: "zh-tw"',
+      '這是一段足夠長的草稿正文，最後一句話在這裡結束。'
     );
     const before = postsSnapshot();
     run('add-kaomoji.mjs', ['--write', file]);
@@ -68,8 +66,8 @@ describe('add-kaomoji.mjs on a file outside posts/', () => {
 describe('inject-related-posts.mjs on a file outside posts/', () => {
   it('picks related posts from the posts/ corpus and edits only that file', () => {
     const file = draft(
-      `ticketId: "GP-PENDING"\ntitle: "工作目錄裡的導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
-      '導讀正文沒有任何站內連結。'
+      `ticketId: "MP-PENDING"\ntitle: "工作目錄裡的草稿"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '草稿正文沒有任何站內連結。'
     );
     const before = postsSnapshot();
     run('inject-related-posts.mjs', ['--file', file]);
@@ -87,7 +85,7 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
     run('inject-related-posts.mjs', ['--file', file]);
     expect(fs.readFileSync(file, 'utf8')).toBe(content);
     const fresh = draft(
-      `ticketId: "GP-PENDING"\ntitle: "另一篇導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      `ticketId: "MP-PENDING"\ntitle: "另一篇草稿"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
       '正文。'
     );
     const untouched = fs.readFileSync(fresh, 'utf8');
@@ -97,41 +95,24 @@ describe('inject-related-posts.mjs on a file outside posts/', () => {
     expect(fs.readFileSync(fresh, 'utf8')).toBe(untouched);
   });
 
-  it('插入的延伸閱讀整段不進來源距離章的投影（openspec source-distance-stamp）', () => {
-    for (const [lang, heading] of [
-      ['zh-tw', '## 延伸閱讀'],
-      ['en', '## Related Reading'],
-    ]) {
-      const file = draft(
-        `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "${lang}"\ntags: ["${commonTag}"]`,
-        '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>'
-      );
-      const before = segmentGuide(fs.readFileSync(file, 'utf8'));
-      run('inject-related-posts.mjs', ['--file', file]);
-      const after = fs.readFileSync(file, 'utf8');
-      expect(after).toContain(heading);
-      expect(segmentGuide(after)).toEqual(before);
-    }
-  });
-
   it('收尾的 MoguNote 之前才插延伸閱讀；後面還有正文時放文末，不插進文章中間', () => {
     const closing = draft(
-      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
-      '導讀正文第一句。\n\n<MoguNote>\nMogu 收尾的吐槽。\n</MoguNote>'
+      `ticketId: "MP-PENDING"\ntitle: "草稿"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '草稿正文第一句。\n\n<MoguNote>\nMogu 收尾的吐槽。\n</MoguNote>'
     );
     run('inject-related-posts.mjs', ['--file', closing]);
     const closed = fs.readFileSync(closing, 'utf8');
     expect(closed.indexOf('## 延伸閱讀')).toBeGreaterThan(-1);
     expect(closed.indexOf('## 延伸閱讀')).toBeLessThan(closed.indexOf('<MoguNote>'));
 
-    const guide = draft(
-      `ticketId: "GP-PENDING"\ntitle: "導讀"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
-      '導讀正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>\n\n## 回原文看什麼\n\n去讀原文。'
+    const trailing = draft(
+      `ticketId: "MP-PENDING"\ntitle: "草稿"\nlang: "zh-tw"\ntags: ["${commonTag}"]`,
+      '草稿正文第一句。\n\n<MoguNote>\nMogu 的吐槽。\n</MoguNote>\n\n## 最後一節\n\n最後一段正文。'
     );
-    run('inject-related-posts.mjs', ['--file', guide]);
-    const after = fs.readFileSync(guide, 'utf8');
-    expect(after.indexOf('## 延伸閱讀')).toBeGreaterThan(after.indexOf('去讀原文。'));
-    expect(after.indexOf('</MoguNote>')).toBeLessThan(after.indexOf('## 回原文看什麼'));
+    run('inject-related-posts.mjs', ['--file', trailing]);
+    const after = fs.readFileSync(trailing, 'utf8');
+    expect(after.indexOf('## 延伸閱讀')).toBeGreaterThan(after.indexOf('最後一段正文。'));
+    expect(after.indexOf('</MoguNote>')).toBeLessThan(after.indexOf('## 最後一節'));
   });
 
   it('never suggests the allocated post the draft will replace', () => {

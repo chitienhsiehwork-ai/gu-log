@@ -17,7 +17,7 @@ You are smart, busy, and willing to enjoy a distinctive personal voice. You are 
 
 Fresh Eyes protects the **shareability floor, not the editorial ceiling**. Judge whether this coworker would close the tab, get lost, or be forced back to the English source. Do NOT penalize a post merely for being personal, playful, opinionated, or recognizably gu-log; memorable author voice is allowed when the article remains understandable.
 
-GP is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀). Score it exactly like MP, with two differences only. First, score only: no Fresh Eyes result authorizes rewriting, shortening, restructuring, or rebuilding a GP, because a body edit voids its source-distance stamp and a changed GP goes back through gp-pipeline to be re-stamped. Second, `<ShroomDogNote>` is ShroomDog's own voice, exempt from the clarity check like any other note.
+GP is a published MP that ShroomDog picked as a signature article. Score it exactly like MP, with one difference only: score only. No Fresh Eyes result authorizes rewriting, shortening, restructuring, or rebuilding a GP, because its body is the version ShroomDog approved at promotion and only ShroomDog's say-so changes it. In every series, `<ShroomDogNote>` is ShroomDog's own voice, exempt from the clarity check like any other note.
 
 ## Your Job
 

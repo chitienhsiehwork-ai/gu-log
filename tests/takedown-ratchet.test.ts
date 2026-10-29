@@ -7,7 +7,6 @@ import {
   collectRatchetInput,
   evaluateTakedownRatchet,
 } from '../scripts/check-takedown-ratchet.mjs';
-import { withValidStamp } from './helpers/source-distance-stamp';
 import { useTestTempDirectories } from './helpers/temp-directories';
 
 const makeTempDirectory = useTestTempDirectories({ cleanup: 'afterAll' });
@@ -152,62 +151,147 @@ describe('takedown ratchet — pure rules (post-takedown design D8)', () => {
     expect(errors[3]).toMatch(/mp-504-e\.mdx: source is blocked .* taken down as MP-114/);
   });
 
-  it('lets a stamped GP reading guide and its English version reuse a source taken down only as GP', () => {
-    const zh = withValidStamp(livePost('GP-400', `${GP35_URL}/`));
-    const en = withValidStamp(livePost('GP-400', GP35_URL, ['lang: "en"']));
-    const input = baseInput({
-      addedPosts: [
-        { path: 'src/content/posts/gp-400-guide.mdx', content: zh },
-        { path: 'src/content/posts/en-gp-400-guide.mdx', content: en },
-      ],
-    });
-    expect(evaluateTakedownRatchet(input)).toEqual([]);
-    // 那篇下架文章維持原狀，棘輪照樣守著它。
-    expect(input.headContents.get(GP35)).toBe(tombstone('GP-35', GP35_URL));
-
-    // 沒帶章、章過期、或不是 GP，都照樣封鎖。
-    const unstamped = evaluateTakedownRatchet(
-      baseInput({
-        addedPosts: [
-          { path: 'src/content/posts/gp-401-guide.mdx', content: livePost('GP-401', GP35_URL) },
-          {
-            path: 'src/content/posts/gp-402-guide.mdx',
-            content: zh.replace('正文 (◕‿◕)', '改過的正文'),
-          },
-          {
-            path: 'src/content/posts/mp-400-guide.mdx',
-            content: livePost('MP-400', GP35_URL),
-          },
-        ],
-      })
-    );
-    expect(unstamped).toHaveLength(3);
-    expect(unstamped[0]).toMatch(
-      /gp-401-guide\.mdx: source is blocked .*only with a valid sourceDistance stamp/
-    );
-    expect(unstamped[1]).toMatch(/gp-402-guide\.mdx: source is blocked/);
-    expect(unstamped[2]).toMatch(/mp-400-guide\.mdx: source is blocked .* taken down as GP-35/);
-  });
-
-  it('blocks a stamped GP reading guide when the source was also taken down as MP', () => {
-    const MP114 = 'src/content/posts/mp-114-agent-teams.mdx';
+  it('blocks a new GP post from a source taken down only as GP, with no exception', () => {
     const errors = evaluateTakedownRatchet(
       baseInput({
-        headTakenDown: [
-          { path: GP35, content: tombstone('GP-35', GP35_URL) },
-          { path: MP114, content: tombstone('MP-114', `${GP35_URL}?ref=feed`) },
-        ],
         addedPosts: [
-          {
-            path: 'src/content/posts/gp-400-guide.mdx',
-            content: withValidStamp(livePost('GP-400', GP35_URL)),
-          },
+          { path: 'src/content/posts/gp-400-guide.mdx', content: livePost('GP-400', GP35_URL) },
         ],
       })
     );
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toMatch(/gp-400-guide\.mdx: source is blocked .* taken down as MP-114/);
-    expect(errors[0]).not.toMatch(/GP-35/);
+    expect(errors[0]).toMatch(/gp-400-guide\.mdx: source is blocked .* taken down as GP-35/);
+  });
+
+  // 〈改系列的文章不算新增〉〈不算改系列的改名或語言版本〉
+  describe('reclassified posts', () => {
+    const OLD_ZH = 'src/content/posts/gp-276-20261001-guide.mdx';
+    const NEW_ZH = 'src/content/posts/mp-900-20261001-guide.mdx';
+    const NEW_EN = 'src/content/posts/en-mp-900-20261001-guide.mdx';
+    const entry = {
+      lang: 'zh-tw',
+      oldTicketId: 'GP-276',
+      newTicketId: 'MP-900',
+      oldFilename: 'gp-276-20261001-guide.mdx',
+      newFilename: 'mp-900-20261001-guide.mdx',
+      oldSlug: 'gp-276-20261001-guide',
+      newSlug: 'mp-900-20261001-guide',
+    };
+    const reclassified = (overrides = {}) =>
+      baseInput({
+        addedPosts: [{ path: NEW_ZH, content: livePost('MP-900', GP35_URL) }],
+        manifestEntries: [entry],
+        basePosts: new Map([
+          [OLD_ZH, livePost('GP-276', GP35_URL)],
+          [NEW_ZH, null],
+        ]),
+        headPosts: new Map([
+          [OLD_ZH, null],
+          [NEW_ZH, livePost('MP-900', GP35_URL)],
+        ]),
+        ...overrides,
+      });
+
+    it('treats a recorded move with the same sourceUrl as an existing post', () => {
+      expect(evaluateTakedownRatchet(reclassified())).toEqual([]);
+    });
+
+    it('lets a later missing language version of the reclassified post through', () => {
+      const english = livePost('MP-900', GP35_URL, ['lang: "en"']);
+      const later = baseInput({
+        addedPosts: [{ path: NEW_EN, content: english }],
+        manifestEntries: [entry],
+        basePosts: new Map([
+          [OLD_ZH, null],
+          [NEW_ZH, livePost('MP-900', GP35_URL)],
+        ]),
+        headPosts: new Map([
+          [OLD_ZH, null],
+          [NEW_ZH, livePost('MP-900', GP35_URL)],
+        ]),
+      });
+      expect(evaluateTakedownRatchet(later)).toEqual([]);
+      // 同一個變更裡改系列又補英文版也一樣。
+      expect(
+        evaluateTakedownRatchet(
+          reclassified({
+            addedPosts: [
+              { path: NEW_ZH, content: livePost('MP-900', GP35_URL) },
+              { path: NEW_EN, content: english },
+            ],
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it('blocks a move that changes sourceUrl, is not recorded, or leaves the old file', () => {
+      const moved = (overrides = {}) => evaluateTakedownRatchet(reclassified(overrides));
+      expect(
+        moved({ basePosts: new Map([[OLD_ZH, livePost('GP-276', 'https://other.example/a')]]) })
+      ).toHaveLength(1);
+      expect(moved({ manifestEntries: [] })).toHaveLength(1);
+      expect(moved({ headPosts: new Map([[OLD_ZH, livePost('GP-276', GP35_URL)]]) })).toHaveLength(
+        1
+      );
+    });
+
+    it('blocks a language file next to a taken-down sibling or from a brand-cutover entry', () => {
+      const english = (ticket: string) => livePost(ticket, GP35_URL, ['lang: "en"']);
+      // 新的公開英文檔，旁邊是同 sourceUrl 的繁中墓碑：這是把下架文章救回來。
+      const nextToTombstone = baseInput({
+        addedPosts: [{ path: 'src/content/posts/en-gp-35-x.mdx', content: english('GP-35') }],
+        manifestEntries: [
+          {
+            ...entry,
+            oldTicketId: 'SP-35',
+            newTicketId: 'GP-35',
+            newFilename: path.basename(GP35),
+          },
+        ],
+        basePosts: new Map([[GP35, tombstone('GP-35', GP35_URL)]]),
+        headPosts: new Map([[GP35, tombstone('GP-35', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(nextToTombstone)).toHaveLength(1);
+      // 即使改成 GP→MP 的項目，旁邊的墓碑也不能放行。
+      const tombstoneSibling = baseInput({
+        addedPosts: [{ path: NEW_EN, content: english('MP-900') }],
+        manifestEntries: [entry],
+        basePosts: new Map([[NEW_ZH, tombstone('MP-900', GP35_URL)]]),
+        headPosts: new Map([[NEW_ZH, tombstone('MP-900', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(tombstoneSibling)).toHaveLength(1);
+      // 活著的兄弟檔，但遷移項目是 SP→GP 的品牌改名，不是 reclassify-post 的改系列。
+      const cutover = baseInput({
+        addedPosts: [{ path: NEW_EN, content: english('MP-900') }],
+        manifestEntries: [{ ...entry, oldTicketId: 'SP-276' }],
+        basePosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+        headPosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+      });
+      expect(evaluateTakedownRatchet(cutover)).toHaveLength(1);
+    });
+
+    it('blocks a language file that does not belong to the reclassified post', () => {
+      const errors = evaluateTakedownRatchet(
+        baseInput({
+          addedPosts: [
+            {
+              path: 'src/content/posts/en-mp-901-x.mdx',
+              content: livePost('MP-901', GP35_URL, ['lang: "en"']),
+            },
+            {
+              path: NEW_EN,
+              content: livePost('MP-900', `${GP35_URL}?ref=other`, ['lang: "en"']),
+            },
+          ],
+          manifestEntries: [entry],
+          basePosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+          headPosts: new Map([[NEW_ZH, livePost('MP-900', GP35_URL)]]),
+        })
+      );
+      expect(errors).toHaveLength(2);
+      expect(errors.join('\n')).toMatch(/en-mp-901-x\.mdx: source is blocked/);
+      expect(errors.join('\n')).toMatch(/en-mp-900-20261001-guide\.mdx: source is blocked/);
+    });
   });
 
   it('blocks an existing post whose sourceUrl moves to a taken-down source', () => {
@@ -300,6 +384,61 @@ describe('takedown ratchet — git adapter', () => {
       /gp-35-20260206-agent-teams\.mdx: taken-down post was deleted/
     );
     expect(errors.join('\n')).not.toMatch(/gp-400-new\.mdx/);
+  });
+
+  it('accepts a recorded reclassification and its later language version in both modes', () => {
+    const cwd = repoWithTombstone();
+    const oldZh = 'src/content/posts/gp-276-20261001-guide.mdx';
+    fs.writeFileSync(path.join(cwd, oldZh), livePost('GP-276', GP35_URL));
+    run(cwd, ['add', '-A']);
+    run(cwd, ['commit', '-q', '-m', 'existing GP']);
+    const base = run(cwd, ['rev-parse', 'HEAD']).trim();
+
+    const newZh = 'src/content/posts/mp-900-20261001-guide.mdx';
+    run(cwd, ['mv', oldZh, newZh]);
+    fs.writeFileSync(
+      path.join(cwd, newZh),
+      livePost('GP-276', GP35_URL).replace('GP-276', 'MP-900')
+    );
+    fs.mkdirSync(path.join(cwd, 'quality'), { recursive: true });
+    fs.writeFileSync(
+      path.join(cwd, 'quality/brand-taxonomy-post-migration.json'),
+      JSON.stringify({
+        entries: [
+          {
+            lang: 'zh-tw',
+            oldTicketId: 'GP-276',
+            newTicketId: 'MP-900',
+            oldFilename: 'gp-276-20261001-guide.mdx',
+            newFilename: 'mp-900-20261001-guide.mdx',
+            oldSlug: 'gp-276-20261001-guide',
+            newSlug: 'mp-900-20261001-guide',
+          },
+        ],
+      })
+    );
+    run(cwd, ['add', '-A']);
+    expect(evaluateTakedownRatchet(collectRatchetInput({ mode: 'staged', cwd }))).toEqual([]);
+    run(cwd, ['commit', '-q', '-m', 'reclassify']);
+
+    fs.writeFileSync(
+      path.join(cwd, 'src/content/posts/en-mp-900-20261001-guide.mdx'),
+      livePost('MP-900', GP35_URL, ['lang: "en"'])
+    );
+    run(cwd, ['add', '-A']);
+    expect(evaluateTakedownRatchet(collectRatchetInput({ mode: 'staged', cwd }))).toEqual([]);
+    run(cwd, ['commit', '-q', '-m', 'english']);
+    expect(evaluateTakedownRatchet(collectRatchetInput({ mode: 'range', base, cwd }))).toEqual([]);
+
+    // 清單沒記的改名照樣擋。
+    fs.writeFileSync(
+      path.join(cwd, 'quality/brand-taxonomy-post-migration.json'),
+      '{"entries":[]}'
+    );
+    run(cwd, ['add', '-A']);
+    run(cwd, ['commit', '-q', '-m', 'drop manifest entry']);
+    const errors = evaluateTakedownRatchet(collectRatchetInput({ mode: 'range', base, cwd }));
+    expect(errors.join('\n')).toMatch(/mp-900-20261001-guide\.mdx: source is blocked/);
   });
 
   it('does not re-check an existing post whose sourceUrl stayed the same', () => {

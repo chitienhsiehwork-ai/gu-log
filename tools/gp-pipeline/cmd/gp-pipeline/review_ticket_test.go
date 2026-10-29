@@ -12,7 +12,7 @@ import (
 
 // review and refine pick their series contract from the ticket: --ticket-id,
 // or the draft's frontmatter ticketId when the flag is unset. Neither has a
-// default series, so an MP draft is never reviewed against the GP checklist
+// default series, so an MP draft is never reviewed against the SD checklist
 // because a flag was left out.
 
 func TestReviewRefineTicketIDHasNoDefault(t *testing.T) {
@@ -35,8 +35,8 @@ func TestDraftIngressTakesTicketFromDraft(t *testing.T) {
 	}{
 		"MP draft, no flag":       {frontmatterID: `"MP-PENDING"`, wantTicket: "MP-PENDING", wantPrefix: "MP"},
 		"SD draft, no flag":       {frontmatterID: "SD-12", wantTicket: "SD-12", wantPrefix: "SD"},
-		"GP draft, no flag":       {frontmatterID: "'GP-PENDING'", wantTicket: "GP-PENDING", wantPrefix: "GP"},
-		"explicit flag wins":      {frontmatterID: "GP-PENDING", flag: "MP-PENDING", wantTicket: "MP-PENDING", wantPrefix: "MP"},
+		"quoted SD draft":         {frontmatterID: "'SD-PENDING'", wantTicket: "SD-PENDING", wantPrefix: "SD"},
+		"explicit flag wins":      {frontmatterID: "SD-PENDING", flag: "MP-PENDING", wantTicket: "MP-PENDING", wantPrefix: "MP"},
 		"no ticketId, given flag": {flag: "SD-PENDING", wantTicket: "SD-PENDING", wantPrefix: "SD"},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestReviewRefineRefuseDraftsOfDifferentSeries(t *testing.T) {
 		} {
 			t.Run(command+" "+name, func(t *testing.T) {
 				draft := filepath.Join(t.TempDir(), "foo.mdx")
-				mustWrite(t, draft, "---\nticketId: GP-PENDING\n---\nbody\n")
+				mustWrite(t, draft, "---\nticketId: SD-PENDING\n---\nbody\n")
 				workDir := t.TempDir()
 				modelDraft := filepath.Join(workDir, "draft-v1.mdx")
 				mustWrite(t, modelDraft, modelDraftBody)

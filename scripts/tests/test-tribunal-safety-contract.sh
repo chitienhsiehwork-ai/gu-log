@@ -61,9 +61,9 @@ gp_rewrite_output=""
 gp_rewrite_rc=0
 gp_rewrite_output="$(bash "$TRIBUNAL" --allow-rewrite gp-nonexistent.mdx 2>&1)" || gp_rewrite_rc=$?
 # openspec gp-source-preservation〈明確要求改寫 GP〉: refused before any judge or
-# writer, and the message sends the edit back through gp-pipeline to be re-stamped.
+# writer, and the message says to edit as ShroomDog directs, then rerun Tribunal.
 if [ "$gp_rewrite_rc" -eq 0 ] || ! grep -q 'GP is score-only in Tribunal, so --allow-rewrite is refused' <<<"$gp_rewrite_output" ||
-  ! grep -q 'back through gp-pipeline to be re-stamped' <<<"$gp_rewrite_output"; then
+  ! grep -q 'as ShroomDog directs, then rerun Tribunal' <<<"$gp_rewrite_output"; then
   fail "GP can still enter Tribunal writer/rebuild mode"
 fi
 en_gp_rewrite_output=""

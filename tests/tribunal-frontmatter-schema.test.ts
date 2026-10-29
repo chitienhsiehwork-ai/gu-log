@@ -193,6 +193,17 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
       'confidence',
     ],
     ['metadata', { metadata: { gateWarnings: [], gateNotes: [] } }, 'gateNotes'],
+    // post-takedown〈下架文章留著來源距離章〉：來源距離章已退役，下架文章也不能留。
+    [
+      'a taken-down post (retired sourceDistance)',
+      {
+        status: 'taken-down',
+        takenDownAt: '2026-09-27',
+        sourceTitle: 'Source title',
+        sourceDistance: { policy: 'source-distance/v1', verdict: 'PASS' },
+      },
+      'sourceDistance',
+    ],
   ])('rejects an undeclared key in %s', async (_where, extra, key) => {
     const schema = await loadPostsSchema();
     const r = schema.safeParse({ ...BASE, ticketId: 'MP-1', ...extra });
@@ -205,7 +216,6 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
     const r = schema.safeParse({
       ...BASE,
       ticketId: 'GP-1',
-      sourceDistance: { policy: 'source-distance/v1', verdict: 'pass' },
       glossaryIgnore: ['Gradient'],
       scores: {
         tribunalVersion: 9,
@@ -214,7 +224,6 @@ describe('posts schema — undeclared keys fail instead of being stripped (#1164
       },
     });
     expect(r.success, issueMessages(r)).toBe(true);
-    expect(r.data.sourceDistance).toBeUndefined();
     expect(r.data.glossaryIgnore).toBeUndefined();
     expect(r.data.scores.ralph).toBeUndefined();
     expect(r.data.scores.vibe.score).toBe(8);

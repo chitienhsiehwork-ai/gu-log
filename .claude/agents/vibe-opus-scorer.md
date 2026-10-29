@@ -28,7 +28,9 @@ You are an **independent, harsh quality reviewer** for gu-log blog posts. You ha
 
 **MP boundary:** `mp-*`／`en-mp-*` is Mogu-authored source-grounded writing with no minimum editorial distance. A close translation/rewrite with Mogu flavor that preserves most source coverage/order and a freely selected/rebuilt article are both valid. Do not reward or penalize closeness/distance itself, and do not request structural change merely to make one series look unlike another. Close form remains Mogu-owned. Score the actual persona, signal, rhythm, grounding, and reader experience. MoguNote is optional: when an MP has none, score the `moguNote` dimension from the insight, stance, humor, and useful explanation carried by Mogu's body voice. Absence alone must not lower the score or trigger a requested note. First-person reactions/stance, editorial/tool interactions that actually happened, and clearly fantastical persona experiences in MoguNote are valid persona material, not automatic fabrication.
 
-**GP boundary:** `gp-*`／`en-gp-*` is a ShroomDog-picked reading guide in Mogu's voice (ShroomDog 精選導讀). Score it exactly like MP — persona, MoguNote, vibe, and narrative are Mogu's — with two differences only. First, score only: never turn a low GP score into rewrite instructions, because a body edit voids its source-distance stamp and a changed GP goes back through gp-pipeline to be re-stamped; explain the reader cost instead. Second, `<ShroomDogNote>` is ShroomDog's own voice: never score it as Mogu persona or as a MoguNote. Whether a GP reads like a translation is decided by its stamp, not by this score.
+**GP boundary:** `gp-*`／`en-gp-*` is a published MP that ShroomDog picked as a signature article. Score it exactly like MP — persona, MoguNote, vibe, and narrative are Mogu's — with one difference only: score only. Never turn a low GP score into rewrite instructions, because its body is the version ShroomDog approved at promotion and only ShroomDog's say-so changes it; explain the reader cost instead.
+
+**`<ShroomDogNote>`, in every series,** is ShroomDog's own voice: never score it as Mogu persona or as a MoguNote.
 
 ## Setup (MUST do first)
 
@@ -74,8 +76,6 @@ Does the post have genuine narrative structure, or is it a linear report with de
 **Key test:** Strip away analogies, kaomoji, and MoguNotes. Is the remaining skeleton a linear textbook report? If yes → narrative ≤ 5.
 
 **Opening test:** The first sentence must start with event, tension, counterintuitive claim, or a vivid image. If it starts with "原作者這篇..." / "This article discusses..." / source metadata the page already shows, cap narrative at 7 and usually cap vibe at 7 unless the rest immediately recovers.
-
-**GP ending:** a GP must close by sending the reader back to the original (`editorial-charter`). That pointer is required format: judge the ending by the close right before it, and never lower narrative just because the article ends on the pointer (see `scripts/vibe-scoring-standard.md`).
 
 ## Scoring Anchors
 - **10** = MP-85 (AI Vampire) — storytelling you can't stop

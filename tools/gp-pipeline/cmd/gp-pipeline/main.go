@@ -59,7 +59,8 @@ func buildRoot() *cobra.Command {
 		Use:   "gp-pipeline",
 		Short: "gu-log source-grounded writing pipeline",
 		Long: fmt.Sprintf(`gp-pipeline is the Go implementation of gu-log's source-grounded writing
-flow for %s; Lv is written by hand (see CONTRIBUTING.md).
+flow for %s; Lv is written by hand (see CONTRIBUTING.md), and GP is a
+published MP that ShroomDog promotes with scripts/reclassify-post.mjs.
 The canonical entrypoint is tools/gp-pipeline/gp-pipeline; ticket prefixes
 are GP/MP/SD/Lv and post filename slugs are gp-/mp-/sd-/lv- (existing Lv
 posts keep levelup-). Commands that start without a file require --prefix:
@@ -76,13 +77,11 @@ one step at a time without inheriting the whole pipeline's side effects:
   write      draft an article
   review     review a draft
   refine     refine a draft into final.mdx
-  ralph      run the 4-judge tribunal (GP is score-only)
+  ralph      run the 4-judge tribunal
   translate  produce the en sidecar, but only after ralph passed
              (zh-tw-first: never translates an unstable draft)
   deploy     validate, build, commit, push
   run        run the whole pipeline end-to-end
-  stamp      check an existing GP post against its source and write its
-             source-distance stamp (the body is never changed)
   doctor     check that every external dependency is reachable
   counter    read / bump the ticket counter
 
@@ -146,7 +145,6 @@ for the migration history and current operational notes.`, authorableSeries(" / 
 	root.AddCommand(newTranslateCmd(state))
 	root.AddCommand(newDeployCmd(state))
 	root.AddCommand(newRunCmd(state))
-	root.AddCommand(newStampCmd(state))
 
 	return root
 }

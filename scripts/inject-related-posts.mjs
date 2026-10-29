@@ -80,7 +80,7 @@ function findInsertionPoint(content) {
     // No MoguNote — append at end
     return content.length;
   }
-  // 最後一則 MoguNote 後面還有正文（例如 GP 導讀收在「回原文」段落）時，插在它前面會把
+  // 最後一則 MoguNote 後面還有正文（例如收尾段落）時，插在它前面會把
   // 延伸閱讀塞進文章中間，所以改放文末。
   const closeIdx = body.indexOf('</MoguNote>', lastIdx);
   if (closeIdx !== -1 && body.slice(closeIdx + '</MoguNote>'.length).trim()) {

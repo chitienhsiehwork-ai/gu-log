@@ -62,10 +62,6 @@ func (s *State) Write(ctx context.Context) error {
 	if disp == nil {
 		return fmt.Errorf("write: writer dispatcher is nil")
 	}
-	terms, err := s.gpTerminology()
-	if err != nil {
-		return fmt.Errorf("write: %w", err)
-	}
 	prompt, err := prompts.Render("write", prompts.WriteData{
 		Prefix:         s.Prefix,
 		TicketID:       s.PromptTicketID,
@@ -79,7 +75,6 @@ func (s *State) Write(ctx context.Context) error {
 		Harness:        llm.HarnessName(disp.Providers()[0].Model()),
 		StyleGuide:     string(styleGuide),
 		Source:         string(source),
-		Terminology:    terms,
 	})
 	if err != nil {
 		return fmt.Errorf("write: render prompt: %w", err)

@@ -31,7 +31,7 @@ export function createPreCommitFixtures(makeTempDirectory: (prefix: string) => s
     return tmp;
   }
 
-  function makeScoreGateProbeEnv(stampVerifyExit = 0): NodeJS.ProcessEnv {
+  function makeScoreGateProbeEnv(): NodeJS.ProcessEnv {
     const bin = makeTempDirectory('gu-log-hook-score-bin-');
     for (const name of ['gitleaks', 'npx']) {
       const tool = path.join(bin, name);
@@ -55,11 +55,6 @@ case "$1" in
     echo score-check-sentinel
     exit 1
     ;;
-  */source-distance.mjs)
-    shift
-    echo "stamp-verify-sentinel $*" >&2
-    exit "$STAMP_VERIFY_EXIT"
-    ;;
 esac
 if [ "$2" = "--check-canonical-staged-file" ]; then
   exit 1
@@ -73,7 +68,6 @@ exit 0
       ...process.env,
       PATH: `${bin}${path.delimiter}${process.env.PATH ?? ''}`,
       REAL_NODE: process.execPath,
-      STAMP_VERIFY_EXIT: String(stampVerifyExit),
     };
   }
 

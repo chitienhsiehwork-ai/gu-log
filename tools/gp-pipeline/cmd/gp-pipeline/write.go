@@ -109,7 +109,7 @@ func runWrite(ctx context.Context, state *rootState, opts writeOpts) error {
 		return err
 	}
 	if !pipeline.IsAuthorable(opts.Prefix) {
-		return pipeline.LvAuthoringError("write")
+		return pipeline.AuthoringError("write", opts.Prefix)
 	}
 	if opts.TicketID == "" {
 		pending, err := counter.PendingTicketID(opts.Prefix)

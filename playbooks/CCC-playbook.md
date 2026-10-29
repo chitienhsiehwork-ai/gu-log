@@ -134,7 +134,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ### Tribunal 必跑規則（任何新增/改寫文章的 PR）
 
-**PR 動到 `src/content/posts/*.mdx`（新增 GP/MP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR；跑完 sub-8 不是 merge blocker，但 floor 沒過不能 merge。**
+**PR 動到 `src/content/posts/*.mdx`（新增 MP/SD/Lv，或實質改寫既有文章）→ 四評審必跑，結果必記錄。沒跑完不開 PR；跑完 sub-8 不是 merge blocker，但 floor 沒過不能 merge。**
 
 **唯一例外是下架**：把文章改成 `status: taken-down` 不是改寫，不跑 Tribunal；下架文章也不在 Tribunal 範圍內，範圍只看 `status`（`post-takedown` 與 `tribunal-verification-scope` spec）。下架一律走 `scripts/take-down-posts.mjs`，不要自己清正文。
 
@@ -168,14 +168,14 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 已授權的 URL 寫作任務 → 走 gp-pipeline
 
-是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選；user 要 GP 時照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈新增 GP 導讀（GP）〉處理；Lv 不走 pipeline，照同一份文件的〈新增入門教學（Lv）〉。CCC 可以跑完整的 GP 導讀流程：寫手與來源距離的 aligner 都走 Claude CLI，不需要 GP 專屬的 runtime profile。
+是否屬於 intake 一律依 `AGENTS.md`〈URL intake〉判斷，不在 playbook 重列觸發例句。只有 user 明確要求寫／發布，或 intake 後明確叫 agent 繼續時，才走 `tools/gp-pipeline/gp-pipeline run <url> --prefix <系列>`。系列依 `editorial-charter` 選，有來源預設 MP；GP 不寫，由 ShroomDog 從已上線的 MP 指定升格，照 [`CONTRIBUTING.md`](../CONTRIBUTING.md)〈GP 升格（GP）〉處理；Lv 不走 pipeline，照同一份文件的〈新增入門教學（Lv）〉。
 
 ### pipeline 內建的 eval gate
 
 `gp-pipeline run` 的 step 1.5 `eval` 是雙評估（Gemini + Codex）worthiness gate：
 
 - **GO/GO** → 繼續跑寫作 → 12-point review → refine → tribunal → deploy
-- **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不夠 GP-worthy）
+- **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不值得寫）
 - **split（一 GO 一 SKIP）** → exit 2 → 需要 human review，用 `--force` 可以 override gate 硬寫
 
 intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，pipeline eval 才作為第二道寫作 gate。不得拿 eval 取代 intake，或把 eval verdict 當成 user 的寫作授權。
@@ -193,14 +193,14 @@ intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，p
 
 ```bash
 # user 已授權寫作：跑完整 pipeline（fetch → eval → dedup → write → review → refine → tribunal → deploy）
-tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD>
+tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD>
 
 # 只想看 eval gate 怎麼判（不寫）：先 fetch 再單跑 eval
 tools/gp-pipeline/gp-pipeline fetch <url> --work-dir /tmp/gp-probe
 tools/gp-pipeline/gp-pipeline eval --source /tmp/gp-probe/source-tweet.md
 
 # Eval gate split/SKIP 但 user 堅持要寫 → 加 --force
-tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD> --force
+tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD> --force
 ```
 
 ### Sandbox 網路能力（2026-04-23 實測）
@@ -227,7 +227,6 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <GP|MP|SD> --force
 1. `gp-pipeline fetch <url>` 先把 source 抓下來（這步幾乎不會炸）
 2. 單獨跑 prompt：`claude -p --model <writer pin 的完整 id>` 模擬 write / refine 階段（id = `tribunal-writer` agent frontmatter，**SSOT**；要打之前先讀 frontmatter）（**在 CCC root 下不要加 `--permission-mode` 也不要加 `--dangerously-skip-permissions`，會被擋**）。**用完整 model id，不要用 `--model opus` alias**——alias 會解析成當前最新 Opus，吃不到 writer pin（理由見下面〈CCC 怎麼 pin 到指定 Opus 版本〉）。review / eval / tribunal judges 仍走各自 runtime 的既定路由；只有 provider 路徑壞掉才用本節 fallback。
 3. tribunal 改用本 playbook「Tribunal 必跑規則」那段的 4 個 judge role 平行跑（Vibe 用 exact-pin `claude -p`，其餘浮動 judge 用 `Agent`）
-4. GP 走手動 fallback 寫完，一樣要跑 `tools/gp-pipeline/gp-pipeline stamp --file <檔名>` 蓋來源距離章，validate-posts 才會放行
 
 **GP writer 鎖某一代 Opus**（Mac 與 Tribunal VM 都一樣；id 的 SSOT = `claude.go` 的 `ClaudeOpusPinned`，與 `tribunal-writer` agent frontmatter 同代，測試會擋兩邊不一致），不再走浮動 `opus` alias——寫作 voice 對 Opus 版本敏感，Anthropic 一升 alias 就可能改掉 LHY persona，所以釘死版本。要打 `--model` 前先去那個 SSOT 讀當下的 id，不要照抄這段散文。pipeline 仍會從 Claude Code JSON metadata 讀回實際 model 寫進 frontmatter。Fact Checker fallback judge 跟 doctor probe 才繼續用浮動 `opus` alias（追最新）。
 
@@ -284,7 +283,7 @@ fi
 
 CCC session 的 default model 會浮動，但 gu-log 的 writer / rewriter / vibe-scorer 是 **owner-pin 在同一代 Opus**，讓「生成」和「評分」共用一致 taste。所以只要 CCC 要產出或評分 **gu-log 文章 prose（SD / GP / MP / Lv 這種 reader-facing 內容，含手寫對照文）**：
 
-- **寫 / 改寫 → 使用 `tribunal-writer` 的 role prompt 與規則**（GP 除外，GP 走 gp-pipeline），以 `claude -p --model <frontmatter 的完整 id>` 啟動。
+- **寫 / 改寫 → 使用 `tribunal-writer` 的 role prompt 與規則**（GP 除外：GP 只依 ShroomDog 的指示改），以 `claude -p --model <frontmatter 的完整 id>` 啟動。
 - **Vibe 評分 → 使用 `vibe-opus-scorer` 的 role prompt 與規則**（grader），同樣以 `claude -p --model <frontmatter 的完整 id>` 啟動。
 - model pin = 這兩個 agent 的 `model:` frontmatter（**SSOT，不在這裡複述版本號**；owner sign-off 寫在 frontmatter 上方的 `# PINNED:` 註解）。
 - 寫手和 Vibe 評審用同一代 Opus 這條只適用 Claude 路徑；Tribunal 用 Codex 跑 Vibe 時，model 照 openspec `codex-tribunal-runtime`。

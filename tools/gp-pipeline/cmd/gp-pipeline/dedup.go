@@ -39,10 +39,9 @@ func newDedupCmd(state *rootState) *cobra.Command {
 		Use:   "dedup",
 		Short: "Check the dedup gate against an existing URL / title",
 		Long: `dedup wraps scripts/dedup-gate.mjs and returns a PASS / WARN / BLOCK
-verdict plus the list of existing posts that match. --series is required: a
-GP candidate whose source was taken down only as GP gets a WARN (a new GP
-reading guide may reuse it with a valid source-distance stamp), every other
-taken-down or live match is a BLOCK.
+verdict plus the list of existing posts that match. --series is required.
+A live duplicate or a taken-down source is a BLOCK for every series; a
+taken-down source has no exception.
 
 The underlying Node script is the source of truth for dedup logic — it
 shares normalisation primitives with scripts/validate-posts.mjs (URL

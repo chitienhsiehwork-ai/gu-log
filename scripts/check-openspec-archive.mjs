@@ -299,6 +299,16 @@ function describeFileProblem(entry) {
   return null;
 }
 
+// A delta that only removes requirements retires the whole capability: its
+// stable spec is deleted instead of changed.
+function isRetirement(deltaSpec) {
+  if (!isNonemptyRegularFile(deltaSpec)) return false;
+  const sections = git(['cat-file', 'blob', deltaSpec.oid], `cannot read ${deltaSpec.path}`)
+    .split('\n')
+    .filter((line) => line.startsWith('## '));
+  return sections.length > 0 && sections.every((line) => line.trim() === '## REMOVED Requirements');
+}
+
 function validateArchive({ entry, parsed, snapshots, distances, base, head, findings }) {
   const archivePath = `${ARCHIVE_ROOT}/${entry.path}`;
   const items = recursiveTreeEntries(entry.oid, archivePath);
@@ -340,6 +350,8 @@ function validateArchive({ entry, parsed, snapshots, distances, base, head, find
     const capability = deltaSpec.path.split('/')[1];
     const stablePath = `openspec/specs/${capability}/spec.md`;
     const headStable = entryAt(head, stablePath);
+    if (!headStable && isRetirement(deltaSpec) && isNonemptyRegularFile(entryAt(base, stablePath)))
+      continue;
     const stableProblem = describeFileProblem(headStable);
     if (stableProblem) {
       addFinding(

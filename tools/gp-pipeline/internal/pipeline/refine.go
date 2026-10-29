@@ -28,45 +28,26 @@ func (s *State) Refine(ctx context.Context) error {
 	}
 
 	s.Log.Info("Step 4: refine")
-	if err := s.refine(ctx, prompts.RefineData{}); err != nil {
+	if err := s.refine(ctx); err != nil {
 		return err
 	}
 	s.Log.OK("Step 4: final.mdx written by %s", s.RefineModel)
 	return nil
 }
 
-// refine runs the writer with the refine prompt and leaves its output in
-// final.mdx. data.Draft names the input (draft-v1.mdx when empty); a GP
-// source-distance rewrite also sets data.RewriteReport. A GP's output must
-// then pass the content checks before anything stamps it (see
-// fixContentLint).
-func (s *State) refine(ctx context.Context, data prompts.RefineData) error {
-	if err := s.runRefine(ctx, data); err != nil {
-		return err
-	}
-	if s.Prefix != "GP" {
-		return nil
-	}
-	return s.fixContentLint(ctx)
-}
-
-// runRefine is one writer call with the refine prompt; its output lands in
+// refine is one writer call with the refine prompt; its output lands in
 // final.mdx.
-func (s *State) runRefine(ctx context.Context, data prompts.RefineData) error {
+func (s *State) refine(ctx context.Context) error {
 	finalPath := filepath.Join(s.WorkDir, "final.mdx")
 	if err := s.stageEditorialContext(); err != nil {
 		return fmt.Errorf("refine: %w", err)
 	}
 
-	terms, err := s.gpTerminology()
-	if err != nil {
-		return fmt.Errorf("refine: %w", err)
-	}
-	data.Prefix = s.Prefix
-	data.TicketID = s.PromptTicketID
-	data.Angle = s.Angle
-	data.Terminology = terms
-	prompt, err := prompts.Render("refine", data)
+	prompt, err := prompts.Render("refine", prompts.RefineData{
+		Prefix:   s.Prefix,
+		TicketID: s.PromptTicketID,
+		Angle:    s.Angle,
+	})
 	if err != nil {
 		return fmt.Errorf("refine: render prompt: %w", err)
 	}
@@ -101,22 +82,6 @@ func (s *State) runRefine(ctx context.Context, data prompts.RefineData) error {
 	s.RefineModel = llm.DisplayName(res.ActualModel)
 	s.RefineHarness = llm.HarnessName(res.Model)
 	return nil
-}
-
-// refineFrom copies final.mdx to draftFile and runs run, which refines that
-// draft into a new final.mdx through runRefine. runRefine sets the old article
-// aside first, so when the writer fails without writing, a resumed run starts
-// from that article instead of an unrefined draft.
-func (s *State) refineFrom(ctx context.Context, draftFile string, run func(context.Context) error) error {
-	finalPath := filepath.Join(s.WorkDir, "final.mdx")
-	article, err := os.ReadFile(finalPath)
-	if err != nil {
-		return fmt.Errorf("refine: read final.mdx: %w", err)
-	}
-	if err := os.WriteFile(filepath.Join(s.WorkDir, draftFile), article, 0o644); err != nil {
-		return fmt.Errorf("refine: stage %s: %w", draftFile, err)
-	}
-	return run(ctx)
 }
 
 // setAside removes the file already at path before the writer call that

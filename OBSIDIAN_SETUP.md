@@ -83,11 +83,11 @@ harness: ""
 > （吐槽內容）
 ```
 
-再建 `_templates/gp-draft.md`（GP 系列）：
+再建 `_templates/mp-draft.md`（MP 系列）：
 
 ```markdown
 ---
-series: GP
+series: MP
 title: ""
 summary: ""
 source: "@xxx on X"
@@ -101,7 +101,7 @@ harness: ""
 
 # 標題
 
-（翻譯內容）
+（正文）
 
 > [!mogu] Mogu 吐槽
 > （吐槽）
@@ -113,7 +113,7 @@ Settings → Templater → **Template folder location** 設成 `_templates/`。�
 
 ### 在 iPhone / Mac 寫草稿
 
-1. Obsidian 新建筆記，套用 Templater 模板（SD / GP / MP / Lv）
+1. Obsidian 新建筆記，套用 Templater 模板（SD / MP / Lv）
 2. 填 `title` / `summary` / `tags`；provenance 依下一節在 import 前確認
 3. 正文用 markdown 寫，**不要手動寫 `<MoguNote>` component**——用 Obsidian callout 語法：
 
@@ -157,13 +157,15 @@ import 會自動做：
 
 - ✅ 產生 `src/content/posts/{series}-pending-{date}-{slug}.mdx`
 - ✅ 寫入 `ticketId: "{series}-PENDING"`，不 bump `scripts/article-counter.json`
-- ✅ 把草稿明確提供的 `model` + `harness` 寫進 `translatedBy`；GP 記為 `Translator`，MP/SD/Lv 記為 `Author`
+- ✅ 把草稿明確提供的 `model` + `harness` 寫進 `translatedBy`，角色記為 `Author`
 - ✅ Obsidian callout → `<MoguNote>` / `<ShroomDogNote>` 元件
 - ✅ Wikilink → `/posts/...` 連結
 - ✅ 自動加其餘 frontmatter 必填欄位（`lang` 等）
 - ✅ 跑 `scripts/validate-posts.mjs` 確認沒爛
 
-`PENDING` 是 gu-log 的標準新文章流程：草稿、tribunal、修稿期間都先維持 `GP-PENDING` / `MP-PENDING` / `SD-PENDING` / `Lv-PENDING`，檔名也維持 `*-pending-*`。真的要上 main 前，才跑 `node scripts/allocate-ticket.mjs` 把 frontmatter 和檔名換成真號，並在那一步 bump `scripts/article-counter.json`。
+`PENDING` 是 gu-log 的標準新文章流程：草稿、tribunal、修稿期間都先維持 `MP-PENDING` / `SD-PENDING` / `Lv-PENDING`，檔名也維持 `*-pending-*`。真的要上 main 前，才跑 `node scripts/allocate-ticket.mjs` 把 frontmatter 和檔名換成真號，並在那一步 bump `scripts/article-counter.json`。
+
+GP 不能匯入：GP 是 ShroomDog 從已上線的 MP 指定升格的招牌文章，先以 MP 上線，再用 `scripts/reclassify-post.mjs` 升格。
 
 ### 跑品質 tribunal + push
 
@@ -211,13 +213,13 @@ Vercel 自動 deploy，幾分鐘後 `gu-log.vercel.app` 上線。
 
 **Q: SD 系列不需要 `source` / `sourceUrl`？**
 - 對，SD 是原創。import script 會自動填 `source: "ShroomDog Lab"` / `sourceUrl: "https://gu-log.vercel.app/"`
-- GP / MP 必填，沒填會直接報錯
+- MP 必填，沒填會直接報錯
 
 **Q: 我想在 iPhone 上直接 commit、直接跑 validate？**
 - 別。iPhone 跑不動 node script，跑不動 tribunal。維持「iPhone = 寫 / Mac = 發布」分工。硬要在 iPhone 上做 git 只會讓你恨自己。
 
 **Q: Templater 太複雜，我想手打 frontmatter？**
-- 可以，照下方最小範例填；GP/MP 另外需要 `source` + `sourceUrl`。
+- 可以，照下方最小範例填；MP 另外需要 `source` + `sourceUrl`。
 
 ## 草稿 frontmatter 最小範例
 
@@ -239,12 +241,12 @@ harness: ""
 > 欸這個不錯喔
 ```
 
-### GP（導讀）
+### MP（有來源的文章）
 
 ```markdown
 ---
-series: GP
-title: "Mogu 自己下的標題（不直譯原文標題）"
+series: MP
+title: "Mogu 自己下的標題"
 summary: "一句話摘要"
 source: "@karpathy on X"
 sourceUrl: "https://x.com/karpathy/status/xxxxx"
@@ -255,13 +257,11 @@ model: ""
 harness: ""
 ---
 
-導讀內文：開頭交代這篇值得讀的理由，用自己的話講重點、加上 gu-log 的看法，結尾帶讀者回原文。
+正文：Mogu 消化來源後寫成自己的文章，保留的來源主張要交代是誰說的。
 
 > [!mogu]
 > Mogu 的吐槽
 ```
-
-有外部來源的 GP 要帶來源距離章，validate-posts 才會放行：匯入後跑 `tools/gp-pipeline/gp-pipeline stamp --file <匯入的檔名>`。章只能由 gp-pipeline 蓋，不要手寫。
 
 ---
 

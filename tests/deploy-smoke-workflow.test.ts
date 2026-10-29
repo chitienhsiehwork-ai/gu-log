@@ -16,6 +16,8 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 
+import { buildRedirectConfig } from '../vercel.mjs';
+
 const WORKFLOW_URL = new URL('../.github/workflows/deploy-smoke-test.yml', import.meta.url);
 const temporaryDirectories: string[] = [];
 
@@ -41,9 +43,54 @@ afterEach(() => {
   }
 });
 
+// vercel.mjs 的轉址 source 只有兩種特殊語法：結尾的 `{/}?` 與 `:name(regex)` 參數。
+function redirectSourcePattern(source: string): RegExp {
+  let pattern = '';
+  for (const part of source.split(/(\{\/\}\?|:\w+\([^)]*\))/)) {
+    const param = /^:(\w+)\((.*)\)$/.exec(part);
+    if (part === '{/}?') pattern += '/?';
+    else if (param) pattern += `(?<${param[1]}>${param[2]})`;
+    else pattern += part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${pattern}$`);
+}
+
+describe('redirect smoke checks', () => {
+  // 改系列或重新配號後，smoke test 的期望要跟著 vercel.mjs 產生的轉址走，不然上線後才紅。
+  it('expects exactly the destination buildRedirectConfig produces for each old URL', async () => {
+    const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
+    const run = (workflow.jobs['smoke-test'] as Job).steps.map((step) => step.run ?? '').join('\n');
+    const checks = [...run.matchAll(/^\s*check_redirect "([^"]+)" "([^"]+)"\s*$/gm)];
+    expect(checks.length).toBeGreaterThan(0);
+
+    const manifest = JSON.parse(
+      readFileSync(
+        new URL('../quality/brand-taxonomy-post-migration.json', import.meta.url),
+        'utf8'
+      )
+    );
+    const { redirects } = buildRedirectConfig(manifest);
+    const resolve = (pathname: string) => {
+      for (const { source, destination } of redirects) {
+        const match = redirectSourcePattern(source).exec(pathname);
+        if (match) {
+          return String(destination).replace(
+            /:(\w+)/g,
+            (_: string, name: string) => match.groups?.[name] ?? ''
+          );
+        }
+      }
+      return null;
+    };
+    for (const [, from, to] of checks) {
+      expect(resolve(from), from).toBe(to);
+    }
+  });
+});
+
 describe('picks listing smoke check', () => {
-  // openspec editorial-charter〈讀者開啟 GP 系列頁〉: the GP listing passes with
-  // reading guides or with the neutral empty state, never with neither.
+  // openspec gp-signature-picks〈GP 系列頁沒有可列的文章〉: the GP listing passes with
+  // signature picks or with the neutral empty state, never with neither.
   async function runListingStep(gpBody: string) {
     const workflow = parse(await readFile(WORKFLOW_URL, 'utf8'));
     const job = workflow.jobs['smoke-test'] as Job;
@@ -86,10 +133,10 @@ exit 1
     });
   }
 
-  it('accepts a GP listing with reading guides or with the empty state', async () => {
+  it('accepts a GP listing with signature picks or with the empty state', async () => {
     const empty = await runListingStep('<p class="gp-empty-notice" data-gp-empty-notice>x</p>');
     expect(empty.status, empty.stdout.toString()).toBe(0);
-    const listed = await runListingStep('<a href="/posts/gp-2-guide">Guide</a>');
+    const listed = await runListingStep('<a href="/posts/gp-2-pick">Pick</a>');
     expect(listed.status, listed.stdout.toString()).toBe(0);
   });
 

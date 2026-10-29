@@ -1,6 +1,6 @@
 ---
 name: x-source-fetch
-description: Fetch the full focal body of an X / Twitter post or X Article for GP reading guides or MP source-grounded writing before gp-pipeline runs, with best-effort self-thread reconstruction. Fail loudly when the focal source is incomplete instead of writing from a preview snippet.
+description: Fetch the full focal body of an X / Twitter post or X Article for MP source-grounded writing before gp-pipeline runs, with best-effort self-thread reconstruction. Fail loudly when the focal source is incomplete instead of writing from a preview snippet.
 ---
 
 # x-source-fetch
@@ -9,7 +9,7 @@ Fetch an X URL's full focal body, or fail loud. One script, one contract.
 
 ## When to use
 
-- User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for a GP or MP
+- User drops an `https://x.com/...` or `https://twitter.com/...` URL and asks for an article (written as MP)
 - `gp-pipeline run <url>` (the Go binary in `tools/gp-pipeline/`) or `gp-pipeline fetch <url>` is the natural next step and the source capture stage needs the body
 - Any time "I need the tweet content but curl returns gibberish"
 
@@ -77,7 +77,7 @@ bash scripts/fetch-x-article.sh <tweet_url> --json
    - If only `text` / `raw_text` / `note_tweet` populated → emit plain body
 3. If fxtwitter is down, fall back to `https://api.vxtwitter.com/Twitter/status/<id>`
    - Plain tweets: fine
-   - X Articles: vxtwitter returns only `article.preview_text` (~200 chars). The renderer surfaces the preview PLUS an `INCOMPLETE_SOURCE_WARNING` marker. Treat as incomplete — do not ship a GP based on a preview.
+   - X Articles: vxtwitter returns only `article.preview_text` (~200 chars). The renderer surfaces the preview PLUS an `INCOMPLETE_SOURCE_WARNING` marker. Treat as incomplete — do not ship an article based on a preview.
 4. Both failed / empty body → stderr `INCOMPLETE_SOURCE: <reason>`, exit 2
 
 **Thread step (text mode, unless `--no-thread`)**: after the focal tweet is in
@@ -115,7 +115,7 @@ single-tweet capture, so it can never regress a fetch that previously worked.
 
 ## Quick sanity checks after fetching
 
-Before piping the output into a GP reading-guide or MP writing prompt, verify:
+Before piping the output into an MP writing prompt, verify:
 
 ```bash
 OUT=$(bash scripts/fetch-x-article.sh "$URL")
@@ -142,4 +142,4 @@ Per `CONTRIBUTING.md`'s Source Completeness section: **stop writing**. Do not fi
 
 1. Retry later (transient fxtwitter outage is possible)
 2. Ask the user to paste the body directly
-3. Skip this GP or MP / drop from queue
+3. Skip this article / drop from queue

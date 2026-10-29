@@ -54,13 +54,10 @@ const ticketPrefix = ticketId?.split('-')[0] || '';
 const isMoguPicks = ticketId?.startsWith('MP-') ?? false;
 const isLevelUp = ticketId?.startsWith('Lv-') ?? false;
 const isShroomDogOriginal = ticketId?.startsWith('SD-') ?? false;
-// MP uses source-grounded provenance, GP reading-guide provenance, SD/Lv writing.
-const isOriginalPost = isLevelUp || isShroomDogOriginal;
-const contentMode = isMoguPicks
-  ? 'source-grounded-writing'
-  : isOriginalPost
-    ? 'writing'
-    : 'reading-guide';
+// GP is a promoted MP (openspec gp-signature-picks): both use source-grounded
+// provenance; SD/Lv are writing.
+const isSourceGrounded = isMoguPicks || (ticketId?.startsWith('GP-') ?? false);
+const contentMode = isSourceGrounded ? 'source-grounded-writing' : 'writing';
 const isChatGptShareSource = post.data.sourceUrl.startsWith('https://chatgpt.com/share/');
 // Lv tutorials are originals, but when one is built on a real external source
 // (not a self-referential gu-log link) the source should still be credited + linked.
@@ -69,13 +66,12 @@ const hasExternalSource =
 const showSourceCitation =
   (!isLevelUp && (!isShroomDogOriginal || isChatGptShareSource)) ||
   (isLevelUp && hasExternalSource);
+// The last case is SD, which shows a citation only for a ChatGPT share.
 const sourceCitationLabel = isLevelUp
   ? 'Reference source'
-  : isMoguPicks
+  : isSourceGrounded
     ? 'Source material'
-    : isShroomDogOriginal && isChatGptShareSource
-      ? 'Inspiration source'
-      : 'Original source';
+    : 'Inspiration source';
 // Legacy Lv posts encoded the gu-log series name into `source`.
 // The Lv badge already carries that context, so credit only the real source.
 const sourceCitationText = post.data.source.replace(/^Level-Up Series\s*[／/]\s*/, '');

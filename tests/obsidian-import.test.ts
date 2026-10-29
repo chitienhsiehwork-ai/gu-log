@@ -21,13 +21,13 @@ function writeDraft(
     model,
     harness,
   }: {
-    series: 'SD' | 'GP' | 'MP';
+    series: 'SD' | 'GP' | 'MP' | 'SP';
     model?: string;
     harness?: string;
   }
 ): string {
   const source =
-    series === 'GP' || series === 'MP'
+    series !== 'SD'
       ? ['source: "@example on X"', 'sourceUrl: "https://x.com/example/status/1"']
       : [];
   const provenance = [
@@ -66,8 +66,8 @@ describe('obsidian-import provenance', () => {
   it.each([
     { series: 'SD' as const, missing: 'model' as const },
     { series: 'SD' as const, missing: 'harness' as const },
-    { series: 'GP' as const, missing: 'model' as const },
-    { series: 'GP' as const, missing: 'harness' as const },
+    { series: 'MP' as const, missing: 'model' as const },
+    { series: 'MP' as const, missing: 'harness' as const },
   ])(
     'GIVEN a $series draft missing $missing WHEN dry-run imports THEN it fails without fabricated output',
     ({ series, missing }) => {
@@ -88,7 +88,7 @@ describe('obsidian-import provenance', () => {
 
   it.each([
     { series: 'SD' as const, blank: 'model' as const },
-    { series: 'GP' as const, blank: 'harness' as const },
+    { series: 'MP' as const, blank: 'harness' as const },
   ])(
     'GIVEN a $series draft with blank $blank WHEN dry-run imports THEN it fails before output',
     ({ series, blank }) => {
@@ -109,7 +109,6 @@ describe('obsidian-import provenance', () => {
 
   it.each([
     { series: 'SD' as const, role: 'Author' },
-    { series: 'GP' as const, role: 'Translator' },
     { series: 'MP' as const, role: 'Author' },
   ])(
     'GIVEN explicit $series provenance WHEN dry-run imports THEN it preserves metadata with the $role role',
@@ -128,6 +127,29 @@ describe('obsidian-import provenance', () => {
       expect(result.stdout.match(/model: "Test Model 1\.0"/g)).toHaveLength(2);
       expect(result.stdout.match(/harness: "Test Harness"/g)).toHaveLength(2);
       expect(result.stdout).toContain(`role: "${role}"`);
+    }
+  );
+});
+
+// openspec gp-signature-picks：GP 沒有上線前的草稿，只由已上線的 MP 升格。
+describe('obsidian-import refuses GP drafts', () => {
+  it.each([
+    ['GP', 'scripts/reclassify-post.mjs'],
+    ['SP', '請改用 MP'],
+  ] as const)(
+    'GIVEN a %s draft WHEN dry-run imports THEN it fails before output',
+    (series, hint) => {
+      const draftPath = writeDraft(`${series.toLowerCase()}-refused.md`, {
+        series,
+        model: TEST_MODEL,
+        harness: TEST_HARNESS,
+      });
+
+      const result = runImport(draftPath);
+
+      expect(result.status).toBe(1);
+      expect(result.stdout).toBe('');
+      expect(result.stderr).toContain(hint);
     }
   );
 });

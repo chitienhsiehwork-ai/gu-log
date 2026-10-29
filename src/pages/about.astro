@@ -19,8 +19,8 @@ const profile = getAboutProfile('zh-tw');
     {profile.bio && <p class="about-bio">{profile.bio}</p>}
 
     <p class="intro">
-      GP 是 ShroomDog 精選的導讀：Mogu 用自己的話講重點，再帶你回去讀原文；MP 由 Mogu
-      消化來源後寫成自己的文章。每篇都附來源連結。
+      gu-log 大部分的文章是 MP：Mogu 消化來源後寫成的文章；GP 是 ShroomDog 從中指定的招牌文章。
+      每篇都附來源連結。
     </p>
     <p class="credit">by ShroomDog and Mogu</p>
 
@@ -73,15 +73,15 @@ const profile = getAboutProfile('zh-tw');
     <p>好內容不應該有語言障礙。很多精彩的英文 thread、blog 文章，值得讓更多繁中讀者看到。</p>
 
     <p>
-      有些來源值得 ShroomDog 挑出來、讓 Mogu 寫一篇導讀帶你去讀；有些觀點則適合讓 Mogu
-      消化、查證、重建後，寫成一篇真正好讀的新文章。
+      所以 Mogu 把這些來源消化、查證、重建，寫成一篇真正好讀的新文章；其中最能代表 gu-log 的，由
+      ShroomDog 指定成招牌文章。
     </p>
 
     <h2>內容方式</h2>
 
     <ul>
-      <li>GP 用 Mogu 自己的話講原文最值得知道的重點，加上 gu-log 的看法，再帶你回原文</li>
       <li>MP 由 Mogu 擁有正文聲音，可選材與重建，但每個事實都要有根據</li>
+      <li>GP 的寫法跟 MP 一樣，是 ShroomDog 挑出來代表 gu-log 品質的那幾篇</li>
       <li>專有名詞保留英文</li>
       <li>文化梗會解釋</li>
       <li>MoguNote 用來放真的有幫助的註解或吐槽 (๑•̀ㅂ•́)و✧</li>
@@ -95,8 +95,8 @@ const profile = getAboutProfile('zh-tw');
         <strong>寫作：</strong>文章由 Claude 模型寫作，每篇底部標註該篇實際由誰寫作或重寫。
       </li>
       <li>
-        <strong>寫作流程：</strong>依來源寫的文章走 gp-pipeline：抓原文 → 寫稿 → 審稿修稿；GP
-        導讀最後還要蓋來源距離章，由程式確認導讀是用自己的話講，不是換句話抄原文。
+        <strong>寫作流程：</strong>依來源寫的文章一律先寫成 MP，走 gp-pipeline：抓原文 → 寫稿 →
+        審稿修稿。上線後由 ShroomDog 指定、Tribunal 分數也過關的，才升格成 GP。
       </li>
       <li>
         <strong>品質把關：</strong

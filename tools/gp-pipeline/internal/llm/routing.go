@@ -16,9 +16,6 @@ type RuntimeRole string
 const (
 	RuntimeReviewer RuntimeRole = "reviewer"
 	RuntimeWriter   RuntimeRole = "writer"
-	// RuntimeAligner is the source-distance aligner: a Claude call with its
-	// own pin (.claude/agents/source-aligner.md), no tools, structured output.
-	RuntimeAligner RuntimeRole = "aligner"
 )
 
 type ResolvedRuntime struct {
@@ -70,11 +67,10 @@ func ResolveRuntime(ctx context.Context, repoRoot string, role RuntimeRole) (Res
 }
 
 // claudeRuntimeTools is the least-privilege tool set of a Claude route. The
-// router routes only article-writing steps and the source aligner to Claude
-// (the single list lives in scripts/tribunal-model-router.sh). The writer
-// drafts files inside its own work dir; any other role that reaches Claude,
-// including the aligner, gets no tools at all, so an injected source cannot
-// touch the work dir's files.
+// router routes only article-writing steps to Claude (the single list lives in
+// scripts/tribunal-model-router.sh). The writer drafts files inside its own
+// work dir; any other role that reaches Claude gets no tools at all, so an
+// injected source cannot touch the work dir's files.
 func claudeRuntimeTools(role RuntimeRole) []string {
 	if role == RuntimeWriter {
 		return []string{"Read", "Grep", "Glob", "Edit", "Write"}
@@ -96,16 +92,7 @@ func ProvidersForRuntime(
 	}
 	switch runtime.Provider {
 	case "claude":
-		model := ClaudeOpusPinned
-		if role == RuntimeAligner {
-			// The router and AlignerPin read the same agent file, so there is
-			// no drift to compare; AlignerPin still refuses the writer's pin.
-			pin, err := AlignerPin(repoRoot)
-			if err != nil {
-				return nil, true, err
-			}
-			model = pin
-		} else if runtime.Model != ClaudeOpusPinned {
+		if runtime.Model != ClaudeOpusPinned {
 			// The router reads the writer pin from
 			// .claude/agents/tribunal-writer.md; the Go side pins
 			// ClaudeOpusPinned. Refuse to pick one when they disagree.
@@ -115,7 +102,7 @@ func ProvidersForRuntime(
 			)
 		}
 		return []Provider{&ClaudeProvider{
-			ModelFlag: model, Contained: true, Tools: claudeRuntimeTools(role),
+			ModelFlag: ClaudeOpusPinned, Contained: true, Tools: claudeRuntimeTools(role),
 		}}, true, nil
 	case "codex":
 		return []Provider{&CodexProvider{

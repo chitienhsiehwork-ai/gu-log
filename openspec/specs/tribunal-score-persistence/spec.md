@@ -12,7 +12,7 @@ Tribunal pipeline 在每個 judge stage 判定 PASS 後，SHALL 立即呼叫 fro
 
 寫入 SHALL 包含該 judge 的 version-owned 維度分數（0-10 整數）、floored composite `score`、ISO 8601 `date` 與使用的 `model` label。
 
-GP 在 Tribunal 只評分（`gp-source-preservation`），所以對 GP，每個 judge stage 判定後不論 PASS 或 FAIL 都 SHALL 寫入分數，前一個 judge FAIL 時其餘 judge SHALL 照樣評分；GP 能不能上線由 CONTRIBUTING〈兩層品質門檻〉判定，不要求每一關都 PASS。Tribunal 的每個入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）對 GP 都 SHALL 跑完每一關並寫入每一關的分數。
+GP 在 Tribunal 只評分（`gp-source-preservation`），所以對 GP，每個 judge stage 判定後不論 PASS 或 FAIL 都 SHALL 寫入分數，前一個 judge FAIL 時其餘 judge SHALL 照樣評分；升格後的 GP 上不上首頁依 `publish-bar-visibility`，不要求每一關都 PASS。Tribunal 的每個入口（`scripts/tribunal.sh` 與 `pnpm tribunal:run`）對 GP 都 SHALL 跑完每一關並寫入每一關的分數。
 
 #### Scenario: Vibe scorer PASS 後分數出現在 version 9+ frontmatter
 
@@ -45,10 +45,8 @@ GP 在 Tribunal 只評分（`gp-source-preservation`），所以對 GP，每個 
 - **WHEN** 一篇 GP 的 librarian FAIL，其餘 judge 的判定不論 PASS 或 FAIL
 - **THEN** 其餘 judge SHALL 照樣評分
 - **AND** frontmatter SHALL 包含四個 judge 的分數，`scores.librarian` 為沒過的那次分數
-- **AND** GP 正文與來源距離章 SHALL NOT 改變
+- **AND** GP 正文 SHALL NOT 改變
 - **AND** 該次 Tribunal SHALL 以失敗結束
-
----
 
 ### Requirement: Judge key mapping
 

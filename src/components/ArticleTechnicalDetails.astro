@@ -10,7 +10,7 @@ interface Props {
   translatedBy: PostData['translatedBy'];
   scores: PostData['scores'];
   authorshipNote?: string | null;
-  contentMode: 'reading-guide' | 'source-grounded-writing' | 'writing';
+  contentMode: 'source-grounded-writing' | 'writing';
   postVersion: number;
   historyHref: string;
   lang?: 'zh-tw' | 'en';
@@ -36,7 +36,6 @@ const strings =
         writtenOn: 'Written on',
         writingPipeline: 'writing pipeline',
         sourceGroundedPipeline: 'source-grounded writing pipeline',
-        readingGuidePipeline: 'reading-guide pipeline',
         authorship: 'Authorship note:',
         history: 'View edit history',
       }
@@ -45,16 +44,13 @@ const strings =
         writtenOn: '撰寫於',
         writingPipeline: '撰寫 pipeline',
         sourceGroundedPipeline: '來源寫作 pipeline',
-        readingGuidePipeline: '導讀 pipeline',
         authorship: '作者推定：',
         history: '查看編輯歷史',
       };
 const pipelineLabel =
-  contentMode === 'reading-guide'
-    ? strings.readingGuidePipeline
-    : contentMode === 'source-grounded-writing'
-      ? strings.sourceGroundedPipeline
-      : strings.writingPipeline;
+  contentMode === 'source-grounded-writing'
+    ? strings.sourceGroundedPipeline
+    : strings.writingPipeline;
 const dateLabel = strings.writtenOn;
 ---
 
