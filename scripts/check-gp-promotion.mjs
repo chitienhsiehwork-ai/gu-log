@@ -16,7 +16,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import YAML from 'yaml';
+import { splitPostSource } from './lib/taken-down-posts.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS_GLOB = 'src/content/posts/*.mdx';
@@ -25,11 +25,8 @@ const PENDING_FILE = /^(en-)?gp-pending-/;
 const PUBLISHED_GP = /^GP-[1-9]\d*$/;
 
 function frontmatter(content) {
-  const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content ?? '')?.[1];
-  if (block === undefined) return null;
   try {
-    const data = YAML.parse(block);
-    return data && typeof data === 'object' ? data : null;
+    return splitPostSource(content ?? '').data;
   } catch {
     return null;
   }

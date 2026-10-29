@@ -7,7 +7,7 @@
  * ShroomDog 指定一篇已上線的 MP 當招牌時，用它升格成 GP；GP 改回 MP 也用它。GP 號只從這裡配出。
  *
  * 所有拒絕條件都在動手前檢查完，被拒絕時什麼都不改：目標不存在、不是 GP 或 MP、還沒上線
- * （PENDING）、已下架、已在目標系列，或移到 GP 卻沒通過 publish bar（分數用 `yaml` 解析，交給
+ * （PENDING）、已下架、已在目標系列，或移到 GP 卻沒通過 publish bar（交給
  * src/utils/tribunal-scores.ts 的 meetsPublishBar 判斷）。GP 改回 MP 不看 publish bar。
  *
  * 通過檢查後：
@@ -29,7 +29,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { tsImport } from 'tsx/esm/api';
-import YAML from 'yaml';
+import { validateCounter } from './allocate-ticket.mjs';
+import { splitPostSource } from './lib/taken-down-posts.mjs';
 
 const CODE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS_DIR = 'src/content/posts';
@@ -49,12 +50,10 @@ const git = (root, args) =>
   execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
 function frontmatterOf(content, file) {
-  const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content)?.[1];
-  if (block === undefined) refuse(`${file}：讀不到 frontmatter`);
   try {
-    return YAML.parse(block) ?? {};
+    return splitPostSource(content, file).data;
   } catch (error) {
-    refuse(`${file}：frontmatter 解析失敗（${error.message}）`);
+    refuse(`讀不到 frontmatter：${error.message}`);
   }
 }
 
@@ -158,6 +157,11 @@ export async function planReclassification(root, ticket, target) {
   }
 
   const counter = JSON.parse(fs.readFileSync(path.join(root, COUNTER_FILE), 'utf8'));
+  try {
+    validateCounter(counter);
+  } catch (error) {
+    refuse(`${COUNTER_FILE}：${error.message}`);
+  }
   const next = counter[target]?.next;
   if (!Number.isInteger(next) || next < 1) refuse(`${COUNTER_FILE} 的 ${target}.next 不是正整數`);
   const newTicket = `${target}-${next}`;
