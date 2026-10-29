@@ -24,7 +24,8 @@ test.describe('Glossary copy link — clipboard fallbacks', () => {
 
       await page.goto(route);
 
-      const copyButton = page.locator('.entry-copy').first();
+      await page.locator('#agent .entry-toggle').click();
+      const copyButton = page.locator('#agent .entry-copy');
       await copyButton.click();
       await page.waitForTimeout(100);
 
@@ -66,7 +67,8 @@ test.describe('Glossary copy link — clipboard fallbacks', () => {
 
     await page.goto('/glossary');
 
-    const copyButton = page.locator('.entry-copy').first();
+    await page.locator('#agent .entry-toggle').click();
+    const copyButton = page.locator('#agent .entry-copy');
     await copyButton.click();
     await copyButton.click();
     await page.waitForTimeout(100);

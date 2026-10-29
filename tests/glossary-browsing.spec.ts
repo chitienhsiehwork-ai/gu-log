@@ -81,16 +81,16 @@ test.describe('glossary pages share one structure', () => {
     await expect(postLink).toHaveText(postTitle(id));
   });
 
-  test('related terms use the language separator without stray spaces', async ({ page }) => {
+  test('related terms are one link per term with the language label', async ({ page }) => {
     const karpathy = glossaryData.find((entry) => entry.term === 'Andrej Karpathy')!;
-    for (const [route, label, separator] of [
-      ['/glossary', '相關：', '、'],
-      ['/en/glossary', 'Related: ', ', '],
+    for (const [route, label] of [
+      ['/glossary', '相關'],
+      ['/en/glossary', 'Related'],
     ]) {
       await page.goto(`${route}#andrej-karpathy`);
-      await expect(
-        page.locator('#andrej-karpathy .term-meta', { hasText: label.trim() })
-      ).toHaveText(`${label}${karpathy.related!.join(separator)}`);
+      const entry = page.locator('#andrej-karpathy');
+      await expect(entry.locator('.meta-label').first()).toHaveText(label);
+      await expect(entry.locator('.term-chip')).toHaveText(karpathy.related!);
     }
   });
 });
@@ -177,8 +177,40 @@ test.describe('compact entries expand in place', () => {
     await expect(target.locator('.entry-toggle')).toHaveAttribute('aria-expanded', 'true');
     await expect(target.locator('.mogu-note')).toBeVisible();
     await expectBelowToolbar(page, '#vibe-coding');
-    // 原本展開的詞條不會因為錨點換掉就收起來。
-    await expect(page.locator('#andrej-karpathy .mogu-note')).toBeVisible();
+    // 一次只展開一條：原本展開的詞條收起來。
+    await expect(page.locator('#andrej-karpathy .mogu-note')).toBeHidden();
+    await expect(page.locator('.glossary-entry.is-open')).toHaveCount(1);
+  });
+
+  test('opening an entry closes the open one and keeps the tapped row in place', async ({
+    page,
+  }) => {
+    await page.goto('/glossary');
+
+    await page.locator('#agent .entry-toggle').tap();
+    await expect(page.locator('#agent .mogu-note')).toBeVisible();
+
+    // 往下捲到 Agent Harness 在畫面中間，Agent 的展開內容在它上面。
+    const harness = page.locator('#agent-harness');
+    await harness.evaluate((el) => window.scrollBy(0, el.getBoundingClientRect().top - 300));
+    const before = (await harness.boundingBox())!.y;
+
+    await harness.locator('.entry-toggle').tap();
+    await expect(harness.locator('.entry-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#agent .mogu-note')).toBeHidden();
+    await expect(page.locator('#agent .entry-toggle')).toHaveAttribute('aria-expanded', 'false');
+    expect(Math.abs((await harness.boundingBox())!.y - before)).toBeLessThan(2);
+  });
+
+  test('tapping the definition summary expands a collapsed entry', async ({ page }) => {
+    await page.goto('/glossary');
+
+    // 定義摘要被展開控制蓋住，所以直接點畫面上的座標，不用 locator.tap()。
+    await page.locator('#elixir').scrollIntoViewIfNeeded();
+    const summary = (await page.locator('#elixir .term-def').boundingBox())!;
+    await page.touchscreen.tap(summary.x + summary.width / 2, summary.y + summary.height / 2);
+    await expect(page.locator('#elixir .entry-toggle')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#elixir .mogu-note')).toBeVisible();
   });
 
   test('a malformed URL anchor does not stop the page script', async ({ context }) => {
@@ -193,7 +225,8 @@ test.describe('compact entries expand in place', () => {
         'aria-expanded',
         'false'
       );
-      await expect(page.getByRole('button', { name: '複製「Agent」的連結' })).toBeVisible();
+      // 初始化跑完了：每個詞條都加上了複製按鈕。
+      await expect(page.locator('#agent .entry-copy')).toHaveCount(1);
       expect(errors, url).toEqual([]);
       await page.close();
     }
@@ -214,11 +247,13 @@ test.describe('without JavaScript', () => {
     await expect(agent.locator('.mogu-note')).toBeVisible();
   });
 
-  test('the intro does not mention the copy button', async ({ page }) => {
+  test('the alphabet index still opens and jumps to a letter', async ({ page }) => {
     await page.goto('/glossary');
 
-    await expect(page.locator('.glossary-intro')).toBeVisible();
-    await expect(page.locator('.glossary-copy-hint')).toBeHidden();
+    await page.locator('.alpha-jump-toggle').click();
+    await page.locator('.alpha-key', { hasText: 'P' }).click();
+    await expect(page).toHaveURL(/\/glossary#letter-P$/);
+    await expectBelowToolbar(page, '#letter-P');
   });
 
   test('an entry opened from the URL anchor is expanded below the sticky controls', async ({
@@ -231,7 +266,7 @@ test.describe('without JavaScript', () => {
   });
 });
 
-test('the copy button copies the entry link and says so', async ({ page }) => {
+test('the copy button in an expanded entry copies its link and says so', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -244,12 +279,17 @@ test('the copy button copies the entry link and says so', async ({ page }) => {
     });
   });
   await page.goto('/glossary');
-  await expect(page.locator('.glossary-copy-hint')).toBeVisible();
 
-  const copyButton = page.getByRole('button', { name: '複製「Agent」的連結' });
-  await copyButton.tap();
+  const agent = page.locator('#agent');
+  await expect(agent.locator('.entry-copy')).toBeHidden();
+  await agent.locator('.entry-toggle').tap();
 
+  await agent.getByRole('button', { name: '複製連結' }).tap();
+
+  // 複製後按鈕文字換成「已複製」，所以改用 class 找它。
+  const copyButton = agent.locator('.entry-copy');
   await expect(copyButton).toHaveClass(/copied/);
+  await expect(copyButton).toHaveAccessibleName('已複製');
   await expect(page.getByRole('status')).toHaveText('已複製「Agent」的連結');
   expect(
     await page.evaluate(() => (window as Window & { __copiedText?: string }).__copiedText)
@@ -302,12 +342,75 @@ test.describe('sticky controls and in-page filters', () => {
     }
   });
 
-  test('focusing the search box does not scroll the page', async ({ page }) => {
+  test('the sticky controls are one row with thumb-sized targets', async ({ page }) => {
+    await page.goto('/glossary');
+
+    const toolbar = (await page.locator('#glossary-toolbar').boundingBox())!;
+    const search = (await page.locator('.search-field').boundingBox())!;
+    expect(toolbar.height).toBeLessThan(search.height * 1.6);
+
+    await page.locator('.alpha-jump-toggle').tap();
+    for (const key of await page.locator('.alpha-key').all()) {
+      const box = (await key.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(44);
+      expect(box.width).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('focusing the search box or the index does not scroll the page', async ({ page }) => {
     await page.goto('/glossary');
     await page.evaluate(() => window.scrollTo(0, 3000));
 
-    await page.locator('#glossary-search').focus();
-    expect(await page.evaluate(() => window.scrollY)).toBe(3000);
+    for (const selector of ['#glossary-search', '.alpha-jump-toggle']) {
+      await page.locator(selector).focus();
+      expect(await page.evaluate(() => window.scrollY), selector).toBe(3000);
+    }
+  });
+
+  test('the alphabet index jumps to a letter and shows where you are', async ({ page }) => {
+    await page.goto('/glossary');
+
+    const current = page.locator('#glossary-current-letter');
+    await expect(current).toHaveText('A–Z');
+    await page.locator('.alpha-jump-toggle').tap();
+    await page.locator('.alpha-key', { hasText: 'P' }).tap();
+
+    await expect(page.locator('#glossary-alpha-jump')).not.toHaveAttribute('open');
+    await expect(page).toHaveURL(/#letter-P$/);
+    await expectBelowToolbar(page, '#letter-P');
+    await expect(current).toHaveText('P');
+  });
+
+  test('the active filter chip shows the category and clears it', async ({ page }) => {
+    await page.goto('/glossary');
+
+    const chip = page.getByRole('button', { name: '清除「人物」篩選' });
+    await expect(chip).toBeHidden();
+    await page.getByRole('button', { name: '人物', exact: true }).tap();
+    await expect(chip).toBeVisible();
+    await expect(page.locator('#vibe-coding')).toBeHidden();
+
+    await chip.tap();
+    await expect(chip).toBeHidden();
+    await expect(page.getByRole('button', { name: '全部', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    await expect(page.locator('#vibe-coding')).toBeVisible();
+  });
+
+  test('searching from deep in the list brings the results under the controls', async ({
+    page,
+  }) => {
+    await page.goto('/glossary');
+    await page.evaluate(() => window.scrollTo(0, 4000));
+
+    await page.locator('#glossary-search').fill('agent');
+    await expect(page.locator('#glossary-count')).toBeVisible();
+    await expect(page.locator('#glossary-count')).toHaveText(
+      `${await page.locator('.glossary-entry:visible').count()} 個術語`
+    );
+    await expectBelowToolbar(page, '#agent');
   });
 
   test('the English page opens an anchored people entry in English', async ({ page }) => {
