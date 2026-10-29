@@ -110,7 +110,6 @@ function selectPair(pairs, filter) {
       throw new Error(`Retired prefix ${upper}; use ${replacement}`);
     }
     const prefix = canonicalPrefix(filter);
-    if (prefix === 'GP') throw new Error(GP_REFUSAL);
     if (prefix) {
       candidates = pairs.filter((p) => p.prefix === prefix);
     } else {

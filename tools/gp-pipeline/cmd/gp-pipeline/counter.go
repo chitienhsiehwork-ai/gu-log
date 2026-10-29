@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"slices"
 
 	"github.com/spf13/cobra"
 
@@ -98,18 +97,15 @@ func runCounterNext(state *rootState, prefix string) error {
 	return nil
 }
 
-// bumpPrefixes are the series counter bump allocates: every series but GP,
-// whose numbers come only from pipeline.ReclassifyScript.
-var bumpPrefixes = slices.DeleteFunc(slices.Clone(counter.ValidPrefixes), func(p string) bool { return p == "GP" })
-
 func runCounterBump(state *rootState, prefix string) error {
 	// A missing series fails before the counter lock; nothing is allocated
-	// for a series nobody chose (openspec: gp-pipeline-publish-integrity).
-	if err := counter.RequirePrefix("counter bump", prefix, bumpPrefixes); err != nil {
+	// for a series nobody chose, and GP numbers come only from
+	// pipeline.ReclassifyScript (openspec: gp-pipeline-publish-integrity).
+	if err := counter.RequirePrefix("counter bump", prefix, counter.ValidPrefixes); err != nil {
 		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
 		return err
 	}
-	if !slices.Contains(bumpPrefixes, prefix) {
+	if prefix == "GP" {
 		err := pipeline.GPAllocationError("counter bump")
 		emitCounterReport(state, counterReport{Operation: "bump", Prefix: prefix, Error: err.Error()})
 		return err

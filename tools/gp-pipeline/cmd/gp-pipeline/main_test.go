@@ -482,7 +482,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	counterFile := filepath.Join(root, "scripts", "article-counter.json")
 
 	// Writing commands offer only the series the pipeline writes; the counter
-	// still serves Lv, and allocates every series but GP.
+	// still serves Lv.
 	for _, tc := range []struct {
 		name   string
 		args   []string
@@ -490,7 +490,7 @@ func TestMissingPrefixFailsAtIngress(t *testing.T) {
 	}{
 		{name: "run a URL", args: []string{"run", "https://x.com/author/status/1"}, series: pipeline.AuthorablePrefixes},
 		{name: "run a YouTube URL before yt-dlp preflight", args: []string{"run", "https://youtube.com/watch?v=dQw4w9WgXcQ"}, series: pipeline.AuthorablePrefixes},
-		{name: "counter bump", args: []string{"counter", "bump"}, series: bumpPrefixes},
+		{name: "counter bump", args: []string{"counter", "bump"}, series: counter.ValidPrefixes},
 		{name: "counter next", args: []string{"counter", "next"}, series: counter.ValidPrefixes},
 		{name: "write", args: []string{"write", "--source", source}, series: pipeline.AuthorablePrefixes},
 	} {
