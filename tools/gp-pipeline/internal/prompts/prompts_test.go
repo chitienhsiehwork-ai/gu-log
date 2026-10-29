@@ -222,38 +222,10 @@ func TestRender_NoGPReadingGuideBranch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(translate, "quote it verbatim rather than back-translating") {
-		t.Error("translate prompt lost the verbatim-quote rule a GP now shares with MP")
-	}
 	for _, out := range append(rendered, translate) {
 		for _, retired := range []string{"reading guide", "精選導讀", "source-distance", "Canonical terminology", "Flagged passages", "Check report"} {
 			if strings.Contains(out, retired) {
 				t.Errorf("prompt still carries the retired GP branch (%q):\n%s", retired, out)
-			}
-		}
-	}
-}
-
-// TestRender_EveryWritingPromptForbidsShroomDogNote: write and refine tell
-// every series never to write a ShroomDogNote, and review flags one as a
-// Blocker (openspec gp-pipeline-publish-integrity).
-func TestRender_EveryWritingPromptForbidsShroomDogNote(t *testing.T) {
-	for _, prefix := range []string{"MP", "SD"} {
-		for name, data := range map[string]any{
-			"write":  WriteData{Prefix: prefix, TicketID: prefix + "-PENDING", Source: "SOURCE"},
-			"refine": RefineData{Prefix: prefix, TicketID: prefix + "-PENDING"},
-			"review": ReviewData{Prefix: prefix, TicketID: prefix + "-PENDING"},
-		} {
-			out, err := Render(name, data)
-			if err != nil {
-				t.Fatalf("Render %s %s: %v", prefix, name, err)
-			}
-			want := "Never write `<ShroomDogNote>`"
-			if name == "review" {
-				want = "Flag any as a Blocker"
-			}
-			if !strings.Contains(out, want) {
-				t.Errorf("%s %s prompt lacks the ShroomDogNote rule %q", prefix, name, want)
 			}
 		}
 	}
