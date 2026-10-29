@@ -48,7 +48,7 @@
 
 **每個事實只有一個家（SSOT）。任何 CC/CCC/agent 動到有 SSOT 的東西時，預設責任就是「維持單一真相來源」——不複製事實、發現對不上就當場修。** 這是強制行為，不是「有空再做」。
 
-**為什麼這條要硬**：drift 幾乎都源自同一個錯——**把本來住在某個 SSOT 的值，複製一份到散文/表格裡**。複製出來的副本遲早跟本尊分岔，而且分岔時兩邊都長得「看起來對」，沒人會發現，直到某次踩到才知道文件在說謊。實例（2026-06-18 連踩兩次）：model 版本的 SSOT 是 `.claude/agents/*.md` 的 `model:` frontmatter，但 `playbooks/CCC-playbook.md` 路由表把版本號複製了一份 → agent 檔改了、playbook 沒跟 → fresh-eyes 跟 librarian 都 drift 成假資訊。
+**為什麼這條要硬**：drift 幾乎都源自同一個錯——**把本來住在某個 SSOT 的值，複製一份到散文/表格裡**。複製出來的副本遲早跟本尊分岔，而且分岔時兩邊都長得「看起來對」，沒人會發現，直到某次踩到才知道文件在說謊。典型例子：model 版本的 SSOT 是 `.claude/agents/*.md` 的 `model:` frontmatter，playbook 路由表若另抄一份版本號，agent 檔一改、playbook 沒跟，那份副本就成了假資訊。
 
 **四條操作規則（每個 agent 都要內化）**：
 
@@ -61,8 +61,8 @@
 
 **收斂的自主姿態（跟 CCC self-merge 同一條精神：能自己判斷就別問）**：
 
-1. **能判斷哪邊對 → 自己判斷、把錯的那邊（通常是散文副本）修掉、最後跟 user 提一聲就好**。不要為了確認而停下來問——「playbook 寫 4.7 但 frontmatter 是 opus 浮動」這種 code-vs-doc drift，code 端就是 SSOT，直接把 doc 修好、回報時帶一句「順手收了 X 的 drift」即可。（本 session 的 librarian drift 其實就該這樣自己收，不必停下來問。）
-2. **只有「難以判斷、又是重要決定」才叫 user 拍板**（在 chat 用具體問題問，見 Tier-0〈Human interface〉）：例如兩個權威端真的互相矛盾、或要決定的是產品方向 / 架構 / 對外承諾 / 品牌調性 / config 取向（像「fresh-eyes 該 pin 哪代還是浮動」那種是 taste/config 偏好，不是單純 reconcile drift，才值得問）。判斷不出來時，預設往「自己收 + 提一聲」靠，不要往「停下來問」靠。
+1. **能判斷哪邊對 → 自己判斷、把錯的那邊（通常是散文副本）修掉、最後跟 user 提一聲就好**。不要為了確認而停下來問——「playbook 寫的版本號跟 frontmatter 不一樣」這種 code-vs-doc drift，code 端就是 SSOT，直接把 doc 修好、回報時帶一句「順手收了 X 的 drift」即可。
+2. **只有「難以判斷、又是重要決定」才叫 user 拍板**（在 chat 用具體問題問，見 Tier-0〈Human interface〉）：例如兩個權威端真的互相矛盾、或要決定的是產品方向 / 架構 / 對外承諾 / 品牌調性 / config 取向（像「某個評審該 pin 特定版本還是浮動」那種是 taste/config 偏好，不是單純 reconcile drift，才值得問）。判斷不出來時，預設往「自己收 + 提一聲」靠，不要往「停下來問」靠。
 
 **為什麼用 prompt 而不是只靠 lint**：drift 的形態太多（版本號、計數、路徑、清單、描述措辭），deterministic guard 抓不完、還容易誤殺正當用法。真正可靠的是**每個 agent 帶著 SSOT 意識在動**——看到對不上就順手收，而不是等某支 checker 剛好覆蓋到。lint 只是補網，不是主防線。
 
