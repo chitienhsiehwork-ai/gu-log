@@ -101,11 +101,11 @@
 - 修法：前半句只是在報目錄，下一行的標題馬上又講一次；後半句的好處沒講怎麼做到。ShroomDog 從三個方向裡選了「A」：「好消息是，前面說的那六種寫法都很好認。認得之後，下次再卡住，除了回 AI 一句『講人話』，還能直接點名：這句不要擬人，主詞跟動詞靠近一點。」
 - Reusable lesson：(1) 「下面先看…」這種報目錄的句子，標題已經講了就刪掉。(2) 跟讀者說讀完有什麼好處時，寫出讀者實際會做的那個動作（對 AI 講哪一句話），不要停在「可以換個講法」。
 
-### Feedback: 「函式 -> 函數？」
+### Feedback: 「i mean, i want to avoid 支語 so let's use 函式 then.」
 
-- 情境：「函式不會吞東西」「主詞明明是個函式」。
-- 修法：這篇的「函式」全部改成「函數」。站內兩種寫法都有（當時「函式」21 篇、「函數」13 篇），沒有統一規則，其他文章沒動。
-- Reusable lesson：ShroomDog 口語上講「函數」。新文章寫 function 時用「函數」。
+- 情境：ShroomDog 先問「函式 -> 函數？」，意思是想確認哪一個是支語。Claude 當成要改，把這篇的「函式」全換成「函數」，方向弄反了。
+- 修法：改回「函式」。台灣資工界講 function 用「函式」，「函數」是中國用語（數學上的 function 另當別論）。
+- Reusable lesson：(1) 寫 function 用「函式」，避開支語。(2) ShroomDog 丟「A -> B？」又帶問號時，可能是在問哪個對；先回答台灣怎麼講，不要直接照箭頭改。
 
 ### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
 
