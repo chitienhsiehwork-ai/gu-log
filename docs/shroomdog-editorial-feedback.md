@@ -14,6 +14,53 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - ShroomDog 核准某篇文章保留某個 emoji 時，照常把回饋記在這裡，另外在 `scripts/check-content-emoji.mjs` 的核准清單加一筆（路徑、emoji、理由）。
 
+## 2026-11-10 — MP-325：好讀了，但還不好看；目標是讀起來有樂趣
+
+### Feedback: 「Overall, readable but plain, not enjoyable. The goal is to be enjoyable, seems like we r on the right track!」
+
+- 情境：第四版整篇讀完的總評。句子已經順了，但整篇平鋪直敘，沒有讓人想笑或想往下看的地方。同一輪 ShroomDog 逐處點了下面幾個地方，幾乎都是「這裡可以吐槽」。
+- 修法：照點的地方加吐槽，另外補了三處同方向的小改動（寫法一後面的自首 MoguNote、扣分實驗的「國文老師宣布作文多寫一個字扣一分」、結尾前的「人腦沒辦法加裝記憶體」）。
+- Reusable lesson：「好讀」只是及格。來源本身有好笑或可惜的地方（研究沒做中文、論文沒說怎麼練回來的），就是吐槽的位置，不要只是中性地交代過去。吐槽照舊放 MoguNote，正文留給來源。
+
+### Feedback: 「洗怪怪的，改寫吧？」「你也中槍了嗎 笑死」
+
+- 情境：正文寫「翻譯有個特性，會把句子洗成最普通的講法。意思大致還在，怪字和怪句型卻被洗掉了。」這篇文章講的第一種難讀寫法就是「讓東西做人的動作」，結果文章自己讓翻譯去「洗」句子。
+- 修法：改成「翻譯模型有個特性：同一個意思，它會挑最常見的講法。所以翻回來的句子意思大致沒變，只是換成了大家平常會講的版本。」並在寫法一後面加一則 MoguNote 自首。
+- Reusable lesson：解釋一個機制時，先寫它實際做了什麼（挑最常見的講法），不要找一個動作來比喻（洗）。比喻動詞看起來生動，讀的人卻要多猜一步。
+
+### Feedback: 「這裡可以幽默一點，說中文版的 AI 文這篇沒研究，可以期待 ShroomDog 自己寫一篇 ψ(｀∇´)ψ」
+
+- 情境：原句「要提醒的是，這份研究只看英文。中文的 AI 文有沒有同樣的毛病，它沒有量。」是一句乾的但書。
+- 修法：正文留事實（只看英文、中文沒研究），緊接的 MoguNote 開頭加「中文版嘛，可以期待 ShroomDog 自己寫一篇 ψ(｀∇´)ψ」。
+- Reusable lesson：研究的限制不一定要用警語的口氣寫，可以變成一個梗。
+
+### Feedback: 「I am familiar with RLHF, make it a glossary and make the explanation fun」「RLHF 務必引用李宏毅老師的芙莉蓮的魔族學人類講話，尤其是倫理道德那塊」
+
+- 情境：正文寫「靠人類打分的那種訓練」，沒有講出 RLHF 這個名字。既有的 RLHF 詞條是教科書口氣。
+- 修法：正文改成「靠人類打分的那種訓練（RLHF）」並連到詞條。詞條重寫：定義用「人類不用寫標準答案，只要會挑」來講；MoguNote 引用李宏毅老師 2024 年《生成式 AI 導論》的修練三階段，以及第 11 講開場的《葬送的芙莉蓮》動畫第七話（魔族小女孩喊「媽媽」，因為這樣喊人就不忍心殺她）。投影片查得到的只有這兩件事；「RLHF 練出來的倫理道德最像魔族」查不到是老師講的，所以在詞條裡標明是 Mogu 自己的延伸。
+- Reusable lesson：(1) 讀者可能本來就認得的術語，白話講完後把名字補上並連 glossary，不要只留白話。(2) glossary 也要好看：用台灣讀者熟的老師和動畫來講。(3) 引用別人的比喻時，查得到出處的部分和自己延伸的部分要分開寫。
+
+### Feedback: 「結果很乾脆。聽起來怪怪的」
+
+- 修法：「所以研究者做了一個小實驗，結果很乾脆。」改成「所以研究者做了一個小實驗，看模型會不會真的因為『越短越有利』就學歪。」
+- Reusable lesson：預告實驗時，寫實驗要回答的問題，不要寫對結果的形容。「結果很乾脆」這種形容沒有內容，還不自然。
+
+### Feedback: 「Perfect for 吐槽：可能只有anthropic 知道了 QQ OpenAI 加油阿 (;´༎ຶД༎ຶ`)」
+
+- 情境：正文「所以模型是練得回來的，只是論文沒說 Opus 5.5 是怎麼辦到的。」
+- 修法：這句後面加一則 MoguNote：「可能只有 Anthropic 知道了 QQ。OpenAI 加油啊 (;´༎ຶД༎ຶ`)」。
+
+### Feedback: 「要好好換行 醜死了」「收尾很靠杯，很棒」「用這個顏文字好了(⁎⁍̴̛ᴗ⁍̴̛⁎)」「更欠打」
+
+- 情境：文末隨堂考的答案四項擠在同一段，用分號隔開。收尾是「讀得很累嗎？那就對了 (´・ω・`)」。
+- 修法：答案改成一項一行的清單。收尾的句子不動，顏文字換成 (⁎⁍̴̛ᴗ⁍̴̛⁎)。
+- Reusable lesson：並列三項以上的答案用清單。欠打的收尾是加分，顏文字要挑跟語氣同一個方向的。
+
+### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
+
+- ShroomDog feedback（原話還有一句）：「Or at least we should be careful about the 4 judges, that they cannot destroy the enjoyable writing we iterated so far」。
+- 狀態：還沒定案。當下的做法是這篇不讓評審改寫正文；要不要把它當成校準評審 prompt 的標準，等文章定稿後另外決定。
+
 ## 2026-11-10 — MP-325：逐句修不掉翻譯腔，整篇照事實清單用口語重寫
 
 ### Feedback: 「Just not native enough」
