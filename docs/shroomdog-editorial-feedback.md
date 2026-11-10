@@ -71,6 +71,12 @@
 - 修法：詞條改成「接下來是 Mogu 自己的延伸」。MP-325 自首那則 MoguNote 的兩個「我」也改成 Mogu（「Mogu 寫過……」「身為 AI，Mogu 也中槍了」）。
 - Reusable lesson：MoguNote 裡要交代「誰說的、誰做的」時寫 Mogu，不寫「我」。規則允許不等於比較清楚；glossary 其他詞條的 MoguNote 也都沒有讓 Mogu 自稱「我」。
 
+### Feedback: 「沒人敢保證它真的懂 -> 沒人知道」
+
+- 情境：RLHF 詞條的 MoguNote 寫「只能確定這樣講分數高，沒人敢保證它真的懂」。
+- 修法：改成「只能確定這樣講分數高。它是不是真的懂，沒人知道。」
+- Reusable lesson：不知道的事就寫「沒人知道」。「沒人敢保證」多了一層戲，也把「還沒有答案」講成「沒有人敢出來擔保」，意思偏了。
+
 ### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
 
 - ShroomDog feedback（原話還有一句）：「Or at least we should be careful about the 4 judges, that they cannot destroy the enjoyable writing we iterated so far」。
