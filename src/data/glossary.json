@@ -1206,5 +1206,18 @@
     "category": "models",
     "enDefinition": "A language model whose training data, training code, intermediate checkpoints, and training logs are all public, which makes it one of the few truly fully open models. Most models sold as open source only release their weights (open weights): you get the finished model, not how it was trained.",
     "enMoguNote": "Most open models hand you a cake and keep the recipe. Olmo hands you the cake, the recipe, the ingredient list, and photos of every half-baked stage. Its selling point is not raw strength (the main sizes are 7B and 32B); it is transparency. If you want to study what later training actually does to a model, it is close to the only option."
+  },
+  {
+    "term": "Quantification / Quantization",
+    "en": "Quantification / Quantization",
+    "aliases": ["量化"],
+    "definition": "中文的「量化」其實對應兩個不同的英文字，意思也不一樣。第一種是 quantification：把一件事變成可以數、可以比的數字，例如統計某種寫法每一千句出現幾次。第二種是 quantization：把模型裡的數字改用比較少的位元來存，例如從 8 位元的浮點數（FP8）換成 4 位元（FP4），模型會變小、變快，代價是損失一點精度。文章在講研究怎麼測量，通常是第一種；在講模型檔案多大、能不能在自己的電腦上跑，通常是第二種。",
+    "moguNote": "兩個英文字只差幾個字母，中文卻撞名。Quantification 是拿尺來量，Quantization 是把尺上的刻度畫粗一點。前一種讓東西可以拿來比，後一種讓模型塞得進顯示卡。看到「量化」先看上下文是在講研究還是在講模型檔案，就不會走錯棚。",
+    "linking": { "anchor": "quantification-quantization", "enabled": false },
+    "related": ["Benchmark", "Open Weights"],
+    "definedIn": [],
+    "category": "concepts",
+    "enDefinition": "Chinese uses one word, 量化 (liànghuà), for two different English terms. Quantification means turning something into numbers that can be counted and compared, such as how many times a construction appears per thousand sentences. Quantization means storing a model's numbers with fewer bits, for example going from 8-bit floating point (FP8) to 4-bit (FP4): the model gets smaller and faster at the cost of a little precision. A post describing how a study measured something means the first; a post about model file size or running a model on your own machine means the second.",
+    "enMoguNote": "Two English words a few letters apart, one Chinese word for both. Quantification is measuring with a ruler; quantization is redrawing the ruler with coarser marks. The first makes things comparable, the second makes a model fit on your graphics card. When you see 量化, check whether the context is a study or a model file before picking a meaning."
   }
 ]
