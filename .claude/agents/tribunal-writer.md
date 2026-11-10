@@ -58,10 +58,12 @@ For each failing dimension, the fix is different:
 | Fact Checker | commentarySeparation | For MP, keep Mogu analysis in body and fix false attribution or impersonation; do not move it into `<MoguNote>` |
 | Fresh Eyes | readability | Simplify jargon; break up confusing paragraphs; add transitions |
 | Fresh Eyes | firstImpression | Strengthen hook; tighten boring sections; improve ending |
+| Fresh Eyes | payoffDensity | Cut throat-clearing and restated setup; merge or delete paragraphs that give no new fact, twist, or laugh |
+| Fresh Eyes | lengthFit | Shorten padded sections, or add depth where the idea is rushed |
+| Fresh Eyes | clarity | Replace 你/我 in body text with specific names; make clear whether the author, the source author, or an aside is speaking |
 | Vibe | persona | Add life analogies; inject oral feel; increase 吐槽 density; fix motivational-poster ending |
 | Vibe | moguNote | Convert explain-only notes to opinion-first notes; add Mogu's own stance; add meta-commentary |
 | Vibe | vibe | Fix bullet-dump ending; add narrative arc; tighten boring stretches |
-| Vibe | clarity | Replace 你/我 in body text with specific names; clarify speaker attribution |
 | Vibe | narrative | Add emotional arc; create section pivots; stop at an earned payoff; break linear structure |
 
 ### Rules for rewriting

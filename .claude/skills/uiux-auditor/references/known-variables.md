@@ -12,13 +12,13 @@ Source of truth: `src/styles/global.css` `:root` block + `[data-theme='light']` 
 | `--color-surface` | `#44475a` | Card / citation / code bg |
 | `--color-surface-hover` | `#525672` | Hover state on cards |
 | `--color-text` | `#cecdda` | Primary body text |
-| `--color-text-muted` | `#8a96c0` | Secondary text, meta |
+| `--color-text-muted` | `#9ea9d2` | Secondary text, meta |
 | `--color-accent` | `#ff79c6` | Link + brand accent (hot pink) |
 | `--color-border` | `#44475a` | Dividers |
 | `--color-badge-sd` | `#69d2a0` | ShroomDog Original green |
 | `--color-badge-gp` | `#8be9fd` | Gu-log Picks cyan |
 | `--color-badge-mp` | `#ffb86c` | Mogu Picks orange |
-| `--color-badge-lv` | `#bd93f9` | Level-up purple |
+| `--color-badge-lv` | `#d6bcff` | Level-up purple |
 | `--color-mogu-orange` | `#ffb86c` | Mogu's note border |
 | `--color-heading-sd` | `#5ab88a` | SD section headings (dimmed green) |
 | `--color-heading-gp` | `#6bb8d6` | GP section headings (dimmed cyan) |
@@ -35,11 +35,11 @@ Source of truth: `src/styles/global.css` `:root` block + `[data-theme='light']` 
 | `--color-text-muted` | `#4a5a5e` | Secondary text, meta |
 | `--color-accent` | `#1c679b` | Solarized navy link accent |
 | `--color-border` | `#d3cbb7` | Dividers |
-| `--color-badge-sd` | `#1d6a5c` | Deep teal |
+| `--color-badge-sd` | `#176052` | Deep teal |
 | `--color-badge-gp` | `#195d8c` | Solarized navy |
 | `--color-badge-mp` | `#854d35` | Sienna brown |
 | `--color-badge-lv` | `#6b4ca0` | Muted purple |
-| `--color-mogu-orange` | `#955330` | Rust on cream |
+| `--color-mogu-orange` | `#854d35` | Rust on cream |
 | `--color-heading-sd` | `#1d6a5c` | |
 | `--color-heading-gp` | `#195d8c` | |
 | `--color-source-link` | `#195d8c` | 5.73:1 on `#eee8d5` |
