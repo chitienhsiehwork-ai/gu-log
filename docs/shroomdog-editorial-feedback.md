@@ -83,6 +83,12 @@
 - 修法：照 ShroomDog 的版本改成「看 AI 寫的英文老是卡住？問題可能出在叫模型寫太多題目」。
 - Reusable lesson：標題只留一個讓人想點的念頭，用讀者自己的話講（寫題目）。來源只是推測就寫「可能」。「六種寫法」這種內容清單留給摘要。
 
+### Feedback: 「這句有點繞，建議？」
+
+- 情境：開頭「麻煩的是，『對』有很多種，真正想要的只是其中一種。看不懂它在講什麼，就沒辦法判斷這次拿到的，到底是不是想要的那一種。」第二句有兩個沒講主詞的「…的」，「它」也沒講是誰，還把上一句的「其中一種」換個說法再問一次。
+- 修法：改成「AI 寫的東西看不懂，就分不出這次拿到的是哪一種。」（另一個備案是「就只能賭這次拿到的剛好是想要的那一種」，等 ShroomDog 選。）
+- Reusable lesson：上一句已經把選項講完（很多種、其中一種），下一句直接接結果（分不出是哪一種），不要把條件重問一遍。一句裡不要放兩個省略主詞的「…的」。
+
 ### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
 
 - ShroomDog feedback（原話還有一句）：「Or at least we should be careful about the 4 judges, that they cannot destroy the enjoyable writing we iterated so far」。
