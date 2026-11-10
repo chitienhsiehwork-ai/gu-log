@@ -89,6 +89,12 @@
 - 修法：先改成「AI 寫的東西看不懂，就分不出這次拿到的是哪一種。」ShroomDog 回：「這裡的問題是哪一種對嗎？還是其實是不知道有沒有符合，不知道現狀跟想像的願望像不像，跟有沒有機會更好之類的吧？」定稿是「AI 寫的東西看不懂，就不知道結果跟心裡想的像不像，也不知道還能不能更好。」
 - Reusable lesson：(1) 一句裡不要放兩個省略主詞的「…的」。(2) 把句子改短時，先確認意思沒有跟著變：「分不出是哪一種」把事情寫成選擇題，可是讀者手上沒有清單，只有心裡的一個樣子，要做的是拿結果去比（像不像、還能不能更好）。句子繞，常常是意思還沒想清楚。
 
+### Feedback: 「好像還有更好的空間 / Any other idea?」
+
+- 情境：上一則的定稿「麻煩的是，『對』有很多種，真正想要的只是其中一種。AI 寫的東西看不懂，就不知道結果跟心裡想的像不像，也不知道還能不能更好。」意思對了，ShroomDog 還是覺得可以更好。
+- 修法：給了三個方向（具體場景、裝潢師傅的比喻、最短最直的講法），ShroomDog 選場景：「A looks good.」定稿是「比方說叫它修個 bug，它修好了，測試也過了，還附上三段說明。修法跟心裡想的像不像？還能不能更好？答案都在那三段裡，偏偏就是那三段看不懂。」
+- Reusable lesson：(1) 「『對』有很多種」這種抽象句，讀者得自己想例子；直接給一個讀者天天遇到的場景，道理就不用另外講。(2) 句子意思對了但還不夠好時，一次給兩三個不同方向讓 ShroomDog 挑，比一次改一版快。
+
 ### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
 
 - ShroomDog feedback（原話還有一句）：「Or at least we should be careful about the 4 judges, that they cannot destroy the enjoyable writing we iterated so far」。
