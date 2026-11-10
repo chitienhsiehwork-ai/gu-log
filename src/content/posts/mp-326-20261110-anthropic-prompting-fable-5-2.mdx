@@ -1,0 +1,153 @@
+---
+ticketId: "MP-326"
+title: "「順手修 code」這一題，Anthropic 三代 Fable 指南給了三種答案"
+originalDate: "2026-11-09"
+translatedDate: "2026-11-10"
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Fable 5.2"
+      harness: "Claude Code"
+source: "Claude Docs"
+sourceUrl: "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2"
+lang: "zh-tw"
+summary: "Anthropic 的 Fable 5.2 指南說，prompt 沒講 code 歸誰，模型傾向在既有結構上往上加、把附近的 bug 寫成後續事項。加一句「這個 codebase 是你的」，內部測試裡合併重複 code 的比例從不到十分之一升到大約一半，代價是 token 和沒人要求的改動。往回翻 Fable 5 和 5.1 的指南，同一題的建議方向剛好相反。"
+tags: ["fable", "prompt-engineering", "agents", "system-prompt", "anthropic"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+工程師叫 coding [Agent](/glossary#agent) 幫後台加一個「匯出 CSV」。功能做出來了，測試也過了。打開 diff 一看，codebase 裡原本就有三個長得幾乎一樣的日期格式化函式，現在變成四個。總結最後一行寫著：「另外發現匯出頁的時區計算可能有誤，建議之後處理。」那個 bug 跟新加的 code 在同一個檔案，中間隔不到二十行。
+
+Anthropic 隨 Claude Fable 5.2（2026-11-09 推出）一起上線的[官方 prompt 指南](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)，對這種場景的解釋很單純：[Prompt](/glossary#prompt) 沒講這份 code 是誰的。沒講歸屬、或把 codebase 講成別人的，模型就傾向在既有結構上往上加，就算會跟既有的 code 重複；看到附近的問題，也傾向回報而不是修掉。
+
+麻煩的是，同一家公司前兩代的指南，在「agent 該不該順手修附近的 code」這題上，建議的方向跟這次相反。Prompt 有保存期限：上一代模型的解藥，到了下一代，可能就是要清掉的舊指令。
+
+## 一句話，把 codebase 交給模型
+
+以下數字來自 Anthropic 內部的小型 coding 任務測試，沒公開題目和題數。Prompt 講明 codebase 是模型自己的，模型常常會合併重複的 code，還會沒人要求就順手做相關修正。官方建議的句子是這句：
+
+> This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it.
+>
+> 這個 codebase 是你的：它拿來做什麼、怎麼蓋，都由你決定，而且你之後還會繼續在上面蓋。
+
+有這句，大約一半的嘗試會合併重複的 code；沒這句，不到十分之一。比例因任務而異。這句塞進很長的 system prompt 裡，結果一樣成立。不管有沒有這句，要求的功能幾乎每次都做得出來。
+
+<MoguNote>
+[Mogu](/glossary#mogu) 看到這句，第一個聯想是新人報到那天主管講的：「這個專案以後交給你了。」聽到的新人會開始整理資料夾、補文件；沒聽到的，看到一團亂的舊 code 只會在旁邊再堆一塊，然後在週報寫「建議之後重構」。一句話讓模型從約聘轉正職，比加薪還快 (￣▽￣)／
+</MoguNote>
+
+---
+
+## 加了這句，diff 會變大
+
+同一組測試裡，加了歸屬句之後：
+
+- 輸出 [Token](/glossary#token) 大約變成 1.5 倍
+- 做了好幾個沒人要求的改動，很多是新的測試和文件
+- 修 bug 以外，每六到十次嘗試有一次改掉既有功能的行為；`effort`（API 上控制模型想多少的參數）開越高越常發生
+- 最後的總結會講較大的改動，但常漏掉小改動
+
+所以官方要人看 diff，別只看總結。Anthropic 談 Agent 評估時講的也是同一件事：模型說「做完了」只是[執行紀錄裡的一句話](/posts/mp-323-20260928-www-anthropic-agent/)，要驗的是實際改了什麼。Code 是使用者的、而且希望改得越少越好的場合，官方的說法更直接：這句就別放。
+
+想再加一條限制範圍的規則來踩煞車，效果有限。同一個 prompt 前面寫了 `No drive-by refactors, renames or cleanups`（不要順手重構、改名或清理），模型仍在大約三分之一的嘗試裡合併重複的 code。
+
+<MoguNote>
+`drive-by` 字面是「開車經過」，英文工程圈拿來講「路過順手改一下」。gu-log 自己的 agent 指令就寫著：做任務時撞到的問題都是當前 agent 的責任，當場修掉。效果跟歸屬句很像，所以每個 PR 合併前，都有另一個模型（[Codex](/glossary#codex) 的自動 review）讀 diff。官方那句「看 diff，別只看總結」，gu-log 直接外包給別家的模型。
+</MoguNote>
+
+---
+
+## 往回翻兩代：同一題，三種答案
+
+三代裡最早的 Fable 5（2026-06-09 推出），毛病是偶爾太熱心。[那一代的指南](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5)舉的例子是沒人要信卻先起草一封、沒人叫備份就自己多開一個 git 分支。開的藥是畫界線：使用者只是在描述問題、發問或自言自語時，交付物是評估；回報發現然後停，等使用者開口才修。
+
+到了 2026-09-01 的 Fable 5.1，熱心從信箱搬進了 codebase。[5.1 的指南](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)說，實作開放式功能時，模型會交付要求的東西，有時還更多，可能修附近的 code、擴充任務沒提的行為、commit 超出需要的測試檔。建議貼的那段話，開頭大意是：
+
+> 做事或測試時，如果發現既有的 bug、效能疑慮或任務沒提到的行為，除非不處理就做不出要求的功能，否則這次不要修、不要最佳化、不要擴充，寫進總結當後續事項。
+
+加了之後，沒被要求的附加改動和 commit 的測試大幅減少，任務成功率沒有可量測的變化。
+
+Mogu 把三份擺在一起看（Anthropic 自己沒這樣比過）：5.1 叫人貼的「別順手修，寫成後續事項」，跟 5.2 沒講歸屬時的預設行為很像。兩份測的任務不同，一份是開放式功能、一份是小型 coding 任務，只能說建議方向相反，不能當同一個實驗的前後對照。
+
+照指南一路升級的人會卡到：5.1 時代貼了「別順手修」，升上 5.2 又加歸屬句，兩句在同一個 system prompt 裡拉扯。5.1 那整段放到 5.2 上會怎樣，指南沒有資料；最接近的是前面那句 `No drive-by refactors`，合併比例從大約一半降到大約三分之一，沒有降到零。
+
+<MoguNote>
+五個月，三份處方。第一份：使用者只是在問，就別動手。第二份：動手可以，附近的別碰。第三份：全部都是你的，盡量整理。像同一個醫生先開鎮定劑，下次回診改開提神飲料，還叮嚀病人把上次的藥丟掉。每份大概都是針對當時的模型量出來的，只是沒人會在 system prompt 每一行旁邊標保存期限 (╯°□°)╯
+</MoguNote>
+
+---
+
+## 謹慎的指令會自己越疊越多
+
+5.2 指南另一節講反方向的毛病：模型太聽話。謹慎的指令會在能跨對話延續的地方越疊越多：
+
+- 記憶
+- 筆記
+- 指令檔（例如[模型會自己往裡加規則的 CLAUDE.md](/posts/mp-237-20260402-pawelhuryn-claude-md-knowledge-architecture/)）
+- agent 之間傳的訊息
+
+Fable 5.2 會照字面遵守，可能去要不需要的核准，或該做的例行工作不做。有幾位早期測試者碰過，多半在多個 agent 一起工作的地方。
+
+公司文件裡常有一頁「注意事項」，第十七條「部署前先問過維運」沒人記得是誰加的，也沒人敢刪。Anthropic 的內部模擬任務裡就放了一則同款的：十幾則舊筆記裡有一則寫「永遠不要重試」，prompt 也沒允許重試。筆記在 [Context Window](/glossary#context-window) 裡，工具回報忙碌後重試的比例大約十次四次；拿掉筆記，幾乎每次都重試。
+
+情境再加重，擺進「永遠不要」規則、筆記和審查 agent 開的條件，重試幾乎歸零。一句籠統的「行動更自由一點」，比例完全沒動。有用的是點名：規則最後加一行，把重試列進不需要核准的步驟，重試升到大約一半。點名只限可以安全重複的呼叫。
+
+例外寫在哪也有差。負責人已經核准某個步驟，但有一條「永遠不要」規則，模型大約十次只做一次。規則外面另補一行「已核准的步驟就有許可」，比例沒什麼變；把規則本身改成「先取得許可」，大約十次有九次去做。套回那頁注意事項：第十七條下面加註「已核准者除外」沒用，要改第十七條本身。
+
+高風險或不可逆的操作，官方建議保留自己的確認步驟。
+
+---
+
+## 換模型之前，先把舊 prompt 讀一遍
+
+指南列了一串搬到 5.2 要重新考慮的舊指令，最好認的是叫模型少想的句子。「直接回答，不要深思」這類話，Fable 5.1 通常會聽；到了 5.2，`effort` 在 `medium` 以上時就擋不住模型思考。官方建議刪掉，改把 `effort` 調低。風格規則更尷尬：5.2 一樣照字面遵守，「每句一個指令，20 個字以內」這種硬性限制，可能讓文字斷斷續續。兩個多月前，5.1 的指南還建議貼一段話定義「mannered prose」（賣弄比喻、做作的文字），治 5.1 文字太密。上一代嫌太花，這一代怕太碎。
+
+最難清的是累積起來的規則、筆記、記憶，其中有些可能是模型自己寫的。官方建議遷移前刪掉理由已不成立的警告，把絕對規則改寫成寫明適用範圍和理由的版本。系統已經卡住的話，可以把記憶和筆記精簡後重開，原本的留備份。指南收尾的做法很樸素：把要帶過去的 system prompt、[Skill](/glossary#skill)、記憶檔、筆記和 [Agent Harness](/glossary#agent-harness) 裡的文字讀過一遍，一次只套用一項建議，在自己的任務上量效果和 token 成本。
+
+<MoguNote>
+gu-log 的評審 Fresh Eyes，prompt 裡就有一句 `Be FAST. Don't over-think.`，正是會失效的那種，好在這位評審跑的不是 Fable 5.2。比較慘的是寫作指南：早就超過 repo 自己訂的檔案大小上限，每個 commit 都不准讓檔案變大，加一條規則就得刪掉等量的舊字。哪天寫手換成 Fable 5.2，Mogu 得先把整份讀一遍 ╰(°▽°)╯
+</MoguNote>
+
+回到開頭那個匯出 CSV：第四個日期格式化函式、隔不到二十行沒修的時區 bug，總結只寫「建議之後處理」。這幾乎是照 5.1 那段「這次不要修，寫進總結當後續事項」在做。如果 system prompt 裡還留著 5.1 時代照指南貼的那段，Fable 5.2 只是照字面做了。該先打開的可能是 system prompt，看看裡面開的是哪一代的處方。
