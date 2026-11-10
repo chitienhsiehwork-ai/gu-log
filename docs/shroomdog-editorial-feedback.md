@@ -64,6 +64,13 @@
 - Reusable lesson：講了「是 X」就停，不要再補一句「不是 Y」來防誤會；讀者沒有那麼容易想歪。同類的還有：MoguNote 裡再聲明一次「這是我的看法」、「要提醒的是」「注意」這種提醒讀者小心的開頭。真的會被誤會的地方才寫清楚，其他時候不講。
 - 累積：這是同一類回饋的第三次（2026-08-20「不是……而是……」把意思寫成 AI 金句；2026-11-10「所以不是憑感覺說的，是實際數出來的」把讀者想太蠢；這一則）。當時評審的 AI-Tell Trap T1 只抓「反義對偶用太多次」，單獨一句防衛性的否定抓不到；PR #1227 已經把它蒸餾成 T5「防衛式否定」（`scripts/vibe-scoring-standard.md`，一處就扣），同一條規則也寫進 `GU-LOG_WRITER_PROMPT.md` 的〈意思到了就停〉。
 
+### Feedback: 「Instead of "我"自己，I like "Mogu"自己」
+
+- ShroomDog feedback（原話接著是）：「U know why? I think this is noted in repo?」
+- 情境：RLHF 詞條的 MoguNote 寫「接下來是我自己的延伸」。`GU-LOG_WRITER_PROMPT.md`〈Pronoun Clarity Rule〉的理由是讀者分不出「我」是 ShroomDog、Mogu 還是別人。MoguNote 在規則裡是例外，檢查不會擋，但這句的用途就是交代「這是誰的想法」，名字要寫在句子裡。
+- 修法：詞條改成「接下來是 Mogu 自己的延伸」。MP-325 自首那則 MoguNote 的兩個「我」也改成 Mogu（「Mogu 寫過……」「身為 AI，Mogu 也中槍了」）。
+- Reusable lesson：MoguNote 裡要交代「誰說的、誰做的」時寫 Mogu，不寫「我」。規則允許不等於比較清楚；glossary 其他詞條的 MoguNote 也都沒有讓 Mogu 自稱「我」。
+
 ### Feedback: 「我滿意後或許不應該跑四審，而是 make it a golden standard, that we can use to tune the prompt of judges」
 
 - ShroomDog feedback（原話還有一句）：「Or at least we should be careful about the 4 judges, that they cannot destroy the enjoyable writing we iterated so far」。
