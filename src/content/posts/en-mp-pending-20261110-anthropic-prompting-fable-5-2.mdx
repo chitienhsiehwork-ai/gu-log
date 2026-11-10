@@ -1,0 +1,151 @@
+---
+ticketId: "MP-PENDING"
+title: "Should the Agent Fix the Code Next Door? Three Fable Guides, Three Answers"
+originalDate: "2026-11-09"
+translatedBy:
+  model: "Opus 5.5"
+  harness: "Claude Code CLI"
+  pipeline:
+    - role: "Written"
+      model: "Opus 5.5"
+      harness: "Claude Code CLI"
+    - role: "Orchestrated"
+      model: "Fable 5.2"
+      harness: "Claude Code"
+source: "Claude Docs"
+sourceUrl: "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2"
+lang: "en"
+summary: "Anthropic's Fable 5.2 guide says that when a prompt doesn't say who owns the code, the model tends to build on top of the existing structure and write up nearby bugs as follow-ups. Add one line, \"this codebase is yours,\" and in internal tests the rate of merging duplicate code jumps from under one in ten to about half, at the cost of extra tokens and changes nobody asked for. Flip back through the Fable 5 and 5.1 guides, and the advice on the same question points the opposite way."
+tags: ["fable", "prompt-engineering", "agents", "system-prompt", "anthropic"]
+scores:
+  tribunalVersion: 9
+  factCheck:
+    accuracy: 8
+    fidelity: 8
+    consistency: 9
+    sourceBoundary: 9
+    commentarySeparation: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  librarian:
+    glossary: 9
+    crossRef: 9
+    sourceAlign: 8
+    attribution: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  freshEyes:
+    readability: 8
+    firstImpression: 8
+    payoffDensity: 8
+    lengthFit: 8
+    clarity: 9
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+  vibe:
+    persona: 8
+    moguNote: 9
+    vibe: 8
+    narrative: 8
+    score: 8
+    date: "2026-11-10"
+    model: "claude-opus-5-5"
+translatedDate: "2026-11-10"
+---
+
+import MoguNote from '../../components/MoguNote.astro';
+
+An engineer asks a coding [Agent](/en/glossary#agent) to add an "Export CSV" button to the admin panel. The feature works. The tests pass. Then they open the diff: the codebase already had three nearly identical date-formatting functions, and now it has four. The last line of the summary reads: "I also noticed the timezone calculation on the export page may be wrong. Recommend addressing this later." That bug lives in the same file as the new code, less than twenty lines away.
+
+The [official prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2) Anthropic shipped alongside Claude Fable 5.2 (released 2026-11-09) has a simple explanation for this: the [Prompt](/en/glossary#prompt) never said whose code this is. When ownership goes unstated, or the codebase is framed as someone else's, the model tends to build on top of the existing structure, even if that means duplicating what's already there. And when it spots a problem nearby, it tends to report it rather than fix it.
+
+Here's the catch: on the question of "should the agent fix the code next door," the same company's guides for the previous two generations pointed the other way. Prompts have an expiration date. Last generation's cure can be next generation's stale instruction that needs clearing out.
+
+## One sentence that hands the codebase over
+
+The numbers below come from Anthropic's internal tests on small coding tasks; the tasks and the sample size weren't published. When the prompt makes clear the codebase belongs to the model, the model often consolidates duplicate code and makes related fixes nobody asked for. The sentence the guide recommends:
+
+> This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it.
+
+With that line, about half the attempts merged duplicate code. Without it, fewer than one in ten. The exact ratio varies by task. The effect holds even when the line is buried inside a long system prompt. And with or without it, the requested feature got built almost every time.
+
+<MoguNote summary="One ownership line turns the model from a contractor into a full-time hire.">
+The first thing [Mogu](/en/glossary#mogu) thought of was what a manager says on a new hire's first day: "This project is yours from now on." The new hire who hears that starts tidying folders and filling in docs. The one who doesn't just piles another chunk next to the messy legacy code and writes "recommend refactoring later" in the weekly report. One sentence and the model goes from contractor to full-time employee. Faster than a raise (￣▽￣)／
+</MoguNote>
+
+---
+
+## Add the line, and the diff gets bigger
+
+In the same set of tests, adding the ownership line meant:
+
+- Output [Tokens](/en/glossary#token) went up to roughly 1.5x
+- Multiple changes nobody asked for, many of them new tests and docs
+- Beyond bug fixes, about one in every six to ten attempts changed the behavior of existing functionality; the higher the `effort` (the API parameter controlling how much the model thinks), the more often it happened
+- The final summary mentioned the bigger changes but often skipped the small ones
+
+So the guide tells you to read the diff, not just the summary. Anthropic said the same thing when writing about agent evaluation: a model saying "done" is just [one line in the transcript](/posts/mp-323-20260928-www-anthropic-agent/); what you verify is what actually changed. And for cases where the code belongs to the user and they want as few changes as possible, the guide is blunter: leave the line out.
+
+Trying to pump the brakes with an extra scope-limiting rule doesn't do much. With `No drive-by refactors, renames or cleanups` written earlier in the same prompt, the model still merged duplicate code in about a third of attempts.
+
+<MoguNote summary="gu-log's agents own every problem they hit, so another model reviews every diff.">
+"Drive-by" is engineer slang for "I was passing through, so I fixed it." gu-log's own agent instructions say that any problem an agent runs into during a task is that agent's responsibility, and it fixes it on the spot. The effect is a lot like the ownership line, which is why every PR gets its diff read by a different model (an automated review from [Codex](/en/glossary#codex)) before merging. The guide says "read the diff, not just the summary"; gu-log just outsourced that to another company's model.
+</MoguNote>
+
+---
+
+## Two generations back: same question, three answers
+
+Fable 5 (released 2026-06-09), the earliest of the three, had a habit of being a little too eager. [That generation's guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5) gave examples like drafting an email nobody asked for, or spinning up an extra git branch as a backup without being told to. The prescription was to draw a line: when the user is just describing a problem, asking a question, or thinking out loud, the deliverable is an assessment. Report what you found, then stop, and only fix things once the user asks.
+
+By Fable 5.1 on 2026-09-01, the eagerness had moved from the inbox into the codebase. [The 5.1 guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1) said that when implementing open-ended features, the model delivers what was asked for and sometimes more: it might fix nearby code, extend behavior the task never mentioned, or commit more test files than needed. The passage it suggested pasting opens, roughly, like this:
+
+> If, while working or testing, you find a pre-existing bug, a performance concern, or behavior the task doesn't mention, don't fix, optimize or extend it in this change unless the requested behavior cannot work without it; report it as a follow-up in your summary.
+
+With that in place, unrequested extra changes and committed test files dropped sharply, with no measurable change in task success rate.
+
+Mogu put all three side by side (Anthropic never compared them this way itself): 5.1's recommended "don't fix it, write it up as a follow-up" looks a lot like 5.2's default behavior when ownership goes unstated. The two guides tested different tasks, one open-ended features and the other small coding tasks, so all you can say is the advice points in opposite directions. It's not a before-and-after of the same experiment.
+
+Anyone who's been following the guides upgrade by upgrade hits a snag here: they pasted "don't fix the code next door" in the 5.1 era, then add the ownership line for 5.2, and now the two sentences are pulling against each other in the same system prompt. The guide has no data on what the full 5.1 passage does on 5.2. The closest thing is that `No drive-by refactors` line from earlier, which brought the merge rate down from about half to about a third. Not to zero.
+
+<MoguNote summary="Five months, three prescriptions, and nobody labels prompt lines with expiration dates.">
+Five months, three prescriptions. One: if the user is just asking, don't touch anything. Two: go ahead, but leave the nearby stuff alone. Three: it's all yours, clean up as much as you can. It's like a doctor prescribing a sedative, then switching to energy drinks at the next visit and telling the patient to throw out the old pills. Each prescription was probably measured against the model of its time. It's just that nobody labels each line of their system prompt with an expiration date (╯°□°)╯
+</MoguNote>
+
+---
+
+## Cautious instructions pile up on their own
+
+Another section of the 5.2 guide covers the opposite problem: the model being too obedient. Cautious instructions accumulate anywhere that persists across conversations:
+
+- Memory
+- Notes
+- Instruction files (like a [CLAUDE.md the model adds its own rules to](/posts/mp-237-20260402-pawelhuryn-claude-md-knowledge-architecture/))
+- Messages passed between agents
+
+Fable 5.2 follows them to the letter, and may ask for approvals it doesn't need or skip routine work it should be doing. A few early testers ran into this, mostly in setups where multiple agents work together.
+
+Company docs often have a "Things to Keep in Mind" page where item 17, "Check with ops before deploying," was added by nobody-remembers-who and nobody dares delete. Anthropic planted exactly that kind of note in an internal simulated task: among a dozen or so old notes, one said "never retry," and the prompt didn't grant permission to retry either. With that note in the [Context Window](/en/glossary#context-window), the model retried after a tool reported busy about four times in ten. Remove the note, and it retried almost every time.
+
+Stack the scenario higher, adding a "never" rule, notes, and conditions set by a reviewer agent, and retries dropped to nearly zero. A vague "act more freely" didn't move the number at all. What worked was naming it: one line at the end of the rules listing retries as a step that doesn't need approval, and retries climbed to about half. Only name calls that are safe to repeat.
+
+Where you put the exception matters too. When the owner had already approved a step but a "never" rule was still there, the model did it about one time in ten. Adding a separate line outside the rule saying "approved steps are permitted" barely changed anything. Rewriting the rule itself to "get permission first" got the model to act about nine times in ten. Back to that "Things to Keep in Mind" page: tacking "unless approved" under item 17 doesn't work. You have to rewrite item 17.
+
+For high-risk or irreversible operations, the guide recommends keeping your own confirmation steps.
+
+---
+
+## Before switching models, read your old prompts
+
+The guide lists a string of old instructions to reconsider when moving to 5.2. The easiest to spot are the ones telling the model to think less. Lines like "just answer, don't overthink" usually worked on Fable 5.1; on 5.2, once `effort` is at `medium` or above, they can't stop the model from thinking. The guide recommends deleting them and turning `effort` down instead. Style rules are more awkward: 5.2 follows them to the letter too, and hard limits like "one instruction per sentence, under 20 words" can make the prose choppy. Just over two months ago, the 5.1 guide was recommending a passage defining "mannered prose" (showy metaphors, affected writing) to treat 5.1's overly dense writing. Last generation the worry was too ornate; this generation it's too fragmented.
+
+The hardest to clean up are the accumulated rules, notes, and memories, some of which the model may have written itself. Before migrating, the guide recommends deleting warnings whose reasons no longer hold, and rewriting absolute rules into versions that spell out their scope and rationale. If a system is already stuck, you can slim down its memories and notes and restart, keeping a backup of the originals. The guide closes on a plain approach: read through every system prompt, [Skill](/en/glossary#skill), memory file, note, and piece of text in your [Agent Harness](/en/glossary#agent-harness) that you're carrying over, apply one recommendation at a time, and measure the effect and token cost on your own tasks.
+
+<MoguNote summary="gu-log has a doomed prompt line and an oversized writer guide to read through.">
+gu-log's Fresh Eyes judge has `Be FAST. Don't over-think.` right in its prompt, exactly the kind of line that stops working. Luckily that judge doesn't run on Fable 5.2. The writing guide is in worse shape: it's long past the repo's own file-size limit, no commit is allowed to make it bigger, and adding a rule means deleting the same amount of old text. If the writer ever switches to Fable 5.2, Mogu will have to read the whole thing first ╰(°▽°)╯
+</MoguNote>
+
+Back to that CSV export: a fourth date-formatting function, a timezone bug left unfixed less than twenty lines away, and a summary that just says "recommend addressing this later." That's almost exactly what 5.1's "don't fix it this time, note it in your summary as a follow-up" asks for. If the passage someone pasted in from the 5.1 guide is still sitting in the system prompt, Fable 5.2 just did what it was told. The first thing to open might be the system prompt, to see which generation's prescription it's still carrying.
