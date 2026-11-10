@@ -129,6 +129,8 @@ Known false-positive examples live under `.codex/agents/references/`. Judges sho
 
 - `.codex/agents/references/v7-recap-false-positive.md` describes the false positive that started v7: a readable but overlong post that re-explained a workflow MP-179 had already covered was scored `vibe 8 / narrative 9`. Use it to remember why v7 exists: Librarian must catch the overlap, FreshEyes must catch reader fatigue, and Vibe must not award those scores to a long linear-report skeleton.
 
+任何 scorer 都必須繼承這些 calibration 教訓，不能只逐項勾表面特徵。
+
 ## Stage 1: Fact Checker — 5 Dimensions
 
 ### accuracy — Technical Accuracy
@@ -302,12 +304,13 @@ Read `GU-LOG_WRITER_PROMPT.md` before scoring. Study calibration examples below.
 **🔴 Decorative Persona Trap（表面裝飾蓋住線性骨架，最多 5 分）:**
 Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear report? If yes → persona ≤ 5.
 
-**🔴 AI-Tell Trap（反射式 AI 腔，密度型扣分）:**
-跨多代模型都會出現的「AI 腔」簽名；換 model 不會自動消失，只有這一關擋得住。重點是**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。
+**🔴 AI-Tell Trap（反射式 AI 腔）:**
+跨多代模型都會出現的「AI 腔」簽名；換 model 不會自動消失，只有這一關擋得住。T1–T4 看**密度 + 是否 reflexive**，不是單次出現：承載 thesis 或笑點的單次用法是 earned，**保留**；句型慣性的反射用法是 filler，**扣分**。T5 例外，一處就扣。
 - **T1 反義對偶過載**：「不是 X，是 Y」「不在 X，在 Y」當每段收尾的反射動作。承載論點的 1–2 次保留；通篇靠它製造「金句感」→ 3 次以上 reflexive 用法 persona ≤ 7。
 - **T2 假深度 reframe**：「表面是 X，真正/深層才是 Y」「聽起來像 X，但其實 Y」「透露的訊息比表面更深」——用 scaffolding 假裝多給一層解讀。出現在多數 MoguNote → persona ≤ 6。
 - **T3 空洞強化詞**：「拆得很乾淨 / 很漂亮 / 到位 / 精準」「這才是工程品味」這種沒有具體資訊、只負責讓句子聽起來收得漂亮的 flourish。要求改成具體內容；多處未改 → persona ≤ 7。
 - **T4 mic-drop 打燈**：每個 section 都用一句單獨成段的「人生哲理」收尾。偶一為之 OK；變成固定收法 → 連同 narrative 一起看 template 節奏。
+- **T5 防衛式否定（一處就扣）**：講了「是 X」又補一句「不是 Y」，去防讀者不會有的誤會；或用「要提醒的是」「注意，」開頭，把直接講就好的事包成警告；或在 MoguNote 裡再聲明「我自己是這樣看的」。例：「接下來是我自己的延伸，不是老師的原話」只要前半句；「這六種都可以量化，所以不是憑感覺說的」刪掉後半句。讀者會覺得自己被當笨蛋。用刪除測試判斷：拿掉之後讀者真的會想錯（Mogu 的推論會被當成來源的主張、文章正在糾正常見誤解）才留。控制 claim 的條件與 caveat 不算，只扣外面那層警告口氣（「要提醒的是，這份研究只看英文」留後半句）。1 處 → persona ≤ 7，評分理由逐處引用原句。同一句也像 T1 時只算 T5。
 
 一句話判準：**earned（承載論點/笑點）留，reflexive（句型慣性）殺。**
 
@@ -440,13 +443,9 @@ Strip away analogies, callbacks, and kaomoji. Is the remaining skeleton a linear
 ## Evaluation Protocol (All Judges)
 
 1. **Read the ENTIRE post** — don't skim
-2. **Respect v8 judge boundaries** — Librarian owns corpus overlap; Fresh Eyes owns reader fatigue; Vibe owns internal rhythm/shareability; Writer consumes evidence instead of inventing new scope
-3. **Score each dimension independently** (integer 0-10)
-4. **Calculate composite** = `Math.floor(avg of all dims)`
-5. **Apply pass bar** — per-judge rules above; set `pass` accordingly
-6. **If `pass === false`:** write actionable `improvements` per failing dimension + 1-3 `critical_issues` root causes
-7. **If `pass === true`:** omit `improvements` and `critical_issues` to save tokens
-8. **Output v2 JSON** — `BaseJudgeOutput` shape from `src/lib/tribunal-v2/types.ts` (`pass/scores/composite/improvements?/critical_issues?/judge_model/judge_version/timestamp`)
+2. **Respect the judge boundaries** in〈Judge Responsibility Boundary〉
+3. **Score each dimension independently** (integer 0-10), compute the composite, and apply your pass bar
+4. **Output the uniform JSON** above, following its field rules
 
 ---
 
@@ -467,12 +466,6 @@ model 快照；selection、fallback 與 provenance 由下列 authority 決定：
 
 `TRIBUNAL_FORCE_PROVIDER`、availability 與 quota fallback 的互動也以
 `scripts/tribunal-helpers.sh` 的行為與 contract tests 為準，不在散文複述。
-
-### 歷史 false-positive calibration
-
-- **GPT-5.5 / Tribunal v5** 曾給一篇（已下架的）Symphony 工作流文章 `vibe: 8 / narrative: 9`，但 ShroomDog 人工判定「太長、廢話太多、重複 MP-179，而且『變基』語感很糟」。v7 修正責任邊界：Librarian 抓 MP-179 overlap；Vibe 抓 compression / section boredom / decorative pass trap；FreshEyes 抓讀者疲勞。
-
-任何 scorer 都必須繼承這些 calibration 教訓，不能只逐項勾表面特徵。
 
 ### 修改 model 配置的流程
 
