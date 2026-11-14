@@ -4,7 +4,7 @@ gu-log 重複文章判定系統的 eval harness —— 已知答案的題庫。
 
 ## 用途
 
-1. **評估用**：跑 `node scripts/eval-dedub-harness.mjs` → 系統對照 `expectedClass` 算 per-category precision + recall
+1. **評估用**：跑 `node scripts/eval-dedup-harness.mjs` → 系統對照 `expectedClass` 算 per-category precision + recall
 2. **Few-shot 範例**：Level E Librarian `dupCheck` 提示會從本目錄挑幾筆當範例
 
 詳細規格見 `openspec/specs/dedup-eval-harness/spec.md`。
@@ -58,6 +58,6 @@ Level E（`add-librarian-dupcheck`）已把本 harness 接上 tribunal v2：
 - Judge 在工作時會讀本目錄下四類各 1 筆 YAML 當 few-shot 範例。
 - `scripts/eval-dedup-harness.mjs --run` 對每筆 fixture 呼叫 judge，算 per-category
   precision + recall，輸出 markdown report 到 `scores/dedup-eval-YYYYMMDD-HHMMSS.md`。
-- 詳見 `openspec/specs/librarian-dupcheck/spec.md`。
+- 當時的 change 已歸檔在 `openspec/changes/archive/2026-04-22-add-librarian-dupcheck/`；現行規格是 `openspec/specs/dedup-eval-harness/spec.md`。
 
 Level F（`add-semantic-dedup-gate-layers`，pre-publish gate）會再加一層檢查。
