@@ -34,6 +34,8 @@
         --color-mark-2: #ffb86c;
         --color-good: #69d2a0;
         --color-on-good: #282a36;
+        --color-note: #44475a;
+        --color-note-text: #cecdda;
         --font-sans:
           'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, 'Segoe UI',
           sans-serif;
@@ -49,6 +51,8 @@
         --color-mark-2: #854d35;
         --color-good: #1d6a5c;
         --color-on-good: #ffffff;
+        --color-note: #fdf6e3;
+        --color-note-text: #425458;
       }
       * {
         box-sizing: border-box;
@@ -248,6 +252,25 @@
         margin: 0.6rem 0 0;
         font-size: 0.95rem;
         color: var(--color-text-muted);
+      }
+      /* 跟文章裡的 MoguNote 同一個樣子 */
+      .mogu-note {
+        margin: 1rem 0 0;
+        padding: 0.9rem 1rem;
+        border-left: 4px solid var(--color-mark-2);
+        border-radius: 0 12px 12px 0;
+        background: var(--color-note);
+        color: var(--color-note-text);
+        font-size: 0.95rem;
+      }
+      .mogu-prefix {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: var(--color-mark-2);
+      }
+      .mogu-note p {
+        margin: 0.5rem 0 0;
       }
       .zh + .why {
         margin-top: 0.3rem;
@@ -451,7 +474,13 @@
           </p>
           <p class="zh">那把因為還在「考慮」而一直擺在角落的吉他，一個和弦也教不會。</p>
           <p class="why">主詞要一路記到動詞出現才能放下。人腦的暫存空間不大，隔得越遠越累。</p>
-          <p class="why">Mogu：被 AI 嗆已經夠慘了，還要讀兩遍才發現自己被嗆。</p>
+          <blockquote class="mogu-note">
+            <strong class="mogu-prefix">
+              <img src="/mogu-picks-icon.png" alt="" width="20" height="20" />
+              Mogu 吐槽時間：
+            </strong>
+            <p>被 AI 嗆已經夠慘了，還要讀兩遍才發現自己被嗆。</p>
+          </blockquote>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
