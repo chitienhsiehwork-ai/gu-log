@@ -77,7 +77,7 @@ gu-log 寫的就是 AI 品質，所以它把自己的 AI 自評分數攤在陽�
 
 | 層 | 門檻 | 誰擋 | 沒過會怎樣 |
 |---|---|---|---|
-| **Floor**（自動 gate） | 真實 `scores.vibe` ＋ 該 tribunal version 要求的 Vibe 維度齊全 ＋ composite **≥ 3** | pre-commit hook | **擋 commit** —— garbage 進不了 `main` |
+| **Floor**（自動 gate） | 真實 `scores.vibe` ＋ 該 tribunal version 要求的 Vibe 維度齊全 ＋ composite **≥ 3** | pre-commit hook ＋ PR CI | **擋 commit** —— garbage 進不了 `main` |
 | **PASS**（編輯標準） | Vibe composite **≥ 8**、一維 ≥ 9、沒有維 < 8，且其餘評審 hard gates 全過 | 首頁／UI 過濾 | 照樣 ship，但掛「精修中」badge 並**不上首頁**，等背景重寫拉到 ≥ 8 才上 |
 
 評分跑一套 **4-judge tribunal**（每篇文章，newest-first）。以下是 derived view；model routing 由 openspec [`codex-tribunal-runtime`](openspec/specs/codex-tribunal-runtime/spec.md) 定義，README 不複製 model 名稱：

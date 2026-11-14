@@ -194,7 +194,7 @@ Vercel 自動 deploy，幾分鐘後 `gu-log.vercel.app` 上線。
 | MoguNote | 純 blockquote（callout 渲染） | 有框、有配色、有 persona |
 | 系列導覽 | 無 | Prev / Next + 系列章節 |
 | Wikilinks | 雙向圖、graph view | 轉成一般連結 |
-| Search | 全文（vault 內） | 全文（Pagefind） |
+| Search | 全文（vault 內） | 全文（Fuse.js） |
 | 分享 | 只能分享 markdown | 有 OG image、RSS、canonical URL |
 
 用這個當「品質 checklist」：**Obsidian 裡沒有的，就是你前端值得投資的地方**。
