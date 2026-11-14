@@ -39,11 +39,6 @@ type File struct {
 	// Neither the opening nor closing --- is stored here.
 	lines []string
 
-	// bodySeparator is the bytes between the closing --- and the first
-	// line of the body. Usually "\n", but we preserve exactly what the
-	// input had so Bytes() is byte-stable for untouched files.
-	bodySeparator []byte
-
 	// body is everything after the closing ---.
 	body []byte
 }

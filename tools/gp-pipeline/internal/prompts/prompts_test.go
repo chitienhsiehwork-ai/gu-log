@@ -214,7 +214,7 @@ func TestRender_NoGPReadingGuideBranch(t *testing.T) {
 			rendered = append(rendered, out)
 		}
 	}
-	for _, template := range []string{"eval-codex", "eval-gemini"} {
+	for _, template := range []string{"eval-codex"} {
 		out, err := Render(template, EvalData{LineCount: 1, Source: "SOURCE", OutputFilename: "eval.json"})
 		if err != nil {
 			t.Fatal(err)

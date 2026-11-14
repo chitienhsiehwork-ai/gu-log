@@ -24,11 +24,6 @@ type CodexProvider struct {
 	Sandbox string
 }
 
-// NewCodexGPT55Low returns a CodexProvider wired to GPT-5.5 low.
-func NewCodexGPT55Low() *CodexProvider {
-	return &CodexProvider{ModelName: "gpt-5.5", ReasoningEffort: "low"}
-}
-
 // NewCodexGPT55Medium returns a CodexProvider wired to GPT-5.5 medium.
 func NewCodexGPT55Medium() *CodexProvider {
 	return &CodexProvider{ModelName: configuredCodexModel("gpt-5.5"), ReasoningEffort: "medium"}
@@ -40,15 +35,6 @@ func configuredCodexModel(fallback string) string {
 	}
 	return fallback
 }
-
-// NewCodexGPT55 returns a CodexProvider wired to GPT-5.5.
-func NewCodexGPT55() *CodexProvider { return NewCodexGPT55Medium() }
-
-// NewCodexGPT54 returns a CodexProvider wired to GPT-5.4.
-func NewCodexGPT54() *CodexProvider { return &CodexProvider{ModelName: "gpt-5.4"} }
-
-// NewCodexGPT53 returns a CodexProvider wired to GPT-5.3-Codex.
-func NewCodexGPT53() *CodexProvider { return &CodexProvider{ModelName: "gpt-5.3-codex"} }
 
 // Name implements Provider.
 func (c *CodexProvider) Name() string { return "codex-" + c.modelName() }

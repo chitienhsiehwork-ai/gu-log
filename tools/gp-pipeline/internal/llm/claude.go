@@ -76,12 +76,6 @@ func NewClaudeOpus() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeO
 // Anthropic moves the floating Opus alias.
 func NewClaudeOpusWriter() *ClaudeProvider { return &ClaudeProvider{ModelFlag: ClaudeOpusPinned} }
 
-// NewClaudeSonnet returns a ClaudeProvider wired to Claude Sonnet.
-func NewClaudeSonnet() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "sonnet"} }
-
-// NewClaudeHaiku returns a ClaudeProvider wired to Claude Haiku.
-func NewClaudeHaiku() *ClaudeProvider { return &ClaudeProvider{ModelFlag: "haiku"} }
-
 // Name implements Provider. It returns a stable family label (claude-opus /
 // claude-sonnet / claude-haiku) derived from the resolved Model(), so a pinned
 // flag like "claude-opus-4-5" still reports "claude-opus" rather than the raw
