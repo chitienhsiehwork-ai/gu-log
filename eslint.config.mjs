@@ -53,7 +53,7 @@ export default [
 
   // Playwright scripts that use page.evaluate() — need browser globals inside callbacks
   {
-    files: ['scripts/screenshot-audit.mjs', 'scripts/visual-test.mjs'],
+    files: ['scripts/visual-test.mjs'],
     languageOptions: {
       globals: {
         document: 'readonly',
