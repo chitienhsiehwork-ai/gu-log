@@ -166,6 +166,8 @@ scores:
 
       expect(limitedAdded).toContain('src/content/posts/gp-1-migration.mdx');
       expect(gitDiffAddedVsBase('base', repo)).toEqual([genuinelyNewPost]);
+      // An unresolvable base must fail the gate, not read as "no new posts".
+      expect(() => gitDiffAddedVsBase('no-such-ref', repo)).toThrow(/cannot diff/);
     } finally {
       fs.rmSync(repo, { recursive: true, force: true });
     }

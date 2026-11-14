@@ -155,7 +155,15 @@ export function gitDiffAddedVsBase(baseRef, cwd = undefined) {
       return null;
     }
   };
-  return tryRef(`origin/${baseRef}`) ?? tryRef(baseRef) ?? [];
+  const added = tryRef(`origin/${baseRef}`) ?? tryRef(baseRef);
+  if (added === null) {
+    // "Cannot diff" is not "nothing added": an empty list here would skip
+    // the gate for the whole PR.
+    throw new Error(
+      `cannot diff against ${baseRef}: ref missing or no merge base (shallow clone?)`
+    );
+  }
+  return added;
 }
 
 function toBaseSet(addedFiles) {
@@ -176,7 +184,13 @@ function main() {
 
   let scope = null;
   if (prBase) {
-    const added = gitDiffAddedVsBase(prBase);
+    let added;
+    try {
+      added = gitDiffAddedVsBase(prBase);
+    } catch (error) {
+      console.error(`❌ Translation pair gate: ${error.message}`);
+      process.exit(1);
+    }
     if (added.length === 0) {
       console.log(`✓ No new posts in this PR vs ${prBase} — translation pair gate skipped`);
       process.exit(0);
