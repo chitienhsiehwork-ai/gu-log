@@ -19,8 +19,10 @@ test.describe('No Tables on Mobile', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
-    await page.goto('/posts/subagent-showdown-claude-code-vs-openclaw');
+    await page.goto('/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw');
     await page.waitForLoadState('domcontentloaded');
+    // A 404 has no tables either — make sure the real post rendered.
+    await expect(page.locator('article.post')).toBeVisible();
 
     const tables = page.locator('article table');
     const tableCount = await tables.count();
@@ -36,8 +38,9 @@ test.describe('No Tables on Mobile', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
-    await page.goto('/posts/en-subagent-showdown-claude-code-vs-openclaw');
+    await page.goto('/en/posts/en-sd-2-20260212-subagent-showdown-claude-code-vs-openclaw');
     await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('article.post')).toBeVisible();
 
     const tables = page.locator('article table');
     const tableCount = await tables.count();
@@ -54,8 +57,10 @@ test.describe('No Tables on Mobile', () => {
   }) => {
     await page.setViewportSize(MOBILE_VIEWPORT);
     // Test the specific offending post
-    await page.goto('/posts/subagent-showdown-claude-code-vs-openclaw');
+    await page.goto('/posts/sd-2-20260212-subagent-showdown-claude-code-vs-openclaw');
     await page.waitForLoadState('domcontentloaded');
+    // A 404 has no tables either — make sure the real post rendered.
+    await expect(page.locator('article.post')).toBeVisible();
 
     const tables = page.locator('article table');
     const tableCount = await tables.count();

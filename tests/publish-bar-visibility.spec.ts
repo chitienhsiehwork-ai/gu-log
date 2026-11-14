@@ -31,7 +31,8 @@ function pickPost(kind: PostKind): string | null {
       status?: string;
       scores?: Parameters<typeof isBelowPublishBar>[0];
     };
-    if (fm.status === 'deprecated' || fm.status === 'retired') continue;
+    if (fm.status === 'deprecated' || fm.status === 'retired' || fm.status === 'taken-down')
+      continue;
     const matched =
       kind === 'below-bar'
         ? isBelowPublishBar(fm.scores)
