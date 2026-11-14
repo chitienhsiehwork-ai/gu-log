@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI 英文的六種難讀寫法 · gu-log</title>
+    <meta
+      name="description"
+      content="gu-log MP-325 的附圖：六種讓人讀到卡住的英文寫法，每一張都可以切換成長一點、但好讀很多的版本。"
+    />
+    <meta name="robots" content="noindex" />
+    <script>
+      (function () {
+        var theme = 'dark';
+        try {
+          var saved = localStorage.getItem('theme');
+          if (saved === 'light' || saved === 'dark') theme = saved;
+        } catch (e) {
+          /* 讀不到就用深色 */
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.classList.add('js');
+      })();
+    </script>
+    <style>
+      /* 顏色跟 src/styles/global.css 同一套：Dracula 深色、Solarized 淺色 */
+      :root {
+        --color-bg: #282a36;
+        --color-card: #343746;
+        --color-text: #cecdda;
+        --color-text-muted: #9ea9d2;
+        --color-border: #44475a;
+        --color-mark: #ff79c6;
+        --color-mark-2: #ffb86c;
+        --color-good: #69d2a0;
+        --color-on-good: #282a36;
+        --font-sans:
+          'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', system-ui, -apple-system, 'Segoe UI',
+          sans-serif;
+        --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+      }
+      [data-theme='light'] {
+        --color-bg: #fdf6e3;
+        --color-card: #eee8d5;
+        --color-text: #556b73;
+        --color-text-muted: #4a5a5e;
+        --color-border: #d3cbb7;
+        --color-mark: #1c679b;
+        --color-mark-2: #854d35;
+        --color-good: #1d6a5c;
+        --color-on-good: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-sans);
+        line-height: 1.75;
+        padding: 1.5rem 1rem 4rem;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      a {
+        color: var(--color-mark);
+      }
+      .back {
+        display: inline-block;
+        font-size: 0.9rem;
+        padding: 0.5rem 0;
+        text-decoration: none;
+      }
+      h1 {
+        margin: 0.5rem 0 0.4rem;
+        font-size: 1.6rem;
+        line-height: 1.35;
+      }
+      .lead {
+        margin: 0 0 1.5rem;
+        color: var(--color-text-muted);
+      }
+
+      .card {
+        background: var(--color-card);
+        border: 1px solid var(--color-border);
+        border-radius: 14px;
+        padding: 1.1rem 1.1rem 1.2rem;
+        margin: 0 0 1.25rem;
+      }
+      .card h2 {
+        margin: 0 0 0.9rem;
+        font-size: 1.1rem;
+        line-height: 1.4;
+        display: flex;
+        gap: 0.6rem;
+        align-items: baseline;
+      }
+      .num {
+        flex-shrink: 0;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: var(--color-mark);
+      }
+
+      .ver-label {
+        margin: 0 0 0.3rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--color-mark);
+      }
+      .ver[data-ver='human'] .ver-label {
+        color: var(--color-good);
+      }
+      .ver[data-ver='human'] {
+        margin-top: 1rem;
+      }
+      .js .card[data-show='ai'] .ver[data-ver='human'],
+      .js .card[data-show='human'] .ver[data-ver='ai'] {
+        display: none;
+      }
+      .js .ver[data-ver='human'] {
+        margin-top: 0;
+      }
+
+      .sentence {
+        margin: 0;
+        font-size: 1.15rem;
+        line-height: 2.5;
+        overflow-wrap: break-word;
+      }
+      .sentence code {
+        font-family: var(--font-mono);
+        font-size: 0.95em;
+      }
+      /* 標色的字：底色 + 底線，下面掛一個小標籤 */
+      .m {
+        position: relative;
+        padding: 0.1em 0.2em;
+        border-radius: 4px;
+        background: color-mix(in srgb, var(--color-mark) 16%, transparent);
+        box-shadow: inset 0 -2px 0 var(--color-mark);
+        white-space: nowrap;
+      }
+      .m.m2 {
+        background: color-mix(in srgb, var(--color-mark-2) 16%, transparent);
+        box-shadow: inset 0 -2px 0 var(--color-mark-2);
+      }
+      .m.ok {
+        background: color-mix(in srgb, var(--color-good) 16%, transparent);
+        box-shadow: inset 0 -2px 0 var(--color-good);
+      }
+      .m[data-tag]::after {
+        content: attr(data-tag);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        font-family: var(--font-sans);
+        font-size: 0.75rem;
+        line-height: 1.5;
+        font-weight: 700;
+        color: var(--color-mark);
+        white-space: nowrap;
+      }
+      .m.m2[data-tag]::after {
+        color: var(--color-mark-2);
+      }
+      .m.ok[data-tag]::after {
+        color: var(--color-good);
+      }
+      /* 主詞和動詞中間那一段：淡掉 */
+      .gap {
+        opacity: 0.6;
+      }
+      /* 被省掉的 that：一個空格 */
+      .slot {
+        display: inline-block;
+        min-width: 2.6em;
+        height: 1.5em;
+        vertical-align: middle;
+        border: 2px dashed var(--color-mark);
+        border-radius: 4px;
+        position: relative;
+      }
+      .slot::after {
+        content: attr(data-tag);
+        position: absolute;
+        left: 0;
+        top: 100%;
+        font-size: 0.75rem;
+        line-height: 1.7;
+        font-weight: 700;
+        color: var(--color-mark);
+        white-space: nowrap;
+      }
+      /* 名詞疊羅漢：三塊積木 */
+      .bricks {
+        display: inline-flex;
+        flex-direction: column-reverse;
+        vertical-align: middle;
+        margin: 0 0.2em;
+        line-height: 1.5;
+      }
+      .bricks span {
+        padding: 0 0.5em;
+        border: 2px solid var(--color-mark);
+        background: color-mix(in srgb, var(--color-mark) 16%, transparent);
+        margin-top: -2px;
+        text-align: center;
+      }
+      .bricks span:last-child {
+        border-radius: 4px 4px 0 0;
+        margin-top: 0;
+      }
+      .bricks span:first-child {
+        border-radius: 0 0 4px 4px;
+      }
+
+      .zh {
+        margin: 1rem 0 0;
+        font-size: 0.95rem;
+      }
+      .why {
+        margin: 0.6rem 0 0;
+        font-size: 0.95rem;
+        color: var(--color-text-muted);
+      }
+      .zh + .why {
+        margin-top: 0.3rem;
+      }
+
+      .meter {
+        margin: 1rem 0 0;
+        font-size: 0.8rem;
+        color: var(--color-text-muted);
+      }
+      .meter div {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+      }
+      .meter .name {
+        flex: 0 0 3.4em;
+      }
+      .meter .bar {
+        height: 0.5rem;
+        border-radius: 999px;
+        background: var(--color-mark);
+        min-width: 0.5rem;
+      }
+      .meter .bar.good {
+        background: var(--color-good);
+      }
+      .js .card[data-show='ai'] .meter .row-human {
+        visibility: hidden;
+      }
+
+      .flip {
+        display: none;
+        width: 100%;
+        min-height: 48px;
+        margin-top: 1rem;
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        border: 2px solid var(--color-good);
+        background: var(--color-good);
+        color: var(--color-on-good);
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .js .flip {
+        display: block;
+      }
+      .card[data-show='human'] .flip {
+        background: transparent;
+        color: var(--color-text);
+        border-color: var(--color-border);
+      }
+      .flip:focus-visible {
+        outline: 3px solid var(--color-mark-2);
+        outline-offset: 2px;
+      }
+
+      .total {
+        border: 2px solid var(--color-good);
+        border-radius: 14px;
+        padding: 1.1rem;
+        margin-top: 2rem;
+      }
+      .total p {
+        margin: 0 0 0.6rem;
+      }
+      .total p:last-child {
+        margin-bottom: 0;
+      }
+      .total strong {
+        color: var(--color-good);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="back" href="/posts/mp-325-20261028-arxiv-why-ai-text-is-hard-to-read/">← 回文章</a>
+      <h1>AI 英文的六種難讀寫法</h1>
+      <p class="lead">每一句都合文法，只是人讀到的時候會慢下來。每張卡片按一下，換成人話版。</p>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">1</span>讓東西做人的動作</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句</p>
+          <p class="sentence" lang="en">
+            <span class="m" data-tag="不是活的"><code>is_file()</code></span>
+            <span class="m m2" data-tag="活的才會做">swallows</span> that and returns False.
+          </p>
+          <p class="zh"><code>is_file()</code> 把那個錯誤吞掉，然後回傳 False。</p>
+          <p class="why">
+            讀的人會偷偷拿「主詞是不是活的」猜下一個字。函式不會吞東西，腦袋就要倒回去重看一次。
+          </p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            <code>is_file()</code> <span class="m ok">does not report</span> that error. It just
+            returns False.
+          </p>
+          <p class="zh"><code>is_file()</code> 遇到那個錯誤不會報錯，直接回傳 False。</p>
+        </div>
+      </section>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">2</span>名詞直接當動詞用</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句</p>
+          <p class="sentence" lang="en"><span class="m" data-tag="名詞？動詞？">Calendar</span> it.</p>
+          <p class="zh">把它「行事曆」一下。</p>
+          <p class="why">看是看得懂，只是每次遇到都要頓一下：這個字現在到底是名詞還是動詞？</p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            <span class="m ok">Put</span> it <span class="m ok">on the calendar</span>.
+          </p>
+          <p class="zh">把它排進行事曆。</p>
+        </div>
+      </section>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">3</span>冷門的字詞組合</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句</p>
+          <p class="sentence" lang="en">
+            its
+            <span class="m" data-tag="三個字湊在一起，幾乎沒人講過">reader-patience budget</span>
+          </p>
+          <p class="zh">它的讀者耐心預算。</p>
+          <p class="why">
+            三個字分開看都很普通。人在讀的時候一直在猜下一個字，沒看過的組合猜不到，速度就掉下來。
+          </p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            <span class="m ok">how much patience</span> the reader has left
+          </p>
+          <p class="zh">讀者還剩多少耐心。</p>
+        </div>
+      </section>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">4</span>名詞疊羅漢</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句（一則新聞標題）</p>
+          <p class="sentence" lang="en">
+            Squad Helps
+            <span class="bricks"><span>Dog</span><span>Bite</span><span>Victim</span></span>
+          </p>
+          <p class="zh">救難隊幫助被狗咬的人？還是救難隊幫狗咬人？</p>
+          <p class="why">
+            名詞疊在一起，誰修飾誰要讀的人自己猜。AI 寫程式時寫過「Fixed absolute dotfile backup
+            path handling」，一口氣疊了四個。
+          </p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            Squad helps <span class="m ok">the victim of a dog bite</span>.
+          </p>
+          <p class="zh">救難隊幫助被狗咬的人。</p>
+        </div>
+      </section>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">5</span>主詞和動詞離太遠</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句（Sonnet 5 寫的）</p>
+          <p class="sentence" lang="en">
+            <span class="m" data-tag="主詞">The guitar</span>
+            <span class="gap">sitting in the corner because you're still "deciding"</span>
+            <span class="m m2" data-tag="動詞，隔了 8 個字">teaches</span> you zero chords.
+          </p>
+          <p class="zh">那把因為還在「考慮」而一直擺在角落的吉他，一個和弦也教不會。</p>
+          <p class="why">主詞要一路記到動詞出現才能放下。人腦的暫存空間不大，隔得越遠越累。</p>
+          <p class="why">Mogu：被 AI 嗆已經夠慘了，還要讀兩遍才發現自己被嗆。</p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            <span class="m ok">The guitar teaches</span> you zero chords if it just sits in the corner
+            while you're still "deciding".
+          </p>
+          <p class="zh">吉他一直擺在角落、嘴上說還在「考慮」，那就一個和弦也學不會。</p>
+        </div>
+      </section>
+
+      <section class="card" data-show="ai">
+        <h2><span class="num">6</span>把「that」省掉</h2>
+        <div class="ver" data-ver="ai">
+          <p class="ver-label">原句</p>
+          <p class="sentence" lang="en">
+            the sentence <span class="slot" data-tag="少了一個路標"></span> you are reading
+          </p>
+          <p class="zh">你正在讀的這個句子。</p>
+          <p class="why">
+            「that」是路標，告訴讀的人「後面這一串是在形容前面的名詞」。拿掉之後，「sentence」後面突然冒出「you」，得自己想一下這兩個字的關係。
+          </p>
+        </div>
+        <div class="ver" data-ver="human">
+          <p class="ver-label">人話版</p>
+          <p class="sentence" lang="en">
+            the sentence <span class="m ok">that</span> you are reading
+          </p>
+          <p class="zh">你正在讀的這個句子。</p>
+        </div>
+      </section>
+
+      <div class="total">
+        <p>
+          六句原句加起來 <strong id="sum-ai">–</strong> 個英文字，人話版
+          <strong id="sum-human">–</strong> 個。
+        </p>
+        <p>每一張的人話版都比較長。多打幾個字，讀的人就不用卡那一下。那 AI 為什麼不多打幾個字？</p>
+        <p>
+          <a href="/posts/mp-325-20261028-arxiv-why-ai-text-is-hard-to-read/#%E7%AC%AC%E4%BA%8C%E5%B1%A4%E5%A4%9A%E6%89%93%E5%B9%BE%E5%80%8B%E5%AD%97%E6%9C%83%E6%80%8E%E6%A8%A3%E5%97%8E">回文章看答案 →</a>
+        </p>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        function countWords(el) {
+          var text = el.textContent.replace(/\s+/g, ' ').trim();
+          return text ? text.split(' ').length : 0;
+        }
+        var cards = document.querySelectorAll('.card');
+        var sumAi = 0;
+        var sumHuman = 0;
+        cards.forEach(function (card) {
+          var ai = countWords(card.querySelector('.ver[data-ver="ai"] .sentence'));
+          var human = countWords(card.querySelector('.ver[data-ver="human"] .sentence'));
+          sumAi += ai;
+          sumHuman += human;
+
+          var meter = document.createElement('div');
+          meter.className = 'meter';
+          meter.innerHTML =
+            '<div><span class="name">原句</span><span class="bar" style="width:' +
+            (ai / human) * 60 +
+            '%"></span><span>' +
+            ai +
+            ' 個字</span></div>' +
+            '<div class="row-human"><span class="name">人話版</span><span class="bar good" style="width:60%"></span><span>' +
+            human +
+            ' 個字</span></div>';
+          card.appendChild(meter);
+
+          var button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'flip';
+          button.textContent = '換成人話';
+          button.setAttribute('aria-pressed', 'false');
+          button.addEventListener('click', function () {
+            var showHuman = card.getAttribute('data-show') === 'ai';
+            card.setAttribute('data-show', showHuman ? 'human' : 'ai');
+            button.textContent = showHuman ? '看回原句' : '換成人話';
+            button.setAttribute('aria-pressed', String(showHuman));
+          });
+          card.appendChild(button);
+        });
+        document.getElementById('sum-ai').textContent = sumAi;
+        document.getElementById('sum-human').textContent = sumHuman;
+      })();
+    </script>
+  </body>
+</html>
