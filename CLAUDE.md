@@ -4,7 +4,7 @@
 
 > 上面 `@AGENTS.md` 是所有 agent 共讀的 Tier-0 中性憲法 + 路由。這段只放「換成別的 agent 就不成立」的 Claude Code 限定操作細節。其餘規則一律以 `AGENTS.md` 和它指向的 playbook / Tier-2 文件為準。
 
-- **開 PR / 追 CI 用 GitHub MCP**：`mcp__github__create_pull_request` 開 PR，`mcp__github__pull_request_read`（`get_status` / `get_comments` / `get_check_runs`）追 CI 跟撈 Vercel preview URL，`mcp__github__merge_pull_request` 合併，`mcp__github__subscribe_pr_activity` 訂閱自己的 PR。CCC 的 self-merge / 收尾 / preview-URL SOP 全在 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。
+- **開 PR / 追 CI 用 GitHub MCP**：`mcp__github__create_pull_request` 開 PR，`mcp__github__pull_request_read`（`get_status` / `get_comments` / `get_check_runs`）追 CI 跟撈 Vercel preview URL，`mcp__github__merge_pull_request` 合併；訂閱自己的 PR 用 `subscribe_pr_activity`（在 claude-code-remote MCP，不在 GitHub MCP）。CCC 的 self-merge / 收尾 / preview-URL SOP 全在 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。
 - **Tribunal judges 預設一律走 tribunal script**：script 才是 model routing、provenance 與完整四評審流程的正常入口。只有 script／provider 路徑真的壞掉時，才照 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md) 的 fallback 做；不要自行用 `Agent` tool 猜 model。exact-version pinned 的 voice role 仍必須用 agent frontmatter 的完整 ID。跑法 / fallback / model 路由 / stream idle timeout 全以該 playbook 為 SSOT，CLAUDE.md 不複述方法。
 - **本地 skill（路徑是 `.claude/skills/`）**：
   - `playwright-cli`（`.claude/skills/playwright-cli/`）：截圖驗證 UI

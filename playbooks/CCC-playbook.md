@@ -48,7 +48,7 @@ CCC 只要要寫文、修文、改內容規則、writer prompt、judge prompt �
 
 1. `git push -u origin claude/xxx`
 2. 用 GitHub MCP (`mcp__github__create_pull_request`) 開 PR 到 main
-3. **PR 開完立刻 `mcp__github__subscribe_pr_activity` 訂閱自己這條 PR**。盯 CI 和 review comment 是 CCC 份內的工作，跟開 PR 在同一輪做完，不留到下個 turn，也不拿來問 user。（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 8 的 send_later check-in。）
+3. **PR 開完立刻 `subscribe_pr_activity`（claude-code-remote MCP）訂閱自己這條 PR**。盯 CI 和 review comment 是 CCC 份內的工作，跟開 PR 在同一輪做完，不留到下個 turn，也不拿來問 user。（webhook 不送 CI success / merge transition，所以光訂閱不夠，見步驟 8 的 send_later check-in。）
 4. **先轉 ready，暫不掛 auto-merge**：非 OpenSpec PR 若 harness 強制開 draft，立刻 `mcp__github__update_pull_request` 轉 ready，讓 GitHub Codex auto-review 啟動。採用 OpenSpec 的變更依 `.agents/openspec-sdlc.md` 維持 draft，完成 preview touchpoint 與 archive 後才轉 ready。此時不得先掛 auto-merge。
 5. **讀完 auto-review 才把 merge 交給 server-side**：每次把球交給 auto-review（轉 ready，或 push review 修正）的同一輪，就記錄交球時間，並用 `send_later` 或 runtime 等價的 durable wake-up 排定 15 分鐘後重查；不能假設 session 會一直醒著。等 review 完成後，fresh-read 最新 review threads，逐條判斷是否成立；actionable 就修、push，然後以新 commit 重新計時走這道 gate，誤報則留下理由。沒有 unresolved actionable thread 後才 `mcp__github__enable_pr_auto_merge`。喚醒時仍沒有該輪新 review，就記錄查詢結果，並排定在交球後 25 分鐘再查；屆時仍無結果，記錄交球時間與兩次查詢結果，視為本輪 auto-review 不可用並繼續，不能無限等。若 runtime 沒有 durable wake-up，當前 turn 必須持續用 wait／poll 到 gate 通過或 25 分鐘期限，不得留下無喚醒機制的 ready PR。Gate 通過或有不可用證據後要立刻掛 auto-merge，讓 CI 綠時 GitHub 自己合，**不依賴 session 醒著**。
 6. **Merge 完不用、也無法自己刪 remote branch**——repo 已開啟「Automatically delete head branches」，GitHub 在 merge 後自動刪掉 head branch，CCC 什麼都不用做。**⚠️ CCC 千萬不要嘗試 `git push origin --delete claude/xxx`**：sandbox 的 git proxy 會回 **HTTP 403**（只放行 push commit、不放行刪 ref），重試也是 403、純粹浪費 round。GitHub MCP 也沒有 delete-branch 工具。Local branch 是拋棄式 sandbox 的一部分，不用管。萬一哪天 auto-delete 被關掉導致 branch 沒被清，那是 user 去 GitHub 設定重開／手動刪的事，不是 CCC 能在 sandbox 內解決的。
@@ -125,9 +125,8 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ## 品質 gate（全部不能跳）
 
-- `pre-commit` hook（eslint / prettier / validate-posts / contrast check / ticketId dedup）
-- `pre-push` hook（dependency / budget / dist checks）
-- `validate-posts.mjs`（frontmatter + kaomoji + filename）
+- `pre-commit` hook、`pre-push` hook（各自跑哪些檢查以 `scripts/hooks/pre-commit`、`scripts/hooks/pre-push` 為準）
+- `validate-posts.mjs`
 - Tribunal（Vibe + Fact + Librarian + FreshEyes）
 
 這些是 CCC 能放手做事的**前提**。關掉任何一個 = CCC 失去工作的資格。
@@ -145,7 +144,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 （每個 agent 用哪個 model = 它的 `model:` frontmatter，**這裡不複述版本號**，見〈模型路由〉的 SSOT 提醒）：
 
 - `vibe-opus-scorer.md` → persona / moguNote / vibe / narrative（v9；clarity 已移到 Fresh Eyes，v8 以下才含 clarity；以 `claude -p` 保住 exact pin）
-- `fact-checker.md` → accuracy / fidelity / consistency（要 WebFetch 驗 sourceUrl）
+- `fact-checker.md` → accuracy / fidelity / consistency / sourceBoundary / commentarySeparation（沒有 source packet 才自己抓來源）
 - `librarian.md` → glossary / crossRef / sourceAlign / attribution
 - `fresh-eyes.md` → readability / firstImpression / payoffDensity / lengthFit / clarity（v9；clarity 是非補償硬門檻，v8 以下無）
 
@@ -172,7 +171,7 @@ Vercel build / tribunal / validate-posts / CI 沒過：
 
 ### pipeline 內建的 eval gate
 
-`gp-pipeline run` 的 step 1.5 `eval` 是雙評估（Gemini + Codex）worthiness gate：
+`gp-pipeline run` 的 step 1.5 `eval` 是雙評估 worthiness gate（誰來評見 `internal/pipeline/eval.go`）：
 
 - **GO/GO** → 繼續跑寫作 → 12-point review → refine → tribunal → deploy
 - **SKIP/SKIP** → exit 12 → 不寫，從 queue 丟掉（不值得寫）
@@ -185,7 +184,7 @@ intake 的 worthiness 短評由 agent 在 chat 交付；user 授權繼續後，p
 `gp-pipeline` 的 `source.Fetch` dispatcher（`tools/gp-pipeline/internal/source/fetch.go`）接受**任意 http(s) URL**：
 
 - **X / Twitter URLs**（`x.com` / `twitter.com`，含 `www.`）→ 走 `FetchX`，用 `scripts/fetch-x-article.sh` 拉 fxtwitter JSON，品質最好
-- **其他 http(s) URL**（`claude.com` / `anthropic.com` / blogs / docs / etc.）→ 走 `FetchGeneric`，用 `curl -sSL` + 最小 HTML cleanup（砍 `<script>` / `<style>` / 標籤、decode entities、壓縮空白），送進 `ValidateArticleCapture` 驗
+- **其他 http(s) URL**（`claude.com` / `anthropic.com` / blogs / docs / etc.）→ 走 `FetchGeneric`，在 process 內抓 HTML、交給 `scripts/fetch-article.py --extract-only` 抽正文，再送進 `ValidateArticleCapture` 驗
 
 非 http(s) scheme（`file://`、`javascript:`）、localhost、RFC1918 / loopback / link-local IP 會在 URL validator 被擋掉（SSRF 防線）。遇到 paywall / JS-challenge / SSR-heavy 的 host，`ValidateArticleCapture` 會拒絕並給你 `code: 11`——這時再走手動 fallback。
 
@@ -205,7 +204,7 @@ tools/gp-pipeline/gp-pipeline run <url> --prefix <MP|SD> --force
 
 ### Sandbox 網路能力（2026-04-23 實測）
 
-**CCC 沙箱的 command-line HTTPS 是通的。** `curl https://claude.com/...` 正常回 200，`gp-pipeline` 內建的 `FetchGeneric`（走 curl）實測可以直接在 CCC 裡抓外部文章。所以抓外部文章不必改到 Mac 跑。
+**CCC 沙箱的 command-line HTTPS 是通的。** `curl https://claude.com/...` 正常回 200，`gp-pipeline` 內建的 `FetchGeneric` 實測可以直接在 CCC 裡抓外部文章。所以抓外部文章不必改到 Mac 跑。
 
 什麼還是受限：
 - **`playwright-cli` 的 browser navigation**：`goto` 在 `domcontentloaded` 卡死、Google Fonts 之類 CSS 外鏈拿不到（要 route-abort workaround，見 `uiux-auditor` skill）
