@@ -18,8 +18,13 @@
 #   - No diff in the given files          -> exit 0, no-op.
 #   - Remote branch doesn't exist yet     -> create it with a normal push,
 #     then emit a clean-materialization handoff.
-#   - Remote branch already exists        -> leave it untouched, emit the
-#     same handoff for its exact SHA, exit 0.
+#   - Remote branch already exists, and main already holds exactly what
+#     it carries (the carrier was materialized, but nobody deleted it —
+#     cloud agents cannot delete refs) -> retire that exact SHA, then
+#     create a fresh carrier as in the "doesn't exist" case. Without this
+#     a consumed carrier blocks every later nightly from staging anything.
+#   - Remote branch already exists, anything else -> leave it untouched,
+#     emit the same handoff for its exact SHA, exit 0.
 #     (The baseline-freshness job is the escalation signal for "this has
 #     been sitting too long" — this script does not try to be that too.)
 #   - Existence check itself fails        -> exit 1 (fail closed). A
@@ -54,6 +59,34 @@ emit_carrier_handoff() {
   done
 }
 
+# A carrier is consumed when its own commit touched only the declared files
+# and current main already holds byte-identical copies of them. Any doubt
+# (fetch failure, extra files, missing blob) means "not consumed": the caller
+# then preserves the carrier untouched.
+carrier_is_consumed() {
+  local carrier_sha="$1" file candidate touched declared
+  git fetch -q --depth 2 origin \
+    "+refs/heads/$BRANCH:refs/nightly-stage/carrier" \
+    "+refs/heads/main:refs/nightly-stage/main" 2>/dev/null || return 1
+  [ "$(git rev-parse -q --verify refs/nightly-stage/carrier)" = "$carrier_sha" ] || return 1
+
+  touched="$(git diff-tree --no-commit-id --name-only -r "$carrier_sha" 2>/dev/null)" || return 1
+  [ -n "$touched" ] || return 1
+  while IFS= read -r file; do
+    declared=false
+    for candidate in "${FILES[@]}"; do
+      [ "$candidate" = "$file" ] && declared=true
+    done
+    $declared || return 1
+  done <<<"$touched"
+
+  for file in "${FILES[@]}"; do
+    [ -n "$(git rev-parse -q --verify "$carrier_sha:$file")" ] || return 1
+    [ "$(git rev-parse -q --verify "$carrier_sha:$file")" = \
+      "$(git rev-parse -q --verify "refs/nightly-stage/main:$file")" ] || return 1
+  done
+}
+
 if git diff --quiet -- "${FILES[@]}"; then
   echo "No change in: ${FILES[*]} — skipping staging push."
   exit 0
@@ -74,10 +107,17 @@ if [ "$ls_exit" -eq 0 ]; then
     echo "$ls_output" >&2
     exit 1
   fi
-  echo "Remote branch '$BRANCH' already exists — preserving it untouched (it's presumably awaiting clean materialization)."
-  echo "Skipping publish. The baseline-freshness job is the signal that this needs attention."
-  emit_carrier_handoff "$carrier_sha"
-  exit 0
+  # The lease pins the delete to the exact SHA just verified, so a carrier
+  # that moved in between is never removed.
+  if carrier_is_consumed "$carrier_sha" &&
+    git push -q --force-with-lease="refs/heads/$BRANCH:$carrier_sha" origin ":refs/heads/$BRANCH"; then
+    echo "Remote branch '$BRANCH' ($carrier_sha) is already materialized on main — retired it, staging a fresh carrier."
+  else
+    echo "Remote branch '$BRANCH' already exists — preserving it untouched (it's presumably awaiting clean materialization)."
+    echo "Skipping publish. The baseline-freshness job is the signal that this needs attention."
+    emit_carrier_handoff "$carrier_sha"
+    exit 0
+  fi
 elif [ "$ls_exit" -eq 2 ]; then
   echo "Remote branch '$BRANCH' does not exist yet — creating it."
 else
