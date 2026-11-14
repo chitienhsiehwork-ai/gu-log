@@ -14,6 +14,20 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - ShroomDog 核准某篇文章保留某個 emoji 時，照常把回饋記在這裡，另外在 `scripts/check-content-emoji.mjs` 的核准清單加一筆（路徑、emoji、理由）。
 
+## 2026-11-14 — MP-325：參考 Simon Willison 和李宏毅老師，整篇重排一次
+
+### Feedback: 「Anything we can learn from simon willison and 台大電機李宏毅老師？」「I want the new thread can just one shot it with proper reference」
+
+- 情境：第四版「readable but plain」。ShroomDog 人在手機上，沒辦法逐句改，要求參考這兩位怎麼把東西講得好懂，一次改到位。
+- 修法：ShroomDog 逐句改過的開頭、吐槽和收尾都沒動，改的是段落怎麼接。下面每一項是「查得到的手法 → 用在哪裡」。
+  - 標題寫成聽的人心裡的問題。李宏毅老師的投影片標題是「你想找什麼樣的函式？」「How to find a function?」「How good it is?」（[ML 2020 課程介紹](https://speech.ee.ntu.edu.tw/~tlkagk/courses/ML2020/introduction.pdf)、[ML 2021 第一講](https://speech.ee.ntu.edu.tw/~hylee/ml/ml2021-course-data/regression%20(v16).pdf)）；Simon Willison 的小標也是「So what is "training" then?」（[Training is not the same as chatting](https://simonwillison.net/2024/May/29/training-not-chatting/)）。文章的小標改成「會不會只是 AI 講的東西本來就難？」「這是猜的吧？有證據嗎？」「小模型的實驗不算數，那大模型呢？」「所以有救嗎？」，每一節回答上一節留下的疑問。
+  - 先承認讀者的懷疑有道理，再回答。Simon Willison 糾正誤解前先寫「This is by no means an irrational position to take」（同上一篇）。回譯那一節開頭改成「會這樣懷疑很合理。聊程式架構的句子，本來就不會像聊天氣那麼好讀。」
+  - 抽象的說法換成一個畫面。李宏毅老師講模型太簡單，投影片寫「find a needle in a haystack … but there is no needle」（[ML 2021 General Guidance](https://speech.ee.ntu.edu.tw/~hylee/ml/ml2021-course-data/overfit-v6.pdf)）。「人會在省事和聽得懂之間抓平衡」補上「跟老朋友約吃飯傳一句『老地方』就夠了；約的是新同事，就會乖乖把店名和地址打出來」；「答對就加分」補上「改考卷的是程式：數學對答案，程式跑測試」。
+  - 例子用真的。李宏毅老師第一講拿自己 YouTube 頻道的觀看人數當案例，從頭講到尾（ML 2021 第一講的「A Case Study」）；Simon Willison 說引用要能證明自己真的讀過（「I like to prove that I've read it」，[My approach to running a link blog](https://simonwillison.net/2024/Dec/22/link-blog/)）。「主詞和動詞離太遠」補上論文裡 Sonnet 5 寫的吉他那一句，吐槽放 MoguNote。
+  - 重點自己一段。Simon Willison 會讓一句話獨立成段（「These models don't change very often!」）。「結果翻回來的版本裡，上面那些寫法大多變少了。」和「從頭到尾沒有人叫模型『寫短一點』……」各自成段。
+  - 證據照推理的順序排。Olmo 三個版本原本放在「有救嗎？」底下，其實是第二層最直接的證據，搬到小模型實驗後面，回答「那大模型呢？」；「有救嗎？」只留 Opus 5.5。原本藏在 MoguNote 的過場（六種寫法都有長一點但好讀的版本）是論文自己的論點，搬回正文，當成第二層的開頭。
+- Reusable lesson：(1) 句子都順了還是平，先看段落之間是靠什麼接起來的；用讀者下一個會問的問題接，比「第一層、第二層」有往下讀的動力。(2) 參考別人的寫法時，只用查得到原文的手法，出處一起記下來。李宏毅老師的口語和笑話在投影片上查不到，這次沒有拿來當依據。
+
 ## 2026-11-10 — MP-325：好讀了，但還不好看；目標是讀起來有樂趣
 
 ### Feedback: 「Overall, readable but plain, not enjoyable. The goal is to be enjoyable, seems like we r on the right track!」
