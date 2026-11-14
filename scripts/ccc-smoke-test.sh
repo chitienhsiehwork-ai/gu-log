@@ -322,7 +322,7 @@ else
 fi
 
 # ── 9b. dotfiles skill 鏡像（optional）─────────────────────────────
-# .claude/skills/{level-up,trim}/ 是 dotfiles 的鏡像；落後只提醒，不擋開工。
+# sync-dotfiles-skills.sh 的 SKILLS 列的是 dotfiles 鏡像；落後只提醒，不擋開工。
 section "9b. dotfiles skill 鏡像"
 if SKILL_MIRROR_MSG=$(timeout 20 bash scripts/sync-dotfiles-skills.sh --check-latest 2>&1); then
   pass "skill 鏡像是 dotfiles 最新版"
