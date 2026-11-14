@@ -1,6 +1,6 @@
 ---
 name: html-explainer
-description: Recipe for effective self-contained HTML learning artifacts — single-file explainer pages that teach ONE concept through a strong analogy carried throughout, an interactive micro-world the reader manipulates, and a built-in comprehension quiz. Use when the user asks for an HTML explainer, learning page, concept lesson, or a code/diff explainer doc that teaches a person to understand a change (not a merge-decision review), or when the level-up workflow needs a level rendered as HTML.
+description: Recipe for effective self-contained HTML learning artifacts — single-file explainer pages that teach ONE concept through a strong analogy carried throughout, an interactive micro-world the reader manipulates, and a built-in comprehension quiz. Use when the user asks for an HTML explainer, learning page, concept lesson, or a code/diff explainer doc that teaches a person to understand a change (not a merge-decision review).
 ---
 
 # html-explainer — 有效的 HTML 學習頁配方
@@ -28,7 +28,7 @@ description: Recipe for effective self-contained HTML learning artifacts — sin
 - 類比**就是**解說本身，不是旁邊的裝飾。讀者跟著故事走完，概念就該吸收進去；最後才用一行錨點對回術語（「這在技術上叫 X」）。
 - **一頁一類比**，從背景一路扛到測驗，絕不中途換世界觀、絕不混搭兩套比喻。
 - 挑類比先想「扛得動整個概念嗎」：只撐得起前兩段的類比是壞類比。
-- 類比要用讀者真的活過的世界。呼叫方（如 level-up）通常已指定讀者的偏好框架——沿用它；專有名詞不確定就查證或停在機制層，不要憑印象掰。
+- 類比要用讀者真的活過的世界。呼叫方若已指定讀者的偏好框架就沿用它；專有名詞不確定就查證或停在機制層，不要憑印象掰。
 - 角色稱呼要自然變化但保留身分線索；避免每次重複「名字＝職位」模板。同一角色可依場景改用職稱或口語稱呼，但不要為變化而新增難記角色。
 
 ## 微世界設計
@@ -50,7 +50,7 @@ description: Recipe for effective self-contained HTML learning artifacts — sin
 
 - 一個 `.html` 檔，CSS/JS 全部 inline。**零外部依賴**：無 CDN、無外部字型、無 `<script src>`、無網路請求。用終端機 `open <file>.html` 離線就能看。
 - 手機可讀：單欄流式排版、觸控可操作的控制項。
-- 視覺主題依呼叫方指定（level-up 有自己的主題 tokens——以 level-up skill 為準，不要在這裡複製一份）；沒指定就用高對比、可讀性優先的中性配色。
+- 視覺主題依呼叫方指定；沒指定就用高對比、可讀性優先的中性配色。
 - 語言依呼叫方；教學頁預設 zh-tw 白話，英文縮寫第一次出現要展開解釋。
 
 ## 變體：code / diff explainer
@@ -75,6 +75,5 @@ description: Recipe for effective self-contained HTML learning artifacts — sin
 
 ## 跟其他 skill 的分工
 
-- **level-up**：教學「工作流程」SSOT（等級規劃、學習紀錄、聊天內 MCQ、類比選擇儀式）。它要渲染 HTML 教材時，用本 skill 當配方。
 - **html-artifacts**：一般工作產出（計畫、review、報告）的 HTML。學習頁歸這裡。目的不是「教懂人」的一般 report/review，不用本 skill。
 - **playground / dataviz**：前者是「調參數→複製 prompt」工具、後者是圖表規範——都不是教學頁；但微世界需要圖表時可參照 dataviz 的配色紀律。

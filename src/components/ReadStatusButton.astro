@@ -307,6 +307,11 @@ const apiUrl = normalizePublicApiBaseUrl(configuredApiUrl);
                 btn.querySelector<HTMLButtonElement>('.read-status-btn')!.classList.add('is-read');
               }
             });
+            // Same event the manual toggle sends, so the read dots in
+            // SeriesNav / RelatedArticles update without a reload.
+            window.dispatchEvent(
+              new CustomEvent('read-status-changed', { detail: { slug, read: true } })
+            );
           }
           cleanupTracking();
         }

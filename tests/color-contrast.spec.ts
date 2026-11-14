@@ -15,7 +15,7 @@ import { selectPostTextAndShowPopup } from './helpers/ai-popup';
 // Sample pages covering different layouts
 const PAGES = [
   { name: 'Home', path: '/' },
-  { name: 'Post (zh-tw)', path: '/posts/agentic-note-taking-verbatim-trap/' },
+  { name: 'Post (zh-tw)', path: '/posts/mp-25-20260204-cursor-vibe-coding-lies/' },
   { name: 'Mogu Picks listing', path: '/mogu-picks/' },
   { name: 'About', path: '/about/' },
 ];

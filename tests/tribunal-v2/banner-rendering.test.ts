@@ -112,7 +112,7 @@ describe('Tribunal warning banner rendering', () => {
 
     expect(deprecated).toContain('This article has been replaced');
     expect(deprecated).toContain('href="/posts/replacement"');
-    expect(deprecated).toContain('GP-999：Replacement');
+    expect(deprecated).toContain('GP-999: Replacement');
     expect(retired).toContain('ShroomDog 覺得這篇品質不夠好');
   });
 

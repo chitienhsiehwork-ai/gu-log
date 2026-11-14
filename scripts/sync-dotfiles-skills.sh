@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-SKILLS=(level-up trim)
+SKILLS=(chill html-explainer level-up trim)
 UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/ChiTienHsieh/dotfiles.git}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 

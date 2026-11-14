@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Regression coverage for scripts/nightly-baseline-stage.sh's durable carrier
-# policy: no-op unchanged files, never clobber pending progress, emit an exact
+# policy: no-op unchanged files, never clobber pending progress, retire a
+# carrier main already materialized, emit an exact
 # clean-materialization handoff, and fail closed on untrustworthy remote state.
 set -euo pipefail
 
@@ -148,6 +149,82 @@ assert_carrier_handoff \
   "$existing_sha" \
   quality/test-baseline.json
 echo "test 3 (existing branch preserved, not clobbered) passed"
+
+# ── Test 3b: carrier holds only declared files main doesn't have yet -> preserved ─
+setup_repo
+PENDING_DIR="$TMP_DIR/pending"
+git clone -q "$BARE_REMOTE" "$PENDING_DIR"
+(
+  cd "$PENDING_DIR"
+  git config user.name "test"
+  git config user.email "test@example.com"
+  git checkout -q -b nightly/test-pending origin/main
+  echo '{"date":"2026-02-01"}' >quality/test-baseline.json
+  git commit -q -am "pending baseline — main has not taken it yet"
+  git push -q origin nightly/test-pending
+)
+pending_sha="$(remote_branch_sha nightly/test-pending)"
+
+cd "$WORK_DIR"
+echo '{"date":"2026-02-02"}' >quality/test-baseline.json
+pending_output="$(
+  bash "$SCRIPT" nightly/test-pending "chore: attempted overwrite" quality/test-baseline.json
+)"
+if [ "$(remote_branch_sha nightly/test-pending)" != "$pending_sha" ]; then
+  echo "FAIL (test 3b): a carrier main has not materialized yet must stay untouched" >&2
+  exit 1
+fi
+assert_carrier_handoff \
+  "$pending_output" \
+  nightly/test-pending \
+  "$pending_sha" \
+  quality/test-baseline.json
+echo "test 3b (unmaterialized carrier preserved) passed"
+
+# ── Test 3c: main already holds the carrier's files -> retire + restage ──
+# A materialized carrier that nobody deleted must not block later nightlies.
+setup_repo
+CONSUMED_DIR="$TMP_DIR/consumed"
+git clone -q "$BARE_REMOTE" "$CONSUMED_DIR"
+(
+  cd "$CONSUMED_DIR"
+  git config user.name "test"
+  git config user.email "test@example.com"
+  git checkout -q -b nightly/test-consumed origin/main
+  echo '{"date":"2026-02-01"}' >quality/test-baseline.json
+  git commit -q -am "carrier"
+  git push -q origin nightly/test-consumed
+  # Materialize the same bytes on main through an unrelated commit.
+  git checkout -q -B main origin/main
+  echo '{"date":"2026-02-01"}' >quality/test-baseline.json
+  git commit -q -am "materialize carrier on main"
+  git push -q origin main
+)
+consumed_sha="$(remote_branch_sha nightly/test-consumed)"
+
+cd "$WORK_DIR"
+git pull -q origin main
+echo '{"date":"2026-02-02"}' >quality/test-baseline.json
+consumed_output="$(
+  bash "$SCRIPT" nightly/test-consumed "chore: fresh carrier" quality/test-baseline.json
+)"
+restaged_sha="$(remote_branch_sha nightly/test-consumed)"
+if [ -z "$restaged_sha" ] || [ "$restaged_sha" = "$consumed_sha" ]; then
+  echo "FAIL (test 3c): consumed carrier should be retired and replaced (before=$consumed_sha after=$restaged_sha)" >&2
+  printf '%s\n' "$consumed_output" >&2
+  exit 1
+fi
+restaged_content="$(git --git-dir="$BARE_REMOTE" show "$restaged_sha:quality/test-baseline.json")"
+if [ "$restaged_content" != '{"date":"2026-02-02"}' ]; then
+  echo "FAIL (test 3c): fresh carrier should hold tonight's file, got: $restaged_content" >&2
+  exit 1
+fi
+assert_carrier_handoff \
+  "$consumed_output" \
+  nightly/test-consumed \
+  "$restaged_sha" \
+  quality/test-baseline.json
+echo "test 3c (consumed carrier retired and restaged) passed"
 
 # ── Test 4: existence check itself fails -> fail closed, no push ────────
 setup_repo

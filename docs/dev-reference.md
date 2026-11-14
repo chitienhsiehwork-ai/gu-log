@@ -23,7 +23,7 @@ src/
 │       └── en-gp-123-date-slug.mdx # 英文版 (lang: "en")
 ├── components/
 │   ├── MoguNote.astro        # Mogu 吐槽框（所有系列通用）
-│   ├── ShroomDogNote.astro    # ShroomDog 本人聲音（SD 系列）
+│   ├── ShroomDogNote.astro    # ShroomDog 本人聲音（多半在 SD）
 │   ├── Toggle.astro           # 可收合內容
 │   ├── TableOfContents.astro  # 目錄
 │   └── ...                    # ReadingProgress, PrevNextNav, etc.

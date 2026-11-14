@@ -45,7 +45,7 @@ const labels = {
 
 const t = labels[lang][type];
 const linkLabel = replacementTicketId
-  ? `${replacementTicketId}${replacementTitle ? `：${replacementTitle}` : ''}`
+  ? `${replacementTicketId}${replacementTitle ? `${lang === 'en' ? ': ' : '：'}${replacementTitle}` : ''}`
   : replacementTitle || ('fallback' in t ? t.fallback : '');
 ---
 

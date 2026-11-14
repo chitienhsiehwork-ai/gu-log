@@ -53,7 +53,7 @@ export function extractLinks(content, filePath) {
   // 1. Frontmatter sourceUrl (use original content for frontmatter)
   const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
   if (fmMatch) {
-    const sourceUrlMatch = fmMatch[1].match(/sourceUrl:\s*['"]([^'"]+)['"]/);
+    const sourceUrlMatch = fmMatch[1].match(/^sourceUrl:\s*['"]?([^'"\s]+)['"]?\s*$/m);
     if (sourceUrlMatch) {
       add(sourceUrlMatch[1], 'sourceUrl', 'frontmatter');
     }

@@ -4,7 +4,7 @@
 >
 > 收錄三條：🛠️ 順手修 friction + 自主原則、🧭 SSOT 紀律、📐 寫 prompt / 規則的耐久原則。
 
-## 🛠️ 主任務做完踩到的 bug，順手修在同一個 PR（atomic commits）
+## 🛠️ 順手修 friction + 完全自主：主任務踩到的 bug，修在同一個 PR（atomic commits）
 
 這是個人副業 repo，**velocity > stability**。寫主任務時順手踩到的 bug、寫 follow-up 寫到不爽的小毛刺，**不要另開 branch / 另開 PR / 寫 follow-up commit message 然後甩給 user**——直接在當前 PR 修掉，每個 fix 一個 atomic commit 就好。
 
@@ -40,9 +40,9 @@
 - Pre-commit / pre-push hook 一律照跑，不要因為「順手修」就 `--no-verify`
 
 **反例**（不要這樣）：
-- ❌ 寫 SP 踩到 frontmatter bug → 用 `--no-verify` 繞過、把 fix 寫進 PR body 當「known issue」
+- ❌ 寫 MP 踩到 frontmatter bug → 用 `--no-verify` 繞過、把 fix 寫進 PR body 當「known issue」
 - ❌ 跑 tribunal 失敗 → 在主 commit message 寫「scoring infra broken, fix in follow-up」然後 commit
-- ✅ 寫 SP 踩到 frontmatter bug → 在同一個 PR 加一個 `fix(frontmatter): SetBlock 處理 nested key 不存在` commit、main commit 不沾
+- ✅ 寫 MP 踩到 frontmatter bug → 在同一個 PR 加一個 `fix(frontmatter): SetBlock 處理 nested key 不存在` commit、main commit 不沾
 
 ## 🧭 SSOT 紀律：別複製事實，發現 drift 當場收斂
 

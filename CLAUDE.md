@@ -4,7 +4,7 @@
 
 > 上面 `@AGENTS.md` 是所有 agent 共讀的 Tier-0 中性憲法 + 路由。這段只放「換成別的 agent 就不成立」的 Claude Code 限定操作細節。其餘規則一律以 `AGENTS.md` 和它指向的 playbook / Tier-2 文件為準。
 
-- **開 PR / 追 CI 用 GitHub MCP**：`mcp__github__create_pull_request` 開 PR，`mcp__github__pull_request_read`（`get_status` / `get_comments` / `get_check_runs`）追 CI 跟撈 Vercel preview URL，`mcp__github__merge_pull_request` 合併，`mcp__github__subscribe_pr_activity` 訂閱自己的 PR。CCC 的 self-merge / 收尾 / preview-URL SOP 全在 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。
+- **開 PR / 追 CI 用 GitHub MCP**：`mcp__github__create_pull_request` 開 PR，`mcp__github__pull_request_read`（`get_status` / `get_comments` / `get_check_runs`）追 CI 跟撈 Vercel preview URL，`mcp__github__merge_pull_request` 合併；訂閱自己的 PR 用 `subscribe_pr_activity`（在 claude-code-remote MCP，不在 GitHub MCP）。CCC 的 self-merge / 收尾 / preview-URL SOP 全在 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md)。
 - **Tribunal judges 預設一律走 tribunal script**：script 才是 model routing、provenance 與完整四評審流程的正常入口。只有 script／provider 路徑真的壞掉時，才照 [`playbooks/CCC-playbook.md`](playbooks/CCC-playbook.md) 的 fallback 做；不要自行用 `Agent` tool 猜 model。exact-version pinned 的 voice role 仍必須用 agent frontmatter 的完整 ID。跑法 / fallback / model 路由 / stream idle timeout 全以該 playbook 為 SSOT，CLAUDE.md 不複述方法。
 - **本地 skill（路徑是 `.claude/skills/`）**：
   - `playwright-cli`（`.claude/skills/playwright-cli/`）：截圖驗證 UI
@@ -12,5 +12,6 @@
   - `trim`（`.claude/skills/trim/`）：dotfiles 的鏡像，精簡 agent 指令、抓難讀的句子；改法同下面的 `level-up`
   - 建立 / 修改 skill 用內建的 `anthropic-skills:skill-creator`，repo 裡不放副本
   - `level-up`（`.claude/skills/level-up/`）：dotfiles 的鏡像（含學習紀錄）。要改 skill 或寫學習紀錄就改 `ChiTienHsieh/dotfiles` 的 `skills/shared/level-up/`（雲端 session 沒掛就用 `add_repo` 掛上），再跑 `bash scripts/sync-dotfiles-skills.sh`；直接改鏡像會被 CI 擋
+  - `chill`、`html-explainer`：同樣是 dotfiles 的鏡像，改法同 `level-up`（哪些 skill 是鏡像以 `scripts/sync-dotfiles-skills.sh` 的 `SKILLS` 為準）
 - **不確定時找誰**（Claude subagent 路徑）：技術決策不確定就照 AGENTS.md〈Human interface〉在 chat 問具體問題（先想清楚、給選項；`AskUserQuestion` 已被 `.claude/settings.json` 的 deny 停用，以那裡為準）；內容 / editorial work 先讀 `openspec/specs/editorial-charter/spec.md`，內容風格再讀 `GU-LOG_WRITER_PROMPT.md`，正式打分照上面 Tribunal judges 那條；架構不確定 spawn `Plan` subagent 規劃再動手。
 - **動手建機制前先審「該不該做」**：要新增 openspec capability / 機制 / 非小型 refactor，或正要照自己（或 user）的直覺蓋東西前，先用 `Agent` tool spawn 2–4 個 zero-context、預設懷疑的 reviewer subagent（價值 / 替代 / 失敗模式各一視角），能講「別做」才算數。收斂說不做就別硬推；不做但分析有價值就記成 openspec 決策記錄。全文（含 runtime 差異、範式）見 [`docs/value-review-runbook.md`](docs/value-review-runbook.md)。**最好的 code 常常是不寫 code、做一個好決定。**

@@ -41,16 +41,6 @@ else
   }
 fi
 
-# Extract ticketId from a post file (handles both single and double quotes)
-# Usage: ticket_id=$(get_ticket_id "src/content/posts/file.mdx")
-get_ticket_id() {
-  local file="$1"
-  # Match ticketId: "XX-N" or ticketId: 'XX-N' or ticketId: XX-N
-  grep -m1 'ticketId' "$file" 2>/dev/null \
-    | sed -E "s/.*ticketId:[[:space:]]*[\"']?([^\"']+)[\"']?.*/\1/" \
-    | tr -d '[:space:]'
-}
-
 # Print the `status` scalar of a post's first frontmatter block, unquoted
 # (empty when absent). Frontmatter may use quoted or unquoted YAML scalars.
 tribunal_post_status() {
@@ -319,82 +309,6 @@ validate_score_json() {
   [ "$v" -ge 0 ] && [ "$v" -le 10 ] || return 1
 
   return 0
-}
-
-# Read scores from validated JSON (tribunal vibe schema)
-# Usage: read_scores "/tmp/vibe-score-GP-110.json"
-# Sets: SCORE_P, SCORE_C, SCORE_V
-read_scores() {
-  local json_file="$1"
-  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
-  SCORE_P=$(jq -r '.dimensions.persona' "$json_file")
-  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
-  SCORE_C=$(jq -r '.dimensions.moguNote' "$json_file")
-  # shellcheck disable=SC2034 # Exported-by-convention globals used by callers.
-  SCORE_V=$(jq -r '.dimensions.vibe' "$json_file")
-}
-
-# Stamp translatedBy with tribunal pipeline info
-# Usage: stamp_ralph_signature "src/content/posts/file.mdx"
-stamp_ralph_signature() {
-  local file="$1"
-  [ -f "$file" ] || return 0
-
-  local model_str="GPT-5.5"
-
-  # Replace the translatedBy block using node for reliable YAML manipulation
-  # Fallback: use sed to replace model and harness lines, remove pipeline block
-  node -e "
-    const fs = require('fs');
-    const f = process.argv[1];
-    let content = fs.readFileSync(f, 'utf8');
-
-    // Find the frontmatter boundaries
-    const parts = content.split('---');
-    if (parts.length < 3) process.exit(0);
-
-    let fm = parts[1];
-
-    // Replace translatedBy block
-    const tbRegex = /translatedBy:[\s\S]*?(?=\n[a-zA-Z]|\n---)/;
-    const newTB = \`translatedBy:
-  model: \"${model_str}\"
-  harness: \"Codex CLI\"
-  pipeline:
-    - role: \"Scored\"
-      model: \"${model_str}\"
-      harness: \"Codex CLI (vibe scorer)\"
-    - role: \"Rewritten\"
-      model: \"${model_str}\"
-      harness: \"Codex CLI\"
-    - role: \"Orchestrated\"
-      model: \"${model_str}\"
-      harness: \"Tribunal Batch Runner\"
-  pipelineUrl: \"https://github.com/chitienhsiehwork-ai/gu-log/blob/main/scripts/tribunal-batch-runner.sh\"\`;
-
-    if (tbRegex.test(fm)) {
-      fm = fm.replace(tbRegex, newTB);
-    }
-
-    parts[1] = fm;
-    fs.writeFileSync(f, parts.join('---'));
-  " "$file" 2>/dev/null || true
-}
-
-# Recompute stats from posts (idempotent)
-# Usage: recompute_stats "$PROGRESS"
-recompute_stats() {
-  local progress="$1"
-  jq '
-    .stats = {
-      total: (.stats.total // 323),
-      processed: ([.posts | to_entries[] | select(.value.status != null)] | length),
-      passed: ([.posts | to_entries[] | select(.value.status == "PASS")] | length),
-      rewritten: ([.posts | to_entries[] | select(.value.attempts > 1 and .value.status == "PASS")] | length),
-      failed: ([.posts | to_entries[] | select(.value.status | test("TRIED|ERROR|SCORER_ERROR|WRITER_ERROR|BUILD_ERROR"))] | length),
-      skipped: ([.posts | to_entries[] | select(.value.status == "SKIPPED")] | length)
-    }
-  ' "$progress" > "${progress}.tmp" && mv "${progress}.tmp" "$progress"
 }
 
 # Set up an isolated tmp work-dir for spawning LLM subprocesses. Keep this

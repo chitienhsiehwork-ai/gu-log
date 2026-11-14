@@ -662,7 +662,6 @@ else
     done
 
     if [ "${#LINT_FILES[@]}" -gt 0 ]; then
-        # --max-warnings=-1 means unlimited warnings; we only block on errors
         if ! npx eslint --no-warn-ignored "${LINT_FILES[@]}" 2>&1; then
             echo ""
             echo "❌ ESLint found errors. Fix them before committing."

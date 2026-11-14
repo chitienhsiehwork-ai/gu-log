@@ -29,7 +29,7 @@ for arg in "$@"; do
     --fix) FIX=true ;;
     --full) FULL=true ;;
     -h|--help)
-      sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *) echo "unknown arg: $arg (try --help)" >&2; exit 2 ;;
@@ -322,12 +322,13 @@ else
 fi
 
 # ── 9b. dotfiles skill 鏡像（optional）─────────────────────────────
-# .claude/skills/{level-up,trim}/ 是 dotfiles 的鏡像；落後只提醒，不擋開工。
+# sync-dotfiles-skills.sh 的 SKILLS 列的是 dotfiles 鏡像；落後只提醒，不擋開工。
 section "9b. dotfiles skill 鏡像"
 if SKILL_MIRROR_MSG=$(timeout 20 bash scripts/sync-dotfiles-skills.sh --check-latest 2>&1); then
   pass "skill 鏡像是 dotfiles 最新版"
 else
-  warn "skill 鏡像落後或抓不到 dotfiles" "$(printf '%s' "$SKILL_MIRROR_MSG" | tail -1)"
+  # 只留沒過的那幾行；成功的 skill 也會印一行 ✓，直接 tail -1 會拿到別人的 ✓。
+  warn "skill 鏡像落後或抓不到 dotfiles" "$(printf '%s\n' "$SKILL_MIRROR_MSG" | grep -v '^✓' | tail -1)"
 fi
 
 # ── 10. 慢 gate（--full 才跑）────────────────────────────────────

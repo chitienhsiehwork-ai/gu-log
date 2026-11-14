@@ -38,7 +38,7 @@ When translating an article, update metadata as follows:
     prefix.
 
 ## 5. Commentary Components
-The current reader-facing commentary components are `<MoguNote>` for every series and `<ShroomDogNote>` for SD originals only.
+The current reader-facing commentary components are `<MoguNote>` for every series and `<ShroomDogNote>` for ShroomDog's own words in any series (never generated or rewritten by automation).
 - **Translate Naturally:** Translate supported component content into English while preserving its role.
 - **Preserve MDX Structure:** Keep component tags and other MDX structure exactly as they appear in the source.
 - **No Manual Prefixes:** Do not add prefixes like "Mogu's note:"; attribution is handled by the component UI.

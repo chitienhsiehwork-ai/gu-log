@@ -20,9 +20,9 @@ GP／MP 跑 FactChecker 前，`scripts/tribunal.sh` 會自己經 `gp-pipeline fe
 
 若 log 顯示 `unsupported … summary shape`，代表候選不符合 executable policy，不是一般 validator 警告。Canonical pair 會保持不變；先保留 log／journal 證據，透過正常 feature branch／PR 把 canonical summary 收斂成 helper 接受的表示法，再從原 stage 重跑。不要在 live runtime 手改 frontmatter，也不要靠改 prompt、重送相同候選或切換 writer 來升級權限。
 
-**Canonical specs (archived)**
-- `openspec/changes/archive/2026-04-23-tribunal-graceful-run-control/` — Phase 1, stop contract
-- `openspec/changes/archive/2026-04-23-tribunal-safe-parallelism/` — Phase 2, 2-worker pool
+**Canonical specs**
+- `openspec/specs/tribunal-run-control/spec.md` — stop contract
+- `openspec/specs/tribunal-safe-parallelism/spec.md` — worker pool
 
 **Key files**
 - `scripts/tribunal-quota-loop.sh` — the daemon / supervisor. SSOT for long-running runtime.

@@ -8,11 +8,15 @@
 
 - `chatgpt-share-fetch` — 在寫作或轉換前，先把 `chatgpt.com/share/...` 對話內容抓到 `sources/chatgpt/...`。
 - `x-source-fetch` — 在跑 MP 來源寫作 pipeline 前，先抓完整 X/Twitter post、self-thread 或 X Article 內文。
+- `shroomdog-url-fetch` — ShroomDog 丟來的 URL 該走哪支 fetcher；來源抓不完整就明講，不硬寫。
 
 ## 內容與審查工作流
 
 - `tribunal-monitor` — 檢查 operator 設定的 Tribunal VM daemon，包含 service health、quota、git sync、最近 judge results。
 - `uiux-auditor` — 視覺變更 ship 前，檢查 gu-log dark / light theme 的 UI 狀態。
+- `playwright-cli` — 操作瀏覽器、截圖驗證頁面。
+- `gp-pipeline-sop` — MP／SD 的草稿、審稿、潤稿、翻譯、發布，以及 Lv／GP 的翻譯與發布，該走 `gp-pipeline` 的哪一步。
+- `backlog-sweep` — 用固定分類整理 GitHub issue 和 PR，回報後只執行安全的項目。
 
 ## OpenSpec / source-command 輔助工具
 

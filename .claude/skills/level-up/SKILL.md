@@ -20,7 +20,7 @@ description: "使用者要求分關教學、逐題推進或 level-up 教練時�
 - **每次 level-up**：教學前與更新紀錄前先讀 [`references/learning-records.md`](references/learning-records.md)。這份管靜默記帳、證據、使用者目標、跳過事件、主題與索引結構、隱私與安全。
 - **開課前或選項還沒定**：讀 [`references/level-0.md`](references/level-0.md)。這份管目標、講法、深度、每關的單位這四項一定要讓使用者選的東西；使用者選好前不開始教。
 - **規劃或講關卡**：讀 [`references/teaching-style.md`](references/teaching-style.md)（語氣、角色、每關形狀、用詞）與 [`references/teaching-engagement.md`](references/teaching-engagement.md)（節奏、進度表、課中提問、收尾）。
-- **出任何測驗或 shotcall 之前、回應答案之前**：讀 [`references/mcq-and-response.md`](references/mcq-and-response.md)。這份管一次一題、不洩題、錯誤選項設計、shotcall 與重試規則。
+- **出任何測驗或 shotcall 之前、回應答案之前，或學習者打 `quiz me` 時**：讀 [`references/mcq-and-response.md`](references/mcq-and-response.md)。這份管一次一題、不洩題、錯誤選項設計、shotcall、重試規則與定位小測驗。
 - **最後一關通關**：讀 [`references/celebration.md`](references/celebration.md)。這份管當場畫 ASCII art 的收尾。
 - **實作規劃、決策檢視或理解工作**：讀 [`references/implementation-understanding-loop.md`](references/implementation-understanding-loop.md)，那是依風險觸發的實作前／中／後模型。
 - **preflight 或實作前教練**：另讀 [`references/pre-implementation.md`](references/pre-implementation.md)。

@@ -36,9 +36,6 @@ export TRIBUNAL_RESUME_COMMAND="${TRIBUNAL_RESUME_COMMAND% }"
 # shellcheck source=scripts/score-helpers.sh
 source "$SCRIPT_DIR/score-helpers.sh"
 
-# shellcheck source=scripts/tribunal-helpers.sh
-source "$SCRIPT_DIR/tribunal-helpers.sh"
-
 # Graceful stop helpers — file-flag only channel (no traps here; parent
 # loop owns signals and writes the flag file on stop).
 export RC_ROOT_DIR="$ROOT_DIR"
@@ -1694,8 +1691,8 @@ PROMPT
       return 1
     fi
 
-    # ── Rewrite: invoke tribunal-writer (timeout 900s / 15 min) ──────────────
-    tlog "  Invoking tribunal-writer for rewrite (timeout 900s)..."
+    # ── Rewrite: invoke tribunal-writer ──────────────────────────────────────
+    tlog "  Invoking tribunal-writer for rewrite..."
 
     local writer_prompt writer_out writer_rc en_existed_before writer_quota_status_file
     local writer_frontmatter_guidance rewrite_frontmatter_policy
@@ -2013,7 +2010,7 @@ if [ "$TRIBUNAL_PROVIDER" = "codex" ]; then
   fi
 fi
 
-if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+if [ -d "$(git rev-parse --git-path rebase-merge)" ] || [ -d "$(git rev-parse --git-path rebase-apply)" ]; then
   echo "ERROR: Git repository is mid-rebase. Resolve manually first." >&2
   exit 1
 fi

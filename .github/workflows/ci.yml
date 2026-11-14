@@ -115,7 +115,7 @@ jobs:
       - name: Prettier check
         run: pnpm run format:check
       - name: dotfiles skill mirrors match pin
-        # .claude/skills/{level-up,trim}/ mirror ChiTienHsieh/dotfiles; edits
+        # Some .claude/skills/ dirs mirror ChiTienHsieh/dotfiles; edits
         # belong upstream, then scripts/sync-dotfiles-skills.sh re-syncs.
         run: bash scripts/sync-dotfiles-skills.sh --check
 
@@ -192,9 +192,7 @@ jobs:
       # Posts the PR adds need both languages in every series (GP as MP).
       - name: Translation pair gate (PR only — enforce series sidecar policy)
         if: github.event_name == 'pull_request'
-        run: |
-          git fetch origin ${{ github.base_ref }} --depth=1
-          node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.base_ref }}
+        run: node scripts/check-translation-pairs.mjs --strict --pr-base=${{ github.event.pull_request.base.sha }}
 
       - name: Content gates (PR only — changed zh-tw posts)
         # Exemptions mirror pre-commit 0.1–0.165 (list-content-gate-posts.mjs),
