@@ -202,3 +202,24 @@ func runGit(t *testing.T, dir string, args ...string) {
 		t.Fatalf("git %v failed: %v\n%s", args, err, out)
 	}
 }
+
+// Snapshot step names come from stepsForState; some are not valid
+// `run --from-step` values, so status must translate them before advising.
+func TestDeriveNextAction_ResumeStepIsAcceptedByRun(t *testing.T) {
+	cases := map[string]string{
+		"write":              "--from-step write",
+		"dedup-url":          "--from-step fetch",
+		"credits":            "--from-step ralph",
+		"translate":          "--from-step translate",
+		"provider-preflight": "resume from the last good step",
+	}
+	for step, want := range cases {
+		got := deriveNextAction(&RunStatus{RunState: "failed", CurrentStep: step})
+		if !strings.Contains(got, want) {
+			t.Errorf("failed at %q: next action %q does not contain %q", step, got, want)
+		}
+	}
+	if got := nextStepFor("ralph"); got != "translate" {
+		t.Errorf("nextStepFor(ralph) = %q, want translate", got)
+	}
+}

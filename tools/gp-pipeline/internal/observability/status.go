@@ -603,8 +603,8 @@ func deriveNextAction(status *RunStatus) string {
 		return fmt.Sprintf("wait for %s to finish", nonEmpty(status.CurrentStep, "pipeline"))
 	}
 	if status.RunState == "failed" {
-		if status.CurrentStep != "" {
-			return fmt.Sprintf("inspect the %s failure, then resume with --from-step %s", status.CurrentStep, status.CurrentStep)
+		if resume := resumeStepFor(status.CurrentStep); resume != "" {
+			return fmt.Sprintf("inspect the %s failure, then resume with --from-step %s", status.CurrentStep, resume)
 		}
 		return "inspect the failure and resume from the last good step"
 	}
@@ -616,29 +616,6 @@ func deriveNextAction(status *RunStatus) string {
 		return "run fetch"
 	}
 	return fmt.Sprintf("run %s", next)
-}
-
-func nextStepFor(step string) string {
-	switch step {
-	case "setup", "":
-		return "fetch"
-	case "fetch":
-		return "eval"
-	case "eval":
-		return "dedup"
-	case "dedup":
-		return "write"
-	case "write":
-		return "review"
-	case "review":
-		return "refine"
-	case "refine", "credits":
-		return "ralph"
-	case "ralph":
-		return "deploy"
-	default:
-		return ""
-	}
 }
 
 func allowPendingForSnapshot(status *RunStatus) []string {
@@ -664,40 +641,6 @@ func articleCandidate(status *RunStatus) string {
 		}
 	}
 	return ""
-}
-
-func stepRank(step string) int {
-	switch strings.ToLower(step) {
-	case "setup":
-		return 0
-	case "fetch":
-		return 1
-	case "eval":
-		return 2
-	case "dedup":
-		return 3
-	case "write":
-		return 4
-	case "review":
-		return 5
-	case "refine":
-		return 6
-	case "credits":
-		return 7
-	case "ralph":
-		return 8
-	case "deploy":
-		return 9
-	default:
-		return -1
-	}
-}
-
-func maxStep(a, b string) string {
-	if stepRank(a) >= stepRank(b) {
-		return a
-	}
-	return b
 }
 
 func humanDuration(d time.Duration) string {
