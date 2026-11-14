@@ -14,6 +14,22 @@
 - 當同一類 feedback 出現 3 次以上，應該蒸餾進 `GU-LOG_WRITER_PROMPT.md`，必要時再同步到 pipeline prompt；不要永遠只留在 corpus 裡。
 - ShroomDog 核准某篇文章保留某個 emoji 時，照常把回饋記在這裡，另外在 `scripts/check-content-emoji.mjs` 的核准清單加一筆（路徑、emoji、理由）。
 
+## 2026-11-14 — MP-325：六種寫法用字講太平，改成互動卡片
+
+### Feedback: 「在講 6 個難讀的例子時太平淡了，沒有視覺化的方式，也沒有到很好讀」
+
+- ShroomDog feedback（原話接著是）：「或許可以用 HTML，用外插的 artifact 來解釋那 6 個難讀的方式，然後直接進入後續的重點：也就是為什麼會有那 6 種難讀的方式」。
+- 情境：第五版把六種寫法各寫一小段，六段都是「例句、翻譯、為什麼卡」，讀起來像在背清單。
+- 修法：六種寫法做成 `public/artifacts/mp-325-six-patterns.html`，用 SD-26 那種 `artifact-callout` 連出去。每張卡片把卡住的地方直接畫出來（擬人標出「不是活的」和「活的才會做」、名詞疊成積木、省掉的 that 留一個空格、主詞和動詞中間淡掉並標「隔了 8 個字」），按一下換成人話版，底下兩條長度條顯示人話版比較長。正文的六段換成一行一種的清單，接著就進「會不會只是內容本來就難」和第二層。Claude 一開始提議做成文章內的元件，後來查到新元件要另外補 Markdown 匯出的 adapter 和 spec，站上本來就有自己架的 artifact 做法，就照 ShroomDog 的方向做。
+- Reusable lesson：(1) 並列的例子超過三四個、每個又都是「看得到」的結構（距離、堆疊、缺字），就畫出來，不要一段一段寫。(2) 例子搬去 artifact 後，正文留一行一種的清單，沒點開的人和 Markdown 版也讀得懂。(3) 互動要順便替下一節鋪路：讀者自己按出「人話版都比較長」，下一節就不用再花一段話過場。
+
+### Feedback: 「懶的話，丟去翻成日文再翻回來，搞不好也行。這句怪怪的」
+
+- ShroomDog feedback（原話接著是）：「因為對使用者來說，丟到翻譯軟體翻成日文，然後再翻回英文，其實挺麻煩」。
+- 情境：回譯那一節後面的 MoguNote，先講「叫 AI 換個寫法重講一次，內容不會少」，再補這一句當玩笑。
+- 修法：整句刪掉。
+- Reusable lesson：寫「懶的話可以……」之前，先算讀者實際要做幾個步驟。比前一個建議還麻煩的做法，不能叫懶人版。
+
 ## 2026-11-14 — MP-325：參考 Simon Willison 和李宏毅老師，整篇重排一次
 
 ### Feedback: 「Anything we can learn from simon willison and 台大電機李宏毅老師？」「I want the new thread can just one shot it with proper reference」
