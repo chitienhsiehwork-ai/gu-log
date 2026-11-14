@@ -128,6 +128,24 @@
       .js .ver[data-ver='human'] {
         margin-top: 0;
       }
+      /* 切換動畫：外框高度滑過去，新的那一版淡入 */
+      .vers {
+        overflow: hidden;
+        transition: height 0.4s ease;
+      }
+      .js .ver {
+        animation: ver-in 0.4s ease both;
+      }
+      @keyframes ver-in {
+        from {
+          opacity: 0;
+          transform: translateY(0.5rem);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
 
       .sentence {
         margin: 0;
@@ -254,12 +272,21 @@
         border-radius: 999px;
         background: var(--color-mark);
         min-width: 0.5rem;
+        width: var(--w);
+        transition: width 0.5s ease;
       }
       .meter .bar.good {
         background: var(--color-good);
       }
+      .meter .row-human {
+        transition: opacity 0.4s ease;
+      }
       .js .card[data-show='ai'] .meter .row-human {
-        visibility: hidden;
+        opacity: 0;
+      }
+      .js .card[data-show='ai'] .meter .row-human .bar {
+        width: 0;
+        min-width: 0;
       }
 
       .flip {
@@ -275,6 +302,10 @@
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        transition:
+          background-color 0.3s ease,
+          color 0.3s ease,
+          border-color 0.3s ease;
       }
       .js .flip {
         display: block;
@@ -287,6 +318,18 @@
       .flip:focus-visible {
         outline: 3px solid var(--color-mark-2);
         outline-offset: 2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vers,
+        .meter .bar,
+        .meter .row-human,
+        .flip {
+          transition: none;
+        }
+        .js .ver {
+          animation: none;
+        }
       }
 
       .total {
@@ -468,15 +511,26 @@
           sumAi += ai;
           sumHuman += human;
 
+          var box = document.createElement('div');
+          box.className = 'vers';
+          var vers = card.querySelectorAll('.ver');
+          card.insertBefore(box, vers[0]);
+          vers.forEach(function (ver) {
+            box.appendChild(ver);
+          });
+          box.addEventListener('transitionend', function (event) {
+            if (event.target === box) box.style.height = '';
+          });
+
           var meter = document.createElement('div');
           meter.className = 'meter';
           meter.innerHTML =
-            '<div><span class="name">原句</span><span class="bar" style="width:' +
+            '<div><span class="name">原句</span><span class="bar" style="--w:' +
             (ai / human) * 60 +
             '%"></span><span>' +
             ai +
             ' 個字</span></div>' +
-            '<div class="row-human"><span class="name">人話版</span><span class="bar good" style="width:60%"></span><span>' +
+            '<div class="row-human"><span class="name">人話版</span><span class="bar good" style="--w:60%"></span><span>' +
             human +
             ' 個字</span></div>';
           card.appendChild(meter);
@@ -488,7 +542,15 @@
           button.setAttribute('aria-pressed', 'false');
           button.addEventListener('click', function () {
             var showHuman = card.getAttribute('data-show') === 'ai';
+            var from = box.offsetHeight;
+            box.style.height = '';
             card.setAttribute('data-show', showHuman ? 'human' : 'ai');
+            var to = box.offsetHeight;
+            if (from !== to) {
+              box.style.height = from + 'px';
+              void box.offsetHeight;
+              box.style.height = to + 'px';
+            }
             button.textContent = showHuman ? '看回原句' : '換成人話';
             button.setAttribute('aria-pressed', String(showHuman));
           });
