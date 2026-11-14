@@ -7,7 +7,8 @@ export default [
   // Global ignores — the only place lint scope is defined (`pnpm run lint` is `eslint .`).
   // sqaa-api/ is a separate project outside CI.
   {
-    ignores: ['dist/**', 'node_modules/**', '.astro/**', 'sqaa-api/**'],
+    // quality/coverage/ is the gitignored report a local Playwright run writes.
+    ignores: ['dist/**', 'node_modules/**', '.astro/**', 'sqaa-api/**', 'quality/coverage/**'],
   },
 
   // Base JS recommended
