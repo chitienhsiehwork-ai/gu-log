@@ -30,7 +30,7 @@ async function checkPage(page, viewport) {
   const checks = [];
 
   // 1. Check MoguNote elements
-  const moguNotes = page.locator('blockquote.claude-note');
+  const moguNotes = page.locator('blockquote.mogu-note');
   const moguNoteCount = await moguNotes.count();
 
   if (moguNoteCount === 0) {
