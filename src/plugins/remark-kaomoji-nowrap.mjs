@@ -6,7 +6,8 @@
  * Strategy (content-layer, zero-CSS — works in any renderer: RSS, email, …):
  *   1. Replace ASCII spaces inside a kaomoji with NBSP (U+00A0).
  *   2. Insert a Word Joiner (U+2060) between EVERY adjacent code point of the
- *      kaomoji, so there is no break opportunity anywhere inside it.
+ *      kaomoji, so there is no break opportunity anywhere inside it. The one
+ *      exception: never put one in front of a combining mark (see protect()).
  *
  * Why interleave WJ everywhere instead of only at "arm" boundaries: a kaomoji
  * that contains CJK / halfwidth-katakana / Cyrillic glyphs (e.g. w(ﾟДﾟ)w,
@@ -66,9 +67,17 @@ const POTENTIAL_KAOMOJI = new RegExp(
   'gu'
 );
 
+// A combining mark (accent, overlay, vowel sign…) is drawn on the glyph before
+// it. A Word Joiner in between detaches it, so the mark renders on its own,
+// shifted off its base — e.g. the eyes of (⁎⁍̴̛ᴗ⁍̴̛⁎) and the tears of
+// (;´༎ຶД༎ຶ`). Line breaking never splits a base from its combining mark anyway
+// (UAX #14 LB9), so no joiner is needed there.
+const COMBINING_MARK = /^\p{M}$/u;
+
 /**
  * Make a single kaomoji match unbreakable: NBSP for spaces, then a Word Joiner
- * between every adjacent code point. Idempotent — re-running adds no extra WJ.
+ * between every adjacent code point, except in front of a combining mark.
+ * Idempotent — re-running adds no extra WJ.
  */
 function protect(match) {
   const withNbsp = match.replace(/ /g, NBSP);
@@ -77,7 +86,9 @@ function protect(match) {
   for (let i = 0; i < cps.length; i++) {
     out += cps[i];
     const next = cps[i + 1];
-    if (next !== undefined && cps[i] !== WJ && next !== WJ) out += WJ;
+    if (next === undefined || cps[i] === WJ || next === WJ) continue;
+    if (COMBINING_MARK.test(next)) continue;
+    out += WJ;
   }
   return out;
 }
@@ -138,6 +149,7 @@ export function hasBreakOpportunity(s) {
     const a = cps[i];
     const b = cps[i + 1];
     if (a === WJ || a === NBSP || b === WJ || b === NBSP) continue;
+    if (COMBINING_MARK.test(b)) continue; // a mark never starts a new line
     if (breakable(a) || breakable(b)) return true;
   }
   return false;
