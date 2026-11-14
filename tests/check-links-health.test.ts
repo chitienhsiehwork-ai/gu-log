@@ -66,6 +66,12 @@ describe('broken-link markdown extraction', () => {
     ]);
   });
 
+  it('reads frontmatter sourceUrl with or without quotes', () => {
+    const post = (value: string) => `---\ntitle: t\nsourceUrl: ${value}\n---\nbody`;
+    expect(urlsOf(post('"https://quoted.test/a"'))).toEqual(['https://quoted.test/a']);
+    expect(urlsOf(post('https://bare.test/b/'))).toEqual(['https://bare.test/b/']);
+  });
+
   it('still ends the URL at the closing paren of the link', () => {
     expect(urlsOf('see [a](https://a.test/x) (aside) and [b](https://b.test/y).')).toEqual([
       'https://a.test/x',
