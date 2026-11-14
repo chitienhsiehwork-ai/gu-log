@@ -295,6 +295,7 @@ jobs:
   notify-failure:
     runs-on: ubuntu-latest
     needs:
+      - build
       - visual-test
       - lighthouse
       - security-audit
@@ -309,6 +310,7 @@ jobs:
         id: failed
         run: |
           declare -A jobs=(
+            [build]='${{ needs.build.result }}'
             [visual-test]='${{ needs.visual-test.result }}'
             [lighthouse]='${{ needs.lighthouse.result }}'
             [security-audit]='${{ needs.security-audit.result }}'
