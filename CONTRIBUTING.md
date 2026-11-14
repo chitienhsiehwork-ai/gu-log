@@ -67,7 +67,7 @@ Duplicate content is duplicate dead code：對 AI 是 token waste，對人類是
 
 - **「原文已是中文 / 簡體中文分析文」不是 No-go 理由**：gu-log 的價值包含繁體中文、Mogu／gu-log 的看法與讀者脈絡；每個系列都依自己的編輯身份寫，不是轉貼。
 - **「二手整理」不是 No-go 理由**：MP 由 Mogu 消化來源後寫成自己的 source-grounded article，SD／Lv 依各自編輯身份寫作；所有系列都要 attribution 清楚、來源可靠、讀者價值足夠。
-- **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 8/8/8 publish bar，才可以 No-go。
+- **「需要驗證數字 / 來源」不是 No-go 理由**：驗證是 agent 的工作。只有驗證後發現 facts 不可靠、無法查證、來源不完整，或支撐不了 publish bar，才可以 No-go。
 - 正確流程：讀完整 source → 必要時查 primary sources → 搜尋 gu-log 既有覆蓋 → 判斷 reader value / source reliability / novelty → Go 就依選定的系列走 gp-pipeline（有來源預設 `--prefix MP`；Lv 改走〈新增入門教學（Lv）〉）並 cite。No-go 要講真正原因。
 
 這條規則的 editorial feedback 原文也記在 `docs/shroomdog-editorial-feedback.md`。未來更新 source-evaluation 類回饋時，兩邊要保持一致：`CONTRIBUTING.md` 放 general rule，editorial feedback corpus 放具體案例和 reusable lesson。
@@ -168,7 +168,7 @@ tags: ["tag1", "tag2"]  # 只放主題 tag，系列由 ticketId 決定
 
 **`status`（選填，預設 `published`）** 的語意：
 
-- `deprecated`／`retired`：編輯標籤（重複、過時、退役）。文章**仍公開全文**，只多一條狀態橫幅、不進列表，不等於下架。
+- `deprecated`／`retired`：編輯標籤（重複、過時、退役）。文章**仍公開全文**，只多一條狀態橫幅，不等於下架。
 - `taken-down`：下架。正文清空、摘要換成中性句，原網址只剩墓碑（200 加 `noindex`），HTML、JSON、`.md`、feed、搜尋與 sitemap 都不再有正文；下架後不能改回其他狀態，也不再跑 Tribunal。下架契約見 [`post-takedown` spec](openspec/specs/post-takedown/spec.md)；批次下架一律用 `scripts/take-down-posts.mjs` 依規則產生清單，不要手改 frontmatter。
 
 ### Ticket ID 編號系統
@@ -462,7 +462,7 @@ MP 是 gu-log 的日常文章，有來源就預設寫成 MP。
 
 ### 新增入門教學（Lv）
 
-Lv 是原創入門教學，系列身份與兩種 mode 以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準。Lv 的正文不走 gp-pipeline 的寫作步驟；pipeline 哪些步驟會擋 Lv、哪些還能用，見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)〈Lv 只用非寫作步驟〉。
+Lv 是原創入門教學，系列身份與兩種 mode 以 [`editorial-charter` spec](openspec/specs/editorial-charter/spec.md) 為準。Lv 的正文不走 gp-pipeline 的寫作步驟；pipeline 哪些步驟會擋 Lv、哪些還能用，見 [`tools/gp-pipeline/SKILL.md`](tools/gp-pipeline/SKILL.md)〈Lv 與 GP 只用非寫作步驟〉。
 
 1. 依 `editorial-charter` 決定是 `Lv-original` 還是 `Lv-guided-reading`；`Lv-guided-reading` 依 charter 規定，開頭一定要 cite 來源
 2. 有來源就先抓完整原文；不論有沒有來源，都要做 overlap evaluation 與 dedup（`gp-pipeline fetch`、`eval`、`dedup --series Lv` 都能用）

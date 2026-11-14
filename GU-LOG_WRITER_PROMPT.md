@@ -319,7 +319,7 @@ gu-log 很多文章（尤其 AI/agent 圈）會引用「寫給模型的指令」
 **怎麼翻**：
 
 - 保留原本的呈現格式（原文用 blockquote 就用 blockquote、用 code fence 就用 code fence），只把**內文**翻成中文。
-- **忠實**：翻 prompt 跟翻正文一樣受〈翻譯誠實性規則〉約束——不要改掉指令的語氣、條件、邊界、hedge。原 prompt 說 "only validate at system boundaries" 就翻「只在系統邊界做驗證」，不要自己加碼或刪減。
+- **忠實**：翻 prompt 跟翻正文一樣受〈來源誠實性規則〉約束——不要改掉指令的語氣、條件、邊界、hedge。原 prompt 說 "only validate at system boundaries" 就翻「只在系統邊界做驗證」，不要自己加碼或刪減。
 - prompt 裡夾的 **code identifier / 變數佔位符 / 工具名 / 旗標**（`[X]`、`send_to_user`、`stop_reason`、`--flag`、檔名）照〈術語處理〉保留原樣，只翻自然語言的部分。
 - 如果某段 prompt 的**英文措辭本身就是重點**（例如文章在討論「為什麼用這個動詞而不是那個」、prompt engineering 的逐字推敲），那就翻譯 + 保留關鍵英文原句（照〈原文語感保留〉的格式），不要為了翻而把要討論的字翻掉。
 - 真的擔心讀者需要對照原文時，可以在中文 prompt 後補一句「（原文 prompt 見 [en 版](...) 或原始出處）」，但通常不必——en 版本來就在。
