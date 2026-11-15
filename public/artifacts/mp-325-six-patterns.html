@@ -125,30 +125,21 @@
       .ver[data-ver='human'] {
         margin-top: 1rem;
       }
+      /* 兩個版本疊在同一格：外框永遠是比較高的那一版的高度，切換時按鈕不會移動 */
+      .js .vers {
+        display: grid;
+      }
+      .js .vers > .ver {
+        grid-area: 1 / 1;
+        margin-top: 0;
+        transition:
+          opacity 0.3s ease,
+          visibility 0.3s;
+      }
       .js .card[data-show='ai'] .ver[data-ver='human'],
       .js .card[data-show='human'] .ver[data-ver='ai'] {
-        display: none;
-      }
-      .js .ver[data-ver='human'] {
-        margin-top: 0;
-      }
-      /* 切換動畫：外框高度滑過去，新的那一版淡入 */
-      .vers {
-        overflow: hidden;
-        transition: height 0.4s ease;
-      }
-      .js .ver {
-        animation: ver-in 0.4s ease both;
-      }
-      @keyframes ver-in {
-        from {
-          opacity: 0;
-          transform: translateY(0.5rem);
-        }
-        to {
-          opacity: 1;
-          transform: none;
-        }
+        opacity: 0;
+        visibility: hidden;
       }
 
       .sentence {
@@ -344,14 +335,11 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .vers,
+        .vers > .ver,
         .meter .bar,
         .meter .row-human,
         .flip {
           transition: none;
-        }
-        .js .ver {
-          animation: none;
         }
       }
 
@@ -387,9 +375,6 @@
             <span class="m m2" data-tag="活的才會做">swallows</span> that and returns False.
           </p>
           <p class="zh"><code>is_file()</code> 把那個錯誤吞掉，然後回傳 False。</p>
-          <p class="why">
-            讀的人會偷偷拿「主詞是不是活的」猜下一個字。函式不會吞東西，腦袋就要倒回去重看一次。
-          </p>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -399,6 +384,9 @@
           </p>
           <p class="zh"><code>is_file()</code> 遇到那個錯誤不會報錯，直接回傳 False。</p>
         </div>
+        <p class="why">
+          讀的人會偷偷拿「主詞是不是活的」猜下一個字。函式不會吞東西，腦袋就要倒回去重看一次。
+        </p>
       </section>
 
       <section class="card" data-show="ai">
@@ -407,7 +395,6 @@
           <p class="ver-label">原句</p>
           <p class="sentence" lang="en"><span class="m" data-tag="名詞？動詞？">Calendar</span> it.</p>
           <p class="zh">把它「行事曆」一下。</p>
-          <p class="why">看是看得懂，只是每次遇到都要頓一下：這個字現在到底是名詞還是動詞？</p>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -416,6 +403,7 @@
           </p>
           <p class="zh">把它排進行事曆。</p>
         </div>
+        <p class="why">看是看得懂，只是每次遇到都要頓一下：這個字現在到底是名詞還是動詞？</p>
       </section>
 
       <section class="card" data-show="ai">
@@ -427,9 +415,6 @@
             <span class="m" data-tag="三個字湊在一起，幾乎沒人講過">reader-patience budget</span>
           </p>
           <p class="zh">它的讀者耐心預算。</p>
-          <p class="why">
-            三個字分開看都很普通。人在讀的時候一直在猜下一個字，沒看過的組合猜不到，速度就掉下來。
-          </p>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -438,6 +423,9 @@
           </p>
           <p class="zh">讀者還剩多少耐心。</p>
         </div>
+        <p class="why">
+          三個字分開看都很普通。人在讀的時候一直在猜下一個字，沒看過的組合猜不到，速度就掉下來。
+        </p>
       </section>
 
       <section class="card" data-show="ai">
@@ -449,10 +437,6 @@
             <span class="bricks"><span>Dog</span><span>Bite</span><span>Victim</span></span>
           </p>
           <p class="zh">救難隊幫助被狗咬的人？還是救難隊幫狗咬人？</p>
-          <p class="why">
-            名詞疊在一起，誰修飾誰要讀的人自己猜。AI 寫程式時寫過「Fixed absolute dotfile backup
-            path handling」，一口氣疊了四個。
-          </p>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -461,6 +445,10 @@
           </p>
           <p class="zh">救難隊幫助被狗咬的人。</p>
         </div>
+        <p class="why">
+          名詞疊在一起，誰修飾誰要讀的人自己猜。AI 寫程式時寫過「Fixed absolute dotfile backup
+          path handling」，一口氣疊了四個。
+        </p>
       </section>
 
       <section class="card" data-show="ai">
@@ -473,14 +461,6 @@
             <span class="m m2" data-tag="動詞，隔了 8 個字">teaches</span> you zero chords.
           </p>
           <p class="zh">那把因為還在「考慮」而一直擺在角落的吉他，一個和弦也教不會。</p>
-          <p class="why">主詞要一路記到動詞出現才能放下。人腦的暫存空間不大，隔得越遠越累。</p>
-          <blockquote class="mogu-note">
-            <strong class="mogu-prefix">
-              <img src="/mogu-picks-icon.png" alt="" width="20" height="20" />
-              Mogu 吐槽時間：
-            </strong>
-            <p>被 AI 嗆已經夠慘了，還要讀兩遍才發現自己被嗆。</p>
-          </blockquote>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -490,6 +470,14 @@
           </p>
           <p class="zh">吉他一直擺在角落、嘴上說還在「考慮」，那就一個和弦也學不會。</p>
         </div>
+        <p class="why">主詞要一路記到動詞出現才能放下。人腦的暫存空間不大，隔得越遠越累。</p>
+        <blockquote class="mogu-note">
+          <strong class="mogu-prefix">
+            <img src="/mogu-picks-icon.png" alt="" width="20" height="20" />
+            Mogu 吐槽時間：
+          </strong>
+          <p>被 AI 嗆已經夠慘了，還要讀兩遍才發現自己被嗆。</p>
+        </blockquote>
       </section>
 
       <section class="card" data-show="ai">
@@ -500,9 +488,6 @@
             the sentence <span class="slot" data-tag="少了一個路標"></span> you are reading
           </p>
           <p class="zh">你正在讀的這個句子。</p>
-          <p class="why">
-            「that」是路標，告訴讀的人「後面這一串是在形容前面的名詞」。拿掉之後，「sentence」後面突然冒出「you」，得自己想一下這兩個字的關係。
-          </p>
         </div>
         <div class="ver" data-ver="human">
           <p class="ver-label">人話版</p>
@@ -511,6 +496,9 @@
           </p>
           <p class="zh">你正在讀的這個句子。</p>
         </div>
+        <p class="why">
+          「that」是路標，告訴讀的人「後面這一串是在形容前面的名詞」。拿掉之後，「sentence」後面突然冒出「you」，得自己想一下這兩個字的關係。
+        </p>
       </section>
 
       <div class="total">
@@ -547,10 +535,6 @@
           vers.forEach(function (ver) {
             box.appendChild(ver);
           });
-          box.addEventListener('transitionend', function (event) {
-            if (event.target === box) box.style.height = '';
-          });
-
           var meter = document.createElement('div');
           meter.className = 'meter';
           meter.innerHTML =
@@ -571,15 +555,7 @@
           button.setAttribute('aria-pressed', 'false');
           button.addEventListener('click', function () {
             var showHuman = card.getAttribute('data-show') === 'ai';
-            var from = box.offsetHeight;
-            box.style.height = '';
             card.setAttribute('data-show', showHuman ? 'human' : 'ai');
-            var to = box.offsetHeight;
-            if (from !== to) {
-              box.style.height = from + 'px';
-              void box.offsetHeight;
-              box.style.height = to + 'px';
-            }
             button.textContent = showHuman ? '看回原句' : '換成人話';
             button.setAttribute('aria-pressed', String(showHuman));
           });
