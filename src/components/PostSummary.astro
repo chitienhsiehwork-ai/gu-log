@@ -1,0 +1,51 @@
+---
+/**
+ * PostSummary — 文章頁標題下方的摘要區塊。
+ * 內容直接取自 frontmatter 的 summary（列表卡片用的同一句），
+ * 讓從外部連結直接進文章的讀者先知道這篇在講什麼。
+ */
+
+interface Props {
+  summary: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { summary, lang = 'zh-tw' } = Astro.props;
+const label = lang === 'en' ? 'Summary' : '摘要';
+const text = summary.trim();
+---
+
+{
+  text && (
+    <aside class="post-summary" aria-label={label} data-post-summary>
+      <span class="post-summary-label">{label}</span>
+      <p class="post-summary-text">{text}</p>
+    </aside>
+  )
+}
+
+<style>
+  .post-summary {
+    margin: 1.1rem 0 1.4rem;
+    padding: 0.85rem 1rem 0.95rem;
+    border-left: 3px solid var(--color-accent);
+    border-radius: 0 8px 8px 0;
+    background: var(--color-accent-faint-bg);
+  }
+
+  .post-summary-label {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--color-accent);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .post-summary-text {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 0.97rem;
+    line-height: 1.75;
+  }
+</style>
