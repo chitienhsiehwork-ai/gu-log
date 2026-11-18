@@ -75,7 +75,8 @@ export function linkSummary(summary, glossary, { english = false } = {}) {
 
 // 句尾：中文標點後面可以直接斷；半形 . ! ? 要後面是空白或結尾才算（4.0.7、example.com 不斷）。
 // 緊跟在後面的收尾引號、括號留在同一句，「……？」。這種連在一起的也算同一個句尾。
-const SENTENCE_END = /(?:[。！？]+[」』）”’]*)+|(?:[.!?]+["'”’)\]]*)+(?=\s|$)/gu;
+// 寫成「一個句尾標點，後面接任意個標點或收尾符號」，不用巢狀的重複，免得遇到一長串 !!!! 時回溯爆炸。
+const SENTENCE_END = /[。！？][。！？」』）”’]*|[.!?][.!?"'”’)\]]*/gu;
 const CLOSER = /["'”’」』）)\]]$/u;
 // 比這短的句子（「結果？」「For.」）不自己佔一行，跟旁邊的句子併在一起。
 const MIN_SENTENCE_LENGTH = 8;
@@ -101,7 +102,8 @@ export function splitSummarySentences(segments) {
     const cut = match.index + match[0].length;
     if (links.some((link) => cut > link.start && cut < link.end)) continue;
     const rest = full.slice(cut);
-    if (/^[.!?]/.test(match[0]) && /^\s+\p{Ll}/u.test(rest)) continue;
+    // 半形句尾後面要是空白或結尾才算（規則寫在這裡而不是 regex 的 lookahead，比對才不會回溯）。
+    if (/^[.!?]/.test(match[0]) && (/^\S/u.test(rest) || /^\s+\p{Ll}/u.test(rest))) continue;
     if (CLOSER.test(match[0]) && /^\S/u.test(rest)) continue;
     if (full.slice(cuts.at(-1) ?? 0, cut).trim().length < MIN_SENTENCE_LENGTH) continue;
     cuts.push(cut);
