@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { linkSummary } from '../src/lib/summary-links.mjs';
+import { linkSummary, splitSummarySentences } from '../src/lib/summary-links.mjs';
 
 const glossary = [
   { term: 'arXiv' },
@@ -42,5 +42,70 @@ describe('linkSummary', () => {
 
   it('returns nothing for an empty summary', () => {
     expect(linkSummary('  ', glossary)).toEqual([]);
+  });
+});
+
+describe('splitSummarySentences', () => {
+  const sentenceTexts = (summary: string, options = {}) =>
+    splitSummarySentences(linkSummary(summary, glossary, options)).map((sentence) =>
+      sentence.map((segment) => segment.text).join('')
+    );
+
+  it('splits a Chinese summary after 。！？ and keeps each link whole in its sentence', () => {
+    const sentences = splitSummarySentences(
+      linkSummary('看不懂是英文不好嗎？arXiv 上的研究說不是。問題其實出在訓練！', glossary)
+    );
+    expect(sentences).toEqual([
+      [{ text: '看不懂是英文不好嗎？' }],
+      [{ text: 'arXiv', href: '/glossary#arxiv' }, { text: ' 上的研究說不是。' }],
+      [{ text: '問題其實出在訓練！' }],
+    ]);
+  });
+
+  it('does not split where a quote closes in the middle of a sentence', () => {
+    expect(sentenceTexts('他說「講人話。」然後就走了。後來沒有再回來。')).toEqual([
+      '他說「講人話。」然後就走了。',
+      '後來沒有再回來。',
+    ]);
+    expect(sentenceTexts('備忘錄問「AI 是不是泡沫？」。這次他讓模型自己回答。')).toEqual([
+      '備忘錄問「AI 是不是泡沫？」。',
+      '這次他讓模型自己回答。',
+    ]);
+  });
+
+  it('merges a very short sentence into its neighbour instead of giving it its own line', () => {
+    expect(sentenceTexts('他拿三項日常工作讓模型做。結果？模型在各種奇怪的地方翻車。')).toEqual([
+      '他拿三項日常工作讓模型做。',
+      '結果？模型在各種奇怪的地方翻車。',
+    ]);
+    expect(
+      sentenceTexts('It is 2026 and the tools changed. Build. For. Agents.', { english: true })
+    ).toEqual(['It is 2026 and the tools changed.', 'Build. For. Agents.']);
+  });
+
+  it('splits an English summary on sentence ends, not inside numbers or abbreviations', () => {
+    expect(
+      sentenceTexts(
+        'Version 4.0.7 shipped today. An Agent, e.g. a coding one, used it. Is it better?',
+        { english: true }
+      )
+    ).toEqual([
+      'Version 4.0.7 shipped today.',
+      'An Agent, e.g. a coding one, used it.',
+      'Is it better?',
+    ]);
+  });
+
+  it('links each term once across the whole summary, not once per sentence', () => {
+    const sentences = splitSummarySentences(linkSummary('arXiv 很大。arXiv 很忙。', glossary));
+    expect(sentences).toEqual([
+      [{ text: 'arXiv', href: '/glossary#arxiv' }, { text: ' 很大。' }],
+      [{ text: 'arXiv 很忙。' }],
+    ]);
+  });
+
+  it('returns one sentence for a summary with no sentence end, and none for an empty one', () => {
+    expect(sentenceTexts('一句話講完，沒有句號')).toEqual(['一句話講完，沒有句號']);
+    expect(splitSummarySentences([])).toEqual([]);
   });
 });
