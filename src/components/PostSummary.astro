@@ -1,0 +1,120 @@
+---
+/**
+ * PostSummary — 文章頁標題下方的摘要區塊。
+ * 內容直接取自 frontmatter 的 summary（列表卡片用的同一句），
+ * 讓從外部連結直接進文章的讀者先知道這篇在講什麼。
+ * 摘要是純文字；裡面提到的 glossary 詞條由 linkSummary 自動加連結。
+ * 兩句以上就一句一行、前面編號，讀起來不像一整塊字；只有一句就是普通段落。
+ */
+
+import glossary from '../data/glossary.json';
+import { linkSummary, splitSummarySentences } from '../lib/summary-links.mjs';
+
+interface Props {
+  summary: string;
+  lang?: 'zh-tw' | 'en';
+}
+
+const { summary, lang = 'zh-tw' } = Astro.props;
+const english = lang === 'en';
+const label = english ? 'Summary' : '摘要';
+const segments = linkSummary(summary, glossary, { english });
+const sentences = splitSummarySentences(segments);
+---
+
+{
+  sentences.length > 0 && (
+    <aside class="post-summary" aria-label={label} data-post-summary>
+      <span class="post-summary-label">{label}</span>
+      {sentences.length === 1 ? (
+        <p class="post-summary-text">
+          {segments.map((segment) =>
+            segment.href ? <a href={segment.href}>{segment.text}</a> : segment.text
+          )}
+        </p>
+      ) : (
+        // role="list"：拿掉 list-style 之後 Safari 會不把它當清單；編號是畫出來的，讀屏只報第幾項。
+        <ol class="post-summary-list" role="list">
+          {sentences.map((sentence, index) => (
+            <li>
+              <span class="post-summary-number" aria-hidden="true">
+                {index + 1}
+              </span>
+              <span>
+                {sentence.map((segment) =>
+                  segment.href ? <a href={segment.href}>{segment.text}</a> : segment.text
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </aside>
+  )
+}
+
+<style>
+  .post-summary {
+    /* 底色跟文字的對比：深色 --color-bg-muted 上內文 7.5:1、編號 4.9:1、連結 6.5:1 */
+    --post-summary-bg: var(--color-bg-muted);
+    margin: 1.1rem 0 1.4rem;
+    padding: 0.9rem 1rem 0.95rem;
+    border-radius: 12px;
+    background: var(--post-summary-bg);
+  }
+
+  /* 淺色的 --color-bg-muted 上內文只有 4.2:1；--color-surface 上內文 4.6:1、編號 4.9:1、連結 5.0:1 */
+  :global([data-theme='light']) .post-summary {
+    --post-summary-bg: var(--color-surface);
+  }
+
+  .post-summary-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: var(--color-text-muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+
+  .post-summary-text,
+  .post-summary-list li {
+    color: var(--color-text);
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .post-summary-text {
+    margin: 0;
+  }
+
+  .post-summary-list {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .post-summary-list li {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    margin: 0;
+  }
+
+  .post-summary-number {
+    color: var(--color-accent);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    /* 0.8rem × 1.96 ≈ 0.95rem × 1.65：數字跟句子第一行同高 */
+    line-height: 1.96;
+  }
+
+  .post-summary a {
+    color: var(--color-post-link-internal-surface);
+    text-decoration: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
+  }
+</style>

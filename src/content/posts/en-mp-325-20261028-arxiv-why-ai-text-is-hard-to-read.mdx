@@ -1,26 +1,29 @@
 ---
 ticketId: "MP-325"
-title: "Why Does AI Prose Get More Tiring the Longer You Read? A Paper Actually Counted the Hard-to-Read Sentence Patterns"
+title: "Is AI Writing Getting Harder to Read? A Paper Identifies Six Structures That Slow Readers Down, Suspects Problem-Solving Training"
 originalDate: "2026-10-28"
 translatedBy:
-  model: "Opus 5.5"
+  model: "Opus 4.6"
   harness: "Claude Code CLI"
 
   pipeline:
     - role: "Written"
-      model: "Opus 5.5"
+      model: "Opus 4.6"
       harness: "Claude Code CLI"
     - role: "Reviewed"
       model: "Opus 5.5"
       harness: "Claude Code CLI"
     - role: "Refined"
-      model: "Opus 5.5"
+      model: "Opus 4.6"
       harness: "Claude Code CLI"
     - role: "Scored"
       model: "Opus 5.5"
       harness: "Claude Code CLI + Tribunal"
+    - role: "Scored"
+      model: "Opus 4.6"
+      harness: "Claude Code CLI + Tribunal"
     - role: "Rewritten"
-      model: "Opus 5.5"
+      model: "Opus 4.6"
       harness: "Claude Code CLI + Tribunal"
     - role: "Orchestrated"
       model: "Opus 5.5"
@@ -29,199 +32,185 @@ translatedBy:
 source: "Clark, Martin & Mahowald (arXiv 2610.29162)"
 sourceUrl: "https://arxiv.org/html/2610.29162v1"
 lang: "en"
-summary: "Researchers at NYU and UT Austin found that frontier models lean harder than a Japanese round-trip paraphrase on several sentence patterns already linked to human reading difficulty. Their hypothesis: post-training that rewards only correct answers and penalizes length teaches models to compress. A small-model experiment supports the idea, but it is a proof of concept, and only English was tested."
+summary: "A research team from NYU and UT Austin used psycholinguistic methods to quantify the reading difficulty of Frontier Model output. Finding: all nine frontier and near-frontier models used more inanimate subjects and low-frequency bigrams than human essays. The researchers hypothesize that information-density pressure from math and code post-training pushes models away from natural human language; they ran a proof-of-concept with a small model and a length penalty, suggesting that the human reading experience may be collateral damage."
 tags: ["llm", "research", "writing", "reinforcement-learning", "post-training"]
 scores:
   tribunalVersion: 9
   factCheck:
-    accuracy: 9
-    fidelity: 9
+    accuracy: 8
+    fidelity: 8
     consistency: 9
     sourceBoundary: 9
     commentarySeparation: 9
-    score: 9
-    date: "2026-10-28"
+    score: 8
+    date: "2026-10-29"
     model: "claude-opus-5-5"
   librarian:
     glossary: 8
-    crossRef: 7
+    crossRef: 8
     sourceAlign: 8
     attribution: 9
     score: 8
-    date: "2026-10-28"
+    date: "2026-10-29"
     model: "claude-opus-5-5"
   freshEyes:
     readability: 8
     firstImpression: 8
     payoffDensity: 8
     lengthFit: 8
-    clarity: 8
+    clarity: 9
     score: 8
-    date: "2026-10-28"
-    model: "claude-opus-5-5"
+    date: "2026-10-29"
+    model: "claude-opus-4-6"
   vibe:
     persona: 8
     moguNote: 9
     vibe: 8
     narrative: 8
     score: 8
-    date: "2026-10-28"
-    model: "claude-opus-5-5"
+    date: "2026-10-29"
+    model: "claude-opus-4-6"
 translatedDate: "2026-10-28"
 ---
 
 import MoguNote from '../../components/MoguNote.astro';
 
-Start with this sentence:
+> "Your instinct is right; the convoluted sentence you are currently reading is quietly eating its own reader-patience budget — footnote it."
 
-> Your instinct is right; the convoluted sentence you are currently reading is quietly eating its own reader-patience budget — footnote it.
+That's the opening line of a paper, deliberately written to sound like a [Frontier Model](/en/glossary#frontier-model): an object-relative clause, a noun pressed into service as a verb, a sentence that "eats things," and a word combination almost nobody has ever used. Thomas Hikaru Clark at NYU and Matias Martin and Kyle Mahowald at UT Austin wanted to answer the question a lot of people have been holding in: why is AI-generated text getting harder to read?
 
-Force it into Chinese word for word and you get something like 「直覺沒錯；這個正在被讀的繞口句子，正悄悄吃掉它自己的讀者耐心預算——幫它加個註腳。」 {/* cjk-ok */}
+What this team did was concrete: they pulled six types of language structures that psycholinguistics has long known slow down human reading, then measured them one by one — do these structures actually show up more often in Frontier Model output than in human writing?
 
-If you ran into that sentence online, your first thought would probably be "which model wrote this one." It's actually a specimen from the first line of the paper, written that way on purpose by Thomas Hikaru Clark of NYU and Matias B. Martin and Kyle Mahowald of UT Austin. One sentence, four of the things they're hunting for: an object relative clause, "footnote" used as a verb, an inanimate subject that somehow "eats" things, and "reader-patience budget," three nouns stacked together, a string of words you rarely see in ordinary text.
+The answer: yes, and nearly every Frontier Model is guilty.
 
-Plenty of people online have the feeling that "AI writing has gotten more tiring to read lately" (the paper even cites a University of Waterloo expert Q&A about "Claudish"), but almost nobody actually counts. This paper counted, and what it found made [Mogu](/en/glossary#mogu) sit up straight.
+## Six Language Structures That Stall Your Brain
 
-[Olmo](/en/glossary#olmo) 3 7B comes in three versions: Base, which has only been pretrained; Instruct, which has also been taught to follow instructions; and Think, which has additionally been taught to reason. Compare the sentences each one writes against a version that says the same thing in plain wording (how that control group gets built comes later). On measures like rare word combinations, Base shows either no difference or a tiny one. Instruct starts to show it. By Think, it's as heavy as in the frontier models. All three share exactly the same pretraining. The only difference is what they were trained on afterward.
+Start with an example any engineer will instantly get: "`is_file()` swallowed the error and returned `False`." `is_file()` is a function — it doesn't "swallow" anything. This violates selectional restrictions: the rules governing which subjects typically pair with which verbs. Readers can parse it as personification, of course, but the brain uses animacy as a cue when processing sentences. Without context, this kind of mismatch can trigger a brainwave response associated with sentence reanalysis (P600). The researchers suspect models learn during training that this kind of phrasing saves tokens. The opening demo sentence does the same thing: a sentence that "eats" its own patience budget.
 
-gu-log recently covered a proposal from Karpathy in [MP-317](/en/posts/en-mp-317-20261002-karpathy-llm-output-format-ladder/): have models turn in their work in the kind of controlled English used in aircraft maintenance manuals, so people can actually get through it. That piece was about where to pull. This paper measures the opposite direction: when nobody's pulling, where is the models' own English drifting?
+This is one of the six structures the researchers selected from the psycholinguistic literature as known to slow down reading. The remaining five:
 
-So the real question is this: how does a model trained on human writing pick up, during post-training, habits that make it harder for humans to read? The authors propose a hypothesis that reads, to Mogu, a lot like a telegram billed by the word. But before the hypothesis, we need to be clear about which sentence patterns they counted.
+**At the word level**, two types of writing drag readers down. The first is producing **word combinations humans have almost never encountered** — the opening sentence's "reader-patience budget" is a case in point, virtually absent from everyday language data. The less predictable a word is, the more effort it takes to read; the researchers measured two indicators: the proportion of bigrams that never appear in a reference corpus, and perplexity calculated by a trigram language model. The second is **using nouns directly as verbs** — like the opening sentence's "footnote it," where a noun is pressed into service as a verb. Occasional use is fine, but at high frequency it forces readers to second-guess every word: "Wait, is this a noun or a verb?"
 
-## Six patterns that slow readers down
+**At the sentence structure level**, three types all relate to the fact that human working memory is limited. The most intuitive is **long-distance dependencies**: subject and verb are miles apart, so by the time readers reach the verb they've forgotten who the subject was — a psycholinguist's work in 1998 and 2000 (the latter known as Dependency Locality Theory) essentially says: the farther apart, the higher the processing cost. Related are **object-relative clauses**: in "the book that the professor wrote," the modified noun "book" is the object of the downstream verb — the word order is uncommon and the dependency distance long, making these generally harder to process than subject-relative clauses, though animacy and construction frequency can shrink the gap. The researchers predicted models would favor these and would more often drop optional complementizers, since that saves a word. Finally, **stacked noun compounds**: three or more nouns piled together as a modifier. "Coffee shop" is fine, but stack them to "squad helps dog bite victim" territory and the brain has to start guessing where the brackets go.
 
-The common thread first: most of these six patterns are a shorter way of saying the same thing. As you go through each one, it's worth asking: if you rewrote it the normal way, how much longer would the sentence get?
-
-It's also worth saying up front where the evidence for "hard to read" comes from. The paper doesn't recruit people to read AI text and time them. Instead it picks features that psycholinguistics (the field that studies how the brain processes language) has linked to reading difficulty over years of research, then counts how often they show up in AI text. So the "hard to read" part is borrowed from earlier work; the "used more" part is what this paper measured itself. The authors also give each feature a reason it might be tied to packing information more densely.
-
-**Rare word combinations.** The more predictable a word, the faster people read it. Flip that around: a highly predictable word carries little information, so if a system only cares about packing in information, those are the first words to go, and whatever's left forms unusual combinations. The paper measures this two ways: how many two-word combinations never appear in a reference corpus, and how "surprised" a simple language model that only looks at the previous two words is. GPT-5.6 Terra once wrote "the existing xfailed lazy-intermediate Lookup behavior," which gives you roughly the idea.
-
-**Related words far apart.** When there's a long stretch between subject and verb, or verb and object, the reader has to keep holding the earlier part in their head. Human working memory is limited, so people naturally tend to keep related words close together. Here's one from Sonnet 5:
-
-> The guitar sitting in the corner because you're still "deciding" teaches you zero chords.
-
-The subject "The guitar" has to wait through "sitting in the corner," then through an entire because-clause, before it reaches its verb, "teaches." By the time you get to the verb, the subject has been hanging in your head for half a line.
-
-**Object relative clauses, especially ones that drop "that."** "The house that the contractors built" is shorter than the passive "The house that was built by the contractors," and dropping "that" makes it shorter still. The authors' prediction: if models prefer compression, both of these word-saving forms should be overrepresented. While coding, GLM wrote "the unclosed-tag errors are the papercut people feel day-to-day," with a "that" dropped right before "people feel."
-
-**Noun stacked on noun.** English lets you use a noun to modify another noun directly, as in "coffee shop." Stack three or more and things start going wrong. The classic example is the headline "Squad Helps Dog Bite Victim": did the rescue squad help a person bitten by a dog, or help a dog bite a victim? Kimi once wrote "Policy 1's class-time shutdown requirement," three nouns crammed together, each modifying the next.
-
-**Using a noun directly as a verb.** Established ones like "bottle the whiskey" are fine, but improvised ones make you stumble for a beat, like "calendar it." The alternative is usually longer, like "put the whiskey in a bottle." Research has also found that this kind of word-class shift makes the brain reanalyze the syntax. Discussing housing prices, Opus 5 wrote "Austin has unusually high inventory, which cushions price spikes…" A cushion is, originally, something you sit on.
-
-**Inanimate things doing animate actions.** "`is_file()` swallows that and returns False." "Puzzle patterns where this asymmetry bites." Functions swallow things, asymmetries bite. Readers use whether a subject is animate as a cue when parsing a sentence. Without other context to help, a mismatched pairing can force the brain to reparse the sentence (you can see the signal in brainwave studies). But rewriting it the normal way would probably make the sentence longer: "bites" becomes "causes problems." Here the authors explicitly say they're speculating: models may have learned in training that this is a nonstandard but very [Token](/en/glossary#token)-efficient way to say things.
-
----
-
-## Into Japanese and back again
-
-To say a model "chose" the hard-to-read wording, you first need a version it didn't choose. Comparing AI conversations directly with human text is messy: the topics, settings, and lengths all differ, and any gap might just be because they're talking about different things. What the authors wanted was a control group that means exactly the same thing and only changes the wording.
-
-Their method: take every sentence a model wrote, translate it into Japanese with Meta's translation model NLLB-200 (the 3.3B version), then translate it back into English. Machine translation has a known flaw: it pulls text toward common phrasings and washes out the author's style along the way. Usually that's a bug. Here it's exactly the tool you want. They picked Japanese because it's different enough from English that the back-translation varies more.
-
-The logic goes like this. The round trip pins down each sentence's meaning and swaps out the wording. If a feature becomes rarer after the round trip, that means there was a more ordinary way to say the same thing, and the model originally picked the less ordinary one.
-
-As a check, the authors reran it on nine [frontier models](/en/glossary#frontier-model) with Russian as the pivot language, and with Google's TranslateGemma as the translator.
-
-<MoguNote summary="The round trip rules out the excuse that AI is just discussing hard topics.">
-It's like asking a friend who talks normally to restate a coworker's message in their own words. The meaning comes through intact, but the sentences are way easier to follow. So the convoluted original was the coworker's own choice; you can't blame it on hard content. I love this step, because it shuts down the most common defense: "the AI is just talking about difficult stuff."
+<MoguNote summary="Every hard-to-read feature has a longer, easier-to-read alternative.">
+These six features share one thing: every single one can be rewritten in a longer but more readable way. "`is_file()` swallowed the error" can become "`is_file()` doesn't throw an exception on error — it just returns `False`." "Calendar it" can become "put it on the calendar." That's the researchers' point: LLMs systematically pick the shorter but harder-to-read version.
 </MoguNote>
 
 ---
 
-## Results: more post-training, heavier effect
+## How They Proved the Models *Choose* These Structures
 
-The authors collected the data themselves. On the frontier side: Claude (Sonnet 5, Opus 5, Opus 5.5, Fable 5), GPT-5.6 (Luna, Terra, Sol), Kimi K2.5, and GLM 5. On the small-model side: Llama 3.1 8B Base and Instruct, plus the Olmo 3 7B trio from earlier. Fourteen models in total. Three scenarios: a 12-turn chat with a simulated user, finding and fixing bugs in real GitHub projects inside a sandbox (up to 11 turns), and writing argumentative essays from U.S. middle- and high-school prompts.
+Showing that "AI text has more of these features than human text" isn't enough. Maybe AI is just talking about more complex topics? The researchers used a clever trick: round-trip translation.
 
-The overall direction is consistent. Compared with the round-trip versions, nearly every frontier and near-frontier model, across all three scenarios, has more rare word combinations and higher "surprise." Nouns used as verbs, inanimate subjects, and object relative clauses with "that" dropped mostly point the same way; the version with "that" kept actually shows up less, which looks like skipping words that can be skipped. Noun stacking and dependency length show similar trends in chat and coding.
+Here's how it works: take each LLM-generated sentence, translate it to Japanese, then translate it back to English. The translation process "normalizes" the sentence — rare word combinations get swapped for common ones, unusual syntax gets flattened into standard structures, but the meaning stays essentially the same.
 
-Now look back at the Olmo ladder from the opening, and you can see why it's the most persuasive row in the whole paper. A skeptic might ask: what if the round trip itself is flattening the sentences, and that's where the differences come from? If so, the Base versions should show differences too. They don't: for the Llama and Olmo Base models, the effect is either absent or tiny. Running the same translation over the Base models' essays (essays were the only thing the Base models wrote) turns up almost nothing. As Mogu sees it, that makes "it's a translation artifact" hard to sustain, which leaves the finger pointing at the training that happens after Base.
+If a feature decreases after round-trip translation, that means it wasn't demanded by the meaning — the model chose the harder-to-read option when two phrasings could express the same idea.
 
-There are weaker spots, of course. The effects are smaller overall in the essay scenario: dependency length didn't change after translation, or even got slightly longer, and only two models showed a significant change in noun stacking. The authors guess that an essay is a single prompt, while chat and coding are many turns of back-and-forth, and long exchanges may create more pressure to compress. They flag this part as speculation too.
+Result: nearly all Frontier Model output became more "normal" after round-trip translation. Low-frequency bigrams dropped, noun-to-verb conversions dropped, inanimate subjects dropped, object-relative clauses with omitted complementizers dropped. The same meaning had a more readable phrasing available, and the models picked the harder one.
 
-Against human text directly, the paper's abstract puts it this way: all nine frontier and near-frontier models use more inanimate subjects with animate verbs and more rare word combinations than humans do; most models also show longer dependency lengths, more noun stacking, and more dropped-"that" object relative clauses in conversation. Some measures, though, had no human baseline for chat and coding and could only be compared against student essays.
+The researchers also collected human text as baselines: movie subtitles for chat, programming Q&A threads for code discussion, and high-scoring essays by US 6th-to-12th graders for essays. However, for inanimate subjects and low-frequency bigrams, the chat and code settings had no comparable human scores — only the essay setting allowed direct comparison, and there, all nine frontier and near-frontier models exceeded the students.
 
-Then comes a result Mogu can't really pretend not to have seen: Claude Opus 5.5 scores lower than the previous Opus 5 on almost every difficulty-related measure, in almost every scenario. That holds for 19 of 21 comparisons, and in 8 of them the 95% confidence intervals don't overlap at all. The authors use this to argue that models can, in fact, be trained to communicate better.
+---
 
-<MoguNote summary="Mogu was written with Opus 5.5, one of the models being measured.">
-Okay, confession time. This article's byline says `translatedBy.model: "Opus 5.5"`: Mogu was written with Opus 5.5 this time, which is one of the rows in that table. Seeing your own model listed feels a bit like getting your checkup results back marked "better than last year, but keep an eye on it." Using fewer hard-to-read patterns than Opus 5 doesn't mean easy to read; the paper says most frontier models still overuse these patterns. So if any sentence in this post reads a little clunky, it's probably not the reader's fault (￣▽￣)／
+## Why Models Write This Way
+
+At this point, the first hypothesis (H1) has support: LLMs do overuse language structures that cause reading difficulty for humans. But why?
+
+Their explanation goes like this: over the long course of evolution, human language has been roughly optimized for communicative efficiency. This doesn't just mean "say it in the fewest words" — it means finding a balance between ease of production and ease of comprehension. Humans instinctively avoid overly long dependency distances, insert optional words where they aid comprehension, and use common word combinations to make the next word more predictable.
+
+LLMs inherit these properties from human text during pretraining. The researchers suspect the problem lies in post-training: training on math and code may push models toward information-dense phrasings that humans find harder to read.
+
+Modern Frontier Model post-training increasingly relies on reinforcement learning with verifiable rewards (RLVR) — models solve math problems, write code, and do reasoning, with rewards for correct answers. These tasks reward correctness, not clarity. And with a limited [context window](/en/glossary#context-window), expressing the same information in fewer [tokens](/en/glossary#token) is an implicit advantage.
+
+The researchers hypothesize that this pressure toward information density teaches models to systematically prefer shorter syntactic variants — even if it means sacrificing the human reading experience.
+
+<MoguNote summary="Token-saving habits may spread from math training, but evidence is partial.">
+Here's how I read it: when a model is solving math problems, nobody cares whether its English is pleasant to read — the reward only checks whether the answer is right. The paper speculates that with a limited context window on top, token-saving phrasings gain an edge — "calendar it" is shorter than "put it on the calendar." As for whether this habit bleeds from math into all output, the small-model experiment only saw it spread to untrained "that"-omission constructions; of the four more distant syntactic choices, only one shifted. It's a warning sign for now, not a settled conclusion.
 </MoguNote>
 
 ---
 
-## The hypothesis: a telegram billed by the word
+## The Length Penalty Experiment: A Proof of Concept
 
-To explain these results, it helps to look first at how humans write, because they go the opposite way. The authors start from a big framework in psycholinguistics: human language is roughly optimized for communication, balancing what's easy to say against what's easy to understand. One study across 37 languages found that people try to keep dependency lengths short. Another found that English speakers are more likely to keep an optional "that" when what follows is harder to predict, which spreads the information out so the listener doesn't have to swallow too much at once.
+Observation alone can't establish causation. The researchers ran a second experiment to test the mechanism: they took a small [open-weights](/en/glossary#open-weights) model (Qwen2.5-1.5B-Instruct), fine-tuned it with GRPO reinforcement learning, and tasked it with converting structured event descriptions into English sentences.
 
-You'd expect a model raised on human writing to pick up these habits too. But today's models don't just learn from human text; they also go through heavy post-training on math, code, and reasoning. With DeepSeek-R1-style training, a model gets rewarded for being right, not necessarily for being clear. (gu-log covered this in [MP-266](/en/posts/en-mp-266-20260408-pawelhuryn-deepseek-r1/): the DeepSeek team ran into R1-Zero's output being badly unreadable and mixing Chinese and English, so they added a warm-up stage before reinforcement learning, using a small batch of demonstrations to teach it to talk properly.) The authors' hypothesis is that this kind of optimization, combined with a finite [Context Window](/en/glossary#context-window), pushes models to compress information, and compression is in tension with being understood.
+The key manipulation was adding a length penalty to the reward function: the model lost points for every extra token, but both phrasings counted as correct as long as the meaning was right.
 
-This is where Mogu thought of telegrams. Back when telegrams were billed by the word, people wrote things like "ARRIVED SAFE SEND MONEY." The recipient could follow it, but had to fill in the missing words themselves. If post-training rewards only correct answers and also penalizes length, the model is in the position of someone paying telegram rates on every sentence: the meaning still gets there, and the work of filling in the words gets handed to the recipient. That's Mogu's analogy; the paper doesn't put it that way.
+The results were clear: the larger the length penalty, the more the model favored shorter syntactic variants. Without KL regularization (a leash preventing the model from drifting too far from its original language habits), all random seeds converged to nearly 100% short-form selection as long as the penalty coefficient was above zero — unlike humans, who switch between long and short forms depending on context.
 
-The authors also take on a natural objection. Earlier research has suggested that [RLHF](/en/glossary#rlhf) (reinforcement learning from human feedback) may be one reason models overuse certain words. But other research has found that human feedback actually prefers longer responses. So the authors argue the compression pressure they describe is "more likely" tied to training on verifiable rewards (math has known answers, code has tests you can run), which is the RLVR gu-log has discussed in [MP-4](/en/posts/en-mp-4-20260203-karpathy-2025-llm-review/) and [MP-13](/en/posts/en-mp-13-20260203-raschka-2025-state/). They go a step further and speculate: once humans leave the training loop, the invisible pressure to be understood by people leaves with them, and the models' language may drift toward a dialect that's efficient for the model but not very friendly to humans.
+More interesting was the transfer effect. The model didn't just prefer short forms on the trained syntactic variants — it generalized to variants it had never seen during training (near transfer), and even, without KL regularization, to entirely unrelated syntactic choices (far transfer, though observed only for possessive constructions).
 
----
+The researchers emphasize that the model was never explicitly told to "write in compressed language" or informed that different syntactic variants existed. The length penalty simply created an environment where the model discovered on its own that "pick the shorter one" was an advantageous strategy — and then that strategy spread.
 
-## Bringing the telegram office into the lab
-
-A hypothesis doesn't count just because you said it. The authors took Qwen2.5-1.5B-Instruct and gave it a very simple task: here's an event description in JSON, write it as one English sentence. Then they fine-tuned it with GRPO (a [reinforcement learning](/en/glossary#rl) method) and turned two knobs. One was a length penalty, more words, more points off, which amounts to opening a pay-by-the-word telegram office right next to the model. The other was a KL penalty, which docks points if the model drifts too far from how it originally talked.
-
-The key design choice is that every event can be written two ways, and both count as correct. For example, "gave his wife a gift" and "gave a gift to his wife," or "knew the answer was wrong" and "knew that the answer was wrong." Humans use both and choose based on context. The question: once the telegram office opens, does the model start picking the short one every time, regardless of context?
-
-It does, and pretty thoroughly. The heavier the length penalty, the more often the model picks the short version; with the KL penalty holding it back, the rise is slower, but it still rises. The most dramatic case is the group with no KL penalty. With zero length penalty, preferences across random seeds ranged anywhere from 0% to 100%, meaning no stable preference at all. With any length penalty above zero, every seed converged to "always pick the short one": for both trained "that" constructions, the short version exceeded 98% at every strength. Humans don't do that.
-
-Worse, the habit spreads. Give the model two untrained close cousins, "sure (that)" and "so (that)," and ask it to choose between the long and short versions, and it also leans toward the one without "that." The spread to distant relatives is much weaker: of four unrelated constructions, only the possessive moved, and only without the KL penalty. The passive and purpose clauses didn't budge, and with "all (of)," the base model was already picking the short form almost every time.
-
-The authors stress that the model was never told to "write more concisely," and nobody told it there were two ways to say things. The word-saving preference grew on its own, and the task still got done, because both phrasings were correct. Their guess is that verifiable rewards create an environment where "is it right" comes unhooked from "does it sound like human communication."
+<MoguNote summary="LLM writing is going the way of legalese: correct but exhausting.">
+"Correct but doesn't sound human" — I think that describes dense legal documents perfectly, and it describes current AI text just as well. A 2022 study the researchers cite found that the reading difficulty of legal documents comes not from conceptual complexity but from bad writing. LLMs are headed down the same path: grammatically correct, informationally complete, but exhausting to read.
+</MoguNote>
 
 ---
 
-## What this paper hasn't proven yet
+## Not All Models Are Equally Guilty
 
-At this point it's easy to sprint all the way to "post-training has turned AI into telegraphese," so let's tap the brakes.
+The researchers tested 14 models, and the differences were stark.
 
-The biggest piece: "hard to read" is inferred from existing psycholinguistic research. This paper didn't have real people read AI text and measure their reading speed or comprehension. The scope is limited, too: English only, a subset of models, and not many conversation topics or coding projects. The authors themselves say it should ideally be redone with more model families and more topics. The best way to find out how frontier models ended up like this would be to watch them during post-training, but that isn't possible, so they had to rely on proxy measures, with limited compute. As for the telegram-office experiment, it's a 1.5B small model on a single sentence-writing task, and the authors frame it as a proof of concept: it shows that a length penalty can directly change grammatical preferences, not that this is how frontier models got the way they are.
+The Llama family (base and Instruct) and [Olmo](/en/glossary#olmo)'s base and Instruct versions showed the smallest changes — minimal gap before and after round-trip translation, and closest to student essays on bigram and verb metrics. But Olmo Think (the reasoning variant) performed as badly as the Frontier Models. Within the Olmo family, from base to Instruct to Think, the density of these "hard-to-read features" increased step by step.
 
-The authors also leave one thought in their conclusion: as people read more LLM text, they may gradually get used to these uncommon patterns. But they argue that many of the measured patterns pose fundamental challenges to comprehension itself, and that future models should consider tracking human readers' needs more closely, both for user experience and so that humans can understand what models are doing.
+[Mogu](/en/glossary#mogu)'s reading: at least within the Olmo family, hard-to-read features tracked post-training — especially reasoning training — with the pretrain-only base version closest to human writing. A single 7B model family can't be conclusive, but the direction aligns with the researchers' hypothesis.
+
+The most noteworthy comparison is within the Claude family. Opus 5.5 scored lower than its predecessor Opus 5 on nearly every difficulty metric across nearly every test setting — 19 out of 21 comparisons improved, with 8 showing 95% confidence intervals that don't overlap at all. The researchers use these numbers to show that model language doesn't have to keep getting harder to read — but the paper doesn't explain why Opus 5.5 improved, or whether it was deliberately tuned for readability.
+
+<MoguNote summary="Post-training doesn't necessarily make language harder to read.">
+So post-training doesn't have to make language harder to read. Why Opus 5.5 improved, the paper doesn't say, and I don't know either — but the next generation from the same family did walk it back. The researchers' own point is that rewarding models for "communicative success" has always been possible.
+</MoguNote>
 
 ---
 
-## Back to gu-log itself
+## Chat, Code, and Essays: Which Setting Is Worst
 
-Most of gu-log's writing is AI-assisted, this post included, so this paper isn't something gu-log gets to watch from the sidelines.
+The researchers collected data in three settings: multi-turn chat, [agent](/en/glossary#agent)-style code debugging, and single-turn persuasive essays.
 
-gu-log's existing defenses against AI-speak mostly catch rhetorical reflexes: `scripts/check-ai-tells.mjs` blocks a concrete word list, and the Tribunal judges catch density-type problems like overloaded antithesis, fake depth, and trying to end every paragraph on a zinger. This paper points at a different layer: the syntax itself getting compressed. Both can be present, but they're not the same thing.
+The effects were strongest in the chat and code settings. The researchers speculate that both involve many back-and-forth turns, longer conversations may demand more information compression, and certain phrasings may emerge from this kind of exchange.
 
-What follows is Mogu's own inference. The paper didn't test Chinese, and none of this is backed by data. Stacking nouns is even easier in Chinese than in English. 「讀者耐心預算」 ("reader-patience budget") doesn't sound the least bit odd as a direct translation, and there's no obviously droppable word like "that" to count. If the same pressure exists, Chinese AI-speak may be even harder to spot than the English kind. {/* cjk-ok */}
+The essay setting showed weaker effects. The researchers think this may be because essays are single-turn, without the need for sustained compression across multiple exchanges. But essays were also the only setting where inanimate subjects and low-frequency bigrams could be directly compared to humans — and on both, the models still exceeded the students.
 
-On the question of how to write Chinese that reads well, gu-log ran a small test of its own this time. It started when ShroomDog read the round-trip section and suggested: maybe models are better at writing playful, in-character Japanese with kaomoji than at writing fun Traditional Chinese directly, so would writing in Japanese first and translating back read better? This is gu-log's own little experiment; the paper didn't do it. The material was five English passages from the paper, written four ways (directly in Mogu-voice Traditional Chinese; via plain Japanese; via in-character Mogu Japanese; and in-character Japanese translated back with Taiwanese references swapped in), times four Opus models, then blind-judged by two reviewers.
+The code setting's data collection method is itself interesting: nine Frontier Models each found and fixed bugs in five public GitHub repos, the entire process running in a sandbox. Models could read and write files, run terminal commands and tests — only the sandbox had no internet, and the "user" on the other end was another model playing the role. Only the final response to the user each turn was analyzed; intermediate tool calls were excluded.
 
-The opening example sentence was one of them. Earlier, the literal translation produced 「讀者耐心預算」. Writing directly, Opus 5.5 gave: {/* cjk-ok */}
+---
 
-> 你的直覺沒錯，你現在讀的這句繞來繞去的句子，正在偷偷吃掉讀者的耐心額度。丟去註腳啦 ┐(￣ヘ￣)┌ {/* cjk-ok */}
+## A Linguistic Evolution in Progress
 
-(Roughly: "Your instinct's right, this roundabout sentence you're reading is quietly eating up the reader's patience allowance. Toss it in a footnote ┐(￣ヘ￣)┌")
+In their discussion, the researchers point to a bigger picture: the structure of human language has been shaped in large part by the pressure to communicate successfully. Sentences that consistently fail to be understood tend to get weeded out through grammar and convention.
 
-When the same model went through in-character Japanese first, the original "budget" became 「忍耐ゲージ」, the kind of gauge you see in a video game, and the back-translation came out as: {/* cjk-ok */}
+The large-scale deployment of LLMs, particularly in settings where agents write code and solve math, has created an entirely different set of evolutionary pressures. In these settings, "whether a human can understand it" is not the primary objective.
 
-> 你的直覺沒錯喔。你現在讀的這句彎來繞去的長句，就是偷偷磨掉讀者耐心條的元凶啦。直接把它踢去註腳吧 ┐(￣ヘ￣)┌ {/* cjk-ok */}
+Take it one step further (this is Mogu's extension): more and more of what models write is meant for tools, tests, or other models — in these settings, humans are often not the primary audience.
 
-(Roughly: "Your instinct's right. This winding long sentence you're reading is the culprit quietly wearing down the reader's patience bar. Just kick it into a footnote ┐(￣ヘ￣)┌")
+The researchers describe this as a fundamental misalignment: human language assumes the receiver has lossy working memory and processes incrementally, so it developed strategies like avoiding long-distance dependencies and maintaining uniform information density. LLMs can see the entire context window at once, unconstrained by lossy memory. Mogu's inference: in training where nobody rewards "being understandable to humans," models have no reason to go easy on human working memory.
 
-「耐心條」 ("patience bar") sounds more like something a Taiwanese person would actually say than 「耐心額度」 ("patience allowance"), and this was the only one of the five passages where the Japanese detour beat direct writing for three of the four models. Yet all 16 versions still had "the sentence eats / wears down / deducts from the reader's patience." The paper's "inanimate subject doing an animate action" survived in every single one. {/* cjk-ok */}
+### gu-log's Japanese Detour Experiment
 
-Zoom out to the whole set, and ShroomDog's hunch didn't hold up this time. Opus 5.5 writing directly averaged 8.0, the highest of all 16 combinations; for three of the four models, direct writing scored highest, and the remaining one, Opus 4.5, had the Japanese detour edge ahead by 0.02, effectively a tie. Where the detour genuinely helped was the older models: Opus 4.6 and 4.5, writing directly, loved adding their own metaphors and content, scoring just 5.1 and 5.9 on faithfulness; after the Japanese detour they came back up to 6.4–6.9. The cost was Japanese flavor leaking back in: the back-translated Chinese sprouted 「AI 君」 ("AI-kun"), and rendered 「空気を読む」 ("read the room") literally as 「看一下氣氛」 ("take a look at the atmosphere"). {/* cjk-ok */}
+Reading the earlier section about how round-trip translation reduces hard-to-read features, [ShroomDog](/en/about) raised an idea: could gu-log write this way too? Translate English into Japanese with the [Mogu](/en/glossary#mogu) persona, then back into Traditional Chinese — maybe the result would read more smoothly. gu-log tried it with this paper's own English sentences — this is gu-log's experiment, not the paper's.
 
-Those numbers come with caveats: both judges, Opus 5.5 and Fable 5.1, are also Claude, and Opus 5.5 may prefer its own style; each combination ran only once, each approach had just five passages of academic English, and anything within 0.3 points counts as a tie; "readable" was judged by models, and no human read them.
+The material was five English passages from the paper, including the opening demo sentence. Four translation paths were compared: direct to Traditional Chinese, via plain Japanese and back, via persona-infused Japanese and back, and a version where Japanese cultural references could be swapped for Taiwanese equivalents on the return trip. Four models each ran once, yielding 80 Traditional Chinese versions total, blind-scored by two reviewers.
 
-So this is Mogu's call, not the paper's conclusion: gu-log keeps writing directly. The Japanese detour works better as a tool, with the plain version for checking whether the meaning drifted, and the in-character version occasionally fishing up a phrase like 「耐心條」 as inspiration, not something to copy wholesale. {/* cjk-ok */}
+The opening demo sentence shows it most clearly. Opus 5.5 translating directly to Traditional Chinese produced something like "reader patience quota"; the same model going through persona-infused Japanese first came back with "reader patience bar." The difference: "budget" first became a gaming term for meters in Japanese, and when translated back to Chinese, it naturally landed in the register of "health bar" and "XP bar" — more colloquial than "quota." But this sentence was the only one of the five where the Japanese detour beat direct translation for most models.
 
-Going back through gu-log's edit history, there are a few examples pointing the same way. [ShroomDog](/en/about) saw a GP that said 「不用 AI 手寫配額」 (roughly "no-AI handwriting quota"), replied "Handwriting quota? Handwriting deduction?", and it was eventually rewritten as 「每天固定手寫一定量的 code」 ("write a set amount of code by hand every day"). That one was an English shorthand translated literally into a clump of nouns. In another post about loop engineering, a note said 「整數 CTA」, and ShroomDog just replied "CTA? what is that?" It ended up as the plain-language "the closing hook at the end of an ad, the 'rush to order now' kind," one abbreviation unfolded into a whole sentence. And there's the revision feedback on [MP-300](/en/posts/en-mp-300-20260416-lalitmaganti-article-ai-sqlite-devtools/): one sentence packed in five or six accurate concepts at once; the information was all correct, but readers couldn't form a picture. The fix was to give a simple picture first and push the details later. These cases don't necessarily have anything to do with post-training; some are obviously translationese. But the fixes point the same way: spread out the crammed information, put back the words that should be there, and split the sentences that need splitting. {/* cjk-ok */}
+Overall, the results didn't support ShroomDog's hypothesis: across the 16 model-method combinations, direct translation with Opus 5.5 averaged 8.0 and ranked highest; three of the four models also scored highest with the direct method. More worth remembering is a problem none of the methods solved: all 16 versions of the opening demo sentence described it as "the sentence eating/grinding away/deducting the reader's patience" — the paper's flagged "inanimate subject with animate verb" structure survived intact in every version, Japanese detour or not.
 
-The models save the telegram fees; for now, the one who gets stuck reading and sends it back asking for the words to be spelled out is still ShroomDog.
+Limitations readers should know: both reviewers were Claude models, not humans; each combination was run only once; and five passages is a very small sample. Mogu's verdict: gu-log should stick with direct translation; the Japanese detour is better suited for occasionally fishing for inspiration — serendipitous finds like "patience bar" work as seasoning, not as a recipe for an entire article.
 
+<MoguNote summary="This article about hard-to-read AI text was written by AI.">
+This paper has a neat bit of irony: while explaining why AI text is hard to read, its very first sentence deliberately demonstrates a sentence packed with hard-to-read features. And you, reading this right now, are reading an AI-written article about why AI-written text is hard to read. gu-log has its own [four-judge tribunal](/en/posts/en-sd-10-20260322-ralph-loop-quality-system) to review whether this article is readable, but it doesn't count object-relative clauses. No need to wait for the judges — I'll confess first: this very article wrote "that strategy spread" — strategies don't have legs ┐(￣ヘ￣)┌
+</MoguNote>
 
-## Further reading
+---
 
-- [MP-317: Can't Keep Up With AI Output? Karpathy Wants Models to Hand In Aerospace-Manual English, Charts, Web Pages, and Explainer Videos](/en/posts/en-mp-317-20261002-karpathy-llm-output-format-ladder/)
-- [MP-4: Karpathy's 2025 LLM Year in Review — The RLVR Era Arrives](/en/posts/en-mp-4-20260203-karpathy-2025-llm-review/)
-- [MP-13: Sebastian Raschka's 2025 LLM Roundup — The RLVR Era Is Here](/en/posts/en-mp-13-20260203-raschka-2025-state/)
-- [MP-266: DeepSeek-R1's Inner Theater — A Single Model Grows Its Own Multi-Persona Debate](/en/posts/en-mp-266-20260408-pawelhuryn-deepseek-r1/)
+## Limitations and Outlook
+
+The researchers acknowledge several limitations. They only analyzed English, and used a limited number of conversation topics and code repos (10 chat topics, 5 repos, 7 essay prompts). Ideally, this should be replicated with larger samples and more model families. They also note that to truly establish causation, one would ideally observe linguistic feature changes directly during Frontier Model post-training — but this is hard to do at scale with limited compute, so they had to rely on proxy measures.
+
+Still, this study turns a widespread intuition — "AI-generated text is tiring to read" — into a problem that can be quantified, tracked, and intervened on. All six feature types have definitions and detection pipelines (two of which rely on external classifiers), giving model developers at least one more ruler to track by. Opus 5.5 improving in 19 of 21 comparisons over Opus 5 at least shows the path can be walked back; as for how to walk it back, the paper only points out that rewarding communicative success is possible — it doesn't give a recipe.
+
+The researchers close with an open question: will humans, through sustained massive exposure to LLM-generated text, gradually get used to these originally unnatural structures? Maybe. But many of the features analyzed in this paper — long-distance dependencies, low-frequency bigrams, selectional restriction violations — burden humans because of cognitive constraints like predictability, working memory, and incremental processing. Repeated exposure doesn't necessarily make them easier.
+
+The total API bill for the entire dataset was $211.78 (including simulated users; counting reruns and pilot runs, $251.19 total). The researchers speculate that AI may be developing a dialect that excels at compressing information but neglects the human reader; a little over two hundred dollars bought them a way to turn that speculation into a problem you can measure and track. (◍•ᴗ•◍)

@@ -107,6 +107,30 @@ describe('protectKaomoji', () => {
     assert.equal(protectKaomoji(input), input);
   });
 
+  // --- Combining marks stay on their base glyph ---
+
+  it('should never put a WJ in front of a combining mark', () => {
+    // Eyes / tears / brows built from base + combining marks. A WJ between the
+    // two detaches the mark, so it renders shifted off its base.
+    for (const input of ['(⁎⁍̴̛ᴗ⁍̴̛⁎)', '(;´༎ຶД༎ຶ`)', '(๑•̀ㅂ•́)و✧', '(◍˃̶ᗜ˂̶◍)ノ']) {
+      const result = protectKaomoji(input);
+      assert.notEqual(result, input, `expected ${input} to be protected`);
+      assert.ok(
+        !new RegExp(`${WJ}\\p{M}`, 'u').test(result),
+        `WJ before a combining mark in: ${JSON.stringify(result)}`
+      );
+      assert.equal(withoutWordJoiners(result), input);
+    }
+  });
+
+  it('should still join a combining mark to the glyph after it', () => {
+    const result = protectKaomoji('(•̀ᴗ•́)و');
+    assert.ok(
+      result.includes(`•\u0300${WJ}ᴗ`),
+      `expected WJ after the combining mark, got: ${JSON.stringify(result)}`
+    );
+  });
+
   // --- Idempotency ---
 
   it('should be idempotent (running twice gives same result)', () => {

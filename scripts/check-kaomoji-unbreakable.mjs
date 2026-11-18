@@ -64,6 +64,10 @@ const CORPUS = [
   // 下架墓碑頁（src/lib/tombstone-copy.mjs）用到的顏文字。
   '(－人－)',
   '((( ；ﾟДﾟ)))',
+  // MP-325 用到的；後兩個的眼睛、眼淚是結合符號疊出來的。
+  'ψ(`▽´)ψ',
+  '(;´༎ຶД༎ຶ`)',
+  '(⁎⁍̴̛ᴗ⁍̴̛⁎)',
 ];
 
 // Faces without a bracket group: the plugin has nothing to detect, so they
